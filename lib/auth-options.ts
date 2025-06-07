@@ -1,3 +1,4 @@
+// lib/auth-options.ts
 // Added comment to force Git commit
 
 import { AuthOptions } from "next-auth";

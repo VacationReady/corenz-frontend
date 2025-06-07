@@ -45,6 +45,10 @@ export default function Sidebar() {
             {collapsed ? <Menu /> : <ChevronLeft />}
           </button>
         </div>
+        <button className="flex items-center text-red-600 hover:text-red-800 mb-4">
+          <LogOut className="w-5 h-5 mr-2" />
+          {!collapsed && 'Log Out'}
+        </button>
         <nav className="flex flex-col space-y-2">
           <SidebarLink href="/dashboard" label="Dashboard" icon={Home} isCollapsed={collapsed} />
           <SidebarLink href="/employees" label="Employees" icon={Users} isCollapsed={collapsed} />
@@ -55,10 +59,6 @@ export default function Sidebar() {
       </div>
       <div className="border-t pt-4">
         <SidebarLink href="/settings" label="Settings" icon={Settings} isCollapsed={collapsed} />
-        <button className="flex items-center text-gray-600 mt-2 hover:text-red-600">
-          <LogOut className="w-5 h-5 mr-2" />
-          {!collapsed && 'Log Out'}
-        </button>
       </div>
     </aside>
   )

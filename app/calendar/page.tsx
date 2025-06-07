@@ -1,22 +1,18 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth-options"; // Central authOptions file that points to backend
+import { redirect } from "next/navigation";
 
 export default async function CalendarPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold text-red-600">Not Logged In</h1>
-        <p className="mt-2 text-gray-600">You need to be logged in to view this page.</p>
-      </div>
-    );
+    redirect("/login");
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Calendar</h1>
-      <p className="text-gray-600 mt-2">This is the placeholder for the Calendar module.</p>
-    </div>
+    <main className="flex-1 p-6 overflow-y-auto">
+      <h1 className="text-2xl font-bold mb-6">Calendar</h1>
+      <p className="text-gray-700 text-sm">Your absence and event calendar will appear here soon.</p>
+    </main>
   );
 }

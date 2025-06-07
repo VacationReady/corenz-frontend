@@ -1,3 +1,5 @@
+// Added comment to force Git commit
+
 import { AuthOptions } from "next-auth";
 
 export const authOptions: AuthOptions = {

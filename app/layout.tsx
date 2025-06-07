@@ -1,5 +1,5 @@
 import '../styles/globals.css'
-import ClientSidebarWrapper from './components/ClientSidebarWrapper'
+import ClientSidebarWrapper from '../components/ClientSidebarWrapper'
 
 export const metadata = {
   title: 'CoreNZ HR',

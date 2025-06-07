@@ -53,7 +53,8 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { data: session } = useSession();
+  const sessionResult = useSession();
+const session = sessionResult?.data;
   const user = session?.user;
 
   useEffect(() => {

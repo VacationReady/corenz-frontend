@@ -44,9 +44,9 @@ export default function DashboardPage() {
       <main className="flex-1 p-6 overflow-y-auto">
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8">
           {/* Tasks */}
-          <div className="bg-white p-4 rounded shadow">
+          <div className="bg-white p-6 rounded shadow h-60">
             <h2 className="text-lg font-semibold mb-2">📝 Tasks</h2>
             <ul className="list-disc list-inside text-sm text-gray-700">
               <li>Complete onboarding documents</li>
@@ -56,14 +56,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Holiday Balance */}
-          <div className="bg-white p-4 rounded shadow">
+          <div className="bg-white p-6 rounded shadow h-60">
             <h2 className="text-lg font-semibold mb-2">🏖 Holiday Balance</h2>
             <p className="text-sm text-gray-700">Days Taken: <strong>8</strong></p>
             <p className="text-sm text-gray-700">Days Remaining: <strong>12</strong></p>
           </div>
 
           {/* Company News */}
-          <div className="bg-white p-4 rounded shadow">
+          <div className="bg-white p-6 rounded shadow h-60">
             <h2 className="text-lg font-semibold mb-2">📰 Company News</h2>
             <ul className="list-disc list-inside text-sm text-gray-700">
               <li>All-hands meeting this Friday</li>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Documents */}
-          <div className="bg-white p-4 rounded shadow">
+          <div className="bg-white p-6 rounded shadow h-60">
             <h2 className="text-lg font-semibold mb-2">📄 Documents</h2>
             <ul className="list-disc list-inside text-sm text-gray-700">
               <li><a href="#" className="text-blue-600 hover:underline">Employee Handbook.pdf</a></li>

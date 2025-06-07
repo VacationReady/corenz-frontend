@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Home,
   Users,
@@ -9,9 +9,10 @@ import {
   FileText,
   BarChart2,
   Settings,
-  LogOut,
   Menu,
-  ChevronLeft
+  ChevronLeft,
+  User,
+  LogOut
 } from 'lucide-react'
 
 function SidebarLink({ href, label, icon: Icon, isCollapsed }: { href: string, label: string, icon: React.ElementType, isCollapsed: boolean }) {
@@ -35,6 +36,20 @@ function SidebarLink({ href, label, icon: Icon, isCollapsed }: { href: string, l
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <aside className={`transition-all duration-200 bg-white shadow-md p-4 flex flex-col justify-between ${collapsed ? 'w-20' : 'w-64'}`}>
@@ -45,10 +60,27 @@ export default function Sidebar() {
             {collapsed ? <Menu /> : <ChevronLeft />}
           </button>
         </div>
-        <button className="flex items-center text-red-600 hover:text-red-800 mb-4">
-          <LogOut className="w-5 h-5 mr-2" />
-          {!collapsed && 'Log Out'}
-        </button>
+
+        {/* Top-right profile dropdown */}
+        <div className="relative mb-4" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="w-full flex items-center justify-between text-sm text-gray-700 hover:bg-gray-100 px-3 py-2 rounded"
+          >
+            <span className="flex items-center">
+              <User className="w-5 h-5 mr-2" />
+              {!collapsed && 'My Profile'}
+            </span>
+            {!collapsed && <ChevronLeft className={`w-4 h-4 transform ${dropdownOpen ? 'rotate-90' : ''}`} />}
+          </button>
+          {dropdownOpen && !collapsed && (
+            <div className="absolute right-0 mt-2 w-full bg-white border rounded shadow z-10">
+              <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</Link>
+              <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Logout</button>
+            </div>
+          )}
+        </div>
+
         <nav className="flex flex-col space-y-2">
           <SidebarLink href="/dashboard" label="Dashboard" icon={Home} isCollapsed={collapsed} />
           <SidebarLink href="/employees" label="Employees" icon={Users} isCollapsed={collapsed} />
@@ -57,6 +89,7 @@ export default function Sidebar() {
           <SidebarLink href="/reports" label="Reports" icon={BarChart2} isCollapsed={collapsed} />
         </nav>
       </div>
+
       <div className="border-t pt-4">
         <SidebarLink href="/settings" label="Settings" icon={Settings} isCollapsed={collapsed} />
       </div>

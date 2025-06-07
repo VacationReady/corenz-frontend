@@ -1,5 +1,5 @@
 // app/layout.tsx
-import './globals.css'
+import '../styles/globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LucideUser, LucideClipboardList, LucideLogOut, LucideUsers, LucideCalendarCheck, LucideHome } from 'lucide-react'

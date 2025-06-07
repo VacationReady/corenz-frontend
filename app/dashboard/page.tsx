@@ -30,7 +30,7 @@ export default function DashboardPage() {
           {navItems.map((item) => (
             <a
               key={item.label}
-              href="#"
+              href={`/${item.label.toLowerCase()}`}
               className="flex items-center space-x-3 py-2 px-3 rounded hover:bg-gray-200 text-gray-700"
             >
               <span className="text-lg">{item.icon}</span>
@@ -56,10 +56,16 @@ export default function DashboardPage() {
           </div>
 
           {/* Holiday Balance */}
-          <div className="bg-white p-6 rounded shadow h-60">
-            <h2 className="text-lg font-semibold mb-2">🏖 Holiday Balance</h2>
-            <p className="text-sm text-gray-700">Days Taken: <strong>8</strong></p>
-            <p className="text-sm text-gray-700">Days Remaining: <strong>12</strong></p>
+          <div className="bg-white p-6 rounded shadow h-60 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold mb-2">🏖 Holiday Balance</h2>
+              <p className="text-sm text-gray-700">Total Days: <strong>20</strong></p>
+              <p className="text-sm text-gray-700">Days Taken: <strong>8</strong></p>
+              <p className="text-sm text-gray-700">Days Remaining: <strong>12</strong></p>
+            </div>
+            <button className="mt-4 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 self-start">
+              Book Holiday
+            </button>
           </div>
 
           {/* Company News */}

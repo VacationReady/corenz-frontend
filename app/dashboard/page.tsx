@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
@@ -16,20 +16,7 @@ const navItems = [
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
-    } else {
-      setIsAuthenticated(true)
-    }
-  }, [])
-
-  if (!isAuthenticated) return null
 
   return (
     <div className="flex h-screen bg-gray-100">

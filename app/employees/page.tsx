@@ -1,21 +1,62 @@
-// app/employees/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react';
 
 export default function EmployeesPage() {
-  const [showForm, setShowForm] = useState(false)
-  const [search, setSearch] = useState('')
+  const [employees, setEmployees] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState('');
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    department: '',
+    jobRole: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
-  const employees = [
-    { id: 1, name: 'Alice Johnson', phone: '021 123 4567', department: 'HR', jobRole: 'Manager' },
-    { id: 2, name: 'Bob Smith', phone: '022 234 5678', department: 'Sales', jobRole: 'Sales Rep' },
-    { id: 3, name: 'Charlie Ray', phone: '023 345 6789', department: 'Tech', jobRole: 'Developer' },
-  ]
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/employees`)
+      .then(res => res.json())
+      .then(data => setEmployees(data))
+      .catch(() => setError('Failed to load employees'));
+  }, []);
 
   const filteredEmployees = employees.filter((emp) =>
     emp.name.toLowerCase().includes(search.toLowerCase())
-  )
+  );
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/employees`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+
+      if (!res.ok) throw new Error('Error creating employee');
+
+      const newEmp = await res.json();
+      setEmployees([newEmp, ...employees]);
+      setForm({ name: '', phone: '', department: '', jobRole: '' });
+      setShowForm(false);
+      setSuccess(true);
+    } catch (err) {
+      setError('Failed to create employee');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="p-6">
@@ -40,7 +81,7 @@ export default function EmployeesPage() {
           <thead className="bg-gray-100">
             <tr>
               <th className="px-4 py-2 text-left">Name</th>
-              <th className="px-4 py-2 text-left">Phone Number</th>
+              <th className="px-4 py-2 text-left">Phone</th>
               <th className="px-4 py-2 text-left">Department</th>
               <th className="px-4 py-2 text-left">Job Role</th>
             </tr>
@@ -58,47 +99,27 @@ export default function EmployeesPage() {
         </table>
       </div>
 
-      {/* Add Employee Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Full Name</label>
-                <input type="text" className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Phone Number</label>
-                <input type="tel" className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Department</label>
-                <input type="text" className="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Job Role</label>
-                <input type="text" className="w-full border rounded px-3 py-2" />
-              </div>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <input type="text" name="name" value={form.name} onChange={handleChange} required placeholder="Full Name" className="w-full border rounded px-3 py-2" />
+              <input type="tel" name="phone" value={form.phone} onChange={handleChange} required placeholder="Phone Number" className="w-full border rounded px-3 py-2" />
+              <input type="text" name="department" value={form.department} onChange={handleChange} placeholder="Department" className="w-full border rounded px-3 py-2" />
+              <input type="text" name="jobRole" value={form.jobRole} onChange={handleChange} placeholder="Job Role" className="w-full border rounded px-3 py-2" />
               <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Create
+                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" disabled={loading}>
+                  {loading ? 'Saving...' : 'Create'}
                 </button>
               </div>
             </form>
+            {error && <p className="text-red-600 mt-2">{error}</p>}
+            {success && <p className="text-green-600 mt-2">Employee added successfully!</p>}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

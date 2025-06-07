@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
@@ -14,6 +15,21 @@ const navItems = [
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      router.push('/login')
+    } else {
+      setIsAuthenticated(true)
+    }
+  }, [])
+
+  if (!isAuthenticated) return null
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -30,7 +46,7 @@ export default function DashboardPage() {
             <a
               key={item.label}
               href={item.path}
-              className="flex items-center space-x-3 py-2 px-3 rounded hover:bg-gray-200 text-gray-700"
+              className={`flex items-center space-x-3 py-2 px-3 rounded text-gray-700 hover:bg-gray-200 ${pathname === item.path ? 'bg-blue-100 text-blue-700 font-medium' : ''}`}
             >
               <span className="text-lg">{item.icon}</span>
               {sidebarOpen && <span>{item.label}</span>}
@@ -62,7 +78,10 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-700">Days Taken: <strong>8</strong></p>
               <p className="text-sm text-gray-700">Days Remaining: <strong>12</strong></p>
             </div>
-            <button className="mt-4 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 self-start">
+            <button
+              onClick={() => setShowForm(true)}
+              className="mt-4 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 self-start"
+            >
               Book Holiday
             </button>
           </div>
@@ -87,6 +106,41 @@ export default function DashboardPage() {
             </ul>
           </div>
         </div>
+
+        {/* Book Holiday Form Modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4">Book Holiday</h2>
+              <form className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Start Date</label>
+                  <input type="date" className="w-full border rounded px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">End Date</label>
+                  <input type="date" className="w-full border rounded px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Reason</label>
+                  <input type="text" className="w-full border rounded px-3 py-2" placeholder="Optional" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Comments</label>
+                  <textarea className="w-full border rounded px-3 py-2" rows={3}></textarea>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">
+                    Cancel
+                  </button>
+                  <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

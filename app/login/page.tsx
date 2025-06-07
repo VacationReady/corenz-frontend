@@ -1,10 +1,9 @@
-// app/login/page.tsx
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FcGoogle } from 'react-icons/fc'
-import { SiMicrosoft } from 'react-icons/si'
+import { FaMicrosoft } from 'react-icons/fa'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -82,7 +81,7 @@ export default function LoginPage() {
             className="flex items-center justify-center border px-4 py-2 rounded hover:bg-gray-100 w-full"
             onClick={() => alert('Microsoft login placeholder')}
           >
-            <SiMicrosoft className="mr-2 text-xl text-blue-700" /> Login with Microsoft
+            <FaMicrosoft className="mr-2 text-xl text-blue-700" /> Login with Microsoft
           </button>
         </div>
       </div>

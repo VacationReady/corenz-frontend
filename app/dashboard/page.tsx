@@ -1,16 +1,15 @@
-// app/dashboard/page.tsx
 'use client'
 
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
-  { label: 'Dashboard', icon: '🏠' },
-  { label: 'Employees', icon: '👥' },
-  { label: 'Calendar', icon: '🗓' },
-  { label: 'Documents', icon: '📄' },
-  { label: 'Reports', icon: '📊' },
-  { label: 'Settings', icon: '⚙️' },
+  { label: 'Dashboard', icon: '🏠', path: '/dashboard' },
+  { label: 'Employees', icon: '👥', path: '/employees' },
+  { label: 'Calendar', icon: '🗓', path: '/calendar' },
+  { label: 'Documents', icon: '📄', path: '/documents' },
+  { label: 'Reports', icon: '📊', path: '/reports' },
+  { label: 'Settings', icon: '⚙️', path: '/settings' },
 ]
 
 export default function DashboardPage() {
@@ -30,7 +29,7 @@ export default function DashboardPage() {
           {navItems.map((item) => (
             <a
               key={item.label}
-              href={`/${item.label.toLowerCase()}`}
+              href={item.path}
               className="flex items-center space-x-3 py-2 px-3 rounded hover:bg-gray-200 text-gray-700"
             >
               <span className="text-lg">{item.icon}</span>

@@ -1,0 +1,11 @@
+{
+  "/page": "/",
+  "/Profile/page": "/Profile",
+  "/login/page": "/login",
+  "/documents/page": "/documents",
+  "/calendar/page": "/calendar",
+  "/dashboard/page": "/dashboard",
+  "/reports/page": "/reports",
+  "/settings/page": "/settings",
+  "/employees/page": "/employees"
+}

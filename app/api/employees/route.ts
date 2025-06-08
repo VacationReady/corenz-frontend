@@ -43,31 +43,25 @@ export async function POST(req: Request) {
 
     const activationLink = `${process.env.NEXTAUTH_URL}/activate?token=${token}`;
 
-    try {
-      const emailResult = await resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: email,
-        subject: 'Activate your CoreNZ account',
-        html: `
-          <div style="font-family: sans-serif; line-height: 1.5;">
-            <h2>Welcome to CoreNZ, ${name}!</h2>
-            <p>Click below to activate your account:</p>
-            <p>
-              <a href="${activationLink}" style="display:inline-block;padding:10px 20px;background-color:#2563eb;color:white;text-decoration:none;border-radius:5px;">
-                Activate My Account
-              </a>
-            </p>
-            <p>This link will expire in 24 hours.</p>
-            <p>If the button above doesn't work, paste this URL into your browser:</p>
-            <p><a href="${activationLink}">${activationLink}</a></p>
-          </div>
-        `,
-      });
-
-      console.log(`📨 Email sent to ${email}`, emailResult);
-    } catch (emailError) {
-      console.error(`❌ Resend failed for ${email}:`, emailError);
-    }
+    await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: email,
+      subject: 'Activate your CoreNZ account',
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.5;">
+          <h2>Welcome to CoreNZ, ${name}!</h2>
+          <p>Click the button below to activate your account:</p>
+          <p>
+            <a href="${activationLink}" style="display:inline-block;padding:10px 20px;background-color:#2563eb;color:white;text-decoration:none;border-radius:5px;">
+              Activate My Account
+            </a>
+          </p>
+          <p>This link will expire in 24 hours.</p>
+          <p>If the button doesn't work, paste this URL into your browser:</p>
+          <p><a href="${activationLink}">${activationLink}</a></p>
+        </div>
+      `,
+    });
 
     return NextResponse.json(employee);
   } catch (error) {

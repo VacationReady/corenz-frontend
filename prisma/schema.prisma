@@ -17,8 +17,9 @@ model Employee {
   password        String?
   isActivated     Boolean           @default(false)
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime?         @updatedAt  // Optional for migration safety
+  updatedAt       DateTime?         @updatedAt
   activationToken ActivationToken?
+  leaveRequests   LeaveRequest[]    // ✅ Linked leave requests
 
   @@map("Employee")
 }
@@ -31,4 +32,18 @@ model ActivationToken {
   expiresAt  DateTime
 
   @@map("ActivationToken")
+}
+
+model LeaveRequest {
+  id          String   @id @default(uuid())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  startDate   DateTime
+  endDate     DateTime
+  type        String   // e.g. 'Annual', 'Sick', 'Unpaid'
+  status      String   @default("Pending") // 'Pending', 'Approved', 'Rejected'
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@map("LeaveRequest")
 }

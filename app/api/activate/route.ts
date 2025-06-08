@@ -49,15 +49,18 @@ export async function POST(req: Request) {
     console.log("Activation complete.");
     return NextResponse.json({ message: 'Account activated' });
   } catch (error: any) {
-    console.error("Activation failed:", error);
+    try {
+      const stringifiedError = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      console.error("Activation failed:", stringifiedError);
+    } catch (logErr) {
+      console.error("Activation failed, and error could not be stringified:", logErr);
+    }
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : typeof error === 'string'
-          ? error
-          : 'Unknown error';
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error?.message || error?.toString() || 'Unknown server error',
+      },
+      { status: 500 }
+    );
   }
 }

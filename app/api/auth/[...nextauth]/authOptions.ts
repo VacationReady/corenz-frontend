@@ -25,16 +25,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           const user = await res.json();
-
-          if (user && user.id) {
-            return {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-            };
-          }
-
-          return null;
+          return user && user.id ? user : null;
         } catch (error) {
           console.error("Auth exception:", error);
           return null;

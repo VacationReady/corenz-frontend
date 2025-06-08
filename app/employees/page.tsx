@@ -8,6 +8,7 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({
     name: '',
+    email: '',
     phone: '',
     department: '',
     jobRole: ''
@@ -48,7 +49,7 @@ export default function EmployeesPage() {
 
       const newEmp = await res.json();
       setEmployees([newEmp, ...employees]);
-      setForm({ name: '', phone: '', department: '', jobRole: '' });
+      setForm({ name: '', email: '', phone: '', department: '', jobRole: '' });
       setShowForm(false);
       setSuccess(true);
     } catch (err) {
@@ -105,6 +106,7 @@ export default function EmployeesPage() {
             <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <input type="text" name="name" value={form.name} onChange={handleChange} required placeholder="Full Name" className="w-full border rounded px-3 py-2" />
+              <input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="Email Address" className="w-full border rounded px-3 py-2" />
               <input type="tel" name="phone" value={form.phone} onChange={handleChange} required placeholder="Phone Number" className="w-full border rounded px-3 py-2" />
               <input type="text" name="department" value={form.department} onChange={handleChange} placeholder="Department" className="w-full border rounded px-3 py-2" />
               <input type="text" name="jobRole" value={form.jobRole} onChange={handleChange} placeholder="Job Role" className="w-full border rounded px-3 py-2" />

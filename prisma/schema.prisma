@@ -7,67 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id               Int               @id @default(autoincrement())
-  email            String            @unique
-  name             String
-  password         String
-  role             String?
-  managerId        Int?
-  manager          User?             @relation("ManagerToEmployees", fields: [managerId], references: [id])
-  employees        User[]            @relation("ManagerToEmployees")
-  leaveRequests    LeaveRequest[]
-  onboardingTasks  OnboardingTask[]
-  offboardingTasks OffboardingTask[]
-}
-
-model LeaveRequest {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
-  managerId  Int?
-  status     String
-  startDate  DateTime
-  endDate    DateTime
-  reason     String
-  createdAt  DateTime @default(now())
-}
-
-model OnboardingTask {
-  id        Int    @id @default(autoincrement())
-  userId    Int
-  user      User   @relation(fields: [userId], references: [id])
-  task      String
-  completed Boolean @default(false)
-}
-
-model OffboardingTask {
-  id        Int    @id @default(autoincrement())
-  userId    Int
-  user      User   @relation(fields: [userId], references: [id])
-  task      String
-  completed Boolean @default(false)
-}
-
 model Employee {
-  id         Int      @id @default(autoincrement())
-  name       String
-  email      String?  @unique  // ✅ now optional but still unique
-  phone      String
-  department String
-  jobRole    String
-  createdAt  DateTime @default(now())
-
+  id              String            @id @default(uuid())
+  name            String
+  email           String            @unique
+  phone           String?
+  department      String?
+  jobRole         String?
   password        String?
-  isActivated     Boolean   @default(false)
-  activationTokens ActivationToken[]
+  isActivated     Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime?         @updatedAt  // Optional to avoid migration failure
+  activationToken ActivationToken?
+
+  @@map("Employee")
 }
 
 model ActivationToken {
-  id         Int       @id @default(autoincrement())
-  token      String
-  employee   Employee  @relation(fields: [employeeId], references: [id])
-  employeeId Int
+  id         String   @id @default(uuid())
+  token      String   @unique
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
   expiresAt  DateTime
-  createdAt  DateTime  @default(now())
+
+  @@map("ActivationToken")
 }

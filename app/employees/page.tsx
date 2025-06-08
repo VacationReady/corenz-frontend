@@ -83,4 +83,20 @@ export default function EmployeesPage() {
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           Add Employee
-        </butto
+        </button>
+      </div>
+
+      <div className="overflow-x-auto bg-white shadow rounded">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-2 text-left">Name</th>
+              <th className="px-4 py-2 text-left">Phone</th>
+              <th className="px-4 py-2 text-left">Department</th>
+              <th className="px-4 py-2 text-left">Job Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredEmployees.map((emp) => (
+              <tr key={emp.id} className="border-t">
+                <td className="px-4 py-

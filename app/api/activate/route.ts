@@ -49,18 +49,18 @@ export async function POST(req: Request) {
     console.log("Activation complete.");
     return NextResponse.json({ message: 'Account activated' });
   } catch (error: any) {
+    console.error("⚠️ Activation failed RAW:", error);
+
+    let fallback = "Unknown error";
+
     try {
-      const stringifiedError = JSON.stringify(error, Object.getOwnPropertyNames(error));
-      console.error("Activation failed:", stringifiedError);
-    } catch (logErr) {
-      console.error("Activation failed, and error could not be stringified:", logErr);
+      fallback = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      console.error("⚠️ Activation failed (stringified):", fallback);
+    } catch (err2) {
+      fallback = error?.toString() || "Non-serializable error";
+      console.error("⚠️ Activation failed (toString fallback):", fallback);
     }
 
-    return NextResponse.json(
-      {
-        error: error?.message || error?.toString() || 'Unknown server error',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: fallback }, { status: 500 });
   }
 }

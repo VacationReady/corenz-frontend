@@ -6,6 +6,20 @@ import { v4 as uuidv4 } from 'uuid';
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// GET: Return all employees
+export async function GET() {
+  try {
+    const employees = await prisma.employee.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return NextResponse.json(employees);
+  } catch (error) {
+    console.error('❌ Failed to fetch employees:', error);
+    return NextResponse.json({ error: 'Error loading employees' }, { status: 500 });
+  }
+}
+
+// POST: Create a new employee and send activation link
 export async function POST(req: Request) {
   try {
     const { name, email, phone, department, jobRole } = await req.json();
@@ -31,7 +45,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // ✅ CORRECT activation link generation
     const activationLink = `${process.env.NEXTAUTH_URL}/activate?token=${token}`;
 
     await resend.emails.send({

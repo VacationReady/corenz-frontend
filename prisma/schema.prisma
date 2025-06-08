@@ -8,42 +8,40 @@ datasource db {
 }
 
 model Employee {
-  id              String            @id @default(uuid())
-  name            String
-  email           String            @unique
-  phone           String?
-  department      String?
-  jobRole         String?
-  password        String?
-  isActivated     Boolean           @default(false)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime?         @updatedAt
+  id          String             @id @default(uuid())
+  name        String
+  email       String             @unique
+  password    String?
+  phone       String?
+  department  String?
+  jobRole     String?
+  isActivated Boolean?           @default(false) // keeping original
+  isActive    Boolean            @default(false) // ← newly added field
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  leaveRequests   LeaveRequest[]
   activationToken ActivationToken?
-  leaveRequests   LeaveRequest[]    // ✅ Linked leave requests
-
-  @@map("Employee")
-}
-
-model ActivationToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId String   @unique
-  expiresAt  DateTime
-
-  @@map("ActivationToken")
 }
 
 model LeaveRequest {
-  id          String   @id @default(uuid())
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId  String
-  startDate   DateTime
-  endDate     DateTime
-  type        String   // e.g. 'Annual', 'Sick', 'Unpaid'
-  status      String   @default("Pending") // 'Pending', 'Approved', 'Rejected'
-  reason      String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String
+  startDate  DateTime
+  endDate    DateTime
+  type       String
+  status     String   @default("Pending")
+  reason     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
 
-  @@map("LeaveRequest")
+model ActivationToken {
+  id         String   @id @default(uuid())       // ← restored
+  token      String   @unique                    // ← now separate from ID
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime?                            // ← restored
 }

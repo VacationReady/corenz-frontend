@@ -32,29 +32,4 @@ export async function POST(req: Request) {
     console.log("Token valid. Hashing password...");
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log("Updating employee record...");
-    await prisma.employee.update({
-      where: { id: activation.employeeId },
-      data: {
-        password: hashedPassword,
-        isActive: true,
-      },
-    });
-
-    console.log("Deleting token...");
-    await prisma.activationToken.delete({
-      where: { token },
-    });
-
-    console.log("Activation complete.");
-    return NextResponse.json({ message: 'Account activated' });
-  } catch (error) {
-    console.error("Activation failed:", error);
-
-    if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ error: 'Unknown server error' }, { status: 500 });
-  }
-}
+    console.log("Updatin

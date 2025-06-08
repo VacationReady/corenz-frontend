@@ -38,6 +38,8 @@ export default function EmployeesPage() {
     setError('');
     setSuccess(false);
 
+    console.log('Submitting form:', form); // 🐛 This line shows you what's being sent
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/employees`, {
         method: 'POST',

@@ -6,16 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function GET() {
-  try {
-    const employees = await prisma.employee.findMany();
-    return NextResponse.json(employees);
-  } catch (error) {
-    console.error('❌ Failed to fetch employees:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const { name, email, phone, department, jobRole } = await req.json();
@@ -37,10 +27,11 @@ export async function POST(req: Request) {
       data: {
         token,
         employeeId: employee.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24h
       },
     });
 
+    // ✅ CORRECT activation link generation
     const activationLink = `${process.env.NEXTAUTH_URL}/activate?token=${token}`;
 
     await resend.emails.send({
@@ -57,7 +48,7 @@ export async function POST(req: Request) {
             </a>
           </p>
           <p>This link will expire in 24 hours.</p>
-          <p>If the button doesn't work, paste this URL into your browser:</p>
+          <p>If the button doesn’t work, paste this URL into your browser:</p>
           <p><a href="${activationLink}">${activationLink}</a></p>
         </div>
       `,

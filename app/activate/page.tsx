@@ -46,7 +46,6 @@ export default function ActivatePage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 shadow-xl rounded-2xl">
         <div className="text-center mb-6">
-          {/* Inline CoreNZ logo */}
           <div className="flex justify-center mb-3">
             <svg
               width="48"
@@ -99,4 +98,7 @@ export default function ActivatePage() {
             Set Password
           </button>
         </form>
-      </d
+      </div>
+    </div>
+  );
+}

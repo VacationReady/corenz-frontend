@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { useEffect, useState } from 'react';
 
@@ -18,14 +18,23 @@ export default function EmployeesPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/employees`)
-      .then(res => res.json())
-      .then(data => setEmployees(data))
+    fetch('/api/employees')
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch employees");
+        return res.json();
+      })
+      .then(data => {
+        if (Array.isArray(data)) {
+          setEmployees(data);
+        } else {
+          throw new Error("Response is not an array");
+        }
+      })
       .catch(() => setError('Failed to load employees'));
   }, []);
 
   const filteredEmployees = employees.filter((emp) =>
-    emp.name.toLowerCase().includes(search.toLowerCase())
+    emp.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleChange = (e) => {
@@ -38,10 +47,8 @@ export default function EmployeesPage() {
     setError('');
     setSuccess(false);
 
-    console.log('Submitting form:', form); // 🐛 This line shows you what's being sent
-
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/employees`, {
+      const res = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
@@ -76,54 +83,4 @@ export default function EmployeesPage() {
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           Add Employee
-        </button>
-      </div>
-
-      <div className="overflow-x-auto bg-white shadow rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left">Name</th>
-              <th className="px-4 py-2 text-left">Phone</th>
-              <th className="px-4 py-2 text-left">Department</th>
-              <th className="px-4 py-2 text-left">Job Role</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEmployees.map((emp) => (
-              <tr key={emp.id} className="border-t">
-                <td className="px-4 py-2">{emp.name}</td>
-                <td className="px-4 py-2">{emp.phone}</td>
-                <td className="px-4 py-2">{emp.department}</td>
-                <td className="px-4 py-2">{emp.jobRole}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <input type="text" name="name" value={form.name} onChange={handleChange} required placeholder="Full Name" className="w-full border rounded px-3 py-2" />
-              <input type="email" name="email" value={form.email} onChange={handleChange} required placeholder="Email Address" className="w-full border rounded px-3 py-2" />
-              <input type="tel" name="phone" value={form.phone} onChange={handleChange} required placeholder="Phone Number" className="w-full border rounded px-3 py-2" />
-              <input type="text" name="department" value={form.department} onChange={handleChange} placeholder="Department" className="w-full border rounded px-3 py-2" />
-              <input type="text" name="jobRole" value={form.jobRole} onChange={handleChange} placeholder="Job Role" className="w-full border rounded px-3 py-2" />
-              <div className="flex justify-end space-x-2">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" disabled={loading}>
-                  {loading ? 'Saving...' : 'Create'}
-                </button>
-              </div>
-            </form>
-            {error && <p className="text-red-600 mt-2">{error}</p>}
-            {success && <p className="text-green-600 mt-2">Employee added successfully!</p>}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        </butto

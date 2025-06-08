@@ -6,10 +6,18 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+export async function GET() {
+  try {
+    const employees = await prisma.employee.findMany();
+    return NextResponse.json(employees);
+  } catch (error) {
+    console.error('Failed to fetch employees:', error);
+    return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  console.log('Incoming employee request:', body); // 🐛 debug log
-
   console.log("🧾 Received payload:", body);
   const { name, email, phone, department, jobRole } = body;
 
@@ -18,7 +26,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // ✅ Now correctly includes 'email' in the DB
     const newEmployee = await prisma.employee.create({
       data: {
         name,
@@ -55,7 +62,7 @@ export async function POST(req: NextRequest) {
       `,
     });
 
-    return NextResponse.json({ message: 'Employee created and activation email sent.' }, { status: 200 });
+    return NextResponse.json(newEmployee, { status: 200 });
 
   } catch (error) {
     console.error('Error creating employee:', error);

@@ -17,7 +17,7 @@ model Employee {
   password        String?
   isActivated     Boolean           @default(false)
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime?         @updatedAt  // Optional to avoid migration failure
+  updatedAt       DateTime?         @updatedAt  // Optional for migration safety
   activationToken ActivationToken?
 
   @@map("Employee")
@@ -26,7 +26,7 @@ model Employee {
 model ActivationToken {
   id         String   @id @default(uuid())
   token      String   @unique
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   employeeId String   @unique
   expiresAt  DateTime
 

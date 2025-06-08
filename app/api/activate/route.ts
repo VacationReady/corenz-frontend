@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
+  console.log('🔥 Received /api/activate POST'); // DEBUG: confirms request reached the route
+
   try {
     const { token, password } = await req.json();
 
@@ -19,18 +21,18 @@ export async function POST(req: Request) {
     });
 
     if (!activationToken) {
-      console.error('❌ Token not found');
+      console.error('❌ Invalid or expired token');
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
     }
 
     if (!activationToken.employee) {
-      console.error('❌ Token found but employee not linked');
+      console.error('❌ No employee linked to token');
       return NextResponse.json({ error: 'Employee not found' }, { status: 400 });
     }
 
     const isExpired = new Date(activationToken.expiresAt) < new Date();
     if (isExpired) {
-      console.warn('⚠️ Token expired');
+      console.warn('⚠️ Token has expired');
       return NextResponse.json({ error: 'Token has expired' }, { status: 400 });
     }
 
@@ -49,10 +51,10 @@ export async function POST(req: Request) {
       where: { token },
     });
 
-    console.log(`✅ Successfully activated account for ${activationToken.employee.email}`);
+    console.log(`✅ Password set and account activated for ${activationToken.employee.email}`);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('❌ Unexpected activation error:', error.message || error);
+    console.error('❌ Unexpected error in /api/activate:', error.message || error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
   }
 }

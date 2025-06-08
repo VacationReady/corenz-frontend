@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   console.log('Incoming employee request:', body); // 🐛 debug log
 
+  console.log("🧾 Received payload:", body);
   const { name, email, phone, department, jobRole } = body;
 
   if (!name || !email) {

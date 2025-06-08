@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       data: {
         token,
         employeeId: employee.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hrs
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
       },
     });
 
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     try {
       const emailResult = await resend.emails.send({
-        from: 'onboarding@resend.dev', // ✅ Sandbox sender (no domain needed)
+        from: 'onboarding@resend.dev',
         to: email,
         subject: 'Activate your CoreNZ account',
         html: `
@@ -58,6 +58,8 @@ export async function POST(req: Request) {
               </a>
             </p>
             <p>This link will expire in 24 hours.</p>
+            <p>If the button above doesn't work, paste this URL into your browser:</p>
+            <p><a href="${activationLink}">${activationLink}</a></p>
           </div>
         `,
       });

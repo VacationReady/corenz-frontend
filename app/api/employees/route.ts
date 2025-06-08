@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { hash } from 'bcryptjs';
 import nodemailer from 'nodemailer';
-import { prisma } from '@/lib/prisma'; // adjust if you store your client elsewhere
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -13,17 +13,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 1. Insert employee into DB
     const newEmployee = await prisma.employee.create({
       data: { name, email, phone, department, jobRole },
     });
 
-    // 2. Generate activation token
     const token = uuidv4();
     const hashedToken = await hash(token, 10);
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
 
-    // 3. Store token in DB
     await prisma.activationToken.create({
       data: {
         token: hashedToken,
@@ -32,9 +29,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 4. Send activation email
     const transporter = nodemailer.createTransport({
-      service: 'Gmail', // or another SMTP provider
+      service: 'Gmail',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -56,7 +52,6 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ message: 'Employee created and activation email sent.' }, { status: 200 });
-
   } catch (error) {
     console.error('Error creating employee:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

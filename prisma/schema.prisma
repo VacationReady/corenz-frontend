@@ -52,6 +52,7 @@ model OffboardingTask {
 model Employee {
   id         Int      @id @default(autoincrement())
   name       String
+  email      String   @unique
   phone      String
   department String
   jobRole    String

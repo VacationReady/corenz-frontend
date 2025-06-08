@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
-import { hash } from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 import { Resend } from 'resend';
+import { v4 as uuidv4 } from 'uuid';
 
+const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET() {
@@ -11,61 +11,59 @@ export async function GET() {
     const employees = await prisma.employee.findMany();
     return NextResponse.json(employees);
   } catch (error) {
-    console.error('Failed to fetch employees:', error);
-    return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
+    console.error('❌ Failed to fetch employees:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  console.log("🧾 Received payload:", body);
-  const { name, email, phone, department, jobRole } = body;
-
-  if (!name || !email) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
-
+export async function POST(req: Request) {
   try {
-    const newEmployee = await prisma.employee.create({
+    const { name, email, phone, department, jobRole } = await req.json();
+
+    const employee = await prisma.employee.create({
       data: {
         name,
         email,
         phone,
         department,
         jobRole,
+        isActivated: false,
       },
     });
 
     const token = uuidv4();
-    const hashedToken = await hash(token, 10);
-    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
 
     await prisma.activationToken.create({
       data: {
-        token: hashedToken,
-        employeeId: newEmployee.id,
-        expiresAt: expires,
+        token,
+        employeeId: employee.id,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24h expiry
       },
     });
 
     const activationLink = `${process.env.NEXTAUTH_URL}/activate?token=${token}`;
 
     await resend.emails.send({
-      from: 'SimplyHR <onboarding@resend.dev>',
+      from: 'noreply@corenz.co.nz', // update to match your verified domain
       to: email,
-      subject: 'Activate your account',
+      subject: 'Activate your CoreNZ account',
       html: `
-        <p>Hello ${name},</p>
-        <p>Welcome to SimplyHR! Click the link below to activate your account:</p>
-        <p><a href="${activationLink}">${activationLink}</a></p>
-        <p>This link will expire in 24 hours.</p>
+        <div style="font-family: sans-serif; line-height: 1.5;">
+          <h2>Welcome to CoreNZ, ${name}!</h2>
+          <p>Click the button below to activate your account and set your password:</p>
+          <p>
+            <a href="${activationLink}" style="display:inline-block;padding:10px 20px;background-color:#2563eb;color:white;text-decoration:none;border-radius:5px;">
+              Activate My Account
+            </a>
+          </p>
+          <p>This link will expire in 24 hours.</p>
+        </div>
       `,
     });
 
-    return NextResponse.json(newEmployee, { status: 200 });
-
+    return NextResponse.json(employee);
   } catch (error) {
-    console.error('Error creating employee:', error);
+    console.error('❌ Error creating employee:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

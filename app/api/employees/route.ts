@@ -8,7 +8,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  console.log('Incoming employee request:', body); // 🐛 DEBUG LOG
+  console.log('Incoming employee request:', body); // 🐛 debug log
 
   const { name, email, phone, department, jobRole } = body;
 
@@ -17,17 +17,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 1. Create the employee
+    // ✅ Now correctly includes 'email' in the DB
     const newEmployee = await prisma.employee.create({
-      data: { name, email, phone, department, jobRole },
+      data: {
+        name,
+        email,
+        phone,
+        department,
+        jobRole,
+      },
     });
 
-    // 2. Generate the activation token
     const token = uuidv4();
     const hashedToken = await hash(token, 10);
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
 
-    // 3. Store the token in the database
     await prisma.activationToken.create({
       data: {
         token: hashedToken,
@@ -36,7 +40,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 4. Send activation email via Resend
     const activationLink = `${process.env.NEXTAUTH_URL}/activate?token=${token}`;
 
     await resend.emails.send({

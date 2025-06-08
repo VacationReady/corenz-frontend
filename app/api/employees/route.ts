@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       data: {
         token,
         employeeId: employee.id,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hrs
       },
     });
 
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     try {
       const emailResult = await resend.emails.send({
-        from: 'noreply@corenz.co.nz',
+        from: 'onboarding@resend.dev', // ✅ Sandbox sender (no domain needed)
         to: email,
         subject: 'Activate your CoreNZ account',
         html: `

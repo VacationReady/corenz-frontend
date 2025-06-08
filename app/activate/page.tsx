@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ActivatePage() {
   const router = useRouter();
@@ -12,9 +12,22 @@ export default function ActivatePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setError('Activation token is missing. Please check your email link.');
+    }
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!token) {
+      return setError('Missing activation token.');
+    }
 
     if (password.length < 6) {
       return setError('Password must be at least 6 characters.');
@@ -25,6 +38,7 @@ export default function ActivatePage() {
     }
 
     try {
+      setLoading(true);
       const res = await fetch('/api/activate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,13 +46,14 @@ export default function ActivatePage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
 
       setSuccess('Password set! Redirecting to login...');
       setTimeout(() => router.push('/login'), 2000);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Unexpected error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,13 +62,7 @@ export default function ActivatePage() {
       <div className="w-full max-w-md bg-white p-8 shadow-xl rounded-2xl">
         <div className="text-center mb-6">
           <div className="flex justify-center mb-3">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect width="100" height="100" rx="20" fill="#000" />
               <text
                 x="50%"
@@ -94,8 +103,9 @@ export default function ActivatePage() {
           <button
             type="submit"
             className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
+            disabled={loading}
           >
-            Set Password
+            {loading ? 'Submitting...' : 'Set Password'}
           </button>
         </form>
       </div>

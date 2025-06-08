@@ -3,64 +3,71 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
 export async function GET() {
-  console.log("✅ /api/activate GET route hit");
   return NextResponse.json({ message: "Activate route is live." });
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Received body:", body);
+    console.log("🟡 Step 1: Received body", body);
 
     const { token, password } = body;
 
     if (!token || !password) {
-      console.error("Missing token or password");
+      console.error("🔴 Step 2: Missing token or password");
       return NextResponse.json({ error: 'Missing token or password' }, { status: 400 });
     }
 
+    console.log("🟡 Step 3: Finding activation token...");
     const activation = await prisma.activationToken.findUnique({
       where: { token },
       include: { employee: true },
     });
 
     if (!activation) {
-      console.error("Invalid or expired token:", token);
+      console.error("🔴 Step 4: Invalid or expired token");
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
     }
 
-    console.log("Token valid. Hashing password...");
-    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("🟢 Step 5: Token found. Hashing password...");
 
-    console.log("Updating employee record...");
-    await prisma.employee.update({
-      where: { id: activation.employeeId },
-      data: {
-        password: hashedPassword,
-        isActive: true,
-      },
-    });
-
-    console.log("Deleting token...");
-    await prisma.activationToken.delete({
-      where: { token },
-    });
-
-    console.log("Activation complete.");
-    return NextResponse.json({ message: 'Account activated' });
-  } catch (error: any) {
-    console.error("⚠️ Activation failed RAW:", error);
-
-    let fallback = "Unknown error";
-
+    let hashedPassword;
     try {
-      fallback = JSON.stringify(error, Object.getOwnPropertyNames(error));
-      console.error("⚠️ Activation failed (stringified):", fallback);
-    } catch (err2) {
-      fallback = error?.toString() || "Non-serializable error";
-      console.error("⚠️ Activation failed (toString fallback):", fallback);
+      hashedPassword = await bcrypt.hash(password, 10);
+    } catch (err) {
+      console.error("🔴 Step 6: Bcrypt hash failed", err);
+      return NextResponse.json({ error: 'Password hashing failed' }, { status: 500 });
     }
 
-    return NextResponse.json({ error: fallback }, { status: 500 });
+    console.log("🟢 Step 7: Password hashed. Updating employee...");
+
+    try {
+      await prisma.employee.update({
+        where: { id: activation.employeeId },
+        data: {
+          password: hashedPassword,
+          isActive: true,
+        },
+      });
+    } catch (err) {
+      console.error("🔴 Step 8: Employee update failed", err);
+      return NextResponse.json({ error: 'Employee update failed' }, { status: 500 });
+    }
+
+    console.log("🟢 Step 9: Deleting activation token...");
+    try {
+      await prisma.activationToken.delete({
+        where: { token },
+      });
+    } catch (err) {
+      console.error("🔴 Step 10: Token deletion failed", err);
+      return NextResponse.json({ error: 'Token deletion failed' }, { status: 500 });
+    }
+
+    console.log("✅ Step 11: Activation complete.");
+    return NextResponse.json({ message: 'Account activated' });
+  } catch (error: any) {
+    console.error("🔴 Step 12: Unknown activation error", error);
+    return NextResponse.json({ error: 'Unknown error in activation route' }, { status: 500 });
   }
 }

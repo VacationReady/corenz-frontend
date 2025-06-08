@@ -1,17 +1,11 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
+"use client";
+export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
-  const session = await getServerSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
+export default function ProfilePage() {
   return (
-    <main className="flex-1 p-6">
-      <h1 className="text-2xl font-bold mb-6">My Profile</h1>
-      <p>Welcome, {session.user?.name || "user"}!</p>
+    <main className="flex-1 p-6 overflow-y-auto">
+      <h1 className="text-2xl font-bold mb-6">Profile</h1>
+      <p>This is your profile page.</p>
     </main>
   );
 }

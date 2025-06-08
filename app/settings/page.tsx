@@ -1,17 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+"use client";
+export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return <p className="p-6 text-red-500">Access Denied</p>;
-  }
-
+export default function SettingsPage() {
   return (
     <main className="flex-1 p-6 overflow-y-auto">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      <p className="text-gray-700">This is the settings page. Customisations coming soon!</p>
+      <p>This is your settings page.</p>
     </main>
   );
 }

@@ -1,17 +1,11 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
+"use client";
+export const dynamic = "force-dynamic";
 
-export default async function DocumentsPage() {
-  const session = await getServerSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
+export default function DocumentsPage() {
   return (
     <main className="flex-1 p-6 overflow-y-auto">
       <h1 className="text-2xl font-bold mb-6">Documents</h1>
-      {/* Content here */}
+      <p>This is your documents section.</p>
     </main>
   );
 }

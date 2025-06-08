@@ -52,14 +52,14 @@ model OffboardingTask {
 model Employee {
   id         Int      @id @default(autoincrement())
   name       String
-  email      String   @unique
+  email      String?  @unique  // ✅ now optional but still unique
   phone      String
   department String
   jobRole    String
   createdAt  DateTime @default(now())
 
-  password    String?
-  isActivated Boolean   @default(false)
+  password        String?
+  isActivated     Boolean   @default(false)
   activationTokens ActivationToken[]
 }
 

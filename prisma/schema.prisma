@@ -15,8 +15,8 @@ model Employee {
   phone       String?
   department  String?
   jobRole     String?
-  isActivated Boolean?           @default(false) // keeping original
-  isActive    Boolean            @default(false) // ← newly added field
+  isActivated Boolean?           @default(false)
+  isActive    Boolean            @default(false)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
@@ -38,10 +38,9 @@ model LeaveRequest {
 }
 
 model ActivationToken {
-  id         String   @id @default(uuid())       // ← restored
-  token      String   @unique                    // ← now separate from ID
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  employeeId String   @unique
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime?                            // ← restored
+  token       String   @id
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade) // ✅ auto-delete token when employee is deleted
+  employeeId  String   @unique
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
 }

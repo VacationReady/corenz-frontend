@@ -9,9 +9,9 @@ interface Props {
 
 export default function ClientLayout({ children }: Props) {
   return (
-    <div className="w-full">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="w-full px-6 pt-6 bg-gray-100">
+      <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
         {children}
       </main>
     </div>

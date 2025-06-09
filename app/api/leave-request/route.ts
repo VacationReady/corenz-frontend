@@ -1,11 +1,11 @@
 // app/api/leave-request/route.ts
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
-import type { Session } from "next-auth";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth-options';
+import { prisma } from '@/lib/prisma';
+import type { Session } from 'next-auth';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions) as Session;
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       reason,
-      status: "PENDING",
+      status: 'PENDING',
     },
   });
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   const requests = await prisma.leaveRequest.findMany({
     where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
   });
 
   return NextResponse.json(requests);

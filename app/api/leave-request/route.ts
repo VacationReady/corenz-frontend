@@ -2,13 +2,13 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next'; // ✅ Fix for next-auth v4.x
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import type { Session, GetServerSessionOptions } from 'next-auth';
+import type { Session } from 'next-auth';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions as GetServerSessionOptions) as Session;
+  const session = await getServerSession(req, authOptions) as Session;
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions as GetServerSessionOptions) as Session;
+  const session = await getServerSession(req, authOptions) as Session;
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

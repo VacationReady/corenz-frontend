@@ -11,7 +11,6 @@ export default function ClientDashboard() {
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8">
-        {/* Tasks */}
         <div className="bg-white p-6 rounded shadow h-60">
           <h2 className="text-lg font-semibold mb-2">📝 Tasks</h2>
           <ul className="list-disc list-inside text-sm text-gray-700">
@@ -21,7 +20,6 @@ export default function ClientDashboard() {
           </ul>
         </div>
 
-        {/* Holiday Balance */}
         <div className="bg-white p-6 rounded shadow h-60 flex flex-col justify-between">
           <div>
             <h2 className="text-lg font-semibold mb-2">🏖 Holiday Balance</h2>
@@ -37,7 +35,6 @@ export default function ClientDashboard() {
           </button>
         </div>
 
-        {/* Company News */}
         <div className="bg-white p-6 rounded shadow h-60">
           <h2 className="text-lg font-semibold mb-2">📰 Company News</h2>
           <ul className="list-disc list-inside text-sm text-gray-700">
@@ -47,7 +44,6 @@ export default function ClientDashboard() {
           </ul>
         </div>
 
-        {/* Documents */}
         <div className="bg-white p-6 rounded shadow h-60">
           <h2 className="text-lg font-semibold mb-2">📄 Documents</h2>
           <ul className="list-disc list-inside text-sm text-gray-700">
@@ -58,13 +54,11 @@ export default function ClientDashboard() {
         </div>
       </div>
 
-      {/* Leave Requests */}
       <div className="mt-8 bg-white p-6 rounded shadow">
         <h2 className="text-lg font-semibold mb-4">📋 Your Leave Requests</h2>
         <LeaveHistory />
       </div>
 
-      {/* Book Holiday Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">

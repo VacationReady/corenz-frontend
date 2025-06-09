@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 export default function LeaveHistory() {
-  const { data: session, status } = useSession();
+  const sessionHook = useSession();
+  if (!sessionHook) return null;
+
+  const { data: session, status } = sessionHook;
+
   const [requests, setRequests] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 

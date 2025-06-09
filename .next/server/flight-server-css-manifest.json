@@ -1,12 +1,4 @@
 {
-  "cssImports": {
-    "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\layout.tsx": [
-      "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\styles\\globals.css"
-    ]
-  },
-  "cssModules": {
-    "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\page": [
-      "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\styles\\globals.css"
-    ]
-  }
+  "cssImports": {},
+  "cssModules": {}
 }

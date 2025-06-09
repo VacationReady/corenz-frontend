@@ -1,65 +1,63 @@
-'use client';
+"use client";
 
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 
-type Employee = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  department?: string;
-  jobRole?: string;
-};
+export const dynamic = "force-dynamic";
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [isModalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    department: '',
-    jobRole: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    department: "",
+    jobRole: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch('/api/employees')
+    fetch("/api/employees")
       .then((res) => res.json())
-      .then((data: Employee[]) => setEmployees(data))
-      .catch(() => setError('Failed to load employees'));
+      .then((data) => setEmployees(data))
+      .catch(() => setError("Failed to load employees"));
   }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const res = await fetch('/api/employees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    });
 
-    if (res.ok) {
-      const newEmployee: Employee = await res.json();
+    try {
+      const res = await fetch("/api/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to create employee");
+        return;
+      }
+
+      const newEmployee = await res.json();
       setEmployees((prev) => [...prev, newEmployee]);
       setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        department: '',
-        jobRole: '',
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        department: "",
+        jobRole: "",
       });
-      setError('');
+      setError("");
       setModalOpen(false);
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Failed to create employee');
+    } catch {
+      setError("Network error");
     }
   };
 
@@ -90,12 +88,10 @@ export default function EmployeesPage() {
         <tbody>
           {employees.map((emp) => (
             <tr key={emp.id} className="text-center">
-              <td className="p-2 border">
-                {emp.firstName} {emp.lastName}
-              </td>
-              <td className="p-2 border">{emp.phone || '-'}</td>
-              <td className="p-2 border">{emp.department || '-'}</td>
-              <td className="p-2 border">{emp.jobRole || '-'}</td>
+              <td className="p-2 border">{emp.firstName} {emp.lastName}</td>
+              <td className="p-2 border">{emp.phone || "-"}</td>
+              <td className="p-2 border">{emp.department || "-"}</td>
+              <td className="p-2 border">{emp.jobRole || "-"}</td>
               <td className="p-2 border">{emp.email}</td>
             </tr>
           ))}
@@ -107,7 +103,14 @@ export default function EmployeesPage() {
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Add Employee</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {['firstName', 'lastName', 'email', 'phone', 'department', 'jobRole'].map((field) => (
+              {[
+                "firstName",
+                "lastName",
+                "email",
+                "phone",
+                "department",
+                "jobRole",
+              ].map((field) => (
                 <input
                   key={field}
                   type="text"
@@ -116,7 +119,7 @@ export default function EmployeesPage() {
                   value={formData[field as keyof typeof formData]}
                   onChange={handleChange}
                   className="w-full p-2 border rounded"
-                  required={['firstName', 'lastName', 'email'].includes(field)}
+                  required={["firstName", "lastName", "email"].includes(field)}
                 />
               ))}
               <div className="flex justify-end space-x-2">

@@ -1,6 +1,7 @@
 'use client';
+
 import { useState } from 'react';
-import axios from '../lib/api';
+import axios from '@/lib/api'; // Updated for alias
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
 
@@ -11,10 +12,10 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post('/auth/login', { email, password });
+      const res = await axios.post('/api/auth/login', { email, password }); // fixed route
       localStorage.setItem('token', res.data.token);
       toast.success('Logged in successfully');
-      router.push('/dashboard');
+      router.push('/dashboard'); // Make sure this route exists under /app/dashboard/page.tsx
     } catch (err) {
       toast.error('Invalid credentials');
     }

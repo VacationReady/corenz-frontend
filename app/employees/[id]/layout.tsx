@@ -1,53 +1,62 @@
+// app/employees/[id]/layout.tsx
 "use client";
 
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import { Employee } from "@prisma/client"; // or your Employee type
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
-  const params = useParams() as { id: string };
-  const { id } = params;
-  const pathname = usePathname();
+  const { id } = useParams();
+  const [employee, setEmployee] = useState<Employee | null>(null);
 
-  const tabs = useMemo(
-    () => [
-      { label: "Overview", slug: "overview" },
-      { label: "Personal information", slug: "personal-information" },
-      { label: "Device information", slug: "device-information" },
-      { label: "Employment information", slug: "employment-information" },
-      { label: "Time and attendance", slug: "time-and-attendance" },
-      { label: "Tasks", slug: "tasks" },
-      { label: "Planner", slug: "planner" },
-      { label: "Documents", slug: "documents" },
-      { label: "Thanks", slug: "thanks" },
-      { label: "Skills", slug: "skills" },
-      { label: "Notes", slug: "notes" },
-    ],
-    []
-  );
+  useEffect(() => {
+    if (id && typeof id === "string") {
+      fetch(`/api/employees/${id}`)
+        .then(res => res.json())
+        .then(data => setEmployee(data))
+        .catch(() => setEmployee(null));
+    }
+  }, [id]);
+
+  if (!employee) {
+    return <div className="p-6 text-red-600">Employee not found</div>;
+  }
+
+  const menu = [
+    "overview",
+    "personal-information",
+    "device-information",
+    "employment-information",
+    "time-and-attendance",
+    "tasks",
+    "planner",
+    "documents",
+    "thanks",
+    "skills",
+    "notes",
+  ];
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 bg-white border-r p-4">
-        <nav className="space-y-1">
-          {tabs.map(({ label, slug }) => {
-            const href = `/employees/${id}/${slug}`;
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={slug}
-                href={href}
-                className={`block px-4 py-2 rounded hover:bg-blue-50 ${
-                  isActive ? "bg-blue-100 font-medium text-blue-700" : "text-gray-700"
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Profile sidebar */}
+      <aside className="w-64 bg-white p-4 border-r">
+        <h2 className="text-lg font-bold mb-4">{employee.firstName} {employee.lastName}</h2>
+        <nav className="space-y-2">
+          {menu.map((item) => (
+            <Link
+              key={item}
+              href={`/employees/${id}/${item}`}
+              className="block px-3 py-2 rounded hover:bg-gray-100 capitalize"
+            >
+              {item.replace(/-/g, " ")}
+            </Link>
+          ))}
         </nav>
       </aside>
-      <main className="flex-1 bg-gray-50 p-8">{children}</main>
+
+      {/* Main content */}
+      <main className="flex-1 p-6">{children}</main>
     </div>
   );
 }

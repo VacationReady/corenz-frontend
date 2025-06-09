@@ -140,9 +140,8 @@ var node_polyfill_headers = __webpack_require__(76145);
 // EXTERNAL MODULE: ./node_modules/next/dist/server/future/route-modules/app-route/module.js
 var app_route_module = __webpack_require__(19532);
 var module_default = /*#__PURE__*/__webpack_require__.n(app_route_module);
-// EXTERNAL MODULE: ./node_modules/next-auth/index.js
-var next_auth = __webpack_require__(88354);
-var next_auth_default = /*#__PURE__*/__webpack_require__.n(next_auth);
+// EXTERNAL MODULE: ./node_modules/next-auth/next/index.js
+var next = __webpack_require__(91071);
 // EXTERNAL MODULE: ./node_modules/next-auth/providers/credentials.js
 var credentials = __webpack_require__(19173);
 // EXTERNAL MODULE: ./node_modules/@next-auth/prisma-adapter/dist/index.js
@@ -153,12 +152,12 @@ var prisma = __webpack_require__(88560);
 var bcryptjs = __webpack_require__(12716);
 ;// CONCATENATED MODULE: ./app/api/auth/[...nextauth]/route.ts
 // UPDATED /app/api/auth/[...nextauth]/route.ts
+ // ✅ Corrected for App Router
 
 
 
 
-
-const handler = next_auth_default()({
+const handler = (0,next/* default */.ZP)({
     adapter: (0,dist/* PrismaAdapter */.N)(prisma/* prisma */._),
     session: {
         strategy: "jwt"
@@ -230,27 +229,6 @@ const handler = next_auth_default()({
 
     
 
-/***/ }),
-
-/***/ 88560:
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "_": () => (/* binding */ prisma)
-/* harmony export */ });
-/* harmony import */ var _prisma_client__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(53524);
-/* harmony import */ var _prisma_client__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_prisma_client__WEBPACK_IMPORTED_MODULE_0__);
-// lib/prisma.ts
-
-const globalForPrisma = globalThis;
-const prisma = globalForPrisma.prisma || new _prisma_client__WEBPACK_IMPORTED_MODULE_0__.PrismaClient({
-    log: [
-        "query"
-    ]
-});
-if (false) {}
-
-
 /***/ })
 
 };
@@ -260,7 +238,7 @@ if (false) {}
 var __webpack_require__ = require("../../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,601,716,609,549], () => (__webpack_exec__(82435)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,601,716,609,646,560], () => (__webpack_exec__(82435)));
 module.exports = __webpack_exports__;
 
 })();

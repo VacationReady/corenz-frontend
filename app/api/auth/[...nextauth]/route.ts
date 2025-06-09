@@ -1,6 +1,6 @@
 // UPDATED /app/api/auth/[...nextauth]/route.ts
 
-import NextAuth from "next-auth";
+import NextAuth from "next-auth/next"; // ✅ Corrected for App Router
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";

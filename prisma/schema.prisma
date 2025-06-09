@@ -55,6 +55,7 @@ model Employee {
   password    String?
   isActivated Boolean  @default(false)
   isActive    Boolean  @default(true)
+  role        Role     @default(EMPLOYEE) // ✅ Added here
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

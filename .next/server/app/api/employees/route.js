@@ -2,7 +2,7 @@
 (() => {
 var exports = {};
 exports.id = 572;
-exports.ids = [572];
+exports.ids = [572,560];
 exports.modules = {
 
 /***/ 53524:
@@ -137,6 +137,7 @@ async function POST(req) {
     try {
         const { firstName , lastName , email , phone , department , jobRole  } = await req.json();
         const token = (0,v4/* default */.Z)();
+        const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours from now
         const newEmployee = await prisma/* prisma.employee.create */._.employee.create({
             data: {
                 firstName,
@@ -146,9 +147,10 @@ async function POST(req) {
                 department,
                 jobRole,
                 isActive: false,
-                activationToken: {
+                activationTokens: {
                     create: {
-                        token
+                        token,
+                        expiresAt
                     }
                 }
             }
@@ -231,9 +233,12 @@ async function GET() {
 // lib/prisma.ts
 
 const globalForPrisma = globalThis;
-const prisma = globalForPrisma.prisma || new _prisma_client__WEBPACK_IMPORTED_MODULE_0__.PrismaClient({
+// Avoid creating multiple Prisma clients during development (hot reload safe)
+const prisma = globalForPrisma.prisma ?? new _prisma_client__WEBPACK_IMPORTED_MODULE_0__.PrismaClient({
     log: [
-        "query"
+        "query",
+        "error",
+        "warn"
     ]
 });
 if (false) {}

@@ -176,8 +176,8 @@ var app_route_module = __webpack_require__(19532);
 var module_default = /*#__PURE__*/__webpack_require__.n(app_route_module);
 // EXTERNAL MODULE: ./node_modules/next/dist/server/web/exports/next-response.js
 var next_response = __webpack_require__(83804);
-// EXTERNAL MODULE: ./node_modules/next-auth/index.js
-var next_auth = __webpack_require__(88354);
+// EXTERNAL MODULE: ./node_modules/next-auth/next/index.js
+var next = __webpack_require__(91071);
 // EXTERNAL MODULE: ./lib/auth-options.ts
 var auth_options = __webpack_require__(78924);
 // EXTERNAL MODULE: ./lib/prisma.ts
@@ -192,49 +192,35 @@ var dist = __webpack_require__(80246);
 
 const resend = new dist/* Resend */.R(process.env.RESEND_API_KEY);
 async function PATCH(req, { params  }) {
-    const session = await (0,next_auth.getServerSession)(auth_options/* authOptions */.L);
-    if (!session) return next_response/* default.json */.Z.json({
-        error: "Unauthorized"
-    }, {
-        status: 401
-    });
-    const { status  } = await req.json();
-    if (![
-        "APPROVED",
-        "DECLINED"
-    ].includes(status)) {
+    const session = await (0,next/* getServerSession */.Z1)(auth_options/* authOptions */.L);
+    if (!session || session.user?.role !== "MANAGER") {
         return next_response/* default.json */.Z.json({
-            error: "Invalid status"
+            error: "Unauthorized"
         }, {
-            status: 400
+            status: 403
         });
     }
-    const updated = await prisma["default"].leaveRequest.update({
+    const { status  } = await req.json();
+    const updatedRequest = await prisma/* prisma.leaveRequest.update */._.leaveRequest.update({
         where: {
             id: params.id
         },
-        include: {
-            user: true
-        },
         data: {
             status
+        },
+        include: {
+            user: true
         }
     });
-    try {
+    if (updatedRequest.user?.email) {
         await resend.emails.send({
-            from: "onboarding@resend.dev",
-            to: updated.user.email,
-            subject: `Your leave request has been ${status}`,
-            html: `
-        <p>Hi ${updated.user.firstName},</p>
-        <p>Your leave request from <strong>${new Date(updated.startDate).toLocaleDateString()}</strong> to <strong>${new Date(updated.endDate).toLocaleDateString()}</strong> has been <strong>${status}</strong>.</p>
-        <p>Thanks,<br />HR Team</p>
-      `
+            from: "hr@corenz.io",
+            to: updatedRequest.user.email,
+            subject: "Leave Request Update",
+            html: `<p>Your leave request from ${updatedRequest.startDate.toDateString()} to ${updatedRequest.endDate.toDateString()} has been <strong>${updatedRequest.status}</strong>.</p>`
         });
-    } catch (err) {
-        console.error("Resend email error:", err);
     }
-    return next_response/* default.json */.Z.json(updated);
+    return next_response/* default.json */.Z.json(updatedRequest);
 }
 
 ;// CONCATENATED MODULE: ./node_modules/next/dist/build/webpack/loaders/next-app-loader.js?page=%2Fapi%2Fleave-request%2F%5Bid%5D%2Froute&name=app%2Fapi%2Fleave-request%2F%5Bid%5D%2Froute&pagePath=private-next-app-dir%2Fapi%2Fleave-request%2F%5Bid%5D%2Froute.ts&appDir=C%3A%5CUsers%5Cmacke%5CDownloads%5CCoreNZ%5Cclean-corenz-frontend%5Capp&appPaths=%2Fapi%2Fleave-request%2F%5Bid%5D%2Froute&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&assetPrefix=&nextConfigOutput=&preferredRegion=!
@@ -276,7 +262,7 @@ async function PATCH(req, { params  }) {
 var __webpack_require__ = require("../../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,601,716,804,609,549,246,924], () => (__webpack_exec__(46288)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,601,716,804,609,646,246,560,924], () => (__webpack_exec__(46288)));
 module.exports = __webpack_exports__;
 
 })();

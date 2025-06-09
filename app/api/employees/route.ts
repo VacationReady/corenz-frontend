@@ -10,6 +10,7 @@ export async function POST(req: Request) {
     const { firstName, lastName, email, phone, department, jobRole } = await req.json();
 
     const token = uuidv4();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours from now
 
     const newEmployee = await prisma.employee.create({
       data: {
@@ -20,9 +21,10 @@ export async function POST(req: Request) {
         department,
         jobRole,
         isActive: false,
-        activationToken: {
+        activationTokens: {
           create: {
             token,
+            expiresAt, // ✅ Required by schema
           },
         },
       },

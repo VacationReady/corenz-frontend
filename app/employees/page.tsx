@@ -64,8 +64,8 @@ export default function EmployeesPage() {
 
   return (
     <ClientLayout>
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
+      <main className="p-6 max-w-7xl mx-auto w-full min-h-screen">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Employees</h1>
           <button
             onClick={() => setModalOpen(true)}
@@ -162,7 +162,7 @@ export default function EmployeesPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </ClientLayout>
   );
 }

@@ -2,15 +2,15 @@
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-
-const secret = process.env.NEXTAUTH_SECRET!;
+import type { Session } from "next-auth";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret });
+  const session = await getServerSession(authOptions) as Session;
 
-  if (!token || typeof token.sub !== "string") {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   const newLeaveRequest = await prisma.leaveRequest.create({
     data: {
-      userId: token.sub,
+      userId: session.user.id,
       type,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
@@ -31,14 +31,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret });
+  const session = await getServerSession(authOptions) as Session;
 
-  if (!token || typeof token.sub !== "string") {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const requests = await prisma.leaveRequest.findMany({
-    where: { userId: token.sub },
+    where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
   });
 

@@ -1,36 +1,50 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 export default function LeaveHistory() {
   const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/leave-request')
-      .then((res) => res.json())
-      .then((data) => setRequests(data))
-      .finally(() => setLoading(false));
+    const fetchRequests = async () => {
+      try {
+        const res = await fetch("/api/leave-request");
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData?.error || "Failed to fetch leave requests");
+        }
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Unexpected response format");
+        }
+
+        setRequests(data);
+      } catch (err: any) {
+        setError(err.message || "Something went wrong");
+      }
+    };
+
+    fetchRequests();
   }, []);
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (error) {
+    return <div className="text-red-600">Error: {error}</div>;
+  }
 
   if (requests.length === 0) {
-    return <p className="text-sm text-gray-500">You haven’t submitted any leave requests yet.</p>;
+    return <p className="text-gray-500">No leave requests found.</p>;
   }
 
   return (
-    <ul className="text-sm text-gray-700 space-y-1">
+    <ul className="text-sm text-gray-700 space-y-2">
       {requests.map((req) => (
-        <li key={req.id} className="border-b pb-1">
-          <strong>{req.type}</strong>: {new Date(req.startDate).toLocaleDateString()} → {new Date(req.endDate).toLocaleDateString()}
-          <span className={`ml-2 px-2 py-1 text-xs rounded ${
-            req.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-            req.status === 'DECLINED' ? 'bg-red-100 text-red-800' :
-            'bg-yellow-100 text-yellow-800'
-          }`}>
-            {req.status}
-          </span>
+        <li key={req.id}>
+          <strong>{req.type}</strong>: {req.startDate} to {req.endDate} –{" "}
+          <em>{req.status}</em>
         </li>
       ))}
     </ul>

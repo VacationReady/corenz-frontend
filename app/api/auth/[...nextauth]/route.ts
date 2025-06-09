@@ -1,21 +1,21 @@
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import prisma from "@/lib/prisma";
+import bcrypt from "bcrypt";
 
 const handler = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Missing credentials');
+          return null;
         }
 
         const user = await prisma.employee.findUnique({
@@ -23,53 +23,44 @@ const handler = NextAuth({
         });
 
         if (!user || !user.password) {
-          throw new Error('Invalid credentials');
-        }
-
-        if (!user.isActivated) {
-          throw new Error('Account not activated');
+          return null;
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isValid) {
-          throw new Error('Invalid credentials');
+          return null;
         }
 
         return {
           id: user.id,
-          name: user.name,
+          name: `${user.firstName} ${user.lastName}`,
           email: user.email,
         };
       },
     }),
   ],
-  pages: {
-    signIn: '/login',
-    error: '/login', // Optional: redirect errors back to login
-  },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.name = user.name;
-        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
       }
       return session;
     },
   },
-  secret: process.env.JWT_SECRET,
+  pages: {
+    signIn: "/login",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 });
 
 export { handler as GET, handler as POST };

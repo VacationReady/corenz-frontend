@@ -1,56 +1,55 @@
-import { NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import { Resend } from "resend";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { Resend } from 'resend';
+import { v4 as uuidv4 } from 'uuid';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function GET() {
-  const employees = await prisma.employee.findMany();
-  return NextResponse.json(employees);
-}
-
 export async function POST(req: Request) {
   try {
-    const { firstName, lastName, email } = await req.json();
+    const { firstName, lastName, email, phone, department, jobRole } = await req.json();
 
-    if (!firstName || !lastName || !email) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    const token = uuidv4();
 
-    // 1. Create Employee
     const newEmployee = await prisma.employee.create({
       data: {
         firstName,
         lastName,
         email,
+        phone,
+        department,
+        jobRole,
         isActive: false,
+        activationToken: {
+          create: {
+            token,
+          },
+        },
       },
     });
 
-    // 2. Create Activation Token
-    const token = uuidv4();
-    await prisma.activationToken.create({
-      data: {
-        token,
-        employeeId: newEmployee.id,
-      },
-    });
-
-    // 3. Construct Activation Link
     const activationLink = `https://corenz-frontend.vercel.app/activate?token=${token}`;
 
-    // 4. Send Email with Resend
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: 'onboarding@resend.dev',
       to: email,
-      subject: "Activate your account",
-      html: `<p>Hello ${firstName},</p><p>Please activate your account by clicking the link below:</p><p><a href="${activationLink}">Activate Account</a></p>`,
+      subject: 'Activate Your CoreNZ Account',
+      html: `<p>Hello ${firstName},</p><p>Click <a href="${activationLink}">here</a> to activate your account.</p>`,
     });
 
-    return NextResponse.json({ message: "Employee created and email sent." });
+    return NextResponse.json({ message: 'Employee created and email sent.' }, { status: 201 });
   } catch (error) {
-    console.error("POST /api/employees error:", error);
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    console.error('Error in employee creation:', error);
+    return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const employees = await prisma.employee.findMany();
+    return NextResponse.json(employees);
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    return NextResponse.json({ error: 'Failed to load employees' }, { status: 500 });
   }
 }

@@ -1,6 +1,8 @@
+// lib/auth-options.ts
+
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
-import type { Session, SessionStrategy } from "next-auth";
+import type { Session } from "next-auth";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
@@ -40,7 +42,7 @@ export const authOptions = {
     signIn: "/login",
   },
   session: {
-    strategy: "jwt" as SessionStrategy,
+    strategy: "jwt" as const,
   },
   callbacks: {
     async jwt({ token, user }) {

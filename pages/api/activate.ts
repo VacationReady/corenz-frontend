@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
-import Resend from "resend";
+import { Resend } from "resend";
 import crypto from "crypto";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY ?? '');
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -18,15 +18,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Email is required" });
     }
 
+    const employee = await prisma.employee.findUnique({ where: { email } });
+
+    if (!employee) {
+      return res.status(400).json({ error: "Employee not found" });
+    }
+
     // Generate activation token
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
 
-    // Store token in DB (adjust this if your schema differs)
+    // Store token in DB linked to employee
     await prisma.activationToken.create({
       data: {
-        email,
         token,
+        employeeId: employee.id,
         expiresAt,
       },
     });

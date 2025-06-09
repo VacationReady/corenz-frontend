@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 export default function ActivatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams?.get('token') ?? '';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,13 +31,13 @@ export default function ActivatePage() {
 
     try {
       setLoading(true);
+      let data: { error?: string } | null = null;
       const res = await fetch('/api/activate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       });
 
-      let data = null;
       try {
         data = await res.json();
       } catch {

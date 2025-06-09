@@ -9,7 +9,8 @@ datasource db {
 
 model Employee {
   id          String             @id @default(uuid())
-  name        String
+  firstName   String
+  lastName    String
   email       String             @unique
   password    String?
   phone       String?
@@ -38,8 +39,8 @@ model LeaveRequest {
 }
 
 model ActivationToken {
-  token       String   @id
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade) // ✅ auto-delete token when employee is deleted
+  token       String   @id @default(uuid())
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   employeeId  String   @unique
   createdAt   DateTime @default(now())
   expiresAt   DateTime?

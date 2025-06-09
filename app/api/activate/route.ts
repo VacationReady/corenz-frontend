@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-console.log("🟣 Top-level route file loaded."); // Confirms if route file loads at all
+console.log("🟣 Top-level route file loaded."); // Confirms file loads
 
 export async function GET() {
   console.log("🟢 GET /api/activate route hit.");
@@ -12,10 +12,18 @@ export async function GET() {
 export async function POST(req: Request) {
   console.log("🟡 Activation route HIT");
 
-  try {
-    const body = await req.json();
-    console.log("🟡 Step 1: Received body", body);
+  let body;
 
+  try {
+    body = await req.json();
+  } catch (err) {
+    console.error("🔴 Failed to parse JSON body", err);
+    return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
+  }
+
+  console.log("🟡 Step 1: Received body", body);
+
+  try {
     const { token, password } = body;
 
     if (!token || !password) {

@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       data: {
         password: hashedPassword,
         isActive: true,
-        isActivated: true, // 
+        isActivated: true, // ✅ important for login
       },
     });
 
@@ -38,9 +38,9 @@ export async function POST(req: Request) {
       where: { token },
     });
 
-    return NextResponse.json({ message: "Account activated successfully." });
+    return NextResponse.json({ message: "Account activated" }); // ✅ always return JSON
   } catch (error) {
     console.error("Activation error:", error);
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

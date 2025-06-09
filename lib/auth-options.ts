@@ -48,6 +48,7 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.sub = user.id; // ✅ explicitly include sub for getToken() to work
         token.name = user.name;
         token.email = user.email;
         token.role = user.role;

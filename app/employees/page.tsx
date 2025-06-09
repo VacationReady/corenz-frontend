@@ -85,6 +85,7 @@ export default function EmployeesPage() {
               <th className="p-2 border">Department</th>
               <th className="p-2 border">Job Role</th>
               <th className="p-2 border">Email</th>
+              <th className="p-2 border">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -95,6 +96,24 @@ export default function EmployeesPage() {
                 <td className="p-2 border">{emp.department || "-"}</td>
                 <td className="p-2 border">{emp.jobRole || "-"}</td>
                 <td className="p-2 border">{emp.email}</td>
+                <td className="p-2 border">
+                  <button
+                    onClick={async () => {
+                      if (!confirm("Are you sure you want to delete this employee?")) return;
+                      try {
+                        const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
+                        if (!res.ok) throw new Error("Delete failed");
+                        setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+                      } catch (err) {
+                        alert("Error deleting employee.");
+                        console.error(err);
+                      }
+                    }}
+                    className="bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700 text-sm"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

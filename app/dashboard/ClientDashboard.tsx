@@ -79,6 +79,7 @@ export default function ClientDashboard() {
                   const res = await fetch("/api/leave-request", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    credentials: "include",  // <---- This line added here
                     body: JSON.stringify(payload),
                   });
 

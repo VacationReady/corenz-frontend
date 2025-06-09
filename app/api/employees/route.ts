@@ -1,3 +1,5 @@
+// /app/api/employees/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Resend } from 'resend';
@@ -9,13 +11,14 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { firstName, lastName, email, phone, department, jobRole } = body;
 
-    // 1. Check if employee already exists
-    const existingEmployee = await prisma.employee.findUnique({ where: { email } });
+    const existingEmployee = await prisma.employee.findUnique({
+      where: { email },
+    });
+
     if (existingEmployee) {
       return NextResponse.json({ error: 'Employee with this email already exists' }, { status: 400 });
     }
 
-    // 2. Create employee
     const newEmployee = await prisma.employee.create({
       data: {
         firstName,
@@ -28,7 +31,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // 3. Generate token
     const token = crypto.randomUUID();
 
     await prisma.activationToken.create({
@@ -38,7 +40,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // 4. Send email via Resend
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://corenz-frontend.vercel.app';
     const activationLink = `${baseUrl}/activate?token=${token}`;
 
@@ -48,15 +49,25 @@ export async function POST(req: Request) {
       subject: 'Activate Your SimplyHR Account',
       html: `
         <p>Hi ${firstName},</p>
-        <p>Welcome to SimplyHR! Click the button below to activate your account:</p>
-        <p><a href="${activationLink}" style="display:inline-block;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Activate Account</a></p>
-        <p>If you didn’t request this, you can safely ignore it.</p>
+        <p>Welcome to SimplyHR! Click below to activate your account:</p>
+        <p><a href="${activationLink}" style="padding:10px 20px;background:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Activate Account</a></p>
+        <p>If you didn’t request this, you can ignore this email.</p>
       `,
     });
 
     return NextResponse.json({ message: 'Employee created and activation email sent' });
-  } catch (error: any) {
-    console.error('❌ Failed to create employee or send email:', error);
+  } catch (error) {
+    console.error('❌ Error in POST /api/employees:', error);
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const employees = await prisma.employee.findMany();
+    return NextResponse.json(employees);
+  } catch (error) {
+    console.error('❌ Error in GET /api/employees:', error);
+    return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
   }
 }

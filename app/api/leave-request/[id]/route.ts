@@ -14,16 +14,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  const { status } = await req.json();
+  const body = await req.json();
+  const { status } = body;
 
   if (!['APPROVED', 'DECLINED'].includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
 
-  const updatedRequest = await prisma.leaveRequest.update({
-    where: { id: params.id },
-    data: { status },
-  });
+  try {
+    const updatedRequest = await prisma.leaveRequest.update({
+      where: { id: params.id },
+      data: { status },
+    });
 
-  return NextResponse.json(updatedRequest);
+    return NextResponse.json(updatedRequest);
+  } catch (error) {
+    console.error('Leave request update failed:', error);
+    return NextResponse.json({ error: 'Failed to update leave request' }, { status: 500 });
+  }
 }

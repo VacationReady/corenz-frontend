@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth-options"; // Adjusted path to match your lib folder
+import type { GetServerSessionOptions } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions) as Session;
-
-  console.log("Leave request POST session:", session);
+  const session = await getServerSession(
+    req,
+    authOptions as unknown as GetServerSessionOptions
+  ) as Session;
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,8 +36,11 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  const session = await getServerSession(authOptions) as Session;
+export async function GET(req: Request) {
+  const session = await getServerSession(
+    req,
+    authOptions as unknown as GetServerSessionOptions
+  ) as Session;
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import ClientLayout from "@/components/ClientLayout";
+import ClientLayout from "@/components/ClientLayout"; // <-- Make sure this import is here
 
 export const dynamic = "force-dynamic";
 
@@ -64,8 +64,8 @@ export default function EmployeesPage() {
 
   return (
     <ClientLayout>
-      <section className="w-full pt-0 px-6 bg-gray-100">
-        <div className="bg-white w-full max-w-7xl mx-auto p-8 rounded-xl shadow-md mb-8">
+      <div className="w-full px-6 pt-6">
+        <div className="bg-white w-full max-w-7xl mx-auto p-8 rounded-xl shadow-md">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Employees</h1>
             <button
@@ -164,7 +164,7 @@ export default function EmployeesPage() {
             </div>
           </div>
         )}
-      </section>
+      </div>
     </ClientLayout>
   );
 }

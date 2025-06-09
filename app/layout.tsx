@@ -1,9 +1,7 @@
-// app/layout.tsx
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
-import { ReactNode } from "react";
-import Sidebar from "@/components/Sidebar";
-import { usePathname } from "next/navigation";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "CoreNZ",
@@ -13,23 +11,11 @@ export const metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
-  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-
-  // Hide the global sidebar for employee profile views
-  const isProfilePage = pathname.startsWith("/employees/") && pathname.split("/").length > 2;
-
   return (
     <html lang="en">
-      <body>
-        <SessionProvider>
-          <div className="flex min-h-screen bg-gray-100">
-            {!isProfilePage && <Sidebar />}
-            <main className="flex-1">{children}</main>
-          </div>
-        </SessionProvider>
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

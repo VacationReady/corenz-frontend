@@ -1,6 +1,8 @@
 import CredentialsProvider from "next-auth/providers/credentials";
+import type { AuthOptions } from "next-auth"; // ✅ Add this
 
-export const authOptions = {
+// ✅ Cast the exported object to AuthOptions
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -59,4 +61,6 @@ export const authOptions = {
       return session;
     },
   },
+
+  secret: process.env.NEXTAUTH_SECRET,
 };

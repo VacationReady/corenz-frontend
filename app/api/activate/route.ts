@@ -7,6 +7,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  console.log("🟡 Activation route HIT");
+
   try {
     const body = await req.json();
     console.log("🟡 Step 1: Received body", body);
@@ -68,6 +70,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Account activated' });
   } catch (error: any) {
     console.error("🔴 Step 12: Unknown activation error", error);
-    return NextResponse.json({ error: 'Unknown error in activation route' }, { status: 500 });
+
+    const fallback =
+      error?.message ||
+      error?.toString?.() ||
+      JSON.stringify(error, Object.getOwnPropertyNames(error)) ||
+      'Unknown error';
+
+    return NextResponse.json({ error: fallback }, { status: 500 });
   }
 }

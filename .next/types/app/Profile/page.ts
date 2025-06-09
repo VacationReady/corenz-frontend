@@ -1,8 +1,8 @@
-// File: C:\Users\macke\Downloads\CoreNZ\clean-corenz-frontend\app\Profile\page.tsx
-import * as entry from '../../../../app/Profile/page.js'
+// File: C:\Users\macke\Downloads\CoreNZ\clean-corenz-frontend\app\profile\page.tsx
+import * as entry from '../../../../app/profile/page.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../app/Profile/page.js')
+type TEntry = typeof import('../../../../app/profile/page.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

@@ -4,7 +4,7 @@ exports.id = 882;
 exports.ids = [882];
 exports.modules = {
 
-/***/ 8038:
+/***/ 18038:
 /***/ ((module) => {
 
 "use strict";
@@ -12,7 +12,7 @@ module.exports = require("next/dist/compiled/react");
 
 /***/ }),
 
-/***/ 8704:
+/***/ 98704:
 /***/ ((module) => {
 
 "use strict";
@@ -20,7 +20,7 @@ module.exports = require("next/dist/compiled/react-dom/server-rendering-stub");
 
 /***/ }),
 
-/***/ 7897:
+/***/ 97897:
 /***/ ((module) => {
 
 "use strict";
@@ -28,7 +28,7 @@ module.exports = require("next/dist/compiled/react-server-dom-webpack/client");
 
 /***/ }),
 
-/***/ 6786:
+/***/ 56786:
 /***/ ((module) => {
 
 "use strict";
@@ -36,7 +36,7 @@ module.exports = require("next/dist/compiled/react/jsx-runtime");
 
 /***/ }),
 
-/***/ 1090:
+/***/ 61090:
 /***/ ((module) => {
 
 "use strict";
@@ -44,7 +44,7 @@ module.exports = require("next/dist/server/app-render/get-segment-param.js");
 
 /***/ }),
 
-/***/ 8652:
+/***/ 78652:
 /***/ ((module) => {
 
 "use strict";
@@ -60,7 +60,7 @@ module.exports = require("next/dist/shared/lib/app-router-context.js");
 
 /***/ }),
 
-/***/ 9274:
+/***/ 69274:
 /***/ ((module) => {
 
 "use strict";
@@ -68,7 +68,7 @@ module.exports = require("next/dist/shared/lib/hooks-client-context.js");
 
 /***/ }),
 
-/***/ 4964:
+/***/ 24964:
 /***/ ((module) => {
 
 "use strict";
@@ -76,7 +76,7 @@ module.exports = require("next/dist/shared/lib/router-context.js");
 
 /***/ }),
 
-/***/ 1751:
+/***/ 11751:
 /***/ ((module) => {
 
 "use strict";
@@ -84,7 +84,7 @@ module.exports = require("next/dist/shared/lib/router/utils/add-path-prefix.js")
 
 /***/ }),
 
-/***/ 3938:
+/***/ 23938:
 /***/ ((module) => {
 
 "use strict";
@@ -92,7 +92,7 @@ module.exports = require("next/dist/shared/lib/router/utils/format-url.js");
 
 /***/ }),
 
-/***/ 1668:
+/***/ 21668:
 /***/ ((module) => {
 
 "use strict";
@@ -108,7 +108,7 @@ module.exports = require("next/dist/shared/lib/router/utils/is-bot.js");
 
 /***/ }),
 
-/***/ 1109:
+/***/ 71109:
 /***/ ((module) => {
 
 "use strict";
@@ -116,7 +116,7 @@ module.exports = require("next/dist/shared/lib/router/utils/is-local-url.js");
 
 /***/ }),
 
-/***/ 8854:
+/***/ 28854:
 /***/ ((module) => {
 
 "use strict";
@@ -124,7 +124,7 @@ module.exports = require("next/dist/shared/lib/router/utils/parse-path.js");
 
 /***/ }),
 
-/***/ 3297:
+/***/ 93297:
 /***/ ((module) => {
 
 "use strict";
@@ -132,7 +132,7 @@ module.exports = require("next/dist/shared/lib/router/utils/remove-trailing-slas
 
 /***/ }),
 
-/***/ 7782:
+/***/ 87782:
 /***/ ((module) => {
 
 "use strict";
@@ -148,7 +148,7 @@ module.exports = require("next/dist/shared/lib/server-inserted-html.js");
 
 /***/ }),
 
-/***/ 9232:
+/***/ 59232:
 /***/ ((module) => {
 
 "use strict";
@@ -156,7 +156,7 @@ module.exports = require("next/dist/shared/lib/utils.js");
 
 /***/ }),
 
-/***/ 8182:
+/***/ 78182:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -184,30 +184,30 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "staticGenerationBailout": () => (/* reexport safe */ next_dist_client_components_static_generation_bailout__WEBPACK_IMPORTED_MODULE_7__.staticGenerationBailout),
 /* harmony export */   "tree": () => (/* binding */ tree)
 /* harmony export */ });
-/* harmony import */ var next_dist_client_components_app_router__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(8829);
+/* harmony import */ var next_dist_client_components_app_router__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18829);
 /* harmony import */ var next_dist_client_components_app_router__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_app_router__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var next_dist_client_components_layout_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5226);
+/* harmony import */ var next_dist_client_components_layout_router__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(45226);
 /* harmony import */ var next_dist_client_components_layout_router__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_layout_router__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var next_dist_client_components_render_from_template_context__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(2872);
+/* harmony import */ var next_dist_client_components_render_from_template_context__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(42872);
 /* harmony import */ var next_dist_client_components_render_from_template_context__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_render_from_template_context__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var next_dist_client_components_error_boundary__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(8412);
+/* harmony import */ var next_dist_client_components_error_boundary__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(28412);
 /* harmony import */ var next_dist_client_components_error_boundary__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_error_boundary__WEBPACK_IMPORTED_MODULE_3__);
 /* harmony import */ var next_dist_client_components_static_generation_async_storage__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(1839);
 /* harmony import */ var next_dist_client_components_static_generation_async_storage__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_static_generation_async_storage__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var next_dist_client_components_request_async_storage__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(5120);
+/* harmony import */ var next_dist_client_components_request_async_storage__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(35120);
 /* harmony import */ var next_dist_client_components_request_async_storage__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_request_async_storage__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var next_dist_client_components_action_async_storage__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(7797);
+/* harmony import */ var next_dist_client_components_action_async_storage__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(67797);
 /* harmony import */ var next_dist_client_components_action_async_storage__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_action_async_storage__WEBPACK_IMPORTED_MODULE_6__);
-/* harmony import */ var next_dist_client_components_static_generation_bailout__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(9282);
+/* harmony import */ var next_dist_client_components_static_generation_bailout__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(79282);
 /* harmony import */ var next_dist_client_components_static_generation_bailout__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_static_generation_bailout__WEBPACK_IMPORTED_MODULE_7__);
-/* harmony import */ var next_dist_client_components_static_generation_searchparams_bailout_provider__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(3785);
+/* harmony import */ var next_dist_client_components_static_generation_searchparams_bailout_provider__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(23785);
 /* harmony import */ var next_dist_client_components_static_generation_searchparams_bailout_provider__WEBPACK_IMPORTED_MODULE_8___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_static_generation_searchparams_bailout_provider__WEBPACK_IMPORTED_MODULE_8__);
-/* harmony import */ var next_dist_client_components_searchparams_bailout_proxy__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(5183);
+/* harmony import */ var next_dist_client_components_searchparams_bailout_proxy__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(75183);
 /* harmony import */ var next_dist_client_components_searchparams_bailout_proxy__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_searchparams_bailout_proxy__WEBPACK_IMPORTED_MODULE_9__);
-/* harmony import */ var next_dist_client_components_hooks_server_context__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(5815);
+/* harmony import */ var next_dist_client_components_hooks_server_context__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(15815);
 /* harmony import */ var next_dist_client_components_hooks_server_context__WEBPACK_IMPORTED_MODULE_10___default = /*#__PURE__*/__webpack_require__.n(next_dist_client_components_hooks_server_context__WEBPACK_IMPORTED_MODULE_10__);
-/* harmony import */ var react_server_dom_webpack_server_edge__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(6370);
-/* harmony import */ var next_dist_server_app_render_rsc_preloads__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(515);
+/* harmony import */ var react_server_dom_webpack_server_edge__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(76370);
+/* harmony import */ var next_dist_server_app_render_rsc_preloads__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(50515);
 /* harmony import */ var next_dist_server_app_render_rsc_preloads__WEBPACK_IMPORTED_MODULE_12___default = /*#__PURE__*/__webpack_require__.n(next_dist_server_app_render_rsc_preloads__WEBPACK_IMPORTED_MODULE_12__);
 
     const tree = {
@@ -218,7 +218,7 @@ __webpack_require__.r(__webpack_exports__);
         'reports',
         {
         children: ['__PAGE__', {}, {
-          page: [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5308)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\reports\\page.tsx"],
+          page: [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 65308)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\reports\\page.tsx"],
           
         }]
       },
@@ -229,7 +229,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 257)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\layout.tsx"],
+          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 32786)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\layout.tsx"],
           
         }
       ]
@@ -261,39 +261,67 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ }),
 
-/***/ 3259:
-/***/ (() => {
+/***/ 96921:
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
-
+Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 94636))
 
 /***/ }),
 
-/***/ 5308:
+/***/ 94636:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ Page)
+/* harmony export */   "default": () => (/* binding */ ReportsPage),
+/* harmony export */   "dynamic": () => (/* binding */ dynamic)
 /* harmony export */ });
-/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6786);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(56786);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
-
-function Page() {
-    return /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-        className: "p-6",
+/* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
+const dynamic = "force-dynamic";
+function ReportsPage() {
+    return /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("main", {
+        className: "flex-1 p-6 overflow-y-auto",
         children: [
             /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h1", {
-                className: "text-2xl font-bold",
+                className: "text-2xl font-bold mb-6",
                 children: "Reports"
             }),
             /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
-                className: "text-gray-600 mt-2",
-                children: "This is the placeholder for the Reports module."
+                children: "This is your reports dashboard."
             })
         ]
     });
 }
+
+
+/***/ }),
+
+/***/ 65308:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "$$typeof": () => (/* binding */ $$typeof),
+/* harmony export */   "__esModule": () => (/* binding */ __esModule),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   "dynamic": () => (/* binding */ e0)
+/* harmony export */ });
+/* harmony import */ var next_dist_build_webpack_loaders_next_flight_loader_module_proxy__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(35985);
+
+const proxy = (0,next_dist_build_webpack_loaders_next_flight_loader_module_proxy__WEBPACK_IMPORTED_MODULE_0__.createProxy)(String.raw`C:\Users\macke\Downloads\CoreNZ\clean-corenz-frontend\app\reports\page.tsx`)
+
+// Accessing the __esModule property and exporting $$typeof are required here.
+// The __esModule getter forces the proxy target to create the default export
+// and the $$typeof value is for rendering logic to determine if the module
+// is a client boundary.
+const { __esModule, $$typeof } = proxy;
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (proxy.default);
+
+const e0 = proxy["dynamic"];
 
 
 /***/ })
@@ -305,7 +333,7 @@ function Page() {
 var __webpack_require__ = require("../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [674,269], () => (__webpack_exec__(8182)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,212,318,663], () => (__webpack_exec__(78182)));
 module.exports = __webpack_exports__;
 
 })();

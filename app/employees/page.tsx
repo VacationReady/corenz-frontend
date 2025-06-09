@@ -20,8 +20,17 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     fetch('/api/employees')
-      .then((res) => res.json())
-      .then((data) => setEmployees(data))
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setEmployees(data);
+        } else {
+          throw new Error('Response is not an array');
+        }
+      })
       .catch(() => setError('Failed to load employees'));
   }, []);
 
@@ -50,10 +59,17 @@ export default function EmployeesPage() {
 
       const newEmp = await res.json();
       setEmployees([newEmp, ...employees]);
-      setForm({ firstName: '', lastName: '', email: '', phone: '', department: '', jobRole: '' });
+      setForm({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        department: '',
+        jobRole: '',
+      });
       setShowForm(false);
       setSuccess(true);
-    } catch {
+    } catch (err) {
       setError('Failed to create employee');
     } finally {
       setLoading(false);
@@ -82,8 +98,7 @@ export default function EmployeesPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-2 text-left">First Name</th>
-              <th className="px-4 py-2 text-left">Last Name</th>
+              <th className="px-4 py-2 text-left">Name</th>
               <th className="px-4 py-2 text-left">Phone</th>
               <th className="px-4 py-2 text-left">Department</th>
               <th className="px-4 py-2 text-left">Job Role</th>
@@ -92,8 +107,7 @@ export default function EmployeesPage() {
           <tbody>
             {filteredEmployees.map((emp) => (
               <tr key={emp.id} className="border-t">
-                <td className="px-4 py-2">{emp.firstName}</td>
-                <td className="px-4 py-2">{emp.lastName}</td>
+                <td className="px-4 py-2">{emp.firstName} {emp.lastName}</td>
                 <td className="px-4 py-2">{emp.phone}</td>
                 <td className="px-4 py-2">{emp.department}</td>
                 <td className="px-4 py-2">{emp.jobRole}</td>
@@ -140,6 +154,7 @@ export default function EmployeesPage() {
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
+                required
                 placeholder="Phone Number"
                 className="w-full border rounded px-3 py-2"
               />

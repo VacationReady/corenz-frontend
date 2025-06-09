@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import ClientLayout from "@/components/ClientLayout";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +90,14 @@ export default function EmployeesPage() {
             <tbody>
               {employees.map((emp) => (
                 <tr key={emp.id} className="text-center">
-                  <td className="p-2 border">{emp.firstName} {emp.lastName}</td>
+                  <td className="p-2 border">
+                    <Link
+                      href={`/employees/${emp.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {emp.firstName} {emp.lastName}
+                    </Link>
+                  </td>
                   <td className="p-2 border">{emp.phone || "-"}</td>
                   <td className="p-2 border">{emp.department || "-"}</td>
                   <td className="p-2 border">{emp.jobRole || "-"}</td>

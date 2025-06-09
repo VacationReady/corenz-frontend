@@ -1,19 +1,18 @@
 "use client";
 
+import { SessionProvider } from "next-auth/react";
 import Sidebar from "@/components/Sidebar";
 import { ReactNode } from "react";
 
-interface Props {
-  children: ReactNode;
-}
-
-export default function ClientLayout({ children }: Props) {
+export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
-        {children}
-      </main>
-    </div>
+    <SessionProvider>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
+          {children}
+        </main>
+      </div>
+    </SessionProvider>
   );
 }

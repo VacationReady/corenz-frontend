@@ -7,7 +7,8 @@ export default function EmployeesPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     department: '',
@@ -19,22 +20,13 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     fetch('/api/employees')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setEmployees(data);
-        } else {
-          throw new Error('Response is not an array');
-        }
-      })
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((data) => setEmployees(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load employees'));
   }, []);
 
   const filteredEmployees = employees.filter((emp) =>
-    emp?.name?.toLowerCase().includes(search.toLowerCase())
+    `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleChange = (e) => {
@@ -55,13 +47,12 @@ export default function EmployeesPage() {
       });
 
       if (!res.ok) throw new Error('Error creating employee');
-
       const newEmp = await res.json();
       setEmployees([newEmp, ...employees]);
-      setForm({ name: '', email: '', phone: '', department: '', jobRole: '' });
+      setForm({ firstName: '', lastName: '', email: '', phone: '', department: '', jobRole: '' });
       setShowForm(false);
       setSuccess(true);
-    } catch (err) {
+    } catch {
       setError('Failed to create employee');
     } finally {
       setLoading(false);
@@ -99,7 +90,7 @@ export default function EmployeesPage() {
           <tbody>
             {filteredEmployees.map((emp) => (
               <tr key={emp.id} className="border-t">
-                <td className="px-4 py-2">{emp.name}</td>
+                <td className="px-4 py-2">{emp.firstName} {emp.lastName}</td>
                 <td className="px-4 py-2">{emp.phone}</td>
                 <td className="px-4 py-2">{emp.department}</td>
                 <td className="px-4 py-2">{emp.jobRole}</td>
@@ -116,11 +107,20 @@ export default function EmployeesPage() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <input
                 type="text"
-                name="name"
-                value={form.name}
+                name="firstName"
+                value={form.firstName}
                 onChange={handleChange}
                 required
-                placeholder="Full Name"
+                placeholder="First Name"
+                className="w-full border rounded px-3 py-2"
+              />
+              <input
+                type="text"
+                name="lastName"
+                value={form.lastName}
+                onChange={handleChange}
+                required
+                placeholder="Last Name"
                 className="w-full border rounded px-3 py-2"
               />
               <input
@@ -137,7 +137,6 @@ export default function EmployeesPage() {
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                required
                 placeholder="Phone Number"
                 className="w-full border rounded px-3 py-2"
               />

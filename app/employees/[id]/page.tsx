@@ -4,19 +4,21 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ClientLayout from "@/components/ClientLayout";
 
-interface Params {
-  id: string;
-}
-
 export default function EmployeeProfilePage() {
-  const params = useParams() as Params;
-  const { id } = params;
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   const [employee, setEmployee] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!id) {
+      setError("Missing employee ID.");
+      setLoading(false);
+      return;
+    }
+
     const fetchEmployee = async () => {
       try {
         const res = await fetch(`/api/employees/${id}`);

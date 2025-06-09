@@ -1,40 +1,29 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import prisma from '@/lib/prisma';
-import { Resend } from 'resend';
+// /app/api/leave-request/[id]/route.ts
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { NextResponse } from 'next/server';
+import { getToken } from "next-auth/jwt";
+import { prisma } from '@/lib/prisma';
+
+const secret = process.env.NEXTAUTH_SECRET;
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const token = await getToken({ req, secret });
+
+  if (!token || token.role !== 'MANAGER') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
 
   const { status } = await req.json();
-  if (!['APPROVED', 'DECLINED'].includes(status)) {
-    return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
-  }
-
-  const updated = await prisma.leaveRequest.update({
-    where: { id: params.id },
-    include: { user: true },
-    data: { status },
-  });
 
   try {
-    await resend.emails.send({
-      from: 'onboarding@resend.dev',
-      to: updated.user.email,
-      subject: `Your leave request has been ${status}`,
-      html: `
-        <p>Hi ${updated.user.firstName},</p>
-        <p>Your leave request from <strong>${new Date(updated.startDate).toLocaleDateString()}</strong> to <strong>${new Date(updated.endDate).toLocaleDateString()}</strong> has been <strong>${status}</strong>.</p>
-        <p>Thanks,<br />HR Team</p>
-      `,
+    const leaveRequest = await prisma.leaveRequest.update({
+      where: { id: params.id },
+      data: { status },
     });
-  } catch (err) {
-    console.error('Resend email error:', err);
-  }
 
-  return NextResponse.json(updated);
+    return NextResponse.json(leaveRequest);
+  } catch (error) {
+    console.error("Error updating leave request:", error);
+    return NextResponse.json({ error: "Failed to update leave request" }, { status: 500 });
+  }
 }

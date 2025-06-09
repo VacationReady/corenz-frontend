@@ -142,8 +142,8 @@ var app_route_module = __webpack_require__(19532);
 var module_default = /*#__PURE__*/__webpack_require__.n(app_route_module);
 // EXTERNAL MODULE: ./node_modules/next/dist/server/web/exports/next-response.js
 var next_response = __webpack_require__(83804);
-// EXTERNAL MODULE: ./node_modules/next-auth/index.js
-var next_auth = __webpack_require__(88354);
+// EXTERNAL MODULE: ./node_modules/next-auth/next/index.js
+var next = __webpack_require__(91071);
 // EXTERNAL MODULE: ./lib/auth-options.ts
 var auth_options = __webpack_require__(78924);
 // EXTERNAL MODULE: ./lib/prisma.ts
@@ -153,56 +153,48 @@ var prisma = __webpack_require__(88560);
 
 
 
-async function GET(req) {
-    const session = await (0,next_auth.getServerSession)(auth_options/* authOptions */.L);
-    if (!session) return next_response/* default.json */.Z.json({
-        error: "Unauthorized"
-    }, {
-        status: 401
-    });
-    const url = new URL(req.url);
-    const status = url.searchParams.get("status");
-    const whereClause = {};
-    if (status) {
-        whereClause.status = status;
-    } else {
-        whereClause.userId = session.user.id;
+async function POST(req) {
+    const session = await (0,next/* getServerSession */.Z1)(auth_options/* authOptions */.L);
+    if (!session || !session.user?.id) {
+        return next_response/* default.json */.Z.json({
+            error: "Unauthorized"
+        }, {
+            status: 401
+        });
     }
-    const requests = await prisma["default"].leaveRequest.findMany({
-        where: whereClause,
+    const { type , startDate , endDate , reason  } = await req.json();
+    const newLeaveRequest = await prisma/* prisma.leaveRequest.create */._.leaveRequest.create({
+        data: {
+            userId: session.user.id,
+            type,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            reason,
+            status: "PENDING"
+        }
+    });
+    return next_response/* default.json */.Z.json(newLeaveRequest, {
+        status: 201
+    });
+}
+async function GET() {
+    const session = await (0,next/* getServerSession */.Z1)(auth_options/* authOptions */.L);
+    if (!session || !session.user?.id) {
+        return next_response/* default.json */.Z.json({
+            error: "Unauthorized"
+        }, {
+            status: 401
+        });
+    }
+    const requests = await prisma/* prisma.leaveRequest.findMany */._.leaveRequest.findMany({
+        where: {
+            userId: session.user.id
+        },
         orderBy: {
             createdAt: "desc"
         }
     });
     return next_response/* default.json */.Z.json(requests);
-}
-async function POST(req) {
-    const session = await (0,next_auth.getServerSession)(auth_options/* authOptions */.L);
-    if (!session) return next_response/* default.json */.Z.json({
-        error: "Unauthorized"
-    }, {
-        status: 401
-    });
-    const { startDate , endDate , type , reason  } = await req.json();
-    if (!startDate || !endDate || !type) {
-        return next_response/* default.json */.Z.json({
-            error: "Missing fields"
-        }, {
-            status: 400
-        });
-    }
-    const leave = await prisma["default"].leaveRequest.create({
-        data: {
-            userId: session.user.id,
-            startDate: new Date(startDate),
-            endDate: new Date(endDate),
-            type,
-            reason
-        }
-    });
-    return next_response/* default.json */.Z.json(leave, {
-        status: 201
-    });
 }
 
 ;// CONCATENATED MODULE: ./node_modules/next/dist/build/webpack/loaders/next-app-loader.js?page=%2Fapi%2Fleave-request%2Froute&name=app%2Fapi%2Fleave-request%2Froute&pagePath=private-next-app-dir%2Fapi%2Fleave-request%2Froute.ts&appDir=C%3A%5CUsers%5Cmacke%5CDownloads%5CCoreNZ%5Cclean-corenz-frontend%5Capp&appPaths=%2Fapi%2Fleave-request%2Froute&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&assetPrefix=&nextConfigOutput=&preferredRegion=!
@@ -244,7 +236,7 @@ async function POST(req) {
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,601,716,804,609,549,924], () => (__webpack_exec__(47111)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,601,716,804,609,646,560,924], () => (__webpack_exec__(47111)));
 module.exports = __webpack_exports__;
 
 })();

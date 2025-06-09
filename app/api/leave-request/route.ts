@@ -1,17 +1,20 @@
+// app/api/leave-request/route.ts
+
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { prisma } from '@/lib/prisma';
-import type { NextRequest } from 'next/server';
+
+const secret = process.env.NEXTAUTH_SECRET;
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req });
+  const token = await getToken({ req, secret }) as { id: string } | null;
 
   if (!token || !token.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { type, startDate, endDate, reason } = body;
+  const { type, startDate, endDate, reason } = await req.json();
 
   const newLeaveRequest = await prisma.leaveRequest.create({
     data: {
@@ -25,4 +28,19 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(newLeaveRequest, { status: 201 });
+}
+
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req, secret }) as { id: string } | null;
+
+  if (!token || !token.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const requests = await prisma.leaveRequest.findMany({
+    where: { userId: token.id },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return NextResponse.json(requests);
 }

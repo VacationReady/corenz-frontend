@@ -1,13 +1,19 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import ClientSidebarWrapper from "@/components/ClientSidebarWrapper";
+import Sidebar from "@/components/Sidebar";
+import { ReactNode } from "react";
 
-export default function ClientLayout({ children, session }: { children: React.ReactNode; session?: any }) {
+interface Props {
+  children: ReactNode;
+}
+
+export default function ClientLayout({ children }: Props) {
   return (
-    <SessionProvider session={session}>
-      <ClientSidebarWrapper />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
-    </SessionProvider>
+    <div className="w-full">
+      <Sidebar />
+      <main className="w-full px-6 pt-6 bg-gray-100">
+        {children}
+      </main>
+    </div>
   );
 }

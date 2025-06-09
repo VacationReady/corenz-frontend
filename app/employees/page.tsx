@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react';
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState('');
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
@@ -14,188 +12,83 @@ export default function EmployeesPage() {
     department: '',
     jobRole: '',
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     fetch('/api/employees')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setEmployees(data);
-        } else {
-          throw new Error('Response is not an array');
-        }
-      })
+      .then((res) => res.json())
+      .then((data) => setEmployees(data))
       .catch(() => setError('Failed to load employees'));
   }, []);
 
-  const filteredEmployees = employees.filter((emp) =>
-    `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess(false);
 
     try {
       const res = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error('Error creating employee');
-
-      const newEmp = await res.json();
-      setEmployees([newEmp, ...employees]);
-      setForm({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        department: '',
-        jobRole: '',
-      });
-      setShowForm(false);
-      setSuccess(true);
+      if (res.ok) {
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          department: '',
+          jobRole: '',
+        });
+        const newEmployee = await res.json();
+        setEmployees((prev) => [...prev, newEmployee]);
+        setError('');
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to create employee');
+      }
     } catch (err) {
-      setError('Failed to create employee');
-    } finally {
-      setLoading(false);
+      setError('Server error');
     }
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name..."
-          className="border px-3 py-2 rounded w-1/3"
-        />
+    <div className="p-4 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Employees</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg">
+        {['firstName', 'lastName', 'email', 'phone', 'department', 'jobRole'].map((field) => (
+          <input
+            key={field}
+            type="text"
+            name={field}
+            placeholder={field[0].toUpperCase() + field.slice(1)}
+            value={(formData as any)[field]}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+            required={['firstName', 'lastName', 'email'].includes(field)}
+          />
+        ))}
         <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          type="submit"
+          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
         >
           Add Employee
         </button>
-      </div>
+        {error && <p className="text-red-600">{error}</p>}
+      </form>
 
-      <div className="overflow-x-auto bg-white shadow rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 text-left">Name</th>
-              <th className="px-4 py-2 text-left">Phone</th>
-              <th className="px-4 py-2 text-left">Department</th>
-              <th className="px-4 py-2 text-left">Job Role</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEmployees.map((emp) => (
-              <tr key={emp.id} className="border-t">
-                <td className="px-4 py-2">{emp.firstName} {emp.lastName}</td>
-                <td className="px-4 py-2">{emp.phone}</td>
-                <td className="px-4 py-2">{emp.department}</td>
-                <td className="px-4 py-2">{emp.jobRole}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <input
-                type="text"
-                name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                required
-                placeholder="First Name"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                required
-                placeholder="Last Name"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                placeholder="Email Address"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                required
-                placeholder="Phone Number"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="department"
-                value={form.department}
-                onChange={handleChange}
-                placeholder="Department"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="jobRole"
-                value={form.jobRole}
-                onChange={handleChange}
-                placeholder="Job Role"
-                className="w-full border rounded px-3 py-2"
-              />
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Create'}
-                </button>
-              </div>
-            </form>
-            {error && <p className="text-red-600 mt-2">{error}</p>}
-            {success && <p className="text-green-600 mt-2">Employee added successfully!</p>}
-          </div>
-        </div>
-      )}
+      <ul className="mt-6 space-y-2">
+        {employees.map((emp: any) => (
+          <li key={emp.id} className="p-2 border rounded">
+            {emp.firstName} {emp.lastName} – {emp.email}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

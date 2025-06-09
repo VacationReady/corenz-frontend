@@ -1,9 +1,10 @@
 // app/layout.tsx
 import "./globals.css";
-import type { Metadata } from "next";
-import ClientLayout from "@/components/ClientLayout";
+import { Inter } from "next/font/google";
 
-export const metadata: Metadata = {
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata = {
   title: "CoreNZ",
   description: "HR system for NZ businesses",
 };
@@ -11,9 +12,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <ClientLayout>{children}</ClientLayout>
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

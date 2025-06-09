@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 export default function LeaveHistory() {
+  const { data: session, status } = useSession();
   const [requests, setRequests] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (status !== "authenticated") return;
+
     const fetchRequests = async () => {
       try {
         const res = await fetch("/api/leave-request");
@@ -29,15 +33,11 @@ export default function LeaveHistory() {
     };
 
     fetchRequests();
-  }, []);
+  }, [status]);
 
-  if (error) {
-    return <div className="text-red-600">Error: {error}</div>;
-  }
-
-  if (requests.length === 0) {
-    return <p className="text-gray-500">No leave requests found.</p>;
-  }
+  if (status === "loading") return <p>Loading session...</p>;
+  if (error) return <div className="text-red-600">Error: {error}</div>;
+  if (requests.length === 0) return <p className="text-gray-500">No leave requests found.</p>;
 
   return (
     <ul className="text-sm text-gray-700 space-y-2">

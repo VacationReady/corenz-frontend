@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-import ClientLayout from "@/components/ClientLayout"; // <-- Make sure this import is here
+import ClientLayout from "@/components/ClientLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -31,20 +31,17 @@ export default function EmployeesPage() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     try {
       const res = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || "Failed to create employee");
         return;
       }
-
       const newEmployee = await res.json();
       setEmployees((prev) => [...prev, newEmployee]);
       setFormData({
@@ -64,7 +61,7 @@ export default function EmployeesPage() {
 
   return (
     <ClientLayout>
-      <div className="w-full px-6 pt-6">
+      <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">
         <div className="bg-white w-full max-w-7xl mx-auto p-8 rounded-xl shadow-md">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Employees</h1>
@@ -126,14 +123,7 @@ export default function EmployeesPage() {
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
               <h2 className="text-xl font-semibold mb-4">Add Employee</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {[
-                  "firstName",
-                  "lastName",
-                  "email",
-                  "phone",
-                  "department",
-                  "jobRole",
-                ].map((field) => (
+                {["firstName", "lastName", "email", "phone", "department", "jobRole"].map((field) => (
                   <input
                     key={field}
                     type="text"

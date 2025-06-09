@@ -2,11 +2,7 @@
 
 import Sidebar from "./Sidebar";
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />

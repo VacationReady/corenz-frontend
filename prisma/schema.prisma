@@ -7,41 +7,69 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Employee {
-  id          String             @id @default(uuid())
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  UNPAID
+  PARENTAL
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model User {
+  id          String         @id @default(uuid())
+  email       String         @unique
+  password    String?
   firstName   String
   lastName    String
-  email       String             @unique
-  password    String?
   phone       String?
   department  String?
   jobRole     String?
-  isActivated Boolean?           @default(false)
-  isActive    Boolean            @default(false)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  isActivated Boolean        @default(false)
+  role        Role           @default(EMPLOYEE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
-  leaveRequests   LeaveRequest[]
-  activationToken ActivationToken?
+  leaveRequests LeaveRequest[]
+}
+
+model Employee {
+  id          String   @id @default(uuid())
+  firstName   String
+  lastName    String
+  phone       String?
+  department  String?
+  jobRole     String?
+  email       String   @unique
+  password    String?
+  isActivated Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model LeaveRequest {
-  id         String   @id @default(uuid())
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  employeeId String
+  id         String       @id @default(uuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id])
+  type       LeaveType
   startDate  DateTime
   endDate    DateTime
-  type       String
-  status     String   @default("Pending")
   reason     String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
+  status     LeaveStatus  @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-model ActivationToken {
-  token       String   @id @default(uuid())
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId  String   @unique
-  createdAt   DateTime @default(now())
-  expiresAt   DateTime?
+  @@index([userId])
 }

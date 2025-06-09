@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LeaveHistory from "./LeaveHistory";
 
 export default function ClientDashboard() {
   const [showForm, setShowForm] = useState(false);
@@ -57,27 +58,68 @@ export default function ClientDashboard() {
         </div>
       </div>
 
+      {/* Leave Requests */}
+      <div className="mt-8 bg-white p-6 rounded shadow">
+        <h2 className="text-lg font-semibold mb-4">📋 Your Leave Requests</h2>
+        <LeaveHistory />
+      </div>
+
       {/* Book Holiday Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Book Holiday</h2>
-            <form className="space-y-4">
+            <form
+              className="space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const payload = {
+                  startDate: formData.get("startDate"),
+                  endDate: formData.get("endDate"),
+                  reason: formData.get("reason"),
+                  type: formData.get("type"),
+                };
+
+                try {
+                  const res = await fetch("/api/leave-request", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+
+                  if (!res.ok) throw new Error("Request failed");
+
+                  alert("Leave request submitted successfully!");
+                  setShowForm(false);
+                } catch (err) {
+                  alert("There was a problem submitting your request.");
+                  console.error(err);
+                }
+              }}
+            >
+              <div>
+                <label className="block text-sm font-medium mb-1">Leave Type</label>
+                <select name="type" required className="w-full border rounded px-3 py-2">
+                  <option value="">Select leave type</option>
+                  <option value="ANNUAL">Annual Leave</option>
+                  <option value="SICK">Sick Leave</option>
+                  <option value="UNPAID">Unpaid Leave</option>
+                  <option value="PARENTAL">Parental Leave</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Start Date</label>
-                <input type="date" className="w-full border rounded px-3 py-2" />
+                <input name="startDate" type="date" required className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">End Date</label>
-                <input type="date" className="w-full border rounded px-3 py-2" />
+                <input name="endDate" type="date" required className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Reason</label>
-                <input type="text" className="w-full border rounded px-3 py-2" placeholder="Optional" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Comments</label>
-                <textarea className="w-full border rounded px-3 py-2" rows={3}></textarea>
+                <input name="reason" type="text" className="w-full border rounded px-3 py-2" placeholder="Optional" />
               </div>
               <div className="flex justify-end space-x-2">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">

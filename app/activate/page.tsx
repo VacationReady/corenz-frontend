@@ -31,18 +31,13 @@ export default function ActivatePage() {
 
     try {
       setLoading(true);
-      let data: { error?: string } | null = null;
-      const res = await fetch('/api/activate', {
+      const res = await fetch('/api/set-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       });
 
-      try {
-        data = await res.json();
-      } catch {
-        // do nothing, response might not be JSON
-      }
+      const data = await res.json();
 
       if (!res.ok) throw new Error(data?.error || 'Something went wrong.');
 

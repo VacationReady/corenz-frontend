@@ -28,18 +28,18 @@ enum LeaveStatus {
 }
 
 model User {
-  id          String         @id @default(uuid())
-  email       String         @unique
+  id          String   @id @default(uuid())
+  email       String   @unique
   password    String?
   firstName   String
   lastName    String
   phone       String?
   department  String?
   jobRole     String?
-  isActivated Boolean        @default(false)
-  role        Role           @default(EMPLOYEE)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  isActivated Boolean  @default(false)
+  role        Role     @default(EMPLOYEE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   leaveRequests LeaveRequest[]
 }
@@ -57,19 +57,30 @@ model Employee {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  activationTokens ActivationToken[] // ✅ Required back-reference
 }
 
 model LeaveRequest {
-  id         String       @id @default(uuid())
-  userId     String
-  user       User         @relation(fields: [userId], references: [id])
-  type       LeaveType
-  startDate  DateTime
-  endDate    DateTime
-  reason     String?
-  status     LeaveStatus  @default(PENDING)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  type      LeaveType
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  status    LeaveStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@index([userId])
+}
+
+model ActivationToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
 }

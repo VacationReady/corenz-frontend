@@ -1,11 +1,18 @@
 {
   "/page": "app/page.js",
-  "/Profile/page": "app/Profile/page.js",
-  "/login/page": "app/login/page.js",
-  "/documents/page": "app/documents/page.js",
+  "/activate/page": "app/activate/page.js",
   "/calendar/page": "app/calendar/page.js",
+  "/login/page": "app/login/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/documents/page": "app/documents/page.js",
+  "/employees/page": "app/employees/page.js",
+  "/profile/page": "app/profile/page.js",
   "/reports/page": "app/reports/page.js",
   "/settings/page": "app/settings/page.js",
-  "/employees/page": "app/employees/page.js"
+  "/api/activate/route": "app/api/activate/route.js",
+  "/api/employees/route": "app/api/employees/route.js",
+  "/api/leave-request/route": "app/api/leave-request/route.js",
+  "/dashboard/approvals/page": "app/dashboard/approvals/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/leave-request/[id]/route": "app/api/leave-request/[id]/route.js"
 }

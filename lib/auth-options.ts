@@ -2,11 +2,11 @@
 
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
-import type { Session } from "next-auth";
+import type { Session, AuthOptions } from "next-auth";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -48,7 +48,7 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.sub = user.id; // ✅ explicitly include sub for getToken() to work
+        token.sub = user.id;
         token.name = user.name;
         token.email = user.email;
         token.role = user.role;

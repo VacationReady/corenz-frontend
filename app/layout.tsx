@@ -1,5 +1,5 @@
 // app/layout.tsx
-import "./globals.css"; // Add if using Tailwind base styles
+import "./globals.css";
 import { ReactNode } from "react";
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="flex h-screen bg-gray-100">
+      <body className="min-h-screen bg-gray-100">
         {children}
       </body>
     </html>

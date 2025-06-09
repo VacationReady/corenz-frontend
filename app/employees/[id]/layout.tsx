@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { Employee } from "@prisma/client"; // or your Employee type
 
 export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
-  const { id } = useParams();
+  const params = useParams() as { id: string };
+  const { id } = params;
   const [employee, setEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {

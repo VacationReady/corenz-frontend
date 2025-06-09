@@ -1,5 +1,3 @@
-// lib/auth-options.ts
-
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { Session } from "next-auth";

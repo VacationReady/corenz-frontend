@@ -1,11 +1,14 @@
 "use client";
-export const dynamic = "force-dynamic";
+
+import ClientLayout from "@/components/ClientLayout";
 
 export default function CalendarPage() {
   return (
-    <main className="flex-1 p-6 overflow-y-auto">
-      <h1 className="text-2xl font-bold mb-6">Calendar</h1>
-      <p>This is your calendar view.</p>
-    </main>
+    <ClientLayout>
+      <div>
+        <h1 className="text-2xl font-bold mb-4">Calendar</h1>
+        {/* Insert your calendar view/component here */}
+      </div>
+    </ClientLayout>
   );
 }

@@ -1,9 +1,14 @@
 "use client";
 
-import ClientDashboard from "./ClientDashboard"; // ✅ local file import
+import ClientLayout from "@/components/ClientLayout";
+import ClientDashboard from "./ClientDashboard";
 
 export const dynamic = "force-dynamic";
 
 export default function DashboardPage() {
-  return <ClientDashboard />;
+  return (
+    <ClientLayout>
+      <ClientDashboard />
+    </ClientLayout>
+  );
 }

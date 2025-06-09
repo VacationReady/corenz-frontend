@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import ClientLayout from "@/components/ClientLayout";
 
 export const dynamic = "force-dynamic";
 
@@ -62,85 +63,87 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Employees</h1>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-        >
-          Add Employee
-        </button>
-      </div>
-
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-
-      <table className="min-w-full bg-white border border-gray-300 rounded shadow-sm">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2 border">Name</th>
-            <th className="p-2 border">Phone</th>
-            <th className="p-2 border">Department</th>
-            <th className="p-2 border">Job Role</th>
-            <th className="p-2 border">Email</th>
-          </tr>
-        </thead>
-        <tbody>
-          {employees.map((emp) => (
-            <tr key={emp.id} className="text-center">
-              <td className="p-2 border">{emp.firstName} {emp.lastName}</td>
-              <td className="p-2 border">{emp.phone || "-"}</td>
-              <td className="p-2 border">{emp.department || "-"}</td>
-              <td className="p-2 border">{emp.jobRole || "-"}</td>
-              <td className="p-2 border">{emp.email}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Add Employee</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {[
-                "firstName",
-                "lastName",
-                "email",
-                "phone",
-                "department",
-                "jobRole",
-              ].map((field) => (
-                <input
-                  key={field}
-                  type="text"
-                  name={field}
-                  placeholder={field[0].toUpperCase() + field.slice(1)}
-                  value={formData[field as keyof typeof formData]}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded"
-                  required={["firstName", "lastName", "email"].includes(field)}
-                />
-              ))}
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 bg-gray-300 rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </div>
+    <ClientLayout>
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Employees</h1>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+          >
+            Add Employee
+          </button>
         </div>
-      )}
-    </div>
+
+        {error && <p className="text-red-600 mb-4">{error}</p>}
+
+        <table className="min-w-full bg-white border border-gray-300 rounded shadow-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 border">Name</th>
+              <th className="p-2 border">Phone</th>
+              <th className="p-2 border">Department</th>
+              <th className="p-2 border">Job Role</th>
+              <th className="p-2 border">Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.map((emp) => (
+              <tr key={emp.id} className="text-center">
+                <td className="p-2 border">{emp.firstName} {emp.lastName}</td>
+                <td className="p-2 border">{emp.phone || "-"}</td>
+                <td className="p-2 border">{emp.department || "-"}</td>
+                <td className="p-2 border">{emp.jobRole || "-"}</td>
+                <td className="p-2 border">{emp.email}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+              <h2 className="text-xl font-semibold mb-4">Add Employee</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {[
+                  "firstName",
+                  "lastName",
+                  "email",
+                  "phone",
+                  "department",
+                  "jobRole",
+                ].map((field) => (
+                  <input
+                    key={field}
+                    type="text"
+                    name={field}
+                    placeholder={field[0].toUpperCase() + field.slice(1)}
+                    value={formData[field as keyof typeof formData]}
+                    onChange={handleChange}
+                    className="w-full p-2 border rounded"
+                    required={["firstName", "lastName", "email"].includes(field)}
+                  />
+                ))}
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-4 py-2 bg-gray-300 rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </ClientLayout>
   );
 }

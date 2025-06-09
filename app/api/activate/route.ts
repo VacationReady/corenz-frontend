@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs'; // ✅ Swapped from 'bcrypt' to 'bcryptjs'
+import bcrypt from 'bcryptjs';
+
+console.log("🟣 Top-level route file loaded."); // Confirms if route file loads at all
 
 export async function GET() {
+  console.log("🟢 GET /api/activate route hit.");
   return NextResponse.json({ message: "Activate route is live." });
 }
 

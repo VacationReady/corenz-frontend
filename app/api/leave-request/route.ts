@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import type { GetServerSessionOptions } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import type { Session } from "next-auth";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(
-    req,
-    authOptions as unknown as GetServerSessionOptions
-  ) as Session;
+  const session = await getServerSession({ req, authOptions });
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,10 +32,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const session = await getServerSession(
-    req,
-    authOptions as unknown as GetServerSessionOptions
-  ) as Session;
+  const session = await getServerSession({ req, authOptions });
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,18 +1,21 @@
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
+import type { Metadata } from "next";
+import SessionWrapper from "@/components/SessionWrapper";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "CoreNZ",
   description: "HR system for NZ businesses",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <SessionWrapper>{children}</SessionWrapper>
       </body>
     </html>
   );

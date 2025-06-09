@@ -1,7 +1,7 @@
 // app/api/leave-request/route.ts
 
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next'; // ✅ CORRECT for next-auth@4.x
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import type { Session } from 'next-auth';

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
+  const [isModalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -21,74 +22,110 @@ export default function EmployeesPage() {
       .catch(() => setError('Failed to load employees'));
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const res = await fetch('/api/employees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
 
-    try {
-      const res = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+    if (res.ok) {
+      const newEmployee = await res.json();
+      setEmployees((prev) => [...prev, newEmployee]);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        department: '',
+        jobRole: '',
       });
-
-      if (res.ok) {
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          department: '',
-          jobRole: '',
-        });
-        const newEmployee = await res.json();
-        setEmployees((prev) => [...prev, newEmployee]);
-        setError('');
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Failed to create employee');
-      }
-    } catch (err) {
-      setError('Server error');
+      setError('');
+      setModalOpen(false);
+    } else {
+      const data = await res.json();
+      setError(data.error || 'Failed to create employee');
     }
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Employees</h1>
-
-      <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg">
-        {['firstName', 'lastName', 'email', 'phone', 'department', 'jobRole'].map((field) => (
-          <input
-            key={field}
-            type="text"
-            name={field}
-            placeholder={field[0].toUpperCase() + field.slice(1)}
-            value={(formData as any)[field]}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-            required={['firstName', 'lastName', 'email'].includes(field)}
-          />
-        ))}
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Employees</h1>
         <button
-          type="submit"
+          onClick={() => setModalOpen(true)}
           className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
         >
           Add Employee
         </button>
-        {error && <p className="text-red-600">{error}</p>}
-      </form>
+      </div>
 
-      <ul className="mt-6 space-y-2">
-        {employees.map((emp: any) => (
-          <li key={emp.id} className="p-2 border rounded">
-            {emp.firstName} {emp.lastName} – {emp.email}
-          </li>
-        ))}
-      </ul>
+      {error && <p className="text-red-600 mb-4">{error}</p>}
+
+      <table className="min-w-full bg-white border border-gray-300 rounded shadow-sm">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="p-2 border">Name</th>
+            <th className="p-2 border">Phone</th>
+            <th className="p-2 border">Department</th>
+            <th className="p-2 border">Job Role</th>
+            <th className="p-2 border">Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {employees.map((emp) => (
+            <tr key={emp.id} className="text-center">
+              <td className="p-2 border">{emp.firstName} {emp.lastName}</td>
+              <td className="p-2 border">{emp.phone || '-'}</td>
+              <td className="p-2 border">{emp.department || '-'}</td>
+              <td className="p-2 border">{emp.jobRole || '-'}</td>
+              <td className="p-2 border">{emp.email}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Add Employee</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {['firstName', 'lastName', 'email', 'phone', 'department', 'jobRole'].map((field) => (
+                <input
+                  key={field}
+                  type="text"
+                  name={field}
+                  placeholder={field[0].toUpperCase() + field.slice(1)}
+                  value={formData[field]}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded"
+                  required={['firstName', 'lastName', 'email'].includes(field)}
+                />
+              ))}
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2 bg-gray-300 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

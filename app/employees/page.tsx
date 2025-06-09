@@ -1,9 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+
+type Employee = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  department?: string;
+  jobRole?: string;
+};
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [isModalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -18,15 +28,15 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetch('/api/employees')
       .then((res) => res.json())
-      .then((data) => setEmployees(data))
+      .then((data: Employee[]) => setEmployees(data))
       .catch(() => setError('Failed to load employees'));
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const res = await fetch('/api/employees', {
       method: 'POST',
@@ -35,7 +45,7 @@ export default function EmployeesPage() {
     });
 
     if (res.ok) {
-      const newEmployee = await res.json();
+      const newEmployee: Employee = await res.json();
       setEmployees((prev) => [...prev, newEmployee]);
       setFormData({
         firstName: '',
@@ -80,7 +90,9 @@ export default function EmployeesPage() {
         <tbody>
           {employees.map((emp) => (
             <tr key={emp.id} className="text-center">
-              <td className="p-2 border">{emp.firstName} {emp.lastName}</td>
+              <td className="p-2 border">
+                {emp.firstName} {emp.lastName}
+              </td>
               <td className="p-2 border">{emp.phone || '-'}</td>
               <td className="p-2 border">{emp.department || '-'}</td>
               <td className="p-2 border">{emp.jobRole || '-'}</td>
@@ -101,7 +113,7 @@ export default function EmployeesPage() {
                   type="text"
                   name={field}
                   placeholder={field[0].toUpperCase() + field.slice(1)}
-                  value={formData[field]}
+                  value={formData[field as keyof typeof formData]}
                   onChange={handleChange}
                   className="w-full p-2 border rounded"
                   required={['firstName', 'lastName', 'email'].includes(field)}

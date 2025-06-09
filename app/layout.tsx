@@ -1,10 +1,9 @@
 // app/layout.tsx
-"use client";
+import "./globals.css";
+import type { Metadata } from "next";
+import ClientLayout from "@/components/ClientLayout";
 
-import { SessionProvider } from "next-auth/react";
-import "./globals.css"; // Adjust path if needed
-
-export const metadata = {
+export const metadata: Metadata = {
   title: "CoreNZ",
   description: "HR system for NZ businesses",
 };
@@ -13,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

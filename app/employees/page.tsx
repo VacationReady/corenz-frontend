@@ -64,8 +64,8 @@ export default function EmployeesPage() {
 
   return (
     <ClientLayout>
-      <section className="min-h-screen w-full p-8 bg-gray-50">
-        <div className="bg-white p-6 rounded-lg shadow max-w-7xl mx-auto">
+      <section className="min-h-screen w-full p-10 bg-gray-100">
+        <div className="bg-white w-full max-w-7xl mx-auto p-8 rounded-xl shadow-md">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Employees</h1>
             <button

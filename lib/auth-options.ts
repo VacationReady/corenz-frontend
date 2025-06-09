@@ -2,8 +2,7 @@
 
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
-import type { Session } from "next-auth";
-import type { NextAuthOptions } from "next-auth/react";
+import type { Session, NextAuthOptions } from "next-auth"; // ✅ Corrected import
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 

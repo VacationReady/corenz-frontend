@@ -23,9 +23,15 @@ export default function ClientDashboard() {
         <div className="bg-white p-6 rounded shadow h-60 flex flex-col justify-between">
           <div>
             <h2 className="text-lg font-semibold mb-2">🏖 Holiday Balance</h2>
-            <p className="text-sm text-gray-700">Total Days: <strong>20</strong></p>
-            <p className="text-sm text-gray-700">Days Taken: <strong>8</strong></p>
-            <p className="text-sm text-gray-700">Days Remaining: <strong>12</strong></p>
+            <p className="text-sm text-gray-700">
+              Total Days: <strong>20</strong>
+            </p>
+            <p className="text-sm text-gray-700">
+              Days Taken: <strong>8</strong>
+            </p>
+            <p className="text-sm text-gray-700">
+              Days Remaining: <strong>12</strong>
+            </p>
           </div>
           <button
             onClick={() => setShowForm(true)}
@@ -47,9 +53,33 @@ export default function ClientDashboard() {
         <div className="bg-white p-6 rounded shadow h-60">
           <h2 className="text-lg font-semibold mb-2">📄 Documents</h2>
           <ul className="list-disc list-inside text-sm text-gray-700">
-            <li><a href="#" className="text-blue-600 hover:underline">Employee Handbook.pdf</a></li>
-            <li><a href="#" className="text-blue-600 hover:underline">Leave Policy 2025.docx</a></li>
-            <li><a href="#" className="text-blue-600 hover:underline">Tax Form.pdf</a></li>
+            <li>
+              <a
+                href="#"
+                className="text-blue-600 hover:underline"
+                onClick={(e) => e.preventDefault()}
+              >
+                Employee Handbook.pdf
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="text-blue-600 hover:underline"
+                onClick={(e) => e.preventDefault()}
+              >
+                Leave Policy 2025.docx
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className="text-blue-600 hover:underline"
+                onClick={(e) => e.preventDefault()}
+              >
+                Tax Form.pdf
+              </a>
+            </li>
           </ul>
         </div>
       </div>
@@ -79,7 +109,6 @@ export default function ClientDashboard() {
                   const res = await fetch("/api/leave-request", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    credentials: "include",  // <---- This line added here
                     body: JSON.stringify(payload),
                   });
 
@@ -95,7 +124,11 @@ export default function ClientDashboard() {
             >
               <div>
                 <label className="block text-sm font-medium mb-1">Leave Type</label>
-                <select name="type" required className="w-full border rounded px-3 py-2">
+                <select
+                  name="type"
+                  required
+                  className="w-full border rounded px-3 py-2"
+                >
                   <option value="">Select leave type</option>
                   <option value="ANNUAL">Annual Leave</option>
                   <option value="SICK">Sick Leave</option>
@@ -106,21 +139,43 @@ export default function ClientDashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Start Date</label>
-                <input name="startDate" type="date" required className="w-full border rounded px-3 py-2" />
+                <input
+                  name="startDate"
+                  type="date"
+                  required
+                  className="w-full border rounded px-3 py-2"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">End Date</label>
-                <input name="endDate" type="date" required className="w-full border rounded px-3 py-2" />
+                <input
+                  name="endDate"
+                  type="date"
+                  required
+                  className="w-full border rounded px-3 py-2"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Reason</label>
-                <input name="reason" type="text" className="w-full border rounded px-3 py-2" placeholder="Optional" />
+                <input
+                  name="reason"
+                  type="text"
+                  className="w-full border rounded px-3 py-2"
+                  placeholder="Optional"
+                />
               </div>
               <div className="flex justify-end space-x-2">
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
                   Submit
                 </button>
               </div>

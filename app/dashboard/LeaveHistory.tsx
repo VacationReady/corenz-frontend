@@ -1,56 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 
 export default function LeaveHistory() {
-  const sessionHook = useSession();
-  if (!sessionHook) return null;
-
-  const { data: session, status } = sessionHook;
-
   const [requests, setRequests] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (status !== "authenticated") return;
+    fetch("/api/leave-request")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load leave requests");
+        return res.json();
+      })
+      .then((data) => setRequests(data))
+      .catch(() => setError("Failed to load leave requests"));
+  }, []);
 
-    const fetchRequests = async () => {
-      try {
-        const res = await fetch("/api/leave-request");
+  if (error) {
+    return <p className="text-red-600">{error}</p>;
+  }
 
-        if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData?.error || "Failed to fetch leave requests");
-        }
-
-        const data = await res.json();
-
-        if (!Array.isArray(data)) {
-          throw new Error("Unexpected response format");
-        }
-
-        setRequests(data);
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      }
-    };
-
-    fetchRequests();
-  }, [status]);
-
-  if (status === "loading") return <p>Loading session...</p>;
-  if (error) return <div className="text-red-600">Error: {error}</div>;
-  if (requests.length === 0) return <p className="text-gray-500">No leave requests found.</p>;
+  if (requests.length === 0) {
+    return <p className="italic text-gray-500">No leave requests found.</p>;
+  }
 
   return (
-    <ul className="text-sm text-gray-700 space-y-2">
-      {requests.map((req) => (
-        <li key={req.id}>
-          <strong>{req.type}</strong>: {req.startDate} to {req.endDate} –{" "}
-          <em>{req.status}</em>
-        </li>
-      ))}
-    </ul>
+    <table className="min-w-full border border-gray-300 rounded shadow-sm">
+      <thead className="bg-gray-100">
+        <tr>
+          <th className="p-2 border text-left">Type</th>
+          <th className="p-2 border text-left">Start Date</th>
+          <th className="p-2 border text-left">End Date</th>
+          <th className="p-2 border text-left">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {requests.map((req) => (
+          <tr key={req.id} className="text-left">
+            <td className="p-2 border">{req.type}</td>
+            <td className="p-2 border">{new Date(req.startDate).toLocaleDateString()}</td>
+            <td className="p-2 border">{new Date(req.endDate).toLocaleDateString()}</td>
+            <td className="p-2 border">{req.status}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

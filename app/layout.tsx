@@ -1,18 +1,18 @@
-import '../styles/globals.css'
-import ClientSidebarWrapper from '../components/ClientSidebarWrapper'
+// app/layout.tsx
+import "./globals.css"; // Add if using Tailwind base styles
+import { ReactNode } from "react";
 
 export const metadata = {
-  title: 'CoreNZ HR',
-  description: 'HR platform for NZ businesses',
-}
+  title: "CoreNZ",
+  description: "HR platform for NZ businesses",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="flex h-screen bg-gray-100">
-        <ClientSidebarWrapper />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        {children}
       </body>
     </html>
-  )
+  );
 }

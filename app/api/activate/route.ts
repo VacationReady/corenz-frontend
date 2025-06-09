@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs'; // ✅ Swapped from 'bcrypt' to 'bcryptjs'
 
 export async function GET() {
   return NextResponse.json({ message: "Activate route is live." });

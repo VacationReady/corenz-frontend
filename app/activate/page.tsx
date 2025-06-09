@@ -25,17 +25,9 @@ export default function ActivatePage() {
     setError('');
     setSuccess('');
 
-    if (!token) {
-      return setError('Missing activation token.');
-    }
-
-    if (password.length < 6) {
-      return setError('Password must be at least 6 characters.');
-    }
-
-    if (password !== confirmPassword) {
-      return setError('Passwords do not match.');
-    }
+    if (!token) return setError('Missing activation token.');
+    if (password.length < 6) return setError('Password must be at least 6 characters.');
+    if (password !== confirmPassword) return setError('Passwords do not match.');
 
     try {
       setLoading(true);
@@ -45,8 +37,14 @@ export default function ActivatePage() {
         body: JSON.stringify({ token, password }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+        // do nothing, response might not be JSON
+      }
+
+      if (!res.ok) throw new Error(data?.error || 'Something went wrong.');
 
       setSuccess('Password set! Redirecting to login...');
       setTimeout(() => router.push('/login'), 2000);

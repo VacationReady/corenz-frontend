@@ -5,7 +5,6 @@ import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import ClientLayout from "@/components/ClientLayout";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<any[]>([]);

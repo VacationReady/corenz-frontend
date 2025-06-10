@@ -39,8 +39,10 @@ function SidebarLink({
   return (
     <Link
       href={href}
-      className={`flex items-center px-3 py-2 rounded hover:bg-blue-100 ${
-        isActive ? "bg-blue-200 text-blue-800 font-semibold" : "text-gray-700"
+      className={`flex items-center px-3 py-2 rounded transition-all ${
+        isActive
+          ? "bg-neutral-800 text-white font-semibold"
+          : "text-neutral-300 hover:bg-neutral-800"
       }`}
     >
       <Icon className="w-5 h-5 mr-2" />
@@ -71,16 +73,16 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`transition-all duration-200 bg-white shadow-md p-4 flex flex-col justify-between ${
+      className={`transition-all duration-200 bg-neutral-900 text-white p-4 flex flex-col justify-between ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
       <div>
         <div className="flex items-center justify-between mb-6">
-          {!collapsed && <h1 className="text-2xl font-bold text-blue-600">CoreNZ</h1>}
+          {!collapsed && <h1 className="text-2xl font-bold text-white">CoreNZ</h1>}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-neutral-400 hover:text-white"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <Menu /> : <ChevronLeft />}
@@ -91,7 +93,7 @@ export default function Sidebar() {
         <div className="relative mb-4" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between text-sm text-gray-700 hover:bg-gray-100 px-3 py-2 rounded"
+            className="w-full flex items-center justify-between text-sm text-neutral-300 hover:bg-neutral-800 px-3 py-2 rounded"
           >
             <span className="flex items-center">
               <User className="w-5 h-5 mr-2" />
@@ -102,16 +104,16 @@ export default function Sidebar() {
             )}
           </button>
           {dropdownOpen && !collapsed && (
-            <div className="absolute right-0 mt-2 w-full bg-white border rounded shadow z-10">
+            <div className="absolute right-0 mt-2 w-full bg-neutral-800 border border-neutral-700 rounded shadow z-10">
               <Link
                 href="/profile"
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block px-4 py-2 text-sm text-white hover:bg-neutral-700"
               >
                 My Profile
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-neutral-700"
               >
                 Logout
               </button>
@@ -128,7 +130,7 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <div className="border-t pt-4">
+      <div className="border-t border-neutral-700 pt-4">
         <SidebarLink href="/settings" label="Settings" icon={Settings} isCollapsed={collapsed} />
       </div>
     </aside>

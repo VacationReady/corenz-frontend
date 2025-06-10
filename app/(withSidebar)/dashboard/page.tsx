@@ -18,7 +18,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="w-full min-h-screen bg-neutral-100">
       {/* Top Bar */}
-      <div className="w-full bg-neutral-900 text-white px-8 py-4 flex justify-between items-center shadow sticky top-0 z-10">
+      <div className="w-full bg-neutral-900 text-white px-6 py-3 flex justify-between items-center shadow sticky top-0 z-10">
         <h1 className="text-lg font-semibold">Admin Dashboard</h1>
         <div className="relative w-96">
           <Search className="absolute top-2.5 left-3 w-5 h-5 text-gray-400" />

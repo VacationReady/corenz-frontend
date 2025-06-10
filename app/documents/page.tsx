@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { FileText, X } from "lucide-react";
 
 interface Document {
   id: string;
@@ -65,57 +66,73 @@ export default function DocumentsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Company Documents</h1>
-      <table className="min-w-full bg-white border border-gray-200">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2 border">Document Name</th>
-            <th className="p-2 border">Category</th>
-            <th className="p-2 border">Date Added</th>
-            <th className="p-2 border">Action Required</th>
-          </tr>
-        </thead>
-        <tbody>
-          {documents.map((doc) => (
-            <tr key={doc.id} className="text-center hover:bg-gray-50">
-              <td className="p-2 border">{doc.name}</td>
-              <td className="p-2 border">{doc.category}</td>
-              <td className="p-2 border">{doc.dateAdded}</td>
-              <td
-                className="p-2 border text-blue-600 cursor-pointer hover:underline"
-                onClick={() => setSelectedDoc(doc)}
-              >
-                {doc.actionRequired === "none"
-                  ? "None"
-                  : doc.actionRequired === "acknowledge"
-                  ? "Read Acknowledgement"
-                  : "E-Sign"}
-              </td>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold flex items-center text-blue-700">
+          <FileText className="w-6 h-6 mr-2" /> Company Documents
+        </h1>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Upload Document
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-3 border text-left">Document Name</th>
+              <th className="p-3 border text-left">Category</th>
+              <th className="p-3 border text-left">Date Added</th>
+              <th className="p-3 border text-left">Action Required</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {documents.map((doc) => (
+              <tr key={doc.id} className="hover:bg-gray-50">
+                <td className="p-3 border">{doc.name}</td>
+                <td className="p-3 border">{doc.category}</td>
+                <td className="p-3 border">{doc.dateAdded}</td>
+                <td
+                  className="p-3 border text-blue-600 cursor-pointer hover:underline"
+                  onClick={() => setSelectedDoc(doc)}
+                >
+                  {doc.actionRequired === "none"
+                    ? "None"
+                    : doc.actionRequired === "acknowledge"
+                    ? "Read Acknowledgement"
+                    : "E-Sign"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {selectedDoc && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-2xl">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-2xl relative">
+            <button
+              onClick={() => setSelectedDoc(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h2 className="text-xl font-bold mb-4">
               {selectedDoc.actionRequired === "acknowledge"
                 ? "Acknowledgement Status"
                 : "E-Sign Status"}
             </h2>
-            <table className="w-full mb-4">
+            <table className="w-full mb-4 border border-gray-200">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="p-2 border">Employee Name</th>
-                  <th className="p-2 border">Department</th>
-                  <th className="p-2 border">Status</th>
-                  <th className="p-2 border">Timestamp</th>
+                  <th className="p-2 border text-left">Employee Name</th>
+                  <th className="p-2 border text-left">Department</th>
+                  <th className="p-2 border text-left">Status</th>
+                  <th className="p-2 border text-left">Timestamp</th>
                 </tr>
               </thead>
               <tbody>
                 {dummyAcknowledgements.map((emp) => (
-                  <tr key={emp.id} className="text-center">
+                  <tr key={emp.id}>
                     <td className="p-2 border">{emp.name}</td>
                     <td className="p-2 border">{emp.department}</td>
                     <td className="p-2 border">
@@ -126,12 +143,14 @@ export default function DocumentsPage() {
                 ))}
               </tbody>
             </table>
-            <button
-              onClick={() => setSelectedDoc(null)}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Close
-            </button>
+            <div className="text-right">
+              <button
+                onClick={() => setSelectedDoc(null)}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

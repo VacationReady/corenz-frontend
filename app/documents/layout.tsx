@@ -1,4 +1,5 @@
-// File: app/documents/layout.tsx
+"use client";
+
 import ClientSidebarWrapper from "@/components/ClientSidebarWrapper";
 
 export default function DocumentsLayout({

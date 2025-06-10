@@ -72,7 +72,7 @@ var module_default = /*#__PURE__*/__webpack_require__.n(app_route_module);
 // EXTERNAL MODULE: ./lib/prisma.ts + 1 modules
 var prisma = __webpack_require__(9102);
 // EXTERNAL MODULE: ./node_modules/bcryptjs/index.js
-var bcryptjs = __webpack_require__(2716);
+var bcryptjs = __webpack_require__(6167);
 // EXTERNAL MODULE: ./node_modules/next/dist/server/web/exports/next-response.js
 var next_response = __webpack_require__(3804);
 ;// CONCATENATED MODULE: ./app/api/set-password/route.ts

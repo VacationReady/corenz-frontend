@@ -232,7 +232,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
+          
           
         }
       ]
@@ -342,7 +342,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,382,914,746,452,988,62], () => (__webpack_exec__(7641)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(7641)));
 module.exports = __webpack_exports__;
 
 })();

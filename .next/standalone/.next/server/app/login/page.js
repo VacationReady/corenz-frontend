@@ -68,11 +68,27 @@ module.exports = require("next/dist/shared/lib/hooks-client-context.js");
 
 /***/ }),
 
+/***/ 4964:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("next/dist/shared/lib/router-context.js");
+
+/***/ }),
+
 /***/ 1751:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("next/dist/shared/lib/router/utils/add-path-prefix.js");
+
+/***/ }),
+
+/***/ 3938:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("next/dist/shared/lib/router/utils/format-url.js");
 
 /***/ }),
 
@@ -92,6 +108,14 @@ module.exports = require("next/dist/shared/lib/router/utils/is-bot.js");
 
 /***/ }),
 
+/***/ 1109:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("next/dist/shared/lib/router/utils/is-local-url.js");
+
+/***/ }),
+
 /***/ 8854:
 /***/ ((module) => {
 
@@ -108,11 +132,27 @@ module.exports = require("next/dist/shared/lib/router/utils/remove-trailing-slas
 
 /***/ }),
 
+/***/ 7782:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("next/dist/shared/lib/router/utils/resolve-href.js");
+
+/***/ }),
+
 /***/ 3349:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("next/dist/shared/lib/server-inserted-html.js");
+
+/***/ }),
+
+/***/ 9232:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("next/dist/shared/lib/utils.js");
 
 /***/ }),
 
@@ -224,11 +264,11 @@ __webpack_require__.r(__webpack_exports__);
 /***/ 8561:
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
-Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 4073))
+Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 3694))
 
 /***/ }),
 
-/***/ 4073:
+/***/ 3694:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -246,10 +286,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var next_navigation__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(9483);
 /* harmony import */ var next_navigation__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(next_navigation__WEBPACK_IMPORTED_MODULE_3__);
 /* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
-
-
-
 const dynamic = "force-dynamic";
+
+
+
 function LoginPage() {
     const router = (0,next_navigation__WEBPACK_IMPORTED_MODULE_3__.useRouter)();
     const [formData, setFormData] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)({
@@ -368,7 +408,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,382,914,452], () => (__webpack_exec__(527)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(527)));
 module.exports = __webpack_exports__;
 
 })();

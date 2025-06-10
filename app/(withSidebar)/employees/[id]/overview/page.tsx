@@ -37,7 +37,6 @@ export default function EmployeeProfilePage() {
   }, [id]);
 
   return (
-    <ClientLayout>
       <div className="p-6">
         {loading ? (
           <p>Loading...</p>

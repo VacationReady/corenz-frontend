@@ -10,6 +10,5 @@ export default function ReportsPage() {
         <h1 className="text-2xl font-bold mb-6">Reports</h1>
         <p>This is your reports dashboard.</p>
       </main>
-    </ClientLayout>
   );
 }

@@ -156,7 +156,7 @@ module.exports = require("next/dist/shared/lib/utils.js");
 
 /***/ }),
 
-/***/ 580:
+/***/ 2716:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -232,7 +232,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
+          
           
         }
       ]
@@ -283,7 +283,8 @@ Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_re
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ CalendarPage)
+/* harmony export */   "default": () => (/* binding */ CalendarPage),
+/* harmony export */   "dynamic": () => (/* binding */ dynamic)
 /* harmony export */ });
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
@@ -293,7 +294,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(8877);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7640);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_2__);
-/* __next_internal_client_entry_do_not_use__ default auto */ 
+/* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
+const dynamic = "force-dynamic";
 
 
 
@@ -356,7 +358,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "$$typeof": () => (/* binding */ $$typeof),
 /* harmony export */   "__esModule": () => (/* binding */ __esModule),
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   "dynamic": () => (/* binding */ e0)
 /* harmony export */ });
 /* harmony import */ var next_dist_build_webpack_loaders_next_flight_loader_module_proxy__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5985);
 
@@ -369,6 +372,8 @@ const proxy = (0,next_dist_build_webpack_loaders_next_flight_loader_module_proxy
 const { __esModule, $$typeof } = proxy;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (proxy.default);
 
+const e0 = proxy["dynamic"];
+
 
 /***/ })
 
@@ -379,7 +384,7 @@ const { __esModule, $$typeof } = proxy;
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,382,914,746,666,452,988,62], () => (__webpack_exec__(580)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,140,666,498], () => (__webpack_exec__(2716)));
 module.exports = __webpack_exports__;
 
 })();

@@ -26,10 +26,9 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
 
   const menu = [
     "overview",
-    "personal-information",
-    "device-information",
-    "employment-information",
-    "time-and-attendance",
+    "Personal-Information",
+    "Documents",
+    "Employment-Information",
     "tasks",
     "planner",
     "documents",

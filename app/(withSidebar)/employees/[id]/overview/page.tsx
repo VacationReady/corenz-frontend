@@ -3,13 +3,12 @@ export const dynamic = "force-dynamic";
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import ClientLayout from "@/components/ClientLayout";
 
 export default function EmployeeProfilePage() {
   const params = useParams();
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
-  const [employee, setEmployee] = useState<any>(null);
+  const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -19,43 +18,43 @@ export default function EmployeeProfilePage() {
       setLoading(false);
       return;
     }
-
-    const fetchEmployee = async () => {
-      try {
-        const res = await fetch(`/api/employees/${id}`);
+    fetch(`/api/employees/${id}`)
+      .then((res) => {
         if (!res.ok) throw new Error("Employee not found");
-        const data = await res.json();
-        setEmployee(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEmployee();
+        return res.json();
+      })
+      .then(setEmployee)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, [id]);
 
   return (
-      <div className="p-6">
-        {loading ? (
-          <p>Loading...</p>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : (
-          <div className="bg-white rounded-xl shadow-md p-6 max-w-2xl">
-            <h1 className="text-2xl font-bold mb-4">
-              {employee.firstName} {employee.lastName}
-            </h1>
-            <div className="space-y-2">
-              <p><strong>Email:</strong> {employee.email}</p>
-              <p><strong>Phone:</strong> {employee.phone || "-"}</p>
-              <p><strong>Department:</strong> {employee.department || "-"}</p>
-              <p><strong>Job Role:</strong> {employee.jobRole || "-"}</p>
-            </div>
+    <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">
+      {loading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <p className="text-red-500">{error}</p>
+      ) : (
+        <div className="bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold mb-4">
+            {employee.firstName} {employee.lastName}
+          </h1>
+          <div className="space-y-2">
+            <p>
+              <strong>Email:</strong> {employee.email}
+            </p>
+            <p>
+              <strong>Phone:</strong> {employee.phone || "-"}
+            </p>
+            <p>
+              <strong>Department:</strong> {employee.department || "-"}
+            </p>
+            <p>
+              <strong>Job Role:</strong> {employee.jobRole || "-"}
+            </p>
           </div>
-        )}
-      </div>
-    </ClientLayout>
+        </div>
+      )}
+    </div>
   );
 }

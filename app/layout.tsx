@@ -1,21 +1,18 @@
+"use client";
+
+import { SessionProvider } from "next-auth/react";
+import ClientLayout from "@/components/ClientLayout";
 import "./globals.css";
-import { Inter } from "next/font/google";
+import { ReactNode } from "react";
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata = {
-  title: "CoreNZ",
-  description: "HR system for NZ businesses",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>
+        <SessionProvider>
+          <ClientLayout>{children}</ClientLayout>
+        </SessionProvider>
+      </body>
     </html>
   );
 }

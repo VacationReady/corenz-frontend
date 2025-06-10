@@ -4,6 +4,8 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+  // Most important: disables static export
+  output: "standalone",
 };
 
 module.exports = nextConfig;

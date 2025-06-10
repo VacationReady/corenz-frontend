@@ -5,7 +5,6 @@ import ClientLayout from "@/components/ClientLayout";
 import { useState } from "react";
 import { FileText, X } from "lucide-react";
 
-export const dynamic = "force-dynamic";
 
 interface Document {
   id: string;

@@ -1,4 +1,6 @@
 "use client";
+export const dynamic = "force-dynamic";
+
 
 import ClientLayout from "@/components/ClientLayout";
 import FullCalendar from "@fullcalendar/react";

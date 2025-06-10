@@ -18,3 +18,22 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+  try {
+    // First delete related ActivationTokens
+    await prisma.activationToken.deleteMany({
+      where: { employeeId: params.id },
+    });
+
+    // Then delete the employee
+    await prisma.employee.delete({
+      where: { id: params.id },
+    });
+
+    return NextResponse.json({ message: "Employee deleted" });
+  } catch (error) {
+    console.error("Delete failed:", error);
+    return NextResponse.json({ error: "Failed to delete employee" }, { status: 500 });
+  }
+}

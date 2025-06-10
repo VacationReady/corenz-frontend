@@ -5,7 +5,6 @@ import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import ClientLayout from "@/components/ClientLayout";
 import Link from "next/link";
 
-
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [isModalOpen, setModalOpen] = useState(false);
@@ -61,6 +60,7 @@ export default function EmployeesPage() {
   };
 
   return (
+    <ClientLayout>
       <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">
         <div className="bg-white w-full max-w-7xl mx-auto p-8 rounded-xl shadow-md">
           <div className="flex justify-between items-center mb-6">

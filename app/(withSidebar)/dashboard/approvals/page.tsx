@@ -1,7 +1,7 @@
-'use client';
+"use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 export default function ApprovalsPage() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -29,7 +29,7 @@ export default function ApprovalsPage() {
   };
 
   return (
-    <main className="p-6">
+    <div className="w-full px-6 pt-6 bg-gray-100">
       <h1 className="text-2xl font-bold mb-4">Pending Leave Requests</h1>
       {loading ? (
         <p>Loading...</p>
@@ -39,16 +39,30 @@ export default function ApprovalsPage() {
         <div className="space-y-4">
           {requests.map((req) => (
             <div key={req.id} className="border p-4 rounded shadow bg-white">
-              <p><strong>{req.type}</strong> from <strong>{new Date(req.startDate).toLocaleDateString()}</strong> to <strong>{new Date(req.endDate).toLocaleDateString()}</strong></p>
+              <p>
+                <strong>{req.type}</strong> from{" "}
+                <strong>{new Date(req.startDate).toLocaleDateString()}</strong> to{" "}
+                <strong>{new Date(req.endDate).toLocaleDateString()}</strong>
+              </p>
               <p>Reason: {req.reason || 'N/A'}</p>
               <div className="flex gap-2 mt-2">
-                <button onClick={() => handleDecision(req.id, 'APPROVED')} className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700">Approve</button>
-                <button onClick={() => handleDecision(req.id, 'DECLINED')} className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700">Decline</button>
+                <button
+                  onClick={() => handleDecision(req.id, 'APPROVED')}
+                  className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleDecision(req.id, 'DECLINED')}
+                  className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700"
+                >
+                  Decline
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

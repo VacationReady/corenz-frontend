@@ -3,8 +3,6 @@ export const dynamic = "force-dynamic";
 
 import ClientLayout from "@/components/ClientLayout";
 
-export const dynamic = "force-dynamic";
-
 export default function ReportsPage() {
   return (
     <ClientLayout>

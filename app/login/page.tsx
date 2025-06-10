@@ -5,7 +5,6 @@ import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
   const router = useRouter();

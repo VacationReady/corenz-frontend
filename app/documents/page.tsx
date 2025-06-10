@@ -1,5 +1,6 @@
-// File: app/documents/page.tsx
 "use client";
+
+export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { FileText, X } from "lucide-react";

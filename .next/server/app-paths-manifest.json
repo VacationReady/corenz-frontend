@@ -1,16 +1,16 @@
 {
   "/page": "app/page.js",
-  "/activate/page": "app/activate/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/profile/page": "app/profile/page.js",
   "/login/page": "app/login/page.js",
-  "/dashboard/approvals/page": "app/dashboard/approvals/page.js",
-  "/api/set-password/route": "app/api/set-password/route.js",
-  "/(withSidebar)/reports/page": "app/(withSidebar)/reports/page.js",
+  "/activate/page": "app/activate/page.js",
+  "/profile/page": "app/profile/page.js",
   "/(withSidebar)/calendar/page": "app/(withSidebar)/calendar/page.js",
-  "/(withSidebar)/settings/page": "app/(withSidebar)/settings/page.js",
   "/(withSidebar)/documents/page": "app/(withSidebar)/documents/page.js",
+  "/(withSidebar)/settings/page": "app/(withSidebar)/settings/page.js",
+  "/(withSidebar)/reports/page": "app/(withSidebar)/reports/page.js",
+  "/api/set-password/route": "app/api/set-password/route.js",
+  "/(withSidebar)/dashboard/page": "app/(withSidebar)/dashboard/page.js",
   "/(withSidebar)/employees/page": "app/(withSidebar)/employees/page.js",
+  "/(withSidebar)/dashboard/approvals/page": "app/(withSidebar)/dashboard/approvals/page.js",
   "/api/employees/[id]/route": "app/api/employees/[id]/route.js",
   "/(withSidebar)/employees/[id]/overview/page": "app/(withSidebar)/employees/[id]/overview/page.js"
 }

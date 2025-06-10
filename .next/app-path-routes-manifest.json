@@ -1,16 +1,16 @@
 {
   "/page": "/",
-  "/activate/page": "/activate",
-  "/dashboard/page": "/dashboard",
-  "/profile/page": "/profile",
   "/login/page": "/login",
-  "/dashboard/approvals/page": "/dashboard/approvals",
-  "/api/set-password/route": "/api/set-password",
-  "/(withSidebar)/reports/page": "/reports",
+  "/activate/page": "/activate",
+  "/profile/page": "/profile",
   "/(withSidebar)/calendar/page": "/calendar",
-  "/(withSidebar)/settings/page": "/settings",
   "/(withSidebar)/documents/page": "/documents",
+  "/(withSidebar)/settings/page": "/settings",
+  "/(withSidebar)/reports/page": "/reports",
+  "/api/set-password/route": "/api/set-password",
+  "/(withSidebar)/dashboard/page": "/dashboard",
   "/(withSidebar)/employees/page": "/employees",
+  "/(withSidebar)/dashboard/approvals/page": "/dashboard/approvals",
   "/api/employees/[id]/route": "/api/employees/[id]",
   "/(withSidebar)/employees/[id]/overview/page": "/employees/[id]/overview"
 }

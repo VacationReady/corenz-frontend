@@ -7,7 +7,6 @@ import ClientDashboard from "./ClientDashboard";
 
 export default function DashboardPage() {
   return (
-    <ClientLayout>
       <ClientDashboard />
     </ClientLayout>
   );

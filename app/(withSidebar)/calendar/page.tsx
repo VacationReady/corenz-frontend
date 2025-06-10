@@ -22,7 +22,6 @@ export default function CalendarPage() {
   };
 
   return (
-    <ClientLayout>
       <div className="w-full">
         <h1 className="text-2xl font-bold mb-4">Calendar</h1>
         <FullCalendar

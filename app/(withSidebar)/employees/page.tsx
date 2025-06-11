@@ -93,7 +93,7 @@ export default function EmployeesPage() {
                   <td className="p-3">{emp.email}</td>
                   <td className="p-3">
                     <Button
-                      variant="destructive"
+                      variant="danger"
                       size="sm"
                       onClick={async () => {
                         if (!confirm("Are you sure you want to delete this employee?")) return;

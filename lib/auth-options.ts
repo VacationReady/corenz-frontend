@@ -1,5 +1,3 @@
-// lib/auth-options.ts
-
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { Session } from "next-auth";
@@ -20,11 +18,12 @@ export const authOptions = {
 
         if (!email || !password) return null;
 
-        const user = await prisma.employee.findUnique({
+        // ✅ Now authenticating from 'User' table
+        const user = await prisma.user.findUnique({
           where: { email },
         });
 
-        if (!user || !user.password) return null;
+        if (!user || !user.password || !user.isActivated) return null;
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) return null;

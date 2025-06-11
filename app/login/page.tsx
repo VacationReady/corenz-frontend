@@ -5,7 +5,6 @@ import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -18,16 +17,20 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+
     const res = await signIn("credentials", {
       redirect: false,
       email: formData.email,
       password: formData.password,
+      callbackUrl: "/dashboard", // ✅ important for redirection
     });
+
+    console.log("🔁 signIn response:", res); // ✅ log the response
 
     if (res?.error) {
       setError("Invalid email or password");
-    } else {
-      router.push("/dashboard");
+    } else if (res?.ok) {
+      router.push(res.url || "/dashboard"); // ✅ use returned URL
     }
   };
 

@@ -1,39 +1,25 @@
-import { withAuth } from "next-auth/middleware";
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default withAuth(
-  function middleware(req) {
-    const isAuth = !!req.nextauth.token;
-    const { pathname } = req.nextUrl;
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req });
+  const isAuth = !!token;
+  const { pathname } = req.nextUrl;
 
-    // ✅ Log for debugging
-    console.log("MIDDLEWARE triggered:", { pathname, isAuth });
+  const isLoginPage = pathname === "/login";
+  const isPublicPage = pathname === "/"; // ✅ allow homepage without login
 
-    const isLoginPage = pathname === "/login";
-
-    if (isLoginPage && isAuth) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-
-    if (!isAuth && !isLoginPage) {
-      const loginUrl = req.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => {
-        return !!token;
-      },
-    },
+  if (!isAuth && !isLoginPage && !isPublicPage) {
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
-);
 
-// ✅ Only protect these paths
+  return NextResponse.next();
+}
+
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login).*)"],
+  matcher: ["/((?!_next|api|static|favicon.ico).*)"],
 };

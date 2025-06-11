@@ -2,9 +2,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { NextAuthOptions } from "next-auth/react";
+import type { AuthOptions } from "next-auth"; // ✅ correct for v4.24.11
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
@@ -35,6 +35,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
+          name: user.name || "", // ✅ add name field to match AuthOptions type
         };
       },
     }),

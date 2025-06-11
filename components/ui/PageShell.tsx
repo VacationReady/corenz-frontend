@@ -1,14 +1,27 @@
+// components/ui/PageShell.tsx
 "use client";
 
-import { ReactNode } from "react";
+import React from "react";
+import clsx from "clsx";
 
-export function PageShell({ title, children }: { title: string; children: ReactNode }) {
+export function PageShell({
+  title,
+  children,
+  className,
+  action,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  action?: React.ReactNode; // <-- ADD THIS LINE
+}) {
   return (
-    <div className="w-full min-h-screen bg-neutral-100 py-8 px-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-neutral-800 mb-6">{title}</h1>
-        {children}
+    <div className={clsx("w-full p-6 max-w-7xl mx-auto", className)}>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">{title}</h1>
+        {action && <div>{action}</div>} {/* <-- ADD THIS LINE */}
       </div>
+      {children}
     </div>
   );
 }

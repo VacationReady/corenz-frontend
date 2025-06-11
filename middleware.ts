@@ -3,29 +3,22 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-  async function middleware(req) {
-    const { pathname } = req.nextUrl;
-
-    // Let static files, Next.js internals, or the login page through
-    if (
-      pathname.startsWith("/_next") ||
-      pathname.includes(".") ||
-      pathname === "/login"
-    ) {
-      return NextResponse.next();
-    }
-
+  function middleware(req) {
     return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token }) => {
-        return !!token; // 👈 returns true if token exists
+        // ✅ Only require auth if NOT on the login page
+        return !!token;
       },
     },
   }
 );
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    // ✅ Protect everything except login and static assets
+    "/((?!api|_next/static|_next/image|favicon.ico|login).*)",
+  ],
 };

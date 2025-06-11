@@ -1,6 +1,8 @@
 // pages/api/auth/[...nextauth].ts
 
-const NextAuth = require("next-auth").default; // ✅ Fix for type issue
-const { authOptions } = require("@/lib/auth-options");
+import NextAuth from "next-auth";
+import { authOptions } from "../../../lib/auth-options";
 
-export default NextAuth(authOptions);
+export default async function auth(req, res) {
+  return await NextAuth(req, res, authOptions);
+}

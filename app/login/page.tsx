@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = searchParams?.get("callbackUrl") ?? "/dashboard"; // ✅ fixed null check
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -31,7 +31,7 @@ export default function LoginPage() {
     }
 
     if (res?.ok && res.url) {
-      router.push(res.url); // ✅ simplified redirect, no manual getSession
+      router.push(res.url); // ✅ simplified redirect
     }
   };
 

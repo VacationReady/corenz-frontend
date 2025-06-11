@@ -18,6 +18,7 @@ export const authOptions = {
 
         if (!email || !password) return null;
 
+        // ✅ Authenticate against the 'User' table
         const user = await prisma.user.findUnique({
           where: { email },
         });
@@ -39,13 +40,9 @@ export const authOptions = {
   pages: {
     signIn: "/login",
   },
-
-  // ✅ Session and Cookie settings added here
   session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: "jwt" as const, // ✅ This fixes the typing issue
   },
-
   cookies: {
     sessionToken: {
       name: `__Secure-next-auth.session-token`,
@@ -57,7 +54,6 @@ export const authOptions = {
       },
     },
   },
-
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -78,6 +74,5 @@ export const authOptions = {
       return session;
     },
   },
-
   secret: process.env.NEXTAUTH_SECRET,
 };

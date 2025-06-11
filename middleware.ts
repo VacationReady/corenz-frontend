@@ -1,35 +1,41 @@
-import { withAuth } from 'next-auth/middleware';
-import { NextResponse } from 'next/server';
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
-    const role = req.nextauth.token?.role;
+    const token = req.nextauth.token;
+    
+    // Optional debug logging
+    console.log("🔐 MIDDLEWARE TOKEN:", token);
 
-    // Protect /settings/users for ADMIN only
+    // Block non-admins from /settings/users
     if (
-      req.nextUrl.pathname.startsWith('/settings/users') &&
-      role !== 'ADMIN'
+      req.nextUrl.pathname.startsWith("/settings/users") &&
+      token?.role !== "ADMIN"
     ) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
+      return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
-    // You can add more role-based rules here later
+    return NextResponse.next();
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token, // Require login
+      authorized: ({ token }) => {
+        // Allow access if user is logged in
+        return !!token;
+      },
     },
   }
 );
 
-// Define which routes are protected
+// Apply middleware to these paths
 export const config = {
   matcher: [
-    '/dashboard',
-    '/calendar',
-    '/documents',
-    '/employees',
-    '/profile',
-    '/settings/:path*', // includes /settings/users
+    "/dashboard",
+    "/calendar",
+    "/documents",
+    "/employees",
+    "/profile",
+    "/settings/:path*",
   ],
 };

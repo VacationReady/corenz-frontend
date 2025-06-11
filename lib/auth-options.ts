@@ -2,19 +2,18 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { AuthOptions } from "next-auth";
+import type { NextAuthOptions } from "next-auth"; // ✅ fixed import
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "jwt",
+  },
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
-        email: {
-          label: "Email",
-          type: "email",
-          placeholder: "email@example.com",
-        },
+        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -26,23 +25,35 @@ export const authOptions: AuthOptions = {
 
         if (!user) return null;
 
-        const isValid = await compare(credentials.password, user.password);
-        if (!isValid) return null;
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.hashedPassword
+        );
+
+        if (!isPasswordValid) return null;
 
         return {
           id: user.id,
-          name: user.name,
           email: user.email,
-          role: user.role,
         };
       },
     }),
   ],
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+      }
+      return session;
+    },
   },
   cookies: {
     sessionToken: {
@@ -51,26 +62,12 @@ export const authOptions: AuthOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: true,
-        domain: ".vercel.app", // ✅ Ensure cookies persist in Vercel deploys
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },
-  callbacks: {
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-      }
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-      }
-      return token;
-    },
+  pages: {
+    signIn: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

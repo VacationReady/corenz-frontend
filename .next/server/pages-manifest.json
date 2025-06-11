@@ -2,8 +2,8 @@
   "/_app": "pages/_app.js",
   "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js",
   "/api/employees": "pages/api/employees.js",
-  "/api/leave-request": "pages/api/leave-request.js",
   "/api/leave-request/[id]": "pages/api/leave-request/[id].js",
+  "/api/leave-request": "pages/api/leave-request.js",
   "/api/set-password": "pages/api/set-password.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js"

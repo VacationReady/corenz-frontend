@@ -1,62 +1,6 @@
 {
-  "sortedMiddleware": [
-    "/"
-  ],
-  "middleware": {
-    "/": {
-      "env": [
-        "NEXTAUTH_URL",
-        "NEXTAUTH_SECRET",
-        "AUTH_SECRET",
-        "VERCEL",
-        "JEST_WORKER_ID"
-      ],
-      "files": [
-        "server/edge-runtime-webpack.js",
-        "server/middleware.js"
-      ],
-      "name": "middleware",
-      "page": "/",
-      "matchers": [
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/dashboard(.json)?[\\/#\\?]?$",
-          "originalSource": "/dashboard"
-        },
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/profile(.json)?[\\/#\\?]?$",
-          "originalSource": "/profile"
-        },
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/calendar(.json)?[\\/#\\?]?$",
-          "originalSource": "/calendar"
-        },
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/employees(.json)?[\\/#\\?]?$",
-          "originalSource": "/employees"
-        },
-        {
-          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/documents(.json)?[\\/#\\?]?$",
-          "originalSource": "/documents"
-        }
-      ],
-      "wasm": [
-        {
-          "name": "wasm_a7e702bc5ba9227243abda7977c8096f59478d3f",
-          "filePath": "server/edge-chunks/wasm_a7e702bc5ba9227243abda7977c8096f59478d3f.wasm"
-        },
-        {
-          "name": "wasm_ef4866ecae192fd87727067cf2c0c0cf9fb8b020",
-          "filePath": "server/edge-chunks/wasm_ef4866ecae192fd87727067cf2c0c0cf9fb8b020.wasm"
-        }
-      ],
-      "assets": [
-        {
-          "name": "noto-sans-v27-latin-regular.5dda3fca77107598.ttf",
-          "filePath": "server/edge-chunks/asset_noto-sans-v27-latin-regular.5dda3fca77107598.ttf"
-        }
-      ]
-    }
-  },
+  "sortedMiddleware": [],
+  "middleware": {},
   "functions": {},
   "version": 2
 }

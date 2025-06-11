@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth-options";
-import type { SessionStrategy } from "next-auth"; // type fix for session strategy
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,7 +11,7 @@ export default async function handler(
     ...authOptions,
     session: {
       ...authOptions.session,
-      strategy: authOptions.session.strategy as SessionStrategy,
+      strategy: authOptions.session.strategy as any, // ✅ cast to `any`
     },
   });
 

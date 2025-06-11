@@ -2,7 +2,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { AuthOptions } from "next-auth/core/types"; // ✅ Correct import for type
+import type { AuthOptions } from "next-auth/core/types"; // ✅ Correct import for NextAuthOptions
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -23,7 +23,6 @@ export const authOptions: AuthOptions = {
           where: { email: credentials.email },
         });
 
-        // Ensure user and password exist
         if (!user || !user.password) return null;
 
         const isPasswordValid = await compare(credentials.password, user.password);
@@ -46,7 +45,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id;
         session.user.email = token.email;
       }

@@ -18,6 +18,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // ✅ clear previous error
 
     const res = await signIn("credentials", {
       redirect: false,
@@ -26,8 +27,11 @@ export default function LoginPage() {
       callbackUrl,
     });
 
+    console.log("🔁 SignIn response:", res); // ✅ debug log
+
     if (res?.error) {
       setError("Invalid email or password.");
+      return;
     }
 
     if (res?.ok && res.url) {

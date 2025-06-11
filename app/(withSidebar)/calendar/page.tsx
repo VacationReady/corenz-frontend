@@ -1,10 +1,13 @@
 "use client";
 export const dynamic = "force-dynamic";
 
+import { useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { useState } from "react";
+
+import PageShell from "@/components/ui/PageShell";
+import Card from "@/components/ui/Card";
 
 export default function CalendarPage() {
   const [events, setEvents] = useState([
@@ -20,15 +23,18 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="w-full">
-      <h1 className="text-2xl font-bold mb-4">Calendar</h1>
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        dateClick={handleDateClick}
-        events={events}
-        height="auto"
-      />
-    </div>
+    <PageShell title="Calendar">
+      <Card title="Company Calendar">
+        <div className="bg-white rounded-xl overflow-hidden">
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            dateClick={handleDateClick}
+            events={events}
+            height="auto"
+          />
+        </div>
+      </Card>
+    </PageShell>
   );
 }

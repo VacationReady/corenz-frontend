@@ -1,10 +1,3 @@
-"use client";
-export const dynamic = "force-dynamic";
-
-import { useState, FormEvent } from "react";
-import { signIn, getSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -30,10 +23,7 @@ export default function LoginPage() {
     if (res?.error) {
       setError("Invalid email or password");
     } else if (res?.ok) {
-      // Ensure session is available before redirecting
       const session = await getSession();
-      console.log("🟢 Session after login:", session);
-
       if (session) {
         router.push(res.url || "/dashboard");
       } else {
@@ -42,6 +32,7 @@ export default function LoginPage() {
     }
   };
 
+  // ✅ THIS BRACE WAS LIKELY MISSING BEFORE YOUR `return (...)`
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
@@ -55,4 +46,33 @@ export default function LoginPage() {
           <p className="mb-4 text-center text-red-600 font-semibold">{error}</p>
         )}
 
-        <form onSubmit={handleSubmit} c
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Email address"
+            required
+            className="w-full px-4 py-2 border rounded-lg"
+          />
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Password"
+            required
+            className="w-full px-4 py-2 border rounded-lg"
+          />
+          <button
+            type="submit"
+            className="w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800"
+          >
+            Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

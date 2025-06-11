@@ -3,16 +3,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export default withAuth(
-  function middleware(req: NextRequest) {
-    const isAuth = !!req.nextauth.token;
+  function middleware(req: NextRequest, event) {
+    const isAuth = !!event.token;
     const isLoginPage = req.nextUrl.pathname.startsWith("/login");
 
     // ✅ Prevent redirect loop
-    if (isLoginPage && isAuth) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-
-    // ✅ Send unauthenticated users to login
     if (!isAuth && !isLoginPage) {
       const loginUrl = req.nextUrl.clone();
       loginUrl.pathname = "/login";
@@ -24,11 +19,11 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token, // ✅ make sure token is being detected
+      authorized: ({ token }) => !!token,
     },
   }
 );
 
 export const config = {
-  matcher: ["/dashboard", "/employees", "/calendar", "/documents", "/settings"],
+  matcher: ["/dashboard", "/profile", "/calendar", "/employees", "/documents"], // add your protected routes here
 };

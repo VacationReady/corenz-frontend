@@ -1,6 +1,8 @@
 // pages/api/auth/[...nextauth].ts
 
-import NextAuth from "next-auth/react"; // ✅ version-safe
 import { authOptions } from "@/lib/auth-options";
+import { handlers } from "next-auth";
 
-export default NextAuth(authOptions);
+const { GET, POST } = handlers(authOptions);
+
+export { GET, POST };

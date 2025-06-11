@@ -1,12 +1,14 @@
 "use client";
-export const dynamic = "force-dynamic";
 
-import { useState, FormEvent } from "react";
-import { signIn, getSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
@@ -14,30 +16,22 @@ export default function LoginPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
 
     const res = await signIn("credentials", {
       redirect: false,
       email: formData.email,
       password: formData.password,
-      callbackUrl: "/dashboard",
+      callbackUrl,
     });
 
-    console.log("🔁 signIn response:", res);
-
     if (res?.error) {
-      setError("Invalid email or password");
-    } else if (res?.ok) {
-      const session = await getSession();
-      console.log("🟢 Session after login:", session);
+      setError("Invalid email or password.");
+    }
 
-      if (session) {
-        router.push(res.url || "/dashboard");
-      } else {
-        setError("Login succeeded but session not yet available.");
-      }
+    if (res?.ok && res.url) {
+      router.push(res.url); // ✅ simplified redirect, no manual getSession
     }
   };
 
@@ -47,37 +41,49 @@ export default function LoginPage() {
         <div className="flex justify-center mb-6">
           <h1 className="text-3xl font-bold text-black">CoreNZ</h1>
         </div>
-
-        <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
-
-        {error && (
-          <p className="mb-4 text-center text-red-600 font-semibold">{error}</p>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Email address"
-            required
-            className="w-full px-4 py-2 border rounded-lg"
-          />
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Password"
-            required
-            className="w-full px-4 py-2 border rounded-lg"
-          />
+          {error && (
+            <div className="bg-red-100 text-red-700 p-2 rounded">
+              {error}
+            </div>
+          )}
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email address
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800"
+            className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition"
           >
-            Sign In
+            Sign in
           </button>
         </form>
       </div>

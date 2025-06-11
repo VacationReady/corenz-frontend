@@ -22,7 +22,7 @@ export const authOptions = {
           where: { email: credentials.email },
         });
 
-        if (!user) return null;
+        if (!user || !user.password) return null; // ✅ null guard added
 
         const isPasswordValid = await compare(
           credentials.password,
@@ -34,7 +34,7 @@ export const authOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: user.name || "", // ✅ add name field to match AuthOptions type
+          name: user.name || "", // ✅ name is optional fallback
         };
       },
     }),

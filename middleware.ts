@@ -1,4 +1,3 @@
-// middleware.ts
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -13,15 +12,15 @@ export async function middleware(req: NextRequest) {
   const isAuth = !!token;
   const isLoginPage = pathname === "/login";
 
+  if (isLoginPage && isAuth) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
   if (!isAuth && !isLoginPage) {
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (isAuth && isLoginPage) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return NextResponse.next();

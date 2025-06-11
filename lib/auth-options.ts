@@ -2,7 +2,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { AuthOptions } from "next-auth/core/types"; // ✅ Correct import for NextAuthOptions
+import type { AuthOptions } from "next-auth/core/types";
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -46,8 +46,11 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id;
-        session.user.email = token.email;
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          email: token.email as string,
+        };
       }
       return session;
     },

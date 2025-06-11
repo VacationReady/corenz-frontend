@@ -1,3 +1,10 @@
+"use client";
+export const dynamic = "force-dynamic";
+
+import { useState, FormEvent } from "react";
+import { signIn, getSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -24,6 +31,8 @@ export default function LoginPage() {
       setError("Invalid email or password");
     } else if (res?.ok) {
       const session = await getSession();
+      console.log("🟢 Session after login:", session);
+
       if (session) {
         router.push(res.url || "/dashboard");
       } else {
@@ -32,7 +41,6 @@ export default function LoginPage() {
     }
   };
 
-  // ✅ THIS BRACE WAS LIKELY MISSING BEFORE YOUR `return (...)`
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">

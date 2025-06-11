@@ -1,7 +1,6 @@
 // lib/session-options.ts
-import type { NextAuthOptions } from "next-auth";
 
-export const sessionOptions: NextAuthOptions = {
+export const sessionOptions = {
   session: {
     strategy: "jwt",
   },

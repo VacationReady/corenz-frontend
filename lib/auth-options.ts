@@ -2,9 +2,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { AuthOptions } from "next-auth/core/types";
+import type { NextAuthOptions } from "next-auth"; // ✅ use correct type import
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
@@ -31,6 +31,7 @@ export const authOptions: AuthOptions = {
         return {
           id: user.id,
           email: user.email,
+          role: user.role, // ✅ include role if needed
           name: `${user.firstName} ${user.lastName}`,
         };
       },
@@ -41,6 +42,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.role = user.role; // ✅ optional, but safe
       }
       return token;
     },
@@ -50,6 +52,7 @@ export const authOptions: AuthOptions = {
           ...session.user,
           id: token.id as string,
           email: token.email as string,
+          role: token.role as string, // ✅ matches your types/next-auth.d.ts
         };
       }
       return session;

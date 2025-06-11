@@ -2,11 +2,12 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import type { AuthOptions } from "next-auth";
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // ✅ use JWT strategy
   },
   providers: [
     CredentialsProvider({
@@ -24,17 +25,13 @@ export const authOptions = {
 
         if (!user || !user.password) return null;
 
-        const isPasswordValid = await compare(
-          credentials.password,
-          user.password
-        );
-
+        const isPasswordValid = await compare(credentials.password, user.password);
         if (!isPasswordValid) return null;
 
         return {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`.trim(),
+          name: `${user.firstName} ${user.lastName}` || user.email, // optional fallback
         };
       },
     }),
@@ -48,26 +45,15 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.email = token.email;
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
       }
       return session;
-    },
-  },
-  cookies: {
-    sessionToken: {
-      name: `__Secure-next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
     },
   },
   pages: {
     signIn: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET, // ✅ required
 };

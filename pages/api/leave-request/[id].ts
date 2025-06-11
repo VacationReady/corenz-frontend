@@ -1,14 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth-options";
-import type { SessionStrategy } from "next-auth"; // ✅ import for cast
+import type { SessionStrategy } from "next-auth"; // type fix for session strategy
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // ✅ Patch strategy type inline for compatibility
   const session = await getServerSession(req, res, {
     ...authOptions,
     session: {

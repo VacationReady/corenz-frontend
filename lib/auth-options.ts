@@ -1,5 +1,3 @@
-// Triggering Vercel redeploy for login debug
-
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { Session } from "next-auth";
@@ -17,18 +15,39 @@ export const authOptions = {
       },
       async authorize(credentials) {
         const { email, password } = credentials ?? {};
+        console.log("🔐 LOGIN ATTEMPT:", { email });
 
-        if (!email || !password) return null;
+        if (!email || !password) {
+          console.log("❌ Missing email or password");
+          return null;
+        }
 
-        // ✅ Now authenticating from 'User' table
         const user = await prisma.user.findUnique({
           where: { email },
         });
 
-        if (!user || !user.password || !user.isActivated) return null;
+        if (!user) {
+          console.log("❌ User not found");
+          return null;
+        }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) return null;
+        if (!user.password) {
+          console.log("❌ User has no password set");
+          return null;
+        }
+
+        if (!user.isActivated) {
+          console.log("❌ User not activated");
+          return null;
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+        console.log("✅ Password valid:", isValid);
+
+        if (!isValid) {
+          console.log("❌ Invalid password");
+          return null;
+        }
 
         return {
           id: user.id,

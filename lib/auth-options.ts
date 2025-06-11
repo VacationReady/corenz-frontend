@@ -2,12 +2,12 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import type { AuthOptions } from "next-auth";
+import type { AuthOptions } from "next-auth/core/types"; // ✅ Correct import for type
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt", // ✅ use JWT strategy
+    strategy: "jwt",
   },
   providers: [
     CredentialsProvider({
@@ -23,6 +23,7 @@ export const authOptions: AuthOptions = {
           where: { email: credentials.email },
         });
 
+        // Ensure user and password exist
         if (!user || !user.password) return null;
 
         const isPasswordValid = await compare(credentials.password, user.password);
@@ -31,7 +32,7 @@ export const authOptions: AuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}` || user.email, // optional fallback
+          name: `${user.firstName} ${user.lastName}`,
         };
       },
     }),
@@ -45,9 +46,9 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
+      if (token) {
+        session.user.id = token.id;
+        session.user.email = token.email;
       }
       return session;
     },
@@ -55,5 +56,5 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET, // ✅ required
+  secret: process.env.NEXTAUTH_SECRET,
 };

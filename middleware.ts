@@ -1,25 +1,34 @@
-import { getToken } from "next-auth/jwt";
+import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(req: NextRequest) {
-  const token = await getToken({ req });
-  const isAuth = !!token;
-  const { pathname } = req.nextUrl;
+export default withAuth(
+  function middleware(req: NextRequest) {
+    const isAuth = !!req.nextauth.token;
+    const isLoginPage = req.nextUrl.pathname.startsWith("/login");
 
-  const isLoginPage = pathname === "/login";
-  const isPublicPage = pathname === "/"; // ✅ allow homepage without login
+    // ✅ Prevent redirect loop
+    if (isLoginPage && isAuth) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
 
-  if (!isAuth && !isLoginPage && !isPublicPage) {
-    const loginUrl = req.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+    // ✅ Send unauthenticated users to login
+    if (!isAuth && !isLoginPage) {
+      const loginUrl = req.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token, // ✅ make sure token is being detected
+    },
   }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
-  matcher: ["/((?!_next|api|static|favicon.ico).*)"],
+  matcher: ["/dashboard", "/employees", "/calendar", "/documents", "/settings"],
 };

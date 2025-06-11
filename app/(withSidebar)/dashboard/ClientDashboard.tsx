@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useSession } from "next-auth/react"; // 👈 add this
+import { useEffect, useState } from "react";
 import LeaveHistory from "./LeaveHistory";
 
 export default function ClientDashboard() {
   const [showForm, setShowForm] = useState(false);
+  const { data: session, status } = useSession(); // 👈 track session
+  useEffect(() => {
+    console.log("SESSION DEBUG:", session, "STATUS:", status); // 👈 log it
+  }, [session, status]);
 
   return (
     <main className="flex-1 p-6 overflow-y-auto">
@@ -54,29 +59,17 @@ export default function ClientDashboard() {
           <h2 className="text-lg font-semibold mb-2">📄 Documents</h2>
           <ul className="list-disc list-inside text-sm text-gray-700">
             <li>
-              <a
-                href="#"
-                className="text-blue-600 hover:underline"
-                onClick={(e) => e.preventDefault()}
-              >
+              <a href="#" className="text-blue-600 hover:underline" onClick={(e) => e.preventDefault()}>
                 Employee Handbook.pdf
               </a>
             </li>
             <li>
-              <a
-                href="#"
-                className="text-blue-600 hover:underline"
-                onClick={(e) => e.preventDefault()}
-              >
+              <a href="#" className="text-blue-600 hover:underline" onClick={(e) => e.preventDefault()}>
                 Leave Policy 2025.docx
               </a>
             </li>
             <li>
-              <a
-                href="#"
-                className="text-blue-600 hover:underline"
-                onClick={(e) => e.preventDefault()}
-              >
+              <a href="#" className="text-blue-600 hover:underline" onClick={(e) => e.preventDefault()}>
                 Tax Form.pdf
               </a>
             </li>
@@ -124,11 +117,7 @@ export default function ClientDashboard() {
             >
               <div>
                 <label className="block text-sm font-medium mb-1">Leave Type</label>
-                <select
-                  name="type"
-                  required
-                  className="w-full border rounded px-3 py-2"
-                >
+                <select name="type" required className="w-full border rounded px-3 py-2">
                   <option value="">Select leave type</option>
                   <option value="ANNUAL">Annual Leave</option>
                   <option value="SICK">Sick Leave</option>
@@ -139,30 +128,15 @@ export default function ClientDashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Start Date</label>
-                <input
-                  name="startDate"
-                  type="date"
-                  required
-                  className="w-full border rounded px-3 py-2"
-                />
+                <input name="startDate" type="date" required className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">End Date</label>
-                <input
-                  name="endDate"
-                  type="date"
-                  required
-                  className="w-full border rounded px-3 py-2"
-                />
+                <input name="endDate" type="date" required className="w-full border rounded px-3 py-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Reason</label>
-                <input
-                  name="reason"
-                  type="text"
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Optional"
-                />
+                <input name="reason" type="text" className="w-full border rounded px-3 py-2" placeholder="Optional" />
               </div>
               <div className="flex justify-end space-x-2">
                 <button
@@ -172,10 +146,7 @@ export default function ClientDashboard() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                >
+                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
                   Submit
                 </button>
               </div>

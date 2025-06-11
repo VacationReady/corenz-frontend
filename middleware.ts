@@ -1,31 +1,27 @@
-import { getToken } from "next-auth/jwt";
+import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-export async function middleware(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+export default withAuth(
+  function middleware(req) {
+    const { pathname } = req.nextUrl;
 
-  const { pathname } = req.nextUrl;
-  const isAuth = !!token;
-  const isLoginPage = pathname === "/login";
+    // ✅ Allow the login page through
+    if (pathname === "/login") return NextResponse.next();
 
-  if (isLoginPage && isAuth) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    // ✅ Authenticated requests continue
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => {
+        // ✅ Only allow access if there's a valid token
+        return !!token;
+      },
+    },
+    secret: process.env.NEXTAUTH_SECRET, // ✅ must match .env
   }
-
-  if (!isAuth && !isLoginPage) {
-    const loginUrl = req.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return NextResponse.next();
-}
+);
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/((?!api|_next|static|favicon.ico).*)"], // ✅ only run on pages, not assets or API
 };

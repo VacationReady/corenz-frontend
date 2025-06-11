@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, FormEvent } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -22,22 +22,29 @@ export default function LoginPage() {
       redirect: false,
       email: formData.email,
       password: formData.password,
-      callbackUrl: "/dashboard", // ✅ important for redirection
+      callbackUrl: "/dashboard",
     });
 
-    console.log("🔁 signIn response:", res); // ✅ log the response
+    console.log("🔁 signIn response:", res);
 
     if (res?.error) {
       setError("Invalid email or password");
     } else if (res?.ok) {
-      router.push(res.url || "/dashboard"); // ✅ use returned URL
+      // Ensure session is available before redirecting
+      const session = await getSession();
+      console.log("🟢 Session after login:", session);
+
+      if (session) {
+        router.push(res.url || "/dashboard");
+      } else {
+        setError("Login succeeded but session not yet available.");
+      }
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
-        {/* Logo */}
         <div className="flex justify-center mb-6">
           <h1 className="text-3xl font-bold text-black">CoreNZ</h1>
         </div>
@@ -48,34 +55,4 @@ export default function LoginPage() {
           <p className="mb-4 text-center text-red-600 font-semibold">{error}</p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Email address"
-            required
-            className="w-full px-4 py-2 border rounded-lg"
-          />
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Password"
-            required
-            className="w-full px-4 py-2 border rounded-lg"
-          />
-
-          <button
-            type="submit"
-            className="w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800"
-          >
-            Sign In
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
+        <form onSubmit={handleSubmit} c

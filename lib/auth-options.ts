@@ -26,7 +26,7 @@ export const authOptions = {
 
         const isPasswordValid = await compare(
           credentials.password,
-          user.hashedPassword
+          user.Password
         );
 
         if (!isPasswordValid) return null;

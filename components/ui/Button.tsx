@@ -7,7 +7,7 @@ const button = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-white hover:bg-primary-dark",
+        primary: "bg-indigo-600 text-white hover:bg-indigo-700",
         ghost: "bg-transparent hover:bg-gray-100 text-gray-800",
         danger: "bg-red-600 text-white hover:bg-red-700",
       },
@@ -27,15 +27,20 @@ const button = cva(
 export default function Button({
   children,
   className,
-  variant,
-  size,
+  variant = "primary",
+  size = "md",
+  type = "button",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
 }) {
   return (
-    <button className={clsx(button({ variant, size }), className)} {...props}>
+    <button
+      type={type}
+      className={clsx(button({ variant, size }), className)}
+      {...props}
+    >
       {children}
     </button>
   );

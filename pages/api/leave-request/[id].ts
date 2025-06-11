@@ -1,13 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth-options";
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/auth-options";
+import type { SessionStrategy } from "next-auth"; // ✅ import for cast
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const session = await getServerSession(req, res, authOptions);
+  // ✅ Patch strategy type inline for compatibility
+  const session = await getServerSession(req, res, {
+    ...authOptions,
+    session: {
+      ...authOptions.session,
+      strategy: authOptions.session.strategy as SessionStrategy,
+    },
+  });
 
   if (!session) {
     return res.status(401).json({ error: "Unauthorized" });

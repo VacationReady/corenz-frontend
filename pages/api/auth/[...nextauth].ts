@@ -1,8 +1,6 @@
 // pages/api/auth/[...nextauth].ts
 
+import NextAuth from "next-auth"; // ✅ Correct for next-auth v4
 import { authOptions } from "@/lib/auth-options";
-import { handlers } from "next-auth";
 
-const { GET, POST } = handlers(authOptions);
-
-export { GET, POST };
+export default NextAuth(authOptions);

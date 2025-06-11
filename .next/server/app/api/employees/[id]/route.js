@@ -33,7 +33,7 @@ module.exports = require("next/dist/compiled/cookie");
 
 /***/ }),
 
-/***/ 7193:
+/***/ 138:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 // ESM COMPAT FLAG
@@ -54,6 +54,7 @@ __webpack_require__.d(__webpack_exports__, {
 var route_namespaceObject = {};
 __webpack_require__.r(route_namespaceObject);
 __webpack_require__.d(route_namespaceObject, {
+  "DELETE": () => (DELETE),
   "GET": () => (GET)
 });
 
@@ -62,8 +63,22 @@ var node_polyfill_headers = __webpack_require__(6145);
 // EXTERNAL MODULE: ./node_modules/next/dist/server/future/route-modules/app-route/module.js
 var app_route_module = __webpack_require__(9532);
 var module_default = /*#__PURE__*/__webpack_require__.n(app_route_module);
-// EXTERNAL MODULE: ./lib/prisma.ts + 1 modules
-var prisma = __webpack_require__(9102);
+;// CONCATENATED MODULE: external "@prisma/client"
+const client_namespaceObject = require("@prisma/client");
+;// CONCATENATED MODULE: ./lib/prisma.ts
+// lib/prisma.ts
+
+const globalForPrisma = globalThis;
+// Avoid creating multiple Prisma clients during development (hot reload safe)
+const prisma = globalForPrisma.prisma ?? new client_namespaceObject.PrismaClient({
+    log: [
+        "query",
+        "error",
+        "warn"
+    ]
+});
+if (false) {}
+
 // EXTERNAL MODULE: ./node_modules/next/dist/server/web/exports/next-response.js
 var next_response = __webpack_require__(3804);
 ;// CONCATENATED MODULE: ./app/api/employees/[id]/route.ts
@@ -72,7 +87,7 @@ var next_response = __webpack_require__(3804);
 
 async function GET(_, { params  }) {
     try {
-        const employee = await prisma/* prisma.employee.findUnique */._.employee.findUnique({
+        const employee = await prisma.employee.findUnique({
             where: {
                 id: params.id
             }
@@ -89,6 +104,32 @@ async function GET(_, { params  }) {
         console.error("Error fetching employee:", err);
         return next_response/* default.json */.Z.json({
             error: "Server error"
+        }, {
+            status: 500
+        });
+    }
+}
+async function DELETE(_, { params  }) {
+    try {
+        // First delete related ActivationTokens
+        await prisma.activationToken.deleteMany({
+            where: {
+                employeeId: params.id
+            }
+        });
+        // Then delete the employee
+        await prisma.employee["delete"]({
+            where: {
+                id: params.id
+            }
+        });
+        return next_response/* default.json */.Z.json({
+            message: "Employee deleted"
+        });
+    } catch (error) {
+        console.error("Delete failed:", error);
+        return next_response/* default.json */.Z.json({
+            error: "Failed to delete employee"
         }, {
             status: 500
         });
@@ -125,34 +166,6 @@ async function GET(_, { params  }) {
 
     
 
-/***/ }),
-
-/***/ 9102:
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, {
-  "_": () => (/* binding */ prisma)
-});
-
-;// CONCATENATED MODULE: external "@prisma/client"
-const client_namespaceObject = require("@prisma/client");
-;// CONCATENATED MODULE: ./lib/prisma.ts
-// lib/prisma.ts
-
-const globalForPrisma = globalThis;
-// Avoid creating multiple Prisma clients during development (hot reload safe)
-const prisma = globalForPrisma.prisma ?? new client_namespaceObject.PrismaClient({
-    log: [
-        "query",
-        "error",
-        "warn"
-    ]
-});
-if (false) {}
-
-
 /***/ })
 
 };
@@ -162,7 +175,7 @@ if (false) {}
 var __webpack_require__ = require("../../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,474], () => (__webpack_exec__(7193)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,474], () => (__webpack_exec__(138)));
 module.exports = __webpack_exports__;
 
 })();

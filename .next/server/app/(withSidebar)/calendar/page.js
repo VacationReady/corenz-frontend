@@ -232,7 +232,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          
+          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
           
         }
       ]
@@ -288,12 +288,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _components_ClientLayout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2988);
-/* harmony import */ var _fullcalendar_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(8498);
-/* harmony import */ var _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8736);
-/* harmony import */ var _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(8877);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7640);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7640);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _fullcalendar_react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8498);
+/* harmony import */ var _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(8736);
+/* harmony import */ var _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(8877);
+/* harmony import */ var _components_ui_PageShell__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6814);
+/* harmony import */ var _components_ui_Card__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(5671);
 /* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
 const dynamic = "force-dynamic";
 
@@ -301,8 +302,9 @@ const dynamic = "force-dynamic";
 
 
 
+
 function CalendarPage() {
-    const [events, setEvents] = (0,react__WEBPACK_IMPORTED_MODULE_2__.useState)([
+    const [events, setEvents] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)([
         {
             title: "Annual Leave - John",
             date: "2025-06-14"
@@ -324,25 +326,23 @@ function CalendarPage() {
             ]);
         }
     };
-    return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ClientLayout__WEBPACK_IMPORTED_MODULE_1__/* ["default"] */ .Z, {
-        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-            className: "w-full",
-            children: [
-                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h1", {
-                    className: "text-2xl font-bold mb-4",
-                    children: "Calendar"
-                }),
-                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_fullcalendar_react__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z, {
+    return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_PageShell__WEBPACK_IMPORTED_MODULE_2__/* .PageShell */ .M, {
+        title: "Calendar",
+        children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Card__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z, {
+            title: "Company Calendar",
+            children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                className: "bg-white rounded-xl overflow-hidden",
+                children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_fullcalendar_react__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
                     plugins: [
-                        _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z,
-                        _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_5__/* ["default"] */ .ZP
+                        _fullcalendar_daygrid__WEBPACK_IMPORTED_MODULE_5__/* ["default"] */ .Z,
+                        _fullcalendar_interaction__WEBPACK_IMPORTED_MODULE_6__/* ["default"] */ .ZP
                     ],
                     initialView: "dayGridMonth",
                     dateClick: handleDateClick,
                     events: events,
                     height: "auto"
                 })
-            ]
+            })
         })
     });
 }
@@ -384,7 +384,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,140,666,498], () => (__webpack_exec__(2716)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,290,925,666,498,62,206], () => (__webpack_exec__(2716)));
 module.exports = __webpack_exports__;
 
 })();

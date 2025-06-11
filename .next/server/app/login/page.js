@@ -68,27 +68,11 @@ module.exports = require("next/dist/shared/lib/hooks-client-context.js");
 
 /***/ }),
 
-/***/ 4964:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("next/dist/shared/lib/router-context.js");
-
-/***/ }),
-
 /***/ 1751:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("next/dist/shared/lib/router/utils/add-path-prefix.js");
-
-/***/ }),
-
-/***/ 3938:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("next/dist/shared/lib/router/utils/format-url.js");
 
 /***/ }),
 
@@ -108,14 +92,6 @@ module.exports = require("next/dist/shared/lib/router/utils/is-bot.js");
 
 /***/ }),
 
-/***/ 1109:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("next/dist/shared/lib/router/utils/is-local-url.js");
-
-/***/ }),
-
 /***/ 8854:
 /***/ ((module) => {
 
@@ -132,27 +108,11 @@ module.exports = require("next/dist/shared/lib/router/utils/remove-trailing-slas
 
 /***/ }),
 
-/***/ 7782:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("next/dist/shared/lib/router/utils/resolve-href.js");
-
-/***/ }),
-
 /***/ 3349:
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("next/dist/shared/lib/server-inserted-html.js");
-
-/***/ }),
-
-/***/ 9232:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("next/dist/shared/lib/utils.js");
 
 /***/ }),
 
@@ -274,8 +234,7 @@ Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_re
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ LoginPage),
-/* harmony export */   "dynamic": () => (/* binding */ dynamic)
+/* harmony export */   "default": () => (/* binding */ LoginPage)
 /* harmony export */ });
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
@@ -285,13 +244,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var next_auth_react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(next_auth_react__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var next_navigation__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(9483);
 /* harmony import */ var next_navigation__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(next_navigation__WEBPACK_IMPORTED_MODULE_3__);
-/* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
-const dynamic = "force-dynamic";
+/* __next_internal_client_entry_do_not_use__ default auto */ 
 
 
 
 function LoginPage() {
     const router = (0,next_navigation__WEBPACK_IMPORTED_MODULE_3__.useRouter)();
+    const searchParams = (0,next_navigation__WEBPACK_IMPORTED_MODULE_3__.useSearchParams)();
+    const callbackUrl = searchParams?.get("callbackUrl") ?? "/dashboard"; // ✅ fixed null check
     const [formData, setFormData] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)({
         email: "",
         password: ""
@@ -305,16 +265,20 @@ function LoginPage() {
     };
     const handleSubmit = async (e)=>{
         e.preventDefault();
-        setError("");
+        setError(""); // ✅ clear previous error
         const res = await (0,next_auth_react__WEBPACK_IMPORTED_MODULE_2__.signIn)("credentials", {
             redirect: false,
             email: formData.email,
-            password: formData.password
+            password: formData.password,
+            callbackUrl
         });
+        console.log("\uD83D\uDD01 SignIn response:", res); // ✅ debug log
         if (res?.error) {
-            setError("Invalid email or password");
-        } else {
-            router.push("/dashboard");
+            setError("Invalid email or password.");
+            return;
+        }
+        if (res?.ok && res.url) {
+            router.push(res.url); // ✅ simplified redirect
         }
     };
     return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
@@ -329,40 +293,52 @@ function LoginPage() {
                         children: "CoreNZ"
                     })
                 }),
-                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h1", {
-                    className: "text-2xl font-bold mb-6 text-center",
-                    children: "Sign In"
-                }),
-                error && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
-                    className: "mb-4 text-center text-red-600 font-semibold",
-                    children: error
-                }),
                 /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("form", {
                     onSubmit: handleSubmit,
                     className: "space-y-6",
                     children: [
-                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
-                            type: "email",
-                            name: "email",
-                            value: formData.email,
-                            onChange: handleChange,
-                            placeholder: "Email address",
-                            required: true,
-                            className: "w-full px-4 py-2 border rounded-lg"
+                        error && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                            className: "bg-red-100 text-red-700 p-2 rounded",
+                            children: error
                         }),
-                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
-                            type: "password",
-                            name: "password",
-                            value: formData.password,
-                            onChange: handleChange,
-                            placeholder: "Password",
-                            required: true,
-                            className: "w-full px-4 py-2 border rounded-lg"
+                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("label", {
+                                    htmlFor: "email",
+                                    className: "block text-sm font-medium text-gray-700",
+                                    children: "Email address"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
+                                    type: "email",
+                                    name: "email",
+                                    value: formData.email,
+                                    onChange: handleChange,
+                                    required: true,
+                                    className: "mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                })
+                            ]
+                        }),
+                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("label", {
+                                    htmlFor: "password",
+                                    className: "block text-sm font-medium text-gray-700",
+                                    children: "Password"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
+                                    type: "password",
+                                    name: "password",
+                                    value: formData.password,
+                                    onChange: handleChange,
+                                    required: true,
+                                    className: "mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                })
+                            ]
                         }),
                         /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
                             type: "submit",
-                            className: "w-full py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800",
-                            children: "Sign In"
+                            className: "w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 transition",
+                            children: "Sign in"
                         })
                     ]
                 })
@@ -382,8 +358,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "$$typeof": () => (/* binding */ $$typeof),
 /* harmony export */   "__esModule": () => (/* binding */ __esModule),
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
-/* harmony export */   "dynamic": () => (/* binding */ e0)
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var next_dist_build_webpack_loaders_next_flight_loader_module_proxy__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5985);
 
@@ -396,7 +371,13 @@ const proxy = (0,next_dist_build_webpack_loaders_next_flight_loader_module_proxy
 const { __esModule, $$typeof } = proxy;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (proxy.default);
 
-const e0 = proxy["dynamic"];
+
+/***/ }),
+
+/***/ 9483:
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+module.exports = __webpack_require__(4592)
 
 
 /***/ })
@@ -408,7 +389,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(527)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,290,498], () => (__webpack_exec__(527)));
 module.exports = __webpack_exports__;
 
 })();

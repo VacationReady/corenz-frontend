@@ -232,7 +232,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          
+          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
           
         }
       ]
@@ -288,17 +288,21 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _components_ClientLayout__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2988);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7640);
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4660);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7640);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(4660);
+/* harmony import */ var _components_ui_PageShell__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6814);
+/* harmony import */ var _components_ui_Card__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(5671);
+/* harmony import */ var _components_ui_Button__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(6503);
 /* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
 const dynamic = "force-dynamic";
 
 
 
+
+
 function DocumentsPage() {
-    const [selectedDoc, setSelectedDoc] = (0,react__WEBPACK_IMPORTED_MODULE_2__.useState)(null);
+    const [selectedDoc, setSelectedDoc] = (0,react__WEBPACK_IMPORTED_MODULE_1__.useState)(null);
     const documents = [
         {
             id: "1",
@@ -338,51 +342,39 @@ function DocumentsPage() {
             timestamp: null
         }
     ];
-    return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ClientLayout__WEBPACK_IMPORTED_MODULE_1__/* ["default"] */ .Z, {
-        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-            className: "p-6",
-            children: [
-                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                    className: "flex items-center justify-between mb-4",
-                    children: [
-                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("h1", {
-                            className: "text-2xl font-bold flex items-center text-blue-700",
-                            children: [
-                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_3__/* .FileText */ .acj, {
-                                    className: "w-6 h-6 mr-2"
-                                }),
-                                " Company Documents"
-                            ]
-                        }),
-                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                            className: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700",
-                            children: "Upload Document"
-                        })
-                    ]
-                }),
-                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+    return /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_PageShell__WEBPACK_IMPORTED_MODULE_2__/* .PageShell */ .M, {
+        title: "Company Documents",
+        icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_5__/* .FileText */ .acj, {
+            className: "w-5 h-5"
+        }),
+        action: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Button__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
+            children: "Upload Document"
+        }),
+        children: [
+            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Card__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z, {
+                children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
                     className: "overflow-x-auto",
                     children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", {
-                        className: "min-w-full bg-white border border-gray-200 rounded-lg shadow-sm",
+                        className: "min-w-full text-sm border border-gray-200",
                         children: [
                             /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("thead", {
-                                className: "bg-gray-100",
+                                className: "bg-neutral-100",
                                 children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
                                     children: [
                                         /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                            className: "p-3 border text-left",
+                                            className: "text-left p-3 border",
                                             children: "Document Name"
                                         }),
                                         /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                            className: "p-3 border text-left",
+                                            className: "text-left p-3 border",
                                             children: "Category"
                                         }),
                                         /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                            className: "p-3 border text-left",
+                                            className: "text-left p-3 border",
                                             children: "Date Added"
                                         }),
                                         /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                            className: "p-3 border text-left",
+                                            className: "text-left p-3 border",
                                             children: "Action Required"
                                         })
                                     ]
@@ -390,7 +382,7 @@ function DocumentsPage() {
                             }),
                             /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("tbody", {
                                 children: documents.map((doc)=>/*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
-                                        className: "hover:bg-gray-50",
+                                        className: "hover:bg-neutral-50",
                                         children: [
                                             /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
                                                 className: "p-3 border",
@@ -414,90 +406,89 @@ function DocumentsPage() {
                             })
                         ]
                     })
-                }),
-                selectedDoc && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
-                    className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
-                    children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                        className: "bg-white p-6 rounded shadow-lg w-full max-w-2xl relative",
-                        children: [
-                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                                onClick: ()=>setSelectedDoc(null),
-                                className: "absolute top-2 right-2 text-gray-500 hover:text-gray-700",
-                                children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_3__.X, {
-                                    className: "w-5 h-5"
-                                })
-                            }),
-                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h2", {
-                                className: "text-xl font-bold mb-4",
-                                children: selectedDoc.actionRequired === "acknowledge" ? "Acknowledgement Status" : "E-Sign Status"
-                            }),
-                            /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", {
-                                className: "w-full mb-4 border border-gray-200",
-                                children: [
-                                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("thead", {
-                                        className: "bg-gray-100",
-                                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
+                })
+            }),
+            selectedDoc && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
+                children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z, {
+                    className: "w-full max-w-2xl relative",
+                    children: [
+                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
+                            onClick: ()=>setSelectedDoc(null),
+                            className: "absolute top-3 right-3 text-gray-400 hover:text-gray-600",
+                            children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_5__.X, {
+                                className: "w-5 h-5"
+                            })
+                        }),
+                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h2", {
+                            className: "text-lg font-semibold mb-4",
+                            children: selectedDoc.actionRequired === "acknowledge" ? "Acknowledgement Status" : "E-Sign Status"
+                        }),
+                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", {
+                            className: "w-full mb-4 text-sm border border-gray-200",
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("thead", {
+                                    className: "bg-gray-100",
+                                    children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
+                                        children: [
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                                className: "p-2 border text-left",
+                                                children: "Employee Name"
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                                className: "p-2 border text-left",
+                                                children: "Department"
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                                className: "p-2 border text-left",
+                                                children: "Status"
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                                className: "p-2 border text-left",
+                                                children: "Timestamp"
+                                            })
+                                        ]
+                                    })
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("tbody", {
+                                    children: dummyAcknowledgements.map((emp)=>/*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
                                             children: [
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                    className: "p-2 border text-left",
-                                                    children: "Employee Name"
+                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                    className: "p-2 border",
+                                                    children: emp.name
                                                 }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                    className: "p-2 border text-left",
-                                                    children: "Department"
+                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                    className: "p-2 border",
+                                                    children: emp.department
                                                 }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                    className: "p-2 border text-left",
-                                                    children: "Status"
+                                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("td", {
+                                                    className: "p-2 border",
+                                                    children: [
+                                                        emp.status === "read" || emp.status === "signed" ? "✅" : "❌",
+                                                        " ",
+                                                        emp.status
+                                                    ]
                                                 }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                    className: "p-2 border text-left",
-                                                    children: "Timestamp"
+                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                    className: "p-2 border",
+                                                    children: emp.timestamp || "—"
                                                 })
                                             ]
-                                        })
-                                    }),
-                                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("tbody", {
-                                        children: dummyAcknowledgements.map((emp)=>/*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
-                                                children: [
-                                                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                        className: "p-2 border",
-                                                        children: emp.name
-                                                    }),
-                                                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                        className: "p-2 border",
-                                                        children: emp.department
-                                                    }),
-                                                    /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("td", {
-                                                        className: "p-2 border",
-                                                        children: [
-                                                            emp.status === "read" || emp.status === "signed" ? "✅" : "❌",
-                                                            " ",
-                                                            emp.status
-                                                        ]
-                                                    }),
-                                                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                        className: "p-2 border",
-                                                        children: emp.timestamp || "—"
-                                                    })
-                                                ]
-                                            }, emp.id))
-                                    })
-                                ]
-                            }),
-                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
-                                className: "text-right",
-                                children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                                    onClick: ()=>setSelectedDoc(null),
-                                    className: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700",
-                                    children: "Close"
+                                        }, emp.id))
                                 })
+                            ]
+                        }),
+                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                            className: "text-right",
+                            children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Button__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
+                                onClick: ()=>setSelectedDoc(null),
+                                children: "Close"
                             })
-                        ]
-                    })
+                        })
+                    ]
                 })
-            ]
-        })
+            })
+        ]
     });
 }
 
@@ -538,7 +529,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(2980)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,290,925,247,498,62,206,503], () => (__webpack_exec__(2980)));
 module.exports = __webpack_exports__;
 
 })();

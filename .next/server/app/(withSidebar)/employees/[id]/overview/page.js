@@ -250,7 +250,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          
+          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
           
         }
       ]
@@ -393,8 +393,7 @@ function EmployeeLayout({ children  }) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ EmployeeProfilePage),
-/* harmony export */   "dynamic": () => (/* binding */ dynamic)
+/* harmony export */   "default": () => (/* binding */ EmployeeProfilePage)
 /* harmony export */ });
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
@@ -403,8 +402,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(7640);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_2__);
 /* harmony import */ var _components_ClientLayout__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(2988);
-/* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
-const dynamic = "force-dynamic";
+/* __next_internal_client_entry_do_not_use__ default auto */ 
 
 
 
@@ -444,8 +442,8 @@ function EmployeeProfilePage() {
             }) : error ? /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
                 className: "text-red-500",
                 children: error
-            }) : /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                className: "bg-white rounded-xl shadow-md p-6 max-w-2xl",
+            }) : employee ? /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                className: "bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto",
                 children: [
                     /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("h1", {
                         className: "text-2xl font-bold mb-4",
@@ -497,7 +495,7 @@ function EmployeeProfilePage() {
                         ]
                     })
                 ]
-            })
+            }) : null
         })
     });
 }
@@ -537,8 +535,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "$$typeof": () => (/* binding */ $$typeof),
 /* harmony export */   "__esModule": () => (/* binding */ __esModule),
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
-/* harmony export */   "dynamic": () => (/* binding */ e0)
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var next_dist_build_webpack_loaders_next_flight_loader_module_proxy__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5985);
 
@@ -551,8 +548,6 @@ const proxy = (0,next_dist_build_webpack_loaders_next_flight_loader_module_proxy
 const { __esModule, $$typeof } = proxy;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (proxy.default);
 
-const e0 = proxy["dynamic"];
-
 
 /***/ })
 
@@ -563,7 +558,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(7311)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,290,925,498,62], () => (__webpack_exec__(7311)));
 module.exports = __webpack_exports__;
 
 })();

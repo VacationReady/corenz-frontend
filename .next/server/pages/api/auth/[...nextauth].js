@@ -26,10 +26,10 @@ module.exports = require("bcryptjs");
 
 /***/ }),
 
-/***/ 2113:
+/***/ 3227:
 /***/ ((module) => {
 
-module.exports = require("next-auth/next");
+module.exports = require("next-auth");
 
 /***/ }),
 
@@ -47,13 +47,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var next_auth_next__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(2113);
-/* harmony import */ var next_auth_next__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(next_auth_next__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _lib_auth_options__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7299);
 // pages/api/auth/[...nextauth].ts
-
-
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (next_auth_next__WEBPACK_IMPORTED_MODULE_0___default()(_lib_auth_options__WEBPACK_IMPORTED_MODULE_1__/* .authOptions */ .L));
+const NextAuth = (__webpack_require__(3227)["default"]);
+const { authOptions  } = __webpack_require__(7299);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((req, res)=>NextAuth(req, res, authOptions));
 
 
 /***/ })

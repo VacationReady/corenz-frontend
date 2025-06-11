@@ -232,7 +232,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          
+          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
           
         }
       ]
@@ -273,416 +273,381 @@ __webpack_require__.r(__webpack_exports__);
 /***/ 2467:
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
-Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 3218))
+Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 4598))
 
 /***/ }),
 
-/***/ 3218:
+/***/ 4598:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-// ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* binding */ DashboardPage),
-  "dynamic": () => (/* binding */ dynamic)
-});
-
-// EXTERNAL MODULE: external "next/dist/compiled/react-experimental/jsx-runtime"
-var jsx_runtime_ = __webpack_require__(6931);
-// EXTERNAL MODULE: ./components/ClientLayout.tsx + 1 modules
-var ClientLayout = __webpack_require__(2988);
-// EXTERNAL MODULE: external "next/dist/compiled/react-experimental"
-var react_experimental_ = __webpack_require__(7640);
-;// CONCATENATED MODULE: ./app/(withSidebar)/dashboard/LeaveHistory.tsx
-/* __next_internal_client_entry_do_not_use__ default auto */ 
-
-function LeaveHistory() {
-    const [requests, setRequests] = (0,react_experimental_.useState)([]);
-    const [error, setError] = (0,react_experimental_.useState)("");
-    (0,react_experimental_.useEffect)(()=>{
-        fetch("/api/leave-request").then((res)=>{
-            if (!res.ok) throw new Error("Failed to load leave requests");
-            return res.json();
-        }).then((data)=>setRequests(data)).catch(()=>setError("Failed to load leave requests"));
-    }, []);
-    if (error) {
-        return /*#__PURE__*/ jsx_runtime_.jsx("p", {
-            className: "text-red-600",
-            children: error
-        });
-    }
-    if (requests.length === 0) {
-        return /*#__PURE__*/ jsx_runtime_.jsx("p", {
-            className: "italic text-gray-500",
-            children: "No leave requests found."
-        });
-    }
-    return /*#__PURE__*/ (0,jsx_runtime_.jsxs)("table", {
-        className: "min-w-full border border-gray-300 rounded shadow-sm",
-        children: [
-            /*#__PURE__*/ jsx_runtime_.jsx("thead", {
-                className: "bg-gray-100",
-                children: /*#__PURE__*/ (0,jsx_runtime_.jsxs)("tr", {
-                    children: [
-                        /*#__PURE__*/ jsx_runtime_.jsx("th", {
-                            className: "p-2 border text-left",
-                            children: "Type"
-                        }),
-                        /*#__PURE__*/ jsx_runtime_.jsx("th", {
-                            className: "p-2 border text-left",
-                            children: "Start Date"
-                        }),
-                        /*#__PURE__*/ jsx_runtime_.jsx("th", {
-                            className: "p-2 border text-left",
-                            children: "End Date"
-                        }),
-                        /*#__PURE__*/ jsx_runtime_.jsx("th", {
-                            className: "p-2 border text-left",
-                            children: "Status"
-                        })
-                    ]
-                })
-            }),
-            /*#__PURE__*/ jsx_runtime_.jsx("tbody", {
-                children: requests.map((req)=>/*#__PURE__*/ (0,jsx_runtime_.jsxs)("tr", {
-                        className: "text-left",
-                        children: [
-                            /*#__PURE__*/ jsx_runtime_.jsx("td", {
-                                className: "p-2 border",
-                                children: req.type
-                            }),
-                            /*#__PURE__*/ jsx_runtime_.jsx("td", {
-                                className: "p-2 border",
-                                children: new Date(req.startDate).toLocaleDateString()
-                            }),
-                            /*#__PURE__*/ jsx_runtime_.jsx("td", {
-                                className: "p-2 border",
-                                children: new Date(req.endDate).toLocaleDateString()
-                            }),
-                            /*#__PURE__*/ jsx_runtime_.jsx("td", {
-                                className: "p-2 border",
-                                children: req.status
-                            })
-                        ]
-                    }, req.id))
-            })
-        ]
-    });
-}
-
-;// CONCATENATED MODULE: ./app/(withSidebar)/dashboard/ClientDashboard.tsx
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ AdminDashboardPage)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(4660);
+/* harmony import */ var next_link__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(1621);
+/* harmony import */ var next_link__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(next_link__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _components_ui_Card__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5671);
+/* harmony import */ var _components_ui_Input__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3089);
 /* __next_internal_client_entry_do_not_use__ default auto */ 
 
 
-function ClientDashboard() {
-    const [showForm, setShowForm] = (0,react_experimental_.useState)(false);
-    return /*#__PURE__*/ (0,jsx_runtime_.jsxs)("main", {
-        className: "flex-1 p-6 overflow-y-auto",
+
+
+function AdminDashboardPage() {
+    return /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+        className: "w-full min-h-screen bg-neutral-100 pt-14",
         children: [
-            /*#__PURE__*/ jsx_runtime_.jsx("h1", {
-                className: "text-2xl font-bold mb-6",
-                children: "Dashboard"
-            }),
-            /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-8",
+            /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                className: "fixed top-0 left-0 right-0 h-14 bg-neutral-900 text-white flex items-center justify-between px-6 z-50",
                 children: [
-                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                        className: "bg-white p-6 rounded shadow h-60",
-                        children: [
-                            /*#__PURE__*/ jsx_runtime_.jsx("h2", {
-                                className: "text-lg font-semibold mb-2",
-                                children: "\uD83D\uDCDD Tasks"
-                            }),
-                            /*#__PURE__*/ (0,jsx_runtime_.jsxs)("ul", {
-                                className: "list-disc list-inside text-sm text-gray-700",
-                                children: [
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: "Complete onboarding documents"
-                                    }),
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: "Approve pending leave requests"
-                                    }),
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: "Upload ID verification"
-                                    })
-                                ]
-                            })
-                        ]
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h1", {
+                        className: "text-lg font-semibold",
+                        children: "Admin Dashboard"
                     }),
-                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                        className: "bg-white p-6 rounded shadow h-60 flex flex-col justify-between",
-                        children: [
-                            /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                                children: [
-                                    /*#__PURE__*/ jsx_runtime_.jsx("h2", {
-                                        className: "text-lg font-semibold mb-2",
-                                        children: "\uD83C\uDFD6 Holiday Balance"
-                                    }),
-                                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("p", {
-                                        className: "text-sm text-gray-700",
-                                        children: [
-                                            "Total Days: ",
-                                            /*#__PURE__*/ jsx_runtime_.jsx("strong", {
-                                                children: "20"
-                                            })
-                                        ]
-                                    }),
-                                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("p", {
-                                        className: "text-sm text-gray-700",
-                                        children: [
-                                            "Days Taken: ",
-                                            /*#__PURE__*/ jsx_runtime_.jsx("strong", {
-                                                children: "8"
-                                            })
-                                        ]
-                                    }),
-                                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("p", {
-                                        className: "text-sm text-gray-700",
-                                        children: [
-                                            "Days Remaining: ",
-                                            /*#__PURE__*/ jsx_runtime_.jsx("strong", {
-                                                children: "12"
-                                            })
-                                        ]
-                                    })
-                                ]
-                            }),
-                            /*#__PURE__*/ jsx_runtime_.jsx("button", {
-                                onClick: ()=>setShowForm(true),
-                                className: "mt-4 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 self-start",
-                                children: "Book Holiday"
-                            })
-                        ]
-                    }),
-                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                        className: "bg-white p-6 rounded shadow h-60",
-                        children: [
-                            /*#__PURE__*/ jsx_runtime_.jsx("h2", {
-                                className: "text-lg font-semibold mb-2",
-                                children: "\uD83D\uDCF0 Company News"
-                            }),
-                            /*#__PURE__*/ (0,jsx_runtime_.jsxs)("ul", {
-                                className: "list-disc list-inside text-sm text-gray-700",
-                                children: [
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: "All-hands meeting this Friday"
-                                    }),
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: "New benefits policy launched"
-                                    }),
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: "Welcome to our new joiners!"
-                                    })
-                                ]
-                            })
-                        ]
-                    }),
-                    /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                        className: "bg-white p-6 rounded shadow h-60",
-                        children: [
-                            /*#__PURE__*/ jsx_runtime_.jsx("h2", {
-                                className: "text-lg font-semibold mb-2",
-                                children: "\uD83D\uDCC4 Documents"
-                            }),
-                            /*#__PURE__*/ (0,jsx_runtime_.jsxs)("ul", {
-                                className: "list-disc list-inside text-sm text-gray-700",
-                                children: [
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: /*#__PURE__*/ jsx_runtime_.jsx("a", {
-                                            href: "#",
-                                            className: "text-blue-600 hover:underline",
-                                            onClick: (e)=>e.preventDefault(),
-                                            children: "Employee Handbook.pdf"
-                                        })
-                                    }),
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: /*#__PURE__*/ jsx_runtime_.jsx("a", {
-                                            href: "#",
-                                            className: "text-blue-600 hover:underline",
-                                            onClick: (e)=>e.preventDefault(),
-                                            children: "Leave Policy 2025.docx"
-                                        })
-                                    }),
-                                    /*#__PURE__*/ jsx_runtime_.jsx("li", {
-                                        children: /*#__PURE__*/ jsx_runtime_.jsx("a", {
-                                            href: "#",
-                                            className: "text-blue-600 hover:underline",
-                                            onClick: (e)=>e.preventDefault(),
-                                            children: "Tax Form.pdf"
-                                        })
-                                    })
-                                ]
-                            })
-                        ]
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "w-72",
+                        children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Input__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z, {
+                            placeholder: "Search for people"
+                        })
                     })
                 ]
             }),
-            /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                className: "mt-8 bg-white p-6 rounded shadow",
+            /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                className: "px-8 py-8 grid grid-cols-12 gap-6 max-w-screen-2xl mx-auto",
                 children: [
-                    /*#__PURE__*/ jsx_runtime_.jsx("h2", {
-                        className: "text-lg font-semibold mb-4",
-                        children: "\uD83D\uDCCB Your Leave Requests"
-                    }),
-                    /*#__PURE__*/ jsx_runtime_.jsx(LeaveHistory, {})
-                ]
-            }),
-            showForm && /*#__PURE__*/ jsx_runtime_.jsx("div", {
-                className: "fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50",
-                children: /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                    className: "bg-white p-6 rounded shadow-lg w-full max-w-md",
-                    children: [
-                        /*#__PURE__*/ jsx_runtime_.jsx("h2", {
-                            className: "text-xl font-bold mb-4",
-                            children: "Book Holiday"
-                        }),
-                        /*#__PURE__*/ (0,jsx_runtime_.jsxs)("form", {
-                            className: "space-y-4",
-                            onSubmit: async (e)=>{
-                                e.preventDefault();
-                                const formData = new FormData(e.currentTarget);
-                                const payload = {
-                                    startDate: formData.get("startDate"),
-                                    endDate: formData.get("endDate"),
-                                    reason: formData.get("reason"),
-                                    type: formData.get("type")
-                                };
-                                try {
-                                    const res = await fetch("/api/leave-request", {
-                                        method: "POST",
-                                        headers: {
-                                            "Content-Type": "application/json"
-                                        },
-                                        body: JSON.stringify(payload)
-                                    });
-                                    if (!res.ok) throw new Error("Request failed");
-                                    alert("Leave request submitted successfully!");
-                                    setShowForm(false);
-                                } catch (err) {
-                                    alert("There was a problem submitting your request.");
-                                    console.error(err);
-                                }
-                            },
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "People Summary",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .Users */ .Qaw, {
+                                className: "text-indigo-700"
+                            }),
                             children: [
-                                /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
                                     children: [
-                                        /*#__PURE__*/ jsx_runtime_.jsx("label", {
-                                            className: "block text-sm font-medium mb-1",
-                                            children: "Leave Type"
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Total Employees:"
                                         }),
-                                        /*#__PURE__*/ (0,jsx_runtime_.jsxs)("select", {
-                                            name: "type",
-                                            required: true,
-                                            className: "w-full border rounded px-3 py-2",
-                                            children: [
-                                                /*#__PURE__*/ jsx_runtime_.jsx("option", {
-                                                    value: "",
-                                                    children: "Select leave type"
-                                                }),
-                                                /*#__PURE__*/ jsx_runtime_.jsx("option", {
-                                                    value: "ANNUAL",
-                                                    children: "Annual Leave"
-                                                }),
-                                                /*#__PURE__*/ jsx_runtime_.jsx("option", {
-                                                    value: "SICK",
-                                                    children: "Sick Leave"
-                                                }),
-                                                /*#__PURE__*/ jsx_runtime_.jsx("option", {
-                                                    value: "UNPAID",
-                                                    children: "Unpaid Leave"
-                                                }),
-                                                /*#__PURE__*/ jsx_runtime_.jsx("option", {
-                                                    value: "PARENTAL",
-                                                    children: "Parental Leave"
-                                                }),
-                                                /*#__PURE__*/ jsx_runtime_.jsx("option", {
-                                                    value: "OTHER",
-                                                    children: "Other"
-                                                })
-                                            ]
-                                        })
+                                        " 58"
                                     ]
                                 }),
-                                /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
                                     children: [
-                                        /*#__PURE__*/ jsx_runtime_.jsx("label", {
-                                            className: "block text-sm font-medium mb-1",
-                                            children: "Start Date"
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Active This Week:"
                                         }),
-                                        /*#__PURE__*/ jsx_runtime_.jsx("input", {
-                                            name: "startDate",
-                                            type: "date",
-                                            required: true,
-                                            className: "w-full border rounded px-3 py-2"
-                                        })
+                                        " 51"
                                     ]
                                 }),
-                                /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
                                     children: [
-                                        /*#__PURE__*/ jsx_runtime_.jsx("label", {
-                                            className: "block text-sm font-medium mb-1",
-                                            children: "End Date"
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "On Leave Today:"
                                         }),
-                                        /*#__PURE__*/ jsx_runtime_.jsx("input", {
-                                            name: "endDate",
-                                            type: "date",
-                                            required: true,
-                                            className: "w-full border rounded px-3 py-2"
-                                        })
-                                    ]
-                                }),
-                                /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                                    children: [
-                                        /*#__PURE__*/ jsx_runtime_.jsx("label", {
-                                            className: "block text-sm font-medium mb-1",
-                                            children: "Reason"
-                                        }),
-                                        /*#__PURE__*/ jsx_runtime_.jsx("input", {
-                                            name: "reason",
-                                            type: "text",
-                                            className: "w-full border rounded px-3 py-2",
-                                            placeholder: "Optional"
-                                        })
-                                    ]
-                                }),
-                                /*#__PURE__*/ (0,jsx_runtime_.jsxs)("div", {
-                                    className: "flex justify-end space-x-2",
-                                    children: [
-                                        /*#__PURE__*/ jsx_runtime_.jsx("button", {
-                                            type: "button",
-                                            onClick: ()=>setShowForm(false),
-                                            className: "px-4 py-2 rounded bg-gray-300 hover:bg-gray-400",
-                                            children: "Cancel"
-                                        }),
-                                        /*#__PURE__*/ jsx_runtime_.jsx("button", {
-                                            type: "submit",
-                                            className: "px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700",
-                                            children: "Submit"
-                                        })
+                                        " 3"
                                     ]
                                 })
                             ]
                         })
-                    ]
-                })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Tasks",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .ClipboardList */ .lgT, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("ul", {
+                                    className: "space-y-1",
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("li", {
+                                            children: "✅ Complete June payroll"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("li", {
+                                            children: "\uD83D\uDCC4 Send onboarding forms"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("li", {
+                                            children: "\uD83D\uDCCC Review absence policy"
+                                        })
+                                    ]
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx((next_link__WEBPACK_IMPORTED_MODULE_1___default()), {
+                                    href: "/tasks",
+                                    className: "block mt-4 text-sm text-indigo-600 hover:underline",
+                                    children: "View all tasks →"
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Holiday Balance",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .CalendarDays */ .E_O, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Annual Entitlement:"
+                                        }),
+                                        " 25 days"
+                                    ]
+                                }),
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Used:"
+                                        }),
+                                        " 12 days"
+                                    ]
+                                }),
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Remaining:"
+                                        }),
+                                        " 13 days"
+                                    ]
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx((next_link__WEBPACK_IMPORTED_MODULE_1___default()), {
+                                    href: "/calendar/book",
+                                    className: "inline-block mt-4 text-sm text-white bg-indigo-600 px-4 py-2 rounded hover:bg-indigo-700 transition",
+                                    children: "Book Holiday"
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Upcoming Events",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .Cake */ .sTK, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83C\uDF82 Sarah K. — Birthday (June 12)"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83C\uDFC6 Alex T. — 5 Years (June 15)"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83C\uDF89 Team Lunch — June 21 @ 12:30PM"
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Company Documents",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .FileText */ .acj, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDCC1 Health & Safety Policy.pdf"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDCC1 Employment Contract.pdf"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDCC1 Payroll_May_2025.pdf"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx((next_link__WEBPACK_IMPORTED_MODULE_1___default()), {
+                                    href: "/documents",
+                                    className: "block mt-4 text-sm text-indigo-600 hover:underline",
+                                    children: "View all documents →"
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Company News",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .Newspaper */ .$UD, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDE80 HR portal launches next week"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83C\uDF89 Staff BBQ on June 21"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDEE0 Maintenance Friday 6PM"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx((next_link__WEBPACK_IMPORTED_MODULE_1___default()), {
+                                    href: "/news",
+                                    className: "block mt-4 text-sm text-indigo-600 hover:underline",
+                                    children: "View all news →"
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Absence Summary",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .Ban */ .KgV, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Sick Leave:"
+                                        }),
+                                        " 5 days"
+                                    ]
+                                }),
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Parental Leave:"
+                                        }),
+                                        " 2 employees"
+                                    ]
+                                }),
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("p", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("strong", {
+                                            children: "Unplanned Absences:"
+                                        }),
+                                        " 3"
+                                    ]
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "New Starters",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .UserPlus */ .bDA, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDC64 Emily R. — Marketing (June 17)"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    children: "\uD83D\uDC64 Liam P. — Sales (June 24)"
+                                })
+                            ]
+                        })
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "col-span-12 md:col-span-6 xl:col-span-4",
+                        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
+                            title: "Alerts & Compliance",
+                            icon: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(lucide_react__WEBPACK_IMPORTED_MODULE_4__/* .ShieldAlert */ .Ry6, {
+                                className: "text-indigo-700"
+                            }),
+                            children: [
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    className: "text-red-600",
+                                    children: "⚠️ Right-to-work expiry: Maria J. (June 15)"
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    className: "text-red-600",
+                                    children: "\uD83D\uDCCC Probation review overdue: Joe D."
+                                }),
+                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                                    className: "text-red-600",
+                                    children: "\uD83D\uDCDD Missing contact: Aimee S."
+                                })
+                            ]
+                        })
+                    })
+                ]
             })
         ]
     });
 }
 
-;// CONCATENATED MODULE: ./app/(withSidebar)/dashboard/page.tsx
-/* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
-const dynamic = "force-dynamic";
+
+/***/ }),
+
+/***/ 5671:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Z": () => (/* binding */ Card)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7640);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
 
 
-function DashboardPage() {
-    return /*#__PURE__*/ jsx_runtime_.jsx(ClientLayout/* default */.Z, {
-        children: /*#__PURE__*/ jsx_runtime_.jsx(ClientDashboard, {})
+function Card({ title , icon , children , className  }) {
+    return /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+        className: `bg-white rounded-2xl shadow p-6 h-full ${className || ""}`,
+        children: [
+            title && /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                className: "flex items-center mb-4 text-indigo-700",
+                children: [
+                    icon && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                        className: "w-6 h-6 mr-2",
+                        children: icon
+                    }),
+                    /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h2", {
+                        className: "text-lg font-semibold",
+                        children: title
+                    })
+                ]
+            }),
+            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                className: "text-sm text-gray-800 space-y-2",
+                children: children
+            })
+        ]
     });
 }
+
+
+/***/ }),
+
+/***/ 3089:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Z": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7640);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var clsx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5892);
+/* __next_internal_client_entry_do_not_use__  auto */ 
+
+
+const Input = /*#__PURE__*/ react__WEBPACK_IMPORTED_MODULE_1___default().forwardRef(({ variant ="default" , className , ...props }, ref)=>{
+    const baseClasses = "block w-full rounded-md border px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500";
+    const variants = {
+        default: "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
+        dark: "bg-neutral-800 border-neutral-700 text-white placeholder-gray-400"
+    };
+    return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
+        ref: ref,
+        className: (0,clsx__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z)(baseClasses, variants[variant], className),
+        ...props
+    });
+});
+Input.displayName = "Input";
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Input);
 
 
 /***/ }),
@@ -695,8 +660,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "$$typeof": () => (/* binding */ $$typeof),
 /* harmony export */   "__esModule": () => (/* binding */ __esModule),
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
-/* harmony export */   "dynamic": () => (/* binding */ e0)
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
 /* harmony import */ var next_dist_build_webpack_loaders_next_flight_loader_module_proxy__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5985);
 
@@ -709,8 +673,18 @@ const proxy = (0,next_dist_build_webpack_loaders_next_flight_loader_module_proxy
 const { __esModule, $$typeof } = proxy;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (proxy.default);
 
-const e0 = proxy["dynamic"];
 
+/***/ }),
+
+/***/ 5892:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "W": () => (/* binding */ clsx),
+/* harmony export */   "Z": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+function r(e){var t,f,n="";if("string"==typeof e||"number"==typeof e)n+=e;else if("object"==typeof e)if(Array.isArray(e)){var o=e.length;for(t=0;t<o;t++)e[t]&&(f=r(e[t]))&&(n&&(n+=" "),n+=f)}else for(f in e)e[f]&&(n&&(n+=" "),n+=f);return n}function clsx(){for(var e,t,f=0,n="",o=arguments.length;f<o;f++)(e=arguments[f])&&(t=r(e))&&(n&&(n+=" "),n+=t);return n}/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (clsx);
 
 /***/ })
 
@@ -721,7 +695,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(6043)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,290,925,498,62], () => (__webpack_exec__(6043)));
 module.exports = __webpack_exports__;
 
 })();

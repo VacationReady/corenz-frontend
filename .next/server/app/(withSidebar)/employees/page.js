@@ -232,7 +232,7 @@ __webpack_require__.r(__webpack_exports__);
       ]
       },
         {
-          
+          'layout': [() => Promise.resolve(/* import() eager */).then(__webpack_require__.bind(__webpack_require__, 5665)), "C:\\Users\\macke\\Downloads\\CoreNZ\\clean-corenz-frontend\\app\\(withSidebar)\\layout.tsx"],
           
         }
       ]
@@ -290,11 +290,17 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7640);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _components_ClientLayout__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(2988);
-/* harmony import */ var next_link__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(1621);
-/* harmony import */ var next_link__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(next_link__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var next_link__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1621);
+/* harmony import */ var next_link__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(next_link__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _components_ui_Input__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(3089);
+/* harmony import */ var _components_ui_Button__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(6503);
+/* harmony import */ var _components_ui_Card__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(5671);
+/* harmony import */ var _components_ui_PageShell__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(6814);
 /* __next_internal_client_entry_do_not_use__ dynamic,default auto */ 
 const dynamic = "force-dynamic";
+
+
+
 
 
 
@@ -353,182 +359,202 @@ function EmployeesPage() {
             setError("Network error");
         }
     };
-    return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ClientLayout__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z, {
-        children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-            className: "w-full px-6 pt-6 bg-gray-100 min-h-screen",
-            children: [
-                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                    className: "bg-white w-full max-w-7xl mx-auto p-8 rounded-xl shadow-md",
-                    children: [
-                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                            className: "flex justify-between items-center mb-6",
-                            children: [
-                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h1", {
-                                    className: "text-2xl font-bold",
-                                    children: "Employees"
-                                }),
-                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                                    onClick: ()=>setModalOpen(true),
-                                    className: "bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700",
-                                    children: "Add Employee"
-                                })
-                            ]
-                        }),
-                        error && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
-                            className: "text-red-600 mb-4",
-                            children: error
-                        }),
-                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", {
-                            className: "min-w-full bg-white border border-gray-300 rounded shadow-sm",
-                            children: [
-                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("thead", {
-                                    className: "bg-gray-100",
-                                    children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
-                                        children: [
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                className: "p-2 border",
-                                                children: "Name"
-                                            }),
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                className: "p-2 border",
-                                                children: "Phone"
-                                            }),
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                className: "p-2 border",
-                                                children: "Department"
-                                            }),
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                className: "p-2 border",
-                                                children: "Job Role"
-                                            }),
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                className: "p-2 border",
-                                                children: "Email"
-                                            }),
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
-                                                className: "p-2 border",
-                                                children: "Actions"
-                                            })
-                                        ]
-                                    })
-                                }),
-                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("tbody", {
-                                    children: employees.map((emp)=>/*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
-                                            className: "text-center",
-                                            children: [
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                    className: "p-2 border",
-                                                    children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)((next_link__WEBPACK_IMPORTED_MODULE_3___default()), {
-                                                        href: `/employees/${emp.id}/overview`,
-                                                        className: "text-blue-600 hover:underline",
-                                                        children: [
-                                                            emp.firstName,
-                                                            " ",
-                                                            emp.lastName
-                                                        ]
-                                                    })
-                                                }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                    className: "p-2 border",
-                                                    children: emp.phone || "-"
-                                                }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                    className: "p-2 border",
-                                                    children: emp.department || "-"
-                                                }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                    className: "p-2 border",
-                                                    children: emp.jobRole || "-"
-                                                }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                    className: "p-2 border",
-                                                    children: emp.email
-                                                }),
-                                                /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
-                                                    className: "p-2 border",
-                                                    children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                                                        onClick: async ()=>{
-                                                            if (!confirm("Are you sure you want to delete this employee?")) return;
-                                                            try {
-                                                                const res = await fetch(`/api/employees/${emp.id}`, {
-                                                                    method: "DELETE"
-                                                                });
-                                                                if (!res.ok) throw new Error("Delete failed");
-                                                                setEmployees((prev)=>prev.filter((e)=>e.id !== emp.id));
-                                                            } catch (err) {
-                                                                alert("Error deleting employee.");
-                                                                console.error(err);
-                                                            }
-                                                        },
-                                                        className: "bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700 text-sm",
-                                                        children: "Delete"
-                                                    })
-                                                })
-                                            ]
-                                        }, emp.id))
-                                })
-                            ]
-                        })
-                    ]
-                }),
-                isModalOpen && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
-                    className: "fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50",
-                    children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                        className: "bg-white p-6 rounded-lg shadow-lg w-full max-w-md",
+    return /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_PageShell__WEBPACK_IMPORTED_MODULE_6__/* .PageShell */ .M, {
+        title: "Employees",
+        action: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Button__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
+            onClick: ()=>setModalOpen(true),
+            children: "Add Employee"
+        }),
+        children: [
+            error && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("p", {
+                className: "text-red-600 mb-4",
+                children: error
+            }),
+            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Card__WEBPACK_IMPORTED_MODULE_5__/* ["default"] */ .Z, {
+                children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                    className: "overflow-x-auto",
+                    children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("table", {
+                        className: "min-w-full text-sm",
                         children: [
-                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h2", {
-                                className: "text-xl font-semibold mb-4",
-                                children: "Add Employee"
+                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("thead", {
+                                className: "bg-neutral-100 border-b",
+                                children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                            className: "text-left p-3",
+                                            children: "Name"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                            className: "text-left p-3",
+                                            children: "Phone"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                            className: "text-left p-3",
+                                            children: "Department"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                            className: "text-left p-3",
+                                            children: "Job Role"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                            className: "text-left p-3",
+                                            children: "Email"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("th", {
+                                            className: "text-left p-3",
+                                            children: "Actions"
+                                        })
+                                    ]
+                                })
                             }),
-                            /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("form", {
-                                onSubmit: handleSubmit,
-                                className: "space-y-4",
-                                children: [
-                                    [
-                                        "firstName",
-                                        "lastName",
-                                        "email",
-                                        "phone",
-                                        "department",
-                                        "jobRole"
-                                    ].map((field)=>/*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
-                                            type: "text",
-                                            name: field,
-                                            placeholder: field[0].toUpperCase() + field.slice(1),
-                                            value: formData[field],
-                                            onChange: handleChange,
-                                            className: "w-full p-2 border rounded",
-                                            required: [
-                                                "firstName",
-                                                "lastName",
-                                                "email"
-                                            ].includes(field)
-                                        }, field)),
-                                    /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
-                                        className: "flex justify-end space-x-2",
+                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("tbody", {
+                                children: employees.map((emp)=>/*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("tr", {
+                                        className: "border-b hover:bg-neutral-50",
                                         children: [
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                                                type: "button",
-                                                onClick: ()=>setModalOpen(false),
-                                                className: "px-4 py-2 bg-gray-300 rounded",
-                                                children: "Cancel"
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                className: "p-3",
+                                                children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)((next_link__WEBPACK_IMPORTED_MODULE_2___default()), {
+                                                    href: `/employees/${emp.id}/overview`,
+                                                    className: "text-indigo-600 hover:underline",
+                                                    children: [
+                                                        emp.firstName,
+                                                        " ",
+                                                        emp.lastName
+                                                    ]
+                                                })
                                             }),
-                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("button", {
-                                                type: "submit",
-                                                className: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700",
-                                                children: "Save"
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                className: "p-3",
+                                                children: emp.phone || "-"
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                className: "p-3",
+                                                children: emp.department || "-"
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                className: "p-3",
+                                                children: emp.jobRole || "-"
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                className: "p-3",
+                                                children: emp.email
+                                            }),
+                                            /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("td", {
+                                                className: "p-3",
+                                                children: /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Button__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
+                                                    variant: "danger",
+                                                    size: "sm",
+                                                    onClick: async ()=>{
+                                                        if (!confirm("Are you sure you want to delete this employee?")) return;
+                                                        try {
+                                                            const res = await fetch(`/api/employees/${emp.id}`, {
+                                                                method: "DELETE"
+                                                            });
+                                                            if (!res.ok) throw new Error("Delete failed");
+                                                            setEmployees((prev)=>prev.filter((e)=>e.id !== emp.id));
+                                                        } catch (err) {
+                                                            alert("Error deleting employee.");
+                                                            console.error(err);
+                                                        }
+                                                    },
+                                                    children: "Delete"
+                                                })
                                             })
                                         ]
-                                    })
-                                ]
+                                    }, emp.id))
                             })
                         ]
                     })
                 })
-            ]
-        })
+            }),
+            isModalOpen && /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("div", {
+                className: "fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50",
+                children: /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)(_components_ui_Card__WEBPACK_IMPORTED_MODULE_5__/* ["default"] */ .Z, {
+                    className: "w-full max-w-md p-6 space-y-4",
+                    children: [
+                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("h2", {
+                            className: "text-lg font-semibold",
+                            children: "Add Employee"
+                        }),
+                        /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("form", {
+                            onSubmit: handleSubmit,
+                            className: "space-y-4",
+                            children: [
+                                [
+                                    "firstName",
+                                    "lastName",
+                                    "email",
+                                    "phone",
+                                    "department",
+                                    "jobRole"
+                                ].map((field)=>/*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Input__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .Z, {
+                                        type: "text",
+                                        name: field,
+                                        placeholder: field[0].toUpperCase() + field.slice(1),
+                                        value: formData[field],
+                                        onChange: handleChange,
+                                        required: [
+                                            "firstName",
+                                            "lastName",
+                                            "email"
+                                        ].includes(field)
+                                    }, field)),
+                                /*#__PURE__*/ (0,react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsxs)("div", {
+                                    className: "flex justify-end space-x-2",
+                                    children: [
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Button__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
+                                            type: "button",
+                                            variant: "ghost",
+                                            onClick: ()=>setModalOpen(false),
+                                            children: "Cancel"
+                                        }),
+                                        /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx(_components_ui_Button__WEBPACK_IMPORTED_MODULE_4__/* ["default"] */ .Z, {
+                                            type: "submit",
+                                            children: "Save"
+                                        })
+                                    ]
+                                })
+                            ]
+                        })
+                    ]
+                })
+            })
+        ]
     });
 }
+
+
+/***/ }),
+
+/***/ 3089:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "Z": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6931);
+/* harmony import */ var react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7640);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var clsx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(5892);
+/* __next_internal_client_entry_do_not_use__  auto */ 
+
+
+const Input = /*#__PURE__*/ react__WEBPACK_IMPORTED_MODULE_1___default().forwardRef(({ variant ="default" , className , ...props }, ref)=>{
+    const baseClasses = "block w-full rounded-md border px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500";
+    const variants = {
+        default: "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
+        dark: "bg-neutral-800 border-neutral-700 text-white placeholder-gray-400"
+    };
+    return /*#__PURE__*/ react_jsx_runtime__WEBPACK_IMPORTED_MODULE_0__.jsx("input", {
+        ref: ref,
+        className: (0,clsx__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .Z)(baseClasses, variants[variant], className),
+        ...props
+    });
+});
+Input.displayName = "Input";
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Input);
 
 
 /***/ }),
@@ -567,7 +593,7 @@ const e0 = proxy["dynamic"];
 var __webpack_require__ = require("../../../webpack-runtime.js");
 __webpack_require__.C(exports);
 var __webpack_exec__ = (moduleId) => (__webpack_require__(__webpack_require__.s = moduleId))
-var __webpack_exports__ = __webpack_require__.X(0, [636,140,498], () => (__webpack_exec__(8329)));
+var __webpack_exports__ = __webpack_require__.X(0, [636,290,925,247,498,62,206,503], () => (__webpack_exec__(8329)));
 module.exports = __webpack_exports__;
 
 })();

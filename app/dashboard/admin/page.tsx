@@ -8,6 +8,8 @@ import {
   CalendarCheck2,
   Megaphone,
   Search,
+  FileWarning,
+  BarChartBig,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 
@@ -29,7 +31,7 @@ export default function AdminDashboardPage() {
 
       {/* Grid */}
       <main className="flex-1 p-6 w-full max-w-screen-2xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
           <DashboardWidget title="Outstanding Requests" icon={ClipboardList}>
             <p className="text-2xl font-semibold text-neutral-200">7</p>
             <p className="text-sm text-neutral-400">Awaiting approval</p>
@@ -58,6 +60,23 @@ export default function AdminDashboardPage() {
               <li><Link href="#" className="text-indigo-400 hover:underline">Start Survey</Link></li>
               <li><Link href="#" className="text-indigo-400 hover:underline">Add Company Document</Link></li>
               <li><Link href="#" className="text-indigo-400 hover:underline">Email Employee</Link></li>
+            </ul>
+          </DashboardWidget>
+
+          <DashboardWidget title="Documents Expiring Soon" icon={FileWarning}>
+            <p className="text-sm text-neutral-400">
+              <strong>6</strong> total: 4 employee contracts and 2 policies expiring in the next <strong>3 months</strong>.
+            </p>
+            <Link href="#" className="text-indigo-400 text-sm hover:underline mt-2 inline-block">
+              Review expiring files
+            </Link>
+          </DashboardWidget>
+
+          <DashboardWidget title="HR Insights" icon={BarChartBig}>
+            <ul className="space-y-1 text-sm text-neutral-400">
+              <li>Turnover (12 mo): <strong>18.2%</strong></li>
+              <li>1-Day Absence Rate: <strong>36%</strong></li>
+              <li>Median Sick Days: <strong>5.1 days</strong></li>
             </ul>
           </DashboardWidget>
         </div>

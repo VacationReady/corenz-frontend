@@ -3,9 +3,9 @@
 import React from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import AdminSidebar from "@/components/AdminSidebar/AdminSidebar";
-import ManagerSidebar from "@/components/ManagerSidebar/ManagerSidebar";
-import EmployeeSidebar from "@/components/EmployeeSidebar/EmployeeSidebar";
+import AdminSidebar from "@/app/components/sidebars/AdminSidebar";
+import ManagerSidebar from "@/app/components/sidebars/ManagerSidebar";
+import EmployeeSidebar from "@/app/components/sidebars/EmployeeSidebar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";

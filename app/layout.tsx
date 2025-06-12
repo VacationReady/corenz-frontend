@@ -1,3 +1,5 @@
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
+// app/(withSidebar)/layout.tsx
+"use client";
+
+return <>{children}</>;
+

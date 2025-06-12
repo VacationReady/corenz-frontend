@@ -2,7 +2,7 @@ import Card from "./Card";
 import { LucideIcon } from "lucide-react";
 
 type DashboardWidgetProps = {
-  title: string;
+  title?: React.ReactNode;
   icon: LucideIcon;
   children: React.ReactNode;
   className?: string;

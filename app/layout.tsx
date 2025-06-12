@@ -1,16 +1,9 @@
+// app/(withSidebar)/layout.tsx
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import "./globals.css";
-import { ReactNode } from "react";
+import ClientLayout from "./ClientLayout";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        <SessionProvider>{children}</SessionProvider>
-      </body>
-    </html>
-  );
+export default function WithSidebarLayout({ children }: { children: React.ReactNode }) {
+  return <ClientLayout>{children}</ClientLayout>;
 }
 

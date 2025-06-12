@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import { ReactNode } from "react";
-import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import AdminSidebar from "../../components/sidebars/AdminSidebar";
 // import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 // import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 

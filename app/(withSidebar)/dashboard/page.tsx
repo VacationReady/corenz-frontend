@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import AdminDashboardPage from "./AdminDashboardPage";
 import ClientDashboard from "./ClientDashboard";

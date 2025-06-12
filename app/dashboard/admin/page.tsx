@@ -27,8 +27,8 @@ export default function AdminDashboardPage() {
       </header>
 
       {/* Grid */}
-      <main className="flex-1 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <main className="flex-1 p-4 w-full max-w-none">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <DashboardWidget title="Outstanding Requests" icon={ClipboardList}>
             <p className="text-2xl font-semibold text-neutral-200">7</p>
             <p className="text-sm text-neutral-400">Awaiting approval</p>

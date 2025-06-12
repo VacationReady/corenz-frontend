@@ -25,5 +25,3 @@ export function DashboardWidget({ title, icon: Icon, children, className }: Dash
     </Card>
   );
 }
-
-}

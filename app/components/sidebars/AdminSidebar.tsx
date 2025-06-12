@@ -1,71 +1,58 @@
-"use client";
+'use client';
 
 import Link from "next/link";
+import { useState } from "react";
 import {
   LayoutDashboard,
-  CheckCircle,
+  ClipboardCheck,
   Users,
-  FileBarChart,
-  CalendarDays,
-  Folder,
+  Calendar,
+  FileText,
+  Network,
+  ClipboardList,
   Megaphone,
   Settings,
-  Newspaper,
+  Menu,
+  X,
 } from "lucide-react";
 
 export default function AdminSidebar() {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const toggleSidebar = () => setCollapsed(!collapsed);
+
   return (
-    <aside className="w-64 bg-neutral-900 text-white min-h-screen shadow-lg p-6">
-      <div className="mb-8 text-2xl font-bold tracking-wide">CoreNZ</div>
-      <nav>
-        <ul className="space-y-4 text-sm font-medium">
-          <li>
-            <Link href="/dashboard" className="flex items-center gap-2 hover:text-gray-300">
-              <LayoutDashboard size={18} /> Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link href="/approvals" className="flex items-center gap-2 hover:text-gray-300">
-              <CheckCircle size={18} /> Approvals
-            </Link>
-          </li>
-          <li>
-            <Link href="/employees" className="flex items-center gap-2 hover:text-gray-300">
-              <Users size={18} /> Employees
-            </Link>
-          </li>
-          <li>
-            <Link href="/reports" className="flex items-center gap-2 hover:text-gray-300">
-              <FileBarChart size={18} /> Reports
-            </Link>
-          </li>
-          <li>
-            <Link href="/calendar" className="flex items-center gap-2 hover:text-gray-300">
-              <CalendarDays size={18} /> Calendar
-            </Link>
-          </li>
-          <li>
-            <Link href="/documents" className="flex items-center gap-2 hover:text-gray-300">
-              <Folder size={18} /> Documents
-            </Link>
-          </li>
-          <li>
-            <Link href="/surveys" className="flex items-center gap-2 hover:text-gray-300">
-              <Megaphone size={18} /> Surveys
-            </Link>
-          </li>
-          <li>
-            <Link href="/news" className="flex items-center gap-2 hover:text-gray-300">
-              <Newspaper size={18} /> News
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings" className="flex items-center gap-2 hover:text-gray-300">
-              <Settings size={18} /> Settings
-            </Link>
-          </li>
+    <div className={`h-screen bg-white shadow-md border-r transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+      <div className="flex items-center justify-between px-4 py-4 border-b">
+        <h1 className={`font-bold text-indigo-700 text-lg transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>CoreNZ</h1>
+        <button onClick={toggleSidebar}>
+          {collapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
+        </button>
+      </div>
+      <nav className="flex-1 mt-4">
+        <ul className="space-y-3 text-sm font-medium px-1">
+          <SidebarLink href="/dashboard/admin" icon={<LayoutDashboard size={18} />} label="Dashboard" collapsed={collapsed} />
+          <SidebarLink href="/dashboard/approvals" icon={<ClipboardCheck size={18} />} label="Approvals" collapsed={collapsed} />
+          <SidebarLink href="/employees" icon={<Users size={18} />} label="Employees" collapsed={collapsed} />
+          <SidebarLink href="/calendar" icon={<Calendar size={18} />} label="Calendar" collapsed={collapsed} />
+          <SidebarLink href="/documents" icon={<FileText size={18} />} label="Documents" collapsed={collapsed} />
+          <SidebarLink href="/org-chart" icon={<Network size={18} />} label="Org Chart" collapsed={collapsed} />
+          <SidebarLink href="/surveys" icon={<ClipboardList size={18} />} label="Surveys" collapsed={collapsed} />
+          <SidebarLink href="/news" icon={<Megaphone size={18} />} label="News" collapsed={collapsed} />
+          <SidebarLink href="/settings" icon={<Settings size={18} />} label="Settings" collapsed={collapsed} />
         </ul>
       </nav>
-    </aside>
+    </div>
+  );
+}
+
+function SidebarLink({ href, icon, label, collapsed }: { href: string, icon: React.ReactNode, label: string, collapsed: boolean }) {
+  return (
+    <li>
+      <Link href={href} className="flex items-center gap-3 px-3 py-2 rounded hover:bg-gray-100 transition-all">
+        {icon}
+        {!collapsed && <span className="truncate">{label}</span>}
+      </Link>
+    </li>
   );
 }

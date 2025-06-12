@@ -88,3 +88,4 @@ export default function LeaveForm({ onSuccess }: LeaveFormProps) {
     </Card>
   );
 }
+

@@ -17,12 +17,12 @@ import {
 } from "lucide-react";
 
 export default function AdminSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // sidebar is expanded by default
 
   const toggleSidebar = () => setCollapsed(!collapsed);
 
   return (
-    <div className={`h-screen bg-white shadow-md border-r transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <div className={`min-h-screen bg-white shadow-md border-r transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       <div className="flex items-center justify-between px-4 py-4 border-b">
         <h1 className={`font-bold text-indigo-700 text-lg transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>CoreNZ</h1>
         <button onClick={toggleSidebar}>

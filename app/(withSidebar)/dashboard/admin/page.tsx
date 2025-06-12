@@ -31,13 +31,11 @@ export default function AdminDashboardPage() {
       <main className="flex-1 p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
-          {/* 1. Outstanding Requests */}
           <DashboardWidget title="Outstanding Requests" icon={ClipboardList}>
             <p className="text-2xl font-semibold text-neutral-800">7</p>
             <p className="text-sm text-gray-600">Awaiting approval</p>
           </DashboardWidget>
 
-          {/* 2. People Metrics */}
           <DashboardWidget title="People Metrics" icon={Users}>
             <ul className="space-y-1 text-sm text-gray-700">
               <li>Active Employees: <strong>42</strong></li>
@@ -46,7 +44,6 @@ export default function AdminDashboardPage() {
             </ul>
           </DashboardWidget>
 
-          {/* 3. Holiday Balance */}
           <DashboardWidget title="Holiday Balance" icon={CalendarCheck2}>
             <ul className="space-y-1 text-sm text-gray-700">
               <li>Total Entitlement: <strong>1200 days</strong></li>
@@ -55,7 +52,6 @@ export default function AdminDashboardPage() {
             </ul>
           </DashboardWidget>
 
-          {/* 4. Quick Actions */}
           <DashboardWidget title="Quick Actions" icon={Megaphone}>
             <ul className="space-y-2 text-sm text-gray-700">
               <li><Link href="#" className="text-indigo-600 hover:underline">Post News</Link></li>

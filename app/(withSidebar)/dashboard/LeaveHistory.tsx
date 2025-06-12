@@ -72,3 +72,10 @@ export default function LeaveHistory() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import type { NextAuthOptions } from "next-auth";
+import type React from "react";
 import { ReactNode } from "react";
 import AdminSidebar from "../components/sidebars/AdminSidebar";
 // import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
@@ -10,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const session = await getServerSession(authOptions as NextAuthOptions);
   const role = session?.user?.role;
 
-  let Sidebar: JSX.Element | null = null;
+  let Sidebar: React.ReactElement | null = null;
 
   if (role === "ADMIN") {
     Sidebar = <AdminSidebar />;

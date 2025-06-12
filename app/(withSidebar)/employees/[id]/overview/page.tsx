@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import ClientLayout from "@/app/(withSidebar)/ClientLayout";
+import ClientLayout from "../../../../ClientLayout";
 
 export default function EmployeeProfilePage() {
   const params = useParams();

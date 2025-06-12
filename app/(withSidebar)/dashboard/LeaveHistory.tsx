@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from "react";
 
+interface LeaveRequest {
+  id: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
 export default function LeaveHistory() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -20,30 +28,50 @@ export default function LeaveHistory() {
     return <p className="text-red-600">{error}</p>;
   }
 
-  if (requests.length === 0) {
-    return <p className="italic text-gray-500">No leave requests found.</p>;
-  }
-
   return (
-    <table className="min-w-full border border-gray-300 rounded shadow-sm">
-      <thead className="bg-gray-100">
-        <tr>
-          <th className="p-2 border text-left">Type</th>
-          <th className="p-2 border text-left">Start Date</th>
-          <th className="p-2 border text-left">End Date</th>
-          <th className="p-2 border text-left">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {requests.map((req) => (
-          <tr key={req.id} className="text-left">
-            <td className="p-2 border">{req.type}</td>
-            <td className="p-2 border">{new Date(req.startDate).toLocaleDateString()}</td>
-            <td className="p-2 border">{new Date(req.endDate).toLocaleDateString()}</td>
-            <td className="p-2 border">{req.status}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div>
+      <h2 className="text-xl font-semibold mb-4">Your Leave History</h2>
+
+      {requests.length === 0 ? (
+        <p className="italic text-gray-500">No leave requests found.</p>
+      ) : (
+        <table className="min-w-full border border-gray-300 rounded shadow-sm">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2 border text-left">Type</th>
+              <th className="p-2 border text-left">Start Date</th>
+              <th className="p-2 border text-left">End Date</th>
+              <th className="p-2 border text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.map((req) => (
+              <tr key={req.id} className="text-left">
+                <td className="p-2 border">{req.type}</td>
+                <td className="p-2 border">
+                  {new Date(req.startDate).toLocaleDateString()}
+                </td>
+                <td className="p-2 border">
+                  {new Date(req.endDate).toLocaleDateString()}
+                </td>
+                <td className="p-2 border">
+                  <span
+                    className={`px-2 py-1 rounded text-white text-sm ${
+                      req.status === "APPROVED"
+                        ? "bg-green-600"
+                        : req.status === "DECLINED"
+                        ? "bg-red-500"
+                        : "bg-yellow-500"
+                    }`}
+                  >
+                    {req.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }

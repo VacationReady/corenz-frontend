@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const session = await getServerSession(authOptions as NextAuthOptions);
   const role = session?.user?.role;
 
-  let Sidebar = null;
+  let Sidebar: JSX.Element | null = null;
 
   if (role === "ADMIN") {
     Sidebar = <AdminSidebar />;

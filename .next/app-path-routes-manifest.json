@@ -1,0 +1,16 @@
+{
+  "/page": "/",
+  "/login/page": "/login",
+  "/activate/page": "/activate",
+  "/unauthorized/page": "/unauthorized",
+  "/profile/page": "/profile",
+  "/(withSidebar)/reports/page": "/reports",
+  "/(withSidebar)/calendar/page": "/calendar",
+  "/(withSidebar)/dashboard/page": "/dashboard",
+  "/(withSidebar)/employees/page": "/employees",
+  "/(withSidebar)/settings/page": "/settings",
+  "/api/employees/[id]/route": "/api/employees/[id]",
+  "/(withSidebar)/documents/page": "/documents",
+  "/(withSidebar)/dashboard/approvals/page": "/dashboard/approvals",
+  "/(withSidebar)/employees/[id]/overview/page": "/employees/[id]/overview"
+}

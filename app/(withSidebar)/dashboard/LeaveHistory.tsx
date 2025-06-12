@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import LeaveForm from "./LeaveForm"; // Adjust path if needed
 import SectionHeading from "@/components/ui/SectionHeading";
 
 interface LeaveRequest {
@@ -30,8 +31,6 @@ export default function LeaveHistory() {
 
   return (
     <div className="space-y-8">
-      <LeaveForm onSuccess={fetchRequests} />
-
       <div>
         <SectionHeading>Your Leave History</SectionHeading>
         {error ? (
@@ -73,10 +72,3 @@ export default function LeaveHistory() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}

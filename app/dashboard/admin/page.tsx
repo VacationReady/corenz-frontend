@@ -1,7 +1,7 @@
 'use client';
 
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import AdminSidebar from "../../components/sidebars/AdminSidebar";
 import Link from "next/link";
 import {
   ClipboardList,

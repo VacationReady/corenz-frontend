@@ -31,6 +31,7 @@ export const authOptions = {
           id: user.id,
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
+          role: user.role, // ✅ Include role in returned user object
         };
       },
     }),
@@ -40,6 +41,7 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.role = user.role; // ✅ Attach role to JWT
       }
       return token;
     },
@@ -49,6 +51,7 @@ export const authOptions = {
           ...session.user,
           id: token.id as string,
           email: token.email as string,
+          role: token.role as string, // ✅ Attach role to session user
         };
       }
       return session;

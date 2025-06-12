@@ -3,9 +3,10 @@
 import React from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import AdminSidebar from "../components/sidebars/AdminSidebar";
-import ManagerSidebar from "../components/sidebars/ManagerSidebar";
-import EmployeeSidebar from "../components/sidebars/EmployeeSidebar";
+import AdminSidebar from "../components/sidebars/AdminSidebar/AdminSidebar";
+import ManagerSidebar from "../components/sidebars/ManagerSidebar/ManagerSidebar";
+import EmployeeSidebar from "../components/sidebars/EmployeeSidebar/EmployeeSidebar";
+
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";

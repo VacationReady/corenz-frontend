@@ -19,7 +19,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const role = session?.user?.role;
 
-  let SidebarComponent: JSX.Element | null = null;
+  let SidebarComponent = null;
 
 if (role === "ADMIN") SidebarComponent = <AdminSidebar />;
 else if (role === "MANAGER") SidebarComponent = <ManagerSidebar />;

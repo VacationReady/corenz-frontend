@@ -9,10 +9,11 @@ import {
   Megaphone,
   Search,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export default function AdminDashboardPage() {
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 w-full">
       {/* Header */}
       <header className="w-full h-14 bg-neutral-800 flex items-center justify-between px-6 shadow">
         <h1 className="text-lg font-semibold">Admin Dashboard</h1>
@@ -27,8 +28,8 @@ export default function AdminDashboardPage() {
       </header>
 
       {/* Grid */}
-      <main className="flex-1 p-4 w-full max-w-none">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+      <main className="flex-1 p-6 w-full max-w-screen-2xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
           <DashboardWidget title="Outstanding Requests" icon={ClipboardList}>
             <p className="text-2xl font-semibold text-neutral-200">7</p>
             <p className="text-sm text-neutral-400">Awaiting approval</p>
@@ -43,11 +44,12 @@ export default function AdminDashboardPage() {
           </DashboardWidget>
 
           <DashboardWidget title="Holiday Balance" icon={CalendarCheck2}>
-            <ul className="space-y-1 text-sm text-neutral-400">
+            <ul className="space-y-1 text-sm text-neutral-400 mb-4">
               <li>Total Entitlement: <strong>1200 days</strong></li>
               <li>Used: <strong>730 days</strong></li>
               <li>Remaining: <strong>470 days</strong></li>
             </ul>
+            <Button className="mt-2">Book Holiday</Button>
           </DashboardWidget>
 
           <DashboardWidget title="Quick Actions" icon={Megaphone}>

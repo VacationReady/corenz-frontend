@@ -3,8 +3,9 @@ import { authOptions } from "@/lib/auth-options";
 import type { NextAuthOptions } from "next-auth";
 import type React from "react";
 import { ReactNode } from "react";
-import AdminSidebar from "../components/sidebars/AdminSidebar";
-// import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
+
+import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 // import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
@@ -15,10 +16,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   if (role === "ADMIN") {
     Sidebar = <AdminSidebar />;
+  } else if (role === "MANAGER") {
+    Sidebar = <ManagerSidebar />;
   }
-  // Uncomment when available:
-  // else if (role === "MANAGER") Sidebar = <ManagerSidebar />;
-  // else Sidebar = <EmployeeSidebar />;
+  // else if (role === "EMPLOYEE") {
+  //   Sidebar = <EmployeeSidebar />;
+  // }
 
   return (
     <div className="flex min-h-screen bg-neutral-900 text-white">

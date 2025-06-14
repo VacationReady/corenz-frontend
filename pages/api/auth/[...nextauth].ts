@@ -1,6 +1,6 @@
-// pages/api/auth/[...nextauth].ts
+import { NextApiRequest, NextApiResponse } from "next";
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
-const NextAuth = require("next-auth").default;
-const { authOptions } = require("../../../lib/auth-options");
-
-export default (req, res) => NextAuth(req, res, authOptions);
+export default (req: NextApiRequest, res: NextApiResponse) =>
+  NextAuth(req, res, authOptions);

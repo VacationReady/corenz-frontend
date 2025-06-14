@@ -5,7 +5,7 @@ import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
 
 export default function EmployeesPage() {

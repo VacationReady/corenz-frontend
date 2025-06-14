@@ -50,11 +50,11 @@ export const authOptions = {
         }
 
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
+  id: user.id,
+  name: `${user.firstName} ${user.lastName}`,
+  email: user.email,
+  role: user.role,
+};
       },
     }),
   ],

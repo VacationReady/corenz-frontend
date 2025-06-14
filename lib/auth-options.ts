@@ -9,32 +9,45 @@ export const authOptions = {
     strategy: "jwt",
   },
   providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+ CredentialsProvider({
+  name: "credentials",
+  credentials: {
+    email: { label: "Email", type: "text" },
+    password: { label: "Password", type: "password" },
+  },
+  async authorize(credentials) {
+    console.log("Credentials received:", credentials); // ✅ Add this
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+    if (!credentials?.email || !credentials?.password) {
+      console.log("Missing credentials");
+      return null;
+    }
 
-        if (!user || !user.password) return null;
+    const user = await prisma.user.findUnique({
+      where: { email: credentials.email },
+    });
 
-        const isPasswordValid = await compare(credentials.password, user.password);
-        if (!isPasswordValid) return null;
+    if (!user || !user.password) {
+      console.log("No user found or missing password");
+      return null;
+    }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          role: user.role, // ✅ Include role in returned user object
-        };
-      },
-    }),
+    const isPasswordValid = await compare(credentials.password, user.password);
+    if (!isPasswordValid) {
+      console.log("Invalid password");
+      return null;
+    }
+
+    console.log("Login successful");
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      role: user.role,
+    };
+  },
+}),
   ],
   callbacks: {
     async jwt({ token, user }) {

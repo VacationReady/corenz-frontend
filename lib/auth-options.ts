@@ -50,22 +50,32 @@ export const authOptions = {
 }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.role = user.role; // ✅ Attach role to JWT
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user = {
-          ...session.user,
-          id: token.id as string,
-          email: token.email as string,
-          role: token.role as string, // ✅ Attach role to session user
-        };
+  async jwt({ token, user }) {
+    if (user) {
+      token.id = user.id;
+      token.email = user.email;
+      token.role = user.role;
+    }
+    return token;
+  },
+  async session({ session, token }) {
+    if (token && session.user) {
+      session.user = {
+        ...session.user,
+        id: token.id as string,
+        email: token.email as string,
+        role: token.role as string,
+      };
+    }
+    return session;
+  },
+  async redirect({ url, baseUrl, token }) {
+    if (token?.role === "ADMIN") return `${baseUrl}/dashboard/admin`;
+    if (token?.role === "MANAGER") return `${baseUrl}/dashboard/manager`;
+    if (token?.role === "EMPLOYEE") return `${baseUrl}/dashboard/employee`;
+    return baseUrl; // fallback
+  }
+}
       }
       return session;
     },

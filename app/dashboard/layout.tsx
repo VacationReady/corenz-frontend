@@ -4,9 +4,8 @@ import type { NextAuthOptions } from "next-auth";
 import type React from "react";
 import { ReactNode } from "react";
 
-import AdminSidebar from "../../components/sidebars/AdminSidebar";
-import ManagerSidebar from "../../components/sidebars/ManagerSidebar";
-// import EmployeeSidebar from "../../components/sidebars/EmployeeSidebar";
+import AdminSidebar from "../components/sidebars/AdminSidebar";
+import ManagerSidebar from "../components/sidebars/ManagerSidebar";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions as NextAuthOptions);

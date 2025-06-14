@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Card({
+export function Card({
   title,
   icon,
   children,
@@ -24,3 +24,6 @@ export default function Card({
   );
 }
 
+export function CardContent({ children }: { children: React.ReactNode }) {
+  return <div className="pt-2">{children}</div>;
+}

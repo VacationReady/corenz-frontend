@@ -10,9 +10,8 @@ export default async function handler(
   const session = await getServerSession(req, res, {
     ...authOptions,
     session: {
-      ...authOptions.session,
-      strategy: authOptions.session.strategy as any, // ✅ cast to `any`
-    },
+  strategy: "jwt", // ✅ Directly provide the known strategy
+},
   });
 
   if (!session) {

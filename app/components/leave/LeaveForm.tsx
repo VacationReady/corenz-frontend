@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import SectionHeading from "@/components/ui/SectionHeading";
 
 interface LeaveFormProps {

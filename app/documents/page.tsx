@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState } from "react";
 import { FileText, X } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
-import Card from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 
 interface Document {

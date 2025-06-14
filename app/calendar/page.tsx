@@ -7,7 +7,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
 import { PageShell } from "@/components/ui/PageShell";
-import Card from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 
 export default function CalendarPage() {
   const [events, setEvents] = useState([

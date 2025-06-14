@@ -1,26 +1,26 @@
 // app/lib/auth-options.ts
 
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-import type { NextAuthOptions } from 'next-auth'; // ✅ import the type
+import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import type { NextAuthOptions } from "next-auth";
 
 const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'text' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (
           !credentials?.email ||
-          typeof credentials.password !== 'string'
+          typeof credentials.password !== "string"
         ) {
-          console.log('Missing or invalid credentials');
+          console.log("Missing or invalid credentials");
           return null;
         }
 
@@ -29,24 +29,27 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
-          console.log('User not found');
+          console.log("User not found");
           return null;
         }
 
         if (!user.isActivated) {
-          console.log('User not activated');
+          console.log("User not activated");
           return null;
         }
 
-        if (typeof user.password !== 'string') {
-          console.log('Invalid stored password');
+        if (typeof user.password !== "string") {
+          console.log("Invalid stored password");
           return null;
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
 
         if (!isValid) {
-          console.log('Invalid password');
+          console.log("Invalid password");
           return null;
         }
 
@@ -60,26 +63,26 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-  async session({ session, token }) {
-    if (token && session.user) {
-      session.user.id = (token as any).id as string;
-      session.user.role = (token as any).role as "ADMIN" | "MANAGER" | "EMPLOYEE";
-    }
-    return session;
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = (token as any).id as string;
+        session.user.role = (token as any).role as "ADMIN" | "MANAGER" | "EMPLOYEE";
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
+    },
   },
-  async jwt({ token, user }) {
-    if (user) {
-      token.id = user.id;
-      token.role = user.role;
-    }
-    return token;
-  },
-},
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,

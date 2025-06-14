@@ -56,12 +56,6 @@ export const authOptions = {
       }
       return session;
     },
-    async redirect({ baseUrl, token }) {
-      if (token?.role === "ADMIN") return `${baseUrl}/dashboard/admin`;
-      if (token?.role === "MANAGER") return `${baseUrl}/dashboard/manager`;
-      if (token?.role === "EMPLOYEE") return `${baseUrl}/dashboard/employee`;
-      return baseUrl;
-    },
   },
   pages: {
     signIn: "/login",

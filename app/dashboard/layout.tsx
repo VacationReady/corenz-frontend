@@ -1,11 +1,14 @@
+// app/dashboard/layout.tsx
+
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 import type { NextAuthOptions } from "next-auth";
 import type React from "react";
 import { ReactNode } from "react";
 
-import AdminSidebar from "../components/sidebars/AdminSidebar";
-import ManagerSidebar from "../components/sidebars/ManagerSidebar";
+import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
+import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions as NextAuthOptions);
@@ -17,6 +20,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     Sidebar = <AdminSidebar />;
   } else if (role === "MANAGER") {
     Sidebar = <ManagerSidebar />;
+  } else if (role === "EMPLOYEE") {
+    Sidebar = <EmployeeSidebar />;
   }
 
   return (

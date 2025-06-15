@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid or expired token.' });
     }
 
-    const employee = activationToken.employee;
+    const employee = activationToken.user;
 
     // 2. Check if already activated
     if (employee.isActivated) {

@@ -41,8 +41,13 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  leaveRequests LeaveRequest[]
+  leaveRequests     LeaveRequest[]
   reviewedRequests  LeaveRequest[] @relation("ReviewedByUser")
+
+  /// ✅ Self-referencing relation for manager/team logic
+  managerId String?
+  manager   User?     @relation("Manager", fields: [managerId], references: [id])
+  reports   User[]    @relation("Manager")
 }
 
 model Employee {
@@ -56,38 +61,33 @@ model Employee {
   password    String?
   isActivated Boolean  @default(false)
   isActive    Boolean  @default(true)
-  role        Role     @default(EMPLOYEE) // ✅ Added here
+  role        Role     @default(EMPLOYEE)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  activationTokens ActivationToken[] // ✅ Required back-reference
+  activationTokens ActivationToken[]
 }
 
 model LeaveRequest {
-  id            String      @id @default(uuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  type          LeaveType
-  startDate     DateTime
-  endDate       DateTime
-  reason        String?
-  status        LeaveStatus @default(PENDING)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  reviewedById  String?
-  reviewedBy    User?       @relation("ReviewedByUser", fields: [reviewedById], references: [id])
- reviewedAt    DateTime?
-
-  @@index([userId])
-  @@index([reviewedById]) //
+  id         String      @id @default(uuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  type       LeaveType
+  startDate  DateTime
+  endDate    DateTime
+  reason     String?
+  status     LeaveStatus @default(PENDING)
+  reviewedBy String?
+  reviewer   User?       @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 model ActivationToken {
   id         String   @id @default(uuid())
   token      String   @unique
-  employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
+  userId     String
+  user       Employee @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
   expiresAt  DateTime
 }

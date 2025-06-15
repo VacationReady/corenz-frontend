@@ -20,7 +20,6 @@ import { signOut } from "next-auth/react";
 
 export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
-
   const toggleSidebar = () => setCollapsed(!collapsed);
 
   return (
@@ -31,6 +30,7 @@ export default function AdminSidebar() {
           {collapsed ? <Menu className="w-5 h-5 text-gray-800" /> : <X className="w-5 h-5 text-gray-800" />}
         </button>
       </div>
+
       <nav className="flex-1 mt-4">
         <ul className="space-y-3 text-sm font-medium px-1 text-gray-900">
           <SidebarLink href="/dashboard/admin" icon={<LayoutDashboard size={18} />} label="Dashboard" collapsed={collapsed} />
@@ -44,7 +44,8 @@ export default function AdminSidebar() {
           <SidebarLink href="/settings" icon={<Settings size={18} />} label="Settings" collapsed={collapsed} />
         </ul>
       </nav>
-      <div className="px-4 py-4 border-t">
+
+      <div className="px-4 py-3 border-t">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex items-center gap-3 text-sm text-red-600 hover:text-red-800"

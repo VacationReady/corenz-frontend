@@ -21,9 +21,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
 export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
-    // First delete related ActivationTokens
+    // ✅ Delete ActivationTokens linked by userId
     await prisma.activationToken.deleteMany({
-      where: { employeeId: params.id },
+      where: { userId: params.id },
     });
 
     // Then delete the employee

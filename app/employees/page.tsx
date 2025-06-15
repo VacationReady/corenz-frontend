@@ -18,6 +18,7 @@ export default function EmployeesPage() {
     phone: "",
     department: "",
     jobRole: "",
+    managerId: "",
   });
   const [error, setError] = useState("");
 
@@ -28,7 +29,7 @@ export default function EmployeesPage() {
       .catch(() => setError("Failed to load employees"));
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -54,6 +55,7 @@ export default function EmployeesPage() {
         phone: "",
         department: "",
         jobRole: "",
+        managerId: "",
       });
       setError("");
       setModalOpen(false);
@@ -134,6 +136,21 @@ export default function EmployeesPage() {
                   required={["firstName", "lastName", "email"].includes(field)}
                 />
               ))}
+
+              <select
+                name="managerId"
+                value={formData.managerId}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              >
+                <option value="">Select Line Manager (Optional)</option>
+                {employees.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName} ({user.role})
+                  </option>
+                ))}
+              </select>
+
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
                   Cancel
@@ -147,4 +164,3 @@ export default function EmployeesPage() {
     </PageShell>
   );
 }
-

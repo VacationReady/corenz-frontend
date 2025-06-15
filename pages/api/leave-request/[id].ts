@@ -10,8 +10,8 @@ export default async function handler(
   const session = await getServerSession(req, res, {
     ...authOptions,
     session: {
-  strategy: "jwt", // ✅ Directly provide the known strategy
-},
+      strategy: "jwt", // ✅ Ensure JWT strategy for auth
+    },
   });
 
   if (!session) {
@@ -29,7 +29,12 @@ export default async function handler(
         data: {
           status,
           reviewedBy: session.user.id,
-          reviewedAt: new Date(),
+          reviewedAt: new Date(), // ✅ You now have this in your schema
+        },
+        include: {
+          reviewer: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
         },
       });
 

@@ -28,7 +28,7 @@ export default async function handler(
         where: { id: leaveId },
         data: {
           status,
-          reviewedById: session.user.id,
+          reviewedBy: session.user.id,
           reviewedAt: new Date(),
         },
       });

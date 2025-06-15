@@ -18,9 +18,9 @@ export default async function handler(req, res) {
   try {
     // 1. Find activation token and employee
     const activationToken = await prisma.activationToken.findUnique({
-      where: { token },
-      include: { employee: true },
-    });
+  where: { token },
+  include: { user: true }, // ✅ correct
+});
 
     if (!activationToken || !activationToken.employee) {
       return res.status(400).json({ error: 'Invalid or expired token.' });

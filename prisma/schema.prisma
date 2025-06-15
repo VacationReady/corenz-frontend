@@ -44,7 +44,7 @@ model User {
   leaveRequests     LeaveRequest[]
   reviewedRequests  LeaveRequest[] @relation("ReviewedByUser")
 
-  /// ✅ Self-referencing relation for manager/team logic
+  // Self-referencing relation for manager/team structure
   managerId String?
   manager   User?     @relation("Manager", fields: [managerId], references: [id])
   reports   User[]    @relation("Manager")
@@ -79,6 +79,7 @@ model LeaveRequest {
   status     LeaveStatus @default(PENDING)
   reviewedBy String?
   reviewer   User?       @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
+  reviewedAt DateTime?   // ✅ NEW FIELD
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }

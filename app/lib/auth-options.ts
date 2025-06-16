@@ -1,75 +1,44 @@
-// app/lib/auth-options.ts
-
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import type { NextAuthOptions } from "next-auth";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcrypt";
 
-const prisma = new PrismaClient();
-
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: "jwt",
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (
-          !credentials?.email ||
-          typeof credentials.password !== "string"
-        ) {
-          console.log("Missing or invalid credentials");
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
-        if (!user) {
-          console.log("User not found");
-          return null;
-        }
+        if (!user || !user.password) return null;
 
-        if (!user.isActivated) {
-          console.log("User not activated");
-          return null;
-        }
+        const isValid = await bcrypt.compare(credentials.password, user.password);
 
-        if (typeof user.password !== "string") {
-          console.log("Invalid stored password");
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isValid) {
-          console.log("Invalid password");
-          return null;
-        }
+        if (!isValid) return null;
 
         return {
           id: user.id,
-          name: `${user.firstName} ${user.lastName}`,
           email: user.email,
+          name: user.name,
           role: user.role,
         };
       },
     }),
   ],
   callbacks: {
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = (token as any).id as string;
-        session.user.role = (token as any).role as "ADMIN" | "MANAGER" | "EMPLOYEE";
-      }
-      return session;
-    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -77,13 +46,15 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+      }
+      return session;
+    },
   },
   pages: {
     signIn: "/login",
   },
-  session: {
-    strategy: "jwt",
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: true,
 };

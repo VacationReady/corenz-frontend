@@ -7,18 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  MANAGER
-  EMPLOYEE
-}
-
 enum LeaveType {
   ANNUAL
   SICK
   UNPAID
-  PARENTAL
-  OTHER
+  BEREAVEMENT
 }
 
 enum LeaveStatus {
@@ -28,67 +21,63 @@ enum LeaveStatus {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  password    String?
-  firstName   String
-  lastName    String
-  phone       String?
-  department  String?
-  jobRole     String?
-  isActivated Boolean  @default(false)
-  role        Role     @default(EMPLOYEE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  leaveRequests     LeaveRequest[]
-  reviewedRequests  LeaveRequest[] @relation("ReviewedByUser")
-
-  // Self-referencing relation for manager/team structure
-  managerId String?
-  manager   User?     @relation("Manager", fields: [managerId], references: [id])
-  reports   User[]    @relation("Manager")
+  id             String           @id @default(uuid())
+  name           String?          // <-- was required
+  email          String           @unique
+  emailVerified  DateTime?
+  password       String?
+  role           Role             @default(EMPLOYEE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  isActive       Boolean          @default(true)
+  employee       Employee?
+  activationToken ActivationToken?
+  leaveRequests  LeaveRequest[]   @relation("LeaveRequestsByUser")
+  reviewedLeaves LeaveRequest[]   @relation("LeaveRequestsReviewedByUser")
 }
 
 model Employee {
-  id          String   @id @default(uuid())
-  firstName   String
-  lastName    String
-  phone       String?
-  department  String?
-  jobRole     String?
-  email       String   @unique
-  password    String?
-  isActivated Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  role        Role     @default(EMPLOYEE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  activationTokens ActivationToken[]
-}
-
-model LeaveRequest {
-  id         String      @id @default(uuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  type       LeaveType
-  startDate  DateTime
-  endDate    DateTime
-  reason     String?
-  status     LeaveStatus @default(PENDING)
-  reviewedBy String?
-  reviewer   User?       @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
-  reviewedAt DateTime?   // ✅ NEW FIELD
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String         @id @default(uuid())
+  phone        String?
+  department   String?
+  jobTitle     String?
+  startDate    DateTime?
+  managerId    String?
+  userId       String?        @unique
+  user         User?          @relation(fields: [userId], references: [id])
+  manager      Employee?      @relation("ManagerToEmployees", fields: [managerId], references: [id])
+  subordinates Employee[]     @relation("ManagerToEmployees")
+  leaveRequests LeaveRequest[] @relation("EmployeeLeaveRequests")
 }
 
 model ActivationToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  userId     String
-  user       Employee @relation(fields: [userId], references: [id])
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model LeaveRequest {
+  id          String       @id @default(uuid())
+  employeeId  String?      // <-- was required
+  employee    Employee?    @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  type        LeaveType
+  status      LeaveStatus  @default(PENDING)
+  reason      String?      // <-- was required
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  userId      String
+  user        User         @relation("LeaveRequestsByUser", fields: [userId], references: [id])
+  reviewedBy  String?
+  reviewer    User?        @relation("LeaveRequestsReviewedByUser", fields: [reviewedBy], references: [id])
+  reviewedAt  DateTime?
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
 }

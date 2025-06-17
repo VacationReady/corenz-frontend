@@ -20,12 +20,13 @@ export default async function handler(req, res) {
       });
 
       if (!employee) {
-        return res.status(404).json({ error: "Employee record not found" });
+        return res.status(404).json({ error: "Employee not found" });
       }
 
       const newLeaveRequest = await prisma.leaveRequest.create({
         data: {
-          employeeId: employee.id,
+          userId: session.user.id,           // ✅ required
+          employeeId: employee.id,           // ✅ required
           type,
           startDate: new Date(startDate),
           endDate: new Date(endDate),
@@ -37,10 +38,10 @@ export default async function handler(req, res) {
       return res.status(200).json(newLeaveRequest);
     } catch (error) {
       console.error("Error creating leave request:", error);
-      return res.status(500).json({ error: "Something went wrong" });
+      return res.status(500).json({ error: "Server error" });
     }
   }
 
   res.setHeader("Allow", ["POST"]);
-  return res.status(405).end(`Method ${req.method} Not Allowed`);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
 }

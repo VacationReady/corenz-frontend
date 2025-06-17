@@ -27,54 +27,57 @@ enum LeaveStatus {
 }
 
 model User {
-  id              String         @id @default(uuid())
-  email           String         @unique
+  id              String           @id @default(uuid())
+  email           String           @unique
   emailVerified   DateTime?
   password        String
-  role            Role           @default(EMPLOYEE)
+  role            Role             @default(EMPLOYEE)
   name            String?
   phone           String?
   firstName       String?
   lastName        String?
   department      String?
   jobRole         String?
-  isActivated     Boolean        @default(false)
-  manager         User?          @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates    User[]         @relation("ManagerSubordinates")
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  isActivated     Boolean          @default(false)
+  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates    User[]           @relation("ManagerSubordinates")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   managerId       String?
-  leaveRequests   LeaveRequest[] @relation("LeaveRequestsByUser")
-  reviewedLeaves  LeaveRequest[] @relation("LeaveRequestsReviewedByUser")
+  leaveRequests   LeaveRequest[]   @relation("LeaveRequestsByUser")
+  reviewedLeaves  LeaveRequest[]   @relation("LeaveRequestsReviewedByUser")
   employee        Employee?
+  activationToken ActivationToken? // ✅ added reverse relation for ActivationToken
 }
 
 model Employee {
-  id         String   @id @default(uuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  isActive   Boolean  @default(true) // ✅ ADDED THIS LINE
+  id            String         @id @default(uuid())
+  userId        String         @unique
+  user          User           @relation(fields: [userId], references: [id])
+  isActive      Boolean        @default(true)
+  leaveRequests LeaveRequest[] // ✅ added reverse relation for LeaveRequest
 }
 
 model LeaveRequest {
-  id          String      @id @default(uuid())
-  userId      String
-  user        User        @relation("LeaveRequestsByUser", fields: [userId], references: [id])
-  reviewedBy  String?
-  reviewer    User?       @relation("LeaveRequestsReviewedByUser", fields: [reviewedBy], references: [id])
-  employeeId  String
-  employee    Employee    @relation(fields: [employeeId], references: [id])
-  startDate   DateTime
-  endDate     DateTime
-  type        LeaveType
-  status      LeaveStatus @default(PENDING)
-  reason      String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id         String      @id @default(uuid())
+  userId     String
+  user       User        @relation("LeaveRequestsByUser", fields: [userId], references: [id])
+  reviewedBy String?
+  reviewer   User?       @relation("LeaveRequestsReviewedByUser", fields: [reviewedBy], references: [id])
+  employeeId String
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  type       LeaveType
+  status     LeaveStatus @default(PENDING)
+  reason     String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 }
 
 model ActivationToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String   @unique
-  user
+  id     String @id @default(uuid())
+  token  String @unique
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+}

@@ -1,24 +1,32 @@
 // pages/api/leave-request.ts
 
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth/next";
-import { sessionOptions } from "@/lib/session-options"; // ✅ NEW: minimal session-only config
-import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import prisma from "@/lib/prismadb";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, sessionOptions); // ✅ Use minimal session config
-
-  if (!session?.user?.id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
+export default async function handler(req, res) {
   if (req.method === "POST") {
+    const session = await getServerSession(req, res, authOptions);
+
+    if (!session || !session.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { type, startDate, endDate, reason } = req.body;
+
     try {
-      const { type, startDate, endDate, reason } = req.body;
+      // Find the employee linked to the logged-in user
+      const employee = await prisma.employee.findUnique({
+        where: { userId: session.user.id },
+      });
+
+      if (!employee) {
+        return res.status(404).json({ error: "Employee record not found" });
+      }
 
       const newLeaveRequest = await prisma.leaveRequest.create({
         data: {
-          userId: session.user.id,
+          employeeId: employee.id,
           type,
           startDate: new Date(startDate),
           endDate: new Date(endDate),
@@ -27,26 +35,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      return res.status(201).json(newLeaveRequest);
+      return res.status(200).json(newLeaveRequest);
     } catch (error) {
       console.error("Error creating leave request:", error);
-      return res.status(500).json({ error: "Failed to create leave request" });
+      return res.status(500).json({ error: "Something went wrong" });
     }
   }
 
-  if (req.method === "GET") {
-    try {
-      const requests = await prisma.leaveRequest.findMany({
-        where: { userId: session.user.id },
-        orderBy: { createdAt: "desc" },
-      });
-      return res.status(200).json(requests);
-    } catch (error) {
-      console.error("Error fetching leave requests:", error);
-      return res.status(500).json({ error: "Failed to fetch leave requests" });
-    }
-  }
-
-  res.setHeader("Allow", ["GET", "POST"]);
-  res.status(405).end(`Method ${req.method} Not Allowed`);
+  res.setHeader("Allow", ["POST"]);
+  return res.status(405).end(`Method ${req.method} Not Allowed`);
 }

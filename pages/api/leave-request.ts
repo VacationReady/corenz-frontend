@@ -23,17 +23,19 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: "Employee not found" });
       }
 
-      const newLeaveRequest = await prisma.leaveRequest.create({
-        data: {
-          userId: session.user.id,           // ✅ required
-          employeeId: employee.id,           // ✅ required
-          type,
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
-          reason,
-          status: "PENDING",
-        },
-      });
+      await prisma.leaveRequest.update({
+  where: { id },
+  data: {
+    status,
+    reviewedBy: session.user.id,
+    // reviewedAt: new Date(), // ❌ Remove this
+  },
+  include: {
+    reviewer: {
+      select: { name: true },
+    },
+  },
+});
 
       return res.status(200).json(newLeaveRequest);
     } catch (error) {

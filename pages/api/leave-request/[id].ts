@@ -24,19 +24,15 @@ export default async function handler(
     try {
       const { status } = req.body;
 
-      const updatedLeave = await prisma.leaveRequest.update({
-        where: { id: leaveId },
-        data: {
-          status,
-          reviewedBy: session.user.id,
-          reviewedAt: new Date(), // ✅ You now have this in your schema
-        },
-        include: {
-          reviewer: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
-        },
-      });
+     const updatedRequest = await prisma.leaveRequest.update({
+  where: { id },
+  data: {
+    status,
+    reviewedBy: session.user.id,
+    reviewedAt: new Date(), // ❌ This line is the problem
+  },
+  ...
+});
 
       return res.status(200).json(updatedLeave);
     } catch (error) {

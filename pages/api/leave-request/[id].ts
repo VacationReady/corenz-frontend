@@ -31,7 +31,6 @@ export default async function handler(
     reviewedBy: session.user.id,
     reviewedAt: new Date(), // ❌ This line is the problem
   },
-  ...
 });
 
       return res.status(200).json(updatedLeave);

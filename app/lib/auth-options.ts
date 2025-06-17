@@ -1,11 +1,11 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
+// app/lib/auth-options.ts
+
 import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prismadb";
 import bcrypt from "bcrypt";
 
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -20,9 +20,7 @@ export const authOptions: AuthOptions = {
         }
 
         const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email.toLowerCase().trim(),
-          },
+          where: { email: credentials.email.toLowerCase().trim() },
         });
 
         if (!user) {
@@ -40,8 +38,12 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        console.log("✅ Logged in:", credentials.email);
-        return user;
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
       },
     }),
   ],

@@ -15,7 +15,6 @@ export default async function handler(req, res) {
     const { type, startDate, endDate, reason } = req.body;
 
     try {
-      // Find the employee linked to the logged-in user
       const employee = await prisma.employee.findUnique({
         where: { userId: session.user.id },
       });

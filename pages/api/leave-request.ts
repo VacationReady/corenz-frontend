@@ -23,19 +23,17 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: "Employee not found" });
       }
 
-      await prisma.leaveRequest.update({
-  where: { id },
-  data: {
-    status,
-    reviewedBy: session.user.id,
-    // reviewedAt: new Date(), // ❌ Remove this
-  },
-  include: {
-    reviewer: {
-      select: { name: true },
-    },
-  },
-});
+      const newLeaveRequest = await prisma.leaveRequest.create({
+        data: {
+          userId: session.user.id,           // ✅ required
+          employeeId: employee.id,           // ✅ required
+          type,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          reason,
+          status: "PENDING",
+        },
+      });
 
       return res.status(200).json(newLeaveRequest);
     } catch (error) {
@@ -44,6 +42,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // ✅ Only allow POST method — no rogue update() code
   res.setHeader("Allow", ["POST"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }

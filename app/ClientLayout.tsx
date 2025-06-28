@@ -11,14 +11,18 @@ import AdminSidebar from "./components/sidebars/AdminSidebar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
-  const { data: session, status } = useSession();
+
+  // ✅ Safe destructure to prevent crash
+  const sessionHook = useSession();
+  const session = sessionHook?.data;
+  const status = sessionHook?.status ?? "unauthenticated";
 
   const isProfilePage =
     pathname.startsWith("/employees/") && pathname.split("/").length > 2;
 
   if (status === "loading") return null;
 
-  const role = session?.user?.role;
+  const role = session?.user?.role ?? "EMPLOYEE"; // fallback for robustness
 
   // Dynamically assign sidebar based on role
   let SidebarComponent: React.ReactNode = null;

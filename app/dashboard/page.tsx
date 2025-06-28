@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import type { NextAuthOptions } from "next-auth";
-import authOptions from "@/lib/auth-options";
+import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {

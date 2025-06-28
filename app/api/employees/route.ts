@@ -6,6 +6,43 @@ import bcrypt from "bcryptjs";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+export async function GET() {
+  try {
+    const employees = await prisma.user.findMany({
+      where: {
+        role: {
+          in: ["EMPLOYEE", "MANAGER", "ADMIN"],
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        role: true,
+        department: {
+          select: { name: true },
+        },
+        jobRole: {
+          select: { name: true },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json(employees);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch employees." },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const {

@@ -112,6 +112,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Search Bar */}
       <div className="w-full px-6 mt-4 mb-2">
         <div className="relative max-w-md">
           <input
@@ -124,30 +125,16 @@ export default function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* Metric Highlight Cards */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <DashboardWidget title="Active Employees" icon={Users} className="bg-indigo-50 dark:bg-indigo-900 h-full">
-            <p className="text-4xl font-bold text-indigo-700 dark:text-indigo-300">
-              <CountUp end={46} duration={1.5} />
-            </p>
-          </DashboardWidget>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="bg-orange-50 dark:bg-orange-900 h-full">
-            <p className="text-4xl font-bold text-orange-700 dark:text-orange-300">
-              <CountUp end={7} duration={1.5} />
-            </p>
-          </DashboardWidget>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <DashboardWidget title="New Starters This Month" icon={Users} className="bg-green-50 dark:bg-green-900 h-full">
-            <p className="text-4xl font-bold text-green-700 dark:text-green-300">
-              <CountUp end={3} duration={1.5} />
-            </p>
-          </DashboardWidget>
-        </motion.div>
+        {/* Book Leave */}
+        <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Quickly book leave for yourself or a team member.</p>
+          <ul className="text-sm mb-4">
+            <li>Total Entitlement: <span className="font-semibold">25 days</span></li>
+            <li>Taken: <span className="font-semibold">10 days</span></li>
+            <li>Remaining: <span className="font-semibold">15 days</span></li>
+          </ul>
+          <Button className="w-full">Book Leave</Button>
+        </DashboardWidget>
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
@@ -169,33 +156,32 @@ export default function AdminDashboardPage() {
           </div>
         </DashboardWidget>
 
+        {/* People Metrics */}
+        <DashboardWidget title="People Metrics" icon={Users} className="h-full">
+          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
+            <li>Active Employees: <span className="font-semibold">46</span></li>
+            <li>Managers: <span className="font-semibold">5</span></li>
+            <li>New Starters This Month: <span className="font-semibold">3</span></li>
+          </ul>
+        </DashboardWidget>
+
+        {/* Pending Approvals */}
+        <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="h-full">
+          <p className="text-4xl font-bold text-indigo-700 dark:text-indigo-300">
+            7
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
+        </DashboardWidget>
+
         {/* Headcount & Turnover */}
         <DashboardWidget
           title="Headcount & Turnover"
           icon={Users}
           className="h-full"
           action={
-            <div>
-              <button onClick={() => setFilterDropdown(!filterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
-                <Filter className="w-4 h-4" /> Filters
-              </button>
-              {filterDropdown && (
-                <div className="absolute right-6 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
-                  {["Headcount", "Turnover", "New Starters"].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setFilter(option as "Headcount" | "Turnover" | "New Starters");
-                        setFilterDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${filter === option ? "bg-gray-100 dark:bg-neutral-700" : ""}`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button onClick={() => setFilterDropdown(!filterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+              <Filter className="w-4 h-4" /> Filters
+            </button>
           }
         >
           <ResponsiveContainer width="100%" height={200}>
@@ -219,27 +205,9 @@ export default function AdminDashboardPage() {
           icon={CalendarCheck2}
           className="h-full"
           action={
-            <div>
-              <button onClick={() => setOffFilterDropdown(!offFilterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
-                <Filter className="w-4 h-4" /> {offFilter}
-              </button>
-              {offFilterDropdown && (
-                <div className="absolute right-6 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
-                  {["Today", "This Week", "This Month"].map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setOffFilter(option as "Today" | "This Week" | "This Month");
-                        setOffFilterDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${offFilter === option ? "bg-gray-100 dark:bg-neutral-700" : ""}`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button onClick={() => setOffFilterDropdown(!offFilterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+              <Filter className="w-4 h-4" /> {offFilter}
+            </button>
           }
         >
           {peopleOffData[offFilter].map((person, idx) => (

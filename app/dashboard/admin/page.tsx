@@ -12,7 +12,7 @@ import 'react-calendar/dist/Calendar.css';
 export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [calendarDate, setCalendarDate] = useState<Date | [Date, Date] | null>(new Date());
+  const [calendarDate, setCalendarDate] = useState<Date | [Date, Date]>(new Date());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +33,19 @@ export default function AdminDashboardPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleCalendarChange = (value: Date | Date[]) => {
+    if (Array.isArray(value)) {
+      const [start, end] = value;
+      if (start && end) {
+        setCalendarDate([start, end]);
+      } else {
+        setCalendarDate(new Date());
+      }
+    } else if (value instanceof Date) {
+      setCalendarDate(value);
+    }
+  };
 
   const leaveData = [
     { name: "Total", days: 25 },
@@ -63,7 +76,7 @@ export default function AdminDashboardPage() {
           Hi, {name} 👋
         </h1>
         <div className="flex items-center gap-4">
-          {/* Notification Bell with slight left shift */}
+          {/* Notification Bell */}
           <div className="relative cursor-pointer mr-1">
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
@@ -180,7 +193,7 @@ export default function AdminDashboardPage() {
 
           {/* Calendar Block */}
           <DashboardWidget title="Leave Calendar" icon={CalendarCheck2} className="h-full">
-            <Calendar value={calendarDate} onChange={setCalendarDate} />
+            <Calendar value={calendarDate} onChange={handleCalendarChange} />
           </DashboardWidget>
         </div>
       </main>

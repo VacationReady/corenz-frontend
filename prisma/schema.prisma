@@ -7,17 +7,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  MANAGER
-  EMPLOYEE
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  emailVerified   DateTime?
+  password        String
+  role            Role
+  name            String?
+  phone           String?
+  firstName       String?
+  lastName        String?
+  isActivated     Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  managerId       String?
+  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates    User[]           @relation("ManagerSubordinates")
+  jobRoleId       String?
+  jobRole         JobRole?         @relation(fields: [jobRoleId], references: [id])
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id])
+  employee        Employee?
+  activationToken ActivationToken?
+
+  // Named leave request relations
+  leaveRequestsToReview LeaveRequest[] @relation("ReviewedByUser")
+  leaveRequestsCreated  LeaveRequest[] @relation("RequestingUser")
 }
 
-enum LeaveType {
-  ANNUAL
-  SICK
-  BEREAVEMENT
-  UNPAID
+model ActivationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Employee {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id])
+  isActive         Boolean           @default(true)
+  leaveRequests    LeaveRequest[]
+  leaveEntitlement LeaveEntitlement?
+}
+
+model Department {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
+}
+
+model JobRole {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
+}
+
+model LeaveRequest {
+  id         String      @id @default(cuid())
+  employeeId String
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  type       LeaveType
+  status     LeaveStatus @default(PENDING)
+
+  reviewedBy String?
+  reviewer   User?   @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
+
+  userId String?
+  user   User?   @relation("RequestingUser", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 🚀 NEW: LeaveEntitlement model for NZ leave compliance
+model LeaveEntitlement {
+  id              String   @id @default(cuid())
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  employeeId      String   @unique
+  annualDays      Int      @default(20)
+  sickDays        Int      @default(10)
+  bereavementDays Int      @default(0)
+  startDate       DateTime
+  resetDate       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 enum LeaveStatus {
@@ -26,82 +103,14 @@ enum LeaveStatus {
   DECLINED
 }
 
-model User {
-  id              String           @id @default(uuid())
-  email           String           @unique
-  emailVerified   DateTime?
-  password        String
-  role            Role             @default(EMPLOYEE)
-  name            String?
-  phone           String?
-  firstName       String?
-  lastName        String?
-  isActivated     Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-
-  // Relations
-  employee        Employee?
-  activationToken ActivationToken?
-  leaveRequests   LeaveRequest[]   @relation("LeaveRequestsByUser")
-  reviewedLeaves  LeaveRequest[]   @relation("LeaveRequestsReviewedByUser")
-
-  // Manager / subordinate self-relations
-  managerId       String?
-  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates    User[]           @relation("ManagerSubordinates")
-
-  // Relations to JobRole and Department
-  jobRoleId       String?
-  jobRole         JobRole?         @relation(fields: [jobRoleId], references: [id])
-
-  departmentId    String?
-  department      Department?      @relation(fields: [departmentId], references: [id])
+enum LeaveType {
+  ANNUAL
+  SICK
+  BEREAVEMENT
 }
 
-model Employee {
-  id            String         @id @default(uuid())
-  userId        String         @unique
-  user          User           @relation(fields: [userId], references: [id])
-  isActive      Boolean        @default(true)
-
-  leaveRequests LeaveRequest[]
-}
-
-model LeaveRequest {
-  id         String      @id @default(uuid())
-  userId     String
-  user       User        @relation("LeaveRequestsByUser", fields: [userId], references: [id])
-  reviewedBy String?
-  reviewer   User?       @relation("LeaveRequestsReviewedByUser", fields: [reviewedBy], references: [id])
-  employeeId String
-  employee   Employee    @relation(fields: [employeeId], references: [id])
-  startDate  DateTime
-  endDate    DateTime
-  type       LeaveType
-  status     LeaveStatus @default(PENDING)
-  reason     String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-}
-
-model ActivationToken {
-  id     String @id @default(uuid())
-  token  String @unique
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
-}
-
-model JobRole {
-  id    String @id @default(uuid())
-  name  String @unique
-
-  users User[]
-}
-
-model Department {
-  id    String @id @default(uuid())
-  name  String @unique
-
-  users User[]
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
 }

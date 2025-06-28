@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// ✅ GET employee profile by User.id (not Employee.id)
+// ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -9,7 +9,7 @@ export async function GET(
   try {
     const employee = await prisma.employee.findUnique({
       where: {
-        userId: params.id, // ✅ using User.id for routing
+        id: params.id, // ✅ Use Employee.id for matching
       },
       include: {
         user: {
@@ -49,15 +49,14 @@ export async function GET(
   }
 }
 
-// ✅ DELETE employee by User.id
+// ✅ DELETE employee by Employee.id
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Find the employee record
     const employee = await prisma.employee.findUnique({
-      where: { userId: params.id },
+      where: { id: params.id }, // ✅ Using Employee.id for deletion
     });
 
     if (!employee) {
@@ -69,17 +68,17 @@ export async function DELETE(
 
     // Delete related activation token safely
     await prisma.activationToken.deleteMany({
-      where: { userId: params.id },
+      where: { userId: employee.userId },
     });
 
     // Delete the employee record
     await prisma.employee.delete({
-      where: { userId: params.id },
+      where: { id: params.id },
     });
 
     // Delete the user record
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id: employee.userId },
     });
 
     return NextResponse.json({ success: true });

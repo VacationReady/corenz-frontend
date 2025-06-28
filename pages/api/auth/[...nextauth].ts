@@ -1,13 +1,7 @@
 // pages/api/auth/[...nextauth].ts
-
-import { NextApiRequest, NextApiResponse } from "next";
 import NextAuth from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { authOptions } from "@/app/lib/auth-options";
 
-// Explicitly cast authOptions to AuthOptions type if needed
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  return await NextAuth(req, res, authOptions);
-}
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };

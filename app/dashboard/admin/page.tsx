@@ -19,17 +19,19 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Header */}
-      <header className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 bg-surface dark:bg-surface-dark border-b dark:border-neutral-700">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Dashboard</h1>
-        <div className="relative mt-3 sm:mt-0 w-full sm:w-64">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="w-full rounded-md border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition"
-          />
-          <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
-        </div>
-      </header>
+      <header className="w-full px-6 py-4 bg-surface dark:bg-surface-dark border-b dark:border-neutral-700">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-0">Admin Dashboard</h1>
+    <div className="relative w-full sm:w-64">
+      <input
+        type="text"
+        placeholder="Search..."
+        className="w-full rounded-md border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary transition"
+      />
+      <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
+    </div>
+  </div>
+</header>
 
       {/* Grid */}
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto">

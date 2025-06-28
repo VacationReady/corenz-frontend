@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Top Bar */}
-      <div className="w-full px-6 py-4 flex items-center justify-between border-b bg-white dark:bg-neutral-900 dark:border-neutral-700">
+      <div className="w-full px-6 py-4 flex items-center justify-between border-b bg-transparent dark:bg-transparent dark:border-neutral-700">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
           Hi, {name} 👋
         </h1>
@@ -43,8 +43,8 @@ export default function AdminDashboardPage() {
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
           </div>
-          {/* Avatar Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          {/* Avatar Dropdown with slight spacing */}
+          <div className="relative ml-2" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 focus:outline-none"
@@ -91,9 +91,13 @@ export default function AdminDashboardPage() {
       {/* Grid */}
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-          {/* Leave Booking CTA */}
+          {/* Book Leave + Holiday Entitlement */}
           <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
-            <p className="text-sm mb-4">Quickly book leave for yourself or a team member.</p>
+            <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300 mb-4">
+              <li>Total Entitlement: <span className="font-semibold text-gray-900 dark:text-gray-100">1200 days</span></li>
+              <li>Taken: <span className="font-semibold text-gray-900 dark:text-gray-100">730 days</span></li>
+              <li>Remaining: <span className="font-semibold text-gray-900 dark:text-gray-100">470 days</span></li>
+            </ul>
             <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
           </DashboardWidget>
 

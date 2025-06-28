@@ -6,16 +6,14 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
-import Calendar from "react-calendar";
-import 'react-calendar/dist/Calendar.css';
 
 export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [calendarDate, setCalendarDate] = useState<Date | [Date, Date] | null>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [filter, setFilter] = useState<"Headcount" | "Turnover" | "New Starters">("Headcount");
   const [filterDropdown, setFilterDropdown] = useState(false);
+  const [offFilter, setOffFilter] = useState<"Today" | "This Week" | "This Month">("Today");
+  const [offFilterDropdown, setOffFilterDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,23 +30,12 @@ export default function AdminDashboardPage() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
         setFilterDropdown(false);
+        setOffFilterDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleCalendarChange = (value: Date | Date[] | null) => {
-    if (value instanceof Date) {
-      setSelectedDate(value);
-      setCalendarDate(value);
-    } else if (Array.isArray(value)) {
-      const start = value[0] instanceof Date ? value[0] : new Date();
-      const end = value[1] instanceof Date ? value[1] : new Date();
-      setSelectedDate(start);
-      setCalendarDate([start, end]);
-    }
-  };
 
   const headcountData = [
     { month: "Jul", employees: 40, leavers: 1, starters: 2 },
@@ -75,12 +62,23 @@ export default function AdminDashboardPage() {
     starters: item.starters,
   }));
 
-  const whoIsOffMock = {
-    "2025-06-28": ["John Doe (Annual Leave)", "Jane Smith (Sick Leave)"],
-    "2025-06-29": ["Alice Brown (Annual Leave)"],
+  const peopleOffData = {
+    Today: [
+      { name: "John Doe", reason: "Annual Leave" },
+      { name: "Jane Smith", reason: "Sick Leave" },
+    ],
+    "This Week": [
+      { name: "John Doe", reason: "Annual Leave" },
+      { name: "Jane Smith", reason: "Sick Leave" },
+      { name: "Alice Brown", reason: "Maternity Leave" },
+    ],
+    "This Month": [
+      { name: "John Doe", reason: "Annual Leave" },
+      { name: "Jane Smith", reason: "Sick Leave" },
+      { name: "Alice Brown", reason: "Maternity Leave" },
+      { name: "Michael Green", reason: "Training" },
+    ],
   };
-
-  const selectedDateString = selectedDate ? selectedDate.toISOString().split("T")[0] : "";
 
   return (
     <div className="flex flex-col flex-1 w-full">
@@ -127,6 +125,7 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
+
           <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
             <p className="text-sm mb-4">Quickly book leave for yourself or a team member.</p>
             <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
@@ -168,9 +167,7 @@ export default function AdminDashboardPage() {
                       <button
                         key={option}
                         onClick={() => { setFilter(option as "Headcount" | "Turnover" | "New Starters"); setFilterDropdown(false); }}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${
-                          filter === option ? "bg-gray-100 dark:bg-neutral-700" : ""
-                        }`}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${filter === option ? "bg-gray-100 dark:bg-neutral-700" : ""}`}
                       >
                         {option}
                       </button>
@@ -181,11 +178,7 @@ export default function AdminDashboardPage() {
             }
           >
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={
-                filter === "Headcount" ? headcountData :
-                filter === "Turnover" ? turnoverData :
-                startersData
-              }>
+              <LineChart data={filter === "Headcount" ? headcountData : filter === "Turnover" ? turnoverData : startersData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -197,17 +190,42 @@ export default function AdminDashboardPage() {
             </ResponsiveContainer>
           </DashboardWidget>
 
-          <DashboardWidget title="Leave Calendar" icon={CalendarCheck2} className="h-full">
-            <Calendar value={calendarDate} onChange={handleCalendarChange} />
-            {selectedDateString && whoIsOffMock[selectedDateString] && (
-              <div className="mt-4">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">People off on {selectedDate?.toDateString()}:</p>
-                <ul className="text-sm text-gray-700 dark:text-gray-300 list-disc list-inside">
-                  {whoIsOffMock[selectedDateString].map((person, index) => (
-                    <li key={index}>{person}</li>
-                  ))}
-                </ul>
+          <DashboardWidget
+            title="Who's Off"
+            icon={CalendarCheck2}
+            className="h-full"
+            action={
+              <div className="relative">
+                <button onClick={() => setOffFilterDropdown(!offFilterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+                  <Filter className="w-4 h-4" /> {offFilter}
+                </button>
+                {offFilterDropdown && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
+                    {["Today", "This Week", "This Month"].map(option => (
+                      <button
+                        key={option}
+                        onClick={() => { setOffFilter(option as "Today" | "This Week" | "This Month"); setOffFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${offFilter === option ? "bg-gray-100 dark:bg-neutral-700" : ""}`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+            }
+          >
+            {peopleOffData[offFilter].length > 0 ? (
+              <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                {peopleOffData[offFilter].map((person, index) => (
+                  <li key={index} className="flex justify-between">
+                    <span>{person.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400">{person.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">No one is off {offFilter.toLowerCase()}.</p>
             )}
           </DashboardWidget>
         </div>

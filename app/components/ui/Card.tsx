@@ -1,4 +1,5 @@
 import React from "react";
+import clsx from "clsx";
 
 export function Card({
   title,
@@ -12,14 +13,21 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`bg-white rounded-2xl shadow p-6 h-full ${className || ""}`}>
+    <div
+      className={clsx(
+        "bg-white dark:bg-surface-dark rounded-2xl shadow-sm p-6 h-full transition-transform duration-200 hover:scale-[1.02]",
+        className
+      )}
+    >
       {title && (
-        <div className="flex items-center mb-4 text-indigo-700">
+        <div className="flex items-center mb-4 text-primary">
           {icon && <div className="w-6 h-6 mr-2">{icon}</div>}
           <h2 className="text-lg font-semibold">{title}</h2>
         </div>
       )}
-      <div className="text-sm text-gray-800 space-y-2">{children}</div>
+      <div className="text-sm text-gray-800 dark:text-gray-200 space-y-2">
+        {children}
+      </div>
     </div>
   );
 }

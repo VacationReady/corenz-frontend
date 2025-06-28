@@ -1,10 +1,12 @@
-// app/login/page.tsx
+// /app/login/page.tsx
 
 "use client";
 
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Input from "@/app/components/ui/Input";
+import Button from "@/app/components/ui/Button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,39 +40,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-surface dark:bg-surface-dark px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-dark p-8 shadow-sm transition-colors">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-dark">Sign in to CoreNZ</h1>
+          <h1 className="text-2xl font-bold text-primary">CoreNZ</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Sign in to your account</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Email</label>
+            <Input
               type="email"
-              className="mt-1 w-full rounded-md border border-gray-300 p-2"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
+            <Input
               type="password"
-              className="mt-1 w-full rounded-md border border-gray-300 p-2"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
               required
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            className="w-full rounded-md bg-primary text-white py-2 font-semibold hover:bg-primary-dark transition"
-          >
+          <Button type="submit" className="w-full">
             Sign In
-          </button>
+          </Button>
         </form>
       </div>
     </div>

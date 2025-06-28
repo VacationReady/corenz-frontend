@@ -59,7 +59,7 @@ export default function EmployeeProfilePage() {
 
             {/* ✅ Leave Calendar Section */}
             <div className="max-w-2xl mx-auto">
-              <LeaveCalendar employeeId={id} />
+              {id && <LeaveCalendar employeeId={id} />}
             </div>
           </>
         ) : null}

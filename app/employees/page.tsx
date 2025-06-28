@@ -108,7 +108,7 @@ export default function EmployeesPage() {
                   <td className="p-3">
                     {emp.user ? (
                       <Link
-                        href={`/employees/${emp.user.id}/overview`}
+                        href={`/employees/${emp.id}/overview`}
                         className="text-indigo-600 hover:underline"
                       >
                         {emp.user.firstName} {emp.user.lastName}

@@ -106,7 +106,7 @@ export default function EmployeesPage() {
               {employees.map((emp) => (
                 <tr key={emp.id} className="border-b hover:bg-neutral-50">
                   <td className="p-3">
-                    <Link href={`/employees/${emp.id}/overview`} className="text-indigo-600 hover:underline">
+                    <Link href={`/employees/${emp.user.id}/overview`}> className="text-indigo-600 hover:underline">
                       {emp.firstName} {emp.lastName}
                     </Link>
                   </td>

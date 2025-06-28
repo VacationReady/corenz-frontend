@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// ✅ GET /api/employees/[id] using User.id
+// ✅ GET /api/employees/[user.id] → fetch by userId instead of employeeId
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const employee = await prisma.employee.findUnique({
@@ -9,6 +9,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       include: {
         user: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             email: true,
@@ -34,7 +35,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       jobRole: employee.user.jobRole?.name || "-",
     });
   } catch (error) {
-    console.error("Error fetching employee by userId:", error);
+    console.error("Error fetching employee:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

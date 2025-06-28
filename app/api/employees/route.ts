@@ -6,14 +6,12 @@ import bcrypt from "bcryptjs";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ✅ GET: Return employees with their user data for listing
 export async function GET() {
   try {
-    const employees = await prisma.user.findMany({
-      where: {
-        role: {
-          in: ["EMPLOYEE", "MANAGER", "ADMIN"],
-        },
-      },
+    const employees = await prisma.employee.findMany({
+  include: {
+    user: {
       select: {
         id: true,
         firstName: true,
@@ -21,21 +19,17 @@ export async function GET() {
         email: true,
         phone: true,
         role: true,
-        department: {
-          select: { name: true },
-        },
-        jobRole: {
-          select: { name: true },
-        },
+        department: { select: { name: true } },
+        jobRole: { select: { name: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    },
+  },
+  orderBy: { id: "desc" }, // ✅ Fixed ordering
+});
 
     return NextResponse.json(employees);
   } catch (error) {
-    console.error("Error fetching employees:", error);
+    console.error("Error fetching employees:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return NextResponse.json(
       { success: false, error: "Failed to fetch employees." },
       { status: 500 }
@@ -43,6 +37,7 @@ export async function GET() {
   }
 }
 
+// ✅ POST: Add new employee with activation email
 export async function POST(req: Request) {
   try {
     const {
@@ -65,7 +60,6 @@ export async function POST(req: Request) {
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
-
     if (existingUser && existingUser.isActivated) {
       return NextResponse.json(
         { success: false, error: "A user with this email already exists and is activated." },
@@ -81,8 +75,7 @@ export async function POST(req: Request) {
     }
 
     const activationToken = randomBytes(32).toString("hex");
-
-    const hashedPassword = ""; // Left blank for activation flow
+    const hashedPassword = ""; // Leave blank for activation
 
     const user = await prisma.user.create({
       data: {
@@ -115,7 +108,7 @@ export async function POST(req: Request) {
     const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}`;
 
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "onboarding@corenz.io",
       to: email,
       subject: "Activate Your CoreNZ Account",
       html: `
@@ -129,7 +122,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Error creating employee:", error);
     return NextResponse.json(
-      { success: false, error: "Internal server error." },
+      { success: false, error: "Internal server error while creating employee." },
       { status: 500 }
     );
   }

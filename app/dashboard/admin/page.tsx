@@ -5,10 +5,14 @@ import { Search, Bell, ChevronDown, CalendarCheck2, ClipboardList, Users, Megaph
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+import Calendar from "react-calendar";
+import 'react-calendar/dist/Calendar.css';
 
 export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +34,27 @@ export default function AdminDashboardPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const leaveData = [
+    { name: "Total", days: 25 },
+    { name: "Taken", days: 14 },
+    { name: "Remaining", days: 11 },
+  ];
+
+  const headcountData = [
+    { month: "Jul", employees: 40, leavers: 1 },
+    { month: "Aug", employees: 41, leavers: 0 },
+    { month: "Sep", employees: 42, leavers: 1 },
+    { month: "Oct", employees: 42, leavers: 0 },
+    { month: "Nov", employees: 43, leavers: 0 },
+    { month: "Dec", employees: 43, leavers: 1 },
+    { month: "Jan", employees: 44, leavers: 0 },
+    { month: "Feb", employees: 44, leavers: 1 },
+    { month: "Mar", employees: 45, leavers: 0 },
+    { month: "Apr", employees: 45, leavers: 0 },
+    { month: "May", employees: 46, leavers: 0 },
+    { month: "Jun", employees: 46, leavers: 0 },
+  ];
+
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Top Bar */}
@@ -43,7 +68,7 @@ export default function AdminDashboardPage() {
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
           </div>
-          {/* Avatar Dropdown with slight spacing */}
+          {/* Avatar Dropdown */}
           <div className="relative ml-2" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -94,9 +119,9 @@ export default function AdminDashboardPage() {
           {/* Book Leave + Holiday Entitlement */}
           <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
             <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300 mb-4">
-              <li>Total Entitlement: <span className="font-semibold text-gray-900 dark:text-gray-100">1200 days</span></li>
-              <li>Taken: <span className="font-semibold text-gray-900 dark:text-gray-100">730 days</span></li>
-              <li>Remaining: <span className="font-semibold text-gray-900 dark:text-gray-100">470 days</span></li>
+              <li>Total Entitlement: <span className="font-semibold text-gray-900 dark:text-gray-100">25 days</span></li>
+              <li>Taken: <span className="font-semibold text-gray-900 dark:text-gray-100">14 days</span></li>
+              <li>Remaining: <span className="font-semibold text-gray-900 dark:text-gray-100">11 days</span></li>
             </ul>
             <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
           </DashboardWidget>
@@ -115,7 +140,7 @@ export default function AdminDashboardPage() {
           {/* People Metrics */}
           <DashboardWidget title="People Metrics" icon={Users} className="h-full">
             <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-              <li>Active Employees: <span className="font-semibold text-gray-900 dark:text-gray-100">42</span></li>
+              <li>Active Employees: <span className="font-semibold text-gray-900 dark:text-gray-100">46</span></li>
               <li>Managers: <span className="font-semibold text-gray-900 dark:text-gray-100">5</span></li>
               <li>New Starters This Month: <span className="font-semibold text-gray-900 dark:text-gray-100">3</span></li>
             </ul>
@@ -127,9 +152,35 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
           </DashboardWidget>
 
-          {/* Placeholder for charts/calendar */}
-          <DashboardWidget title="Your HR Overview" icon={Users} className="h-full">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Charts and calendar will appear here in Phase 2 for full HR insights at a glance.</p>
+          {/* Leave Usage Chart */}
+          <DashboardWidget title="Leave Usage" icon={CalendarCheck2} className="h-full">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={leaveData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="days" fill="#6366f1" />
+              </BarChart>
+            </ResponsiveContainer>
+          </DashboardWidget>
+
+          {/* Headcount & Turnover Chart */}
+          <DashboardWidget title="Headcount & Turnover" icon={Users} className="h-full">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={headcountData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="employees" stroke="#6366f1" name="Employees" />
+                <Line type="monotone" dataKey="leavers" stroke="#f97316" name="Leavers" />
+              </LineChart>
+            </ResponsiveContainer>
+          </DashboardWidget>
+
+          {/* Calendar Block */}
+          <DashboardWidget title="Leave Calendar" icon={CalendarCheck2} className="h-full">
+            <Calendar value={calendarDate} onChange={setCalendarDate} />
           </DashboardWidget>
         </div>
       </main>

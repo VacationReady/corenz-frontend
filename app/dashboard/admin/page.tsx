@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, ChevronDown, CalendarCheck2, ClipboardList, Users, Megaphone } from "lucide-react";
+import { Search, Bell, ChevronDown, CalendarCheck2, ClipboardList, Users, Megaphone, Filter } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
 
@@ -13,6 +13,9 @@ export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | [Date, Date] | null>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [filter, setFilter] = useState<"Headcount" | "Turnover" | "New Starters">("Headcount");
+  const [filterDropdown, setFilterDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,45 +31,54 @@ export default function AdminDashboardPage() {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+        setFilterDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleCalendarChange = (value: Date | [Date, Date] | null) => {
-    if (Array.isArray(value)) {
-      const [start, end] = value;
-      if (start && end) {
-        setCalendarDate([start, end]);
-      } else {
-        setCalendarDate(new Date());
-      }
-    } else if (value instanceof Date) {
+  const handleCalendarChange = (value: Date | Date[] | null) => {
+    if (value instanceof Date) {
+      setSelectedDate(value);
+      setCalendarDate(value);
+    } else if (Array.isArray(value) && value[0] instanceof Date) {
+      setSelectedDate(value[0]);
       setCalendarDate(value);
     }
   };
 
-  const leaveData = [
-    { name: "Total", days: 25 },
-    { name: "Taken", days: 14 },
-    { name: "Remaining", days: 11 },
+  const headcountData = [
+    { month: "Jul", employees: 40, leavers: 1, starters: 2 },
+    { month: "Aug", employees: 41, leavers: 0, starters: 1 },
+    { month: "Sep", employees: 42, leavers: 1, starters: 2 },
+    { month: "Oct", employees: 42, leavers: 0, starters: 1 },
+    { month: "Nov", employees: 43, leavers: 0, starters: 2 },
+    { month: "Dec", employees: 43, leavers: 1, starters: 1 },
+    { month: "Jan", employees: 44, leavers: 0, starters: 3 },
+    { month: "Feb", employees: 44, leavers: 1, starters: 1 },
+    { month: "Mar", employees: 45, leavers: 0, starters: 2 },
+    { month: "Apr", employees: 45, leavers: 0, starters: 1 },
+    { month: "May", employees: 46, leavers: 0, starters: 2 },
+    { month: "Jun", employees: 46, leavers: 0, starters: 1 },
   ];
 
-  const headcountData = [
-    { month: "Jul", employees: 40, leavers: 1 },
-    { month: "Aug", employees: 41, leavers: 0 },
-    { month: "Sep", employees: 42, leavers: 1 },
-    { month: "Oct", employees: 42, leavers: 0 },
-    { month: "Nov", employees: 43, leavers: 0 },
-    { month: "Dec", employees: 43, leavers: 1 },
-    { month: "Jan", employees: 44, leavers: 0 },
-    { month: "Feb", employees: 44, leavers: 1 },
-    { month: "Mar", employees: 45, leavers: 0 },
-    { month: "Apr", employees: 45, leavers: 0 },
-    { month: "May", employees: 46, leavers: 0 },
-    { month: "Jun", employees: 46, leavers: 0 },
-  ];
+  const turnoverData = headcountData.map(item => ({
+    month: item.month,
+    turnover: ((item.leavers / item.employees) * 100).toFixed(1),
+  }));
+
+  const startersData = headcountData.map(item => ({
+    month: item.month,
+    starters: item.starters,
+  }));
+
+  const whoIsOffMock = {
+    "2025-06-28": ["John Doe (Annual Leave)", "Jane Smith (Sick Leave)"],
+    "2025-06-29": ["Alice Brown (Annual Leave)"],
+  };
+
+  const selectedDateString = selectedDate ? selectedDate.toISOString().split("T")[0] : "";
 
   return (
     <div className="flex flex-col flex-1 w-full">
@@ -83,10 +95,7 @@ export default function AdminDashboardPage() {
           </div>
           {/* Avatar Dropdown */}
           <div className="relative ml-2" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 focus:outline-none"
-            >
+            <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 focus:outline-none">
               <img
                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`}
                 alt="Avatar"
@@ -96,18 +105,8 @@ export default function AdminDashboardPage() {
             </button>
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-50">
-                <Link
-                  href="/profile"
-                  className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700"
-                >
-                  Manage Profile
-                </Link>
-                <Link
-                  href="#"
-                  className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700"
-                >
-                  Help
-                </Link>
+                <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700">Manage Profile</Link>
+                <Link href="#" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700">Help</Link>
               </div>
             )}
           </div>
@@ -129,13 +128,9 @@ export default function AdminDashboardPage() {
       {/* Grid */}
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-          {/* Book Leave + Holiday Entitlement */}
+          {/* Book Leave */}
           <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
-            <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300 mb-4">
-              <li>Total Entitlement: <span className="font-semibold text-gray-900 dark:text-gray-100">25 days</span></li>
-              <li>Taken: <span className="font-semibold text-gray-900 dark:text-gray-100">14 days</span></li>
-              <li>Remaining: <span className="font-semibold text-gray-900 dark:text-gray-100">11 days</span></li>
-            </ul>
+            <p className="text-sm mb-4">Quickly book leave for yourself or a team member.</p>
             <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
           </DashboardWidget>
 
@@ -143,9 +138,7 @@ export default function AdminDashboardPage() {
           <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
             <ul className="space-y-2 text-sm">
               {["Post News", "Start Survey", "Add Company Document", "Email Employee"].map((action) => (
-                <li key={action}>
-                  <Link href="#" className="text-primary hover:underline">{action}</Link>
-                </li>
+                <li key={action}><Link href="#" className="text-primary hover:underline">{action}</Link></li>
               ))}
             </ul>
           </DashboardWidget>
@@ -165,35 +158,64 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
           </DashboardWidget>
 
-          {/* Leave Usage Chart */}
-          <DashboardWidget title="Leave Usage" icon={CalendarCheck2} className="h-full">
+          {/* Headcount & Turnover with Filters */}
+          <DashboardWidget
+            title="Headcount & Turnover"
+            icon={Users}
+            className="h-full"
+            action={
+              <div className="relative">
+                <button onClick={() => setFilterDropdown(!filterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+                  <Filter className="w-4 h-4" /> Filters
+                </button>
+                {filterDropdown && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
+                    {["Headcount", "Turnover", "New Starters"].map(option => (
+                      <button
+                        key={option}
+                        onClick={() => { setFilter(option as "Headcount" | "Turnover" | "New Starters"); setFilterDropdown(false); }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${
+                          filter === option ? "bg-gray-100 dark:bg-neutral-700" : ""
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            }
+          >
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={leaveData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="days" fill="#6366f1" />
-              </BarChart>
-            </ResponsiveContainer>
-          </DashboardWidget>
-
-          {/* Headcount & Turnover Chart */}
-          <DashboardWidget title="Headcount & Turnover" icon={Users} className="h-full">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={headcountData}>
+              <LineChart data={
+                filter === "Headcount" ? headcountData :
+                filter === "Turnover" ? turnoverData :
+                startersData
+              }>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="employees" stroke="#6366f1" name="Employees" />
-                <Line type="monotone" dataKey="leavers" stroke="#f97316" name="Leavers" />
+                {filter === "Headcount" && <Line type="monotone" dataKey="employees" stroke="#6366f1" name="Employees" />}
+                {filter === "Turnover" && <Line type="monotone" dataKey="turnover" stroke="#f97316" name="Turnover %" />}
+                {filter === "New Starters" && <Line type="monotone" dataKey="starters" stroke="#22c55e" name="New Starters" />}
               </LineChart>
             </ResponsiveContainer>
           </DashboardWidget>
 
-          {/* Calendar Block */}
+          {/* Calendar with Who's Off */}
           <DashboardWidget title="Leave Calendar" icon={CalendarCheck2} className="h-full">
             <Calendar value={calendarDate} onChange={handleCalendarChange} />
+            {selectedDateString && whoIsOffMock[selectedDateString] && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">People off on {selectedDate?.toDateString()}:</p>
+                <ul className="text-sm text-gray-700 dark:text-gray-300 list-disc list-inside">
+                  {whoIsOffMock[selectedDateString].map((person, index) => (
+                    <li key={index}>{person}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </DashboardWidget>
         </div>
       </main>

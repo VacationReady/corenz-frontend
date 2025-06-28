@@ -1,7 +1,45 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// DELETE /api/employees/[id]
+// ✅ GET /api/employees/[id] - Fetch employee data
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const employee = await prisma.employee.findUnique({
+      where: { id: params.id },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            department: { select: { name: true } },
+            jobRole: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!employee) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: employee.id,
+      firstName: employee.user.firstName,
+      lastName: employee.user.lastName,
+      email: employee.user.email,
+      phone: employee.user.phone,
+      department: employee.user.department?.name || "-",
+      jobRole: employee.user.jobRole?.name || "-",
+    });
+  } catch (error) {
+    console.error("Error fetching employee:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// ✅ DELETE /api/employees/[id]
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const userId = params.id;

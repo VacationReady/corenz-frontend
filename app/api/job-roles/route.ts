@@ -21,6 +21,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Job role name is required." }, { status: 400 });
     }
 
+    const existing = await prisma.jobRole.findUnique({
+      where: { name: name.trim() },
+    });
+
+    if (existing) {
+      return NextResponse.json({ success: false, error: "A job role with this name already exists." }, { status: 400 });
+    }
+
     const jobRole = await prisma.jobRole.create({
       data: { name: name.trim() },
     });

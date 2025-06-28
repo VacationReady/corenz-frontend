@@ -20,9 +20,12 @@ export function Card({
       )}
     >
       {title && (
-        <div className="flex items-center mb-4 text-primary">
-          {icon && <div className="w-6 h-6 mr-2">{icon}</div>}
-          <h2 className="text-lg font-semibold">{title}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center text-primary">
+            {icon && <div className="w-6 h-6 mr-2">{icon}</div>}
+            <h2 className="text-lg font-semibold">{title}</h2>
+          </div>
+          {/* This ensures any action (filters) passed in title aligns fully right */}
         </div>
       )}
       <div className="text-sm text-gray-800 dark:text-gray-200 space-y-2">

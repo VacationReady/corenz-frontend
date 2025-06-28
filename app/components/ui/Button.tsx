@@ -3,7 +3,7 @@ import { cva } from "class-variance-authority";
 import clsx from "clsx";
 
 const button = cva(
-  "inline-flex items-center justify-center font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2",
+  "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2",
   {
     variants: {
       variant: {

@@ -38,8 +38,8 @@ export default function AdminDashboardPage() {
           Hi, {name} 👋
         </h1>
         <div className="flex items-center gap-4">
-          {/* Notification Bell */}
-          <div className="relative cursor-pointer">
+          {/* Notification Bell with slight left shift */}
+          <div className="relative cursor-pointer mr-1">
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
           </div>
@@ -78,7 +78,7 @@ export default function AdminDashboardPage() {
 
       {/* Header with Search */}
       <header className="w-full px-6 py-6 bg-surface dark:bg-surface-dark">
-        <div className="relative w-full max-w-md">
+        <div className="relative w-full max-w-md mt-3">
           <input
             type="text"
             placeholder="Search..."

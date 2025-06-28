@@ -1,11 +1,28 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, ChevronDown, CalendarCheck2, ClipboardList, Users, Megaphone, Filter } from "lucide-react";
+import {
+  Search,
+  Bell,
+  ChevronDown,
+  CalendarCheck2,
+  ClipboardList,
+  Users,
+  Megaphone,
+  Filter,
+} from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 
 export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
@@ -27,7 +44,10 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(false);
         setFilterDropdown(false);
         setOffFilterDropdown(false);
@@ -52,12 +72,12 @@ export default function AdminDashboardPage() {
     { month: "Jun", employees: 46, leavers: 0, starters: 1 },
   ];
 
-  const turnoverData = headcountData.map(item => ({
+  const turnoverData = headcountData.map((item) => ({
     month: item.month,
     turnover: ((item.leavers / item.employees) * 100).toFixed(1),
   }));
 
-  const startersData = headcountData.map(item => ({
+  const startersData = headcountData.map((item) => ({
     month: item.month,
     starters: item.starters,
   }));
@@ -90,12 +110,19 @@ export default function AdminDashboardPage() {
         <div className="flex items-center gap-4">
           <div className="relative cursor-pointer mr-1">
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
+              3
+            </span>
           </div>
           <div className="relative ml-2" ref={dropdownRef}>
-            <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 focus:outline-none">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 focus:outline-none"
+            >
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  name
+                )}&background=random`}
                 alt="Avatar"
                 className="w-8 h-8 rounded-full"
               />
@@ -103,8 +130,18 @@ export default function AdminDashboardPage() {
             </button>
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-50">
-                <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700">Manage Profile</Link>
-                <Link href="#" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700">Help</Link>
+                <Link
+                  href="/profile"
+                  className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700"
+                >
+                  Manage Profile
+                </Link>
+                <Link
+                  href="#"
+                  className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700"
+                >
+                  Help
+                </Link>
               </div>
             )}
           </div>
@@ -113,7 +150,7 @@ export default function AdminDashboardPage() {
 
       {/* Header with Search */}
       <header className="w-full px-6 py-6 bg-surface dark:bg-surface-dark">
-        <div className="relative w-full max-w-md mt-3">
+        <div className="relative w-full max-w-md mt-4">
           <input
             type="text"
             placeholder="Search..."
@@ -125,9 +162,13 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-
           <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
-            <p className="text-sm mb-4">Quickly book leave for yourself or a team member.</p>
+            <p className="text-sm mb-2">Quickly book leave for yourself or a team member.</p>
+            <ul className="text-sm mb-4 text-gray-700 dark:text-gray-300">
+              <li>Total Entitlement: <span className="font-semibold text-gray-900 dark:text-gray-100">25 days</span></li>
+              <li>Taken: <span className="font-semibold text-gray-900 dark:text-gray-100">10 days</span></li>
+              <li>Remaining: <span className="font-semibold text-gray-900 dark:text-gray-100">15 days</span></li>
+            </ul>
             <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
           </DashboardWidget>
 
@@ -157,17 +198,25 @@ export default function AdminDashboardPage() {
             icon={Users}
             className="h-full"
             action={
-              <div className="relative">
-                <button onClick={() => setFilterDropdown(!filterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+              <div className="ml-auto">
+                <button
+                  onClick={() => setFilterDropdown(!filterDropdown)}
+                  className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300"
+                >
                   <Filter className="w-4 h-4" /> Filters
                 </button>
                 {filterDropdown && (
-                  <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
-                    {["Headcount", "Turnover", "New Starters"].map(option => (
+                  <div className="absolute right-6 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
+                    {["Headcount", "Turnover", "New Starters"].map((option) => (
                       <button
                         key={option}
-                        onClick={() => { setFilter(option as "Headcount" | "Turnover" | "New Starters"); setFilterDropdown(false); }}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${filter === option ? "bg-gray-100 dark:bg-neutral-700" : ""}`}
+                        onClick={() => {
+                          setFilter(option as "Headcount" | "Turnover" | "New Starters");
+                          setFilterDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${
+                          filter === option ? "bg-gray-100 dark:bg-neutral-700" : ""
+                        }`}
                       >
                         {option}
                       </button>
@@ -178,14 +227,28 @@ export default function AdminDashboardPage() {
             }
           >
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={filter === "Headcount" ? headcountData : filter === "Turnover" ? turnoverData : startersData}>
+              <LineChart
+                data={
+                  filter === "Headcount"
+                    ? headcountData
+                    : filter === "Turnover"
+                    ? turnoverData
+                    : startersData
+                }
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
-                {filter === "Headcount" && <Line type="monotone" dataKey="employees" stroke="#6366f1" name="Employees" />}
-                {filter === "Turnover" && <Line type="monotone" dataKey="turnover" stroke="#f97316" name="Turnover %" />}
-                {filter === "New Starters" && <Line type="monotone" dataKey="starters" stroke="#22c55e" name="New Starters" />}
+                {filter === "Headcount" && (
+                  <Line type="monotone" dataKey="employees" stroke="#6366f1" name="Employees" />
+                )}
+                {filter === "Turnover" && (
+                  <Line type="monotone" dataKey="turnover" stroke="#f97316" name="Turnover %" />
+                )}
+                {filter === "New Starters" && (
+                  <Line type="monotone" dataKey="starters" stroke="#22c55e" name="New Starters" />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </DashboardWidget>
@@ -195,17 +258,25 @@ export default function AdminDashboardPage() {
             icon={CalendarCheck2}
             className="h-full"
             action={
-              <div className="relative">
-                <button onClick={() => setOffFilterDropdown(!offFilterDropdown)} className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+              <div className="ml-auto">
+                <button
+                  onClick={() => setOffFilterDropdown(!offFilterDropdown)}
+                  className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300"
+                >
                   <Filter className="w-4 h-4" /> {offFilter}
                 </button>
                 {offFilterDropdown && (
-                  <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
-                    {["Today", "This Week", "This Month"].map(option => (
+                  <div className="absolute right-6 mt-2 w-36 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded shadow z-50">
+                    {["Today", "This Week", "This Month"].map((option) => (
                       <button
                         key={option}
-                        onClick={() => { setOffFilter(option as "Today" | "This Week" | "This Month"); setOffFilterDropdown(false); }}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${offFilter === option ? "bg-gray-100 dark:bg-neutral-700" : ""}`}
+                        onClick={() => {
+                          setOffFilter(option as "Today" | "This Week" | "This Month");
+                          setOffFilterDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-neutral-700 ${
+                          offFilter === option ? "bg-gray-100 dark:bg-neutral-700" : ""
+                        }`}
                       >
                         {option}
                       </button>
@@ -225,7 +296,9 @@ export default function AdminDashboardPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No one is off {offFilter.toLowerCase()}.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No one is off {offFilter.toLowerCase()}.
+              </p>
             )}
           </DashboardWidget>
         </div>

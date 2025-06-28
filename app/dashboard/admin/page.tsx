@@ -42,9 +42,11 @@ export default function AdminDashboardPage() {
     if (value instanceof Date) {
       setSelectedDate(value);
       setCalendarDate(value);
-    } else if (Array.isArray(value) && value[0] instanceof Date) {
-      setSelectedDate(value[0]);
-      setCalendarDate(value);
+    } else if (Array.isArray(value)) {
+      const start = value[0] instanceof Date ? value[0] : new Date();
+      const end = value[1] instanceof Date ? value[1] : new Date();
+      setSelectedDate(start);
+      setCalendarDate([start, end]);
     }
   };
 
@@ -88,12 +90,10 @@ export default function AdminDashboardPage() {
           Hi, {name} 👋
         </h1>
         <div className="flex items-center gap-4">
-          {/* Notification Bell */}
           <div className="relative cursor-pointer mr-1">
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
           </div>
-          {/* Avatar Dropdown */}
           <div className="relative ml-2" ref={dropdownRef}>
             <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 focus:outline-none">
               <img
@@ -125,16 +125,13 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
-      {/* Grid */}
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-          {/* Book Leave */}
           <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
             <p className="text-sm mb-4">Quickly book leave for yourself or a team member.</p>
             <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
           </DashboardWidget>
 
-          {/* Quick Actions */}
           <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
             <ul className="space-y-2 text-sm">
               {["Post News", "Start Survey", "Add Company Document", "Email Employee"].map((action) => (
@@ -143,7 +140,6 @@ export default function AdminDashboardPage() {
             </ul>
           </DashboardWidget>
 
-          {/* People Metrics */}
           <DashboardWidget title="People Metrics" icon={Users} className="h-full">
             <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
               <li>Active Employees: <span className="font-semibold text-gray-900 dark:text-gray-100">46</span></li>
@@ -152,13 +148,11 @@ export default function AdminDashboardPage() {
             </ul>
           </DashboardWidget>
 
-          {/* Pending Approvals */}
           <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="h-full">
             <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">7</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
           </DashboardWidget>
 
-          {/* Headcount & Turnover with Filters */}
           <DashboardWidget
             title="Headcount & Turnover"
             icon={Users}
@@ -203,7 +197,6 @@ export default function AdminDashboardPage() {
             </ResponsiveContainer>
           </DashboardWidget>
 
-          {/* Calendar with Who's Off */}
           <DashboardWidget title="Leave Calendar" icon={CalendarCheck2} className="h-full">
             <Calendar value={calendarDate} onChange={handleCalendarChange} />
             {selectedDateString && whoIsOffMock[selectedDateString] && (

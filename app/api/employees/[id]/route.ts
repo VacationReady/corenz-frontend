@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// ✅ GET /api/employees/[user.id] → fetch by userId instead of employeeId
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+// ✅ GET employee profile by User.id (not Employee.id)
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const employee = await prisma.employee.findUnique({
-      where: { userId: params.id },
+      where: {
+        userId: params.id, // ✅ using User.id for routing
+      },
       include: {
         user: {
           select: {
@@ -14,74 +19,77 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
             lastName: true,
             email: true,
             phone: true,
-            department: { select: { name: true } },
-            jobRole: { select: { name: true } },
+            role: true,
+            department: { select: { id: true, name: true } },
+            jobRole: { select: { id: true, name: true } },
           },
         },
+        leaveEntitlement: true,
+        leaveRequests: true,
       },
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Employee not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({
-      id: employee.id,
-      firstName: employee.user.firstName,
-      lastName: employee.user.lastName,
-      email: employee.user.email,
-      phone: employee.user.phone,
-      department: employee.user.department?.name || "-",
-      jobRole: employee.user.jobRole?.name || "-",
-    });
+    return NextResponse.json(employee);
   } catch (error) {
-    console.error("Error fetching employee:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error(
+      "Error fetching employee:",
+      JSON.stringify(error, Object.getOwnPropertyNames(error))
+    );
+    return NextResponse.json(
+      { success: false, error: "Internal server error." },
+      { status: 500 }
+    );
   }
 }
 
-// ✅ DELETE /api/employees/[id]
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+// ✅ DELETE employee by User.id
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const userId = params.id;
-
-    // Find the user with related employee and activation token
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        employee: true,
-        activationToken: true,
-      },
+    // Find the employee record
+    const employee = await prisma.employee.findUnique({
+      where: { userId: params.id },
     });
 
-    if (!user) {
-      return NextResponse.json({ success: false, error: "User not found." }, { status: 404 });
+    if (!employee) {
+      return NextResponse.json(
+        { success: false, error: "Employee not found" },
+        { status: 404 }
+      );
     }
 
-    // Delete ActivationToken if it exists
-    if (user.activationToken) {
-      await prisma.activationToken.delete({
-        where: { userId: user.id },
-      });
-    }
+    // Delete related activation token safely
+    await prisma.activationToken.deleteMany({
+      where: { userId: params.id },
+    });
 
-    // Delete Employee if it exists
-    if (user.employee) {
-      await prisma.employee.delete({
-        where: { id: user.employee.id },
-      });
-    }
+    // Delete the employee record
+    await prisma.employee.delete({
+      where: { userId: params.id },
+    });
 
-    // Finally, delete the User
+    // Delete the user record
     await prisma.user.delete({
-      where: { id: user.id },
+      where: { id: params.id },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting employee:", error);
+    console.error(
+      "Error deleting employee:",
+      JSON.stringify(error, Object.getOwnPropertyNames(error))
+    );
     return NextResponse.json(
-      { success: false, error: "Internal server error while deleting employee." },
+      { success: false, error: "Internal server error." },
       { status: 500 }
     );
   }

@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ClientLayout from "../../../ClientLayout";
+import LeaveCalendar from "./LeaveCalendar"; // ✅ NEW IMPORT
 
 export default function EmployeeProfilePage() {
   const params = useParams();
@@ -37,23 +38,30 @@ export default function EmployeeProfilePage() {
 
   return (
     <ClientLayout>
-      <div className="p-6">
+      <div className="p-6 space-y-6">
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p className="text-red-500">{error}</p>
         ) : employee ? (
-          <div className="bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-4">
-              {employee.firstName} {employee.lastName}
-            </h1>
-            <div className="space-y-2">
-              <p><strong>Email:</strong> {employee.email}</p>
-              <p><strong>Phone:</strong> {employee.phone || "-"}</p>
-              <p><strong>Department:</strong> {employee.department || "-"}</p>
-              <p><strong>Job Role:</strong> {employee.jobRole || "-"}</p>
+          <>
+            <div className="bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto">
+              <h1 className="text-2xl font-bold mb-4">
+                {employee.firstName} {employee.lastName}
+              </h1>
+              <div className="space-y-2">
+                <p><strong>Email:</strong> {employee.email}</p>
+                <p><strong>Phone:</strong> {employee.phone || "-"}</p>
+                <p><strong>Department:</strong> {employee.department || "-"}</p>
+                <p><strong>Job Role:</strong> {employee.jobRole || "-"}</p>
+              </div>
             </div>
-          </div>
+
+            {/* ✅ Leave Calendar Section */}
+            <div className="max-w-2xl mx-auto">
+              <LeaveCalendar employeeId={id} />
+            </div>
+          </>
         ) : null}
       </div>
     </ClientLayout>

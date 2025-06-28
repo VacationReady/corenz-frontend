@@ -36,18 +36,27 @@ model User {
   phone           String?
   firstName       String?
   lastName        String?
-  department      String?
-  jobRole         String?
   isActivated     Boolean          @default(false)
-  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates    User[]           @relation("ManagerSubordinates")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  managerId       String?
+
+  // Relations
+  employee        Employee?
+  activationToken ActivationToken?
   leaveRequests   LeaveRequest[]   @relation("LeaveRequestsByUser")
   reviewedLeaves  LeaveRequest[]   @relation("LeaveRequestsReviewedByUser")
-  employee        Employee?
-  activationToken ActivationToken? // ✅ added reverse relation for ActivationToken
+
+  // Manager / subordinate self-relations
+  managerId       String?
+  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates    User[]           @relation("ManagerSubordinates")
+
+  // Relations to JobRole and Department
+  jobRoleId       String?
+  jobRole         JobRole?         @relation(fields: [jobRoleId], references: [id])
+
+  departmentId    String?
+  department      Department?      @relation(fields: [departmentId], references: [id])
 }
 
 model Employee {
@@ -55,7 +64,8 @@ model Employee {
   userId        String         @unique
   user          User           @relation(fields: [userId], references: [id])
   isActive      Boolean        @default(true)
-  leaveRequests LeaveRequest[] // ✅ added reverse relation for LeaveRequest
+
+  leaveRequests LeaveRequest[]
 }
 
 model LeaveRequest {
@@ -80,4 +90,18 @@ model ActivationToken {
   token  String @unique
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
+}
+
+model JobRole {
+  id    String @id @default(uuid())
+  name  String @unique
+
+  users User[]
+}
+
+model Department {
+  id    String @id @default(uuid())
+  name  String @unique
+
+  users User[]
 }

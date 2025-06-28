@@ -12,7 +12,7 @@ import 'react-calendar/dist/Calendar.css';
 export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [calendarDate, setCalendarDate] = useState<Date | [Date, Date]>(new Date());
+  const [calendarDate, setCalendarDate] = useState<Date | [Date, Date] | null>(new Date());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function AdminDashboardPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleCalendarChange = (value: Date | Date[]) => {
+  const handleCalendarChange = (value: Date | [Date, Date] | null) => {
     if (Array.isArray(value)) {
       const [start, end] = value;
       if (start && end) {

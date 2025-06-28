@@ -1,4 +1,4 @@
-// app/dashboard/layout.tsx
+// /app/dashboard/layout.tsx
 
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
@@ -25,9 +25,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   return (
-    <div className="flex min-h-screen bg-neutral-900 text-white">
+    <div className="flex min-h-screen bg-surface dark:bg-surface-dark text-gray-900 dark:text-gray-100 transition-colors">
       {Sidebar}
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto w-full">
+        {children}
+      </main>
     </div>
   );
 }

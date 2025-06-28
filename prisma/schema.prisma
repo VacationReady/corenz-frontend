@@ -73,6 +73,8 @@ model LeaveRequest {
   type       LeaveType
   status     LeaveStatus @default(PENDING)
 
+  reason String? // ✅ ADDED for leave reason notes
+
   reviewedBy String?
   reviewer   User?   @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
 

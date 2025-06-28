@@ -1,8 +1,8 @@
 // pages/api/leave-request.ts
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import prisma from "@/lib/prisma";
+import authOptions from "@/lib/auth-options";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {

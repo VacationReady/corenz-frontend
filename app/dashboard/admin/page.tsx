@@ -10,24 +10,25 @@ import {
   Users,
   Megaphone,
   Filter,
+  FileText,
   FilePlus2,
   Mail,
-  FileText,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
-import Image from "next/image";
+import CountUp from "react-countup";
+import { motion } from "framer-motion";
 
 export default function AdminDashboardPage() {
   const [name, setName] = useState<string>("Admin");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<"Headcount" | "Turnover" | "New Starters">("Headcount");
   const [filterDropdown, setFilterDropdown] = useState(false);
   const [offFilter, setOffFilter] = useState<"Today" | "This Week" | "This Month">("Today");
   const [offFilterDropdown, setOffFilterDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -68,37 +69,34 @@ export default function AdminDashboardPage() {
 
   const peopleOffData = {
     Today: [
-      { name: "John Doe", reason: "Annual Leave", avatar: "/avatar1.png" },
-      { name: "Jane Smith", reason: "Sick Leave", avatar: "/avatar2.png" },
+      { name: "John Doe", reason: "Annual Leave", initials: "JD", color: "bg-green-500" },
+      { name: "Jane Smith", reason: "Sick Leave", initials: "JS", color: "bg-red-500" },
     ],
     "This Week": [
-      { name: "John Doe", reason: "Annual Leave", avatar: "/avatar1.png" },
-      { name: "Jane Smith", reason: "Sick Leave", avatar: "/avatar2.png" },
-      { name: "Alice Brown", reason: "Maternity Leave", avatar: "/avatar3.png" },
+      { name: "John Doe", reason: "Annual Leave", initials: "JD", color: "bg-green-500" },
+      { name: "Jane Smith", reason: "Sick Leave", initials: "JS", color: "bg-red-500" },
+      { name: "Alice Brown", reason: "Maternity Leave", initials: "AB", color: "bg-pink-500" },
     ],
     "This Month": [
-      { name: "John Doe", reason: "Annual Leave", avatar: "/avatar1.png" },
-      { name: "Jane Smith", reason: "Sick Leave", avatar: "/avatar2.png" },
-      { name: "Alice Brown", reason: "Maternity Leave", avatar: "/avatar3.png" },
-      { name: "Michael Green", reason: "Training", avatar: "/avatar4.png" },
+      { name: "John Doe", reason: "Annual Leave", initials: "JD", color: "bg-green-500" },
+      { name: "Jane Smith", reason: "Sick Leave", initials: "JS", color: "bg-red-500" },
+      { name: "Alice Brown", reason: "Maternity Leave", initials: "AB", color: "bg-pink-500" },
+      { name: "Michael Green", reason: "Training", initials: "MG", color: "bg-blue-500" },
     ],
   };
 
   return (
     <div className="flex flex-col flex-1 w-full">
-      {/* Header with Search and Actions */}
+      {/* Header */}
       <div className="w-full px-6 pt-6 flex items-center justify-between">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Hi, {name} 👋</h1>
         <div className="flex items-center gap-4">
           <div className="relative cursor-pointer">
-            <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300 hover:scale-110 transition-transform" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
           </div>
           <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 focus:outline-none"
-            >
+            <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 focus:outline-none">
               <div className="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 font-semibold">
                 {name.slice(0, 2).toUpperCase()}
               </div>
@@ -126,47 +124,49 @@ export default function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* Book Leave */}
-        <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
-          <p className="text-sm mb-2">Quickly book leave for yourself or a team member.</p>
-          <ul className="text-sm mb-4 text-gray-700 dark:text-gray-300">
-            <li>Total Entitlement: <span className="font-semibold text-gray-900 dark:text-gray-100">25 days</span></li>
-            <li>Taken: <span className="font-semibold text-gray-900 dark:text-gray-100">10 days</span></li>
-            <li>Remaining: <span className="font-semibold text-gray-900 dark:text-gray-100">15 days</span></li>
-          </ul>
-          <Button className="bg-primary text-white hover:bg-primary/90 w-full">Book Leave</Button>
-        </DashboardWidget>
+        {/* Metric Highlight Cards */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <DashboardWidget title="Active Employees" icon={Users} className="bg-indigo-50 dark:bg-indigo-900 h-full">
+            <p className="text-4xl font-bold text-indigo-700 dark:text-indigo-300">
+              <CountUp end={46} duration={1.5} />
+            </p>
+          </DashboardWidget>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="bg-orange-50 dark:bg-orange-900 h-full">
+            <p className="text-4xl font-bold text-orange-700 dark:text-orange-300">
+              <CountUp end={7} duration={1.5} />
+            </p>
+          </DashboardWidget>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <DashboardWidget title="New Starters This Month" icon={Users} className="bg-green-50 dark:bg-green-900 h-full">
+            <p className="text-4xl font-bold text-green-700 dark:text-green-300">
+              <CountUp end={3} duration={1.5} />
+            </p>
+          </DashboardWidget>
+        </motion.div>
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
-          <ul className="space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { label: "Post News", icon: FileText },
               { label: "Start Survey", icon: FilePlus2 },
-              { label: "Add Company Document", icon: FileText },
+              { label: "Add Document", icon: FileText },
               { label: "Email Employee", icon: Mail },
             ].map((action) => (
-              <li key={action.label} className="flex items-center gap-2">
-                <action.icon className="w-4 h-4 text-indigo-600" />
-                <Link href="#" className="text-primary hover:underline">{action.label}</Link>
-              </li>
+              <button
+                key={action.label}
+                className="flex flex-col items-center justify-center bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg p-3 hover:shadow-md hover:scale-105 transition-transform"
+              >
+                <action.icon className="w-5 h-5 text-indigo-600 mb-1" />
+                <span className="text-xs text-gray-700 dark:text-gray-300">{action.label}</span>
+              </button>
             ))}
-          </ul>
-        </DashboardWidget>
-
-        {/* People Metrics */}
-        <DashboardWidget title="People Metrics" icon={Users} className="h-full">
-          <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-            <li>Active Employees: <span className="font-semibold text-gray-900 dark:text-gray-100">46</span></li>
-            <li>Managers: <span className="font-semibold text-gray-900 dark:text-gray-100">5</span></li>
-            <li>New Starters This Month: <span className="font-semibold text-gray-900 dark:text-gray-100">3</span></li>
-          </ul>
-        </DashboardWidget>
-
-        {/* Pending Approvals */}
-        <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="h-full">
-          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">7</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
+          </div>
         </DashboardWidget>
 
         {/* Headcount & Turnover */}
@@ -206,9 +206,9 @@ export default function AdminDashboardPage() {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              {filter === "Headcount" && <Line type="monotone" dataKey="employees" stroke="#6366f1" name="Employees" dot />}
-              {filter === "Turnover" && <Line type="monotone" dataKey="turnover" stroke="#f97316" name="Turnover %" dot />}
-              {filter === "New Starters" && <Line type="monotone" dataKey="starters" stroke="#22c55e" name="New Starters" dot />}
+              {filter === "Headcount" && <Line type="monotone" dataKey="employees" stroke="#6366f1" strokeWidth={2} dot />}
+              {filter === "Turnover" && <Line type="monotone" dataKey="turnover" stroke="#f97316" strokeWidth={2} dot />}
+              {filter === "New Starters" && <Line type="monotone" dataKey="starters" stroke="#22c55e" strokeWidth={2} dot />}
             </LineChart>
           </ResponsiveContainer>
         </DashboardWidget>
@@ -243,10 +243,10 @@ export default function AdminDashboardPage() {
           }
         >
           {peopleOffData[offFilter].map((person, idx) => (
-            <div key={idx} className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
+            <div key={idx} className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 mb-1">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
-                  {person.name.split(" ").map(n => n[0]).join("")}
+                <div className={`w-6 h-6 rounded-full ${person.color} flex items-center justify-center text-white text-xs font-semibold`}>
+                  {person.initials}
                 </div>
                 <span>{person.name}</span>
               </div>

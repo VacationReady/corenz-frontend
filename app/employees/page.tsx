@@ -38,7 +38,7 @@ export default function EmployeesPage() {
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
       ]);
-      setEmployees(empRes);
+      setEmployees(empRes.filter((emp: any) => emp.user)); // ✅ Filter out employees with missing user
       setDepartments(deptRes.departments);
       setJobRoles(roleRes.jobRoles);
     } catch {
@@ -106,17 +106,21 @@ export default function EmployeesPage() {
               {employees.map((emp) => (
                 <tr key={emp.id} className="border-b hover:bg-neutral-50">
                   <td className="p-3">
-                    <Link 
-  href={`/employees/${emp.user.id}/overview`}
-  className="text-indigo-600 hover:underline"
->
-  {emp.firstName} {emp.lastName}
-</Link>
+                    {emp.user ? (
+                      <Link
+                        href={`/employees/${emp.user.id}/overview`}
+                        className="text-indigo-600 hover:underline"
+                      >
+                        {emp.user.firstName} {emp.user.lastName}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-400">User missing</span>
+                    )}
                   </td>
-                  <td className="p-3">{emp.phone || "-"}</td>
-                  <td className="p-3">{emp.department?.name || "-"}</td>
-                  <td className="p-3">{emp.jobRole?.name || "-"}</td>
-                  <td className="p-3">{emp.email}</td>
+                  <td className="p-3">{emp.user?.phone || "-"}</td>
+                  <td className="p-3">{emp.user?.department?.name || "-"}</td>
+                  <td className="p-3">{emp.user?.jobRole?.name || "-"}</td>
+                  <td className="p-3">{emp.user?.email || "-"}</td>
                   <td className="p-3">
                     <Button
                       variant="danger"
@@ -180,7 +184,11 @@ export default function EmployeesPage() {
               <select name="managerId" value={formData.managerId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
                 <option value="">Select Line Manager (Optional)</option>
                 {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.role})</option>
+                  emp.user && (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.user.firstName} {emp.user.lastName} ({emp.role})
+                    </option>
+                  )
                 ))}
               </select>
               <div className="flex justify-end space-x-2">

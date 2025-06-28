@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ClientLayout from "../../../ClientLayout";
-import LeaveCalendar from "./LeaveCalendar"; // ✅ NEW IMPORT
+import LeaveCalendar from "./LeaveCalendar";
 
 export default function EmployeeProfilePage() {
   const params = useParams();
@@ -15,7 +15,7 @@ export default function EmployeeProfilePage() {
 
   useEffect(() => {
     if (!id) {
-      setError("Missing employee ID.");
+      setError("Missing User ID.");
       setLoading(false);
       return;
     }
@@ -25,6 +25,8 @@ export default function EmployeeProfilePage() {
         const res = await fetch(`/api/employees/${id}`);
         if (!res.ok) throw new Error("Employee not found");
         const data = await res.json();
+
+        // Data structure now aligned with 'user' nested inside employee
         setEmployee(data);
       } catch (err: any) {
         setError(err.message);
@@ -43,23 +45,23 @@ export default function EmployeeProfilePage() {
           <p>Loading...</p>
         ) : error ? (
           <p className="text-red-500">{error}</p>
-        ) : employee ? (
+        ) : employee && employee.user ? (
           <>
             <div className="bg-white rounded-xl shadow-md p-6 max-w-2xl mx-auto">
               <h1 className="text-2xl font-bold mb-4">
-                {employee.firstName} {employee.lastName}
+                {employee.user.firstName} {employee.user.lastName}
               </h1>
               <div className="space-y-2">
-                <p><strong>Email:</strong> {employee.email}</p>
-                <p><strong>Phone:</strong> {employee.phone || "-"}</p>
-                <p><strong>Department:</strong> {employee.department || "-"}</p>
-                <p><strong>Job Role:</strong> {employee.jobRole || "-"}</p>
+                <p><strong>Email:</strong> {employee.user.email}</p>
+                <p><strong>Phone:</strong> {employee.user.phone || "-"}</p>
+                <p><strong>Department:</strong> {employee.user.department?.name || "-"}</p>
+                <p><strong>Job Role:</strong> {employee.user.jobRole?.name || "-"}</p>
               </div>
             </div>
 
             {/* ✅ Leave Calendar Section */}
             <div className="max-w-2xl mx-auto">
-              {id && <LeaveCalendar employeeId={id} />}
+              {id && <LeaveCalendar employeeId={employee.id} />}
             </div>
           </>
         ) : null}

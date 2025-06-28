@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
-import prisma from "@/lib/prismadb";
+import prisma from "@/lib/prisma";
 
 interface EmployeeLayoutProps {
   children: ReactNode;

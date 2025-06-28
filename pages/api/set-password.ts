@@ -1,7 +1,7 @@
 // pages/api/set-password.ts
 
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
 export default async function handler(

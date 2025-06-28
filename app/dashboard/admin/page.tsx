@@ -2,7 +2,7 @@
 
 "use client";
 
-import { DashboardWidget } from "@/app/components/ui/DashboardWidget";
+import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import Link from "next/link";
 import {
   ClipboardList,
@@ -13,7 +13,7 @@ import {
   FileWarning,
   BarChartBig,
 } from "lucide-react";
-import Button from "@/app/components/ui/Button";
+import Button from "@/components/ui/Button";
 
 export default function AdminDashboardPage() {
   return (

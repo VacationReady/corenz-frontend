@@ -7,26 +7,47 @@ import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
+import NewDepartmentModal from "./NewDepartmentModal";
+import NewJobRoleModal from "./NewJobRoleModal";
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isDeptModalOpen, setDeptModalOpen] = useState(false);
+  const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+  const [error, setError] = useState("");
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    department: "",
-    jobRole: "",
+    startDate: "",
+    role: "EMPLOYEE",
+    departmentId: "",
+    jobRoleId: "",
     managerId: "",
   });
-  const [error, setError] = useState("");
+
+  const fetchData = async () => {
+    try {
+      const [empRes, deptRes, roleRes] = await Promise.all([
+        fetch("/api/employees").then((r) => r.json()),
+        fetch("/api/departments").then((r) => r.json()),
+        fetch("/api/job-roles").then((r) => r.json()),
+      ]);
+      setEmployees(empRes);
+      setDepartments(deptRes.departments);
+      setJobRoles(roleRes.jobRoles);
+    } catch {
+      setError("Failed to load data");
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/employees")
-      .then((res) => res.json())
-      .then((data) => setEmployees(data))
-      .catch(() => setError("Failed to load employees"));
+    fetchData();
   }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -46,19 +67,20 @@ export default function EmployeesPage() {
         setError(data.error || "Failed to create employee");
         return;
       }
-      const newEmployee = await res.json();
-      setEmployees((prev) => [...prev, newEmployee]);
+      setError("");
+      setModalOpen(false);
       setFormData({
         firstName: "",
         lastName: "",
         email: "",
         phone: "",
-        department: "",
-        jobRole: "",
+        startDate: "",
+        role: "EMPLOYEE",
+        departmentId: "",
+        jobRoleId: "",
         managerId: "",
       });
-      setError("");
-      setModalOpen(false);
+      fetchData();
     } catch {
       setError("Network error");
     }
@@ -67,7 +89,6 @@ export default function EmployeesPage() {
   return (
     <PageShell title="Employees" action={<Button onClick={() => setModalOpen(true)}>Add Employee</Button>}>
       {error && <p className="text-red-600 mb-4">{error}</p>}
-
       <Card>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -90,8 +111,8 @@ export default function EmployeesPage() {
                     </Link>
                   </td>
                   <td className="p-3">{emp.phone || "-"}</td>
-                  <td className="p-3">{emp.department || "-"}</td>
-                  <td className="p-3">{emp.jobRole || "-"}</td>
+                  <td className="p-3">{emp.department?.name || "-"}</td>
+                  <td className="p-3">{emp.jobRole?.name || "-"}</td>
                   <td className="p-3">{emp.email}</td>
                   <td className="p-3">
                     <Button
@@ -102,7 +123,7 @@ export default function EmployeesPage() {
                         try {
                           const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
                           if (!res.ok) throw new Error("Delete failed");
-                          setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+                          fetchData();
                         } catch (err) {
                           alert("Error deleting employee.");
                           console.error(err);
@@ -119,48 +140,57 @@ export default function EmployeesPage() {
         </div>
       </Card>
 
-      {/* Modal */}
+      {/* Add Employee Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <Card className="w-full max-w-md p-6 space-y-4">
             <h2 className="text-lg font-semibold">Add Employee</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {["firstName", "lastName", "email", "phone", "department", "jobRole"].map((field) => (
-                <Input
-                  key={field}
-                  type="text"
-                  name={field}
-                  placeholder={field[0].toUpperCase() + field.slice(1)}
-                  value={formData[field as keyof typeof formData]}
-                  onChange={handleChange}
-                  required={["firstName", "lastName", "email"].includes(field)}
-                />
-              ))}
-
-              <select
-                name="managerId"
-                value={formData.managerId}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-              >
-                <option value="">Select Line Manager (Optional)</option>
-                {employees.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName} ({user.role})
-                  </option>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
+              <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
+              <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+              <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
+              <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
+              <select name="role" value={formData.role} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                {["EMPLOYEE", "MANAGER", "ADMIN"].map((r) => (
+                  <option key={r} value={r}>{r}</option>
                 ))}
               </select>
-
+              <div className="flex space-x-2">
+                <select name="departmentId" value={formData.departmentId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                  <option value="">Select Department</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+                <Button type="button" size="sm" onClick={() => setDeptModalOpen(true)}>+ New</Button>
+              </div>
+              <div className="flex space-x-2">
+                <select name="jobRoleId" value={formData.jobRoleId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                  <option value="">Select Job Role</option>
+                  {jobRoles.map((j) => (
+                    <option key={j.id} value={j.id}>{j.name}</option>
+                  ))}
+                </select>
+                <Button type="button" size="sm" onClick={() => setRoleModalOpen(true)}>+ New</Button>
+              </div>
+              <select name="managerId" value={formData.managerId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
+                <option value="">Select Line Manager (Optional)</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.role})</option>
+                ))}
+              </select>
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                  Cancel
-                </Button>
+                <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
                 <Button type="submit">Save</Button>
               </div>
             </form>
           </Card>
         </div>
       )}
+
+      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
+      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
     </PageShell>
   );
 }

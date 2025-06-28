@@ -45,19 +45,25 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.user = user;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.user) {
-        session.user = token.user;
-      }
-      return session;
-    },
+  async jwt({ token, user }) {
+    if (user) {
+      token.id = user.id;
+      token.email = user.email;
+      token.name = user.name;
+      token.role = user.role;
+    }
+    return token;
   },
+  async session({ session, token }) {
+    session.user = {
+      id: token.id as string,
+      email: token.email as string,
+      name: token.name as string,
+      role: token.role as "ADMIN" | "MANAGER" | "EMPLOYEE",
+    };
+    return session;
+  },
+},
   pages: {
     signIn: "/login",
     error: "/unauthorized",

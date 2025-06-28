@@ -21,6 +21,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Department name is required." }, { status: 400 });
     }
 
+    // Check if department already exists
+    const existing = await prisma.department.findUnique({
+      where: { name: name.trim() },
+    });
+
+    if (existing) {
+      return NextResponse.json({ success: false, error: "A department with this name already exists." }, { status: 400 });
+    }
+
     const department = await prisma.department.create({
       data: { name: name.trim() },
     });

@@ -28,16 +28,24 @@ export async function POST(req: Request) {
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
+
     if (existingUser && existingUser.isActivated) {
       return NextResponse.json(
-        { success: false, error: "User with this email already exists and is activated." },
+        { success: false, error: "A user with this email already exists and is activated." },
+        { status: 400 }
+      );
+    }
+
+    if (existingUser && !existingUser.isActivated) {
+      return NextResponse.json(
+        { success: false, error: "A user with this email already exists but is not activated. Please activate this user or use a different email." },
         { status: 400 }
       );
     }
 
     const activationToken = randomBytes(32).toString("hex");
 
-    const hashedPassword = ""; // Blank for activation flow
+    const hashedPassword = ""; // Left blank for activation flow
 
     const user = await prisma.user.create({
       data: {
@@ -53,7 +61,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const employee = await prisma.employee.create({
+    await prisma.employee.create({
       data: {
         user: { connect: { id: user.id } },
         isActive: true,

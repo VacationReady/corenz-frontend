@@ -12,11 +12,11 @@ interface AddLeaveRequestDialogProps {
 }
 
 const leaveTypes = [
-  "Annual Leave",
-  "Sick Leave",
-  "Dentist",
-  "Doctor",
-  "Other",
+  { label: "Annual Leave", value: "ANNUAL_LEAVE" },
+  { label: "Sick Leave", value: "SICK_LEAVE" },
+  { label: "Dentist", value: "DENTIST" },
+  { label: "Doctor", value: "DOCTOR" },
+  { label: "Other", value: "OTHER" },
 ];
 
 export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: AddLeaveRequestDialogProps) {
@@ -52,7 +52,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
       return;
     }
 
-    if (!isAdminOrManager && type === "Sick Leave") {
+    if (!isAdminOrManager && type === "SICK_LEAVE") {
       toast.error("Only managers/admins can book sick leave directly.");
       return;
     }
@@ -95,7 +95,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
 
   return (
     <>
-      <Button variant="ghost" onClick={() => setIsOpen(true)}>
+      <Button variant="primary" onClick={() => setIsOpen(true)}>
         Book Leave
       </Button>
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
@@ -109,7 +109,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
             >
               <option value="">Select Leave Type</option>
               {leaveTypes.map((lt) => (
-                <option key={lt} value={lt}>{lt}</option>
+                <option key={lt.value} value={lt.value}>{lt.label}</option>
               ))}
             </select>
           </div>
@@ -126,7 +126,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
             <label className="block text-sm font-medium">Reason (optional)</label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional reason" />
           </div>
-          <Button variant="ghost" onClick={handleSubmit} loading={loading} disabled={loading}>
+          <Button variant="primary" onClick={handleSubmit} loading={loading} disabled={loading}>
             Submit Request
           </Button>
         </div>

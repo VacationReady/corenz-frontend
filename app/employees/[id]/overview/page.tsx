@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import LeaveCalendar from "./LeaveCalendar";
 import EditEntitlementModal from "./EditEntitlementModal";
-import { Button, Card } from "@/components/ui";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 import { useRouter } from "next/navigation";
 
 export default function EmployeeOverview({ params }: { params: { id: string } }) {

@@ -1,47 +1,63 @@
-"use client";
-import { cva } from "class-variance-authority";
+import React from "react";
 import clsx from "clsx";
 
-const button = cva(
-  "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        primary: "bg-indigo-600 text-white hover:bg-indigo-700",
-        ghost: "bg-transparent hover:bg-gray-100 text-gray-800",
-        danger: "bg-red-600 text-white hover:bg-red-700",
-      },
-      size: {
-        sm: "px-3 py-1.5 text-sm rounded-md",
-        md: "px-4 py-2 text-sm rounded-md",
-        lg: "px-6 py-3 text-base rounded-lg",
-      },
-    },
-    defaultVariants: {
-      variant: "primary",
-      size: "md",
-    },
-  }
-);
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
+  loading?: boolean; // ✅ New loading prop
+}
 
 export default function Button({
   children,
-  className,
   variant = "primary",
   size = "md",
-  type = "button",
+  loading = false,
+  disabled,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
-}) {
+}: ButtonProps) {
+  const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const variantClasses = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700",
+    ghost: "bg-transparent text-blue-600 hover:bg-blue-50",
+    danger: "bg-red-600 text-white hover:bg-red-700",
+  }[variant];
+
+  const sizeClasses = {
+    sm: "px-2 py-1 text-sm",
+    md: "px-4 py-2 text-base",
+    lg: "px-6 py-3 text-lg",
+  }[size];
+
   return (
     <button
-      type={type}
-      className={clsx(button({ variant, size }), className)}
       {...props}
+      disabled={disabled || loading}
+      className={clsx(baseClasses, variantClasses, sizeClasses, props.className, {
+        "opacity-50 cursor-not-allowed": disabled || loading,
+      })}
     >
-      {children}
+      {loading ? (
+        <span className="flex items-center gap-2">
+          <svg className="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 018 8h-4l3 3 3-3h-4a8 8 0 01-8 8V8l-3 3 3 3v-4z"
+            ></path>
+          </svg>
+          Loading...
+        </span>
+      ) : (
+        children
+      )}
     </button>
   );
 }

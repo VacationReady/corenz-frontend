@@ -7,13 +7,13 @@ import EditEntitlementModal from "@/components/EditEntitlementModal";
 
 interface LeaveEntitlement {
   id: string;
-  annualDays: number;
-  sickDays: number;
-  bereavementDays: number;
+  annual: number;
+  sick: number;
+  bereavement: number;
 }
 
 interface LeaveBalancePanelProps {
-  leaveEntitlement: LeaveEntitlement | null; // ✅ corrected type
+  leaveEntitlement: LeaveEntitlement | null;
   employeeId: string;
 }
 
@@ -23,20 +23,20 @@ export default function LeaveBalancePanel({
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const currentEntitlement = leaveEntitlement; // ✅ corrected reference
+  const currentEntitlement = leaveEntitlement;
 
   return (
     <div className="space-y-2 text-sm">
       {currentEntitlement ? (
         <>
           <p>
-            <strong>Annual Leave:</strong> {currentEntitlement.annualDays} days
+            <strong>Annual Leave:</strong> {currentEntitlement.annual} days
           </p>
           <p>
-            <strong>Sick Leave:</strong> {currentEntitlement.sickDays} days
+            <strong>Sick Leave:</strong> {currentEntitlement.sick} days
           </p>
           <p>
-            <strong>Bereavement Leave:</strong> {currentEntitlement.bereavementDays} days
+            <strong>Bereavement Leave:</strong> {currentEntitlement.bereavement} days
           </p>
         </>
       ) : (

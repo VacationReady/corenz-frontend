@@ -4,18 +4,16 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch leave requests for a specific employee
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const leaveRequests = await prisma.leaveRequest.findMany({
-      where: { employeeId: params.id },
-      select: {
-        id: true,
-        startDate: true,
-        endDate: true,
-        type: true,
-        status: true,
-        reason: true,
-      },
-      orderBy: { startDate: "asc" },
-    });
+    const leaveRequest = await prisma.leaveRequest.create({
+  data: {
+    employee: { connect: { id: params.id } },
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+    type,
+    reason,
+    status: status ?? "PENDING", // allow overriding if provided
+  },
+});
 
     return NextResponse.json(leaveRequests);
   } catch (error) {

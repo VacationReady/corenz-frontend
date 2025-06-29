@@ -18,6 +18,11 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
         select: {
           firstName: true,
           lastName: true,
+          email: true,
+          phone: true,
+          createdAt: true,
+          jobRole: { select: { name: true } },
+          department: { select: { name: true } },
           manager: {
             select: { firstName: true, lastName: true },
           },
@@ -42,7 +47,19 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold">Personal Info</h2>
           </div>
           <div className="p-4">
-            <PersonalInfoPanel employee={employee} manager={employee.user.manager} />
+            <PersonalInfoPanel
+              employee={{
+                firstName: employee.user.firstName,
+                lastName: employee.user.lastName,
+                email: employee.user.email,
+                phone: employee.user.phone || undefined,
+                jobTitle: employee.user.jobRole?.name || undefined,
+                department: employee.user.department?.name || undefined,
+                startDate: employee.user.createdAt,
+                employmentStatus: employee.isActive ? "Active" : "Inactive",
+              }}
+              manager={employee.user.manager}
+            />
           </div>
         </Card>
 

@@ -5,7 +5,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const employeeId = params.id;
     const body = await req.json();
-    const { type, startDate, endDate, reason, status } = body;
+    const { type, startDate, endDate, reason } = body;
 
     // Basic validation
     if (!type || !startDate || !endDate) {
@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         reason: reason ?? "",
-        status: status ?? "PENDING", // fallback if status is undefined
+        // approvalStatus defaults to "PENDING" automatically
       },
     });
 

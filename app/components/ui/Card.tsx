@@ -40,3 +40,11 @@ export function Card({
 export function CardContent({ children }: { children: React.ReactNode }) {
   return <div className="pt-2">{children}</div>;
 }
+
+export function CardHeader({ children }: { children: React.ReactNode }) {
+  return <div className="border-b p-4">{children}</div>;
+}
+
+export function CardTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-lg font-semibold">{children}</h2>;
+}

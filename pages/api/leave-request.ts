@@ -25,13 +25,13 @@ export default async function handler(req, res) {
 
       const newLeaveRequest = await prisma.leaveRequest.create({
         data: {
-          userId: session.user.id,           // ✅ required
-          employeeId: employee.id,           // ✅ required
+          createdBy: { connect: { id: session.user.id } }, // ✅ correct field
+          employeeId: employee.id,
           type,
           startDate: new Date(startDate),
           endDate: new Date(endDate),
           reason,
-          status: "PENDING",
+          // approvalStatus defaults to "PENDING"
         },
       });
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // ✅ Only allow POST method — no rogue update() code
+  // Only allow POST method
   res.setHeader("Allow", ["POST"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }

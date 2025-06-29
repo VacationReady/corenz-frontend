@@ -89,7 +89,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Book Leave</Button>
+        <Button variant="ghost">Book Leave</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

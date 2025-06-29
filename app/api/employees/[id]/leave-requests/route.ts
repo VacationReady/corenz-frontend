@@ -20,12 +20,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, error: "Missing required fields." }, { status: 400 });
     }
 
-    // Verify employee belongs to user submitting the request
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
       include: {
         user: {
-          select: { name: true, email: true, managerId: true },
+          select: { id: true, name: true, email: true, managerId: true },
         },
       },
     });

@@ -38,7 +38,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-5xl mx-auto">
       <h1 className="text-2xl font-semibold">
-        {employee.user.firstName} {employee.user.lastName} - Overview
+        {employee.user.firstName ?? ""} {employee.user.lastName ?? ""} - Overview
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -49,12 +49,12 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           <div className="p-4">
             <PersonalInfoPanel
               employee={{
-                firstName: employee.user.firstName,
-                lastName: employee.user.lastName,
-                email: employee.user.email,
-                phone: employee.user.phone || undefined,
-                jobTitle: employee.user.jobRole?.name || undefined,
-                department: employee.user.department?.name || undefined,
+                firstName: employee.user.firstName ?? "",
+                lastName: employee.user.lastName ?? "",
+                email: employee.user.email ?? "",
+                phone: employee.user.phone ?? undefined,
+                jobTitle: employee.user.jobRole?.name ?? undefined,
+                department: employee.user.department?.name ?? undefined,
                 startDate: employee.user.createdAt,
                 employmentStatus: employee.isActive ? "Active" : "Inactive",
               }}

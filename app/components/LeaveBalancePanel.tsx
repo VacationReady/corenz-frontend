@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EditEntitlementModal from "@/components/EditEntitlementModal";
 
@@ -23,7 +23,6 @@ export default function LeaveBalancePanel({
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Assuming the latest entitlement is the relevant one; adjust if needed
   const currentEntitlement = leaveEntitlements?.[0];
 
   return (
@@ -53,7 +52,7 @@ export default function LeaveBalancePanel({
         setOpen={setModalOpen}
         employeeId={employeeId}
         currentEntitlement={currentEntitlement}
-        refresh={() => window.location.reload()} // You can refine with SWR mutation or router.refresh() if using App Router
+        refresh={() => window.location.reload()}
       />
     </div>
   );

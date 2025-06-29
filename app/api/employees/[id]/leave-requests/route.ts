@@ -6,18 +6,26 @@ import { authOptions } from "@/lib/auth-options";
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    console.log("SESSION OBJECT:", session);
+
     if (!session?.user?.id || !session.user.role) {
+      console.log("❌ Unauthenticated or missing role");
       return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
     }
 
-    // Only MANAGER or ADMIN can view approvals
+    console.log("✅ Authenticated User ID:", session.user.id);
+    console.log("✅ Authenticated User Role:", session.user.role);
+
     if (session.user.role !== "MANAGER" && session.user.role !== "ADMIN") {
+      console.log("❌ Unauthorized role attempted access");
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get("status") as "PENDING" | "APPROVED" | "DECLINED" | "CANCELLED" | null;
     const status = statusParam || "PENDING";
+
+    console.log("Fetching leave requests with status:", status);
 
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
@@ -43,6 +51,8 @@ export async function GET(req: Request) {
               select: {
                 name: true,
                 email: true,
+                id: true,
+                managerId: true,
               },
             },
           },
@@ -50,6 +60,8 @@ export async function GET(req: Request) {
       },
       orderBy: { startDate: "asc" },
     });
+
+    console.log("✅ Leave requests found:", JSON.stringify(leaveRequests, null, 2));
 
     return NextResponse.json({ success: true, data: leaveRequests });
   } catch (error: any) {
@@ -61,7 +73,7 @@ export async function GET(req: Request) {
   }
 }
 
-// Existing POST handler for leave request creation
+// Existing POST handler (unchanged, included for completeness)
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);

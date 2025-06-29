@@ -13,9 +13,15 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
     include: {
-      leaveEntitlement: true, // ✅ corrected to singular
-      manager: {
-        select: { firstName: true, lastName: true },
+      leaveEntitlement: true,
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          manager: {
+            select: { firstName: true, lastName: true },
+          },
+        },
       },
     },
   });
@@ -27,7 +33,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-5xl mx-auto">
       <h1 className="text-2xl font-semibold">
-        {employee.firstName} {employee.lastName} - Overview
+        {employee.user.firstName} {employee.user.lastName} - Overview
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -36,7 +42,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold">Personal Info</h2>
           </div>
           <div className="p-4">
-            <PersonalInfoPanel employee={employee} />
+            <PersonalInfoPanel employee={employee} manager={employee.user.manager} />
           </div>
         </Card>
 
@@ -46,7 +52,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           </div>
           <div className="p-4">
             <LeaveBalancePanel
-              leaveEntitlement={employee.leaveEntitlement} // ✅ corrected to singular
+              leaveEntitlement={employee.leaveEntitlement}
               employeeId={employee.id}
             />
           </div>

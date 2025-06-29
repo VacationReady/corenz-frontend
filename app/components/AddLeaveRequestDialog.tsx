@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ const leaveTypes = [
 ];
 
 export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: AddLeaveRequestDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [type, setType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -75,8 +75,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
       }
 
       toast.success("Leave request submitted successfully.");
-      setOpen(false);
-      // Optionally clear fields after successful submission
+      setIsOpen(false);
       setType("");
       setStartDate("");
       setEndDate("");
@@ -91,20 +90,16 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost">Book Leave</Button>
-      </DialogTrigger>
-      {open && (
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Book Leave</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-2">
+    <>
+      <Button variant="ghost" onClick={() => setIsOpen(true)}>
+        Book Leave
+      </Button>
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
+        <div className="space-y-4">
+          <div>
             <label className="block text-sm font-medium">Leave Type</label>
             <select
-              className="w-full border rounded p-2"
+              className="w-full border rounded p-2 mt-1"
               value={type}
               onChange={(e) => setType(e.target.value)}
             >
@@ -113,26 +108,25 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
                 <option key={lt} value={lt}>{lt}</option>
               ))}
             </select>
-
-            <label className="block text-sm font-medium mt-2">Start Date</label>
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Start Date</label>
             <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-
-            <label className="block text-sm font-medium mt-2">End Date</label>
+          </div>
+          <div>
+            <label className="block text-sm font-medium">End Date</label>
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-
-            <p className="text-sm text-gray-700 mt-2">Total Days: {totalDays}</p>
-
-            <label className="block text-sm font-medium mt-2">Reason (optional)</label>
+          </div>
+          <p className="text-sm text-gray-700">Total Days: {totalDays}</p>
+          <div>
+            <label className="block text-sm font-medium">Reason (optional)</label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional reason" />
           </div>
-
-          <DialogFooter>
-            <Button onClick={handleSubmit} loading={loading} disabled={loading}>
-              Submit Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
+          <Button onClick={handleSubmit} loading={loading} disabled={loading}>
+            Submit Request
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }

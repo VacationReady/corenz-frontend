@@ -1,4 +1,4 @@
-import Card from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import PersonalInfoPanel from "@/components/PersonalInfoPanel";
 import { prisma } from "@/lib/prisma";

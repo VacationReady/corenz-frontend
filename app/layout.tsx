@@ -1,4 +1,7 @@
 // /app/layout.tsx
+
+"use client"; // ✅ ADD THIS LINE
+
 import "./globals.css";
 import { ReactNode } from "react";
 

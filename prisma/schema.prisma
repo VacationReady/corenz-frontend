@@ -7,6 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  BEREAVEMENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
 model User {
   id              String           @id @default(cuid())
   email           String           @unique
@@ -65,54 +84,27 @@ model JobRole {
 }
 
 model LeaveRequest {
-  id         String      @id @default(cuid())
-  employeeId String
-  employee   Employee    @relation(fields: [employeeId], references: [id])
-  startDate  DateTime
-  endDate    DateTime
-  type       LeaveType
-  status     LeaveStatus @default(PENDING)
-
-  reason String? // ✅ ADDED for leave reason notes
-
-  reviewedBy String?
-  reviewer   User?   @relation("ReviewedByUser", fields: [reviewedBy], references: [id])
-
-  userId String?
-  user   User?   @relation("RequestingUser", fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// 🚀 NEW: LeaveEntitlement model for NZ leave compliance
-model LeaveEntitlement {
-  id              String   @id @default(cuid())
-  employee        Employee @relation(fields: [employeeId], references: [id])
-  employeeId      String   @unique
-  annualDays      Int      @default(20)
-  sickDays        Int      @default(10)
-  bereavementDays Int      @default(0)
+  id              String          @id @default(cuid())
+  employeeId      String
+  employee        Employee        @relation(fields: [employeeId], references: [id])
+  type            LeaveType
   startDate       DateTime
-  resetDate       DateTime
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  endDate         DateTime
+  reason          String?
+  approvalStatus  ApprovalStatus  @default(PENDING)
+  approvedById    String?
+  approvedBy      User?           @relation("ReviewedByUser", fields: [approvedById], references: [id])
+  createdById     String
+  createdBy       User            @relation("RequestingUser", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
-enum LeaveStatus {
-  PENDING
-  APPROVED
-  DECLINED
-}
-
-enum LeaveType {
-  ANNUAL
-  SICK
-  BEREAVEMENT
-}
-
-enum Role {
-  EMPLOYEE
-  MANAGER
-  ADMIN
+model LeaveEntitlement {
+  id          String      @id @default(cuid())
+  employeeId  String      @unique
+  employee    Employee    @relation(fields: [employeeId], references: [id])
+  annual      Int         @default(0)
+  sick        Int         @default(0)
+  bereavement Int         @default(0)
 }

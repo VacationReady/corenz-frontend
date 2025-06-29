@@ -77,6 +77,10 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
               leaveEntitlement={employee.leaveEntitlement}
               employeeId={employee.id}
             />
+<AddLeaveRequestDialog
+  employeeId={employee.id}
+  isAdminOrManager={true} // replace with logic if role checking is ready
+/>
           </div>
         </Card>
       </div>

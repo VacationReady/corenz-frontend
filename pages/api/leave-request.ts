@@ -25,8 +25,8 @@ export default async function handler(req, res) {
 
       const newLeaveRequest = await prisma.leaveRequest.create({
         data: {
-          createdBy: { connect: { id: session.user.id } }, // ✅ correct field
-          employeeId: employee.id,
+          createdBy: { connect: { id: session.user.id } }, // ✅ correct relation
+          employee: { connect: { id: employee.id } },      // ✅ correct relation
           type,
           startDate: new Date(startDate),
           endDate: new Date(endDate),

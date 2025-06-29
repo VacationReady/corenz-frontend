@@ -1,61 +1,33 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-// GET: Fetch leave requests for a specific employee
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-  try {
-    const leaveRequests = await prisma.leaveRequest.findMany({
-      where: { employeeId: params.id },
-      select: {
-        id: true,
-        startDate: true,
-        endDate: true,
-        type: true,
-        status: true,
-        reason: true,
-      },
-      orderBy: { startDate: "asc" },
-    });
-
-    return NextResponse.json(leaveRequests);
-  } catch (error) {
-    console.error("Error fetching leave requests:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch leave requests." },
-      { status: 500 }
-    );
-  }
-}
-
-// POST: Create a leave request for a specific employee
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
+    const employeeId = params.id;
     const body = await req.json();
-    const { startDate, endDate, type, reason, status } = body; // ✅ extract status
+    const { type, startDate, endDate, reason, status } = body;
 
-    if (!startDate || !endDate || !type) {
-      return NextResponse.json(
-        { success: false, error: "Missing required fields." },
-        { status: 400 }
-      );
+    // Basic validation
+    if (!type || !startDate || !endDate) {
+      return NextResponse.json({ success: false, error: "Missing required fields." }, { status: 400 });
     }
 
-    const leaveRequest = await prisma.leaveRequest.create({
+    const newLeaveRequest = await prisma.leaveRequest.create({
       data: {
-        employee: { connect: { id: params.id } },
+        employee: { connect: { id: employeeId } },
+        type,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        type,
-        reason,
-        status: status ?? "PENDING", // ✅ allow admin override if provided
+        reason: reason ?? "",
+        status: status ?? "PENDING", // fallback if status is undefined
       },
     });
 
-    return NextResponse.json({ success: true, leaveRequest });
-  } catch (error) {
-    console.error("Error creating leave request:", error);
+    return NextResponse.json({ success: true, data: newLeaveRequest });
+  } catch (error: any) {
+    console.error("API error creating leave request:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create leave request." },
+      { success: false, error: error.message || "Failed to create leave request." },
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import PersonalInfoPanel from "@/components/PersonalInfoPanel";
+import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import { prisma } from "@/lib/prisma";
 
 interface PageProps {

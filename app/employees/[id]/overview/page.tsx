@@ -2,8 +2,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import PersonalInfoPanel from "@/components/PersonalInfoPanel";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // ✅ Added
-import Button from "@/components/ui/Button"; // ✅ Ensure your Button import for test trigger
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"; // ✅ Updated
+import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 
 interface PageProps {
@@ -82,7 +82,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             />
             <AddLeaveRequestDialog
               employeeId={employee.id}
-              isAdminOrManager={true} // replace with logic if role checking is ready
+              isAdminOrManager={true}
             />
 
             {/* ✅ TEST MODAL FOR DEBUGGING */}
@@ -93,8 +93,11 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Test Modal</DialogTitle>
+                  <DialogDescription>
+                    This confirms your Dialog component is functioning and opens correctly.
+                  </DialogDescription>
                 </DialogHeader>
-                <p>This confirms your Dialog component is functioning and opens correctly.</p>
+                <p>If you can see this modal, your Dialog system is working correctly.</p>
               </DialogContent>
             </Dialog>
           </div>

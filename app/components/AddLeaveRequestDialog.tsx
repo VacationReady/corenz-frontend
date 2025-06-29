@@ -40,6 +40,8 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
   }, [startDate, endDate]);
 
   const handleSubmit = async () => {
+    console.log("Submitting leave request:", { type, startDate, endDate, reason });
+
     if (!type || !startDate || !endDate) {
       toast.error("Please fill in all required fields.");
       return;
@@ -70,6 +72,8 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
       });
 
       const data = await res.json();
+      console.log("API response:", data);
+
       if (!res.ok || data.success === false) {
         throw new Error(data.error || "Failed to submit leave request.");
       }
@@ -91,7 +95,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
 
   return (
     <>
-      <Button variant="ghost" onClick={() => setIsOpen(true)}>
+      <Button variant="primary" onClick={() => setIsOpen(true)}>
         Book Leave
       </Button>
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
@@ -122,7 +126,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
             <label className="block text-sm font-medium">Reason (optional)</label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional reason" />
           </div>
-          <Button onClick={handleSubmit} loading={loading} disabled={loading}>
+          <Button variant="primary" onClick={handleSubmit} loading={loading} disabled={loading}>
             Submit Request
           </Button>
         </div>

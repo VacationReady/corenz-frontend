@@ -11,12 +11,11 @@ interface AddLeaveRequestDialogProps {
   isAdminOrManager: boolean;
 }
 
+// ✅ Aligned with your schema
 const leaveTypes = [
-  { label: "Annual Leave", value: "ANNUAL_LEAVE" },
-  { label: "Sick Leave", value: "SICK_LEAVE" },
-  { label: "Dentist", value: "DENTIST" },
-  { label: "Doctor", value: "DOCTOR" },
-  { label: "Other", value: "OTHER" },
+  { label: "Annual Leave", value: "ANNUAL" },
+  { label: "Sick Leave", value: "SICK" },
+  { label: "Bereavement", value: "BEREAVEMENT" },
 ];
 
 export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: AddLeaveRequestDialogProps) {
@@ -52,7 +51,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
       return;
     }
 
-    if (!isAdminOrManager && type === "SICK_LEAVE") {
+    if (!isAdminOrManager && type === "SICK") {
       toast.error("Only managers/admins can book sick leave directly.");
       return;
     }
@@ -95,7 +94,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
 
   return (
     <>
-      <Button variant="primary" onClick={() => setIsOpen(true)}>
+      <Button variant="ghost" onClick={() => setIsOpen(true)}>
         Book Leave
       </Button>
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
@@ -126,7 +125,7 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
             <label className="block text-sm font-medium">Reason (optional)</label>
             <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional reason" />
           </div>
-          <Button variant="primary" onClick={handleSubmit} loading={loading} disabled={loading}>
+          <Button variant="ghost" onClick={handleSubmit} loading={loading} disabled={loading}>
             Submit Request
           </Button>
         </div>

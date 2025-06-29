@@ -23,11 +23,11 @@ export default async function handler(req, res) {
       const updatedLeave = await prisma.leaveRequest.update({
         where: { id: id as string },
         data: {
-          status,
-          reviewedBy: session.user.id,
+          approvalStatus: status, // ✅ correct field
+          approvedBy: { connect: { id: session.user.id } }, // ✅ correct relation
         },
         include: {
-          reviewer: {
+          approvedBy: {
             select: { name: true },
           },
         },

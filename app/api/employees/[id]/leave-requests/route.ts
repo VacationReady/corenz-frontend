@@ -22,6 +22,13 @@ export async function GET(req: Request) {
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
         approvalStatus: status,
+        ...(session.user.role === "MANAGER" && {
+          employee: {
+            user: {
+              managerId: session.user.id, // ✅ Filter to direct reports only for managers
+            },
+          },
+        }),
       },
       select: {
         id: true,
@@ -54,7 +61,7 @@ export async function GET(req: Request) {
   }
 }
 
-// Existing POST handler remains for leave request creation
+// Existing POST handler for leave request creation
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);

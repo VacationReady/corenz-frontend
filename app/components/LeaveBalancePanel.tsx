@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import EditEntitlementModal from "@/app/employees/[id]/overview/EditEntitlementModal";
+import EditEntitlementModal from "@/components/EditEntitlementModal";
 
 interface LeaveEntitlement {
   id: string;

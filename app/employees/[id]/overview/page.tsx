@@ -1,8 +1,8 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import PersonalInfoPanel from "@/components/PersonalInfoPanel";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"; // ✅ Updated
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 
@@ -45,6 +45,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Personal Info Panel */}
         <Card>
           <div className="border-b p-4">
             <h2 className="text-lg font-semibold">Personal Info</h2>
@@ -71,6 +72,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           </div>
         </Card>
 
+        {/* Leave Balances + Leave Booking */}
         <Card>
           <div className="border-b p-4">
             <h2 className="text-lg font-semibold">Leave Balances</h2>
@@ -80,12 +82,14 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
               leaveEntitlement={employee.leaveEntitlement}
               employeeId={employee.id}
             />
+
+            {/* ✅ Leave Booking Button */}
             <AddLeaveRequestDialog
               employeeId={employee.id}
               isAdminOrManager={true}
             />
 
-            {/* ✅ TEST MODAL FOR DEBUGGING */}
+            {/* ✅ Test Modal for Debugging */}
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="ghost">Open Test Modal</Button>

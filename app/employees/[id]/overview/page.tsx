@@ -57,8 +57,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                 department: employee.user.department?.name ?? undefined,
                 startDate: employee.user.createdAt,
                 employmentStatus: employee.isActive ? "Active" : "Inactive",
+                manager: employee.user.manager ?? undefined, // ✅ added here
               }}
-              manager={employee.user.manager}
             />
           </div>
         </Card>

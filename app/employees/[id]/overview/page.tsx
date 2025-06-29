@@ -2,6 +2,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import PersonalInfoPanel from "@/components/PersonalInfoPanel";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // ✅ Added
+import Button from "@/components/ui/Button"; // ✅ Ensure your Button import for test trigger
 import { prisma } from "@/lib/prisma";
 
 interface PageProps {
@@ -73,15 +75,28 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           <div className="border-b p-4">
             <h2 className="text-lg font-semibold">Leave Balances</h2>
           </div>
-          <div className="p-4">
+          <div className="p-4 space-y-4">
             <LeaveBalancePanel
               leaveEntitlement={employee.leaveEntitlement}
               employeeId={employee.id}
             />
-<AddLeaveRequestDialog
-  employeeId={employee.id}
-  isAdminOrManager={true} // replace with logic if role checking is ready
-/>
+            <AddLeaveRequestDialog
+              employeeId={employee.id}
+              isAdminOrManager={true} // replace with logic if role checking is ready
+            />
+
+            {/* ✅ TEST MODAL FOR DEBUGGING */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost">Open Test Modal</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Test Modal</DialogTitle>
+                </DialogHeader>
+                <p>This confirms your Dialog component is functioning and opens correctly.</p>
+              </DialogContent>
+            </Dialog>
           </div>
         </Card>
       </div>

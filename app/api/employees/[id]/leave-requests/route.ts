@@ -4,16 +4,18 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch leave requests for a specific employee
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const leaveRequest = await prisma.leaveRequest.create({
-  data: {
-    employee: { connect: { id: params.id } },
-    startDate: new Date(startDate),
-    endDate: new Date(endDate),
-    type,
-    reason,
-    status: status ?? "PENDING", // allow overriding if provided
-  },
-});
+    const leaveRequests = await prisma.leaveRequest.findMany({
+      where: { employeeId: params.id },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        type: true,
+        status: true,
+        reason: true,
+      },
+      orderBy: { startDate: "asc" },
+    });
 
     return NextResponse.json(leaveRequests);
   } catch (error) {
@@ -28,7 +30,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 // POST: Create a leave request for a specific employee
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
-    const { startDate, endDate, type, reason } = await req.json();
+    const body = await req.json();
+    const { startDate, endDate, type, reason, status } = body; // ✅ extract status
 
     if (!startDate || !endDate || !type) {
       return NextResponse.json(
@@ -44,7 +47,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         endDate: new Date(endDate),
         type,
         reason,
-        status: "PENDING",
+        status: status ?? "PENDING", // ✅ allow admin override if provided
       },
     });
 

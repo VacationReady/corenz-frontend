@@ -1,75 +1,67 @@
-"use client";
+// app/employees/[id]/overview/page.tsx
 
-import { useEffect, useState } from "react";
-import LeaveCalendar from "./LeaveCalendar";
-import EditEntitlementModal from "./EditEntitlementModal";
-import Button from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import LeaveCalendar from "@/components/LeaveCalendar";
+import PersonalInfoPanel from "@/components/PersonalInfoPanel";
+import LeaveBalancePanel from "@/components/LeaveBalancePanel";
+import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
+import { prisma } from "@/lib/prisma";
 
-export default function EmployeeOverview({ params }: { params: { id: string } }) {
-    const [employee, setEmployee] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+interface PageProps {
+  params: { id: string };
+}
 
-    const fetchEmployee = async () => {
-        try {
-            const res = await fetch(`/api/employees/${params.id}`);
-            if (!res.ok) throw new Error("Employee not found");
-            const data = await res.json();
-            setEmployee(data);
-        } catch (error) {
-            console.error("Error fetching employee:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+export default async function EmployeeOverviewPage({ params }: PageProps) {
+  const employeeId = params.id;
 
-    useEffect(() => {
-        fetchEmployee();
-    }, []);
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    include: {
+      leaveEntitlements: true,
+      leaveRequests: true,
+    },
+  });
 
-    if (loading) return <p className="p-4">Loading...</p>;
-    if (!employee) return <p className="p-4 text-red-500">Employee not found</p>;
+  if (!employee) {
+    return <div className="p-6">Employee not found.</div>;
+  }
 
-    const { user, leaveEntitlement } = employee;
+  return (
+    <div className="p-4 md:p-8 space-y-6 max-w-5xl mx-auto">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">{employee.firstName} {employee.lastName} - Overview</h1>
+        <AddLeaveRequestDialog employeeId={employee.id} />
+      </div>
 
-    return (
-        <div className="max-w-3xl mx-auto p-4 space-y-4">
-            {/* Employee Profile */}
-            <Card className="p-4">
-                <h2 className="text-xl font-semibold">{user.firstName} {user.lastName}</h2>
-                <p><strong>Email:</strong> {user.email}</p>
-                <p><strong>Phone:</strong> {user.phone}</p>
-                <p><strong>Department:</strong> {user.department?.name || "N/A"}</p>
-                <p><strong>Job Role:</strong> {user.jobRole?.name || "N/A"}</p>
-            </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Personal Info</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PersonalInfoPanel employee={employee} />
+          </CardContent>
+        </Card>
 
-            {/* Leave Entitlement Section */}
-            <Card className="p-4">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Leave Entitlements</h3>
-                    <Button onClick={() => setShowModal(true)}>Edit Entitlement</Button>
-                </div>
-                <ul className="mt-2 space-y-1">
-                    <li>Annual Leave: {leaveEntitlement?.annualLeave ?? 20} days</li>
-                    <li>Sick Leave: {leaveEntitlement?.sickLeave ?? 10} days</li>
-                    <li>Bereavement Leave: {leaveEntitlement?.bereavement ?? 3} days</li>
-                </ul>
-            </Card>
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Leave Balances</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LeaveBalancePanel leaveEntitlements={employee.leaveEntitlements} employeeId={employee.id} />
+          </CardContent>
+        </Card>
 
-            {/* Leave Calendar */}
-            <Card className="p-4">
-                <LeaveCalendar employeeId={employee.id} />
-            </Card>
-
-            <EditEntitlementModal
-                open={showModal}
-                setOpen={setShowModal}
-                employeeId={employee.id}
-                currentEntitlement={leaveEntitlement}
-                refresh={fetchEmployee}
-            />
-        </div>
-    );
+        <Card className="col-span-1 md:col-span-1">
+          <CardHeader>
+            <CardTitle>Leave Calendar</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LeaveCalendar leaveRequests={employee.leaveRequests} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

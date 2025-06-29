@@ -1,31 +1,18 @@
 "use client";
-import React from "react";
-import clsx from "clsx";
 
-type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  variant?: "default" | "dark";
-};
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ variant = "default", className, ...props }, ref) => {
-    const baseClasses =
-      "block w-full rounded-lg border px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200";
-    const variants = {
-      default: "bg-white border-gray-300 text-gray-900 placeholder-gray-400",
-      dark: "bg-neutral-800 border-neutral-700 text-white placeholder-gray-400",
-    };
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
-    return (
-      <input
-        ref={ref}
-        className={clsx(baseClasses, variants[variant], className)}
-        {...props}
-      />
-    );
-  }
-);
-
-Input.displayName = "Input";
-
-export default function Input(...) { ... }
-
+export default function Input({ className, ...props }: InputProps) {
+  return (
+    <input
+      className={cn(
+        "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        className
+      )}
+      {...props}
+    />
+  );
+}

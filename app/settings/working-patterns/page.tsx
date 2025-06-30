@@ -113,7 +113,7 @@ export default function WorkingPatternsPage() {
               <p className="text-sm text-gray-600">{pattern.description}</p>
               <p className="text-sm">Days: {pattern.workingDays.join(', ')}</p>
             </div>
-            <Button variant="destructive" onClick={() => handleArchive(pattern.id)}>
+            <Button variant="ghost" onClick={() => handleArchive(pattern.id)}>
               Archive
             </Button>
           </Card>

@@ -1,4 +1,5 @@
-/* app/settings/working-patterns/page.tsx */
+```tsx
+// app/settings/working-patterns/page.tsx
 
 'use client';
 
@@ -29,9 +30,9 @@ export default function WorkingPatternsPage() {
     fetchPatterns();
   }, []);
 
-  const handleCheckboxChange = (day: string) => {
+  const handleCheckboxChange = (day: string, checked: boolean) => {
     setWorkingDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      checked ? [...prev, day] : prev.filter((d) => d !== day)
     );
   };
 
@@ -92,7 +93,7 @@ export default function WorkingPatternsPage() {
                     <Checkbox
                       id={day}
                       checked={workingDays.includes(day)}
-                      onCheckedChange={() => handleCheckboxChange(day)}
+                      onCheckedChange={(checked) => handleCheckboxChange(day, Boolean(checked))}
                     />
                     <label htmlFor={day} className="text-sm">
                       {day}
@@ -113,7 +114,7 @@ export default function WorkingPatternsPage() {
               <p className="text-sm text-gray-600">{pattern.description}</p>
               <p className="text-sm">Days: {pattern.workingDays.join(', ')}</p>
             </div>
-            <Button variant="ghost" onClick={() => handleArchive(pattern.id)}>
+            <Button variant="danger" onClick={() => handleArchive(pattern.id)}>
               Archive
             </Button>
           </Card>
@@ -122,3 +123,4 @@ export default function WorkingPatternsPage() {
     </div>
   );
 }
+```

@@ -16,7 +16,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
     include: {
-      leaveEntitlement: true,
+      leaveEntitlements: true,
       user: {
         select: {
           firstName: true,

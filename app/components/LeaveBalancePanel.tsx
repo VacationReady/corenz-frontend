@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EditEntitlementModal from "@/components/EditEntitlementModal";
 
-interface LeaveEntitlement {
+interface leaveEntitlements {
   id: string;
   annual: number;
   sick: number;
@@ -13,17 +13,17 @@ interface LeaveEntitlement {
 }
 
 interface LeaveBalancePanelProps {
-  leaveEntitlement: LeaveEntitlement | null;
+  leaveEntitlements: leaveEntitlements | null;
   employeeId: string;
 }
 
 export default function LeaveBalancePanel({
-  leaveEntitlement,
+  leaveEntitlements,
   employeeId,
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const currentEntitlement = leaveEntitlement;
+  const currentEntitlement = leaveEntitlements;
 
   return (
     <div className="space-y-2 text-sm">

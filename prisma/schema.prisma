@@ -119,13 +119,29 @@ model LeaveEntitlement {
 }
 
 model WorkingPattern {
-  id          String     @id @default(cuid())
-  name        String     @unique      // ✅ add this
+  id          String               @id @default(cuid())
+  name        String               @unique
   description String?
-  workingDays String[]
-  active      Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  active      Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   employees   Employee[]
+  days        WorkingPatternDay[]  // ✅ relational structured days
+}
+
+model WorkingPatternDay {
+  id               String          @id @default(cuid())
+  day              String          // "Mon", "Tue", etc.
+  type             DayType         // "FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"
+  workingPattern   WorkingPattern  @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
+  workingPatternId String
+
+  @@unique([day, workingPatternId])  // Prevent duplicate days per pattern
+}
+
+enum DayType {
+  FULL_DAY
+  HALF_DAY_AM
+  HALF_DAY_PM
 }

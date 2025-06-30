@@ -18,7 +18,10 @@ const leaveTypes = [
   { label: "Bereavement", value: "BEREAVEMENT" },
 ];
 
-export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: AddLeaveRequestDialogProps) {
+export default function AddLeaveRequestDialog({
+  employeeId,
+  isAdminOrManager,
+}: AddLeaveRequestDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [type, setType] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -31,7 +34,9 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const diff =
+        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+        1;
       setTotalDays(diff > 0 ? diff : 0);
     } else {
       setTotalDays(0);
@@ -74,7 +79,11 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
       console.log("API response:", data);
 
       if (!res.ok || data.success === false) {
-        throw new Error(data.error || "Failed to submit leave request.");
+        const errorMessage =
+          data.error ||
+          "Failed to submit leave request. Please check your details and try again.";
+        toast.error(errorMessage);
+        return; // ✅ Do not close the modal on error
       }
 
       toast.success("Leave request submitted successfully.");
@@ -86,7 +95,9 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
       setTotalDays(0);
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "An error occurred while submitting the leave request.");
+      toast.error(
+        error.message || "An error occurred while submitting the leave request."
+      );
     } finally {
       setLoading(false);
     }
@@ -108,24 +119,45 @@ export default function AddLeaveRequestDialog({ employeeId, isAdminOrManager }: 
             >
               <option value="">Select Leave Type</option>
               {leaveTypes.map((lt) => (
-                <option key={lt.value} value={lt.value}>{lt.label}</option>
+                <option key={lt.value} value={lt.value}>
+                  {lt.label}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium">Start Date</label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium">End Date</label>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
           </div>
           <p className="text-sm text-gray-700">Total Days: {totalDays}</p>
           <div>
-            <label className="block text-sm font-medium">Reason (optional)</label>
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional reason" />
+            <label className="block text-sm font-medium">
+              Reason (optional)
+            </label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Optional reason"
+            />
           </div>
-          <Button variant="ghost" onClick={handleSubmit} loading={loading} disabled={loading}>
+          <Button
+            variant="ghost"
+            onClick={handleSubmit}
+            loading={loading}
+            disabled={loading}
+          >
             Submit Request
           </Button>
         </div>

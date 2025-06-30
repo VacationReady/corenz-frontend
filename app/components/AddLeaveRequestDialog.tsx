@@ -11,7 +11,6 @@ interface AddLeaveRequestDialogProps {
   isAdminOrManager: boolean;
 }
 
-// Aligned with your schema
 const leaveTypes = [
   { label: "Annual Leave", value: "ANNUAL" },
   { label: "Sick Leave", value: "SICK" },
@@ -77,10 +76,10 @@ export default function AddLeaveRequestDialog({
 
       if (!res.ok || data.success === false) {
         const errorMessage =
-          data.error ||
+          data?.error ||
           "Failed to submit leave request. Please check your details and try again.";
         toast.error(errorMessage);
-        return; // keep modal open on error
+        return; // ✅ Keep modal open on error
       }
 
       toast.success("Leave request submitted successfully.");
@@ -141,9 +140,7 @@ export default function AddLeaveRequestDialog({
           </div>
           <p className="text-sm text-gray-700">Total Days: {totalDays}</p>
           <div>
-            <label className="block text-sm font-medium">
-              Reason (optional)
-            </label>
+            <label className="block text-sm font-medium">Reason (optional)</label>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}

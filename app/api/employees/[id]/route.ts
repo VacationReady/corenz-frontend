@@ -24,7 +24,7 @@ export async function GET(
             jobRole: { select: { id: true, name: true } },
           },
         },
-        leaveEntitlement: true,
+        leaveEntitlements: true,
         leaveRequests: true,
       },
     });

@@ -1,27 +1,61 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
-import Button from "@/components/ui/Button"
-import { useState } from "react";
+import Button from "@/components/ui/Button";
+import { useState, useEffect } from "react";
+import { LeaveType } from "@prisma/client";
+
+interface LeaveEntitlement {
+    id: string;
+    employeeId: string;
+    leaveType: LeaveType;
+    totalDays: number;
+    usedDays: number;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
 export default function EditEntitlementModal({
     open,
     setOpen,
     employeeId,
-    currentEntitlement,
-    refresh
+    currentEntitlements,
+    refresh,
 }: {
     open: boolean;
     setOpen: (open: boolean) => void;
     employeeId: string;
-    currentEntitlement: any;
+    currentEntitlements: LeaveEntitlement[];
     refresh: () => void;
 }) {
-    const [annualLeave, setAnnualLeave] = useState(currentEntitlement?.annualLeave ?? 20);
-    const [sickLeave, setSickLeave] = useState(currentEntitlement?.sickLeave ?? 10);
-    const [bereavement, setBereavement] = useState(currentEntitlement?.bereavement ?? 3);
+    const [annualLeave, setAnnualLeave] = useState(20);
+    const [sickLeave, setSickLeave] = useState(10);
+    const [bereavement, setBereavement] = useState(3);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (currentEntitlements) {
+            const annual = currentEntitlements.find(
+                (e) => e.leaveType === "ANNUAL"
+            )?.totalDays;
+            const sick = currentEntitlements.find(
+                (e) => e.leaveType === "SICK"
+            )?.totalDays;
+            const bereave = currentEntitlements.find(
+                (e) => e.leaveType === "BEREAVEMENT"
+            )?.totalDays;
+
+            if (annual !== undefined) setAnnualLeave(annual);
+            if (sick !== undefined) setSickLeave(sick);
+            if (bereave !== undefined) setBereavement(bereave);
+        }
+    }, [currentEntitlements]);
 
     const handleSubmit = async () => {
         if (annualLeave < 20 || sickLeave < 10 || bereavement < 3) {
@@ -33,7 +67,11 @@ export default function EditEntitlementModal({
             const res = await fetch(`/api/employees/${employeeId}/entitlement`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ annualLeave, sickLeave, bereavement }),
+                body: JSON.stringify([
+                    { leaveType: "ANNUAL", totalDays: annualLeave },
+                    { leaveType: "SICK", totalDays: sickLeave },
+                    { leaveType: "BEREAVEMENT", totalDays: bereavement },
+                ]),
             });
             if (!res.ok) throw new Error("Failed to update entitlement.");
             setOpen(false);

@@ -1,41 +1,51 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET all working patterns
-export async function GET() {
+// GET a single pattern with structured days
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const patterns = await prisma.workingPattern.findMany({
-      where: { active: true },
-      orderBy: { name: "asc" },
-      include: { days: true }, // prepare for structured day retrieval
+    const pattern = await prisma.workingPattern.findUnique({
+      where: { id: params.id },
+      include: { days: true },
     });
-    return NextResponse.json(patterns, { status: 200 });
+    return NextResponse.json(pattern, { status: 200 });
   } catch (error) {
-    console.error("GET /api/working-patterns error:", error);
-    return NextResponse.json({ message: "Error fetching patterns" }, { status: 500 });
+    console.error("GET /api/working-patterns/[id] error:", error);
+    return NextResponse.json({ message: "Error fetching pattern" }, { status: 500 });
   }
 }
 
-// CREATE a working pattern (name, description only for now)
-export async function POST(req: Request) {
+// UPDATE a single pattern (name and description only for now)
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const data = await req.json();
 
-    if (!data.name) {
-      return NextResponse.json({ message: "Name is required" }, { status: 400 });
-    }
-
-    const pattern = await prisma.workingPattern.create({
+    const updated = await prisma.workingPattern.update({
+      where: { id: params.id },
       data: {
         name: data.name,
         description: data.description,
-        // workingDays removed, replaced later with structured createMany for days
+        // workingDays removed, structured days will be handled later
       },
     });
 
-    return NextResponse.json(pattern, { status: 201 });
+    return NextResponse.json(updated, { status: 200 });
   } catch (error) {
-    console.error("POST /api/working-patterns error:", error);
-    return NextResponse.json({ message: "Error creating working pattern" }, { status: 500 });
+    console.error("PUT /api/working-patterns/[id] error:", error);
+    return NextResponse.json({ message: "Error updating pattern" }, { status: 500 });
+  }
+}
+
+// ARCHIVE (soft delete) a single pattern
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const archived = await prisma.workingPattern.update({
+      where: { id: params.id },
+      data: { active: false },
+    });
+    return NextResponse.json(archived, { status: 200 });
+  } catch (error) {
+    console.error("DELETE /api/working-patterns/[id] error:", error);
+    return NextResponse.json({ message: "Error archiving pattern" }, { status: 500 });
   }
 }

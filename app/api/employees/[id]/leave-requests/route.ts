@@ -23,13 +23,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, managerId: true },
-        },
+  where: { id: employeeId },
+  include: {
+    user: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        managerId: true,
+        firstName: true,     // ✅ add this
+        lastName: true       // ✅ add this
       },
-    });
+    },
+  },
+});
 
     if (!employee) {
       console.log("❌ Employee not found for leave request");

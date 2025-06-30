@@ -34,10 +34,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(pattern, { status: 201 });
-  } catch (error: any) {
-    console.error("POST /api/working-patterns error:", error);
-    if (error.code === 'P2002') {
-        return NextResponse.json({ message: 'A working pattern with this name already exists.' }, { status: 400 });
+  } } catch (error: any) {
+    console.error("POST /api/working-patterns error:", JSON.stringify(error, null, 2));
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return NextResponse.json({ message: "A working pattern with this name already exists." }, { status: 400 });
     }
     return NextResponse.json({ message: "Error creating working pattern" }, { status: 500 });
 }

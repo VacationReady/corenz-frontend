@@ -33,7 +33,15 @@ export async function sendLeaveNotification({
           <li><strong>Dates:</strong> ${formattedStart} to ${formattedEnd}</li>
           <li><strong>Status:</strong> ${status}</li>
         </ul>
-        <p>Log in to CoreNZ to view or action this request.</p>
+        <p>
+          <a 
+            href="https://corenz.vercel.app/dashboard/approvals" 
+            style="background-color:#1d4ed8;color:white;padding:10px 15px;text-decoration:none;border-radius:5px;display:inline-block;"
+            target="_blank"
+          >
+            Click here to login and approve this request
+          </a>
+        </p>
         <br/>
         <p style="font-size: 12px; color: #6b7280;">CoreNZ HRIS System</p>
       </div>

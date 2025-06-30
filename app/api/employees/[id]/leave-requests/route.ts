@@ -65,15 +65,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       console.log("Type:", type, "Start:", startDate, "End:", endDate);
 
       if (manager?.email) {
-        await sendLeaveNotification({
-          to: manager.email,
-          subject: `New Leave Request Submitted by ${employee.user.name || "Employee"}`,
-          employeeName: employee.user.name || "Employee",
-          type,
-          startDate,
-          endDate,
-          status: "PENDING",
-        });
+        // Build employee full name from firstName + lastName if available
+const employeeFullName = `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
+
+await sendLeaveNotification({
+    to: manager.email,
+    subject: `New Leave Request Submitted by ${employeeFullName}`,
+    employeeName: employeeFullName,
+    type,
+    startDate,
+    endDate,
+    status: "PENDING",
+});
       } else {
         console.log("❌ Manager email not found, skipping Resend notification");
       }

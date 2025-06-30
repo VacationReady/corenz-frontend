@@ -32,10 +32,11 @@ export async function POST(
           totalDays: entitlement.totalDays,
         },
         create: {
-          employeeId: employeeId,
-          leaveType: entitlement.leaveType,
-          totalDays: entitlement.totalDays,
-        },
+    employeeId: employeeId,
+    leaveType: entitlement.leaveType,
+    totalDays: entitlement.totalDays,
+    usedDays: 0, // or appropriate initial value
+},
       });
     }
 

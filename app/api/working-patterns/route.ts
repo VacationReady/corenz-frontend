@@ -7,6 +7,7 @@ export async function GET() {
     const patterns = await prisma.workingPattern.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
+      include: { days: true },
     });
     return NextResponse.json(patterns, { status: 200 });
   } catch (error) {
@@ -20,15 +21,15 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    if (!data.name || !Array.isArray(data.workingDays) || data.workingDays.length === 0) {
-      return NextResponse.json({ message: "Name and workingDays are required" }, { status: 400 });
+    if (!data.name) {
+      return NextResponse.json({ message: "Name is required" }, { status: 400 });
     }
 
     const pattern = await prisma.workingPattern.create({
       data: {
         name: data.name,
         description: data.description,
-        workingDays: data.workingDays,
+        // removed workingDays here
       },
     });
 

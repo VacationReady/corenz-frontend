@@ -4,16 +4,20 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EditEntitlementModal from "@/components/EditEntitlementModal";
+import { LeaveType } from "@prisma/client";
 
-interface leaveEntitlements {
+interface LeaveEntitlement {
   id: string;
-  annual: number;
-  sick: number;
-  bereavement: number;
+  employeeId: string;
+  leaveType: LeaveType;
+  totalDays: number;
+  usedDays: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface LeaveBalancePanelProps {
-  leaveEntitlements: leaveEntitlements | null;
+  leaveEntitlements: LeaveEntitlement[];
   employeeId: string;
 }
 
@@ -23,22 +27,15 @@ export default function LeaveBalancePanel({
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  const currentEntitlement = leaveEntitlements;
-
   return (
     <div className="space-y-2 text-sm">
-      {currentEntitlement ? (
-        <>
-          <p>
-            <strong>Annual Leave:</strong> {currentEntitlement.annual} days
+      {leaveEntitlements && leaveEntitlements.length > 0 ? (
+        leaveEntitlements.map((entitlement) => (
+          <p key={entitlement.id}>
+            <strong>{entitlement.leaveType} Leave:</strong>{" "}
+            {entitlement.totalDays - entitlement.usedDays} days remaining
           </p>
-          <p>
-            <strong>Sick Leave:</strong> {currentEntitlement.sick} days
-          </p>
-          <p>
-            <strong>Bereavement Leave:</strong> {currentEntitlement.bereavement} days
-          </p>
-        </>
+        ))
       ) : (
         <p>No entitlement data found.</p>
       )}
@@ -51,7 +48,7 @@ export default function LeaveBalancePanel({
         open={modalOpen}
         setOpen={setModalOpen}
         employeeId={employeeId}
-        currentEntitlement={currentEntitlement}
+        currentEntitlements={leaveEntitlements} // consider updating modal prop to accept an array
         refresh={() => window.location.reload()}
       />
     </div>

@@ -7,15 +7,17 @@ import Checkbox from '@/components/ui/Checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/Card';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [workingDays, setWorkingDays] = useState<string[]>([]); // will be replaced in next phase
+  const [workingDays, setWorkingDays] = useState<Record<string, string>>({}); // day: type
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayTypes = ['FULL_DAY', 'HALF_DAY_AM', 'HALF_DAY_PM'];
 
   const fetchPatterns = async () => {
     const res = await fetch('/api/working-patterns');
@@ -28,28 +30,46 @@ export default function WorkingPatternsPage() {
   }, []);
 
   const handleCheckboxChange = (day: string, checked: boolean) => {
-    setWorkingDays((prev) =>
-      checked ? [...prev, day] : prev.filter((d) => d !== day)
-    );
+    setWorkingDays((prev) => {
+      const updated = { ...prev };
+      if (checked) {
+        updated[day] = 'FULL_DAY';
+      } else {
+        delete updated[day];
+      }
+      return updated;
+    });
+  };
+
+  const handleTypeChange = (day: string, type: string) => {
+    setWorkingDays((prev) => ({
+      ...prev,
+      [day]: type,
+    }));
   };
 
   const handleSubmit = async () => {
-    if (!name || workingDays.length === 0) {
+    if (!name || Object.keys(workingDays).length === 0) {
       toast.error('Name and at least one working day are required');
       return;
     }
 
+    const daysPayload = Object.entries(workingDays).map(([day, type]) => ({
+      day,
+      type,
+    }));
+
     const res = await fetch('/api/working-patterns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description }),
+      body: JSON.stringify({ name, description, days: daysPayload }),
     });
 
     if (res.ok) {
       toast.success('Working pattern created');
       setName('');
       setDescription('');
-      setWorkingDays([]);
+      setWorkingDays({});
       setOpen(false);
       fetchPatterns();
     } else {
@@ -87,15 +107,31 @@ export default function WorkingPatternsPage() {
               <Input placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
               <div className="grid grid-cols-4 gap-2">
                 {days.map((day) => (
-                  <div key={day} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={day}
-                      checked={workingDays.includes(day)}
-                      onCheckedChange={(checked) => handleCheckboxChange(day, Boolean(checked))}
-                    />
-                    <label htmlFor={day} className="text-sm">
-                      {day}
-                    </label>
+                  <div key={day} className="flex flex-col space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={day}
+                        checked={day in workingDays}
+                        onCheckedChange={(checked) => handleCheckboxChange(day, Boolean(checked))}
+                      />
+                      <label htmlFor={day} className="text-sm">
+                        {day}
+                      </label>
+                    </div>
+                    {day in workingDays && (
+                      <Select value={workingDays[day]} onValueChange={(value) => handleTypeChange(day, value)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dayTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type.replace('_', ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 ))}
               </div>
@@ -112,7 +148,7 @@ export default function WorkingPatternsPage() {
               <p className="text-sm text-gray-600">{pattern.description}</p>
               <p className="text-sm">
                 Days: {pattern.days && pattern.days.length > 0
-                  ? pattern.days.map((d: any) => `${d.day} (${d.type})`).join(', ')
+                  ? pattern.days.map((d: any) => `${d.day} (${d.type.replace('_', ' ')})`).join(', ')
                   : 'None'}
               </p>
             </div>

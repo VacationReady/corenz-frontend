@@ -1,5 +1,14 @@
+
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { Prisma } from "@prisma/client";
+
+// Define schema for validation
+const WorkingPatternSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+});
 
 // GET all working patterns
 export async function GET() {
@@ -19,26 +28,38 @@ export async function GET() {
 // CREATE a working pattern
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
+    const json = await req.json();
 
-    if (!data.name) {
-      return NextResponse.json({ message: "Name is required" }, { status: 400 });
+    // Validate using Zod
+    const parsed = WorkingPatternSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Validation failed", errors: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
+
+    const { name, description } = parsed.data;
 
     const pattern = await prisma.workingPattern.create({
       data: {
-        name: data.name,
-        description: data.description,
-        // removed workingDays here
+        name,
+        description,
       },
     });
 
     return NextResponse.json(pattern, { status: 201 });
-  } } catch (error: any) {
+  } catch (error: any) {
     console.error("POST /api/working-patterns error:", JSON.stringify(error, null, 2));
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        return NextResponse.json({ message: "A working pattern with this name already exists." }, { status: 400 });
+      return NextResponse.json(
+        { message: "A working pattern with this name already exists." },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ message: "Error creating working pattern" }, { status: 500 });
-}
+    return NextResponse.json(
+      { message: "Error creating working pattern", error: error?.message || error },
+      { status: 500 }
+    );
+  }
 }

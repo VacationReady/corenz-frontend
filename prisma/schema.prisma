@@ -120,9 +120,9 @@ model LeaveEntitlement {
 
 model WorkingPattern {
   id          String     @id @default(cuid())
-  name        String
+  name        String     @unique      // ✅ add this
   description String?
-  workingDays String[]   // e.g., ["Mon", "Tue", "Wed", "Thu", "Fri"]
+  workingDays String[]
   active      Boolean    @default(true)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

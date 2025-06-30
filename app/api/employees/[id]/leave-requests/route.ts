@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
+import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -23,30 +24,39 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     const employee = await prisma.employee.findUnique({
-  where: { id: employeeId },
-  include: {
-    user: {
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        managerId: true,
-        firstName: true,     // ✅ add this
-        lastName: true       // ✅ add this
+      where: { id: employeeId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            managerId: true,
+            firstName: true,
+            lastName: true
+          },
+        },
       },
-    },
-  },
-});
+    });
 
     if (!employee) {
       console.log("❌ Employee not found for leave request");
       return NextResponse.json({ success: false, error: "Employee not found." }, { status: 404 });
     }
 
-    if (employee.user.id !== userId) {
+    if (employee.user.id !== userId && session.user.role !== "ADMIN") {
       console.log("❌ Unauthorized leave request submission attempt");
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
+
+    // ✅ Advanced entitlement and overlap validation
+    await validateLeaveRequest({
+      employeeId,
+      leaveType: type,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      isAdmin: session.user.role === "ADMIN",
+    });
 
     const newLeaveRequest = await prisma.leaveRequest.create({
       data: {
@@ -59,36 +69,24 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       },
     });
 
-    // Debug: Confirm managerId exists
     if (employee.user.managerId) {
       const manager = await prisma.user.findUnique({
         where: { id: employee.user.managerId },
         select: { email: true, name: true },
       });
 
-      console.log("🚀 Preparing to send Resend email to manager...");
-      console.log("Manager email:", manager?.email);
-      console.log("Employee name:", employee.user.name);
-      console.log("Type:", type, "Start:", startDate, "End:", endDate);
-
       if (manager?.email) {
-        // Build employee full name from firstName + lastName if available
-const employeeFullName = `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
-
-await sendLeaveNotification({
-    to: manager.email,
-    subject: `New Leave Request Submitted by ${employeeFullName}`,
-    employeeName: employeeFullName,
-    type,
-    startDate,
-    endDate,
-    status: "PENDING",
-});
-      } else {
-        console.log("❌ Manager email not found, skipping Resend notification");
+        const employeeFullName = `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
+        await sendLeaveNotification({
+          to: manager.email,
+          subject: `New Leave Request Submitted by ${employeeFullName}`,
+          employeeName: employeeFullName,
+          type,
+          startDate,
+          endDate,
+          status: "PENDING",
+        });
       }
-    } else {
-      console.log("❌ Manager ID not set for employee user, skipping Resend notification");
     }
 
     console.log("✅ Leave request created successfully:", newLeaveRequest.id);

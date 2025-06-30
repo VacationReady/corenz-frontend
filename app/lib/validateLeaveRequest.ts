@@ -3,7 +3,7 @@ import { LeaveType } from "@prisma/client";
 import { addDays, differenceInBusinessDays } from "date-fns";
 
 /**
- * Validates a leave request against entitlement and business rules with diagnostics.
+ * Validates a leave request against entitlement and business rules with clear diagnostic logging.
  */
 export async function validateLeaveRequest({
   employeeId,
@@ -18,14 +18,15 @@ export async function validateLeaveRequest({
   endDate: Date;
   isAdmin?: boolean;
 }) {
-  console.log("✅ validateLeaveRequest called with:", {
+  console.log("🛠️ [validateLeaveRequest] Called with:", {
     employeeId,
     leaveType,
-    startDate,
-    endDate,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
     isAdmin,
   });
 
+  // Fetch entitlement
   const entitlement = await prisma.leaveEntitlement.findUnique({
     where: {
       employeeId_leaveType: {
@@ -35,17 +36,17 @@ export async function validateLeaveRequest({
     },
   });
 
-  console.log("🔍 Fetched entitlement:", entitlement);
+  console.log("🔍 [validateLeaveRequest] Prisma.findUnique result:", entitlement);
 
   if (!entitlement) {
-    console.error("❌ No entitlement found, throwing error");
+    console.error("❌ [validateLeaveRequest] No entitlement found, throwing error.");
     throw new Error(`No entitlement found for leave type: ${leaveType}`);
   }
 
   const daysRequested = differenceInBusinessDays(endDate, startDate) + 1;
   const availableDays = entitlement.totalDays - entitlement.usedDays;
 
-  console.log("🔍 Entitlement check:", {
+  console.log("🔍 [validateLeaveRequest] Entitlement evaluation:", {
     daysRequested,
     availableDays,
     totalDays: entitlement.totalDays,
@@ -53,32 +54,32 @@ export async function validateLeaveRequest({
   });
 
   if (daysRequested > availableDays) {
-    console.error("❌ Insufficient entitlement, throwing error");
+    console.error("❌ [validateLeaveRequest] Insufficient entitlement, throwing error.");
     throw new Error(
       `Insufficient entitlement: Requested ${daysRequested} days, but only ${availableDays} available.`
     );
   }
 
-  // Enforce notice period for annual leave unless admin
+  // Notice period enforcement for annual leave unless admin
   if (leaveType === "ANNUAL" && !isAdmin) {
     const today = new Date();
     const minNoticeDate = addDays(today, 2);
 
-    console.log("🔍 Notice period check:", {
+    console.log("🔍 [validateLeaveRequest] Notice period check:", {
       today: today.toDateString(),
       minNoticeDate: minNoticeDate.toDateString(),
       startDate: startDate.toDateString(),
     });
 
     if (startDate < minNoticeDate) {
-      console.error("❌ Notice period not met, throwing error");
+      console.error("❌ [validateLeaveRequest] Notice period not met, throwing error.");
       throw new Error(
         `Annual leave requires at least 2 working days notice. Earliest start date: ${minNoticeDate.toDateString()}`
       );
     }
   }
 
-  // Overlap check:
+  // Overlap check
   const overlapping = await prisma.leaveRequest.findFirst({
     where: {
       employeeId,
@@ -92,12 +93,12 @@ export async function validateLeaveRequest({
     },
   });
 
-  console.log("🔍 Overlap check result:", overlapping);
+  console.log("🔍 [validateLeaveRequest] Overlap check result:", overlapping);
 
   if (overlapping) {
-    console.error("❌ Overlapping leave found, throwing error");
+    console.error("❌ [validateLeaveRequest] Overlapping leave found, throwing error.");
     throw new Error(`You already have a leave booked that overlaps these dates.`);
   }
 
-  console.log("✅ validateLeaveRequest passed all checks.");
+  console.log("✅ [validateLeaveRequest] All checks passed, proceeding with leave booking.");
 }

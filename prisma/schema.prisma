@@ -1,5 +1,3 @@
-// Existing generator and datasource remain unchanged
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -72,7 +70,7 @@ model Employee {
   leaveRequests     LeaveRequest[]
   leaveEntitlements LeaveEntitlement[]
 
-  // NEW: Working Pattern
+  // Working Pattern Relation
   workingPatternId  String?
   workingPattern    WorkingPattern?   @relation(fields: [workingPatternId], references: [id])
 }
@@ -111,14 +109,14 @@ model LeaveEntitlement {
   employee       Employee    @relation(fields: [employeeId], references: [id])
   employeeId     String
   leaveType      LeaveType
-  totalDays      Float       // using Float for future partial support
-  usedDays       Float       // using Float for future partial support
-  daysAllocated  Float       @default(0) // using Float to match
+  totalDays      Float
+  usedDays       Float
+  daysAllocated  Float       @default(0)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
-}
 
-// NEW: Working Pattern Model
+  @@unique([employeeId, leaveType])
+}
 
 model WorkingPattern {
   id          String     @id @default(cuid())
@@ -130,6 +128,4 @@ model WorkingPattern {
   updatedAt   DateTime   @updatedAt
 
   employees   Employee[]
-
-  @@index([active])
 }

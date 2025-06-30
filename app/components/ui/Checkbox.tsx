@@ -1,4 +1,3 @@
-```tsx
 // components/ui/Checkbox.tsx using Headless UI
 
 'use client';
@@ -22,4 +21,3 @@ export default function Checkbox({ id, checked, onCheckedChange }: CheckboxProps
     />
   );
 }
-```

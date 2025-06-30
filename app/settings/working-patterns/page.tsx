@@ -13,7 +13,7 @@ export default function WorkingPatternsPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [workingDays, setWorkingDays] = useState<string[]>([]);
+  const [workingDays, setWorkingDays] = useState<string[]>([]); // will be replaced in next phase
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -42,7 +42,7 @@ export default function WorkingPatternsPage() {
     const res = await fetch('/api/working-patterns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, workingDays }),
+      body: JSON.stringify({ name, description }),
     });
 
     if (res.ok) {
@@ -53,7 +53,8 @@ export default function WorkingPatternsPage() {
       setOpen(false);
       fetchPatterns();
     } else {
-      toast.error('Error creating working pattern');
+      const errorData = await res.json();
+      toast.error(errorData.message || 'Error creating working pattern');
     }
   };
 
@@ -109,7 +110,11 @@ export default function WorkingPatternsPage() {
             <div>
               <h2 className="font-semibold">{pattern.name}</h2>
               <p className="text-sm text-gray-600">{pattern.description}</p>
-              <p className="text-sm">Days: {pattern.workingDays.join(', ')}</p>
+              <p className="text-sm">
+                Days: {pattern.days && pattern.days.length > 0
+                  ? pattern.days.map((d: any) => `${d.day} (${d.type})`).join(', ')
+                  : 'None'}
+              </p>
             </div>
             <Button variant="danger" onClick={() => handleArchive(pattern.id)}>
               Archive

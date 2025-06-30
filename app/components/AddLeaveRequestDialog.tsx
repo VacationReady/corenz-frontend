@@ -71,15 +71,21 @@ export default function AddLeaveRequestDialog({
         }),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
       console.log("Leave request response:", data);
 
       if (!res.ok || data.success === false) {
         const errorMessage =
           data?.error ||
-          "Failed to submit leave request. Please check your details and try again.";
+          `Failed to submit leave request. Status: ${res.status}`;
         toast.error(errorMessage);
-        return; // ✅ Keep modal open on error
+        return; // keep modal open on error
       }
 
       toast.success("Leave request submitted successfully.");

@@ -58,10 +58,6 @@ export default function EditEntitlementModal({
     }, [currentEntitlements]);
 
     const handleSubmit = async () => {
-        if (annualLeave < 20 || sickLeave < 10 || bereavement < 3) {
-            alert("Cannot set entitlements below NZ legal minimums.");
-            return;
-        }
         setLoading(true);
         try {
             const res = await fetch(`/api/employees/${employeeId}/entitlement`, {

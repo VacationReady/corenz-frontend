@@ -11,7 +11,7 @@ interface AddLeaveRequestDialogProps {
   isAdminOrManager: boolean;
 }
 
-// ✅ Aligned with your schema
+// Aligned with your schema
 const leaveTypes = [
   { label: "Annual Leave", value: "ANNUAL" },
   { label: "Sick Leave", value: "SICK" },
@@ -35,8 +35,7 @@ export default function AddLeaveRequestDialog({
       const start = new Date(startDate);
       const end = new Date(endDate);
       const diff =
-        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
-        1;
+        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       setTotalDays(diff > 0 ? diff : 0);
     } else {
       setTotalDays(0);
@@ -44,8 +43,6 @@ export default function AddLeaveRequestDialog({
   }, [startDate, endDate]);
 
   const handleSubmit = async () => {
-    console.log("Submitting leave request:", { type, startDate, endDate, reason });
-
     if (!type || !startDate || !endDate) {
       toast.error("Please fill in all required fields.");
       return;
@@ -76,14 +73,14 @@ export default function AddLeaveRequestDialog({
       });
 
       const data = await res.json();
-      console.log("API response:", data);
+      console.log("Leave request response:", data);
 
       if (!res.ok || data.success === false) {
         const errorMessage =
           data.error ||
           "Failed to submit leave request. Please check your details and try again.";
         toast.error(errorMessage);
-        return; // ✅ Do not close the modal on error
+        return; // keep modal open on error
       }
 
       toast.success("Leave request submitted successfully.");
@@ -94,9 +91,10 @@ export default function AddLeaveRequestDialog({
       setReason("");
       setTotalDays(0);
     } catch (error: any) {
-      console.error(error);
+      console.error("Error submitting leave request:", error);
       toast.error(
-        error.message || "An error occurred while submitting the leave request."
+        error?.message ||
+          "An unexpected error occurred while submitting the leave request."
       );
     } finally {
       setLoading(false);
@@ -155,10 +153,9 @@ export default function AddLeaveRequestDialog({
           <Button
             variant="ghost"
             onClick={handleSubmit}
-            loading={loading}
             disabled={loading}
           >
-            Submit Request
+            {loading ? "Submitting..." : "Submit Request"}
           </Button>
         </div>
       </Modal>

@@ -1,13 +1,18 @@
-
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 
-// Define schema for validation
+// Zod schema for validation
 const WorkingPatternSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  days: z.array(
+    z.object({
+      day: z.string().min(1),
+      type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+    })
+  ).min(1, "At least one day must be provided"),
 });
 
 // GET all working patterns
@@ -30,7 +35,6 @@ export async function POST(req: Request) {
   try {
     const json = await req.json();
 
-    // Validate using Zod
     const parsed = WorkingPatternSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
@@ -39,13 +43,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description } = parsed.data;
+    const { name, description, days } = parsed.data;
 
     const pattern = await prisma.workingPattern.create({
       data: {
         name,
         description,
+        days: {
+          create: days.map((dayObj) => ({
+            day: dayObj.day,
+            type: dayObj.type,
+          })),
+        },
       },
+      include: { days: true },
     });
 
     return NextResponse.json(pattern, { status: 201 });

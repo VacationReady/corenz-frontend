@@ -21,7 +21,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const updatedLeaveRequest = await prisma.leaveRequest.update({
       where: { id: leaveRequestId },
       data: {
-        status,
+        approvalStatus: status, // ✅ Corrected field for Prisma
         reviewedBy: session.user.id,
       },
       include: {

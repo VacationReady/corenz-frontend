@@ -4,10 +4,10 @@
 
 import { useEffect, useState } from 'react';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import Card from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { toast } from 'sonner';
 
 export default function WorkingPatternsPage() {

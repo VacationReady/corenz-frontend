@@ -7,17 +7,21 @@ import Checkbox from '@/components/ui/Checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/Card';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Select from '@/components/ui/Select';
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [workingDays, setWorkingDays] = useState<Record<string, string>>({}); // day: type
+  const [workingDays, setWorkingDays] = useState<Record<string, string>>({});
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const dayTypes = ['FULL_DAY', 'HALF_DAY_AM', 'HALF_DAY_PM'];
+  const dayTypes = [
+    { label: 'Full Day', value: 'FULL_DAY' },
+    { label: 'Half Day AM', value: 'HALF_DAY_AM' },
+    { label: 'Half Day PM', value: 'HALF_DAY_PM' },
+  ];
 
   const fetchPatterns = async () => {
     const res = await fetch('/api/working-patterns');
@@ -119,18 +123,12 @@ export default function WorkingPatternsPage() {
                       </label>
                     </div>
                     {day in workingDays && (
-                      <Select value={workingDays[day]} onValueChange={(value) => handleTypeChange(day, value)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dayTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type.replace('_', ' ')}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Select
+                        value={workingDays[day]}
+                        onChange={(value) => handleTypeChange(day, value)}
+                        options={dayTypes}
+                        placeholder="Select type"
+                      />
                     )}
                   </div>
                 ))}

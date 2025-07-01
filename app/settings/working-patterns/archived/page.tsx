@@ -50,7 +50,7 @@ export default function ArchivedWorkingPatternsPage() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold">Archived Working Patterns</h1>
         <Link href="/settings/working-patterns">
-          <Button variant="secondary">Back to Patterns</Button>
+          <Button variant="ghost">Back to Patterns</Button>
         </Link>
       </div>
 

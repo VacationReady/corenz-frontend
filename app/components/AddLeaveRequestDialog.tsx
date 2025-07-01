@@ -5,6 +5,8 @@ import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AddLeaveRequestDialogProps {
   employeeId: string;
@@ -30,27 +32,23 @@ export default function AddLeaveRequestDialog({
   const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Calculate simple calendar days
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const diff =
-        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       setTotalDays(diff > 0 ? diff : 0);
     } else {
       setTotalDays(0);
     }
   }, [startDate, endDate]);
 
-  // Fetch working-pattern-aware deduction
   useEffect(() => {
     if (startDate && endDate) {
       (async () => {
         try {
           const res = await fetch(
-            `/api/employees/${employeeId}/leave-requests/preview-deduction` +
-              `?startDate=${startDate}&endDate=${endDate}`
+            `/api/employees/${employeeId}/leave-requests/preview-deduction?startDate=${startDate}&endDate=${endDate}`
           );
           if (res.ok) {
             const data = await res.json();
@@ -104,14 +102,10 @@ export default function AddLeaveRequestDialog({
         data = {};
       }
 
-      console.log("Leave request response:", data);
-
       if (!res.ok || data.success === false) {
-        const errorMessage =
-          data?.error ||
-          `Failed to submit leave request. Status: ${res.status}`;
+        const errorMessage = data?.error || `Failed to submit leave request. Status: ${res.status}`;
         toast.error(errorMessage);
-        return; // keep modal open on error
+        return;
       }
 
       toast.success("Leave request submitted successfully.");
@@ -124,25 +118,20 @@ export default function AddLeaveRequestDialog({
       setDeduction(0);
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
-      toast.error(
-        error?.message ||
-          "An unexpected error occurred while submitting the leave request."
-      );
+      toast.error(error?.message || "An unexpected error occurred while submitting the leave request.");
     } finally {
       setLoading(false);
     }
   };
+
+  const totalDeducted = Math.max(0, deduction).toFixed(1);
 
   return (
     <>
       <Button variant="ghost" onClick={() => setIsOpen(true)}>
         Book Leave
       </Button>
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Book Leave"
-      >
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium">Leave Type</label>
@@ -168,21 +157,37 @@ export default function AddLeaveRequestDialog({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">End Date</label>
+            <div className="flex items-center gap-2">
+              <label className="block text-sm font-medium">End Date</label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    If returning to work on Monday, select Sunday as your end date.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Select the last day you will be <em>away</em>. Do not include your return-to-work day.
+            </p>
           </div>
-          <p className="text-sm text-gray-700">Total Days: {totalDays}</p>
+          <p className="text-sm text-gray-700">Total Days Requested: {totalDays}</p>
           <p className="text-sm text-gray-700">
             Deduction (per working pattern): <strong>{deduction}</strong>
           </p>
+          <p className="text-sm text-gray-900 font-medium">
+            ✅ Total Days Deducted: {totalDeducted}
+          </p>
           <div>
-            <label className="block text-sm font-medium">
-              Reason (optional)
-            </label>
+            <label className="block text-sm font-medium">Reason (optional)</label>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}

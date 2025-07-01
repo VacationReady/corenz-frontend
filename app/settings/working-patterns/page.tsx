@@ -1,5 +1,3 @@
-// ✅ Updated Working Patterns Page with Kebab Menu, Archive Link, Permanent Delete
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -21,7 +19,9 @@ export default function WorkingPatternsPage() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [workingDays, setWorkingDays] = useState<Record<string, string>>({});
+  const [weeks, setWeeks] = useState<any[]>([
+    { weekNumber: 1, days: {} }
+  ]);
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dayTypes = [
@@ -40,32 +40,49 @@ export default function WorkingPatternsPage() {
     fetchPatterns();
   }, []);
 
-  const handleCheckboxChange = (day: string, checked: boolean) => {
-    setWorkingDays((prev) => {
-      const updated = { ...prev };
+  const handleCheckboxChange = (weekIndex: number, day: string, checked: boolean) => {
+    setWeeks((prev) => {
+      const updated = [...prev];
+      const daysObj = { ...updated[weekIndex].days };
       if (checked) {
-        updated[day] = 'FULL_DAY';
+        daysObj[day] = 'FULL_DAY';
       } else {
-        delete updated[day];
+        delete daysObj[day];
       }
+      updated[weekIndex].days = daysObj;
       return updated;
     });
   };
 
-  const handleTypeChange = (day: string, type: string) => {
-    setWorkingDays((prev) => ({
-      ...prev,
-      [day]: type,
-    }));
+  const handleTypeChange = (weekIndex: number, day: string, type: string) => {
+    setWeeks((prev) => {
+      const updated = [...prev];
+      updated[weekIndex].days[day] = type;
+      return updated;
+    });
+  };
+
+  const addWeek = () => {
+    setWeeks((prev) => [...prev, { weekNumber: prev.length + 1, days: {} }]);
+  };
+
+  const removeWeek = (weekIndex: number) => {
+    setWeeks((prev) => {
+      const updated = prev.filter((_, idx) => idx !== weekIndex);
+      return updated.map((w, idx) => ({ ...w, weekNumber: idx + 1 }));
+    });
   };
 
   const handleSubmit = async () => {
-    if (!name || Object.keys(workingDays).length === 0) {
-      toast.error('Name and at least one working day are required');
+    if (!name || weeks.every(w => Object.keys(w.days).length === 0)) {
+      toast.error('Name and at least one working day in any week are required');
       return;
     }
 
-    const daysPayload = Object.entries(workingDays).map(([day, type]) => ({ day, type }));
+    const weeksPayload = weeks.map((week) => ({
+      weekNumber: week.weekNumber,
+      days: Object.entries(week.days).map(([day, type]) => ({ day, type })),
+    }));
 
     const url = editMode && currentPattern
       ? `/api/working-patterns/${currentPattern.id}`
@@ -76,14 +93,14 @@ export default function WorkingPatternsPage() {
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, days: daysPayload }),
+      body: JSON.stringify({ name, description, weeks: weeksPayload }),
     });
 
     if (res.ok) {
       toast.success(`Working pattern ${editMode ? 'updated' : 'created'}`);
       setName('');
       setDescription('');
-      setWorkingDays({});
+      setWeeks([{ weekNumber: 1, days: {} }]);
       setOpen(false);
       setEditMode(false);
       setCurrentPattern(null);
@@ -99,11 +116,14 @@ export default function WorkingPatternsPage() {
     setCurrentPattern(pattern);
     setName(pattern.name);
     setDescription(pattern.description || '');
-    const wd: Record<string, string> = {};
-    pattern.days.forEach((d: any) => {
-      wd[d.day] = d.type;
+    const loadedWeeks = pattern.weeks.map((week: any) => {
+      const daysObj: Record<string, string> = {};
+      week.days.forEach((d: any) => {
+        daysObj[d.day] = d.type;
+      });
+      return { weekNumber: week.weekNumber, days: daysObj };
     });
-    setWorkingDays(wd);
+    setWeeks(loadedWeeks);
     setOpen(true);
   };
 
@@ -119,7 +139,6 @@ export default function WorkingPatternsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to permanently delete this pattern? This cannot be undone.')) return;
-
     const res = await fetch(`/api/working-patterns/${id}?permanent=true`, { method: 'DELETE' });
     if (res.ok) {
       toast.success('Pattern permanently deleted');
@@ -137,7 +156,7 @@ export default function WorkingPatternsPage() {
           <Link href="/settings/working-patterns/archived">
             <Button variant="ghost">View Archived</Button>
           </Link>
-          <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setEditMode(false); setCurrentPattern(null); } }}>
+          <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setEditMode(false); setCurrentPattern(null); setWeeks([{ weekNumber: 1, days: {} }]); } }}>
             <DialogTrigger asChild>
               <Button>{editMode ? 'Editing Pattern' : 'Add Pattern'}</Button>
             </DialogTrigger>
@@ -145,47 +164,45 @@ export default function WorkingPatternsPage() {
               <DialogHeader>
                 <DialogTitle>{editMode ? 'Edit Working Pattern' : 'Create Working Pattern'}</DialogTitle>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
-                {editMode && currentPattern && (
-                  <div className="border p-2 rounded bg-gray-50">
-                    <h3 className="font-semibold mb-2">Current</h3>
-                    <p><span className="font-medium">Name:</span> {currentPattern.name}</p>
-                    <p><span className="font-medium">Description:</span> {currentPattern.description || 'None'}</p>
-                    <p className="font-medium mt-2">Days:</p>
-                    {currentPattern.days.map((d: any) => (
-                      <p key={d.day}>{d.day}: {d.type.replace('_', ' ')}</p>
-                    ))}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-                  <Input placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
-                  <div className="grid grid-cols-4 gap-2">
-                    {days.map((day) => (
-                      <div key={day} className="flex flex-col space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={day}
-                            checked={day in workingDays}
-                            onCheckedChange={(checked) => handleCheckboxChange(day, Boolean(checked))}
-                          />
-                          <label htmlFor={day} className="text-sm">{day}</label>
+              <div className="space-y-4">
+                <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+                {weeks.map((week, weekIndex) => (
+                  <div key={weekIndex} className="border p-2 rounded bg-gray-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-medium">Week {week.weekNumber}</h3>
+                      {weeks.length > 1 && (
+                        <Button size="xs" variant="destructive" onClick={() => removeWeek(weekIndex)}>Remove Week</Button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {days.map((day) => (
+                        <div key={day} className="flex flex-col space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`week-${weekIndex}-day-${day}`}
+                              checked={day in week.days}
+                              onCheckedChange={(checked) => handleCheckboxChange(weekIndex, day, Boolean(checked))}
+                            />
+                            <label htmlFor={`week-${weekIndex}-day-${day}`} className="text-sm">{day}</label>
+                          </div>
+                          {day in week.days && (
+                            <Select
+                              value={week.days[day]}
+                              onChange={(value) => handleTypeChange(weekIndex, day, value)}
+                              options={dayTypes}
+                              placeholder="Select type"
+                            />
+                          )}
                         </div>
-                        {day in workingDays && (
-                          <Select
-                            value={workingDays[day]}
-                            onChange={(value) => handleTypeChange(day, value)}
-                            options={dayTypes}
-                            placeholder="Select type"
-                          />
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                  <Button onClick={handleSubmit} className="w-full mt-2">
-                    {editMode ? 'Save Changes' : 'Create'}
-                  </Button>
-                </div>
+                ))}
+                <Button variant="outline" onClick={addWeek} className="w-full">+ Add Week</Button>
+                <Button onClick={handleSubmit} className="w-full mt-2">
+                  {editMode ? 'Save Changes' : 'Create'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -198,8 +215,8 @@ export default function WorkingPatternsPage() {
               <h2 className="font-semibold">{pattern.name}</h2>
               <p className="text-sm text-gray-600">{pattern.description || 'No description'}</p>
               <p className="text-sm">
-                Days: {pattern.days && pattern.days.length > 0
-                  ? pattern.days.map((d: any) => `${d.day} (${d.type.replace('_', ' ')})`).join(', ')
+                Days: {pattern.weeks && pattern.weeks.length > 0
+                  ? pattern.weeks.flatMap((w: any) => w.days.map((d: any) => `${d.day} (${d.type.replace('_', ' ')})`)).join(', ')
                   : 'None'}
               </p>
             </div>

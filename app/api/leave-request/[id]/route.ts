@@ -68,7 +68,7 @@ export async function PATCH(req, { params }) {
             approvedBy: {
     connect: { id: session.user.id }
 },
-            approvedAt: new Date(),
+            approvalStatus: "APPROVED",
           },
           include: { employee: { include: { user: true } } },
         });

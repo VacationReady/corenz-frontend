@@ -172,7 +172,7 @@ export default function WorkingPatternsPage() {
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium">Week {week.weekNumber}</h3>
                       {weeks.length > 1 && (
-                        <Button size="xs" variant="destructive" onClick={() => removeWeek(weekIndex)}>Remove Week</Button>
+                        <Button size="sm" variant="destructive" onClick={() => removeWeek(weekIndex)}>Remove Week</Button>
                       )}
                     </div>
                     <div className="grid grid-cols-4 gap-2">

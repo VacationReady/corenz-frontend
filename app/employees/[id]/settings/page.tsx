@@ -14,11 +14,16 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
     where: { employeeId: params.id },
     include: { workingPattern: true },
-    orderBy: { effectiveDate: "desc" },
+    orderBy: { effectiveDate: "asc" },
   });
 
-  const current = assignments.find(a => a.effectiveDate <= today);
-  const upcoming = assignments.find(a => a.effectiveDate > today);
+  const current = [...assignments]
+    .filter(a => a.effectiveDate <= today)
+    .sort((a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime())[0];
+
+  const upcoming = [...assignments]
+    .filter(a => a.effectiveDate > today)
+    .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())[0];
 
   return (
     <div className="space-y-4">
@@ -26,6 +31,7 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
       <p>Manage the employee's settings, such as working patterns, documents, or permissions.</p>
 
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Current Pattern */}
         <div className="border rounded p-4 bg-white shadow">
           <h2 className="text-lg font-semibold mb-2">Current Working Pattern</h2>
           {current ? (
@@ -40,6 +46,7 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
           )}
         </div>
 
+        {/* Upcoming Pattern */}
         <div className="border rounded p-4 bg-white shadow">
           <h2 className="text-lg font-semibold mb-2">Upcoming Working Pattern</h2>
           {upcoming ? (

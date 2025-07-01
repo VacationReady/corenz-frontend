@@ -9,7 +9,7 @@ export default function SettingsLayout({
   children: ReactNode;
   params: { id: string };
 }) {
-  const subnav = [
+  const subnav: { href: string; label: string }[] = [];
     // add more settings sections here...
   ];
 

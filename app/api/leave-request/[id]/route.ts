@@ -84,7 +84,7 @@ export async function PATCH(req, { params }) {
             `${updatedLeaveRequest.employee.user.firstName ?? ""} ${
               updatedLeaveRequest.employee.user.lastName ?? ""
             }`.trim(),
-          status: "Approved",
+          status: "APPROVED",
           type: updatedLeaveRequest.type,
           startDate: updatedLeaveRequest.startDate.toISOString(),
           endDate: updatedLeaveRequest.endDate.toISOString(),

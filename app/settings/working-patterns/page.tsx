@@ -199,7 +199,7 @@ export default function WorkingPatternsPage() {
                     </div>
                   </div>
                 ))}
-                <Button variant="outline" onClick={addWeek} className="w-full">+ Add Week</Button>
+                <Button variant="ghost" onClick={addWeek} className="w-full">+ Add Week</Button>
                 <Button onClick={handleSubmit} className="w-full mt-2">
                   {editMode ? 'Save Changes' : 'Create'}
                 </Button>

@@ -160,11 +160,11 @@ export default function WorkingPatternsPage() {
             <DialogTrigger asChild>
               <Button>{editMode ? 'Editing Pattern' : 'Add Pattern'}</Button>
             </DialogTrigger>
-            <DialogContent className="h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editMode ? 'Edit Working Pattern' : 'Create Working Pattern'}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
+            <DialogContent>
+              <div className="max-h-[80vh] overflow-y-auto space-y-4 p-2">
+                <DialogHeader>
+                  <DialogTitle>{editMode ? 'Edit Working Pattern' : 'Create Working Pattern'}</DialogTitle>
+                </DialogHeader>
                 <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
                 <Input placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
                 {weeks.map((week, weekIndex) => (

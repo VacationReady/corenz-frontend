@@ -10,7 +10,6 @@ import { DayType } from "@prisma/client";
  * @returns 0 | 0.5 | 1
  */
 export async function calculateLeaveDeduction(employeeId: string, leaveDate: Date): Promise<number> {
-    // Get the effective working pattern assignment for the employee as of leaveDate
     const assignment = await prisma.employeeWorkingPatternAssignment.findFirst({
         where: {
             employeeId,
@@ -31,39 +30,37 @@ export async function calculateLeaveDeduction(employeeId: string, leaveDate: Dat
     });
 
     if (!assignment || !assignment.workingPattern) {
-        console.log(`[Deduction] No pattern assigned. Defaulting to 1.`);
+        console.log(`[Deduction] No pattern assigned for ${leaveDate.toISOString()}. Returning 1.`);
         return 1;
     }
 
     const workingPattern = assignment.workingPattern;
-
-    // Determine which week in the pattern applies based on the leaveDate
     const firstEffectiveDate = assignment.effectiveDate;
     const diffInDays = Math.floor(
         (leaveDate.getTime() - firstEffectiveDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     const weekCount = workingPattern.weeks.length;
-
     const weekIndex = diffInDays >= 0 ? Math.floor(diffInDays / 7) % weekCount : 0;
-    const applicableWeek = workingPattern.weeks.sort((a, b) => a.weekNumber - b.weekNumber)[weekIndex];
 
-    if (!applicableWeek) {
-        console.log(`[Deduction] No applicable week found. Defaulting to 1.`);
-        return 1; // Fallback if something goes wrong
-    }
+    const sortedWeeks = workingPattern.weeks.sort((a, b) => a.weekNumber - b.weekNumber);
+    const applicableWeek = sortedWeeks[weekIndex];
 
-    // Use "short" format to match DB values ("Mon", "Tue", etc.)
     const dayOfWeek = leaveDate.toLocaleDateString("en-GB", { weekday: "short" });
-    const dayEntry = applicableWeek.days.find(day => day.day === dayOfWeek);
+    const dayEntry = applicableWeek?.days.find(day => day.day === dayOfWeek);
 
-    console.log(`[Deduction] Leave Date: ${leaveDate.toISOString()} | DayOfWeek: ${dayOfWeek}`);
-    console.log(`[Deduction] Applicable Week:`, applicableWeek);
-    console.log(`[Deduction] Week Days:`, applicableWeek.days);
-    console.log(`[Deduction] Matching Day Entry:`, dayEntry);
+    console.log(`-----------------------------`);
+    console.log(`[Deduction] Leave Date: ${leaveDate.toISOString()} (${dayOfWeek})`);
+    console.log(`[Deduction] Effective From: ${firstEffectiveDate.toISOString()}`);
+    console.log(`[Deduction] Days Since Effective: ${diffInDays}`);
+    console.log(`[Deduction] Week Count: ${weekCount}`);
+    console.log(`[Deduction] Week Index Used: ${weekIndex}`);
+    console.log(`[Deduction] Applicable Week Number: ${applicableWeek?.weekNumber}`);
+    console.log(`[Deduction] Applicable Week Days:`, applicableWeek?.days);
+    console.log(`[Deduction] Found Day Entry:`, dayEntry);
 
     if (!dayEntry) {
-        console.log(`[Deduction] No day entry found for ${dayOfWeek}. Returning 0.`);
-        return 0; // No deduction if the day is not in the pattern
+        console.log(`[Deduction] No matching day for ${dayOfWeek}. Returning 0.`);
+        return 0;
     }
 
     switch (dayEntry.type) {

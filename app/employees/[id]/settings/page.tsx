@@ -1,7 +1,11 @@
 // app/employees/[id]/settings/page.tsx
 
+"use client";
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
 
 interface EmployeeSettingsPageProps {
   params: { id: string };
@@ -32,8 +36,8 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Current Pattern */}
-        <div className="border rounded p-4 bg-white shadow">
-          <h2 className="text-lg font-semibold mb-2">Current Working Pattern</h2>
+        <div className="border rounded p-4 bg-white shadow space-y-2">
+          <h2 className="text-lg font-semibold">Current Working Pattern</h2>
           {current ? (
             <div>
               <p className="font-medium">{current.workingPattern.name}</p>
@@ -44,6 +48,9 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
           ) : (
             <p className="text-sm text-gray-600">No current working pattern assigned.</p>
           )}
+
+          {/* Embedded Assign New Pattern button and modal */}
+          <WorkingPatternAssignment employeeId={params.id} />
         </div>
 
         {/* Upcoming Pattern */}

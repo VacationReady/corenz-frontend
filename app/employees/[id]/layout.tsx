@@ -27,6 +27,7 @@ export default async function EmployeeLayout({
     { href: `/employees/${params.id}/leave`, label: "Leave" },
     { href: `/employees/${params.id}/documents`, label: "Documents" },
     { href: `/employees/${params.id}/performance`, label: "Performance" },
+{ href: `/employees/${params.id}/settings`,   label: "Settings" },
   ];
 
   return (

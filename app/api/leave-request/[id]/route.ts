@@ -27,14 +27,21 @@ export async function PATCH(req, { params }) {
     }
 
     if (action === "approve") {
-      const deduction = await calculateLeaveDeduction({
-  employeeId: leave.employeeId,
-  startDate: leave.startDate,
-  endDate: leave.endDate,
-});
+      // Calculate total deduction day-by-day
+      const totalDays = [];
+      let currentDate = new Date(leave.startDate);
+      const endDate = new Date(leave.endDate);
+
+      while (currentDate <= endDate) {
+        const deduction = await calculateLeaveDeduction(leave.employeeId, currentDate);
+        totalDays.push(deduction);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const totalDeduction = totalDays.reduce((sum, val) => sum + val, 0);
 
       console.log(
-        `🧮 [Leave Approval] Calculated deduction for ${leave.employee.user.name}: ${deduction}`
+        `🧮 [Leave Approval] Calculated total deduction for ${leave.employee.user.name}: ${totalDeduction} days.`
       );
 
       const updatedLeaveRequest = await prisma.$transaction(async (tx) => {
@@ -48,11 +55,11 @@ export async function PATCH(req, { params }) {
 
         const updatedEntitlement = await tx.leaveEntitlement.update({
           where: { id: entitlement.id },
-          data: { usedDays: { increment: deduction } },
+          data: { usedDays: { increment: totalDeduction } },
         });
 
         console.log(
-          `✅ Deducted ${deduction} days from entitlement. Now used: ${updatedEntitlement.usedDays}/${updatedEntitlement.totalDays}`
+          `✅ Deducted ${totalDeduction} days from entitlement. Now used: ${updatedEntitlement.usedDays}/${updatedEntitlement.totalDays}`
         );
 
         const updatedLeave = await tx.leaveRequest.update({

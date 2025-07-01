@@ -17,33 +17,81 @@ interface CalendarEvent {
   allDay: boolean;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await fetch("/api/calendar-events");
-        if (!res.ok) {
-          throw new Error("Failed to fetch calendar events");
-        }
-        const data = await res.json();
-        setEvents(data);
-      } catch (error) {
-        console.error(error);
-        toast.error("Error loading calendar events");
-      } finally {
-        setLoading(false);
+  const fetchEvents = async (department?: string) => {
+    try {
+      const res = await fetch(
+        `/api/calendar-events${department ? `?department=${encodeURIComponent(department)}` : ""}`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch calendar events");
       }
-    };
+      const data = await res.json();
+      setEvents(data);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error loading calendar events");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch("/api/departments");
+      if (!res.ok) {
+        throw new Error("Failed to fetch departments");
+      }
+      const data = await res.json();
+      setDepartments(data);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error loading departments");
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
     fetchEvents();
   }, []);
+
+  const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedDepartment(value);
+    setLoading(true);
+    fetchEvents(value);
+  };
 
   return (
     <PageShell title="Calendar">
       <Card title="Company Calendar">
+        <div className="p-4">
+          <label className="block mb-2 font-medium">
+            Filter by Department:
+          </label>
+          <select
+            value={selectedDepartment}
+            onChange={handleDepartmentChange}
+            className="border rounded p-2 w-full md:w-64"
+          >
+            <option value="">All Departments</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.name}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="bg-white rounded-xl overflow-hidden">
           {loading ? (
             <p className="p-4">Loading...</p>

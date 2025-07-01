@@ -3,14 +3,23 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const department = searchParams.get("department");
+
   try {
     const leaveRequests = await prisma.leaveRequest.findMany({
-      where: { approvalStatus: "APPROVED" },
+      where: {
+        approvalStatus: "APPROVED",
+        employee: {
+          department: department ? { name: department } : undefined,
+        },
+      },
       include: {
         employee: {
           include: {
             user: true,
+            department: true,
           },
         },
       },

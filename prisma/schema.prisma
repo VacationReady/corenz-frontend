@@ -96,9 +96,10 @@ model EmployeeWorkingPatternAssignment {
 }
 
 model Department {
-  id    String @id @default(cuid())
-  name  String @unique
-  users User[]
+  id        String     @id @default(cuid())
+  name      String     @unique
+  users     User[]
+  employees Employee[] // 🚀 Add this line
 }
 
 model JobRole {

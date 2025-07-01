@@ -27,11 +27,11 @@ export async function PATCH(req, { params }) {
     }
 
     if (action === "approve") {
-      const deduction = await calculateLeaveDeduction({
-        employeeId: leave.employeeId,
-        startDate: leave.startDate,
-        endDate: leave.endDate,
-      });
+      const deduction = await calculateLeaveDeduction(
+  leave.employeeId,
+  leave.startDate,
+  leave.endDate
+);
 
       console.log(
         `🧮 [Leave Approval] Calculated deduction for ${leave.employee.user.name}: ${deduction}`

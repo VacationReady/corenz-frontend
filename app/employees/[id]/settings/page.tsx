@@ -1,6 +1,5 @@
 // app/employees/[id]/settings/page.tsx
 
-"use client";
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";

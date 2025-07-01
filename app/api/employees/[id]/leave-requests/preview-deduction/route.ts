@@ -1,13 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 export async function GET(
-  _req: Request,
-  { params, url }: { params: { id: string }; url: URL }
+  req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   const employeeId = params.id;
-  const startDate = new Date(url.searchParams.get("startDate")!);
-  const endDate   = new Date(url.searchParams.get("endDate")!);
+  const startDateParam = req.nextUrl.searchParams.get("startDate");
+  const endDateParam = req.nextUrl.searchParams.get("endDate");
+
+  if (!startDateParam || !endDateParam) {
+    return NextResponse.json(
+      { error: "Missing startDate or endDate" },
+      { status: 400 }
+    );
+  }
+
+  const startDate = new Date(startDateParam);
+  const endDate = new Date(endDateParam);
 
   let deduction = 0;
   for (

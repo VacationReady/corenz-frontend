@@ -160,7 +160,7 @@ export default function WorkingPatternsPage() {
             <DialogTrigger asChild>
               <Button>{editMode ? 'Editing Pattern' : 'Add Pattern'}</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editMode ? 'Edit Working Pattern' : 'Create Working Pattern'}</DialogTitle>
               </DialogHeader>

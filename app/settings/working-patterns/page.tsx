@@ -135,7 +135,7 @@ export default function WorkingPatternsPage() {
         <h1 className="text-2xl font-semibold">Working Patterns</h1>
         <div className="flex space-x-2">
           <Link href="/settings/working-patterns/archived">
-            <Button variant="secondary">View Archived</Button>
+            <Button variant="ghost">View Archived</Button>
           </Link>
           <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setEditMode(false); setCurrentPattern(null); } }}>
             <DialogTrigger asChild>

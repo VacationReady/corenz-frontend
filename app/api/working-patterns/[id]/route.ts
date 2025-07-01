@@ -2,15 +2,21 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+// Updated schema for multi-week update
 const WorkingPatternUpdateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  days: z.array(
+  weeks: z.array(
     z.object({
-      day: z.string(),
-      type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+      weekNumber: z.number().int().min(1),
+      days: z.array(
+        z.object({
+          day: z.string(),
+          type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+        })
+      ).min(1, "At least one day is required per week"),
     })
-  ).min(1, "At least one day is required"),
+  ).min(1, "At least one week is required"),
 });
 
 // PATCH: Update working pattern or restore archived
@@ -25,12 +31,12 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       const restoredPattern = await prisma.workingPattern.update({
         where: { id },
         data: { active: true },
-        include: { days: true },
+        include: { weeks: { include: { days: true } } },
       });
       return NextResponse.json(restoredPattern, { status: 200 });
     }
 
-    // Else, perform full validation and update
+    // Validate and parse request for updates
     const parsed = WorkingPatternUpdateSchema.safeParse(json);
 
     if (!parsed.success) {
@@ -40,22 +46,28 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       );
     }
 
-    const { name, description, days } = parsed.data;
+    const { name, description, weeks } = parsed.data;
 
+    // Update the pattern and replace weeks with new structure
     const updatedPattern = await prisma.workingPattern.update({
       where: { id },
       data: {
         name,
         description,
-        days: {
-          deleteMany: {},
-          create: days.map((dayObj) => ({
-            day: dayObj.day,
-            type: dayObj.type,
+        weeks: {
+          deleteMany: {}, // remove existing weeks and their nested days
+          create: weeks.map((week) => ({
+            weekNumber: week.weekNumber,
+            days: {
+              create: week.days.map((dayObj) => ({
+                day: dayObj.day,
+                type: dayObj.type,
+              })),
+            },
           })),
         },
       },
-      include: { days: true },
+      include: { weeks: { include: { days: true } } },
     });
 
     return NextResponse.json(updatedPattern, { status: 200 });

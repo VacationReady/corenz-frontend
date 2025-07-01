@@ -64,8 +64,11 @@ export default function ArchivedWorkingPatternsPage() {
                 <h2 className="font-semibold">{pattern.name}</h2>
                 <p className="text-sm text-gray-600">{pattern.description || 'No description'}</p>
                 <p className="text-sm">
-                  Days: {pattern.days && pattern.days.length > 0
-                    ? pattern.days.map((d: any) => `${d.day} (${d.type.replace('_', ' ')})`).join(', ')
+                  Days: {pattern.weeks && pattern.weeks.length > 0
+                    ? pattern.weeks
+                        .flatMap((week: any) => week.days || [])
+                        .map((d: any) => `${d.day} (${d.type.replace(/_/g, ' ')})`)
+                        .join(', ')
                     : 'None'}
                 </p>
               </div>

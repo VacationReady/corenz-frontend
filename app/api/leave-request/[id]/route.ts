@@ -1,148 +1,119 @@
-import { prisma } from "@/lib/prisma";
+// app/api/leave-request/[id]/route.ts
+
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
-import { differenceInBusinessDays } from "date-fns";
+import calculateLeaveDeduction from "@/lib/calculateLeaveDeduction";
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req, { params }) {
+  const session = await auth();
+  if (!session || !session.user || !session.user.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const leaveId = params.id;
+  const { action } = await req.json();
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user || !["ADMIN", "MANAGER"].includes(session.user.role)) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    const leave = await prisma.leaveRequest.findUnique({
+      where: { id: leaveId },
+      include: { employee: { include: { user: true, workingPatternAssignments: true } } },
+    });
+
+    if (!leave) {
+      return NextResponse.json({ error: "Leave request not found" }, { status: 404 });
     }
 
-    const leaveRequestId = params.id;
-    const { status } = await req.json();
+    if (action === "approve") {
+      const deduction = await calculateLeaveDeduction({
+        employeeId: leave.employeeId,
+        startDate: leave.startDate,
+        endDate: leave.endDate,
+      });
 
-    if (!["APPROVED", "DECLINED"].includes(status)) {
-      return NextResponse.json({ success: false, error: "Invalid status provided." }, { status: 400 });
-    }
+      console.log(
+        `🧮 [Leave Approval] Calculated deduction for ${leave.employee.user.name}: ${deduction}`
+      );
 
-    if (status === "APPROVED") {
-      // Prisma transaction to update leaveRequest and deduct entitlement safely
-      const result = await prisma.$transaction(async (tx) => {
-        const leaveRequest = await tx.leaveRequest.findUnique({
-          where: { id: leaveRequestId },
-          include: { employee: true },
-        });
-
-        if (!leaveRequest) {
-          throw new Error("Leave request not found.");
-        }
-
-        const daysRequested = differenceInBusinessDays(leaveRequest.endDate, leaveRequest.startDate) + 1;
-
-        const entitlement = await tx.leaveEntitlement.findUnique({
-          where: {
-            employeeId_leaveType: {
-              employeeId: leaveRequest.employeeId,
-              leaveType: leaveRequest.type,
-            },
-          },
+      const updatedLeaveRequest = await prisma.$transaction(async (tx) => {
+        const entitlement = await tx.leaveEntitlement.findFirst({
+          where: { employeeId: leave.employeeId, leaveType: leave.type },
         });
 
         if (!entitlement) {
-          throw new Error(`No entitlement found for leave type: ${leaveRequest.type}`);
-        }
-
-        const availableDays = entitlement.totalDays - entitlement.usedDays;
-
-        if (daysRequested > availableDays) {
-          throw new Error(
-            `Cannot approve leave. Requested ${daysRequested} days, but only ${availableDays} days available for this leave type.`
-          );
+          throw new Error("Leave entitlement not found for this employee and leave type.");
         }
 
         const updatedEntitlement = await tx.leaveEntitlement.update({
           where: { id: entitlement.id },
-          data: {
-            usedDays: entitlement.usedDays + daysRequested,
-          },
+          data: { usedDays: { increment: deduction } },
         });
 
         console.log(
-          `✅ Deducted ${daysRequested} days from entitlement. Now used: ${updatedEntitlement.usedDays}/${updatedEntitlement.totalDays}`
+          `✅ Deducted ${deduction} days from entitlement. Now used: ${updatedEntitlement.usedDays}/${updatedEntitlement.totalDays}`
         );
 
-        const updatedLeaveRequest = await tx.leaveRequest.update({
-          where: { id: leaveRequestId },
+        const updatedLeave = await tx.leaveRequest.update({
+          where: { id: leaveId },
           data: {
-            approvalStatus: status,
-            approvedById: session.user.id,
+            approvedBy: session.user.email,
+            approvedAt: new Date(),
           },
-          include: {
-            employee: {
-              include: {
-                user: true,
-              },
-            },
-          },
+          include: { employee: { include: { user: true } } },
         });
 
-        return updatedLeaveRequest;
+        return updatedLeave;
       });
 
-      // Send notification email after successful approval and deduction
-      const employeeEmail = result.employee.user.email;
-      const employeeName = `${result.employee.user.firstName ?? ""} ${result.employee.user.lastName ?? ""}`.trim() || "Employee";
-
-      if (employeeEmail) {
+      // Notify employee
+      if (updatedLeaveRequest && updatedLeaveRequest.employee.user.email) {
         await sendLeaveStatusUpdate({
-          to: employeeEmail,
-          subject: `Your leave request has been ${status.toLowerCase()}`,
-          employeeName,
-          type: result.type,
-          startDate: result.startDate.toISOString(),
-          endDate: result.endDate.toISOString(),
-          status,
-        });
-        console.log(`✅ Notification email sent to ${employeeEmail}`);
-      } else {
-        console.log("⚠️ Employee email missing, no notification sent.");
-      }
-
-      return NextResponse.json({ success: true, data: result });
-    } else {
-      // If declined, simply update status
-      const updatedLeaveRequest = await prisma.leaveRequest.update({
-        where: { id: leaveRequestId },
-        data: {
-          approvalStatus: status,
-          approvedById: session.user.id,
-        },
-        include: {
-          employee: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
-
-      // Send notification email after decline
-      const employeeEmail = updatedLeaveRequest.employee.user.email;
-      const employeeName = `${updatedLeaveRequest.employee.user.firstName ?? ""} ${updatedLeaveRequest.employee.user.lastName ?? ""}`.trim() || "Employee";
-
-      if (employeeEmail) {
-        await sendLeaveStatusUpdate({
-          to: employeeEmail,
-          subject: `Your leave request has been ${status.toLowerCase()}`,
-          employeeName,
+          to: updatedLeaveRequest.employee.user.email,
+          name:
+            updatedLeaveRequest.employee.user.name ||
+            `${updatedLeaveRequest.employee.user.firstName ?? ""} ${
+              updatedLeaveRequest.employee.user.lastName ?? ""
+            }`.trim(),
+          status: "Approved",
           type: updatedLeaveRequest.type,
           startDate: updatedLeaveRequest.startDate.toISOString(),
           endDate: updatedLeaveRequest.endDate.toISOString(),
-          status,
         });
-        console.log(`✅ Notification email sent to ${employeeEmail}`);
-      } else {
-        console.log("⚠️ Employee email missing, no notification sent.");
       }
 
       return NextResponse.json({ success: true, data: updatedLeaveRequest });
     }
-  } catch (error: any) {
-    console.error("❌ Error updating leave request:", error);
+
+    if (action === "decline") {
+      const updatedLeaveRequest = await prisma.leaveRequest.update({
+        where: { id: leaveId },
+        data: { declinedBy: session.user.email, declinedAt: new Date() },
+        include: { employee: { include: { user: true } } },
+      });
+
+      // Notify employee
+      if (updatedLeaveRequest && updatedLeaveRequest.employee.user.email) {
+        await sendLeaveStatusUpdate({
+          to: updatedLeaveRequest.employee.user.email,
+          name:
+            updatedLeaveRequest.employee.user.name ||
+            `${updatedLeaveRequest.employee.user.firstName ?? ""} ${
+              updatedLeaveRequest.employee.user.lastName ?? ""
+            }`.trim(),
+          status: "Declined",
+          type: updatedLeaveRequest.type,
+          startDate: updatedLeaveRequest.startDate.toISOString(),
+          endDate: updatedLeaveRequest.endDate.toISOString(),
+        });
+      }
+
+      return NextResponse.json({ success: true, data: updatedLeaveRequest });
+    }
+
+    return NextResponse.json({ error: "Invalid action." }, { status: 400 });
+  } catch (error) {
+    console.error("Error in leave approval route:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to update leave request." },
       { status: 500 }

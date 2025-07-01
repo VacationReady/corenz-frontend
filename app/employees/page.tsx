@@ -31,8 +31,6 @@ export default function EmployeesPage() {
     managerId: "",
   });
 
-  const fetchData = async () => {
-    try {
       const fetchData = async () => {
   try {
     const [empRes, deptRes, roleRes] = await Promise.all([
@@ -40,9 +38,7 @@ export default function EmployeesPage() {
       fetch("/api/departments").then((r) => r.json()),
       fetch("/api/job-roles").then((r) => r.json()),
     ]);
-    setEmployees(empRes.filter((emp: any) => emp.user)); // Ensure employees with user data only
-
-    // Defensive handling depending on what your API returns:
+    setEmployees(empRes.filter((emp: any) => emp.user)); // Filter valid employees
     setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
     setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
   } catch {

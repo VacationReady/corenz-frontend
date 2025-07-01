@@ -65,7 +65,9 @@ export async function PATCH(req, { params }) {
         const updatedLeave = await tx.leaveRequest.update({
           where: { id: leaveId },
           data: {
-            approvedBy: session.user.email,
+            approvedBy: {
+    connect: { id: session.user.id }
+},
             approvedAt: new Date(),
           },
           include: { employee: { include: { user: true } } },

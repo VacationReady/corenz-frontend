@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
 
 interface EmployeeSettingsPageProps {
@@ -48,8 +49,12 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
             <p className="text-sm text-gray-600">No current working pattern assigned.</p>
           )}
 
-          {/* Embedded Assign New Pattern button and modal */}
-          <WorkingPatternAssignment employeeId={params.id} />
+          {/* Only the Assign New Pattern button */}
+          <div className="pt-2">
+            <Suspense fallback={null}>
+              <WorkingPatternAssignment employeeId={params.id} />
+            </Suspense>
+          </div>
         </div>
 
         {/* Upcoming Pattern */}

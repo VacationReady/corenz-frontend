@@ -23,6 +23,8 @@ export default function WorkingPatternsPage() {
     { weekNumber: 1, days: {} }
   ]);
 
+  const [viewPattern, setViewPattern] = useState<any>(null);
+
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dayTypes = [
     { label: 'Full Day', value: 'FULL_DAY' },
@@ -208,27 +210,55 @@ export default function WorkingPatternsPage() {
           </Dialog>
         </div>
       </div>
-      <div className="grid gap-4">
-        {patterns.map((pattern) => (
-          <Card key={pattern.id} className="p-4 flex justify-between items-center">
-            <div>
-              <h2 className="font-semibold">{pattern.name}</h2>
-              <p className="text-sm text-gray-600">{pattern.description || 'No description'}</p>
-              <p className="text-sm">
-                Days: {pattern.weeks && pattern.weeks.length > 0
-                  ? pattern.weeks.flatMap((w: any) => w.days.map((d: any) => `${d.day} (${d.type.replace('_', ' ')})`)).join(', ')
-                  : 'None'}
-              </p>
+
+      <Dialog open={!!viewPattern} onOpenChange={() => setViewPattern(null)}>
+        <DialogContent>
+          {viewPattern && (
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold">{viewPattern.name}</h2>
+              <p className="text-sm text-gray-600">{viewPattern.description || 'No description'}</p>
+              {viewPattern.weeks.map((week: any) => (
+                <div key={week.id} className="border rounded p-2">
+                  <h3 className="font-medium mb-1">Week {week.weekNumber}</h3>
+                  <ul className="text-sm list-disc list-inside">
+                    {week.days.map((d: any) => (
+                      <li key={d.id}>{d.day} ({d.type.replace(/_/g, ' ')})</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-            <KebabMenu
-              options={[
-                { label: 'Edit', action: () => handleEdit(pattern) },
-                { label: 'Archive', action: () => handleArchive(pattern.id) },
-                { label: 'Delete', action: () => handleDelete(pattern.id) },
-              ]}
-            />
-          </Card>
-        ))}
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid gap-4">
+        {patterns.map((pattern) => {
+          const days = pattern.weeks?.flatMap((w: any) => w.days) || [];
+          const preview = days.slice(0, 3).map((d: any) => `${d.day} (${d.type.replace(/_/g, ' ')})`).join(', ');
+          return (
+            <Card key={pattern.id} className="p-4 flex justify-between items-center">
+              <div>
+                <h2 className="font-semibold">{pattern.name}</h2>
+                <p className="text-sm text-gray-600">{pattern.description || 'No description'}</p>
+                <p className="text-sm">
+                  {pattern.weeks.length} week pattern
+                </p>
+                <p className="text-sm text-gray-600">
+                  Preview: {preview}{days.length > 3 ? ` (+${days.length - 3} more)` : ''}
+                </p>
+              </div>
+              <KebabMenu
+                options={[
+                  { label: 'View', action: () => setViewPattern(pattern) },
+                  { label: 'Edit', action: () => handleEdit(pattern) },
+                  { label: 'Archive', action: () => handleArchive(pattern.id) },
+                  { label: 'Delete', action: () => handleDelete(pattern.id) },
+                ]}
+              />
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

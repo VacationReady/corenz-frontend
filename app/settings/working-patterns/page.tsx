@@ -186,7 +186,7 @@ export default function WorkingPatternsPage() {
               </p>
             </div>
             <div className="flex space-x-2">
-              <Button variant="secondary" onClick={() => handleEdit(pattern)}>Edit</Button>
+              <Button variant="ghost" onClick={() => handleEdit(pattern)}>Edit</Button>
               <Button variant="danger" onClick={() => handleArchive(pattern.id)}>Archive</Button>
             </div>
           </Card>

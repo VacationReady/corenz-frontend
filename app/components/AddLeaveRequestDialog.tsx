@@ -27,8 +27,10 @@ export default function AddLeaveRequestDialog({
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [totalDays, setTotalDays] = useState(0);
+  const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // Calculate simple calendar days
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
@@ -40,6 +42,30 @@ export default function AddLeaveRequestDialog({
       setTotalDays(0);
     }
   }, [startDate, endDate]);
+
+  // Fetch working-pattern-aware deduction
+  useEffect(() => {
+    if (startDate && endDate) {
+      (async () => {
+        try {
+          const res = await fetch(
+            `/api/employees/${employeeId}/leave-requests/preview-deduction` +
+              `?startDate=${startDate}&endDate=${endDate}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setDeduction(data.deduction);
+          } else {
+            setDeduction(0);
+          }
+        } catch {
+          setDeduction(0);
+        }
+      })();
+    } else {
+      setDeduction(0);
+    }
+  }, [startDate, endDate, employeeId]);
 
   const handleSubmit = async () => {
     if (!type || !startDate || !endDate) {
@@ -95,6 +121,7 @@ export default function AddLeaveRequestDialog({
       setEndDate("");
       setReason("");
       setTotalDays(0);
+      setDeduction(0);
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
       toast.error(
@@ -111,7 +138,11 @@ export default function AddLeaveRequestDialog({
       <Button variant="ghost" onClick={() => setIsOpen(true)}>
         Book Leave
       </Button>
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Book Leave"
+      >
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium">Leave Type</label>
@@ -145,19 +176,20 @@ export default function AddLeaveRequestDialog({
             />
           </div>
           <p className="text-sm text-gray-700">Total Days: {totalDays}</p>
+          <p className="text-sm text-gray-700">
+            Deduction (per working pattern): <strong>{deduction}</strong>
+          </p>
           <div>
-            <label className="block text-sm font-medium">Reason (optional)</label>
+            <label className="block text-sm font-medium">
+              Reason (optional)
+            </label>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Optional reason"
             />
           </div>
-          <Button
-            variant="ghost"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
+          <Button variant="ghost" onClick={handleSubmit} disabled={loading}>
             {loading ? "Submitting..." : "Submit Request"}
           </Button>
         </div>

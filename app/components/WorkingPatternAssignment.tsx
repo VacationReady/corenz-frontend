@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -40,17 +40,14 @@ export default function WorkingPatternAssignment({
 
   const handleAssign = async () => {
     if (!selected || !date) return;
-    await fetch(
-      `/api/employees/${employeeId}/working-pattern-assignment`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workingPatternId: selected,
-          effectiveDate: date,
-        }),
-      }
-    );
+    await fetch(`/api/employees/${employeeId}/working-pattern-assignment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workingPatternId: selected,
+        effectiveDate: date,
+      }),
+    });
 
     setOpen(false);
 
@@ -71,34 +68,36 @@ export default function WorkingPatternAssignment({
       </p>
       <Button onClick={() => setOpen(true)}>Assign New Pattern</Button>
 
-      <Dialog open={open} onOpenChange={setOpen} title="Assign Working Pattern">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Pattern</label>
-            <Select
-              value={selected}
-              onChange={setSelected}
-              options={patterns.map((p) => ({
-                label: p.name,
-                value: p.id,
-              }))}
-              placeholder="Select pattern"
-            />
-          </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent title="Assign Working Pattern">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Pattern</label>
+              <Select
+                value={selected}
+                onChange={setSelected}
+                options={patterns.map((p) => ({
+                  label: p.name,
+                  value: p.id,
+                }))}
+                placeholder="Select pattern"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium">Effective Date</label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium">Effective Date</label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
 
-          <Button onClick={handleAssign} disabled={!selected || !date}>
-            Save Assignment
-          </Button>
-        </div>
+            <Button onClick={handleAssign} disabled={!selected || !date}>
+              Save Assignment
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   );

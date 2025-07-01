@@ -13,12 +13,24 @@ const WorkingPatternUpdateSchema = z.object({
   ).min(1, "At least one day is required"),
 });
 
-// PATCH: Update working pattern
+// PATCH: Update working pattern or restore archived
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const id = params.id;
 
   try {
     const json = await req.json();
+
+    // Allow simple restore without validation
+    if (json.active === true) {
+      const restoredPattern = await prisma.workingPattern.update({
+        where: { id },
+        data: { active: true },
+        include: { days: true },
+      });
+      return NextResponse.json(restoredPattern, { status: 200 });
+    }
+
+    // Else, perform full validation and update
     const parsed = WorkingPatternUpdateSchema.safeParse(json);
 
     if (!parsed.success) {

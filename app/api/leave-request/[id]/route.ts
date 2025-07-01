@@ -28,7 +28,7 @@ export async function PATCH(req, { params }) {
 
     if (action === "approve") {
       // Calculate total deduction day-by-day
-      const totalDays = [];
+      const totalDays: number[] = [];
       let currentDate = new Date(leave.startDate);
       const endDate = new Date(leave.endDate);
 

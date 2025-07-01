@@ -33,18 +33,22 @@ export default function EmployeesPage() {
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, roleRes] = await Promise.all([
-        fetch("/api/employees").then((r) => r.json()),
-        fetch("/api/departments").then((r) => r.json()),
-        fetch("/api/job-roles").then((r) => r.json()),
-      ]);
-      setEmployees(empRes.filter((emp: any) => emp.user)); // ✅ Filter out employees with missing user
-      setDepartments(deptRes.departments);
-      setJobRoles(roleRes.jobRoles);
-    } catch {
-      setError("Failed to load data");
-    }
-  };
+      const fetchData = async () => {
+  try {
+    const [empRes, deptRes, roleRes] = await Promise.all([
+      fetch("/api/employees").then((r) => r.json()),
+      fetch("/api/departments").then((r) => r.json()),
+      fetch("/api/job-roles").then((r) => r.json()),
+    ]);
+    setEmployees(empRes.filter((emp: any) => emp.user)); // Ensure employees with user data only
+
+    // Defensive handling depending on what your API returns:
+    setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
+    setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
+  } catch {
+    setError("Failed to load data");
+  }
+};
 
   useEffect(() => {
     fetchData();

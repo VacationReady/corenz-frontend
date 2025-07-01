@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       orderBy: { name: "asc" },
       include: {
         weeks: {
-          include: { weeks: { include: { days: true } } },
+          include: { days: true },
           orderBy: { weekNumber: "asc" },
         },
       },

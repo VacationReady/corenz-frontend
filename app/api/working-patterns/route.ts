@@ -15,11 +15,16 @@ const WorkingPatternSchema = z.object({
   ).min(1, "At least one day must be provided"),
 });
 
-// GET all working patterns
-export async function GET() {
+// ✅ GET all working patterns, with archived support
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const archived = searchParams.get("archived");
+
   try {
     const patterns = await prisma.workingPattern.findMany({
-      where: { active: true },
+      where: {
+        active: archived === "true" ? false : true,
+      },
       orderBy: { name: "asc" },
       include: { days: true },
     });

@@ -13,12 +13,6 @@ interface Pattern {
   name: string;
 }
 
-interface Assignment {
-  id: string;
-  workingPattern: Pattern;
-  effectiveDate: string;
-}
-
 export default function WorkingPatternAssignment({
   employeeId,
 }: {
@@ -26,7 +20,6 @@ export default function WorkingPatternAssignment({
 }) {
   const router = useRouter();
   const [patterns, setPatterns] = useState<Pattern[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selected, setSelected] = useState("");
   const [date, setDate] = useState("");
   const [open, setOpen] = useState(false);
@@ -36,11 +29,7 @@ export default function WorkingPatternAssignment({
     fetch("/api/working-patterns")
       .then((res) => res.json())
       .then(setPatterns);
-
-    fetch(`/api/employees/${employeeId}/working-pattern-assignment`)
-      .then((res) => res.json())
-      .then(setAssignments);
-  }, [employeeId]);
+  }, []);
 
   const handleAssign = async () => {
     if (!selected || !date) {
@@ -67,7 +56,7 @@ export default function WorkingPatternAssignment({
       toast.success("Working pattern assigned successfully.");
       setOpen(false);
 
-      // Redirect back to the employee settings page
+      // Redirect back to the employee settings page to refresh state
       router.push(`/employees/${employeeId}/settings`);
     } catch (error: any) {
       console.error("Error assigning working pattern:", error);
@@ -78,14 +67,7 @@ export default function WorkingPatternAssignment({
   };
 
   return (
-    <div className="card p-4 space-y-4">
-      <h3 className="text-lg font-medium">Working Pattern Assignment</h3>
-      <p>
-        Current:{" "}
-        <strong>
-          {assignments[0]?.workingPattern.name ?? "None assigned"}
-        </strong>
-      </p>
+    <>
       <Button onClick={() => setOpen(true)}>Assign New Pattern</Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -119,6 +101,6 @@ export default function WorkingPatternAssignment({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

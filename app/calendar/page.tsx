@@ -24,21 +24,12 @@ export default function CalendarPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("/api/leave-request?status=APPROVED");
-        const data = await res.json();
-
-        if (data.success) {
-          const mappedEvents = data.data.map((req: any) => ({
-            id: req.id,
-            title: `${req.type} - ${req.employee.user.name}`,
-            start: req.startDate,
-            end: req.endDate,
-            allDay: true,
-          }));
-          setEvents(mappedEvents);
-        } else {
-          toast.error(data.error || "Failed to load calendar events");
+        const res = await fetch("/api/calendar-events");
+        if (!res.ok) {
+          throw new Error("Failed to fetch calendar events");
         }
+        const data = await res.json();
+        setEvents(data);
       } catch (error) {
         console.error(error);
         toast.error("Error loading calendar events");

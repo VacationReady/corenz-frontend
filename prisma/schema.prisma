@@ -26,6 +26,12 @@ enum ApprovalStatus {
   CANCELLED
 }
 
+enum DayType {
+  FULL_DAY
+  HALF_DAY_AM
+  HALF_DAY_PM
+}
+
 model User {
   id              String           @id @default(cuid())
   email           String           @unique
@@ -48,8 +54,6 @@ model User {
   department      Department?      @relation(fields: [departmentId], references: [id])
   employee        Employee?
   activationToken ActivationToken?
-
-  // Named leave request relations
   leaveRequestsToReview LeaveRequest[] @relation("ReviewedByUser")
   leaveRequestsCreated  LeaveRequest[] @relation("RequestingUser")
 }
@@ -69,10 +73,22 @@ model Employee {
   isActive          Boolean           @default(true)
   leaveRequests     LeaveRequest[]
   leaveEntitlements LeaveEntitlement[]
-
-  // Working Pattern Relation
   workingPatternId  String?
   workingPattern    WorkingPattern?   @relation(fields: [workingPatternId], references: [id])
+  workingPatternAssignments EmployeeWorkingPatternAssignment[]
+}
+
+model EmployeeWorkingPatternAssignment {
+  id                 String          @id @default(cuid())
+  employee           Employee         @relation(fields: [employeeId], references: [id])
+  employeeId         String
+  workingPattern     WorkingPattern   @relation(fields: [workingPatternId], references: [id])
+  workingPatternId   String
+  effectiveDate      DateTime
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([employeeId, effectiveDate])
 }
 
 model Department {
@@ -125,33 +141,25 @@ model WorkingPattern {
   active      Boolean              @default(true)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
-
   employees   Employee[]
-  weeks       WorkingPatternWeek[] // ✅ new relational structured weeks
+  weeks       WorkingPatternWeek[]
+  assignments EmployeeWorkingPatternAssignment[]
 }
 
 model WorkingPatternWeek {
   id               String             @id @default(cuid())
-  weekNumber       Int                // e.g., 1, 2, 3...
+  weekNumber       Int
   workingPattern   WorkingPattern     @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
   workingPatternId String
-  days             WorkingPatternDay[] // ✅ relational structured days per week
-
-  @@unique([weekNumber, workingPatternId]) // Prevent duplicate week numbers per pattern
+  days             WorkingPatternDay[]
+  @@unique([weekNumber, workingPatternId])
 }
 
 model WorkingPatternDay {
   id                   String               @id @default(cuid())
-  day                  String               // "Mon", "Tue", etc.
-  type                 DayType              // "FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"
+  day                  String
+  type                 DayType
   workingPatternWeek   WorkingPatternWeek   @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
   workingPatternWeekId String
-
-  @@unique([day, workingPatternWeekId]) // Prevent duplicate days per week
-}
-
-enum DayType {
-  FULL_DAY
-  HALF_DAY_AM
-  HALF_DAY_PM
+  @@unique([day, workingPatternWeekId])
 }

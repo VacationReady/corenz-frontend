@@ -2,30 +2,54 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-// Zod schema for updating patterns if needed
-const WorkingPatternUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
+// Zod schema for validation
+const WorkingPatternSchema = z.object({
+  name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  active: z.boolean().optional(),
+  weeks: z.array(
+    z.object({
+      weekNumber: z.number().int().min(1, "Week number must be at least 1"),
+      days: z.array(
+        z.object({
+          day: z.string().min(1),
+          type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+        })
+      ).min(1, "At least one day must be provided per week"),
+    })
+  ).min(1, "At least one week must be provided"),
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
+// GET all working patterns (active or archived)
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const archived = searchParams.get("archived");
 
+  try {
+    const patterns = await prisma.workingPattern.findMany({
+      where: {
+        active: archived === "true" ? false : true,
+      },
+      orderBy: { name: "asc" },
+      include: {
+        weeks: {
+          include: { days: true },
+          orderBy: { weekNumber: "asc" },
+        },
+      },
+    });
+    return NextResponse.json(patterns, { status: 200 });
+  } catch (error) {
+    console.error("GET /api/working-patterns error:", error);
+    return NextResponse.json({ message: "Error fetching patterns" }, { status: 500 });
+  }
+}
+
+// POST create a working pattern with multi-week support
+export async function POST(req: Request) {
   try {
     const json = await req.json();
 
-    // Allow simple restore by passing { active: true }
-    if (json.active === true) {
-      const restoredPattern = await prisma.workingPattern.update({
-        where: { id },
-        data: { active: true },
-        include: { weeks: { include: { days: true } } },
-      });
-      return NextResponse.json(restoredPattern, { status: 200 });
-    }
-
-    const parsed = WorkingPatternUpdateSchema.safeParse(json);
+    const parsed = WorkingPatternSchema.safeParse(json);
     if (!parsed.success) {
       return NextResponse.json(
         { message: "Validation failed", errors: parsed.error.flatten() },
@@ -33,44 +57,37 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       );
     }
 
-    const updatedPattern = await prisma.workingPattern.update({
-      where: { id },
-      data: parsed.data,
-      include: { weeks: { include: { days: true } } },
+    const { name, description, weeks } = parsed.data;
+
+    const pattern = await prisma.workingPattern.create({
+      data: {
+        name,
+        description,
+        weeks: {
+          create: weeks.map((week) => ({
+            weekNumber: week.weekNumber,
+            days: {
+              create: week.days.map((dayObj) => ({
+                day: dayObj.day,
+                type: dayObj.type,
+              })),
+            },
+          })),
+        },
+      },
+      include: {
+        weeks: {
+          include: { days: true },
+          orderBy: { weekNumber: "asc" },
+        },
+      },
     });
 
-    return NextResponse.json(updatedPattern, { status: 200 });
-  } catch (error) {
-    console.error("PATCH /api/working-patterns/[id] error:", error);
+    return NextResponse.json(pattern, { status: 201 });
+  } catch (error: any) {
+    console.error("POST /api/working-patterns error:", JSON.stringify(error, null, 2));
     return NextResponse.json(
-      { message: "Error updating working pattern", error: error instanceof Error ? error.message : error },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
-  const { searchParams } = new URL(req.url);
-  const permanent = searchParams.get("permanent");
-
-  try {
-    if (permanent === "true") {
-      await prisma.workingPattern.delete({
-        where: { id },
-      });
-      return NextResponse.json({ message: "Pattern permanently deleted" }, { status: 200 });
-    } else {
-      await prisma.workingPattern.update({
-        where: { id },
-        data: { active: false },
-      });
-      return NextResponse.json({ message: "Pattern archived" }, { status: 200 });
-    }
-  } catch (error) {
-    console.error("DELETE /api/working-patterns/[id] error:", error);
-    return NextResponse.json(
-      { message: "Error deleting working pattern", error: error instanceof Error ? error.message : error },
+      { message: "Error creating working pattern", error: error?.message || error },
       { status: 500 }
     );
   }

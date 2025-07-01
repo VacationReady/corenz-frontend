@@ -87,7 +87,7 @@ export async function POST(req: Request) {
         role,
         department: departmentId ? { connect: { id: departmentId } } : undefined,
         jobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
-        manager: managerId ? { connect: { id: managerId } } : undefined,
+        manager: managerId && managerId.trim() !== "" ? { connect: { id: managerId } } : undefined,
       },
     });
 

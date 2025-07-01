@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
+import type { Prisma } from "@prisma/client";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -77,8 +78,8 @@ export async function POST(req: Request) {
     const activationToken = randomBytes(32).toString("hex");
     const hashedPassword = ""; // Leave blank for activation
 
-    // ✅ Handle manager linking safely
-    let managerConnect = undefined;
+    // ✅ Handle manager linking safely with Prisma type correctness
+    let managerConnect: Prisma.UserCreateNestedOneWithoutSubordinatesInput | undefined = undefined;
     if (managerId && managerId.trim() !== "") {
       const managerEmployee = await prisma.employee.findUnique({
         where: { id: managerId },

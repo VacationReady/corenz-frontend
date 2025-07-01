@@ -1,6 +1,6 @@
 // lib/calculateLeaveDeduction.ts
 
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { DayType } from "@prisma/client";
 
 /**

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Dialog } from "@/components/ui/dialog";
-import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import Button from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Select from "@/components/ui/Select";
 
 interface Pattern {
   id: string;
@@ -31,14 +31,15 @@ export default function WorkingPatternAssignment({
   useEffect(() => {
     fetch("/api/working-patterns")
       .then((res) => res.json())
-      .then((data) => setPatterns(data));
+      .then(setPatterns);
 
     fetch(`/api/employees/${employeeId}/working-pattern-assignment`)
       .then((res) => res.json())
-      .then((data) => setAssignments(data));
+      .then(setAssignments);
   }, [employeeId]);
 
   const handleAssign = async () => {
+    if (!selected || !date) return;
     await fetch(
       `/api/employees/${employeeId}/working-pattern-assignment`,
       {
@@ -52,7 +53,7 @@ export default function WorkingPatternAssignment({
     );
 
     setOpen(false);
-    // reload assignments after save
+
     const res = await fetch(
       `/api/employees/${employeeId}/working-pattern-assignment`
     );
@@ -63,7 +64,7 @@ export default function WorkingPatternAssignment({
     <div className="card p-4 space-y-4">
       <h3 className="text-lg font-medium">Working Pattern Assignment</h3>
       <p>
-        Current:&nbsp;
+        Current:{" "}
         <strong>
           {assignments[0]?.workingPattern.name ?? "None assigned"}
         </strong>
@@ -72,25 +73,31 @@ export default function WorkingPatternAssignment({
 
       <Dialog open={open} onOpenChange={setOpen} title="Assign Working Pattern">
         <div className="space-y-4">
-          <Select value={selected} onValueChange={setSelected}>
-            <Select.Trigger placeholder="Select pattern" />
-            <Select.Content>
-              {patterns.map((p) => (
-                <Select.Item key={p.id} value={p.id}>
-                  {p.name}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
+          <div>
+            <label className="block text-sm font-medium">Pattern</label>
+            <Select
+              value={selected}
+              onChange={setSelected}
+              options={patterns.map((p) => ({
+                label: p.name,
+                value: p.id,
+              }))}
+              placeholder="Select pattern"
+            />
+          </div>
 
-          <label className="block text-sm font-medium">Effective Date</label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <div>
+            <label className="block text-sm font-medium">Effective Date</label>
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
 
-          <Button onClick={handleAssign}>Save Assignment</Button>
+          <Button onClick={handleAssign} disabled={!selected || !date}>
+            Save Assignment
+          </Button>
         </div>
       </Dialog>
     </div>

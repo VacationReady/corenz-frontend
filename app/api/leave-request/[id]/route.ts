@@ -1,14 +1,16 @@
+// app/api/leave-request/[id]/route.ts
+
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
-import calculateLeaveDeduction from "@/lib/calculateLeaveDeduction";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || !session.user.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user || !["ADMIN", "MANAGER"].includes(session.user.role)) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
   }
 
   const leaveId = params.id;
@@ -65,7 +67,6 @@ export async function PATCH(req, { params }) {
         return updatedLeave;
       });
 
-      // Notify employee
       if (updatedLeaveRequest && updatedLeaveRequest.employee.user.email) {
         await sendLeaveStatusUpdate({
           to: updatedLeaveRequest.employee.user.email,
@@ -91,7 +92,6 @@ export async function PATCH(req, { params }) {
         include: { employee: { include: { user: true } } },
       });
 
-      // Notify employee
       if (updatedLeaveRequest && updatedLeaveRequest.employee.user.email) {
         await sendLeaveStatusUpdate({
           to: updatedLeaveRequest.employee.user.email,

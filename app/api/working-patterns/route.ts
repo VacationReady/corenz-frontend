@@ -7,12 +7,17 @@ import { Prisma } from "@prisma/client";
 const WorkingPatternSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  days: z.array(
+  weeks: z.array(
     z.object({
-      day: z.string().min(1),
-      type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+      weekNumber: z.number().int().min(1, "Week number must be at least 1"),
+      days: z.array(
+        z.object({
+          day: z.string().min(1),
+          type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+        })
+      ).min(1, "At least one day must be provided per week"),
     })
-  ).min(1, "At least one day must be provided"),
+  ).min(1, "At least one week must be provided"),
 });
 
 // ✅ GET all working patterns, with archived support
@@ -26,7 +31,12 @@ export async function GET(req: Request) {
         active: archived === "true" ? false : true,
       },
       orderBy: { name: "asc" },
-      include: { days: true },
+      include: {
+        weeks: {
+          include: { days: true },
+          orderBy: { weekNumber: "asc" },
+        },
+      },
     });
     return NextResponse.json(patterns, { status: 200 });
   } catch (error) {
@@ -35,7 +45,7 @@ export async function GET(req: Request) {
   }
 }
 
-// CREATE a working pattern
+// CREATE a working pattern with multi-week support
 export async function POST(req: Request) {
   try {
     const json = await req.json();
@@ -48,20 +58,30 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, description, days } = parsed.data;
+    const { name, description, weeks } = parsed.data;
 
     const pattern = await prisma.workingPattern.create({
       data: {
         name,
         description,
-        days: {
-          create: days.map((dayObj) => ({
-            day: dayObj.day,
-            type: dayObj.type,
+        weeks: {
+          create: weeks.map((week) => ({
+            weekNumber: week.weekNumber,
+            days: {
+              create: week.days.map((dayObj) => ({
+                day: dayObj.day,
+                type: dayObj.type,
+              })),
+            },
           })),
         },
       },
-      include: { days: true },
+      include: {
+        weeks: {
+          include: { days: true },
+          orderBy: { weekNumber: "asc" },
+        },
+      },
     });
 
     return NextResponse.json(pattern, { status: 201 });

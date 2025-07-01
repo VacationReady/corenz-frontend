@@ -127,17 +127,27 @@ model WorkingPattern {
   updatedAt   DateTime             @updatedAt
 
   employees   Employee[]
-  days        WorkingPatternDay[]  // ✅ relational structured days
+  weeks       WorkingPatternWeek[] // ✅ new relational structured weeks
+}
+
+model WorkingPatternWeek {
+  id               String             @id @default(cuid())
+  weekNumber       Int                // e.g., 1, 2, 3...
+  workingPattern   WorkingPattern     @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
+  workingPatternId String
+  days             WorkingPatternDay[] // ✅ relational structured days per week
+
+  @@unique([weekNumber, workingPatternId]) // Prevent duplicate week numbers per pattern
 }
 
 model WorkingPatternDay {
-  id               String          @id @default(cuid())
-  day              String          // "Mon", "Tue", etc.
-  type             DayType         // "FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"
-  workingPattern   WorkingPattern  @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
-  workingPatternId String
+  id                   String               @id @default(cuid())
+  day                  String               // "Mon", "Tue", etc.
+  type                 DayType              // "FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"
+  workingPatternWeek   WorkingPatternWeek   @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
+  workingPatternWeekId String
 
-  @@unique([day, workingPatternId])  // Prevent duplicate days per pattern
+  @@unique([day, workingPatternWeekId]) // Prevent duplicate days per week
 }
 
 enum DayType {

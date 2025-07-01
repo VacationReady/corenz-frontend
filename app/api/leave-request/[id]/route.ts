@@ -103,17 +103,18 @@ export async function PATCH(req, { params }) {
 
       if (updatedLeaveRequest && updatedLeaveRequest.employee.user.email) {
         await sendLeaveStatusUpdate({
-          to: updatedLeaveRequest.employee.user.email,
-          name:
-            updatedLeaveRequest.employee.user.name ||
-            `${updatedLeaveRequest.employee.user.firstName ?? ""} ${
-              updatedLeaveRequest.employee.user.lastName ?? ""
-            }`.trim(),
-          status: "Declined",
-          type: updatedLeaveRequest.type,
-          startDate: updatedLeaveRequest.startDate.toISOString(),
-          endDate: updatedLeaveRequest.endDate.toISOString(),
-        });
+  to: updatedLeaveRequest.employee.user.email,
+  subject: `Your leave request has been approved`,
+  employeeName:
+    updatedLeaveRequest.employee.user.name ||
+    `${updatedLeaveRequest.employee.user.firstName ?? ""} ${
+      updatedLeaveRequest.employee.user.lastName ?? ""
+    }`.trim(),
+  status: "APPROVED",
+  type: updatedLeaveRequest.type,
+  startDate: updatedLeaveRequest.startDate.toISOString(),
+  endDate: updatedLeaveRequest.endDate.toISOString(),
+});
       }
 
       return NextResponse.json({ success: true, data: updatedLeaveRequest });

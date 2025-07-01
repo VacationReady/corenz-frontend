@@ -37,7 +37,7 @@ export async function GET() {
   }
 }
 
-// ✅ POST: Add new employee with activation email and department linkage
+// ✅ POST: Add new employee with activation email and correct manager linking
 export async function POST(req: Request) {
   try {
     const {
@@ -77,6 +77,21 @@ export async function POST(req: Request) {
     const activationToken = randomBytes(32).toString("hex");
     const hashedPassword = ""; // Leave blank for activation
 
+    // ✅ Handle manager linking safely
+    let managerConnect = undefined;
+    if (managerId && managerId.trim() !== "") {
+      const managerEmployee = await prisma.employee.findUnique({
+        where: { id: managerId },
+        select: { userId: true },
+      });
+
+      if (managerEmployee?.userId) {
+        managerConnect = { connect: { id: managerEmployee.userId } };
+      } else {
+        console.warn(`Manager Employee ID ${managerId} provided, but no Employee found. Skipping manager connect.`);
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         email,
@@ -87,11 +102,10 @@ export async function POST(req: Request) {
         role,
         department: departmentId ? { connect: { id: departmentId } } : undefined,
         jobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
-        manager: managerId && managerId.trim() !== "" ? { connect: { id: managerId } } : undefined,
+        manager: managerConnect,
       },
     });
 
-    // ✅ Create Employee with departmentId inherited
     await prisma.employee.create({
       data: {
         user: { connect: { id: user.id } },

@@ -21,11 +21,12 @@ export async function GET(
 
   let deduction = 0;
   for (
-    let d = new Date(startDate);
-    d <= endDate;
-    d.setDate(d.getDate() + 1)
+    let time = startDate.getTime();
+    time <= endDate.getTime();
+    time += 24 * 60 * 60 * 1000
   ) {
-    deduction += await calculateLeaveDeduction(employeeId, new Date(d));
+    const currentDate = new Date(time);
+    deduction += await calculateLeaveDeduction(employeeId, currentDate);
   }
 
   return NextResponse.json({ deduction });

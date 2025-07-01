@@ -39,7 +39,9 @@ export async function calculateLeaveDeduction(employeeId: string, leaveDate: Dat
 
     // Determine which week in the pattern applies based on the leaveDate
     const firstEffectiveDate = assignment.effectiveDate;
-    const diffInDays = Math.floor((leaveDate.getTime() - firstEffectiveDate.getTime()) / (1000 * 60 * 60 * 24));
+    const diffInDays = Math.floor(
+        (leaveDate.getTime() - firstEffectiveDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
     const weekCount = workingPattern.weeks.length;
 
     const weekIndex = diffInDays >= 0 ? Math.floor(diffInDays / 7) % weekCount : 0;
@@ -51,7 +53,7 @@ export async function calculateLeaveDeduction(employeeId: string, leaveDate: Dat
     }
 
     // Use "short" format to match DB values ("Mon", "Tue", etc.)
-    const dayOfWeek = leaveDate.toLocaleDateString("en-GB", { weekday: "short" }); // "Mon", "Tue", etc.
+    const dayOfWeek = leaveDate.toLocaleDateString("en-GB", { weekday: "short" });
     const dayEntry = applicableWeek.days.find(day => day.day === dayOfWeek);
 
     console.log(`[Deduction] Leave Date: ${leaveDate.toISOString()} | DayOfWeek: ${dayOfWeek}`);

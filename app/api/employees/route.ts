@@ -10,22 +10,22 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
-  include: {
-    user: {
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        department: { select: { name: true } },
-        jobRole: { select: { name: true } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            department: { select: { name: true } },
+            jobRole: { select: { name: true } },
+          },
+        },
       },
-    },
-  },
-  orderBy: { id: "desc" }, // ✅ Fixed ordering
-});
+      orderBy: { id: "desc" },
+    });
 
     return NextResponse.json(employees);
   } catch (error) {
@@ -37,7 +37,7 @@ export async function GET() {
   }
 }
 
-// ✅ POST: Add new employee with activation email
+// ✅ POST: Add new employee with activation email and department linkage
 export async function POST(req: Request) {
   try {
     const {
@@ -91,10 +91,12 @@ export async function POST(req: Request) {
       },
     });
 
+    // ✅ Create Employee with departmentId inherited
     await prisma.employee.create({
       data: {
         user: { connect: { id: user.id } },
         isActive: true,
+        department: departmentId ? { connect: { id: departmentId } } : undefined,
       },
     });
 

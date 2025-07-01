@@ -76,7 +76,11 @@ model Employee {
   workingPatternId  String?
   workingPattern    WorkingPattern?   @relation(fields: [workingPatternId], references: [id])
   workingPatternAssignments EmployeeWorkingPatternAssignment[]
+
+  departmentId      String?             // 🚀 NEW
+  department        Department?         @relation(fields: [departmentId], references: [id]) // 🚀 NEW
 }
+
 
 model EmployeeWorkingPatternAssignment {
   id                 String          @id @default(cuid())

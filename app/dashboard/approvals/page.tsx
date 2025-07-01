@@ -38,17 +38,17 @@ export default function ApprovalsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDecision = async (id: string, status: "APPROVED" | "DECLINED") => {
+  const handleDecision = async (id: string, action: "approve" | "decline") => {
     setActionLoading(id);
     try {
       const res = await fetch(`/api/leave-request/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: status }),
+        body: JSON.stringify({ action }), // sends lowercase as expected
       });
 
       if (res.ok) {
-        toast.success(`Leave ${status.toLowerCase()}`);
+        toast.success(`Leave ${action === "approve" ? "approved" : "declined"}`);
         setRequests((prev) => prev.filter((r) => r.id !== id));
       } else {
         const data = await res.json();
@@ -63,7 +63,7 @@ export default function ApprovalsPage() {
   };
 
   return (
-    <div className="w-full px-6 pt-6 bg-gray-100">
+    <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Pending Leave Requests</h1>
       {loading ? (
         <p>Loading...</p>
@@ -82,14 +82,14 @@ export default function ApprovalsPage() {
               <p>Reason: {req.reason || "N/A"}</p>
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => handleDecision(req.id, "APPROVED")}
+                  onClick={() => handleDecision(req.id, "approve")}
                   disabled={actionLoading === req.id}
                   className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 disabled:opacity-50"
                 >
                   {actionLoading === req.id ? "Approving..." : "Approve"}
                 </button>
                 <button
-                  onClick={() => handleDecision(req.id, "DECLINED")}
+                  onClick={() => handleDecision(req.id, "decline")}
                   disabled={actionLoading === req.id}
                   className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700 disabled:opacity-50"
                 >

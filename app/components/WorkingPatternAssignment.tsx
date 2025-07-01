@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import { toast } from "sonner";
 
 interface Pattern {
   id: string;
@@ -22,11 +24,13 @@ export default function WorkingPatternAssignment({
 }: {
   employeeId: string;
 }) {
+  const router = useRouter();
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selected, setSelected] = useState("");
   const [date, setDate] = useState("");
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/working-patterns")
@@ -39,22 +43,38 @@ export default function WorkingPatternAssignment({
   }, [employeeId]);
 
   const handleAssign = async () => {
-    if (!selected || !date) return;
-    await fetch(`/api/employees/${employeeId}/working-pattern-assignment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        workingPatternId: selected,
-        effectiveDate: date,
-      }),
-    });
+    if (!selected || !date) {
+      toast.error("Please select a pattern and effective date.");
+      return;
+    }
 
-    setOpen(false);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/employees/${employeeId}/working-pattern-assignment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workingPatternId: selected,
+          effectiveDate: date,
+        }),
+      });
 
-    const res = await fetch(
-      `/api/employees/${employeeId}/working-pattern-assignment`
-    );
-    setAssignments(await res.json());
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error || "Failed to assign working pattern.");
+      }
+
+      toast.success("Working pattern assigned successfully.");
+      setOpen(false);
+
+      // Redirect back to the employee settings page
+      router.push(`/employees/${employeeId}/settings`);
+    } catch (error: any) {
+      console.error("Error assigning working pattern:", error);
+      toast.error(error?.message || "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,8 +113,8 @@ export default function WorkingPatternAssignment({
               />
             </div>
 
-            <Button onClick={handleAssign} disabled={!selected || !date}>
-              Save Assignment
+            <Button onClick={handleAssign} disabled={!selected || !date || loading}>
+              {loading ? "Saving..." : "Save Assignment"}
             </Button>
           </div>
         </DialogContent>

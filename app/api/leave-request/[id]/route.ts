@@ -98,7 +98,12 @@ export async function PATCH(req, { params }) {
     if (action === "decline") {
       const updatedLeaveRequest = await prisma.leaveRequest.update({
         where: { id: leaveId },
-        data: { declinedBy: session.user.email, declinedAt: new Date() },
+        data: {
+  approvalStatus: "DECLINED",
+  approvedBy: {
+    connect: { id: session.user.id },
+  },
+},
         include: { employee: { include: { user: true } } },
       });
 

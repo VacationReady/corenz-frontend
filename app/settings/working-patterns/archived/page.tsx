@@ -70,7 +70,7 @@ export default function ArchivedWorkingPatternsPage() {
                 </p>
               </div>
               <div className="flex space-x-2">
-                <Button variant="success" onClick={() => handleRestore(pattern.id)}>Restore</Button>
+                <Button variant="ghost" onClick={() => handleRestore(pattern.id)}>Restore</Button>
                 <Button variant="danger" onClick={() => handleDelete(pattern.id)}>Delete</Button>
               </div>
             </Card>

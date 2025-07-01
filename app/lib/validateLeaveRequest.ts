@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { LeaveType } from "@prisma/client";
-import { addDays, differenceInBusinessDays } from "date-fns";
+import { addDays, eachDayOfInterval } from "date-fns";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 /**
- * Validates a leave request against entitlement and business rules with enhanced diagnostics.
+ * Validates a leave request against entitlement and business rules with working pattern validation.
  */
 export async function validateLeaveRequest({
   employeeId,
@@ -47,7 +48,16 @@ export async function validateLeaveRequest({
     throw new Error(`No entitlement found for leave type: ${leaveType}`);
   }
 
-  const daysRequested = differenceInBusinessDays(endDate, startDate) + 1;
+  // Calculate days requested using working pattern
+  const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  let daysRequested = 0;
+
+  for (const date of datesInRange) {
+    const deduction = await calculateLeaveDeduction(employeeId, date);
+    daysRequested += deduction;
+    console.log(`📅 ${date.toDateString()}: deduction = ${deduction}`);
+  }
+
   const availableDays = entitlement.totalDays - entitlement.usedDays;
 
   console.log("🔍 Entitlement evaluation:", {

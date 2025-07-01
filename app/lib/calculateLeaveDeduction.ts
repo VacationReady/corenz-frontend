@@ -50,7 +50,8 @@ export async function calculateLeaveDeduction(employeeId: string, leaveDate: Dat
         return 1; // Fallback if something goes wrong
     }
 
-    const dayOfWeek = leaveDate.toLocaleDateString("en-GB", { weekday: "long" }); // "Monday", "Tuesday", etc.
+    // Use "short" format to match DB values ("Mon", "Tue", etc.)
+    const dayOfWeek = leaveDate.toLocaleDateString("en-GB", { weekday: "short" }); // "Mon", "Tue", etc.
     const dayEntry = applicableWeek.days.find(day => day.day === dayOfWeek);
 
     console.log(`[Deduction] Leave Date: ${leaveDate.toISOString()} | DayOfWeek: ${dayOfWeek}`);

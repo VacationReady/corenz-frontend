@@ -36,7 +36,8 @@ export default function AddLeaveRequestDialog({
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const diff =
+        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       setTotalDays(diff > 0 ? diff : 0);
     } else {
       setTotalDays(0);
@@ -103,7 +104,8 @@ export default function AddLeaveRequestDialog({
       }
 
       if (!res.ok || data.success === false) {
-        const errorMessage = data?.error || `Failed to submit leave request. Status: ${res.status}`;
+        const errorMessage =
+          data?.error || `Failed to submit leave request. Status: ${res.status}`;
         toast.error(errorMessage);
         return;
       }
@@ -118,7 +120,10 @@ export default function AddLeaveRequestDialog({
       setDeduction(0);
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
-      toast.error(error?.message || "An unexpected error occurred while submitting the leave request.");
+      toast.error(
+        error?.message ||
+          "An unexpected error occurred while submitting the leave request."
+      );
     } finally {
       setLoading(false);
     }
@@ -172,13 +177,16 @@ export default function AddLeaveRequestDialog({
               Select the last day you will be <em>away</em>. Do not include your return-to-work day.
             </p>
           </div>
-          <p className="text-sm text-gray-700">Total Days Requested: {totalDays}</p>
+
           <p className="text-sm text-gray-700">
-            Deduction (per working pattern): <strong>{deduction}</strong>
+            Total Days Requested: {totalDays}
           </p>
-          <p className="text-sm text-gray-900 font-medium">
-            ✅ Total Days Deducted: {totalDeducted}
-          </p>
+          {deduction !== null && (
+            <p className="text-sm font-medium text-green-700">
+              ✅ Total Days Deducted (per working pattern): {totalDeducted}
+            </p>
+          )}
+
           <div>
             <label className="block text-sm font-medium">Reason (optional)</label>
             <Input

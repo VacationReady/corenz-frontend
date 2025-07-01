@@ -1,5 +1,3 @@
-// components/ui/dialog.tsx
-
 "use client"
 
 import * as React from "react"
@@ -12,7 +10,7 @@ const DialogTrigger = DialogPrimitive.Trigger
 
 const DialogPortal = ({ children }: { children: React.ReactNode }) => (
   <DialogPrimitive.Portal>{children}</DialogPrimitive.Portal>
-);
+)
 DialogPortal.displayName = DialogPrimitive.Portal.displayName
 
 const DialogOverlay = React.forwardRef<
@@ -79,4 +77,22 @@ DialogTitle.displayName = DialogPrimitive.Title.displayName
 
 const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWitho
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+DialogDescription.displayName = DialogPrimitive.Description.displayName
+
+export {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+}

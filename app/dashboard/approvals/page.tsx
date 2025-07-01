@@ -42,9 +42,9 @@ export default function ApprovalsPage() {
     setActionLoading(id);
     try {
       const res = await fetch(`/api/leave-request/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ action: status }),
       });
 
       if (res.ok) {

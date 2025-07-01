@@ -10,7 +10,6 @@ export default function SettingsLayout({
   params: { id: string };
 }) {
   const subnav = [
-    { href: `/employees/${params.id}/settings/working-pattern`, label: "Working Pattern" },
     // add more settings sections here...
   ];
 

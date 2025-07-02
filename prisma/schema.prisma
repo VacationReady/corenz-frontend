@@ -69,17 +69,20 @@ model EmployeeWorkingPatternAssignment {
 }
 
 model EventCategory {
-  id                String             @id @default(cuid())
-  name              String             @unique
-  type              EventType
-  requiresApproval  Boolean            @default(true)
-  adminOnly         Boolean            @default(false)
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  subcategories     EventSubcategory[]
-  leaveRequests     LeaveRequest[]
-  leaveEntitlements LeaveEntitlement[]
+  id               String             @id @default(cuid())
+  name             String
+  categoryType     String             // "TIME_OFF" | "WORKING_EVENT"
+  requiresApproval Boolean
+  adminOnly        Boolean
+  color            String?            // HEX color for UI
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  subcategories    EventSubcategory[]
+  LeaveEntitlement LeaveEntitlement[]
+
+  leaveRequests    LeaveRequest[]     // <--- Add this backward relation field
 }
 
 model EventSubcategory {

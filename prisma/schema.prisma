@@ -32,30 +32,40 @@ enum DayType {
   HALF_DAY_PM
 }
 
+enum EventType {
+  TIME_OFF
+  WORKING_EVENT
+}
+
+enum PaidStatus {
+  PAID
+  UNPAID
+}
+
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  emailVerified   DateTime?
-  password        String
-  role            Role
-  name            String?
-  phone           String?
-  firstName       String?
-  lastName        String?
-  isActivated     Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  managerId       String?
-  manager         User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates    User[]           @relation("ManagerSubordinates")
-  jobRoleId       String?
-  jobRole         JobRole?         @relation(fields: [jobRoleId], references: [id])
-  departmentId    String?
-  department      Department?      @relation(fields: [departmentId], references: [id])
-  employee        Employee?
-  activationToken ActivationToken?
-  leaveRequestsToReview LeaveRequest[] @relation("ReviewedByUser")
-  leaveRequestsCreated  LeaveRequest[] @relation("RequestingUser")
+  id                    String           @id @default(cuid())
+  email                 String           @unique
+  emailVerified         DateTime?
+  password              String
+  role                  Role
+  name                  String?
+  phone                 String?
+  firstName             String?
+  lastName              String?
+  isActivated           Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  managerId             String?
+  manager               User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates          User[]           @relation("ManagerSubordinates")
+  jobRoleId             String?
+  jobRole               JobRole?         @relation(fields: [jobRoleId], references: [id])
+  departmentId          String? // ✅ Restored
+  department            Department?      @relation(fields: [departmentId], references: [id]) // ✅ Restored
+  employee              Employee?
+  activationToken       ActivationToken?
+  leaveRequestsToReview LeaveRequest[]   @relation("ReviewedByUser")
+  leaveRequestsCreated  LeaveRequest[]   @relation("RequestingUser")
 }
 
 model ActivationToken {
@@ -67,30 +77,28 @@ model ActivationToken {
 }
 
 model Employee {
-  id                String            @id @default(cuid())
-  userId            String            @unique
-  user              User              @relation(fields: [userId], references: [id])
-  isActive          Boolean           @default(true)
-  leaveRequests     LeaveRequest[]
-  leaveEntitlements LeaveEntitlement[]
-  workingPatternId  String?
-  workingPattern    WorkingPattern?   @relation(fields: [workingPatternId], references: [id])
+  id                        String                             @id @default(cuid())
+  userId                    String                             @unique
+  user                      User                               @relation(fields: [userId], references: [id])
+  isActive                  Boolean                            @default(true)
+  leaveRequests             LeaveRequest[]
+  leaveEntitlements         LeaveEntitlement[]
+  workingPatternId          String?
+  workingPattern            WorkingPattern?                    @relation(fields: [workingPatternId], references: [id])
   workingPatternAssignments EmployeeWorkingPatternAssignment[]
-
-  departmentId      String?             // 🚀 NEW
-  department        Department?         @relation(fields: [departmentId], references: [id]) // 🚀 NEW
+  departmentId              String? // ✅ Restored
+  department                Department?                        @relation(fields: [departmentId], references: [id]) // ✅ Restored
 }
 
-
 model EmployeeWorkingPatternAssignment {
-  id                 String          @id @default(cuid())
-  employee           Employee         @relation(fields: [employeeId], references: [id])
-  employeeId         String
-  workingPattern     WorkingPattern   @relation(fields: [workingPatternId], references: [id])
-  workingPatternId   String
-  effectiveDate      DateTime
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id               String         @id @default(cuid())
+  employee         Employee       @relation(fields: [employeeId], references: [id])
+  employeeId       String
+  workingPattern   WorkingPattern @relation(fields: [workingPatternId], references: [id])
+  workingPatternId String
+  effectiveDate    DateTime
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([employeeId, effectiveDate])
 }
@@ -99,7 +107,7 @@ model Department {
   id        String     @id @default(cuid())
   name      String     @unique
   users     User[]
-  employees Employee[] // 🚀 Add this line
+  employees Employee[] // ✅ Ensures clear bi-directional relationship
 }
 
 model JobRole {
@@ -109,64 +117,92 @@ model JobRole {
 }
 
 model LeaveRequest {
-  id              String          @id @default(cuid())
-  employeeId      String
-  employee        Employee        @relation(fields: [employeeId], references: [id])
-  type            LeaveType
-  startDate       DateTime
-  endDate         DateTime
-  reason          String?
-  sickReason      String?         // ✅ NEW: Specific reason for sickness reporting
-  paidStatus      String?         // ✅ NEW: "PAID" or "UNPAID" for sickness reporting
-  approvalStatus  ApprovalStatus  @default(PENDING)
-  approvedById    String?
-  approvedBy      User?           @relation("ReviewedByUser", fields: [approvedById], references: [id])
-  createdById     String
-  createdBy       User            @relation("RequestingUser", fields: [createdById], references: [id])
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id             String            @id @default(cuid())
+  employeeId     String
+  employee       Employee          @relation(fields: [employeeId], references: [id])
+  type           LeaveType
+  startDate      DateTime
+  endDate        DateTime
+  reason         String?
+  approvalStatus ApprovalStatus    @default(PENDING)
+  approvedById   String?
+  approvedBy     User?             @relation("ReviewedByUser", fields: [approvedById], references: [id])
+  createdById    String
+  createdBy      User              @relation("RequestingUser", fields: [createdById], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  paidStatus     PaidStatus? // ✅ Restored as enum
+  sickReasonId   String? // ✅ Correct relational column
+  sickReason     EventSubcategory? @relation(fields: [sickReasonId], references: [id]) // ✅ Correct relational mapping
 }
 
 model LeaveEntitlement {
-  id             String      @id @default(cuid())
-  employee       Employee    @relation(fields: [employeeId], references: [id])
-  employeeId     String
-  leaveType      LeaveType
-  totalDays      Float
-  usedDays       Float
-  daysAllocated  Float       @default(0)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id            String    @id @default(cuid())
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  employeeId    String
+  leaveType     LeaveType
+  totalDays     Float
+  usedDays      Float
+  daysAllocated Float     @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@unique([employeeId, leaveType])
 }
 
 model WorkingPattern {
-  id          String               @id @default(cuid())
-  name        String               @unique
+  id          String                             @id @default(cuid())
+  name        String                             @unique
   description String?
-  active      Boolean              @default(true)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  active      Boolean                            @default(true)
+  createdAt   DateTime                           @default(now())
+  updatedAt   DateTime                           @updatedAt
   employees   Employee[]
   weeks       WorkingPatternWeek[]
   assignments EmployeeWorkingPatternAssignment[]
 }
 
 model WorkingPatternWeek {
-  id               String             @id @default(cuid())
+  id               String              @id @default(cuid())
   weekNumber       Int
-  workingPattern   WorkingPattern     @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
+  workingPattern   WorkingPattern      @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
   workingPatternId String
   days             WorkingPatternDay[]
+
   @@unique([weekNumber, workingPatternId])
 }
 
 model WorkingPatternDay {
-  id                   String               @id @default(cuid())
+  id                   String             @id @default(cuid())
   day                  String
   type                 DayType
-  workingPatternWeek   WorkingPatternWeek   @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
+  workingPatternWeek   WorkingPatternWeek @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
   workingPatternWeekId String
+
   @@unique([day, workingPatternWeekId])
+}
+
+model EventCategory {
+  id               String             @id @default(cuid())
+  name             String             @unique
+  type             EventType
+  requiresApproval Boolean            @default(true)
+  adminOnly        Boolean            @default(false)
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  subcategories    EventSubcategory[]
+}
+
+model EventSubcategory {
+  id                String        @id @default(cuid())
+  name              String
+  eventCategory     EventCategory @relation(fields: [eventCategoryId], references: [id])
+  eventCategoryId   String
+  defaultPaidStatus PaidStatus    @default(PAID)
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @default(now())
+
+  leaveRequests LeaveRequest[] // ✅ Correct relational mapping
 }

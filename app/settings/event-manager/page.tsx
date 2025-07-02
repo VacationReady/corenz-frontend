@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageShell } from "@/components/PageShell";
-import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@headlessui/react";
 import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +32,8 @@ export default function EventManagerPage() {
   };
 
   return (
-    <PageShell heading="Event Manager">
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold mb-4">Event Manager</h1>
       <Card className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Event Categories</h2>
@@ -146,6 +146,6 @@ export default function EventManagerPage() {
           ))}
         </div>
       </Card>
-    </PageShell>
+    </div>
   );
 }

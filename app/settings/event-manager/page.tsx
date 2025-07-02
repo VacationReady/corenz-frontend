@@ -7,11 +7,16 @@ import { Switch } from "@headlessui/react";
 import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AddCategoryModal from "@/components/AddCategoryModal";
+import AddSubcategoryModal from "@/components/AddSubcategoryModal";
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isAddSubcategoryModalOpen, setIsAddSubcategoryModalOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
 
   useEffect(() => {
     fetchCategories();
@@ -33,6 +38,12 @@ export default function EventManagerPage() {
     setExpanded(expanded === id ? null : id);
   };
 
+  const handleOpenAddSubcategory = (categoryId: string, categoryName: string) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedCategoryName(categoryName);
+    setIsAddSubcategoryModalOpen(true);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Event Manager</h1>
@@ -51,83 +62,45 @@ export default function EventManagerPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{category.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {category.categoryType ?? ""}
-                  </p>
+                  <p className="text-sm text-gray-500">{category.categoryType ?? ""}</p>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">Requires Approval</span>
-                    <Switch
-                      checked={category.requiresApproval}
-                      onChange={() => {}}
-                      disabled={category.systemDefined}
-                      className={cn(
-                        category.requiresApproval ? "bg-green-500" : "bg-gray-300",
-                        "relative inline-flex h-5 w-10 items-center rounded-full",
-                        category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
-                      )}
-                      title={category.systemDefined ? "System category, cannot edit" : ""}
-                    >
-                      <span
+                  {["requiresApproval", "adminOnly", "isActive"].map((key) => (
+                    <div key={key} className="flex items-center space-x-1">
+                      <span className="text-sm capitalize">
+                        {key === "requiresApproval"
+                          ? "Requires Approval"
+                          : key === "adminOnly"
+                          ? "Admin Only"
+                          : "Active"}
+                      </span>
+                      <Switch
+                        checked={category[key]}
+                        onChange={() => {}}
+                        disabled={category.systemDefined}
                         className={cn(
-                          category.requiresApproval ? "translate-x-6" : "translate-x-1",
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition"
+                          category[key] ? "bg-green-500" : "bg-gray-300",
+                          "relative inline-flex h-5 w-10 items-center rounded-full",
+                          category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
                         )}
-                      />
-                    </Switch>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">Admin Only</span>
-                    <Switch
-                      checked={category.adminOnly}
-                      onChange={() => {}}
-                      disabled={category.systemDefined}
-                      className={cn(
-                        category.adminOnly ? "bg-green-500" : "bg-gray-300",
-                        "relative inline-flex h-5 w-10 items-center rounded-full",
-                        category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
-                      )}
-                      title={category.systemDefined ? "System category, cannot edit" : ""}
-                    >
-                      <span
-                        className={cn(
-                          category.adminOnly ? "translate-x-6" : "translate-x-1",
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition"
-                        )}
-                      />
-                    </Switch>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">Active</span>
-                    <Switch
-                      checked={category.isActive}
-                      onChange={() => {}}
-                      disabled={category.systemDefined}
-                      className={cn(
-                        category.isActive ? "bg-green-500" : "bg-gray-300",
-                        "relative inline-flex h-5 w-10 items-center rounded-full",
-                        category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
-                      )}
-                      title={category.systemDefined ? "System category, cannot edit" : ""}
-                    >
-                      <span
-                        className={cn(
-                          category.isActive ? "translate-x-6" : "translate-x-1",
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition"
-                        )}
-                      />
-                    </Switch>
-                  </div>
-                  {category.name === "Sick Leave" && (
-                    <button onClick={() => toggleExpand(category.id)}>
-                      {expanded === category.id ? (
-                        <ChevronUpIcon className="w-5 h-5" />
-                      ) : (
-                        <ChevronDownIcon className="w-5 h-5" />
-                      )}
-                    </button>
-                  )}
+                        title={category.systemDefined ? "System category, cannot edit" : ""}
+                      >
+                        <span
+                          className={cn(
+                            category[key] ? "translate-x-6" : "translate-x-1",
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition"
+                          )}
+                        />
+                      </Switch>
+                    </div>
+                  ))}
+                  <button onClick={() => toggleExpand(category.id)}>
+                    {expanded === category.id ? (
+                      <ChevronUpIcon className="w-5 h-5" />
+                    ) : (
+                      <ChevronDownIcon className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -150,8 +123,7 @@ export default function EventManagerPage() {
                   <Button
                     variant="ghost"
                     className="mt-2"
-                    disabled={category.systemDefined}
-                    title={category.systemDefined ? "System category, cannot add subcategories" : ""}
+                    onClick={() => handleOpenAddSubcategory(category.id, category.name)}
                   >
                     <PlusIcon className="w-4 h-4 mr-1" />
                     Add Subcategory
@@ -168,6 +140,15 @@ export default function EventManagerPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchCategories}
+      />
+
+      {/* Add Subcategory Modal */}
+      <AddSubcategoryModal
+        isOpen={isAddSubcategoryModalOpen}
+        onClose={() => setIsAddSubcategoryModalOpen(false)}
+        onSuccess={fetchCategories}
+        parentCategoryId={selectedCategoryId}
+        parentCategoryName={selectedCategoryName}
       />
     </div>
   );

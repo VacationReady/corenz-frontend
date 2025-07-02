@@ -1,3 +1,5 @@
+// File: app/settings/event-manager/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,6 +10,7 @@ import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
+import { toast } from "react-hot-toast";
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -42,6 +45,25 @@ export default function EventManagerPage() {
     setSelectedCategoryId(categoryId);
     setSelectedCategoryName(categoryName);
     setIsAddSubcategoryModalOpen(true);
+  };
+
+  const handleArchiveCategory = async (categoryId: string) => {
+    if (!confirm("Are you sure you want to archive this category?")) return;
+    try {
+      const res = await fetch(`/api/event-categories/${categoryId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Category archived.");
+        fetchCategories();
+      } else {
+        toast.error(data.error || "Failed to archive category.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred.");
+    }
   };
 
   return (
@@ -94,6 +116,14 @@ export default function EventManagerPage() {
                       </Switch>
                     </div>
                   ))}
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleArchiveCategory(category.id)}
+                    disabled={category.systemDefined}
+                  >
+                    Archive
+                  </Button>
                   <button onClick={() => toggleExpand(category.id)}>
                     {expanded === category.id ? (
                       <ChevronUpIcon className="w-5 h-5" />

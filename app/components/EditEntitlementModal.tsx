@@ -45,6 +45,13 @@ export default function EditEntitlementModal({
     const [loading, setLoading] = useState(false);
     const [eventCategoryMap, setEventCategoryMap] = useState<Record<string, string>>({});
 
+    // Derived flag: true once we've loaded at least those three IDs
+    const mapReady = !!(
+        eventCategoryMap["ANNUAL"] &&
+        eventCategoryMap["SICK"] &&
+        eventCategoryMap["BEREAVEMENT"]
+    );
+
     useEffect(() => {
         const fetchEventCategories = async () => {
             try {
@@ -85,6 +92,12 @@ export default function EditEntitlementModal({
     }, [currentEntitlements]);
 
     const handleSubmit = async () => {
+        // 🚧 Guard against missing IDs
+        if (!mapReady) {
+            alert("Event categories are still loading. Please wait a moment and try again.");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch(`/api/employees/${employeeId}/entitlement`, {
@@ -141,7 +154,7 @@ export default function EditEntitlementModal({
                             onChange={(e) => setBereavement(parseInt(e.target.value))}
                         />
                     </label>
-                    <Button disabled={loading} onClick={handleSubmit}>
+                    <Button disabled={loading || !mapReady} onClick={handleSubmit}>
                         {loading ? "Saving..." : "Save Entitlement"}
                     </Button>
                 </div>

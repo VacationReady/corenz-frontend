@@ -48,6 +48,13 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
       if (data.success) {
         onSuccess();
         onClose();
+        setName("");
+        setCategoryType(null);
+        setRequiresApproval(false);
+        setAdminOnly(false);
+        setDefaultPaidStatus("PAID");
+        setColor("#3b82f6");
+        setIsActive(true);
       } else {
         alert(data.error || "Failed to add category.");
       }

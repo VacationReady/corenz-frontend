@@ -16,9 +16,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const userId = session.user.id;
     const employeeId = params.id;
     const body = await req.json();
-    const { type, startDate, endDate, reason, sickReason, paidStatus } = body;
+    const { eventCategoryId, startDate, endDate, reason, sickReason, paidStatus, dayType } = body;
 
-    if (!type || !startDate || !endDate) {
+    if (!eventCategoryId || !startDate || !endDate) {
       console.log("❌ Missing required leave request fields");
       return NextResponse.json({ success: false, error: "Missing required fields." }, { status: 400 });
     }
@@ -49,29 +49,41 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
-    // ✅ Advanced entitlement and overlap validation
+    const eventCategory = await prisma.eventCategory.findUnique({
+      where: { id: eventCategoryId },
+      select: { name: true },
+    });
+
+    if (!eventCategory) {
+      console.log("❌ Invalid event category");
+      return NextResponse.json({ success: false, error: "Invalid event category." }, { status: 400 });
+    }
+
+    const eventCategoryName = eventCategory.name;
+
+    // Validate entitlement and overlap using the updated validateLeaveRequest
     await validateLeaveRequest({
       employeeId,
-      leaveType: type,
+      eventCategoryId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       isAdmin: session.user.role === "ADMIN",
     });
 
     const newLeaveRequest = await prisma.leaveRequest.create({
-      data: {
-        employee: { connect: { id: employeeId } },
-        requesterId: userId,
-        type,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        reason: reason ?? "",
-        sickReason: type === "SICK" ? sickReason ?? "" : null,
-        paidStatus: type === "SICK" ? paidStatus ?? "PAID" : null,
-      },
-    });
+  data: {
+    employee: { connect: { id: employeeId } },
+    requester: { connect: { id: userId } },
+    eventCategory: { connect: { id: eventCategoryId } },
+    startDate: new Date(startDate),
+    endDate: new Date(endDate),
+    dayType: dayType ?? "FULL_DAY",
+    reason: reason ?? "",
+    sickReasonId: eventCategoryName === "Sick Leave" ? sickReason ?? null : null,
+    paidStatus: eventCategoryName === "Sick Leave" ? paidStatus ?? "PAID" : null,
+  },
+});
 
-    // ✅ Notify manager if present
     if (employee.user.managerId) {
       const manager = await prisma.user.findUnique({
         where: { id: employee.user.managerId },
@@ -82,25 +94,25 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         const employeeFullName =
           `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
         await sendLeaveNotification({
-          to: manager.email,
-          subject: `New Leave Request Submitted by ${employeeFullName}`,
-          employeeName: employeeFullName,
-          type,
-          startDate,
-          endDate,
-          status: "PENDING",
-        });
+  to: manager.email,
+  subject: `New Leave Request from ${employeeFullName}`,
+  employeeName: employeeFullName,
+  type: eventCategoryName,
+  startDate,
+  endDate,
+});
       }
     }
 
-    console.log("✅ Leave request created successfully:", newLeaveRequest.id);
-
+    console.log("✅ Leave request submitted successfully");
     return NextResponse.json({ success: true, data: newLeaveRequest });
   } catch (error: any) {
-    console.error("❌ Error creating leave request:", error);
+    console.error("❌ Error submitting leave request:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to create leave request." },
+      { success: false, error: error.message || "Failed to submit leave request." },
       { status: 500 }
     );
   }
 }
+
+export const dynamic = "force-dynamic";

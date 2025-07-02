@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { LeaveType } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-options";
 
@@ -17,26 +16,33 @@ export async function POST(
     }
 
     const employeeId = params.id;
-    const entitlements: { leaveType: LeaveType; totalDays: number }[] =
-      await req.json();
+    const entitlements: { eventCategoryId: string; totalDays: number; daysAllocated?: number }[] = await req.json();
 
     for (const entitlement of entitlements) {
+      if (!entitlement.eventCategoryId || entitlement.totalDays === undefined) {
+        return NextResponse.json(
+          { error: "Missing required fields in entitlement." },
+          { status: 400 }
+        );
+      }
+
       await prisma.leaveEntitlement.upsert({
         where: {
-          employeeId_leaveType: {
-            employeeId: employeeId,
-            leaveType: entitlement.leaveType,
+          employeeId_eventCategoryId: {
+            employeeId,
+            eventCategoryId: entitlement.eventCategoryId,
           },
         },
         update: {
           totalDays: entitlement.totalDays,
         },
         create: {
-    employeeId: employeeId,
-    leaveType: entitlement.leaveType,
-    totalDays: entitlement.totalDays,
-    usedDays: 0, // or appropriate initial value
-},
+          employeeId,
+          eventCategoryId: entitlement.eventCategoryId,
+          totalDays: entitlement.totalDays,
+          usedDays: 0, // adjust if needed
+          daysAllocated: entitlement.daysAllocated ?? 0,
+        },
       });
     }
 

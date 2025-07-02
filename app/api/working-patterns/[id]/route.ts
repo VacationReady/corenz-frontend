@@ -1,8 +1,10 @@
-import { prisma } from "@/lib/prisma";
+// app/api/working-patterns/[id]/route.ts
+
+import { prisma } from "@/lib/prisma";            // ← named import
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-// Updated schema for multi-week update
+// Validate name, optional description, and multi-week data
 const WorkingPatternUpdateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -14,98 +16,90 @@ const WorkingPatternUpdateSchema = z.object({
           day: z.string(),
           type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
         })
-      ).min(1, "At least one day is required per week"),
+      ),
     })
-  ).min(1, "At least one week is required"),
+  ),
 });
 
-// PATCH: Update working pattern or restore archived
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
-
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    const json = await req.json();
+    const { name, description, weeks } = await req.json();
+    await WorkingPatternUpdateSchema.parseAsync({ name, description, weeks });
 
-    // Allow simple restore without validation
-    if (json.active === true) {
-      const restoredPattern = await prisma.workingPattern.update({
-        where: { id },
-        data: { active: true },
-        include: { weeks: { include: { days: true } } },
-      });
-      return NextResponse.json(restoredPattern, { status: 200 });
-    }
-
-    // Validate and parse request for updates
-    const parsed = WorkingPatternUpdateSchema.safeParse(json);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { message: "Validation failed", errors: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
-
-    const { name, description, weeks } = parsed.data;
-
-    // Update the pattern and replace weeks with new structure
     const updatedPattern = await prisma.workingPattern.update({
-      where: { id },
+      where: { id: params.id },
       data: {
         name,
-        description,
-        weeks: {
-          deleteMany: {}, // remove existing weeks and their nested days
+        description,  // ← now supported in schema
+        WorkingPatternWeek: {
+          deleteMany: {}, // clear out existing weeks & days
           create: weeks.map((week) => ({
             weekNumber: week.weekNumber,
-            days: {
-              create: week.days.map((dayObj) => ({
-                day: dayObj.day,
-                type: dayObj.type,
+            WorkingPatternDay: {
+              create: week.days.map((day) => ({
+                day: day.day,
+                type: day.type,
               })),
             },
           })),
         },
       },
-      include: { weeks: { include: { days: true } } },
+      include: {
+        WorkingPatternWeek: {
+          include: { WorkingPatternDay: true },
+        },
+      },
     });
 
     return NextResponse.json(updatedPattern, { status: 200 });
   } catch (error) {
     console.error("PATCH /api/working-patterns/[id] error:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ errors: error.flatten() }, { status: 400 });
+    }
     return NextResponse.json(
-      { message: "Error updating working pattern", error: error instanceof Error ? error.message : error },
+      {
+        message: "Error updating working pattern",
+        error: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
 }
 
-// DELETE: Soft delete (archive) or permanent delete
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const id = params.id;
-  const { searchParams } = new URL(req.url);
-  const permanent = searchParams.get("permanent");
-
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    if (permanent === "true") {
-      // Perform permanent delete
-      await prisma.workingPattern.delete({
-        where: { id },
-      });
-      return NextResponse.json({ message: "Pattern permanently deleted" }, { status: 200 });
-    } else {
-      // Perform soft delete (archive)
-      await prisma.workingPattern.update({
-        where: { id },
-        data: { active: false },
-      });
-      return NextResponse.json({ message: "Pattern archived" }, { status: 200 });
-    }
+    await prisma.workingPattern.update({
+      where: { id: params.id },
+      data: { active: false },
+    });
+    return NextResponse.json({ message: "Pattern archived" }, { status: 200 });
   } catch (error) {
     console.error("DELETE /api/working-patterns/[id] error:", error);
     return NextResponse.json(
-      { message: "Error deleting working pattern", error: error instanceof Error ? error.message : error },
+      {
+        message: "Error deleting working pattern",
+        error: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
+}
+
+export function GET() {
+  return NextResponse.json({ message: "Method Not Allowed" }, { status: 405 });
+}
+
+export function POST() {
+  return NextResponse.json({ message: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PUT() {
+  return NextResponse.json({ message: "Method Not Allowed" }, { status: 405 });
 }

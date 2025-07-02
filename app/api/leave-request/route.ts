@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
-        status: status,
+        approvalStatus: status,
         ...(session.user.role === "MANAGER" && {
           employee: {
             user: {
@@ -42,9 +42,8 @@ export async function GET(req: Request) {
         id: true,
         startDate: true,
         endDate: true,
-        notes: true,
         dayType: true,
-        status: true,
+        approvalStatus: true,
         eventCategory: {
           select: {
             id: true,

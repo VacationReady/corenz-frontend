@@ -61,10 +61,13 @@ export default function EventManagerPage() {
                     <Switch
                       checked={category.requiresApproval}
                       onChange={() => {}}
+                      disabled={category.systemDefined}
                       className={cn(
                         category.requiresApproval ? "bg-green-500" : "bg-gray-300",
-                        "relative inline-flex h-5 w-10 items-center rounded-full"
+                        "relative inline-flex h-5 w-10 items-center rounded-full",
+                        category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
                       )}
+                      title={category.systemDefined ? "System category, cannot edit" : ""}
                     >
                       <span
                         className={cn(
@@ -79,10 +82,13 @@ export default function EventManagerPage() {
                     <Switch
                       checked={category.adminOnly}
                       onChange={() => {}}
+                      disabled={category.systemDefined}
                       className={cn(
                         category.adminOnly ? "bg-green-500" : "bg-gray-300",
-                        "relative inline-flex h-5 w-10 items-center rounded-full"
+                        "relative inline-flex h-5 w-10 items-center rounded-full",
+                        category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
                       )}
+                      title={category.systemDefined ? "System category, cannot edit" : ""}
                     >
                       <span
                         className={cn(
@@ -97,10 +103,13 @@ export default function EventManagerPage() {
                     <Switch
                       checked={category.isActive}
                       onChange={() => {}}
+                      disabled={category.systemDefined}
                       className={cn(
                         category.isActive ? "bg-green-500" : "bg-gray-300",
-                        "relative inline-flex h-5 w-10 items-center rounded-full"
+                        "relative inline-flex h-5 w-10 items-center rounded-full",
+                        category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
                       )}
+                      title={category.systemDefined ? "System category, cannot edit" : ""}
                     >
                       <span
                         className={cn(
@@ -138,7 +147,12 @@ export default function EventManagerPage() {
                       <Button size="sm">Edit</Button>
                     </div>
                   ))}
-                  <Button variant="ghost" className="mt-2">
+                  <Button
+                    variant="ghost"
+                    className="mt-2"
+                    disabled={category.systemDefined}
+                    title={category.systemDefined ? "System category, cannot add subcategories" : ""}
+                  >
                     <PlusIcon className="w-4 h-4 mr-1" />
                     Add Subcategory
                   </Button>

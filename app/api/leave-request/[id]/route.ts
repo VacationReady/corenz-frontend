@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
-export async function PATCH(req, { params }) {
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user || !["ADMIN", "MANAGER"].includes(session.user.role)) {
@@ -20,7 +20,13 @@ export async function PATCH(req, { params }) {
     try {
         const leave = await prisma.leaveRequest.findUnique({
             where: { id: leaveId },
-            include: { employee: { include: { user: true } } },
+            include: {
+                employee: {
+                    include: {
+                        user: true
+                    }
+                }
+            },
         });
 
         if (!leave) {
@@ -28,7 +34,7 @@ export async function PATCH(req, { params }) {
         }
 
         if (action === "approve") {
-            // Day-by-day deduction calculation
+            // Day-by-day deduction calculation respecting working pattern
             const totalDays: number[] = [];
             let currentDate = new Date(leave.startDate);
             const endDate = new Date(leave.endDate);
@@ -61,7 +67,9 @@ export async function PATCH(req, { params }) {
                         approvalStatus: "APPROVED",
                         approvedBy: { connect: { id: session.user.id } },
                     },
-                    include: { employee: { include: { user: true } } },
+                    include: {
+                        employee: { include: { user: true } },
+                    },
                 });
             });
 
@@ -87,7 +95,9 @@ export async function PATCH(req, { params }) {
                     approvalStatus: "DECLINED",
                     approvedBy: { connect: { id: session.user.id } },
                 },
-                include: { employee: { include: { user: true } } },
+                include: {
+                    employee: { include: { user: true } },
+                },
             });
 
             await sendLeaveStatusUpdate({
@@ -106,7 +116,7 @@ export async function PATCH(req, { params }) {
         }
 
         return NextResponse.json({ success: false, error: "Invalid action specified." }, { status: 400 });
-    } catch (error) {
+    } catch (error: any) {
         console.error("[Leave Request Approval Error]", error);
         return NextResponse.json(
             { success: false, error: error.message || "Internal server error." },

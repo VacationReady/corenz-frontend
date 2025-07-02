@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const userId = session.user.id;
     const employeeId = params.id;
     const body = await req.json();
-    const { type, startDate, endDate, reason } = body;
+    const { type, startDate, endDate, reason, sickReason, paidStatus } = body;
 
     if (!type || !startDate || !endDate) {
       console.log("❌ Missing required leave request fields");
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             email: true,
             managerId: true,
             firstName: true,
-            lastName: true
+            lastName: true,
           },
         },
       },
@@ -66,9 +66,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         reason: reason ?? "",
+        sickReason: type === "SICK" ? sickReason ?? "" : null,
+        paidStatus: type === "SICK" ? paidStatus ?? "PAID" : null,
       },
     });
 
+    // ✅ Notify manager if present
     if (employee.user.managerId) {
       const manager = await prisma.user.findUnique({
         where: { id: employee.user.managerId },
@@ -76,7 +79,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       });
 
       if (manager?.email) {
-        const employeeFullName = `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
+        const employeeFullName =
+          `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
         await sendLeaveNotification({
           to: manager.email,
           subject: `New Leave Request Submitted by ${employeeFullName}`,

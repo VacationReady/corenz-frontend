@@ -28,6 +28,8 @@ export default function AddLeaveRequestDialog({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [sickReason, setSickReason] = useState("");
+  const [paidStatus, setPaidStatus] = useState("PAID");
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -82,6 +84,11 @@ export default function AddLeaveRequestDialog({
       return;
     }
 
+    if (type === "SICK" && !sickReason) {
+      toast.error("Please provide a reason for sickness.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/employees/${employeeId}/leave-requests`, {
@@ -93,6 +100,7 @@ export default function AddLeaveRequestDialog({
           endDate,
           reason,
           status: isAdminOrManager ? "APPROVED" : undefined,
+          ...(type === "SICK" && { sickReason, paidStatus }),
         }),
       });
 
@@ -116,6 +124,8 @@ export default function AddLeaveRequestDialog({
       setStartDate("");
       setEndDate("");
       setReason("");
+      setSickReason("");
+      setPaidStatus("PAID");
       setTotalDays(0);
       setDeduction(0);
     } catch (error: any) {
@@ -187,14 +197,39 @@ export default function AddLeaveRequestDialog({
             </p>
           )}
 
+          {type === "SICK" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium">Reason for Sickness</label>
+                <Input
+                  value={sickReason}
+                  onChange={(e) => setSickReason(e.target.value)}
+                  placeholder="E.g. Flu, injury, etc."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Paid or Unpaid</label>
+                <select
+                  className="w-full border rounded p-2 mt-1"
+                  value={paidStatus}
+                  onChange={(e) => setPaidStatus(e.target.value)}
+                >
+                  <option value="PAID">Paid</option>
+                  <option value="UNPAID">Unpaid</option>
+                </select>
+              </div>
+            </>
+          )}
+
           <div>
-            <label className="block text-sm font-medium">Reason (optional)</label>
+            <label className="block text-sm font-medium">General Reason (optional)</label>
             <Input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Optional reason"
+              placeholder="Optional reason for this leave"
             />
           </div>
+
           <Button variant="ghost" onClick={handleSubmit} disabled={loading}>
             {loading ? "Submitting..." : "Submit Request"}
           </Button>

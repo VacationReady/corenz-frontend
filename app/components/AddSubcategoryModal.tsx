@@ -1,8 +1,6 @@
-// File: app/components/AddSubcategoryModal.tsx
-
 "use client";
 
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { Dialog } from "@headlessui/react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -66,19 +64,28 @@ export default function AddSubcategoryModal({
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
       <Dialog.Panel className="bg-white w-full max-w-md rounded shadow-lg p-6 space-y-4">
         <Dialog.Title className="text-lg font-semibold">
           Add Subcategory under {parentCategoryName}
         </Dialog.Title>
 
         <div className="space-y-2">
-          <Input
-            label="Subcategory Name"
-            placeholder="e.g., Doctor's Appointment"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+          <div>
+            <label htmlFor="subcategoryName" className="block text-sm font-medium mb-1">
+              Subcategory Name
+            </label>
+            <Input
+              id="subcategoryName"
+              placeholder="e.g., Doctor's Appointment"
+              value={name}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">Default Paid Status</label>
@@ -94,8 +101,12 @@ export default function AddSubcategoryModal({
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button onClick={onClose} variant="secondary" disabled={loading}>Cancel</Button>
-          <Button onClick={handleSubmit} loading={loading}>Add Subcategory</Button>
+          <Button onClick={onClose} variant="secondary" disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} loading={loading}>
+            Add Subcategory
+          </Button>
         </div>
       </Dialog.Panel>
     </Dialog>

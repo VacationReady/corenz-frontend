@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const newLeaveRequest = await prisma.leaveRequest.create({
       data: {
         employee: { connect: { id: employeeId } },
-        requester: { connect: { id: userId } },
+        requesterId: userId,
         type,
         startDate: new Date(startDate),
         endDate: new Date(endDate),

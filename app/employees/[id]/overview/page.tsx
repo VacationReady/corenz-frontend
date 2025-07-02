@@ -2,7 +2,14 @@ import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import PersonalInfoPanel from "@/components/PersonalInfoPanel";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 
@@ -16,7 +23,10 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
     include: {
-      leaveEntitlements: true,
+      // 👇 include nested eventCategory on each entitlement
+      leaveEntitlements: {
+        include: { eventCategory: true },
+      },
       user: {
         select: {
           firstName: true,

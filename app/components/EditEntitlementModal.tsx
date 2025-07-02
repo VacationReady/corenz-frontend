@@ -9,16 +9,21 @@ import {
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useState, useEffect } from "react";
-import { LeaveType } from "@prisma/client";
+
+interface EventCategory {
+    id: string;
+    name: string;
+}
 
 interface LeaveEntitlement {
     id: string;
     employeeId: string;
-    leaveType: LeaveType;
+    eventCategoryId: string;
     totalDays: number;
     usedDays: number;
     createdAt: Date;
     updatedAt: Date;
+    eventCategory: EventCategory;
 }
 
 export default function EditEntitlementModal({
@@ -38,17 +43,39 @@ export default function EditEntitlementModal({
     const [sickLeave, setSickLeave] = useState(10);
     const [bereavement, setBereavement] = useState(3);
     const [loading, setLoading] = useState(false);
+    const [eventCategoryMap, setEventCategoryMap] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        const fetchEventCategories = async () => {
+            try {
+                const res = await fetch("/api/event-categories");
+                const data: EventCategory[] = await res.json();
+
+                const categoryMap: Record<string, string> = {};
+                data.forEach((cat) => {
+                    if (cat.name === "Annual Leave") categoryMap["ANNUAL"] = cat.id;
+                    if (cat.name === "Sick Leave") categoryMap["SICK"] = cat.id;
+                    if (cat.name === "Bereavement Leave") categoryMap["BEREAVEMENT"] = cat.id;
+                });
+                setEventCategoryMap(categoryMap);
+            } catch (error) {
+                console.error("Failed to fetch event categories", error);
+            }
+        };
+
+        fetchEventCategories();
+    }, []);
 
     useEffect(() => {
         if (currentEntitlements) {
             const annual = currentEntitlements.find(
-                (e) => e.leaveType === "ANNUAL"
+                (e) => e.eventCategory.name === "Annual Leave"
             )?.totalDays;
             const sick = currentEntitlements.find(
-                (e) => e.leaveType === "SICK"
+                (e) => e.eventCategory.name === "Sick Leave"
             )?.totalDays;
             const bereave = currentEntitlements.find(
-                (e) => e.leaveType === "BEREAVEMENT"
+                (e) => e.eventCategory.name === "Bereavement Leave"
             )?.totalDays;
 
             if (annual !== undefined) setAnnualLeave(annual);
@@ -64,9 +91,9 @@ export default function EditEntitlementModal({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify([
-                    { leaveType: "ANNUAL", totalDays: annualLeave },
-                    { leaveType: "SICK", totalDays: sickLeave },
-                    { leaveType: "BEREAVEMENT", totalDays: bereavement },
+                    { eventCategoryId: eventCategoryMap["ANNUAL"], totalDays: annualLeave },
+                    { eventCategoryId: eventCategoryMap["SICK"], totalDays: sickLeave },
+                    { eventCategoryId: eventCategoryMap["BEREAVEMENT"], totalDays: bereavement },
                 ]),
             });
             if (!res.ok) throw new Error("Failed to update entitlement.");

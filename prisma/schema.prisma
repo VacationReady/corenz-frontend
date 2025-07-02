@@ -69,16 +69,17 @@ model EmployeeWorkingPatternAssignment {
 }
 
 model EventCategory {
-  id               String             @id @default(cuid())
-  name             String             @unique
-  type             EventType
-  requiresApproval Boolean            @default(true)
-  adminOnly        Boolean            @default(false)
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  subcategories    EventSubcategory[]
-  leaveRequests    LeaveRequest[]
+  id                String             @id @default(cuid())
+  name              String             @unique
+  type              EventType
+  requiresApproval  Boolean            @default(true)
+  adminOnly         Boolean            @default(false)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  subcategories     EventSubcategory[]
+  leaveRequests     LeaveRequest[]
+  leaveEntitlements LeaveEntitlement[]
 }
 
 model EventSubcategory {
@@ -116,17 +117,19 @@ model LeaveRequest {
 }
 
 model LeaveEntitlement {
-  id            String    @id @default(cuid())
-  employeeId    String
-  createdAt     DateTime  @default(now())
-  leaveType     LeaveType
-  totalDays     Float
-  updatedAt     DateTime  @updatedAt
-  usedDays      Float
-  daysAllocated Float     @default(0)
-  employee      Employee  @relation(fields: [employeeId], references: [id])
+  id              String   @id @default(cuid())
+  employeeId      String
+  eventCategoryId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  totalDays       Float
+  usedDays        Float
+  daysAllocated   Float    @default(0)
 
-  @@unique([employeeId, leaveType])
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+
+  @@unique([employeeId, eventCategoryId])
 }
 
 model Department {
@@ -143,19 +146,23 @@ model JobRole {
 }
 
 model WorkingPattern {
-  id                  String                             @id @default(cuid())
-  name                String                             @unique
-  description         String?
-  active              Boolean                            @default(true)
-  createdAt           DateTime                           @default(now())
-  updatedAt           DateTime
-  employees           Employee[]
-  employeeAssignments EmployeeWorkingPatternAssignment[]
-  WorkingPatternWeek  WorkingPatternWeek[]
+  id          String   @id @default(cuid())
+  name        String
+  description String? // ← NEW optional field
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // multi-week support
+  WorkingPatternWeek WorkingPatternWeek[]
+
+  // complete bi-directional relations
+  employees   Employee[]
+  assignments EmployeeWorkingPatternAssignment[]
 }
 
 model WorkingPatternDay {
-  id                   String             @id
+  id                   String             @id @default(cuid()) // ← added default
   day                  String
   type                 DayType
   workingPatternWeekId String
@@ -165,7 +172,7 @@ model WorkingPatternDay {
 }
 
 model WorkingPatternWeek {
-  id                String              @id
+  id                String              @id @default(cuid()) // ← added default
   weekNumber        Int
   workingPatternId  String
   WorkingPatternDay WorkingPatternDay[]

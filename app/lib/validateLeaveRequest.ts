@@ -1,43 +1,47 @@
+// lib/validateLeaveRequest.ts
+
 import { prisma } from "@/lib/prisma";
-import { LeaveType } from "@prisma/client";
 import { addDays, eachDayOfInterval } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 /**
- * Validates a leave request against entitlement and business rules with working pattern validation.
+ * Validates a leave request against entitlement, business rules, and working pattern.
  */
 export async function validateLeaveRequest({
   employeeId,
-  leaveType,
+  eventCategoryId,
   startDate,
   endDate,
   isAdmin = false,
 }: {
   employeeId: string;
-  leaveType: LeaveType;
+  eventCategoryId: string;
   startDate: Date;
   endDate: Date;
   isAdmin?: boolean;
 }) {
   console.log("🛠️ [validateLeaveRequest] START:", {
     employeeId,
-    leaveType,
+    eventCategoryId,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
     isAdmin,
   });
 
-  if (!["ANNUAL", "SICK", "BEREAVEMENT"].includes(leaveType)) {
-    console.error("❌ Invalid leaveType received:", leaveType);
-    throw new Error(`Invalid leave type provided: ${leaveType}`);
+  const eventCategory = await prisma.eventCategory.findUnique({
+    where: { id: eventCategoryId },
+    select: { name: true },
+  });
+
+  if (!eventCategory) {
+    console.error("❌ Invalid eventCategoryId provided.");
+    throw new Error(`Invalid event category.`);
   }
 
-  const entitlement = await prisma.leaveEntitlement.findUnique({
+  const entitlement = await prisma.leaveEntitlement.findFirst({
     where: {
-      employeeId_leaveType: {
-        employeeId,
-        leaveType,
-      },
+      employeeId,
+      eventCategoryId,
     },
   });
 
@@ -45,7 +49,9 @@ export async function validateLeaveRequest({
 
   if (!entitlement) {
     console.error("❌ No entitlement found for employee, throwing.");
-    throw new Error(`No entitlement found for leave type: ${leaveType}`);
+    throw new Error(
+      `No entitlement found for event category: ${eventCategory.name}`
+    );
   }
 
   // Calculate days requested using working pattern
@@ -58,23 +64,22 @@ export async function validateLeaveRequest({
     console.log(`📅 ${date.toDateString()}: deduction = ${deduction}`);
   }
 
+  // ── Compute available days from totalDays and usedDays ──────────────
   const availableDays = entitlement.totalDays - entitlement.usedDays;
 
   console.log("🔍 Entitlement evaluation:", {
     daysRequested,
-    totalDays: entitlement.totalDays,
-    usedDays: entitlement.usedDays,
     availableDays,
   });
 
-  if (daysRequested > availableDays) {
+  if (daysRequested > availableDays && !isAdmin) {
     console.error("❌ Insufficient entitlement, throwing error.");
     throw new Error(
       `Insufficient entitlement: Requested ${daysRequested} days, but only ${availableDays} available.`
     );
   }
 
-  if (leaveType === "ANNUAL" && !isAdmin) {
+  if (eventCategory.name === "Annual Leave" && !isAdmin) {
     const today = new Date();
     const minNoticeDate = addDays(today, 2);
 
@@ -105,12 +110,12 @@ export async function validateLeaveRequest({
     },
   });
 
-  console.log("🔍 Overlap check result:", overlapping);
-
-  if (overlapping) {
-    console.error("❌ Overlapping leave found, throwing error.");
-    throw new Error(`You already have a leave booked that overlaps these dates.`);
+  if (overlapping && !isAdmin) {
+    console.error("❌ Overlapping leave request detected, throwing error.");
+    throw new Error(
+      "Employee has an overlapping leave request during these dates."
+    );
   }
 
-  console.log("✅ All checks passed, leave request can proceed.");
+  console.log("✅ Leave request validation passed.");
 }

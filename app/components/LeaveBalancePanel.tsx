@@ -4,16 +4,10 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EditEntitlementModal from "@/components/EditEntitlementModal";
-import { LeaveType } from "@prisma/client";
+import type { LeaveEntitlement as PrismaEntitlement, EventCategory } from "@prisma/client";
 
-interface LeaveEntitlement {
-  id: string;
-  employeeId: string;
-  leaveType: LeaveType;
-  totalDays: number;
-  usedDays: number;
-  createdAt: Date;
-  updatedAt: Date;
+interface LeaveEntitlement extends PrismaEntitlement {
+  eventCategory: EventCategory;
 }
 
 interface LeaveBalancePanelProps {
@@ -32,7 +26,7 @@ export default function LeaveBalancePanel({
       {leaveEntitlements && leaveEntitlements.length > 0 ? (
         leaveEntitlements.map((entitlement) => (
           <p key={entitlement.id}>
-            <strong>{entitlement.leaveType} Leave:</strong>{" "}
+            <strong>{entitlement.eventCategory.name}:</strong>{" "}
             {entitlement.totalDays - entitlement.usedDays} days remaining
           </p>
         ))
@@ -48,7 +42,7 @@ export default function LeaveBalancePanel({
         open={modalOpen}
         setOpen={setModalOpen}
         employeeId={employeeId}
-        currentEntitlements={leaveEntitlements} // consider updating modal prop to accept an array
+        currentEntitlements={leaveEntitlements}
         refresh={() => window.location.reload()}
       />
     </div>

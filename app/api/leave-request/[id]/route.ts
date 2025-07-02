@@ -1,5 +1,3 @@
-// app/api/leave-request/[id]/route.ts
-
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -22,10 +20,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             where: { id: leaveId },
             include: {
                 employee: {
-                    include: {
-                        user: true
-                    }
-                }
+                    include: { user: true },
+                },
+                eventCategory: true,
             },
         });
 
@@ -34,7 +31,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         }
 
         if (action === "approve") {
-            // Day-by-day deduction calculation respecting working pattern
             const totalDays: number[] = [];
             let currentDate = new Date(leave.startDate);
             const endDate = new Date(leave.endDate);
@@ -49,11 +45,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
             const updatedLeaveRequest = await prisma.$transaction(async (tx) => {
                 const entitlement = await tx.leaveEntitlement.findFirst({
-                    where: { employeeId: leave.employeeId, leaveType: leave.type },
+                    where: {
+                        employeeId: leave.employeeId,
+                        eventCategoryId: leave.eventCategoryId,
+                    },
                 });
 
                 if (!entitlement) {
-                    throw new Error("Leave entitlement not found for this employee and leave type.");
+                    throw new Error("Leave entitlement not found for this employee and event category.");
                 }
 
                 await tx.leaveEntitlement.update({
@@ -69,18 +68,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                     },
                     include: {
                         employee: { include: { user: true } },
+                        eventCategory: true,
                     },
                 });
             });
 
             await sendLeaveStatusUpdate({
                 to: updatedLeaveRequest.employee.user.email,
-                subject: `Your leave request has been approved`,
+                subject: `Your ${updatedLeaveRequest.eventCategory?.name ?? "leave"} request has been approved`,
                 employeeName:
                     updatedLeaveRequest.employee.user.name ||
                     `${updatedLeaveRequest.employee.user.firstName ?? ""} ${updatedLeaveRequest.employee.user.lastName ?? ""}`.trim(),
                 status: "APPROVED",
-                type: updatedLeaveRequest.type,
+                type: updatedLeaveRequest.eventCategory?.name ?? "Leave",
                 startDate: updatedLeaveRequest.startDate.toISOString(),
                 endDate: updatedLeaveRequest.endDate.toISOString(),
             });
@@ -97,17 +97,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                 },
                 include: {
                     employee: { include: { user: true } },
+                    eventCategory: true,
                 },
             });
 
             await sendLeaveStatusUpdate({
                 to: updatedLeaveRequest.employee.user.email,
-                subject: `Your leave request has been declined`,
+                subject: `Your ${updatedLeaveRequest.eventCategory?.name ?? "leave"} request has been declined`,
                 employeeName:
                     updatedLeaveRequest.employee.user.name ||
                     `${updatedLeaveRequest.employee.user.firstName ?? ""} ${updatedLeaveRequest.employee.user.lastName ?? ""}`.trim(),
                 status: "DECLINED",
-                type: updatedLeaveRequest.type,
+                type: updatedLeaveRequest.eventCategory?.name ?? "Leave",
                 startDate: updatedLeaveRequest.startDate.toISOString(),
                 endDate: updatedLeaveRequest.endDate.toISOString(),
             });

@@ -9,21 +9,26 @@ export async function GET(req: Request) {
 
   try {
     const leaveRequests = await prisma.leaveRequest.findMany({
-      where: {
-        approvalStatus: "APPROVED",
-        employee: {
-          department: department ? { name: department } : undefined,
-        },
-      },
+  where: {
+    approvalStatus: "APPROVED",
+    employee: {
+      department: department ? { name: department } : undefined,
+    },
+  },
+  include: {
+    employee: {
       include: {
-        employee: {
-          include: {
-            user: true,
-            department: true,
-          },
-        },
+        user: true,
+        department: true,
       },
-    });
+    },
+    eventCategory: {
+      select: {
+        name: true,
+      },
+    },
+  },
+});
 
     const events = leaveRequests.map((req) => {
       const user = req.employee.user;
@@ -34,7 +39,7 @@ export async function GET(req: Request) {
 
       return {
         id: req.id,
-        title: `${req.type} - ${displayName}`,
+        title: `${req.eventCategory.name} - ${displayName}`,
         start: req.startDate,
         end: req.endDate,
         allDay: true,

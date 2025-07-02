@@ -23,6 +23,13 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
 
+console.log({
+  categoryType,
+  requiresApproval,
+  adminOnly,
+  isActive,
+});
+
   const handleSubmit = async () => {
     if (!categoryType || !name) {
       alert("Please select a category type and enter a name.");

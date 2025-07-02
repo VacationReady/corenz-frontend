@@ -12,14 +12,28 @@ export default function Toggle({ checked, onChange }: ToggleProps) {
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`w-12 h-6 flex items-center rounded-full p-1 duration-300 focus:outline-none ${
-        checked ? "bg-blue-600" : "bg-gray-300"
-      }`}
+      style={{
+        width: "50px",
+        height: "24px",
+        borderRadius: "12px",
+        backgroundColor: checked ? "green" : "grey",
+        position: "relative",
+        border: "none",
+        cursor: "pointer",
+        padding: "0",
+      }}
     >
       <div
-        className={`bg-yellow-400 w-4 h-4 rounded-full shadow-md transform duration-300 ${
-          checked ? "translate-x-6" : "translate-x-0"
-        }`}
+        style={{
+          height: "20px",
+          width: "20px",
+          borderRadius: "50%",
+          backgroundColor: "white",
+          position: "absolute",
+          top: "2px",
+          left: checked ? "26px" : "2px",
+          transition: "left 0.2s",
+        }}
       />
     </button>
   );

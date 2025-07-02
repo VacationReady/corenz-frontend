@@ -116,6 +116,8 @@ model LeaveRequest {
   startDate       DateTime
   endDate         DateTime
   reason          String?
+  sickReason      String?         // ✅ NEW: Specific reason for sickness reporting
+  paidStatus      String?         // ✅ NEW: "PAID" or "UNPAID" for sickness reporting
   approvalStatus  ApprovalStatus  @default(PENDING)
   approvedById    String?
   approvedBy      User?           @relation("ReviewedByUser", fields: [approvedById], references: [id])

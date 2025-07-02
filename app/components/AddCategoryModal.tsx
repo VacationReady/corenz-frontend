@@ -19,16 +19,9 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [adminOnly, setAdminOnly] = useState(false);
   const [defaultPaidStatus, setDefaultPaidStatus] = useState<"PAID" | "UNPAID">("PAID");
-  const [color, setColor] = useState("#3b82f6"); // default blue
+  const [color, setColor] = useState("#3b82f6");
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
-
-console.log({
-  categoryType,
-  requiresApproval,
-  adminOnly,
-  isActive,
-});
 
   const handleSubmit = async () => {
     if (!categoryType || !name) {
@@ -91,21 +84,25 @@ console.log({
           <button
             onClick={() => setCategoryType("TIME_OFF")}
             className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition",
-              categoryType === "TIME_OFF" ? "bg-blue-500 text-white border-blue-600" : "bg-gray-100"
+              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
+              categoryType === "TIME_OFF"
+                ? "bg-blue-600 text-white border-blue-700"
+                : "bg-gray-50 text-gray-800 hover:bg-gray-100"
             )}
           >
-            <UmbrellaIcon className="w-5 h-5" />
+            <UmbrellaIcon className={cn("w-5 h-5", categoryType === "TIME_OFF" ? "text-white" : "text-blue-600")} />
             <span>Time Off</span>
           </button>
           <button
             onClick={() => setCategoryType("WORKING_EVENT")}
             className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition",
-              categoryType === "WORKING_EVENT" ? "bg-blue-500 text-white border-blue-600" : "bg-gray-100"
+              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
+              categoryType === "WORKING_EVENT"
+                ? "bg-blue-600 text-white border-blue-700"
+                : "bg-gray-50 text-gray-800 hover:bg-gray-100"
             )}
           >
-            <BriefcaseIcon className="w-5 h-5" />
+            <BriefcaseIcon className={cn("w-5 h-5", categoryType === "WORKING_EVENT" ? "text-white" : "text-blue-600")} />
             <span>Working Event</span>
           </button>
         </div>

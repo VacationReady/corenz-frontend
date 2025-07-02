@@ -66,6 +66,25 @@ export default function EventManagerPage() {
     }
   };
 
+  const handleArchiveSubcategory = async (subcategoryId: string) => {
+    if (!confirm("Are you sure you want to archive this subcategory?")) return;
+    try {
+      const res = await fetch(`/api/event-subcategories/${subcategoryId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Subcategory archived.");
+        fetchCategories();
+      } else {
+        toast.error(data.error || "Failed to archive subcategory.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred.");
+    }
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Event Manager</h1>
@@ -118,7 +137,7 @@ export default function EventManagerPage() {
                   ))}
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="destructive"
                     onClick={() => handleArchiveCategory(category.id)}
                     disabled={category.systemDefined}
                   >
@@ -147,7 +166,16 @@ export default function EventManagerPage() {
                           {sub.defaultPaidStatus} | {sub.isActive ? "Active" : "Archived"}
                         </p>
                       </div>
-                      <Button size="sm">Edit</Button>
+                      <div className="flex items-center space-x-2">
+                        <Button size="sm">Edit</Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleArchiveSubcategory(sub.id)}
+                        >
+                          Archive
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   <Button

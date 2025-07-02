@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
-// Zod schema for EventCategory payload (type removed)
+// Zod schema for EventCategory payload
 const EventCategorySchema = z.object({
   name: z.string().min(1, "Name is required."),
   categoryType: z.enum(["TIME_OFF", "WORKING_EVENT"], { required_error: "Category type is required." }),
@@ -15,8 +15,11 @@ const EventCategorySchema = z.object({
 export async function GET() {
   try {
     const categories = await prisma.eventCategory.findMany({
+      where: { isActive: true },
       include: {
-        subcategories: true,
+        subcategories: {
+          where: { isActive: true },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -66,9 +69,9 @@ export async function POST(req: Request) {
     const newCategory = await prisma.eventCategory.create({
       data: {
         name,
-    categoryType, // <-- Add this line
-    requiresApproval,
-    adminOnly,
+        categoryType,
+        requiresApproval,
+        adminOnly,
       },
     });
 

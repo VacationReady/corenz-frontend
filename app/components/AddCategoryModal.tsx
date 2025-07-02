@@ -83,42 +83,32 @@ export default function AddCategoryModal({
           </button>
         </div>
 
-        {/* Category Type Selection */}
+        {/* ✅ Category Type Selection with forced inline styles */}
         <div className="flex space-x-4">
           <button
             type="button"
             onClick={() => setCategoryType("TIME_OFF")}
-            className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 font-medium transition-colors",
-              categoryType === "TIME_OFF"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-blue-50"
-            )}
+            style={{
+              backgroundColor: categoryType === "TIME_OFF" ? "red" : "gray",
+              color: categoryType === "TIME_OFF" ? "white" : "black",
+              padding: "1rem",
+              width: "100%",
+            }}
           >
-            <UmbrellaIcon
-              className={cn(
-                "w-5 h-5",
-                categoryType === "TIME_OFF" ? "text-white" : "text-blue-600"
-              )}
-            />
+            <UmbrellaIcon className="w-5 h-5" />
             <span>Time Off</span>
           </button>
           <button
             type="button"
             onClick={() => setCategoryType("WORKING_EVENT")}
-            className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 font-medium transition-colors",
-              categoryType === "WORKING_EVENT"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-blue-50"
-            )}
+            style={{
+              backgroundColor: categoryType === "WORKING_EVENT" ? "red" : "gray",
+              color: categoryType === "WORKING_EVENT" ? "white" : "black",
+              padding: "1rem",
+              width: "100%",
+            }}
           >
-            <BriefcaseIcon
-              className={cn(
-                "w-5 h-5",
-                categoryType === "WORKING_EVENT" ? "text-white" : "text-blue-600"
-              )}
-            />
+            <BriefcaseIcon className="w-5 h-5" />
             <span>Working Event</span>
           </button>
         </div>

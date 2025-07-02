@@ -70,7 +70,7 @@ model EmployeeWorkingPatternAssignment {
 
 model EventCategory {
   id               String             @id @default(cuid())
-  name             String
+  name             String             @unique
   categoryType     String             // "TIME_OFF" | "WORKING_EVENT"
   requiresApproval Boolean
   adminOnly        Boolean

@@ -44,6 +44,8 @@ export async function GET(req: Request) {
         startDate: true,
         endDate: true,
         reason: true,
+        sickReason: true, // ✅ Include for sickness reporting
+        paidStatus: true, // ✅ Include for sickness reporting
         approvalStatus: true,
         employee: {
           select: {
@@ -53,6 +55,8 @@ export async function GET(req: Request) {
                 email: true,
                 id: true,
                 managerId: true,
+                firstName: true,
+                lastName: true,
               },
             },
           },

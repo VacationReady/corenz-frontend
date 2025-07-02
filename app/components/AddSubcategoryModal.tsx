@@ -101,7 +101,7 @@ export default function AddSubcategoryModal({
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button onClick={onClose} variant="secondary" disabled={loading}>
+          <Button onClick={onClose} variant="ghost" disabled={loading}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} loading={loading}>

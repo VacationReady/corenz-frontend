@@ -47,6 +47,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   try {
     const { id } = params;
+
+    // Prevent edits on system-defined categories
+    const category = await prisma.eventCategory.findUnique({ where: { id } });
+    if (category?.systemDefined) {
+      return NextResponse.json(
+        { success: false, error: "Cannot edit system-defined categories." },
+        { status: 400 }
+      );
+    }
+
     const json = await req.json();
     const parse = UpdateEventCategorySchema.safeParse(json);
 
@@ -80,6 +90,15 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
   try {
     const { id } = params;
+
+    // Prevent deletion on system-defined categories
+    const category = await prisma.eventCategory.findUnique({ where: { id } });
+    if (category?.systemDefined) {
+      return NextResponse.json(
+        { success: false, error: "Cannot archive system-defined categories." },
+        { status: 400 }
+      );
+    }
 
     const archivedCategory = await prisma.eventCategory.update({
       where: { id },

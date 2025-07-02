@@ -23,23 +23,19 @@ async function main() {
   ];
 
   for (const category of systemCategories) {
-    try {
-      console.log(`⏳ Attempting to upsert: ${category.name}`);
-      const result = await prisma.eventCategory.upsert({
-        where: { name: category.name },
-        update: {
-          systemDefined: true,
-          categoryType: category.categoryType,
-          requiresApproval: category.requiresApproval,
-          adminOnly: category.adminOnly,
-          color: category.color,
-        },
-        create: category,
-      });
-      console.log(`✅ Successfully upserted: ${result.name} (ID: ${result.id})`);
-    } catch (error) {
-      console.error(`❌ Failed to upsert ${category.name}:`, error);
-    }
+    console.log(`⏳ Attempting to upsert: ${category.name}`);
+    const result = await prisma.eventCategory.upsert({
+      where: { name: category.name },
+      update: {
+        systemDefined: true,
+        categoryType: category.categoryType,
+        requiresApproval: category.requiresApproval,
+        adminOnly: category.adminOnly,
+        color: category.color,
+      },
+      create: category,
+    });
+    console.log(`✅ Successfully upserted: ${result.name} (ID: ${result.id})`);
   }
 
   console.log('✅ Seeding process completed.');

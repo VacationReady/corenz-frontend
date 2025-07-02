@@ -71,18 +71,17 @@ model EmployeeWorkingPatternAssignment {
 model EventCategory {
   id               String             @id @default(cuid())
   name             String             @unique
-  categoryType     String             // "TIME_OFF" | "WORKING_EVENT"
   requiresApproval Boolean
   adminOnly        Boolean
-  color            String?            // HEX color for UI
   isActive         Boolean            @default(true)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
-
+  categoryType     String
+  color            String?
+  systemDefined    Boolean            @default(false)
   subcategories    EventSubcategory[]
   LeaveEntitlement LeaveEntitlement[]
-
-  leaveRequests    LeaveRequest[]     // <--- Add this backward relation field
+  leaveRequests    LeaveRequest[]
 }
 
 model EventSubcategory {
@@ -92,7 +91,7 @@ model EventSubcategory {
   defaultPaidStatus PaidStatus     @default(PAID)
   isActive          Boolean        @default(true)
   createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @default(now()) @updatedAt
+  updatedAt         DateTime       @updatedAt
   eventCategory     EventCategory  @relation(fields: [eventCategoryId], references: [id])
   LeaveRequest      LeaveRequest[]
 }
@@ -120,17 +119,16 @@ model LeaveRequest {
 }
 
 model LeaveEntitlement {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   employeeId      String
-  eventCategoryId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime      @default(now())
   totalDays       Float
+  updatedAt       DateTime      @updatedAt
   usedDays        Float
-  daysAllocated   Float    @default(0)
-
-  employee      Employee      @relation(fields: [employeeId], references: [id])
-  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+  daysAllocated   Float         @default(0)
+  eventCategoryId String
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([employeeId, eventCategoryId])
 }
@@ -149,23 +147,19 @@ model JobRole {
 }
 
 model WorkingPattern {
-  id          String   @id @default(cuid())
-  name        String
-  description String? // ← NEW optional field
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // multi-week support
+  id                 String                             @id @default(cuid())
+  name               String
+  active             Boolean                            @default(true)
+  createdAt          DateTime                           @default(now())
+  updatedAt          DateTime                           @updatedAt
+  description        String?
+  employees          Employee[]
+  assignments        EmployeeWorkingPatternAssignment[]
   WorkingPatternWeek WorkingPatternWeek[]
-
-  // complete bi-directional relations
-  employees   Employee[]
-  assignments EmployeeWorkingPatternAssignment[]
 }
 
 model WorkingPatternDay {
-  id                   String             @id @default(cuid()) // ← added default
+  id                   String             @id @default(cuid())
   day                  String
   type                 DayType
   workingPatternWeekId String
@@ -175,7 +169,7 @@ model WorkingPatternDay {
 }
 
 model WorkingPatternWeek {
-  id                String              @id @default(cuid()) // ← added default
+  id                String              @id @default(cuid())
   weekNumber        Int
   workingPatternId  String
   WorkingPatternDay WorkingPatternDay[]

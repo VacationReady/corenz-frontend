@@ -170,7 +170,7 @@ export default function EventManagerPage() {
                         <Button size="sm">Edit</Button>
                         <Button
                           size="sm"
-                          variant="destructive"
+                          variant="ghost"
                           onClick={() => handleArchiveSubcategory(sub.id)}
                         >
                           Archive

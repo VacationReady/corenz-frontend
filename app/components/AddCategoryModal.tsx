@@ -82,37 +82,29 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
         {/* Category Type Selection */}
         <div className="flex space-x-4">
           <button
+            type="button"
             onClick={() => setCategoryType("TIME_OFF")}
             className={cn(
               "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
               categoryType === "TIME_OFF"
-                ? "bg-blue-600 text-white border-blue-600 outline outline-2 outline-blue-300"
-                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-gray-200"
             )}
           >
-            <UmbrellaIcon
-              className={cn(
-                "w-5 h-5",
-                categoryType === "TIME_OFF" ? "text-white" : "text-blue-600"
-              )}
-            />
+            <UmbrellaIcon className="w-5 h-5" />
             <span>Time Off</span>
           </button>
           <button
+            type="button"
             onClick={() => setCategoryType("WORKING_EVENT")}
             className={cn(
               "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
               categoryType === "WORKING_EVENT"
-                ? "bg-blue-600 text-white border-blue-600 outline outline-2 outline-blue-300"
-                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-gray-200"
             )}
           >
-            <BriefcaseIcon
-              className={cn(
-                "w-5 h-5",
-                categoryType === "WORKING_EVENT" ? "text-white" : "text-blue-600"
-              )}
-            />
+            <BriefcaseIcon className="w-5 h-5" />
             <span>Working Event</span>
           </button>
         </div>

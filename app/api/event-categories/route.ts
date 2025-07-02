@@ -2,6 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { z } from "zod";
+
+// Zod schema for EventCategory payload (type removed)
+const EventCategorySchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  requiresApproval: z.boolean().optional().default(true),
+  adminOnly: z.boolean().optional().default(false),
+});
 
 export async function GET() {
   try {
@@ -31,14 +39,17 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, type, requiresApproval = true, adminOnly = false } = await req.json();
+    const json = await req.json();
+    const parse = EventCategorySchema.safeParse(json);
 
-    if (!name || !type) {
+    if (!parse.success) {
       return NextResponse.json(
-        { success: false, error: "Name and type are required." },
+        { success: false, error: parse.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+
+    const { name, requiresApproval, adminOnly } = parse.data;
 
     const existing = await prisma.eventCategory.findUnique({
       where: { name },
@@ -54,7 +65,6 @@ export async function POST(req: Request) {
     const newCategory = await prisma.eventCategory.create({
       data: {
         name,
-        type,
         requiresApproval,
         adminOnly,
       },

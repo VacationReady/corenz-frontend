@@ -2,6 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { z } from "zod";
+
+// Zod schema for EventSubcategory payload
+const EventSubcategorySchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  eventCategoryId: z.string().min(1, "eventCategoryId is required."),
+  defaultPaidStatus: z.enum(["PAID", "UNPAID"]).optional().default("PAID"),
+});
 
 export async function GET() {
   try {
@@ -31,14 +39,17 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, eventCategoryId, defaultPaidStatus = "PAID" } = await req.json();
+    const json = await req.json();
+    const parse = EventSubcategorySchema.safeParse(json);
 
-    if (!name || !eventCategoryId) {
+    if (!parse.success) {
       return NextResponse.json(
-        { success: false, error: "Name and eventCategoryId are required." },
+        { success: false, error: parse.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+
+    const { name, eventCategoryId, defaultPaidStatus } = parse.data;
 
     const newSubcategory = await prisma.eventSubcategory.create({
       data: {

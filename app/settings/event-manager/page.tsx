@@ -6,10 +6,12 @@ import Button from "@/components/ui/Button";
 import { Switch } from "@headlessui/react";
 import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AddCategoryModal from "@/components/AddCategoryModal";
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -37,7 +39,7 @@ export default function EventManagerPage() {
       <Card className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Event Categories</h2>
-          <Button>
+          <Button onClick={() => setIsModalOpen(true)}>
             <PlusIcon className="w-4 h-4 mr-2" />
             Add Category
           </Button>
@@ -49,7 +51,9 @@ export default function EventManagerPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{category.name}</p>
-                  <p className="text-sm text-gray-500">{category.type}</p>
+                  <p className="text-sm text-gray-500">
+                    {category.categoryType ?? ""}
+                  </p>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-1">
@@ -131,9 +135,7 @@ export default function EventManagerPage() {
                           {sub.defaultPaidStatus} | {sub.isActive ? "Active" : "Archived"}
                         </p>
                       </div>
-                      <Button size="sm">
-                        Edit
-                      </Button>
+                      <Button size="sm">Edit</Button>
                     </div>
                   ))}
                   <Button variant="ghost" className="mt-2">
@@ -146,6 +148,13 @@ export default function EventManagerPage() {
           ))}
         </div>
       </Card>
+
+      {/* Add Category Modal */}
+      <AddCategoryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchCategories}
+      />
     </div>
   );
 }

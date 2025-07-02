@@ -86,11 +86,16 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
             className={cn(
               "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
               categoryType === "TIME_OFF"
-                ? "bg-blue-600 text-white border-blue-700"
-                : "bg-gray-50 text-gray-800 hover:bg-gray-100"
+                ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300"
+                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
             )}
           >
-            <UmbrellaIcon className={cn("w-5 h-5", categoryType === "TIME_OFF" ? "text-white" : "text-blue-600")} />
+            <UmbrellaIcon
+              className={cn(
+                "w-5 h-5",
+                categoryType === "TIME_OFF" ? "text-white" : "text-blue-600"
+              )}
+            />
             <span>Time Off</span>
           </button>
           <button
@@ -98,11 +103,16 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
             className={cn(
               "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
               categoryType === "WORKING_EVENT"
-                ? "bg-blue-600 text-white border-blue-700"
-                : "bg-gray-50 text-gray-800 hover:bg-gray-100"
+                ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300"
+                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
             )}
           >
-            <BriefcaseIcon className={cn("w-5 h-5", categoryType === "WORKING_EVENT" ? "text-white" : "text-blue-600")} />
+            <BriefcaseIcon
+              className={cn(
+                "w-5 h-5",
+                categoryType === "WORKING_EVENT" ? "text-white" : "text-blue-600"
+              )}
+            />
             <span>Working Event</span>
           </button>
         </div>

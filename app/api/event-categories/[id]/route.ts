@@ -93,7 +93,14 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     // Prevent deletion on system-defined categories
     const category = await prisma.eventCategory.findUnique({ where: { id } });
-    if (category?.systemDefined) {
+    if (!category) {
+      return NextResponse.json(
+        { success: false, error: "Event category not found." },
+        { status: 404 }
+      );
+    }
+
+    if (category.systemDefined) {
       return NextResponse.json(
         { success: false, error: "Cannot archive system-defined categories." },
         { status: 400 }
@@ -102,9 +109,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     const archivedCategory = await prisma.eventCategory.update({
       where: { id },
-      data: {
-        isActive: false,
-      },
+      data: { isActive: false },
     });
 
     return NextResponse.json({ success: true, data: archivedCategory });

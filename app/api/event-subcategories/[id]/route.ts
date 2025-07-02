@@ -61,7 +61,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data: parse.data,
     });
 
-    return NextResponse.json({ success: true, data: updatedSubcategory });
+    console.log("[Event Subcategories PATCH] Updated:", updatedSubcategory);
+
+    return NextResponse.json({
+      success: true,
+      message: parse.data.isActive
+        ? "Subcategory reactivated successfully."
+        : "Subcategory updated successfully.",
+      data: updatedSubcategory,
+    });
   } catch (error: any) {
     console.error("[Event Subcategories PATCH]", error);
     return NextResponse.json(

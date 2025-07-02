@@ -137,7 +137,7 @@ export default function EventManagerPage() {
                   ))}
                   <Button
                     size="sm"
-                    variant="destructive"
+                    variant="ghost"
                     onClick={() => handleArchiveCategory(category.id)}
                     disabled={category.systemDefined}
                   >

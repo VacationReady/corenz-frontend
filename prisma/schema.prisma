@@ -94,32 +94,25 @@ model EventSubcategory {
 }
 
 model LeaveRequest {
-  id        String   @id @default(cuid())
-  startDate DateTime
-  endDate   DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  eventCategoryId String
-  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
-
-  employeeId String
-  employee   Employee @relation(fields: [employeeId], references: [id])
-
-  requesterId String
-  requester   User   @relation("RequestingUser", fields: [requesterId], references: [id])
-
-  reason         String?
-  approvalStatus ApprovalStatus @default(PENDING)
-  approvedById   String?
-  approvedBy     User?          @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
-
+  id               String            @id @default(cuid())
+  startDate        DateTime
+  endDate          DateTime
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  employeeId       String
+  reason           String?
+  approvalStatus   ApprovalStatus    @default(PENDING)
+  approvedById     String?
   sickReasonId     String?
+  paidStatus       PaidStatus?
+  dayType          DayType
+  eventCategoryId  String
+  requesterId      String
+  approvedBy       User?             @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
+  employee         Employee          @relation(fields: [employeeId], references: [id])
+  eventCategory    EventCategory     @relation(fields: [eventCategoryId], references: [id])
+  requester        User              @relation("RequestingUser", fields: [requesterId], references: [id])
   EventSubcategory EventSubcategory? @relation(fields: [sickReasonId], references: [id])
-
-  paidStatus PaidStatus?
-
-  dayType DayType
 }
 
 model LeaveEntitlement {

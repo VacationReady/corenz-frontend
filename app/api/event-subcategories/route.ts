@@ -9,6 +9,7 @@ const EventSubcategorySchema = z.object({
   name: z.string().min(1, "Name is required."),
   eventCategoryId: z.string().min(1, "eventCategoryId is required."),
   defaultPaidStatus: z.enum(["PAID", "UNPAID"]).optional().default("PAID"),
+  isActive: z.boolean().optional().default(true),
 });
 
 export async function GET() {
@@ -49,13 +50,34 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, eventCategoryId, defaultPaidStatus } = parse.data;
+    const { name, eventCategoryId, defaultPaidStatus, isActive } = parse.data;
+
+    // OPTIONAL: Prevent adding subcategories under system-defined categories
+    const parentCategory = await prisma.eventCategory.findUnique({
+      where: { id: eventCategoryId },
+    });
+
+    if (!parentCategory) {
+      return NextResponse.json(
+        { success: false, error: "Parent category not found." },
+        { status: 404 }
+      );
+    }
+
+    // UNCOMMENT TO BLOCK under system-defined categories:
+    // if (parentCategory.systemDefined) {
+    //   return NextResponse.json(
+    //     { success: false, error: "Cannot add subcategories under system-defined categories." },
+    //     { status: 400 }
+    //   );
+    // }
 
     const newSubcategory = await prisma.eventSubcategory.create({
       data: {
         name,
-        eventCategory: { connect: { id: eventCategoryId } },
         defaultPaidStatus,
+        isActive,
+        eventCategory: { connect: { id: eventCategoryId } },
       },
     });
 

@@ -122,15 +122,15 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm">Requires Approval</span>
-            <Switch checked={requiresApproval} onChange={setRequiresApproval} />
+            <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Admin Only</span>
-            <Switch checked={adminOnly} onChange={setAdminOnly} />
+            <Switch checked={adminOnly} onCheckedChange={setAdminOnly} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Active</span>
-            <Switch checked={isActive} onChange={setIsActive} />
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
         </div>
 

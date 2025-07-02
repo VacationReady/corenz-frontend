@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Dialog } from "@headlessui/react";
 import { PlusIcon, XIcon, BriefcaseIcon, UmbrellaIcon } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { Switch } from "@/components/ui/switch";
+import Toggle from "@/components/ui/Toggle";
 import { cn } from "@/lib/utils";
 
 interface AddCategoryModalProps {
@@ -13,7 +13,11 @@ interface AddCategoryModalProps {
   onSuccess: () => void;
 }
 
-export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCategoryModalProps) {
+export default function AddCategoryModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddCategoryModalProps) {
   const [categoryType, setCategoryType] = useState<"TIME_OFF" | "WORKING_EVENT" | null>(null);
   const [name, setName] = useState("");
   const [requiresApproval, setRequiresApproval] = useState(false);
@@ -85,26 +89,36 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
             type="button"
             onClick={() => setCategoryType("TIME_OFF")}
             className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
+              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 font-medium transition-colors",
               categoryType === "TIME_OFF"
                 ? "bg-blue-600 text-white border-blue-600"
-                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-gray-200"
+                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-blue-50"
             )}
           >
-            <UmbrellaIcon className="w-5 h-5" />
+            <UmbrellaIcon
+              className={cn(
+                "w-5 h-5",
+                categoryType === "TIME_OFF" ? "text-white" : "text-blue-600"
+              )}
+            />
             <span>Time Off</span>
           </button>
           <button
             type="button"
             onClick={() => setCategoryType("WORKING_EVENT")}
             className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
+              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 font-medium transition-colors",
               categoryType === "WORKING_EVENT"
                 ? "bg-blue-600 text-white border-blue-600"
-                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-gray-200"
+                : "bg-gray-100 text-blue-600 border border-blue-600 hover:bg-blue-50"
             )}
           >
-            <BriefcaseIcon className="w-5 h-5" />
+            <BriefcaseIcon
+              className={cn(
+                "w-5 h-5",
+                categoryType === "WORKING_EVENT" ? "text-white" : "text-blue-600"
+              )}
+            />
             <span>Working Event</span>
           </button>
         </div>
@@ -128,15 +142,15 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm">Requires Approval</span>
-            <Switch checked={requiresApproval} onChange={setRequiresApproval} />
+            <Toggle checked={requiresApproval} onChange={setRequiresApproval} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Admin Only</span>
-            <Switch checked={adminOnly} onChange={setAdminOnly} />
+            <Toggle checked={adminOnly} onChange={setAdminOnly} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Active</span>
-            <Switch checked={isActive} onChange={setIsActive} />
+            <Toggle checked={isActive} onChange={setIsActive} />
           </div>
         </div>
 

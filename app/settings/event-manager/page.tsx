@@ -136,7 +136,7 @@ export default function EventManagerPage() {
                       </Button>
                     </div>
                   ))}
-                  <Button variant="outline" className="mt-2">
+                  <Button variant="ghost" className="mt-2">
                     <PlusIcon className="w-4 h-4 mr-1" />
                     Add Subcategory
                   </Button>

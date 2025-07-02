@@ -84,8 +84,8 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
           <button
             onClick={() => setCategoryType("TIME_OFF")}
             className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2",
-              categoryType === "TIME_OFF" ? "bg-blue-100 border-blue-500" : "bg-white"
+              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition",
+              categoryType === "TIME_OFF" ? "bg-blue-500 text-white border-blue-600" : "bg-gray-100"
             )}
           >
             <UmbrellaIcon className="w-5 h-5" />
@@ -94,8 +94,8 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
           <button
             onClick={() => setCategoryType("WORKING_EVENT")}
             className={cn(
-              "flex-1 border rounded p-2 flex items-center justify-center space-x-2",
-              categoryType === "WORKING_EVENT" ? "bg-blue-100 border-blue-500" : "bg-white"
+              "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition",
+              categoryType === "WORKING_EVENT" ? "bg-blue-500 text-white border-blue-600" : "bg-gray-100"
             )}
           >
             <BriefcaseIcon className="w-5 h-5" />

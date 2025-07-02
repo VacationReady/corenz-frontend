@@ -86,8 +86,8 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
             className={cn(
               "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
               categoryType === "TIME_OFF"
-                ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300"
-                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
+                ? "bg-blue-600 text-white border-blue-600 outline outline-2 outline-blue-300"
+                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
             )}
           >
             <UmbrellaIcon
@@ -103,8 +103,8 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
             className={cn(
               "flex-1 border rounded p-2 flex items-center justify-center space-x-2 transition font-medium",
               categoryType === "WORKING_EVENT"
-                ? "bg-blue-600 text-white border-blue-700 ring-2 ring-blue-300"
-                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
+                ? "bg-blue-600 text-white border-blue-600 outline outline-2 outline-blue-300"
+                : "bg-white text-blue-600 border-blue-600 hover:bg-blue-50"
             )}
           >
             <BriefcaseIcon

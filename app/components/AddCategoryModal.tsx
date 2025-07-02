@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog } from "@headlessui/react";
 import { PlusIcon, XIcon, BriefcaseIcon, UmbrellaIcon } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { Switch } from "@headlessui/react";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 interface AddCategoryModalProps {
@@ -120,21 +120,15 @@ export default function AddCategoryModal({ isOpen, onClose, onSuccess }: AddCate
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm">Requires Approval</span>
-            <Switch checked={requiresApproval} onChange={setRequiresApproval} className="bg-gray-300 relative inline-flex h-6 w-11 items-center rounded-full">
-              <span className={cn(requiresApproval ? "translate-x-6" : "translate-x-1", "inline-block h-4 w-4 transform bg-white rounded-full transition")}></span>
-            </Switch>
+            <Switch checked={requiresApproval} onChange={setRequiresApproval} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Admin Only</span>
-            <Switch checked={adminOnly} onChange={setAdminOnly} className="bg-gray-300 relative inline-flex h-6 w-11 items-center rounded-full">
-              <span className={cn(adminOnly ? "translate-x-6" : "translate-x-1", "inline-block h-4 w-4 transform bg-white rounded-full transition")}></span>
-            </Switch>
+            <Switch checked={adminOnly} onChange={setAdminOnly} />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">Active</span>
-            <Switch checked={isActive} onChange={setIsActive} className="bg-gray-300 relative inline-flex h-6 w-11 items-center rounded-full">
-              <span className={cn(isActive ? "translate-x-6" : "translate-x-1", "inline-block h-4 w-4 transform bg-white rounded-full transition")}></span>
-            </Switch>
+            <Switch checked={isActive} onChange={setIsActive} />
           </div>
         </div>
 

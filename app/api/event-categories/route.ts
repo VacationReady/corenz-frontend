@@ -7,6 +7,7 @@ import { z } from "zod";
 // Zod schema for EventCategory payload (type removed)
 const EventCategorySchema = z.object({
   name: z.string().min(1, "Name is required."),
+  categoryType: z.enum(["TIME_OFF", "WORKING_EVENT"], { required_error: "Category type is required." }),
   requiresApproval: z.boolean().optional().default(true),
   adminOnly: z.boolean().optional().default(false),
 });
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, requiresApproval, adminOnly } = parse.data;
+    const { name, categoryType, requiresApproval, adminOnly } = parse.data;
 
     const existing = await prisma.eventCategory.findUnique({
       where: { name },
@@ -65,8 +66,9 @@ export async function POST(req: Request) {
     const newCategory = await prisma.eventCategory.create({
       data: {
         name,
-        requiresApproval,
-        adminOnly,
+    categoryType, // <-- Add this line
+    requiresApproval,
+    adminOnly,
       },
     });
 

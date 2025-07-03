@@ -78,6 +78,7 @@ model EventCategory {
   updatedAt        DateTime           @updatedAt
   categoryType     String
   color            String?
+  eventRules       EventRule[]
   systemDefined    Boolean            @default(false)
   subcategories    EventSubcategory[]
   LeaveEntitlement LeaveEntitlement[]
@@ -176,6 +177,22 @@ model WorkingPatternWeek {
   WorkingPattern    WorkingPattern      @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
 
   @@unique([weekNumber, workingPatternId])
+}
+
+model EventRule {
+  id                 String     @id @default(cuid())
+  companyId          String
+  eventCategoryId    String
+  enforceEntitlement Boolean    @default(true)
+  noticePeriodDays   Int        @default(0)
+  maxConcurrent      Int?
+  blackoutDates      DateTime[] @default([])
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+
+  @@unique([companyId, eventCategoryId])
 }
 
 enum Role {

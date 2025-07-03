@@ -30,7 +30,7 @@ export default function EventManagerPage() {
       const res = await fetch("/api/event-categories");
       const data = await res.json();
       if (data.success) {
-        setCategories(data.data);
+        setCategories(data);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);

@@ -41,7 +41,7 @@ export default function EditEntitlementModal({
 }) {
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<EventCategory[]>([]);
-    const [entitlements, setEntitlements] = useState<Record<string, number>>({});
+    const [entitlements, setEntitlements] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const fetchEventCategories = async () => {
@@ -50,12 +50,12 @@ export default function EditEntitlementModal({
                 const data: EventCategory[] = await res.json();
                 setCategories(data);
 
-                const initialEntitlements: Record<string, number> = {};
+                const initialEntitlements: Record<string, string> = {};
                 data.forEach((cat) => {
                     const existing = currentEntitlements.find(
                         (e) => e.eventCategoryId === cat.id
                     );
-                    initialEntitlements[cat.id] = existing ? existing.totalDays : 0;
+                    initialEntitlements[cat.id] = existing ? String(existing.totalDays) : "";
                 });
                 setEntitlements(initialEntitlements);
             } catch (error) {
@@ -68,7 +68,7 @@ export default function EditEntitlementModal({
         }
     }, [open, currentEntitlements]);
 
-    const handleChange = (categoryId: string, value: number) => {
+    const handleChange = (categoryId: string, value: string) => {
         setEntitlements((prev) => ({
             ...prev,
             [categoryId]: value,
@@ -80,7 +80,7 @@ export default function EditEntitlementModal({
         try {
             const payload = Object.entries(entitlements).map(([categoryId, totalDays]) => ({
                 eventCategoryId: categoryId,
-                totalDays,
+                totalDays: parseInt(totalDays) || 0,
             }));
 
             const res = await fetch(`/api/employees/${employeeId}/entitlement`, {
@@ -115,9 +115,9 @@ export default function EditEntitlementModal({
                             <Input
                                 type="number"
                                 min={0}
-                                value={entitlements[category.id] ?? 0}
+                                value={entitlements[category.id] ?? ""}
                                 onChange={(e) =>
-                                    handleChange(category.id, parseInt(e.target.value) || 0)
+                                    handleChange(category.id, e.target.value)
                                 }
                             />
                         </label>

@@ -6,7 +6,12 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const archivedCategories = await prisma.eventCategory.findMany({
-      where: { isActive: false },
+      where: {
+        OR: [
+          { isActive: false },
+          { subcategories: { some: { isActive: false } } },
+        ],
+      },
       include: {
         subcategories: {
           where: { isActive: false },
@@ -16,6 +21,11 @@ export async function GET() {
         createdAt: "desc",
       },
     });
+
+    console.log(
+      "[Archived Event Categories GET] Returning:",
+      JSON.stringify(archivedCategories, null, 2)
+    );
 
     return NextResponse.json({ success: true, data: archivedCategories });
   } catch (error: any) {

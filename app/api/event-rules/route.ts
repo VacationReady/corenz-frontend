@@ -29,7 +29,6 @@ export async function POST(req: Request) {
             enforceEntitlement,
             noticePeriodDays,
             maxConcurrent,
-            blackoutDates,
         } = body;
 
         const rule = await prisma.eventRule.upsert({
@@ -43,7 +42,6 @@ export async function POST(req: Request) {
                 enforceEntitlement,
                 noticePeriodDays,
                 maxConcurrent,
-                blackoutDates,
             },
             create: {
                 companyId,
@@ -51,7 +49,6 @@ export async function POST(req: Request) {
                 enforceEntitlement,
                 noticePeriodDays,
                 maxConcurrent,
-                blackoutDates,
             },
         });
 

@@ -8,6 +8,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { toast } from "sonner";
+import BlockDayModal from "./BlockDayModal";
 
 interface CalendarEvent {
   id: string;
@@ -27,6 +28,8 @@ export default function CalendarPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const fetchEvents = async (department?: string) => {
     try {
@@ -72,13 +75,16 @@ export default function CalendarPage() {
     fetchEvents(value);
   };
 
+  const handleDateClick = (arg: any) => {
+    setSelectedDate(arg.date);
+    setBlockModalOpen(true);
+  };
+
   return (
     <PageShell title="Calendar">
       <Card title="Company Calendar">
         <div className="p-4">
-          <label className="block mb-2 font-medium">
-            Filter by Department:
-          </label>
+          <label className="block mb-2 font-medium">Filter by Department:</label>
           <select
             value={selectedDepartment}
             onChange={handleDepartmentChange}
@@ -100,11 +106,19 @@ export default function CalendarPage() {
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               events={events}
+              dateClick={handleDateClick}
               height="auto"
             />
           )}
         </div>
       </Card>
+      {selectedDate && (
+        <BlockDayModal
+          open={blockModalOpen}
+          setOpen={setBlockModalOpen}
+          selectedDate={selectedDate}
+        />
+      )}
     </PageShell>
   );
 }

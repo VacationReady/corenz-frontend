@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/Checkbox";
+import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 
 interface EventCategory {

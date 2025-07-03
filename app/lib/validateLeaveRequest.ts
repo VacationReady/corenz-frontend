@@ -5,7 +5,7 @@ import { addDays, eachDayOfInterval } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 /**
- * Validates a leave request against entitlement, business rules, and working pattern.
+ * Validates a leave request against entitlement, business rules, blackout dates, and working pattern.
  */
 export async function validateLeaveRequest({
   employeeId,
@@ -36,6 +36,33 @@ export async function validateLeaveRequest({
   if (!eventCategory) {
     console.error("❌ Invalid eventCategoryId provided.");
     throw new Error(`Invalid event category.`);
+  }
+
+  // ── BLACKOUT DATES CHECK ─────────────────────────────
+  const eventRule = await prisma.eventRule.findFirst({
+    where: {
+      eventCategoryId,
+      companyId: "default-company-id", // replace with dynamic scoping later
+    },
+    select: {
+      blackoutDates: true,
+    },
+  });
+
+  if (eventRule && eventRule.blackoutDates.length > 0 && !isAdmin) {
+    const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+    for (const date of datesInRange) {
+      const dateString = date.toISOString().split("T")[0];
+      const isBlocked = eventRule.blackoutDates.some(
+        (d) => new Date(d).toISOString().split("T")[0] === dateString
+      );
+      if (isBlocked) {
+        console.error(`❌ Blackout date detected on ${dateString}, throwing error.`);
+        throw new Error(
+          `The date ${dateString} is blocked for this leave type due to a company blackout.`
+        );
+      }
+    }
   }
 
   const entitlement = await prisma.leaveEntitlement.findFirst({

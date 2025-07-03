@@ -25,6 +25,7 @@ export default function EventRulesPage() {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [rules, setRules] = useState<Record<string, EventRule>>({});
   const [loading, setLoading] = useState(false);
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +38,7 @@ export default function EventRulesPage() {
         const ruleData: EventRule[] = await ruleRes.json();
 
         const merged: Record<string, EventRule> = {};
+        const openState: Record<string, boolean> = {};
         catData.forEach((cat) => {
           const existingRule = ruleData.find((r) => r.eventCategoryId === cat.id);
           merged[cat.id] = existingRule || {
@@ -47,9 +49,11 @@ export default function EventRulesPage() {
             maxConcurrent: null,
             blackoutDates: [],
           };
+          openState[cat.id] = false;
         });
         setCategories(catData);
         setRules(merged);
+        setOpenCards(openState);
       } catch (error) {
         console.error(error);
         toast.error("Failed to load event categories and rules.");
@@ -82,6 +86,10 @@ export default function EventRulesPage() {
     }
   };
 
+  const toggleCard = (id: string) => {
+    setOpenCards((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <h1 className="text-xl font-semibold">Event Rules Configuration</h1>
@@ -90,62 +98,76 @@ export default function EventRulesPage() {
       ) : (
         categories.map((cat: EventCategory) => {
           const rule = rules[cat.id];
+          const isOpen = openCards[cat.id];
           return (
             <Card key={cat.id} className="p-4 space-y-2">
-              <h2 className="text-lg font-medium">{cat.name}</h2>
-              <div className="flex items-center justify-between">
-                <label>Enforce Entitlement</label>
-                <Switch
-                  checked={rule.enforceEntitlement}
-                  onChange={(value) =>
-                    setRules((prev) => ({
-                      ...prev,
-                      [cat.id]: { ...rule, enforceEntitlement: value },
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Notice Period (days)</label>
-                <Input
-                  type="number"
-                  value={rule.noticePeriodDays}
-                  onChange={(e) =>
-                    setRules((prev) => ({
-                      ...prev,
-                      [cat.id]: {
-                        ...rule,
-                        noticePeriodDays: parseInt(e.target.value) || 0,
-                      },
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Max Concurrent Off</label>
-                <Input
-                  type="number"
-                  value={rule.maxConcurrent ?? ""}
-                  onChange={(e) =>
-                    setRules((prev) => ({
-                      ...prev,
-                      [cat.id]: {
-                        ...rule,
-                        maxConcurrent:
-                          e.target.value === "" ? null : parseInt(e.target.value),
-                      },
-                    }))
-                  }
-                  placeholder="Leave blank for no limit"
-                />
-              </div>
-              <Button
-                onClick={() => handleSave(rule)}
-                disabled={loading}
-                className="mt-2"
+              <div
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => toggleCard(cat.id)}
               >
-                {loading ? "Saving..." : "Save Rule"}
-              </Button>
+                <h2 className="text-lg font-medium">{cat.name}</h2>
+                <span className="text-sm text-blue-600">
+                  {isOpen ? "Collapse" : "Edit"}
+                </span>
+              </div>
+
+              {isOpen && (
+                <div className="space-y-2 mt-2">
+                  <div className="flex items-center justify-between">
+                    <label>Enforce Entitlement</label>
+                    <Switch
+                      checked={rule.enforceEntitlement}
+                      onChange={(value) =>
+                        setRules((prev) => ({
+                          ...prev,
+                          [cat.id]: { ...rule, enforceEntitlement: value },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Notice Period (days)</label>
+                    <Input
+                      type="number"
+                      value={rule.noticePeriodDays}
+                      onChange={(e) =>
+                        setRules((prev) => ({
+                          ...prev,
+                          [cat.id]: {
+                            ...rule,
+                            noticePeriodDays: parseInt(e.target.value) || 0,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Max Concurrent Off</label>
+                    <Input
+                      type="number"
+                      value={rule.maxConcurrent ?? ""}
+                      onChange={(e) =>
+                        setRules((prev) => ({
+                          ...prev,
+                          [cat.id]: {
+                            ...rule,
+                            maxConcurrent:
+                              e.target.value === "" ? null : parseInt(e.target.value),
+                          },
+                        }))
+                      }
+                      placeholder="Leave blank for no limit"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => handleSave(rule)}
+                    disabled={loading}
+                    className="mt-2"
+                  >
+                    {loading ? "Saving..." : "Save Rule"}
+                  </Button>
+                </div>
+              )}
             </Card>
           );
         })

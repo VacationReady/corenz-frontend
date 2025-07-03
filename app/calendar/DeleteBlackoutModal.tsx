@@ -57,7 +57,7 @@ export default function DeleteBlackoutModal({
                                 <span>{new Date(date).toDateString()}</span>
                                 <Button
                                     size="sm"
-                                    variant="destructive"
+                                    variant="ghost"
                                     onClick={() => handleDelete(date)}
                                     disabled={loading}
                                 >

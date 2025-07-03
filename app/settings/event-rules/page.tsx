@@ -6,7 +6,6 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import DeleteBlackoutModal from "./DeleteBlackoutModal"; // Adjust path if needed
 
 interface EventCategory {
   id: string;

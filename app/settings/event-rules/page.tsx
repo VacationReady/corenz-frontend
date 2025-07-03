@@ -88,7 +88,7 @@ export default function EventRulesPage() {
       {categories.length === 0 ? (
         <p className="text-sm text-gray-500">Loading...</p>
       ) : (
-        categories.map((cat) => {
+        categories.map((cat: EventCategory) => {
           const rule = rules[cat.id];
           return (
             <Card key={cat.id} className="p-4 space-y-2">

@@ -20,11 +20,26 @@ export default function LeaveBalancePanel({
   employeeId,
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [entitlements, setEntitlements] = useState(leaveEntitlements);
+
+  const refreshEntitlements = async () => {
+    try {
+      const res = await fetch(`/api/employees/${employeeId}/entitlement`);
+      if (res.ok) {
+        const data = await res.json();
+        setEntitlements(data);
+      } else {
+        console.error("Failed to refresh entitlements.");
+      }
+    } catch (error) {
+      console.error("Error refreshing entitlements:", error);
+    }
+  };
 
   return (
     <div className="space-y-2 text-sm">
-      {leaveEntitlements && leaveEntitlements.length > 0 ? (
-        leaveEntitlements.map((entitlement) => (
+      {entitlements && entitlements.length > 0 ? (
+        entitlements.map((entitlement) => (
           <p key={entitlement.id}>
             <strong>{entitlement.eventCategory.name}:</strong>{" "}
             {entitlement.totalDays - entitlement.usedDays} days remaining
@@ -42,8 +57,8 @@ export default function LeaveBalancePanel({
         open={modalOpen}
         setOpen={setModalOpen}
         employeeId={employeeId}
-        currentEntitlements={leaveEntitlements}
-        refresh={() => window.location.reload()}
+        currentEntitlements={entitlements}
+        refresh={refreshEntitlements}
       />
     </div>
   );

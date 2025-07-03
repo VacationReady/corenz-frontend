@@ -39,77 +39,58 @@ export default function EditEntitlementModal({
     currentEntitlements: LeaveEntitlement[];
     refresh: () => void;
 }) {
-    const [annualLeave, setAnnualLeave] = useState(20);
-    const [sickLeave, setSickLeave] = useState(10);
-    const [bereavement, setBereavement] = useState(3);
     const [loading, setLoading] = useState(false);
-    const [eventCategoryMap, setEventCategoryMap] = useState<Record<string, string>>({});
-
-    // Derived flag: true once we've loaded at least those three IDs
-    const mapReady = !!(
-        eventCategoryMap["ANNUAL"] &&
-        eventCategoryMap["SICK"] &&
-        eventCategoryMap["BEREAVEMENT"]
-    );
+    const [categories, setCategories] = useState<EventCategory[]>([]);
+    const [entitlements, setEntitlements] = useState<Record<string, number>>({});
 
     useEffect(() => {
         const fetchEventCategories = async () => {
             try {
                 const res = await fetch("/api/event-categories");
                 const data: EventCategory[] = await res.json();
+                setCategories(data);
 
-                const categoryMap: Record<string, string> = {};
+                const initialEntitlements: Record<string, number> = {};
                 data.forEach((cat) => {
-                    if (cat.name === "Annual Leave") categoryMap["ANNUAL"] = cat.id;
-                    if (cat.name === "Sick Leave") categoryMap["SICK"] = cat.id;
-                    if (cat.name === "Bereavement Leave") categoryMap["BEREAVEMENT"] = cat.id;
+                    const existing = currentEntitlements.find(
+                        (e) => e.eventCategoryId === cat.id
+                    );
+                    initialEntitlements[cat.id] = existing ? existing.totalDays : 0;
                 });
-                setEventCategoryMap(categoryMap);
+                setEntitlements(initialEntitlements);
             } catch (error) {
                 console.error("Failed to fetch event categories", error);
             }
         };
 
-        fetchEventCategories();
-    }, []);
-
-    useEffect(() => {
-        if (currentEntitlements) {
-            const annual = currentEntitlements.find(
-                (e) => e.eventCategory.name === "Annual Leave"
-            )?.totalDays;
-            const sick = currentEntitlements.find(
-                (e) => e.eventCategory.name === "Sick Leave"
-            )?.totalDays;
-            const bereave = currentEntitlements.find(
-                (e) => e.eventCategory.name === "Bereavement Leave"
-            )?.totalDays;
-
-            if (annual !== undefined) setAnnualLeave(annual);
-            if (sick !== undefined) setSickLeave(sick);
-            if (bereave !== undefined) setBereavement(bereave);
+        if (open) {
+            fetchEventCategories();
         }
-    }, [currentEntitlements]);
+    }, [open, currentEntitlements]);
+
+    const handleChange = (categoryId: string, value: number) => {
+        setEntitlements((prev) => ({
+            ...prev,
+            [categoryId]: value,
+        }));
+    };
 
     const handleSubmit = async () => {
-        // 🚧 Guard against missing IDs
-        if (!mapReady) {
-            alert("Event categories are still loading. Please wait a moment and try again.");
-            return;
-        }
-
         setLoading(true);
         try {
+            const payload = Object.entries(entitlements).map(([categoryId, totalDays]) => ({
+                eventCategoryId: categoryId,
+                totalDays,
+            }));
+
             const res = await fetch(`/api/employees/${employeeId}/entitlement`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify([
-                    { eventCategoryId: eventCategoryMap["ANNUAL"], totalDays: annualLeave },
-                    { eventCategoryId: eventCategoryMap["SICK"], totalDays: sickLeave },
-                    { eventCategoryId: eventCategoryMap["BEREAVEMENT"], totalDays: bereavement },
-                ]),
+                body: JSON.stringify(payload),
             });
+
             if (!res.ok) throw new Error("Failed to update entitlement.");
+
             setOpen(false);
             refresh();
         } catch (error) {
@@ -124,38 +105,26 @@ export default function EditEntitlementModal({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Edit Leave Entitlement</DialogTitle>
+                    <DialogTitle>Edit Leave Entitlements</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-2">
-                    <label className="block">
-                        Annual Leave (min 20):
-                        <Input
-                            type="number"
-                            min={20}
-                            value={annualLeave}
-                            onChange={(e) => setAnnualLeave(parseInt(e.target.value))}
-                        />
-                    </label>
-                    <label className="block">
-                        Sick Leave (min 10):
-                        <Input
-                            type="number"
-                            min={10}
-                            value={sickLeave}
-                            onChange={(e) => setSickLeave(parseInt(e.target.value))}
-                        />
-                    </label>
-                    <label className="block">
-                        Bereavement Leave (min 3):
-                        <Input
-                            type="number"
-                            min={3}
-                            value={bereavement}
-                            onChange={(e) => setBereavement(parseInt(e.target.value))}
-                        />
-                    </label>
-                    <Button disabled={loading || !mapReady} onClick={handleSubmit}>
-                        {loading ? "Saving..." : "Save Entitlement"}
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-2">
+                    {categories.length === 0 && <p>Loading categories...</p>}
+                    {categories.map((category) => (
+                        <label key={category.id} className="block">
+                            {category.name}:
+                            <Input
+                                type="number"
+                                min={0}
+                                value={entitlements[category.id] ?? 0}
+                                onChange={(e) =>
+                                    handleChange(category.id, parseInt(e.target.value) || 0)
+                                }
+                            />
+                        </label>
+                    ))}
+
+                    <Button disabled={loading} onClick={handleSubmit}>
+                        {loading ? "Saving..." : "Save Entitlements"}
                     </Button>
                 </div>
             </DialogContent>

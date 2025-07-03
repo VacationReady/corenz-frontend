@@ -20,11 +20,15 @@ export default function ArchivedEventManagerPage() {
     try {
       const res = await fetch("/api/event-categories/archived");
       const data = await res.json();
+      console.log("Fetched archived categories:", data);
       if (data.success) {
         setCategories(data.data);
+      } else {
+        toast.error(data.error || "Failed to fetch archived categories.");
       }
     } catch (error) {
       console.error("Error fetching archived categories:", error);
+      toast.error("An error occurred while fetching archived categories.");
     }
   };
 
@@ -41,15 +45,16 @@ export default function ArchivedEventManagerPage() {
         body: JSON.stringify({ isActive: true }),
       });
       const data = await res.json();
+      console.log("Reactivate category response:", data);
       if (data.success) {
-        toast.success("Category reactivated.");
+        toast.success(data.message || "Category reactivated.");
         fetchArchivedCategories();
       } else {
         toast.error(data.error || "Failed to reactivate category.");
       }
     } catch (error) {
       console.error(error);
-      toast.error("An error occurred.");
+      toast.error("An error occurred while reactivating category.");
     }
   };
 
@@ -62,15 +67,16 @@ export default function ArchivedEventManagerPage() {
         body: JSON.stringify({ isActive: true }),
       });
       const data = await res.json();
+      console.log("Reactivate subcategory response:", data);
       if (data.success) {
-        toast.success("Subcategory reactivated.");
+        toast.success(data.message || "Subcategory reactivated.");
         fetchArchivedCategories();
       } else {
         toast.error(data.error || "Failed to reactivate subcategory.");
       }
     } catch (error) {
       console.error(error);
-      toast.error("An error occurred.");
+      toast.error("An error occurred while reactivating subcategory.");
     }
   };
 

@@ -79,7 +79,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     endDate: new Date(endDate),
     dayType: dayType ?? "FULL_DAY",
     reason: reason ?? "",
-    sickReasonId: eventCategoryName === "Sick Leave" ? sickReason ?? null : null,
     paidStatus: eventCategoryName === "Sick Leave" ? paidStatus ?? "PAID" : null,
   },
 });

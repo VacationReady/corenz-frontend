@@ -88,9 +88,10 @@ export default function BlockDayModal({
                             {categories.map((cat) => (
                                 <div key={cat.id} className="flex items-center gap-2">
                                     <Checkbox
-                                        checked={selected.includes(cat.id)}
-                                        onCheckedChange={() => handleToggleCategory(cat.id)}
-                                    />
+  id={cat.id}
+  checked={selected.includes(cat.id)}
+  onCheckedChange={() => handleToggleCategory(cat.id)}
+/>
                                     <span>{cat.name}</span>
                                 </div>
                             ))}

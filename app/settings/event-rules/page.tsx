@@ -76,15 +76,15 @@ export default function EventRulesPage() {
           <div className="flex items-center justify-between">
             <label>Enforce Entitlement</label>
             <Switch
-              checked={rule.enforceEntitlement}
-              onCheckedChange={(value) =>
-                setRules((prev) =>
-                  prev.map((r) =>
-                    r.id === rule.id ? { ...r, enforceEntitlement: value } : r
-                  )
-                )
-              }
-            />
+  checked={rule.enforceEntitlement}
+  onChange={(value) =>
+    setRules((prev) =>
+      prev.map((r) =>
+        r.id === rule.id ? { ...r, enforceEntitlement: value } : r
+      )
+    )
+  }
+/>
           </div>
           <div>
             <label className="block text-sm font-medium">Notice Period (days)</label>

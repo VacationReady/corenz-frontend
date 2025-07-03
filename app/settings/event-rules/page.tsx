@@ -7,9 +7,23 @@ import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
+interface EventCategory {
+  id: string;
+  name: string;
+}
+
+interface EventRule {
+  eventCategoryId: string;
+  eventCategory: EventCategory;
+  enforceEntitlement: boolean;
+  noticePeriodDays: number;
+  maxConcurrent: number | null;
+  blackoutDates: string[];
+}
+
 export default function EventRulesPage() {
-  const [categories, setCategories] = useState([]);
-  const [rules, setRules] = useState({});
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [rules, setRules] = useState<Record<string, EventRule>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -19,10 +33,10 @@ export default function EventRulesPage() {
           fetch("/api/event-categories"),
           fetch("/api/event-rules"),
         ]);
-        const catData = await catRes.json();
-        const ruleData = await ruleRes.json();
+        const catData: EventCategory[] = await catRes.json();
+        const ruleData: EventRule[] = await ruleRes.json();
 
-        const merged = {};
+        const merged: Record<string, EventRule> = {};
         catData.forEach((cat) => {
           const existingRule = ruleData.find((r) => r.eventCategoryId === cat.id);
           merged[cat.id] = existingRule || {
@@ -44,7 +58,7 @@ export default function EventRulesPage() {
     fetchData();
   }, []);
 
-  const handleSave = async (rule) => {
+  const handleSave = async (rule: EventRule) => {
     try {
       setLoading(true);
       const res = await fetch("/api/event-rules", {

@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import DeleteBlackoutModal from "./DeleteBlackoutModal"; // Adjust path if needed
 
 interface EventCategory {
   id: string;
@@ -26,6 +27,8 @@ export default function EventRulesPage() {
   const [rules, setRules] = useState<Record<string, EventRule>>({});
   const [loading, setLoading] = useState(false);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedRuleForDelete, setSelectedRuleForDelete] = useState<EventRule | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +65,23 @@ export default function EventRulesPage() {
     fetchData();
   }, []);
 
+  const refreshRules = async () => {
+    try {
+      const res = await fetch("/api/event-rules");
+      const ruleData: EventRule[] = await res.json();
+      setRules((prev) => {
+        const updated = { ...prev };
+        ruleData.forEach((r) => {
+          updated[r.eventCategoryId] = r;
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to refresh rules.");
+    }
+  };
+
   const handleSave = async (rule: EventRule) => {
     try {
       setLoading(true);
@@ -78,6 +98,7 @@ export default function EventRulesPage() {
       });
       if (!res.ok) throw new Error("Failed to save rule.");
       toast.success(`Rule saved for ${rule.eventCategory.name}`);
+      refreshRules();
     } catch (error) {
       console.error(error);
       toast.error("Error saving rule.");
@@ -159,18 +180,37 @@ export default function EventRulesPage() {
                       placeholder="Leave blank for no limit"
                     />
                   </div>
-                  <Button
-                    onClick={() => handleSave(rule)}
-                    disabled={loading}
-                    className="mt-2"
-                  >
-                    {loading ? "Saving..." : "Save Rule"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setSelectedRuleForDelete(rule);
+                        setDeleteModalOpen(true);
+                      }}
+                    >
+                      Manage Blackout Dates
+                    </Button>
+                    <Button
+                      onClick={() => handleSave(rule)}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving..." : "Save Rule"}
+                    </Button>
+                  </div>
                 </div>
               )}
             </Card>
           );
         })
+      )}
+      {selectedRuleForDelete && (
+        <DeleteBlackoutModal
+          open={deleteModalOpen}
+          setOpen={setDeleteModalOpen}
+          eventRuleId={selectedRuleForDelete.eventCategoryId}
+          blackoutDates={selectedRuleForDelete.blackoutDates}
+          refreshEvents={refreshRules}
+        />
       )}
     </div>
   );

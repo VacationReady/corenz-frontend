@@ -11,55 +11,18 @@ import { Card } from "@/components/ui/Card";
 import { toast } from "sonner";
 import BlockDayModal from "./BlockDayModal";
 
-interface CalendarEvent {
-  id?: string;
-  title: string;
-  start: string;
-  end: string;
-  allDay: boolean;
-  color?: string;
-}
-
 interface Department {
   id: string;
   name: string;
 }
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const calendarRef = useRef<FullCalendar | null>(null);
-
-  const fetchEvents = async (department?: string) => {
-    try {
-      setLoading(true);
-      const [leaveRes, blackoutRes] = await Promise.all([
-        fetch(`/api/calendar-events${department ? `?department=${encodeURIComponent(department)}` : ""}`),
-        fetch("/api/event-rules/blackout/get")
-      ]);
-
-      if (!leaveRes.ok || !blackoutRes.ok) {
-        throw new Error("Failed to fetch events or blackout dates");
-      }
-
-      const leaveData = await leaveRes.json();
-      const blackoutData = await blackoutRes.json();
-
-      setEvents([...leaveData, ...blackoutData]);
-
-      // Force FullCalendar to refetch and rerender
-      calendarRef.current?.getApi().refetchEvents();
-    } catch (error) {
-      console.error(error);
-      toast.error("Error loading calendar data");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchDepartments = async () => {
     try {
@@ -77,18 +40,44 @@ export default function CalendarPage() {
 
   useEffect(() => {
     fetchDepartments();
-    fetchEvents();
+    setLoading(false);
   }, []);
+
+  const fetchCalendarEvents = async (fetchInfo, successCallback, failureCallback) => {
+    try {
+      const [leaveRes, blackoutRes] = await Promise.all([
+        fetch(`/api/calendar-events${selectedDepartment ? `?department=${encodeURIComponent(selectedDepartment)}` : ""}`),
+        fetch("/api/event-rules/blackout/get")
+      ]);
+
+      if (!leaveRes.ok || !blackoutRes.ok) {
+        throw new Error("Failed to fetch events or blackout dates");
+      }
+
+      const leaveData = await leaveRes.json();
+      const blackoutData = await blackoutRes.json();
+
+      successCallback([...leaveData, ...blackoutData]);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error loading calendar data");
+      failureCallback(error);
+    }
+  };
 
   const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setSelectedDepartment(value);
-    fetchEvents(value);
+    calendarRef.current?.getApi().refetchEvents();
   };
 
   const handleDateClick = (arg: any) => {
     setSelectedDate(arg.date);
     setBlockModalOpen(true);
+  };
+
+  const refreshCalendar = () => {
+    calendarRef.current?.getApi().refetchEvents();
   };
 
   return (
@@ -117,7 +106,7 @@ export default function CalendarPage() {
               ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
-              events={events}
+              events={fetchCalendarEvents}
               dateClick={handleDateClick}
               height="auto"
             />
@@ -129,7 +118,7 @@ export default function CalendarPage() {
           open={blockModalOpen}
           setOpen={setBlockModalOpen}
           selectedDate={selectedDate}
-          refreshEvents={() => fetchEvents(selectedDepartment)}
+          refreshEvents={refreshCalendar}
         />
       )}
     </PageShell>

@@ -182,7 +182,7 @@ export default function EventRulesPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       onClick={() => {
                         setSelectedRuleForDelete(rule);
                         setDeleteModalOpen(true);

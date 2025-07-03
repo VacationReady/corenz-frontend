@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -32,6 +32,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const calendarRef = useRef<FullCalendar | null>(null);
 
   const fetchEvents = async (department?: string) => {
     try {
@@ -49,6 +50,9 @@ export default function CalendarPage() {
       const blackoutData = await blackoutRes.json();
 
       setEvents([...leaveData, ...blackoutData]);
+
+      // Force FullCalendar to refetch and rerender
+      calendarRef.current?.getApi().refetchEvents();
     } catch (error) {
       console.error(error);
       toast.error("Error loading calendar data");
@@ -110,6 +114,7 @@ export default function CalendarPage() {
             <p className="p-4">Loading...</p>
           ) : (
             <FullCalendar
+              ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
               events={events}

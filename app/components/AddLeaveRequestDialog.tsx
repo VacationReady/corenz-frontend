@@ -13,18 +13,20 @@ interface AddLeaveRequestDialogProps {
   isAdminOrManager: boolean;
 }
 
-const leaveTypes = [
-  { label: "Annual Leave", value: "ANNUAL" },
-  { label: "Sick Leave", value: "SICK" },
-  { label: "Bereavement", value: "BEREAVEMENT" },
-];
+type EventCategory = {
+  id: string;
+  name: string;
+  subcategories: { id: string; name: string }[];
+};
 
 export default function AddLeaveRequestDialog({
   employeeId,
   isAdminOrManager,
 }: AddLeaveRequestDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [type, setType] = useState("");
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [type, setType] = useState(""); // now stores eventCategoryId
+  const [subcategory, setSubcategory] = useState(""); // future: to support subcategories
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
@@ -33,6 +35,24 @@ export default function AddLeaveRequestDialog({
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/event-categories");
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(data);
+        } else {
+          toast.error("Failed to load leave categories.");
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        toast.error("Error fetching leave categories.");
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -79,12 +99,19 @@ export default function AddLeaveRequestDialog({
       return;
     }
 
-    if (!isAdminOrManager && type === "SICK") {
+    const selectedCategory = categories.find((cat) => cat.id === type);
+
+    if (!selectedCategory) {
+      toast.error("Invalid leave type selected.");
+      return;
+    }
+
+    if (!isAdminOrManager && selectedCategory.name.toLowerCase().includes("sick")) {
       toast.error("Only managers/admins can book sick leave directly.");
       return;
     }
 
-    if (type === "SICK" && !sickReason) {
+    if (selectedCategory.name.toLowerCase().includes("sick") && !sickReason) {
       toast.error("Please provide a reason for sickness.");
       return;
     }
@@ -95,12 +122,16 @@ export default function AddLeaveRequestDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type,
+          eventCategoryId: type,
+          eventSubcategoryId: subcategory || null,
           startDate,
           endDate,
           reason,
           status: isAdminOrManager ? "APPROVED" : undefined,
-          ...(type === "SICK" && { sickReason, paidStatus }),
+          ...(selectedCategory.name.toLowerCase().includes("sick") && {
+            sickReason,
+            paidStatus,
+          }),
         }),
       });
 
@@ -121,6 +152,7 @@ export default function AddLeaveRequestDialog({
       toast.success("Leave request submitted successfully.");
       setIsOpen(false);
       setType("");
+      setSubcategory("");
       setStartDate("");
       setEndDate("");
       setReason("");
@@ -140,6 +172,7 @@ export default function AddLeaveRequestDialog({
   };
 
   const totalDeducted = Math.max(0, deduction).toFixed(1);
+  const selectedCategory = categories.find((cat) => cat.id === type);
 
   return (
     <>
@@ -156,13 +189,32 @@ export default function AddLeaveRequestDialog({
               onChange={(e) => setType(e.target.value)}
             >
               <option value="">Select Leave Type</option>
-              {leaveTypes.map((lt) => (
-                <option key={lt.value} value={lt.value}>
-                  {lt.label}
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
               ))}
             </select>
           </div>
+
+          {selectedCategory && selectedCategory.subcategories.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium">Subcategory (optional)</label>
+              <select
+                className="w-full border rounded p-2 mt-1"
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+              >
+                <option value="">Select Subcategory</option>
+                {selectedCategory.subcategories.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium">Start Date</label>
             <Input
@@ -197,29 +249,30 @@ export default function AddLeaveRequestDialog({
             </p>
           )}
 
-          {type === "SICK" && (
-            <>
-              <div>
-                <label className="block text-sm font-medium">Reason for Sickness</label>
-                <Input
-                  value={sickReason}
-                  onChange={(e) => setSickReason(e.target.value)}
-                  placeholder="E.g. Flu, injury, etc."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Paid or Unpaid</label>
-                <select
-                  className="w-full border rounded p-2 mt-1"
-                  value={paidStatus}
-                  onChange={(e) => setPaidStatus(e.target.value)}
-                >
-                  <option value="PAID">Paid</option>
-                  <option value="UNPAID">Unpaid</option>
-                </select>
-              </div>
-            </>
-          )}
+          {selectedCategory &&
+            selectedCategory.name.toLowerCase().includes("sick") && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium">Reason for Sickness</label>
+                  <Input
+                    value={sickReason}
+                    onChange={(e) => setSickReason(e.target.value)}
+                    placeholder="E.g. Flu, injury, etc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Paid or Unpaid</label>
+                  <select
+                    className="w-full border rounded p-2 mt-1"
+                    value={paidStatus}
+                    onChange={(e) => setPaidStatus(e.target.value)}
+                  >
+                    <option value="PAID">Paid</option>
+                    <option value="UNPAID">Unpaid</option>
+                  </select>
+                </div>
+              </>
+            )}
 
           <div>
             <label className="block text-sm font-medium">General Reason (optional)</label>

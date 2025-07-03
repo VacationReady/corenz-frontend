@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import Checkbox from "@/components/ui/Checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 interface EventCategory {
@@ -15,11 +15,13 @@ interface EventCategory {
 export default function BlockDayModal({
     open,
     setOpen,
-    selectedDate
+    selectedDate,
+    refreshEvents,
 }: {
     open: boolean;
     setOpen: (open: boolean) => void;
     selectedDate: Date;
+    refreshEvents: () => void;
 }) {
     const [categories, setCategories] = useState<EventCategory[]>([]);
     const [blockAll, setBlockAll] = useState(true);
@@ -62,6 +64,7 @@ export default function BlockDayModal({
             });
             if (!res.ok) throw new Error("Failed to block day.");
             toast.success("Day blocked successfully");
+            refreshEvents();
             setOpen(false);
         } catch (error) {
             console.error(error);

@@ -1,4 +1,5 @@
 "use client";
+
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
@@ -123,6 +124,7 @@ export default function CalendarPage() {
           open={blockModalOpen}
           setOpen={setBlockModalOpen}
           selectedDate={selectedDate}
+          refreshEvents={() => fetchEvents(selectedDepartment)}
         />
       )}
     </PageShell>

@@ -11,11 +11,12 @@ import { toast } from "sonner";
 import BlockDayModal from "./BlockDayModal";
 
 interface CalendarEvent {
-  id: string;
+  id?: string;
   title: string;
   start: string;
   end: string;
   allDay: boolean;
+  color?: string;
 }
 
 interface Department {
@@ -33,17 +34,23 @@ export default function CalendarPage() {
 
   const fetchEvents = async (department?: string) => {
     try {
-      const res = await fetch(
-        `/api/calendar-events${department ? `?department=${encodeURIComponent(department)}` : ""}`
-      );
-      if (!res.ok) {
-        throw new Error("Failed to fetch calendar events");
+      setLoading(true);
+      const [leaveRes, blackoutRes] = await Promise.all([
+        fetch(`/api/calendar-events${department ? `?department=${encodeURIComponent(department)}` : ""}`),
+        fetch("/api/event-rules/blackout/get")
+      ]);
+
+      if (!leaveRes.ok || !blackoutRes.ok) {
+        throw new Error("Failed to fetch events or blackout dates");
       }
-      const data = await res.json();
-      setEvents(data);
+
+      const leaveData = await leaveRes.json();
+      const blackoutData = await blackoutRes.json();
+
+      setEvents([...leaveData, ...blackoutData]);
     } catch (error) {
       console.error(error);
-      toast.error("Error loading calendar events");
+      toast.error("Error loading calendar data");
     } finally {
       setLoading(false);
     }
@@ -71,7 +78,6 @@ export default function CalendarPage() {
   const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setSelectedDepartment(value);
-    setLoading(true);
     fetchEvents(value);
   };
 

@@ -64,7 +64,7 @@ export default function BlockDayModal({
             });
             if (!res.ok) throw new Error("Failed to block day.");
             toast.success("Day blocked successfully");
-            refreshEvents();
+            await refreshEvents();
             setOpen(false);
         } catch (error) {
             console.error(error);

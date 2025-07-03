@@ -25,8 +25,8 @@ export default function AddLeaveRequestDialog({
 }: AddLeaveRequestDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [categories, setCategories] = useState<EventCategory[]>([]);
-  const [type, setType] = useState(""); // now stores eventCategoryId
-  const [subcategory, setSubcategory] = useState(""); // future: to support subcategories
+  const [type, setType] = useState("");
+  const [subcategory, setSubcategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
@@ -36,30 +36,36 @@ export default function AddLeaveRequestDialog({
   const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch("/api/event-categories");
-        if (res.ok) {
-          const data = await res.json();
-          setCategories(data);
-        } else {
-          toast.error("Failed to load leave categories.");
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast.error("Error fetching leave categories.");
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/event-categories");
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      } else {
+        toast.error("Failed to load leave categories.");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Error fetching leave categories.");
+    }
+  };
+
+  useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories(); // refresh categories on modal open
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const diff =
-        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       setTotalDays(diff > 0 ? diff : 0);
     } else {
       setTotalDays(0);
@@ -163,8 +169,7 @@ export default function AddLeaveRequestDialog({
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
       toast.error(
-        error?.message ||
-          "An unexpected error occurred while submitting the leave request."
+        error?.message || "An unexpected error occurred while submitting the leave request."
       );
     } finally {
       setLoading(false);
@@ -217,11 +222,7 @@ export default function AddLeaveRequestDialog({
 
           <div>
             <label className="block text-sm font-medium">Start Date</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -230,49 +231,42 @@ export default function AddLeaveRequestDialog({
                 <Info className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-pointer" />
               </Tooltip>
             </div>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             <p className="text-xs text-gray-500 mt-1">
               Select the last day you will be <em>away</em>. Do not include your return-to-work day.
             </p>
           </div>
 
-          <p className="text-sm text-gray-700">
-            Total Days Requested: {totalDays}
-          </p>
+          <p className="text-sm text-gray-700">Total Days Requested: {totalDays}</p>
           {deduction !== null && (
             <p className="text-sm font-medium text-green-700">
               ✅ Total Days Deducted (per working pattern): {totalDeducted}
             </p>
           )}
 
-          {selectedCategory &&
-            selectedCategory.name.toLowerCase().includes("sick") && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium">Reason for Sickness</label>
-                  <Input
-                    value={sickReason}
-                    onChange={(e) => setSickReason(e.target.value)}
-                    placeholder="E.g. Flu, injury, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Paid or Unpaid</label>
-                  <select
-                    className="w-full border rounded p-2 mt-1"
-                    value={paidStatus}
-                    onChange={(e) => setPaidStatus(e.target.value)}
-                  >
-                    <option value="PAID">Paid</option>
-                    <option value="UNPAID">Unpaid</option>
-                  </select>
-                </div>
-              </>
-            )}
+          {selectedCategory && selectedCategory.name.toLowerCase().includes("sick") && (
+            <>
+              <div>
+                <label className="block text-sm font-medium">Reason for Sickness</label>
+                <Input
+                  value={sickReason}
+                  onChange={(e) => setSickReason(e.target.value)}
+                  placeholder="E.g. Flu, injury, etc."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Paid or Unpaid</label>
+                <select
+                  className="w-full border rounded p-2 mt-1"
+                  value={paidStatus}
+                  onChange={(e) => setPaidStatus(e.target.value)}
+                >
+                  <option value="PAID">Paid</option>
+                  <option value="UNPAID">Unpaid</option>
+                </select>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-sm font-medium">General Reason (optional)</label>

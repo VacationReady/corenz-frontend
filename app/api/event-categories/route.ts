@@ -26,7 +26,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ success: true, data: categories });
+    return NextResponse.json(categories);
   } catch (error: any) {
     console.error("[Event Categories GET]", error);
     return NextResponse.json(

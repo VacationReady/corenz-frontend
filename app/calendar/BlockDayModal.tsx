@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { Switch } from "@/components/ui/switch";
-import Checkbox from "@/components/ui/Checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 interface EventCategory {
@@ -78,25 +77,46 @@ export default function BlockDayModal({
                 <DialogHeader>
                     <DialogTitle>Block {selectedDate.toDateString()}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <label>Block for all events?</label>
-                        <Switch checked={blockAll} onChange={setBlockAll} />
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Block for all events?</label>
+                        <div className="flex gap-4">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="radio"
+                                    name="blockAll"
+                                    checked={blockAll}
+                                    onChange={() => setBlockAll(true)}
+                                />
+                                Yes
+                            </label>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="radio"
+                                    name="blockAll"
+                                    checked={!blockAll}
+                                    onChange={() => setBlockAll(false)}
+                                />
+                                No
+                            </label>
+                        </div>
                     </div>
+
                     {!blockAll && (
                         <div className="space-y-1 max-h-40 overflow-y-auto border p-2 rounded">
                             {categories.map((cat) => (
                                 <div key={cat.id} className="flex items-center gap-2">
                                     <Checkbox
-  id={cat.id}
-  checked={selected.includes(cat.id)}
-  onCheckedChange={() => handleToggleCategory(cat.id)}
-/>
+                                        id={cat.id}
+                                        checked={selected.includes(cat.id)}
+                                        onCheckedChange={() => handleToggleCategory(cat.id)}
+                                    />
                                     <span>{cat.name}</span>
                                 </div>
                             ))}
                         </div>
                     )}
+
                     <div>
                         <label className="block text-sm font-medium">Note (optional)</label>
                         <Input
@@ -105,6 +125,7 @@ export default function BlockDayModal({
                             placeholder="Reason for blocking the day"
                         />
                     </div>
+
                     <Button onClick={handleSubmit} disabled={loading}>
                         {loading ? "Blocking..." : "Block Day"}
                     </Button>

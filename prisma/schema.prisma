@@ -120,16 +120,20 @@ model LeaveRequest {
 }
 
 model LeaveEntitlement {
-  id              String        @id @default(cuid())
-  employeeId      String
-  createdAt       DateTime      @default(now())
-  totalDays       Float
-  updatedAt       DateTime      @updatedAt
-  usedDays        Float
-  daysAllocated   Float         @default(0)
-  eventCategoryId String
-  employee        Employee      @relation(fields: [employeeId], references: [id])
-  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
+  id                String        @id @default(cuid())
+  employeeId        String
+  createdAt         DateTime      @default(now())
+  totalDays         Float
+  updatedAt         DateTime      @updatedAt
+  usedDays          Float
+  daysAllocated     Float         @default(0)
+  eventCategoryId   String
+
+  carryoverDays     Float         @default(0)         // ✅ NEW: stores carried over days
+  carryoverExpiry   DateTime?                         // ✅ NEW: when carryover expires, optional
+
+  employee          Employee      @relation(fields: [employeeId], references: [id])
+  eventCategory     EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([employeeId, eventCategoryId])
 }

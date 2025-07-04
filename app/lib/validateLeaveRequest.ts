@@ -50,7 +50,7 @@ export async function validateLeaveRequest({
     select: {
       noticePeriodDays: true,
       maxConcurrent: true,
-      maxBookingLength: true, // 🩶 for max booking enforcement
+      maxBookingLength: true,
     },
   });
 
@@ -112,8 +112,19 @@ export async function validateLeaveRequest({
     }
   }
 
-  // ── MAX CONCURRENT CHECK ──────────────────────────
+  // ── MAX CONCURRENT CHECK (Department-Based) ───────
   if (eventRule && eventRule.maxConcurrent !== null && !isAdmin) {
+    // Fetch requesting employee's departmentId
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { departmentId: true },
+    });
+
+    if (!employee || !employee.departmentId) {
+      console.error("❌ Employee department not found, cannot enforce concurrency.");
+      throw new Error("Employee department information is required for leave validation.");
+    }
+
     const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
 
     for (const date of datesInRange) {
@@ -124,6 +135,9 @@ export async function validateLeaveRequest({
         where: {
           eventCategoryId,
           approvalStatus: { in: ["APPROVED", "PENDING"] },
+          employee: {
+            departmentId: employee.departmentId,
+          },
           OR: [
             {
               startDate: { lte: endOfDay },
@@ -135,10 +149,10 @@ export async function validateLeaveRequest({
 
       if (concurrentCount >= eventRule.maxConcurrent) {
         console.error(
-          `❌ Max concurrent limit reached on ${date.toDateString()} (${concurrentCount}/${eventRule.maxConcurrent})`
+          `❌ Max concurrent limit reached for department on ${date.toDateString()} (${concurrentCount}/${eventRule.maxConcurrent})`
         );
         throw new Error(
-          `The maximum number of employees off on ${date.toDateString()} for this leave type has been reached.`
+          `The maximum number of employees off in your department on ${date.toDateString()} for this leave type has been reached.`
         );
       }
     }

@@ -27,17 +27,22 @@ export async function processCarryover() {
             }
         },
         include: {
-            employee: true,
+            employee: {
+                include: {
+                    department: true, // ✅ fetch department to get companyId
+                },
+            },
             eventCategory: true,
         },
     });
 
     for (const entitlement of entitlements) {
         try {
+            const companyId = entitlement.employee.department?.companyId ?? "default-company-id";
             const eventRule = await prisma.eventRule.findUnique({
                 where: {
                     companyId_eventCategoryId: {
-                        companyId: entitlement.employee.department?.companyId ?? "default-company-id",
+                        companyId: companyId,
                         eventCategoryId: entitlement.eventCategoryId,
                     },
                 },

@@ -138,15 +138,16 @@ export default function CalendarPage() {
             <p className="p-4">Loading...</p>
           ) : (
             <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
-              events={fetchCalendarEvents}
-              dateClick={handleDateClick}
-              eventClick={handleEventClick}
-              height="auto"
-              key={refreshTrigger ? "refresh-on" : "refresh-off"} // 🚩 NEW: forces rerender on refresh
-            />
+    ref={calendarRef}
+    plugins={[dayGridPlugin, interactionPlugin]}
+    initialView="dayGridMonth"
+    events={fetchCalendarEvents}
+    dateClick={handleDateClick}
+    eventClick={handleEventClick}
+    height="auto"
+    key={refreshTrigger ? "refresh-on" : "refresh-off"} // 🚩 forces rerender on refresh
+    timeZone="Europe/London" // 🚩 added for BST stability
+/>
           )}
         </div>
       </Card>

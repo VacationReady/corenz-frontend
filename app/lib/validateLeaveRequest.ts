@@ -41,14 +41,16 @@ export async function validateLeaveRequest({
 
   // ── FETCH EVENT RULE FOR NOTICE PERIOD ───────────────
   const eventRule = await prisma.eventRule.findUnique({
-    where: {
-      eventCategoryId: eventCategoryId,
+  where: {
+    companyId_eventCategoryId: {
       companyId: "default-company-id",
+      eventCategoryId: eventCategoryId,
     },
-    select: {
-      noticePeriodDays: true,
-    },
-  });
+  },
+  select: {
+    noticePeriodDays: true,
+  },
+});
 
   const requiredNoticeDays = eventRule?.noticePeriodDays ?? 2; // fallback to 2 days if no rule found
 

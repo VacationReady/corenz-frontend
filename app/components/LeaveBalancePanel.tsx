@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EditEntitlementModal from "@/components/EditEntitlementModal";
 import type { LeaveEntitlement as PrismaEntitlement, EventCategory } from "@prisma/client";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Info } from "lucide-react";
 
 interface LeaveEntitlement extends PrismaEntitlement {
   eventCategory: EventCategory;
@@ -39,12 +41,29 @@ export default function LeaveBalancePanel({
   return (
     <div className="space-y-2 text-sm">
       {entitlements && entitlements.length > 0 ? (
-        entitlements.map((entitlement) => (
-          <p key={entitlement.id}>
-            <strong>{entitlement.eventCategory.name}:</strong>{" "}
-            {entitlement.totalDays - entitlement.usedDays} days remaining
-          </p>
-        ))
+        entitlements.map((entitlement) => {
+          const remainingDays = entitlement.totalDays - entitlement.usedDays;
+          const carryoverDays = entitlement.carryoverDays ?? 0;
+          const standardEntitlement = entitlement.totalDays - carryoverDays;
+
+          return (
+            <p key={entitlement.id} className="flex items-center gap-1">
+              <strong>{entitlement.eventCategory.name}:</strong>{" "}
+              {remainingDays} days remaining
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                </HoverCardTrigger>
+                <HoverCardContent className="text-xs">
+                  <div>Standard Entitlement: {standardEntitlement} days</div>
+                  <div>Carryover: {carryoverDays} days</div>
+                  <div>Used: {entitlement.usedDays} days</div>
+                  <div>Remaining: {remainingDays} days</div>
+                </HoverCardContent>
+              </HoverCard>
+            </p>
+          );
+        })
       ) : (
         <p>No entitlement data found.</p>
       )}

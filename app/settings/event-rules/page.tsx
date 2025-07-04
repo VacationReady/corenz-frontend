@@ -26,7 +26,7 @@ export default function EventRulesPage() {
   const [rules, setRules] = useState<Record<string, EventRule>>({});
   const [loading, setLoading] = useState(false);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
- 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -40,12 +40,14 @@ export default function EventRulesPage() {
         const merged: Record<string, EventRule> = {};
         const openState: Record<string, boolean> = {};
         catData.forEach((cat) => {
-          const existingRule = ruleData.find((r) => r.eventCategoryId === cat.id);
+          const existingRule = ruleData.find(
+            (r) => r.eventCategoryId === cat.id
+          );
           merged[cat.id] = existingRule || {
             eventCategoryId: cat.id,
             eventCategory: cat,
             enforceEntitlement: true,
-            noticePeriodDays: 0,
+            noticePeriodDays: 2, // 🪄 Default set to 2 instead of 0
             maxConcurrent: null,
             blackoutDates: [],
           };
@@ -144,7 +146,9 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Notice Period (days)</label>
+                    <label className="block text-sm font-medium">
+                      Notice Period (days)
+                    </label>
                     <Input
                       type="number"
                       value={rule.noticePeriodDays}
@@ -160,7 +164,9 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Max Concurrent Off</label>
+                    <label className="block text-sm font-medium">
+                      Max Concurrent Off
+                    </label>
                     <Input
                       type="number"
                       value={rule.maxConcurrent ?? ""}
@@ -170,7 +176,9 @@ export default function EventRulesPage() {
                           [cat.id]: {
                             ...rule,
                             maxConcurrent:
-                              e.target.value === "" ? null : parseInt(e.target.value),
+                              e.target.value === ""
+                                ? null
+                                : parseInt(e.target.value),
                           },
                         }))
                       }
@@ -178,10 +186,7 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleSave(rule)}
-                      disabled={loading}
-                    >
+                    <Button onClick={() => handleSave(rule)} disabled={loading}>
                       {loading ? "Saving..." : "Save Rule"}
                     </Button>
                   </div>

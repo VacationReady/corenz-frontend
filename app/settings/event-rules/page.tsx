@@ -18,6 +18,7 @@ interface EventRule {
   enforceEntitlement: boolean;
   noticePeriodDays: number;
   maxConcurrent: number | null;
+  maxBookingLength?: number | null; // ✅ added
   blackoutDates: string[];
 }
 
@@ -47,8 +48,9 @@ export default function EventRulesPage() {
             eventCategoryId: cat.id,
             eventCategory: cat,
             enforceEntitlement: true,
-            noticePeriodDays: 2, // 🪄 Default set to 2 instead of 0
+            noticePeriodDays: 2, // Default to 2
             maxConcurrent: null,
+            maxBookingLength: 14, // ✅ default to 14 if creating new
             blackoutDates: [],
           };
           openState[cat.id] = false;
@@ -92,6 +94,7 @@ export default function EventRulesPage() {
           enforceEntitlement: rule.enforceEntitlement,
           noticePeriodDays: rule.noticePeriodDays,
           maxConcurrent: rule.maxConcurrent,
+          maxBookingLength: rule.maxBookingLength ?? 14, // ✅ ensure sent
           blackoutDates: rule.blackoutDates,
         }),
       });
@@ -183,6 +186,27 @@ export default function EventRulesPage() {
                         }))
                       }
                       placeholder="Leave blank for no limit"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Max Booking Length (days)
+                    </label>
+                    <Input
+                      type="number"
+                      value={rule.maxBookingLength ?? 14} // ✅ show 14 if undefined
+                      onChange={(e) =>
+                        setRules((prev) => ({
+                          ...prev,
+                          [cat.id]: {
+                            ...rule,
+                            maxBookingLength:
+                              e.target.value === ""
+                                ? 14
+                                : parseInt(e.target.value),
+                          },
+                        }))
+                      }
                     />
                   </div>
                   <div className="flex gap-2">

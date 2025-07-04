@@ -22,7 +22,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(false); // 🚩 NEW: force re-render trigger
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const fetchDepartments = async () => {
@@ -112,7 +112,7 @@ export default function CalendarPage() {
   const refreshCalendar = () => {
     console.log("🔄 Refreshing calendar events...");
     calendarRef.current?.getApi().refetchEvents();
-    setRefreshTrigger((prev) => !prev);
+    setRefreshTrigger((prev) => !prev); // 🚩 NEW: force re-render on refresh
   };
 
   return (
@@ -145,7 +145,7 @@ export default function CalendarPage() {
               dateClick={handleDateClick}
               eventClick={handleEventClick}
               height="auto"
-              key={refreshTrigger ? "refresh-on" : "refresh-off"}
+              key={refreshTrigger ? "refresh-on" : "refresh-off"} // 🚩 NEW: forces rerender on refresh
             />
           )}
         </div>

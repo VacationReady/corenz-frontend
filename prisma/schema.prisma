@@ -180,18 +180,18 @@ model WorkingPatternWeek {
 }
 
 model EventRule {
-  id                 String     @id @default(cuid())
-  companyId          String
-  eventCategoryId    String
-  enforceEntitlement Boolean    @default(true)
-  noticePeriodDays   Int        @default(0)
-  maxConcurrent      Int?
-  maxBookingLength   Int?
-  maxCarryoverDays   Int?                       // ✅ NEW: max days to carry over, null disables carryover
-  carryoverExpiry    DateTime?                  // ✅ NEW: when carryover expires, optional if using carryover
+  id                    String     @id @default(cuid())
+  companyId             String
+  eventCategoryId       String
+  enforceEntitlement    Boolean    @default(true)
+  noticePeriodDays      Int        @default(0)
+  maxConcurrent         Int?
+  maxBookingLength      Int?
+  maxCarryoverDays      Int?        // ✅ max days to carry over; null disables carryover
+  carryoverExpiryMonths Int?        // ✅ null disables expiry; if set, carryover expires X months after leave year end
 
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
 
   eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
 

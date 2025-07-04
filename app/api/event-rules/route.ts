@@ -30,8 +30,8 @@ export async function POST(req: Request) {
             noticePeriodDays,
             maxConcurrent,
             maxBookingLength,
-            maxCarryoverDays,    // ✅ NEW
-            carryoverExpiry,     // ✅ NEW
+            maxCarryoverDays,         // ✅ NEW
+            carryoverExpiryMonths,    // ✅ NEW
         } = body;
 
         const rule = await prisma.eventRule.upsert({
@@ -46,8 +46,8 @@ export async function POST(req: Request) {
                 noticePeriodDays,
                 maxConcurrent,
                 ...(maxBookingLength !== undefined && { maxBookingLength }),
-                ...(maxCarryoverDays !== undefined && { maxCarryoverDays }),   // ✅ add if provided
-                ...(carryoverExpiry !== undefined && { carryoverExpiry: carryoverExpiry ? new Date(carryoverExpiry) : null }), // ✅ add if provided
+                ...(maxCarryoverDays !== undefined && { maxCarryoverDays }),
+                ...(carryoverExpiryMonths !== undefined && { carryoverExpiryMonths }),
             },
             create: {
                 companyId,
@@ -56,8 +56,8 @@ export async function POST(req: Request) {
                 noticePeriodDays,
                 maxConcurrent,
                 maxBookingLength: maxBookingLength ?? 14,
-                maxCarryoverDays: maxCarryoverDays ?? null,    // ✅ default null (carryover disabled)
-                carryoverExpiry: carryoverExpiry ? new Date(carryoverExpiry) : null, // ✅ default null
+                maxCarryoverDays: maxCarryoverDays ?? null,
+                carryoverExpiryMonths: carryoverExpiryMonths ?? null,
             },
         });
 

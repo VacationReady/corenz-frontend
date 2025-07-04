@@ -52,7 +52,7 @@ export async function validateLeaveRequest({
   },
 });
 
-  const requiredNoticeDays = eventRule?.noticePeriodDays ?? 2; // fallback to 2 days if no rule found
+  const requiredNoticeDays = eventRule?.noticePeriodDays ?? 0;
 
   const leaveStart = dayjs(startDate).startOf("day");
   const today = dayjs().startOf("day");

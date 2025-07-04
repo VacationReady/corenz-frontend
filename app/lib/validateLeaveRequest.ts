@@ -5,7 +5,7 @@ import { addDays, eachDayOfInterval } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 /**
- * Validates a leave request against entitlement, business rules, blackout dates, and working pattern.
+ * Validates a leave request against entitlement, business rules, blackout days (BlackoutDay), and working pattern.
  */
 export async function validateLeaveRequest({
   employeeId,
@@ -38,29 +38,25 @@ export async function validateLeaveRequest({
     throw new Error(`Invalid event category.`);
   }
 
-  // ── BLACKOUT DATES CHECK ─────────────────────────────
-  const eventRule = await prisma.eventRule.findFirst({
-    where: {
-      eventCategoryId,
-      companyId: "default-company-id", // replace with dynamic scoping later
-    },
-    select: {
-      blackoutDates: true,
-    },
-  });
+  // ── BLACKOUT DAY CHECK USING BlackoutDay TABLE ────────────────
+  if (!isAdmin) {
+    const blackoutDays = await prisma.blackoutDay.findMany({
+      where: {
+        OR: [
+          { allEvents: true },
+          { eventCategoryIds: { has: eventCategoryId } },
+        ],
+      },
+    });
 
-  if (eventRule && eventRule.blackoutDates.length > 0 && !isAdmin) {
+    const blackoutDates = blackoutDays.map((b) => b.date.toISOString().split("T")[0]);
     const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+
     for (const date of datesInRange) {
       const dateString = date.toISOString().split("T")[0];
-      const isBlocked = eventRule.blackoutDates.some(
-        (d) => new Date(d).toISOString().split("T")[0] === dateString
-      );
-      if (isBlocked) {
-        console.error(`❌ Blackout date detected on ${dateString}, throwing error.`);
-        throw new Error(
-          `The date ${dateString} is blocked for this leave type due to a company blackout.`
-        );
+      if (blackoutDates.includes(dateString)) {
+        console.error(`❌ Blackout day detected on ${dateString}, throwing error.`);
+        throw new Error(`The date ${dateString} is blocked due to a company blackout.`);
       }
     }
   }
@@ -76,9 +72,7 @@ export async function validateLeaveRequest({
 
   if (!entitlement) {
     console.error("❌ No entitlement found for employee, throwing.");
-    throw new Error(
-      `No entitlement found for event category: ${eventCategory.name}`
-    );
+    throw new Error(`No entitlement found for event category: ${eventCategory.name}`);
   }
 
   // Calculate days requested using working pattern
@@ -139,9 +133,7 @@ export async function validateLeaveRequest({
 
   if (overlapping && !isAdmin) {
     console.error("❌ Overlapping leave request detected, throwing error.");
-    throw new Error(
-      "Employee has an overlapping leave request during these dates."
-    );
+    throw new Error("Employee has an overlapping leave request during these dates.");
   }
 
   console.log("✅ Leave request validation passed.");

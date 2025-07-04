@@ -46,9 +46,10 @@ export default function ReportsPage() {
         {fields.map((field) => (
           <label key={field.value} className="flex items-center gap-2">
             <Checkbox
-              checked={selectedFields.includes(field.value)}
-              onCheckedChange={() => handleFieldToggle(field.value)}
-            />
+  id={field.value}
+  checked={selectedFields.includes(field.value)}
+  onCheckedChange={() => handleFieldToggle(field.value)}
+/>
             <span>{field.label}</span>
           </label>
         ))}

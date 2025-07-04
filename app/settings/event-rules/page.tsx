@@ -20,7 +20,7 @@ interface EventRule {
   maxConcurrent: number | null;
   maxBookingLength?: number | null;
   maxCarryoverDays?: number | null;
-  carryoverExpiryMonths?: number | null; // ✅ NEW
+  carryoverExpiryMonths?: number | null;
   blackoutDates: string[];
 }
 
@@ -54,7 +54,7 @@ export default function EventRulesPage() {
             maxConcurrent: null,
             maxBookingLength: 14,
             maxCarryoverDays: null,
-            carryoverExpiryMonths: null, // ✅ default null
+            carryoverExpiryMonths: null,
             blackoutDates: [],
           };
           openState[cat.id] = false;
@@ -100,7 +100,7 @@ export default function EventRulesPage() {
           maxConcurrent: rule.maxConcurrent,
           maxBookingLength: rule.maxBookingLength ?? 14,
           maxCarryoverDays: rule.maxCarryoverDays ?? null,
-          carryoverExpiryMonths: rule.carryoverExpiryMonths ?? null, // ✅ new
+          carryoverExpiryMonths: rule.carryoverExpiryMonths ?? null,
           blackoutDates: rule.blackoutDates,
         }),
       });
@@ -141,9 +141,14 @@ export default function EventRulesPage() {
               </div>
 
               {isOpen && (
-                <div className="space-y-2 mt-2">
+                <div className="space-y-4 mt-2">
                   <div className="flex items-center justify-between">
-                    <label>Enforce Entitlement</label>
+                    <div>
+                      <label className="block text-sm font-medium">Enforce Entitlement</label>
+                      <p className="text-xs text-gray-500">
+                        Toggle to deduct leave from entitlement. Turn off for unpaid/discretionary leave.
+                      </p>
+                    </div>
                     <Switch
                       checked={rule.enforceEntitlement}
                       onChange={(value) =>
@@ -155,9 +160,10 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">
-                      Notice Period (days)
-                    </label>
+                    <label className="block text-sm font-medium">Notice Period (days)</label>
+                    <p className="text-xs text-gray-500">
+                      The minimum number of days notice required before leave can be booked.
+                    </p>
                     <Input
                       type="number"
                       value={rule.noticePeriodDays}
@@ -173,9 +179,10 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">
-                      Max Concurrent Off
-                    </label>
+                    <label className="block text-sm font-medium">Max Concurrent Off</label>
+                    <p className="text-xs text-gray-500">
+                      Maximum employees off simultaneously in this leave category and department. Leave blank for no limit.
+                    </p>
                     <Input
                       type="number"
                       value={rule.maxConcurrent ?? ""}
@@ -195,9 +202,10 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">
-                      Max Booking Length (days)
-                    </label>
+                    <label className="block text-sm font-medium">Max Booking Length (days)</label>
+                    <p className="text-xs text-gray-500">
+                      Maximum number of days an employee can book in a single request.
+                    </p>
                     <Input
                       type="number"
                       value={rule.maxBookingLength ?? 14}
@@ -216,9 +224,10 @@ export default function EventRulesPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">
-                      Max Carryover Days
-                    </label>
+                    <label className="block text-sm font-medium">Max Carryover Days</label>
+                    <p className="text-xs text-gray-500">
+                      Maximum unused days carried to next leave year. Leave blank to disable carryover.
+                    </p>
                     <Input
                       type="number"
                       value={rule.maxCarryoverDays ?? ""}
@@ -241,9 +250,10 @@ export default function EventRulesPage() {
                   </div>
                   {rule.maxCarryoverDays !== null && (
                     <div>
-                      <label className="block text-sm font-medium">
-                        Carryover Expiry (months after refresh)
-                      </label>
+                      <label className="block text-sm font-medium">Carryover Expiry (months after refresh)</label>
+                      <p className="text-xs text-gray-500">
+                        Number of months carryover days remain valid after leave year refresh. Leave blank for no expiry.
+                      </p>
                       <Input
                         type="number"
                         value={rule.carryoverExpiryMonths ?? ""}

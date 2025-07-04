@@ -13,7 +13,19 @@ export async function processCarryover() {
     const today = dayjs();
     const leaveYearEnd = dayjs(`${today.year() - 1}-12-31`); // last calendar year end
 
+    // Fetch only entitlements tied to event categories with carryover enabled
     const entitlements = await prisma.leaveEntitlement.findMany({
+        where: {
+            eventCategory: {
+                eventRules: {
+                    some: {
+                        maxCarryoverDays: {
+                            gt: 0
+                        }
+                    }
+                }
+            }
+        },
         include: {
             employee: true,
             eventCategory: true,
@@ -25,7 +37,7 @@ export async function processCarryover() {
             const eventRule = await prisma.eventRule.findUnique({
                 where: {
                     companyId_eventCategoryId: {
-                        companyId: "default-company-id",
+                        companyId: entitlement.employee.department?.companyId ?? "default-company-id",
                         eventCategoryId: entitlement.eventCategoryId,
                     },
                 },
@@ -35,7 +47,7 @@ export async function processCarryover() {
                 },
             });
 
-            if (!eventRule || eventRule.maxCarryoverDays === null) {
+            if (!eventRule || eventRule.maxCarryoverDays === null || eventRule.maxCarryoverDays === 0) {
                 console.log(
                     `⏩ Skipping ${entitlement.employeeId} (${entitlement.eventCategoryId}): Carryover not enabled.`
                 );
@@ -55,14 +67,14 @@ export async function processCarryover() {
                     .toDate();
             }
 
+            // Update entitlement to add carryover without resetting standard entitlement
             await prisma.leaveEntitlement.update({
                 where: { id: entitlement.id },
                 data: {
                     carryoverDays: carryoverDays,
-                    usedDays: 0, // reset for the new leave year
                     carryoverExpiry: carryoverExpiryDate,
-                    // Optional: uncomment below if you want to add the annual entitlement automatically
-                    // totalDays: entitlement.totalDays + (your_default_annual_days_value),
+                    usedDays: 0, // reset used days for new year
+                    totalDays: entitlement.totalDays + carryoverDays // correctly add carryover
                 },
             });
 

@@ -102,7 +102,7 @@ export default function ReportsPage() {
       <h1 className="text-2xl font-bold mb-6">Build a Custom Report</h1>
       <p className="mb-4">Select the fields you would like to include in your report:</p>
 
-      <Accordion type="multiple" collapsible className="w-full space-y-2">
+      <Accordion type="multiple" className="w-full space-y-2">
         {renderFieldGroup("user", "User Fields", USER_FIELDS)}
         {renderFieldGroup("employee", "Employee Fields", EMPLOYEE_FIELDS)}
         {renderFieldGroup("department", "Department Fields", DEPARTMENT_FIELDS)}

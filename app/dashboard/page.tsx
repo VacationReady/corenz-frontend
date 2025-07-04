@@ -17,7 +17,7 @@ export default function DashboardPage() {
 
   const handleRunCarryover = async () => {
     try {
-      const res = await fetch("/api/admin/run-carryover", {
+      const res = await fetch("/api/run-carryover", {
         method: "POST",
       });
       const data = await res.json();

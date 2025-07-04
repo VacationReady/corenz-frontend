@@ -29,9 +29,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const existing = await prisma.department.findUnique({
-      where: { name: name.trim() },
-    });
+    const existing = await prisma.department.findFirst({
+  where: { name: name.trim() },
+});
 
     if (existing) {
       return NextResponse.json(

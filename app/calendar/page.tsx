@@ -47,17 +47,29 @@ export default function CalendarPage() {
     try {
       const [leaveRes, blackoutRes] = await Promise.all([
         fetch(`/api/calendar-events${selectedDepartment ? `?department=${encodeURIComponent(selectedDepartment)}` : ""}`),
-        fetch("/api/event-rules/blackout/get")
+        fetch("/api/blackout-days/get")
       ]);
 
       if (!leaveRes.ok || !blackoutRes.ok) {
-        throw new Error("Failed to fetch events or blackout dates");
+        throw new Error("Failed to fetch events or blackout days");
       }
 
       const leaveData = await leaveRes.json();
       const blackoutData = await blackoutRes.json();
 
-      successCallback([...leaveData, ...blackoutData]);
+      const blackoutEvents = blackoutData.map((b) => ({
+        id: b.id,
+        title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
+        start: b.date,
+        allDay: true,
+        backgroundColor: "#FF0000",
+        borderColor: "#FF0000",
+        extendedProps: {
+          isBlackout: true,
+        },
+      }));
+
+      successCallback([...leaveData, ...blackoutEvents]);
     } catch (error) {
       console.error(error);
       toast.error("Error loading calendar data");
@@ -74,6 +86,26 @@ export default function CalendarPage() {
   const handleDateClick = (arg: any) => {
     setSelectedDate(arg.date);
     setBlockModalOpen(true);
+  };
+
+  const handleEventClick = async (clickInfo) => {
+    if (clickInfo.event.extendedProps.isBlackout) {
+      if (confirm("Delete this blackout day?")) {
+        try {
+          const res = await fetch("/api/blackout-days/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ blackoutDayId: clickInfo.event.id }),
+          });
+          if (!res.ok) throw new Error("Failed to delete blackout day");
+          toast.success("Blackout day deleted");
+          refreshCalendar();
+        } catch (error) {
+          console.error(error);
+          toast.error("Error deleting blackout day");
+        }
+      }
+    }
   };
 
   const refreshCalendar = () => {
@@ -108,6 +140,7 @@ export default function CalendarPage() {
               initialView="dayGridMonth"
               events={fetchCalendarEvents}
               dateClick={handleDateClick}
+              eventClick={handleEventClick}
               height="auto"
             />
           )}

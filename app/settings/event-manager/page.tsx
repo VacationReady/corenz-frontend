@@ -1,5 +1,3 @@
-// File: app/settings/event-manager/page.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,8 +27,10 @@ export default function EventManagerPage() {
     try {
       const res = await fetch("/api/event-categories");
       const data = await res.json();
-      if (data.success) {
+      if (Array.isArray(data)) {
         setCategories(data);
+      } else {
+        console.error("Unexpected API response:", data);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);

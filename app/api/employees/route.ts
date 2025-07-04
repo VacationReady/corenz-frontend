@@ -125,7 +125,7 @@ export async function POST(req: Request) {
     const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}`;
 
     await resend.emails.send({
-      from: "onboarding@corenz.io",
+      from: "onboarding@resend.dev",
       to: email,
       subject: "Activate Your CoreNZ Account",
       html: `

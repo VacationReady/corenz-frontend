@@ -50,7 +50,7 @@ export async function validateLeaveRequest({
     select: {
       noticePeriodDays: true,
       maxConcurrent: true,
-      maxBookingLength: true, // 🩶 added for max booking enforcement
+      maxBookingLength: true, // 🩶 for max booking enforcement
     },
   });
 
@@ -113,7 +113,7 @@ export async function validateLeaveRequest({
   }
 
   // ── MAX CONCURRENT CHECK ──────────────────────────
-  if (eventRule?.maxConcurrent !== null && !isAdmin) {
+  if (eventRule && eventRule.maxConcurrent !== null && !isAdmin) {
     const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
 
     for (const date of datesInRange) {
@@ -133,7 +133,7 @@ export async function validateLeaveRequest({
         },
       });
 
-      if (concurrentCount >= (eventRule.maxConcurrent ?? Infinity)) {
+      if (concurrentCount >= eventRule.maxConcurrent) {
         console.error(
           `❌ Max concurrent limit reached on ${date.toDateString()} (${concurrentCount}/${eventRule.maxConcurrent})`
         );

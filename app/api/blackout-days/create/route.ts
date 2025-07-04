@@ -10,9 +10,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
         }
 
+        // 🚩 Force blackout date to 00:01 UTC on the selected date to prevent previous day blocking
+        const blackoutDate = new Date(date);
+        blackoutDate.setUTCHours(0, 1, 0, 0); // 00:01 UTC
+
         const blackout = await prisma.blackoutDay.create({
             data: {
-                date: new Date(date),
+                date: blackoutDate,
                 allEvents: allEvents ?? false,
                 eventCategoryIds: eventCategoryIds ?? [],
                 companyId,

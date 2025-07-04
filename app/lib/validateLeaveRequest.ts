@@ -6,7 +6,7 @@ import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import dayjs from "dayjs";
 
 /**
- * Validates a leave request against entitlement, business rules, blackout days (BlackoutDay), and working pattern.
+ * Validates a leave request against entitlement, business rules, blackout days, working pattern, and concurrency.
  */
 export async function validateLeaveRequest({
   employeeId,
@@ -39,22 +39,25 @@ export async function validateLeaveRequest({
     throw new Error(`Invalid event category.`);
   }
 
-  // ── FETCH EVENT RULE FOR NOTICE PERIOD ───────────────
+  // ── FETCH EVENT RULE ──────────────────────────────
   const eventRule = await prisma.eventRule.findUnique({
-  where: {
-    companyId_eventCategoryId: {
-      companyId: "default-company-id",
-      eventCategoryId: eventCategoryId,
+    where: {
+      companyId_eventCategoryId: {
+        companyId: "default-company-id",
+        eventCategoryId: eventCategoryId,
+      },
     },
-  },
-  select: {
-    noticePeriodDays: true,
-  },
-});
+    select: {
+      noticePeriodDays: true,
+      maxConcurrent: true,
+      maxBookingLength: true, // 🩶 added for max booking enforcement
+    },
+  });
 
   const requiredNoticeDays = eventRule?.noticePeriodDays ?? 0;
 
   const leaveStart = dayjs(startDate).startOf("day");
+  const leaveEnd = dayjs(endDate).startOf("day");
   const today = dayjs().startOf("day");
   const daysNoticeGiven = leaveStart.diff(today, "day");
 
@@ -67,7 +70,20 @@ export async function validateLeaveRequest({
     );
   }
 
-  // ── BLACKOUT DAY CHECK USING BlackoutDay TABLE ────────────────
+  // ── MAX BOOKING LENGTH ENFORCEMENT ───────────────
+  const daysRequested = leaveEnd.diff(leaveStart, "day") + 1;
+  const maxBookingLength = eventRule?.maxBookingLength ?? 14;
+
+  if (daysRequested > maxBookingLength && !isAdmin) {
+    console.error(
+      `❌ Max booking length exceeded: requested ${daysRequested}, allowed ${maxBookingLength}`
+    );
+    throw new Error(
+      `You can only book up to ${maxBookingLength} days at a time for this leave type.`
+    );
+  }
+
+  // ── BLACKOUT DAY CHECK ────────────────────────────
   if (!isAdmin) {
     const blackoutDays = await prisma.blackoutDay.findMany({
       where: {
@@ -96,6 +112,39 @@ export async function validateLeaveRequest({
     }
   }
 
+  // ── MAX CONCURRENT CHECK ──────────────────────────
+  if (eventRule?.maxConcurrent !== null && !isAdmin) {
+    const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+
+    for (const date of datesInRange) {
+      const startOfDay = dayjs(date).startOf("day").toDate();
+      const endOfDay = dayjs(date).endOf("day").toDate();
+
+      const concurrentCount = await prisma.leaveRequest.count({
+        where: {
+          eventCategoryId,
+          status: { in: ["APPROVED", "PENDING"] },
+          OR: [
+            {
+              startDate: { lte: endOfDay },
+              endDate: { gte: startOfDay },
+            },
+          ],
+        },
+      });
+
+      if (concurrentCount >= (eventRule.maxConcurrent ?? Infinity)) {
+        console.error(
+          `❌ Max concurrent limit reached on ${date.toDateString()} (${concurrentCount}/${eventRule.maxConcurrent})`
+        );
+        throw new Error(
+          `The maximum number of employees off on ${date.toDateString()} for this leave type has been reached.`
+        );
+      }
+    }
+  }
+
+  // ── ENTITLEMENT CHECK ─────────────────────────────
   const entitlement = await prisma.leaveEntitlement.findFirst({
     where: {
       employeeId,
@@ -112,28 +161,27 @@ export async function validateLeaveRequest({
     );
   }
 
-  // Calculate days requested using working pattern
+  // ── CALCULATE DAYS REQUESTED ──────────────────────
   const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
-  let daysRequested = 0;
+  let daysRequestedForDeduction = 0;
 
   for (const date of datesInRange) {
     const deduction = await calculateLeaveDeduction(employeeId, date);
-    daysRequested += deduction;
+    daysRequestedForDeduction += deduction;
     console.log(`📅 ${date.toDateString()}: deduction = ${deduction}`);
   }
 
-  // ── Compute available days from totalDays and usedDays ──────────────
   const availableDays = entitlement.totalDays - entitlement.usedDays;
 
   console.log("🔍 Entitlement evaluation:", {
-    daysRequested,
+    daysRequestedForDeduction,
     availableDays,
   });
 
-  if (daysRequested > availableDays && !isAdmin) {
+  if (daysRequestedForDeduction > availableDays && !isAdmin) {
     console.error("❌ Insufficient entitlement, throwing error.");
     throw new Error(
-      `Insufficient entitlement: Requested ${daysRequested} days, but only ${availableDays} days available.`
+      `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${availableDays} days available.`
     );
   }
 

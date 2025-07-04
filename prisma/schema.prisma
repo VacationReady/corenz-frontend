@@ -188,6 +188,7 @@ model EventRule {
   maxConcurrent      Int?
     createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
+maxBookingLength Int?
 
   eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
 

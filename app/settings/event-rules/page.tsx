@@ -26,9 +26,7 @@ export default function EventRulesPage() {
   const [rules, setRules] = useState<Record<string, EventRule>>({});
   const [loading, setLoading] = useState(false);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedRuleForDelete, setSelectedRuleForDelete] = useState<EventRule | null>(null);
-
+ 
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -181,15 +179,6 @@ export default function EventRulesPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setSelectedRuleForDelete(rule);
-                        setDeleteModalOpen(true);
-                      }}
-                    >
-                      Manage Blackout Dates
-                    </Button>
-                    <Button
                       onClick={() => handleSave(rule)}
                       disabled={loading}
                     >
@@ -201,15 +190,6 @@ export default function EventRulesPage() {
             </Card>
           );
         })
-      )}
-      {selectedRuleForDelete && (
-        <DeleteBlackoutModal
-          open={deleteModalOpen}
-          setOpen={setDeleteModalOpen}
-          eventRuleId={selectedRuleForDelete.eventCategoryId}
-          blackoutDates={selectedRuleForDelete.blackoutDates}
-          refreshEvents={refreshRules}
-        />
       )}
     </div>
   );

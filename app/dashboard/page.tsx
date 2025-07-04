@@ -1,12 +1,19 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const [role, setRole] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Read role from data attribute injected by the layout
+    const roleAttr = document.querySelector("[data-role]")?.getAttribute("data-role");
+    setRole(roleAttr ?? null);
+  }, []);
 
   const handleRunCarryover = async () => {
     try {
@@ -26,11 +33,9 @@ export default function DashboardPage() {
     }
   };
 
-  if (status === "loading") {
+  if (!role) {
     return <p className="p-4">Loading...</p>;
   }
-
-  const role = session?.user?.role;
 
   if (role === "ADMIN") {
     return (
@@ -45,8 +50,10 @@ export default function DashboardPage() {
   }
 
   if (role === "MANAGER") {
-    redirect("/dashboard/manager");
+    router.replace("/dashboard/manager");
+    return null;
   } else {
-    redirect("/dashboard/employee");
+    router.replace("/dashboard/employee");
+    return null;
   }
 }

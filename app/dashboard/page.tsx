@@ -1,23 +1,12 @@
 "use client";
 
-import { getServerSession } from "next-auth";
-import type { NextAuthOptions } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
-  const [role, setRole] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      const session = await getServerSession(authOptions as NextAuthOptions);
-      setRole(session?.user?.role);
-    };
-    fetchSession();
-  }, []);
+  const { data: session, status } = useSession();
 
   const handleRunCarryover = async () => {
     try {
@@ -37,9 +26,11 @@ export default function DashboardPage() {
     }
   };
 
-  if (!role) {
+  if (status === "loading") {
     return <p className="p-4">Loading...</p>;
   }
+
+  const role = session?.user?.role;
 
   if (role === "ADMIN") {
     return (

@@ -13,6 +13,7 @@ export default function Button({
   size = "md",
   loading = false,
   disabled,
+  type = "button", // ✅ Ensures default type is "button", not "submit"
   ...props
 }: ButtonProps) {
   const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";

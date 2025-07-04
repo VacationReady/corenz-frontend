@@ -30,8 +30,8 @@ export async function POST(req: Request) {
     }
 
     const existing = await prisma.department.findFirst({
-  where: { name: name.trim() },
-});
+      where: { name: name.trim() },
+    });
 
     if (existing) {
       return NextResponse.json(
@@ -40,8 +40,22 @@ export async function POST(req: Request) {
       );
     }
 
+    // ✅ Dynamically fetch the first company for linking
+    const company = await prisma.company.findFirst();
+    if (!company) {
+      return NextResponse.json(
+        { error: "No company found. Please create a company first." },
+        { status: 400 }
+      );
+    }
+
     const department = await prisma.department.create({
-      data: { name: name.trim() },
+      data: {
+        name: name.trim(),
+        company: {
+          connect: { id: company.id },
+        },
+      },
     });
 
     return NextResponse.json(department);

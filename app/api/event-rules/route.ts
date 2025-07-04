@@ -29,6 +29,7 @@ export async function POST(req: Request) {
             enforceEntitlement,
             noticePeriodDays,
             maxConcurrent,
+            maxBookingLength, // ✅ added
         } = body;
 
         const rule = await prisma.eventRule.upsert({
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
                 enforceEntitlement,
                 noticePeriodDays,
                 maxConcurrent,
+                ...(maxBookingLength !== undefined && { maxBookingLength }), // ✅ update if provided
             },
             create: {
                 companyId,
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
                 enforceEntitlement,
                 noticePeriodDays,
                 maxConcurrent,
+                maxBookingLength: maxBookingLength ?? 14, // ✅ default to 14 if not provided
             },
         });
 

@@ -12,7 +12,7 @@ import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions as NextAuthOptions);
-  const role = session?.user?.role;
+  const role = session?.user?.role ?? "EMPLOYEE"; // fallback to EMPLOYEE
 
   let Sidebar: React.ReactElement | null = null;
 
@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     Sidebar = <AdminSidebar />;
   } else if (role === "MANAGER") {
     Sidebar = <ManagerSidebar />;
-  } else if (role === "EMPLOYEE") {
+  } else {
     Sidebar = <EmployeeSidebar />;
   }
 
@@ -28,7 +28,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <div className="flex min-h-screen bg-surface dark:bg-surface-dark text-gray-900 dark:text-gray-100 transition-colors">
       {Sidebar}
       <main className="flex-1 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto w-full">
-        {children}
+        {/* Pass role to children via context for clarity */}
+        <div data-role={role}>
+          {children}
+        </div>
       </main>
     </div>
   );

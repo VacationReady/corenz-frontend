@@ -14,26 +14,28 @@ export async function processCarryover() {
     const leaveYearEnd = dayjs(`${today.year() - 1}-12-31`);
 
     const entitlements = await prisma.leaveEntitlement.findMany({
-    where: {
-        eventCategory: {
-            eventRules: {
-                some: {
-                    maxCarryoverDays: { gt: 0 },
+        where: {
+            eventCategory: {
+                eventRules: {
+                    some: {
+                        maxCarryoverDays: { gt: 0 },
+                    },
                 },
             },
         },
-    },
-    include: {
-        employee: {
-            include: {
-                department: {
-                    select: { companyId: true },
+        include: {
+            employee: {
+                include: {
+                    department: {
+                        select: { companyId: true },
+                    },
                 },
             },
+            eventCategory: true,
         },
-        eventCategory: true,
-    },
-});
+    });
+
+    console.log(`🔍 Found ${entitlements.length} entitlements to process.`);
 
     for (const entitlement of entitlements) {
         try {
@@ -57,12 +59,29 @@ export async function processCarryover() {
             });
 
             if (!eventRule || !eventRule.maxCarryoverDays || eventRule.maxCarryoverDays === 0) {
-                console.log(`⏩ Skipping ${entitlement.id} - No carryover allowed.`);
+                console.log(`⏩ Skipping ${entitlement.id} - No carryover allowed or no event rule found.`);
                 continue;
             }
 
             const remainingDays = entitlement.totalDays - entitlement.usedDays;
             const carryoverDays = Math.min(remainingDays, eventRule.maxCarryoverDays);
+
+            console.log({
+                entitlementId: entitlement.id,
+                employeeId: entitlement.employeeId,
+                companyId: companyId,
+                eventCategoryId: entitlement.eventCategoryId,
+                maxCarryoverDays: eventRule.maxCarryoverDays,
+                remainingDays: remainingDays,
+                calculatedCarryoverDays: carryoverDays,
+                previousTotalDays: entitlement.totalDays,
+                usedDays: entitlement.usedDays,
+            });
+
+            if (carryoverDays <= 0) {
+                console.log(`⏩ Skipping ${entitlement.id} - No remaining days to carry over.`);
+                continue;
+            }
 
             let carryoverExpiry: Date | null = null;
             if (eventRule.carryoverExpiryMonths) {
@@ -80,7 +99,9 @@ export async function processCarryover() {
             });
 
             console.log(
-                `✅ Processed ${entitlement.id}: +${carryoverDays} carryover, expires ${carryoverExpiry ?? "never"}.`
+                `✅ Processed ${entitlement.id}: +${carryoverDays} carryover, new total: ${
+                    entitlement.totalDays + carryoverDays
+                }, expires ${carryoverExpiry ?? "never"}.`
             );
         } catch (error) {
             console.error(`❌ Error on entitlement ${entitlement.id}:`, error);

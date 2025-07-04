@@ -120,29 +120,43 @@ model LeaveRequest {
 }
 
 model LeaveEntitlement {
-  id                String        @id @default(cuid())
-  employeeId        String
-  createdAt         DateTime      @default(now())
-  totalDays         Float
-  updatedAt         DateTime      @updatedAt
-  usedDays          Float
-  daysAllocated     Float         @default(0)
-  eventCategoryId   String
+  id              String   @id @default(cuid())
+  employeeId      String
+  createdAt       DateTime @default(now())
+  totalDays       Float
+  updatedAt       DateTime @updatedAt
+  usedDays        Float
+  daysAllocated   Float    @default(0)
+  eventCategoryId String
 
-  carryoverDays     Float         @default(0)         // ✅ NEW: stores carried over days
-  carryoverExpiry   DateTime?                         // ✅ NEW: when carryover expires, optional
+  carryoverDays   Float     @default(0) // ✅ NEW: stores carried over days
+  carryoverExpiry DateTime? // ✅ NEW: when carryover expires, optional
 
-  employee          Employee      @relation(fields: [employeeId], references: [id])
-  eventCategory     EventCategory @relation(fields: [eventCategoryId], references: [id])
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([employeeId, eventCategoryId])
 }
 
 model Department {
-  id        String     @id @default(cuid())
-  name      String     @unique
+  id   String @id @default(cuid())
+  name String
+
+  companyId String
+company   Company @relation(fields: [companyId], references: [id])
+
   employees Employee[]
   users     User[]
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  departments Department[]
+  // Optionally, add settings or billing references here in the future
 }
 
 model JobRole {
@@ -184,18 +198,18 @@ model WorkingPatternWeek {
 }
 
 model EventRule {
-  id                    String     @id @default(cuid())
+  id                    String  @id @default(cuid())
   companyId             String
   eventCategoryId       String
-  enforceEntitlement    Boolean    @default(true)
-  noticePeriodDays      Int        @default(0)
+  enforceEntitlement    Boolean @default(true)
+  noticePeriodDays      Int     @default(0)
   maxConcurrent         Int?
   maxBookingLength      Int?
-  maxCarryoverDays      Int?        // ✅ max days to carry over; null disables carryover
-  carryoverExpiryMonths Int?        // ✅ null disables expiry; if set, carryover expires X months after leave year end
+  maxCarryoverDays      Int? // ✅ max days to carry over; null disables carryover
+  carryoverExpiryMonths Int? // ✅ null disables expiry; if set, carryover expires X months after leave year end
 
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
 
@@ -203,13 +217,13 @@ model EventRule {
 }
 
 model BlackoutDay {
-  id              String      @id @default(cuid())
-  date            DateTime
-  companyId       String
-  allEvents       Boolean     @default(false)
-  eventCategoryIds String[]   // stores IDs of categories this blackout applies to (empty if allEvents=true)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id               String   @id @default(cuid())
+  date             DateTime
+  companyId        String
+  allEvents        Boolean  @default(false)
+  eventCategoryIds String[] // stores IDs of categories this blackout applies to (empty if allEvents=true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 enum Role {

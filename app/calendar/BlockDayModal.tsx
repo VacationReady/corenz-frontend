@@ -52,14 +52,15 @@ export default function BlockDayModal({
     const handleSubmit = async () => {
         try {
             setLoading(true);
-            const categoryIds = blockAll ? categories.map((c) => c.id) : selected;
-            const res = await fetch("/api/event-rules/blackout", {
+            const eventCategoryIds = blockAll ? [] : selected;
+            const res = await fetch("/api/blackout-days/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     date: selectedDate,
-                    categoryIds,
-                    note,
+                    allEvents: blockAll,
+                    eventCategoryIds,
+                    companyId: "default-company-id",
                 }),
             });
             if (!res.ok) throw new Error("Failed to block day.");

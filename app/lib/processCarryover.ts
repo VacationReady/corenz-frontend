@@ -14,24 +14,26 @@ export async function processCarryover() {
     const leaveYearEnd = dayjs(`${today.year() - 1}-12-31`);
 
     const entitlements = await prisma.leaveEntitlement.findMany({
-        where: {
-            eventCategory: {
-                eventRules: {
-                    some: {
-                        maxCarryoverDays: { gt: 0 },
-                    },
+    where: {
+        eventCategory: {
+            eventRules: {
+                some: {
+                    maxCarryoverDays: { gt: 0 },
                 },
             },
         },
-        include: {
-            employee: {
-                include: {
-                    department: true, // department now has companyId
+    },
+    include: {
+        employee: {
+            include: {
+                department: {
+                    select: { companyId: true },
                 },
             },
-            eventCategory: true,
         },
-    });
+        eventCategory: true,
+    },
+});
 
     for (const entitlement of entitlements) {
         try {

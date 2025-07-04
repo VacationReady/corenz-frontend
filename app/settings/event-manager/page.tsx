@@ -25,7 +25,7 @@ export default function EventManagerPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/event-categories");
+      const res = await fetch("/api/event-categories", { cache: "no-store" });
       const data = await res.json();
       if (Array.isArray(data)) {
         setCategories(data);

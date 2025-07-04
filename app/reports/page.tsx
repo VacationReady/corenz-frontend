@@ -2,11 +2,16 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import Button from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import Checkbox from "@/components/ui/Checkbox";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
-// ✅ Real fields extracted from your schema
+// Field arrays (real schema fields)
 const USER_FIELDS = [
   { label: "Email", value: "user.email" },
   { label: "Role", value: "user.role" },
@@ -65,25 +70,31 @@ export default function ReportsPage() {
 
   const handleNext = () => {
     console.log("Selected fields:", selectedFields);
-    // Future: Route to /reports/preview or context state
+    // TODO: Route to /reports/preview or use context
   };
 
-  const renderFieldGroup = (title: string, fields: { label: string; value: string }[]) => (
-    <Card className="p-4 mb-4">
-      <h2 className="font-semibold mb-2">{title}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-        {fields.map((field) => (
-          <label key={field.value} className="flex items-center gap-2">
-            <Checkbox
-              id={field.value}
-              checked={selectedFields.includes(field.value)}
-              onCheckedChange={() => handleFieldToggle(field.value)}
-            />
-            <span>{field.label}</span>
-          </label>
-        ))}
-      </div>
-    </Card>
+  const renderFieldGroup = (
+    id: string,
+    title: string,
+    fields: { label: string; value: string }[]
+  ) => (
+    <AccordionItem value={id}>
+      <AccordionTrigger>{title}</AccordionTrigger>
+      <AccordionContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2">
+          {fields.map((field) => (
+            <label key={field.value} className="flex items-center gap-2">
+              <Checkbox
+                id={field.value}
+                checked={selectedFields.includes(field.value)}
+                onCheckedChange={() => handleFieldToggle(field.value)}
+              />
+              <span>{field.label}</span>
+            </label>
+          ))}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
   );
 
   return (
@@ -91,14 +102,20 @@ export default function ReportsPage() {
       <h1 className="text-2xl font-bold mb-6">Build a Custom Report</h1>
       <p className="mb-4">Select the fields you would like to include in your report:</p>
 
-      {renderFieldGroup("User Fields", USER_FIELDS)}
-      {renderFieldGroup("Employee Fields", EMPLOYEE_FIELDS)}
-      {renderFieldGroup("Department Fields", DEPARTMENT_FIELDS)}
-      {renderFieldGroup("Job Role Fields", JOBROLE_FIELDS)}
-      {renderFieldGroup("Leave Request Fields", LEAVE_REQUEST_FIELDS)}
-      {renderFieldGroup("Leave Entitlement Fields", LEAVE_ENTITLEMENT_FIELDS)}
+      <Accordion type="multiple" collapsible className="w-full space-y-2">
+        {renderFieldGroup("user", "User Fields", USER_FIELDS)}
+        {renderFieldGroup("employee", "Employee Fields", EMPLOYEE_FIELDS)}
+        {renderFieldGroup("department", "Department Fields", DEPARTMENT_FIELDS)}
+        {renderFieldGroup("jobrole", "Job Role Fields", JOBROLE_FIELDS)}
+        {renderFieldGroup("leaverequest", "Leave Request Fields", LEAVE_REQUEST_FIELDS)}
+        {renderFieldGroup("leaveentitlement", "Leave Entitlement Fields", LEAVE_ENTITLEMENT_FIELDS)}
+      </Accordion>
 
-      <Button onClick={handleNext} disabled={selectedFields.length === 0}>
+      <Button
+        onClick={handleNext}
+        disabled={selectedFields.length === 0}
+        className="mt-4"
+      >
         Next: Preview Report
       </Button>
     </main>

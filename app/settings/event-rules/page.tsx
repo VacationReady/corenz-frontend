@@ -18,7 +18,9 @@ interface EventRule {
   enforceEntitlement: boolean;
   noticePeriodDays: number;
   maxConcurrent: number | null;
-  maxBookingLength?: number | null; // ✅ added
+  maxBookingLength?: number | null;
+  maxCarryoverDays?: number | null;   // ✅ NEW
+  carryoverExpiry?: string | null;    // ✅ NEW, ISO string for date
   blackoutDates: string[];
 }
 
@@ -48,9 +50,11 @@ export default function EventRulesPage() {
             eventCategoryId: cat.id,
             eventCategory: cat,
             enforceEntitlement: true,
-            noticePeriodDays: 2, // Default to 2
+            noticePeriodDays: 2,
             maxConcurrent: null,
-            maxBookingLength: 14, // ✅ default to 14 if creating new
+            maxBookingLength: 14,
+            maxCarryoverDays: null,     // ✅ default null (no carryover)
+            carryoverExpiry: null,      // ✅ default null
             blackoutDates: [],
           };
           openState[cat.id] = false;
@@ -94,7 +98,9 @@ export default function EventRulesPage() {
           enforceEntitlement: rule.enforceEntitlement,
           noticePeriodDays: rule.noticePeriodDays,
           maxConcurrent: rule.maxConcurrent,
-          maxBookingLength: rule.maxBookingLength ?? 14, // ✅ ensure sent
+          maxBookingLength: rule.maxBookingLength ?? 14,
+          maxCarryoverDays: rule.maxCarryoverDays ?? null, // ✅ send if set
+          carryoverExpiry: rule.carryoverExpiry ?? null,   // ✅ send if set
           blackoutDates: rule.blackoutDates,
         }),
       });
@@ -194,7 +200,7 @@ export default function EventRulesPage() {
                     </label>
                     <Input
                       type="number"
-                      value={rule.maxBookingLength ?? 14} // ✅ show 14 if undefined
+                      value={rule.maxBookingLength ?? 14}
                       onChange={(e) =>
                         setRules((prev) => ({
                           ...prev,
@@ -209,6 +215,58 @@ export default function EventRulesPage() {
                       }
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Max Carryover Days
+                    </label>
+                    <Input
+                      type="number"
+                      value={rule.maxCarryoverDays ?? ""}
+                      onChange={(e) =>
+                        setRules((prev) => ({
+                          ...prev,
+                          [cat.id]: {
+                            ...rule,
+                            maxCarryoverDays:
+                              e.target.value === ""
+                                ? null
+                                : parseInt(e.target.value),
+                            // If clearing, also clear expiry
+                            carryoverExpiry:
+                              e.target.value === "" ? null : rule.carryoverExpiry,
+                          },
+                        }))
+                      }
+                      placeholder="Leave blank to disable carryover"
+                    />
+                  </div>
+                  {rule.maxCarryoverDays !== null && (
+                    <div>
+                      <label className="block text-sm font-medium">
+                        Carryover Expiry Date
+                      </label>
+                      <Input
+                        type="date"
+                        value={
+                          rule.carryoverExpiry
+                            ? rule.carryoverExpiry.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setRules((prev) => ({
+                            ...prev,
+                            [cat.id]: {
+                              ...rule,
+                              carryoverExpiry:
+                                e.target.value === ""
+                                  ? null
+                                  : new Date(e.target.value).toISOString(),
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button onClick={() => handleSave(rule)} disabled={loading}>
                       {loading ? "Saving..." : "Save Rule"}

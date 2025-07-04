@@ -2,9 +2,9 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Checkbox } from "@/components/ui/Checkbox";
+import Checkbox from "@/components/ui/Checkbox";
 
 const EMPLOYEE_FIELDS = [
   { label: "Name", value: "employee.name" },

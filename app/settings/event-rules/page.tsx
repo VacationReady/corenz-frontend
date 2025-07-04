@@ -19,8 +19,8 @@ interface EventRule {
   noticePeriodDays: number;
   maxConcurrent: number | null;
   maxBookingLength?: number | null;
-  maxCarryoverDays?: number | null;   // ✅ NEW
-  carryoverExpiry?: string | null;    // ✅ NEW, ISO string for date
+  maxCarryoverDays?: number | null;
+  carryoverExpiryMonths?: number | null; // ✅ NEW
   blackoutDates: string[];
 }
 
@@ -53,8 +53,8 @@ export default function EventRulesPage() {
             noticePeriodDays: 2,
             maxConcurrent: null,
             maxBookingLength: 14,
-            maxCarryoverDays: null,     // ✅ default null (no carryover)
-            carryoverExpiry: null,      // ✅ default null
+            maxCarryoverDays: null,
+            carryoverExpiryMonths: null, // ✅ default null
             blackoutDates: [],
           };
           openState[cat.id] = false;
@@ -99,8 +99,8 @@ export default function EventRulesPage() {
           noticePeriodDays: rule.noticePeriodDays,
           maxConcurrent: rule.maxConcurrent,
           maxBookingLength: rule.maxBookingLength ?? 14,
-          maxCarryoverDays: rule.maxCarryoverDays ?? null, // ✅ send if set
-          carryoverExpiry: rule.carryoverExpiry ?? null,   // ✅ send if set
+          maxCarryoverDays: rule.maxCarryoverDays ?? null,
+          carryoverExpiryMonths: rule.carryoverExpiryMonths ?? null, // ✅ new
           blackoutDates: rule.blackoutDates,
         }),
       });
@@ -231,9 +231,8 @@ export default function EventRulesPage() {
                               e.target.value === ""
                                 ? null
                                 : parseInt(e.target.value),
-                            // If clearing, also clear expiry
-                            carryoverExpiry:
-                              e.target.value === "" ? null : rule.carryoverExpiry,
+                            carryoverExpiryMonths:
+                              e.target.value === "" ? null : rule.carryoverExpiryMonths,
                           },
                         }))
                       }
@@ -243,27 +242,24 @@ export default function EventRulesPage() {
                   {rule.maxCarryoverDays !== null && (
                     <div>
                       <label className="block text-sm font-medium">
-                        Carryover Expiry Date
+                        Carryover Expiry (months after refresh)
                       </label>
                       <Input
-                        type="date"
-                        value={
-                          rule.carryoverExpiry
-                            ? rule.carryoverExpiry.split("T")[0]
-                            : ""
-                        }
+                        type="number"
+                        value={rule.carryoverExpiryMonths ?? ""}
                         onChange={(e) =>
                           setRules((prev) => ({
                             ...prev,
                             [cat.id]: {
                               ...rule,
-                              carryoverExpiry:
+                              carryoverExpiryMonths:
                                 e.target.value === ""
                                   ? null
-                                  : new Date(e.target.value).toISOString(),
+                                  : parseInt(e.target.value),
                             },
                           }))
                         }
+                        placeholder="Leave blank for no expiry"
                       />
                     </div>
                   )}

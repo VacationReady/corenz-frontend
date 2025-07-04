@@ -112,53 +112,7 @@ export async function validateLeaveRequest({
     }
   }
 
-  // ── MAX CONCURRENT CHECK (Department-Based) ───────
-  if (eventRule && eventRule.maxConcurrent !== null && !isAdmin) {
-    // Fetch requesting employee's departmentId
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { departmentId: true },
-    });
-
-    if (!employee || !employee.departmentId) {
-      console.error("❌ Employee department not found, cannot enforce concurrency.");
-      throw new Error("Employee department information is required for leave validation.");
-    }
-
-    const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
-
-    for (const date of datesInRange) {
-      const startOfDay = dayjs(date).startOf("day").toDate();
-      const endOfDay = dayjs(date).endOf("day").toDate();
-
-      const concurrentCount = await prisma.leaveRequest.count({
-        where: {
-          eventCategoryId,
-          approvalStatus: { in: ["APPROVED", "PENDING"] },
-          employee: {
-            departmentId: employee.departmentId,
-          },
-          OR: [
-            {
-              startDate: { lte: endOfDay },
-              endDate: { gte: startOfDay },
-            },
-          ],
-        },
-      });
-
-      if (concurrentCount >= eventRule.maxConcurrent) {
-        console.error(
-          `❌ Max concurrent limit reached for department on ${date.toDateString()} (${concurrentCount}/${eventRule.maxConcurrent})`
-        );
-        throw new Error(
-          `The maximum number of employees off in your department on ${date.toDateString()} for this leave type has been reached.`
-        );
-      }
-    }
-  }
-
-  // ── ENTITLEMENT CHECK ─────────────────────────────
+  // ── ENTITLEMENT & CARRYOVER LOGIC ────────────────
   const entitlement = await prisma.leaveEntitlement.findFirst({
     where: {
       employeeId,
@@ -166,7 +120,7 @@ export async function validateLeaveRequest({
     },
   });
 
-  console.log("🔍 Entitlement record fetched:", entitlement);
+  console.log("🔍 Entitlement fetched:", entitlement);
 
   if (!entitlement) {
     console.error("❌ No entitlement found for employee, throwing.");
@@ -175,27 +129,30 @@ export async function validateLeaveRequest({
     );
   }
 
-  // ── CALCULATE DAYS REQUESTED ──────────────────────
   const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
   let daysRequestedForDeduction = 0;
 
   for (const date of datesInRange) {
     const deduction = await calculateLeaveDeduction(employeeId, date);
     daysRequestedForDeduction += deduction;
-    console.log(`📅 ${date.toDateString()}: deduction = ${deduction}`);
   }
 
-  const availableDays = entitlement.totalDays - entitlement.usedDays;
+  const availableCarryover = entitlement.carryoverDays ?? 0;
+  const availableEntitlement = entitlement.totalDays - entitlement.usedDays;
 
-  console.log("🔍 Entitlement evaluation:", {
+  const combinedAvailable = availableCarryover + availableEntitlement;
+
+  console.log("📊 Leave deduction check:", {
     daysRequestedForDeduction,
-    availableDays,
+    availableCarryover,
+    availableEntitlement,
+    combinedAvailable,
   });
 
-  if (daysRequestedForDeduction > availableDays && !isAdmin) {
-    console.error("❌ Insufficient entitlement, throwing error.");
+  if (daysRequestedForDeduction > combinedAvailable && !isAdmin) {
+    console.error("❌ Insufficient entitlement including carryover.");
     throw new Error(
-      `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${availableDays} days available.`
+      `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${combinedAvailable} days available (including carryover).`
     );
   }
 

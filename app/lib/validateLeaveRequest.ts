@@ -123,7 +123,7 @@ export async function validateLeaveRequest({
       const concurrentCount = await prisma.leaveRequest.count({
         where: {
           eventCategoryId,
-          status: { in: ["APPROVED", "PENDING"] },
+          approvalStatus: { in: ["APPROVED", "PENDING"] },
           OR: [
             {
               startDate: { lte: endOfDay },

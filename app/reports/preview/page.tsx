@@ -68,29 +68,30 @@ export default function ReportsPreviewPage() {
   }
 
   // ✅ Filter out object-only keys to avoid React [object Object] errors
-  const dataKeys =
-    data.length > 0
-      ? Object.keys(data[0]).filter(
-          (key) => typeof data[0][key] !== "object" || data[0][key] === null
-        )
-      : [];
+  const dataKeys = data.length > 0 ? Object.keys(data[0]) : [];
 
-  const columns = dataKeys.map((key) => {
-    if (key.includes(".")) {
-      const [parent, child] = key.split(".");
-      return {
-        header: key,
-        accessorFn: (row) => row[parent]?.[child] ?? "",
-        cell: (info) => info.getValue(),
-      };
-    } else {
-      return {
-        header: key,
-        accessorFn: (row) => row[key] ?? "",
-        cell: (info) => info.getValue(),
-      };
-    }
-  });
+const columns = dataKeys.map((key) => {
+  if (key.includes(".")) {
+    const [parent, child] = key.split(".");
+    return {
+      header: key,
+      accessorFn: (row) => row[parent]?.[child] ?? "",
+      cell: (info) => info.getValue(),
+    };
+  } else if (typeof data[0][key] === "object" && data[0][key] !== null) {
+    return {
+      header: key,
+      accessorFn: (row) => JSON.stringify(row[key] ?? ""),
+      cell: (info) => info.getValue(),
+    };
+  } else {
+    return {
+      header: key,
+      accessorFn: (row) => row[key] ?? "",
+      cell: (info) => info.getValue(),
+    };
+  }
+});
 
   return (
     <main className="p-6">

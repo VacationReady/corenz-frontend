@@ -67,10 +67,20 @@ export default function ReportsPreviewPage() {
 
   const dataKeys = data.length > 0 ? Object.keys(data[0]) : [];
 
-const columns = dataKeys.map((key) => ({
-  accessorKey: key,
-  header: key,
-}));
+const columns = dataKeys.map((key) => {
+  if (key.includes(".")) {
+    const [parent, child] = key.split(".");
+    return {
+      header: key,
+      accessorFn: (row) => row[parent]?.[child],
+    };
+  } else {
+    return {
+      header: key,
+      accessorKey: key,
+    };
+  }
+});
 
   return (
     <main className="p-6">

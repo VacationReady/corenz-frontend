@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 
 export default function ReportsPreviewPage() {
   const searchParams = useSearchParams();
-  const fieldsParam = searchParams.get("fields");
+  const fieldsParam = searchParams?.get("fields");
   const selectedFields = fieldsParam ? fieldsParam.split(",") : [];
 
   const [data, setData] = useState<any[]>([]);

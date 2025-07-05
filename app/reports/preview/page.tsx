@@ -72,12 +72,14 @@ const columns = dataKeys.map((key) => {
     const [parent, child] = key.split(".");
     return {
       header: key,
-      accessorFn: (row) => row[parent]?.[child],
+      accessorFn: (row) => row[parent]?.[child] ?? "",
+      cell: (info) => info.getValue(),
     };
   } else {
     return {
       header: key,
-      accessorKey: key,
+      accessorFn: (row) => row[key] ?? "",
+      cell: (info) => info.getValue(),
     };
   }
 });

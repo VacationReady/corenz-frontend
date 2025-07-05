@@ -84,6 +84,8 @@ export async function GET(req: Request) {
       return flatItem;
     });
 
+console.log("Returned data:", JSON.stringify(flattened, null, 2));
+
     return NextResponse.json(flattened);
   } catch (error) {
     console.error("Error generating report:", error);

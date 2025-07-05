@@ -39,6 +39,7 @@
     "next": "13.4.0",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
+    "papaparse": "^5.5.3",
     "react": "18.2.0",
     "react-calendar": "^6.0.0",
     "react-countup": "^6.5.3",

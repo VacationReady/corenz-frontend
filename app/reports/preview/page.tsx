@@ -18,12 +18,25 @@ function downloadCSV(data: any[], columns: any[]) {
   const csvData = data.map((row) => {
     const obj: Record<string, any> = {};
     fields.forEach((field, idx) => {
+      let value;
       if (field.includes(".")) {
         const [parent, child] = field.split(".");
-        obj[headers[idx]] = row[parent]?.[child] ?? "";
+        value = row[parent]?.[child] ?? "";
       } else {
-        obj[headers[idx]] = row[field] ?? "";
+        const cellValue = row[field];
+        if (typeof cellValue === "object" && cellValue !== null) {
+          if (cellValue?.name) {
+            value = cellValue.name;
+          } else if (cellValue?.id) {
+            value = cellValue.id;
+          } else {
+            value = JSON.stringify(cellValue);
+          }
+        } else {
+          value = cellValue ?? "";
+        }
       }
+      obj[headers[idx]] = value;
     });
     return obj;
   });

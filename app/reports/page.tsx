@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import Checkbox from "@/components/ui/Checkbox";
 import {
   Accordion,

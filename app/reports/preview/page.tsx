@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/Button";
+import Button from "@/components/ui/Button";
 
 export default function ReportsPreviewPage() {
   const searchParams = useSearchParams();

@@ -33,12 +33,14 @@ export default function ReportsPreviewPage() {
     };
 
     fetchData();
-  }, [fieldsParam]); // ✅ Only re-fetch when fieldsParam changes
+  }, [fieldsParam]); // ✅ Stable, prevents infinite loops
 
   if (!selectedFields.length) {
     return (
       <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">No fields selected. Please go back and select fields for your report.</p>
+        <p className="text-lg">
+          No fields selected. Please go back and select fields for your report.
+        </p>
         <Button className="mt-4" onClick={() => window.history.back()}>
           Go Back
         </Button>
@@ -65,29 +67,37 @@ export default function ReportsPreviewPage() {
     );
   }
 
-  const dataKeys = data.length > 0 ? Object.keys(data[0]) : [];
+  // ✅ Filter out object-only keys to avoid React [object Object] errors
+  const dataKeys =
+    data.length > 0
+      ? Object.keys(data[0]).filter(
+          (key) => typeof data[0][key] !== "object" || data[0][key] === null
+        )
+      : [];
 
-const columns = dataKeys.map((key) => {
-  if (key.includes(".")) {
-    const [parent, child] = key.split(".");
-    return {
-      header: key,
-      accessorFn: (row) => row[parent]?.[child] ?? "",
-      cell: (info) => info.getValue(),
-    };
-  } else {
-    return {
-      header: key,
-      accessorFn: (row) => row[key] ?? "",
-      cell: (info) => info.getValue(),
-    };
-  }
-});
+  const columns = dataKeys.map((key) => {
+    if (key.includes(".")) {
+      const [parent, child] = key.split(".");
+      return {
+        header: key,
+        accessorFn: (row) => row[parent]?.[child] ?? "",
+        cell: (info) => info.getValue(),
+      };
+    } else {
+      return {
+        header: key,
+        accessorFn: (row) => row[key] ?? "",
+        cell: (info) => info.getValue(),
+      };
+    }
+  });
 
   return (
     <main className="p-6">
       <h1 className="text-2xl font-bold mb-4">Report Preview</h1>
-      <p className="mb-4">Your custom report is displayed below. You can sort and filter as needed.</p>
+      <p className="mb-4">
+        Your custom report is displayed below. You can sort and filter as needed.
+      </p>
       <DataTable columns={columns} data={data} />
     </main>
   );

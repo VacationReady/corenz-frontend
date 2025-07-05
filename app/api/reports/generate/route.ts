@@ -72,14 +72,18 @@ export async function GET(req: Request) {
       const flatItem: Record<string, any> = {};
 
       for (const [key, value] of Object.entries(item)) {
-        if (typeof value === "object" && value !== null) {
-          for (const [subKey, subValue] of Object.entries(value)) {
-            flatItem[`${key}.${subKey}`] = subValue;
-          }
-        } else {
-          flatItem[key] = value;
+    if (typeof value === "object" && value !== null) {
+        for (const [subKey, subValue] of Object.entries(value)) {
+            if (!flatItem[key]) {
+                flatItem[key] = {};
+            }
+            flatItem[key][subKey] = subValue;
         }
-      }
+    } else {
+        flatItem[key] = value;
+    }
+}
+
 
       return flatItem;
     });

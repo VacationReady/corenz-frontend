@@ -31,9 +31,10 @@ model User {
   jobRole                                      JobRole?         @relation(fields: [jobRoleId], references: [id])
   manager                                      User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
   subordinates                                 User[]           @relation("ManagerSubordinates")
-company   Company? @relation(fields: [companyId], references: [id])
-companyId String?
+  company                                      Company?         @relation(fields: [companyId], references: [id])
+  companyId                                    String?
 
+  SavedReport SavedReport[]
 }
 
 model ActivationToken {
@@ -143,7 +144,7 @@ model LeaveEntitlement {
 
 model Department {
   id        String     @id @default(cuid())
-  name      String     @unique   // ✅ ADD THIS
+  name      String     @unique // ✅ ADD THIS
   companyId String
   company   Company    @relation(fields: [companyId], references: [id])
   employees Employee[]
@@ -151,12 +152,13 @@ model Department {
 }
 
 model Company {
-  id          String      @id @default(cuid())
-  name        String      @unique   // ✅ ADD THIS
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id          String        @id @default(cuid())
+  name        String        @unique // ✅ ADD THIS
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   departments Department[]
   users       User[]
+  SavedReport SavedReport[]
 }
 
 model JobRole {
@@ -228,12 +230,24 @@ model BlackoutDay {
 
 model FieldMetadata {
   id           String   @id @default(cuid())
-  model        String   // e.g., "user", "employee"
-  field        String   // e.g., "email", "isActive"
-  label        String   // e.g., "Email", "Is Active"
-  fieldType    String   // e.g., "string", "boolean", "date"
+  model        String // e.g., "user", "employee"
+  field        String // e.g., "email", "isActive"
+  label        String // e.g., "Email", "Is Active"
+  fieldType    String // e.g., "string", "boolean", "date"
   isReportable Boolean  @default(true)
   createdAt    DateTime @default(now())
+}
+
+model SavedReport {
+  id          String   @id @default(cuid())
+  name        String
+  fields      Json
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdById String
+  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 enum Role {

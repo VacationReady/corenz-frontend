@@ -12,23 +12,25 @@ export async function GET(req: Request) {
 
     const fields = fieldsParam.split(",").map(f => f.trim()).filter(Boolean);
 
-    // Group fields by table
+    // Group fields by model
     const fieldGroups: Record<string, string[]> = {};
     for (const field of fields) {
-      const [table, column] = field.split(".");
-      if (!fieldGroups[table]) fieldGroups[table] = [];
-      fieldGroups[table].push(column);
+      const [model, column] = field.split(".");
+      if (!fieldGroups[model]) fieldGroups[model] = [];
+      fieldGroups[model].push(column);
     }
 
-    // Build Prisma `select` object dynamically
+    // Build Prisma `select` object correctly:
     const select: any = {};
 
+    // User fields (top-level)
     if (fieldGroups["user"]) {
-      select.user = { select: {} };
       fieldGroups["user"].forEach(col => {
-        select.user.select[col] = true;
+        select[col] = true;
       });
     }
+
+    // Related models
     if (fieldGroups["employee"]) {
       select.employee = { select: {} };
       fieldGroups["employee"].forEach(col => {
@@ -48,9 +50,9 @@ export async function GET(req: Request) {
       });
     }
     if (fieldGroups["leaverequest"]) {
-      select.leaveRequests = { select: {} };
+      select.leaveRequestsRequested = { select: {} };
       fieldGroups["leaverequest"].forEach(col => {
-        select.leaveRequests.select[col] = true;
+        select.leaveRequestsRequested.select[col] = true;
       });
     }
     if (fieldGroups["leaveentitlement"]) {
@@ -60,27 +62,25 @@ export async function GET(req: Request) {
       });
     }
 
-    // Query users as base, adjust as needed per your structure
     const data = await prisma.user.findMany({
       select,
-      take: 100, // Limit for safety; adjust or paginate later
+      take: 100,
     });
 
-    // Flatten nested objects for DataTable consumption
+    // Flatten nested structures for DataTable
     const flattened = data.map((item) => {
       const flatItem: Record<string, any> = {};
-      for (const [table, columns] of Object.entries(fieldGroups)) {
-        const tableData = (item as any)[table];
-        if (Array.isArray(tableData)) {
-          flatItem[table] = JSON.stringify(tableData); // If relation returns many, stringify
-        } else if (typeof tableData === "object" && tableData !== null) {
-          for (const col of columns) {
-            flatItem[`${table}.${col}`] = tableData[col] ?? "";
+
+      for (const [key, value] of Object.entries(item)) {
+        if (typeof value === "object" && value !== null) {
+          for (const [subKey, subValue] of Object.entries(value)) {
+            flatItem[`${key}.${subKey}`] = subValue;
           }
         } else {
-          flatItem[`${table}`] = tableData ?? "";
+          flatItem[key] = value;
         }
       }
+
       return flatItem;
     });
 

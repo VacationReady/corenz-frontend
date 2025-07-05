@@ -12,17 +12,16 @@ export default function ReportsPreviewPage() {
   const selectedFields = fieldsParam ? fieldsParam.split(",") : [];
 
   const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedFields.length) return;
+    if (!fieldsParam) return;
 
     const fetchData = async () => {
+      setLoading(true);
       try {
         const res = await fetch(
-          `/api/reports/generate?fields=${encodeURIComponent(
-            selectedFields.join(",")
-          )}`
+          `/api/reports/generate?fields=${encodeURIComponent(fieldsParam)}`
         );
         const json = await res.json();
         setData(json);
@@ -34,7 +33,7 @@ export default function ReportsPreviewPage() {
     };
 
     fetchData();
-  }, [selectedFields]);
+  }, [fieldsParam]); // ✅ Only re-fetch when fieldsParam changes
 
   if (!selectedFields.length) {
     return (
@@ -51,6 +50,17 @@ export default function ReportsPreviewPage() {
     return (
       <main className="flex flex-col items-center justify-center p-10">
         <p className="text-lg">Loading report data...</p>
+      </main>
+    );
+  }
+
+  if (!loading && data.length === 0) {
+    return (
+      <main className="flex flex-col items-center justify-center p-10">
+        <p className="text-lg">No data found for the selected fields.</p>
+        <Button className="mt-4" onClick={() => window.history.back()}>
+          Go Back
+        </Button>
       </main>
     );
   }

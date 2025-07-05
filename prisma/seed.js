@@ -80,6 +80,40 @@ async function main() {
     console.log(`✅ EventRule created for ${category.name} (${eventRule.id})`);
   }
 
+  // ✅ 5. Seed FieldMetadata for dynamic report builder
+  await prisma.fieldMetadata.createMany({
+    data: [
+      // User fields
+      { model: "user", field: "email", label: "Email", fieldType: "string" },
+      { model: "user", field: "role", label: "Role", fieldType: "string" },
+      { model: "user", field: "firstName", label: "First Name", fieldType: "string" },
+      { model: "user", field: "lastName", label: "Last Name", fieldType: "string" },
+      { model: "user", field: "phone", label: "Phone", fieldType: "string" },
+      // Employee fields
+      { model: "employee", field: "isActive", label: "Is Active", fieldType: "boolean" },
+      { model: "employee", field: "departmentId", label: "Department ID", fieldType: "string" },
+      { model: "employee", field: "workingPatternId", label: "Working Pattern ID", fieldType: "string" },
+      // Department fields
+      { model: "department", field: "name", label: "Department Name", fieldType: "string" },
+      { model: "department", field: "companyId", label: "Company ID", fieldType: "string" },
+      // JobRole fields
+      { model: "jobrole", field: "name", label: "Job Role Name", fieldType: "string" },
+      { model: "jobrole", field: "description", label: "Job Role Description", fieldType: "string" },
+      // Leave Request fields
+      { model: "leaverequest", field: "startDate", label: "Start Date", fieldType: "date" },
+      { model: "leaverequest", field: "endDate", label: "End Date", fieldType: "date" },
+      { model: "leaverequest", field: "status", label: "Status", fieldType: "string" },
+      { model: "leaverequest", field: "daysRequested", label: "Days Requested", fieldType: "int" },
+      // Leave Entitlement fields
+      { model: "leaveentitlement", field: "totalDays", label: "Total Days", fieldType: "int" },
+      { model: "leaveentitlement", field: "usedDays", label: "Used Days", fieldType: "int" },
+      { model: "leaveentitlement", field: "carryoverDays", label: "Carryover Days", fieldType: "int" },
+      { model: "leaveentitlement", field: "carryoverExpiry", label: "Carryover Expiry", fieldType: "date" },
+    ],
+    skipDuplicates: true, // prevent duplication on re-seeding
+  });
+  console.log("✅ FieldMetadata seeded for dynamic report builder.");
+
   console.log('✅ Seeding process completed.');
 }
 

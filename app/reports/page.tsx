@@ -62,15 +62,15 @@ export default function ReportsPage() {
 
   const handleFieldToggle = (field: string) => {
     setSelectedFields((prev) =>
-      prev.includes(field)
-        ? prev.filter((f) => f !== field)
-        : [...prev, field]
+      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
     );
   };
 
   const handleNext = () => {
-    console.log("Selected fields:", selectedFields);
-    // TODO: Route to /reports/preview or use context
+    if (selectedFields.length === 0) return;
+    const params = new URLSearchParams();
+    params.set("fields", selectedFields.join(","));
+    window.location.href = `/reports/preview?${params.toString()}`;
   };
 
   const renderFieldGroup = (
@@ -78,7 +78,7 @@ export default function ReportsPage() {
     title: string,
     fields: { label: string; value: string }[]
   ) => (
-    <AccordionItem value={id}>
+    <AccordionItem value={id} key={id}>
       <AccordionTrigger>{title}</AccordionTrigger>
       <AccordionContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2">

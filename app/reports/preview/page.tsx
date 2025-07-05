@@ -65,10 +65,12 @@ export default function ReportsPreviewPage() {
     );
   }
 
-  const columns = selectedFields.map((field) => ({
-    accessorKey: field,
-    header: field,
-  }));
+  const dataKeys = data.length > 0 ? Object.keys(data[0]) : [];
+
+const columns = dataKeys.map((key) => ({
+  accessorKey: key,
+  header: key,
+}));
 
   return (
     <main className="p-6">

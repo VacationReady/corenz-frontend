@@ -81,7 +81,12 @@ const columns = dataKeys.map((key) => {
   } else if (typeof data[0][key] === "object" && data[0][key] !== null) {
     return {
       header: key,
-      accessorFn: (row) => JSON.stringify(row[key] ?? ""),
+      accessorFn: (row) => {
+        const obj = row[key];
+        if (obj?.name) return obj.name;
+        if (obj?.id) return obj.id;
+        return JSON.stringify(obj);
+      },
       cell: (info) => info.getValue(),
     };
   } else {
@@ -92,7 +97,6 @@ const columns = dataKeys.map((key) => {
     };
   }
 });
-
   return (
     <main className="p-6">
       <h1 className="text-2xl font-bold mb-4">Report Preview</h1>

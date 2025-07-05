@@ -1,93 +1,66 @@
-// app/lib/auth-options.ts
-import { NextAuthOptions } from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 
-export const authOptions: NextAuthOptions = {
-  debug: true, // enable debug logs
-
+export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  session: { strategy: "jwt" },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "email@example.com" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("🚩 authorize triggered", credentials);
-
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Missing credentials");
-          return null;
+          throw new Error("Missing email or password");
         }
 
-        try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+          include: { company: true }, // ✅ Ensure company is fetched
+        });
 
-          console.log("DB user found:", user);
-
-          if (!user || !user.password) {
-            console.log("❌ User not found or missing password");
-            return null;
-          }
-
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-          console.log("Password valid:", isValid);
-
-          if (!isValid) {
-            console.log("❌ Invalid password");
-            return null;
-          }
-
-          // Return minimal safe user object
-          return {
-            id: user.id,
-            name: `${user.firstName} ${user.lastName}` || user.email,
-            email: user.email,
-            role: user.role ?? "EMPLOYEE", // fallback to prevent undefined
-          };
-        } catch (error) {
-          console.error("❌ Error in authorize:", error);
-          return null;
+        if (!user || !user.password) {
+          throw new Error("User not found");
         }
+
+        const isValid = await compare(credentials.password, user.password);
+        if (!isValid) {
+          throw new Error("Invalid credentials");
+        }
+
+        return user;
       },
     }),
   ],
-
-  session: {
-    strategy: "jwt",
-  },
-
   callbacks: {
     async jwt({ token, user }) {
-      console.log("JWT callback", { token, user });
       if (user) {
         token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
         token.role = user.role;
+        token.companyId = user.companyId; // ✅ Add companyId to token
       }
       return token;
     },
     async session({ session, token }) {
-      console.log("Session callback", { session, token });
-      session.user = {
-        id: token.id as string,
-        email: token.email as string,
-        name: token.name as string,
-        role: (token.role as "ADMIN" | "MANAGER" | "EMPLOYEE") ?? "EMPLOYEE",
-      };
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.companyId = token.companyId as string; // ✅ Add companyId to session
+      }
       return session;
     },
   },
-
   pages: {
-    signIn: "/login",
-    error: "/unauthorized",
+    signIn: "/auth/signin",
   },
-
-  secret: process.env.NEXTAUTH_SECRET,
 };

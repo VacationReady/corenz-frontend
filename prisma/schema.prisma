@@ -31,6 +31,9 @@ model User {
   jobRole                                      JobRole?         @relation(fields: [jobRoleId], references: [id])
   manager                                      User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
   subordinates                                 User[]           @relation("ManagerSubordinates")
+company   Company? @relation(fields: [companyId], references: [id])
+companyId String?
+
 }
 
 model ActivationToken {
@@ -139,24 +142,21 @@ model LeaveEntitlement {
 }
 
 model Department {
-  id   String @id @default(cuid())
-  name String
-
+  id        String     @id @default(cuid())
+  name      String     @unique   // ✅ ADD THIS
   companyId String
-company   Company @relation(fields: [companyId], references: [id])
-
+  company   Company    @relation(fields: [companyId], references: [id])
   employees Employee[]
   users     User[]
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id          String      @id @default(cuid())
+  name        String      @unique   // ✅ ADD THIS
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   departments Department[]
-  // Optionally, add settings or billing references here in the future
+  users       User[]
 }
 
 model JobRole {
@@ -224,6 +224,16 @@ model BlackoutDay {
   eventCategoryIds String[] // stores IDs of categories this blackout applies to (empty if allEvents=true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model FieldMetadata {
+  id           String   @id @default(cuid())
+  model        String   // e.g., "user", "employee"
+  field        String   // e.g., "email", "isActive"
+  label        String   // e.g., "Email", "Is Active"
+  fieldType    String   // e.g., "string", "boolean", "date"
+  isReportable Boolean  @default(true)
+  createdAt    DateTime @default(now())
 }
 
 enum Role {

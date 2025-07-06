@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
 import { UploadCloud } from "lucide-react";
 import { toast } from "sonner";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
 
 type Document = {
   id: string;
@@ -83,7 +85,18 @@ export default function DocumentsPage() {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" />
 
             <Label>Category</Label>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="E.g., HR Policies" />
+<Select onValueChange={(value) => setCategory(value)}>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Select a category" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+    <SelectItem value="Training">Training</SelectItem>
+    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+    <SelectItem value="General HR">General HR</SelectItem>
+  </SelectContent>
+</Select>
 
             <Label>File</Label>
             <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />

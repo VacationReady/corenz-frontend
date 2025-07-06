@@ -8,7 +8,7 @@ import bcrypt from "bcryptjs";
 export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET, // ✅ added for server session consistency
 
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   session: { strategy: "jwt" },
   providers: [
     GoogleProvider({
@@ -73,3 +73,4 @@ export const authOptions: AuthOptions = {
     signIn: "/login",
   },
 };
+git add

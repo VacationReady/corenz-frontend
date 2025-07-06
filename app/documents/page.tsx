@@ -64,9 +64,10 @@ export default function DocumentsPage() {
   toast({
     title: "Upload failed",
     description: "Please try again or check your connection.",
-    variant: "destructive",
+    variant: "ghost",
   });
 }
+};
 
   const handleDownload = async (path: string) => {
     const res = await fetch(`/api/documents/download?path=${encodeURIComponent(path)}`);

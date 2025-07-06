@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SessionProvider> {/* ✅ Wrap app in SessionProvider */}
           {children}
         </SessionProvider>
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
   );

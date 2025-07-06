@@ -59,13 +59,17 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.companyId = token.companyId as string;
-      }
-      return session;
-    },
+  if (token) {
+    session.user.id = token.id as string;
+    if (token.role === "ADMIN" || token.role === "MANAGER" || token.role === "EMPLOYEE") {
+      session.user.role = token.role;
+    } else {
+      session.user.role = "EMPLOYEE"; // fallback or handle error as needed
+    }
+    session.user.companyId = token.companyId as string;
+  }
+  return session;
+},
   },
   pages: {
     signIn: "/auth/signin",

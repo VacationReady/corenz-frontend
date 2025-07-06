@@ -41,13 +41,13 @@ export const authOptions: AuthOptions = {
         }
 
         return {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          companyId: user.companyId,
-        };
+  id: user.id,
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  role: user.role,
+  companyId: user.companyId ?? "", // ✅ ensures it is a string
+};
       },
     }),
   ],

@@ -30,7 +30,7 @@ export const authOptions: AuthOptions = {
         });
 
         if (!user || !user.password) {
-          throw new Error("User not found");
+          throw new Error("User not found or missing password");
         }
 
         const isValid = await compare(credentials.password, user.password);
@@ -38,7 +38,6 @@ export const authOptions: AuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        // ✅ Return flat user with companyId for NextAuth compliance
         return {
           id: user.id,
           name: user.name,
@@ -59,17 +58,21 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-  if (token) {
-    session.user.id = token.id as string;
-    if (token.role === "ADMIN" || token.role === "MANAGER" || token.role === "EMPLOYEE") {
-      session.user.role = token.role;
-    } else {
-      session.user.role = "EMPLOYEE"; // fallback or handle error as needed
-    }
-    session.user.companyId = token.companyId as string;
-  }
-  return session;
-},
+      if (token) {
+        session.user.id = token.id as string;
+        if (
+          token.role === "ADMIN" ||
+          token.role === "MANAGER" ||
+          token.role === "EMPLOYEE"
+        ) {
+          session.user.role = token.role;
+        } else {
+          session.user.role = "EMPLOYEE";
+        }
+        session.user.companyId = token.companyId as string;
+      }
+      return session;
+    },
   },
   pages: {
     signIn: "/auth/signin",

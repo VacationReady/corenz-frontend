@@ -89,7 +89,7 @@ export default function SavedReportsPage() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  variant="default"
+                  variant="ghost"
                   onClick={() => handleViewReport(report.fields)}
                 >
                   View

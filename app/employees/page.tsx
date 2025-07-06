@@ -9,8 +9,10 @@ import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
 import NewDepartmentModal from "./NewDepartmentModal";
 import NewJobRoleModal from "./NewJobRoleModal";
+import { useSession } from "next-auth/react"; // ✅ Added for retrieving companyId from session
 
 export default function EmployeesPage() {
+  const { data: session } = useSession(); // ✅ Retrieve session
   const [employees, setEmployees] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
@@ -31,20 +33,20 @@ export default function EmployeesPage() {
     managerId: "",
   });
 
-      const fetchData = async () => {
-  try {
-    const [empRes, deptRes, roleRes] = await Promise.all([
-      fetch("/api/employees").then((r) => r.json()),
-      fetch("/api/departments").then((r) => r.json()),
-      fetch("/api/job-roles").then((r) => r.json()),
-    ]);
-    setEmployees(empRes.filter((emp: any) => emp.user)); // Filter valid employees
-    setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
-    setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-  } catch {
-    setError("Failed to load data");
-  }
-};
+  const fetchData = async () => {
+    try {
+      const [empRes, deptRes, roleRes] = await Promise.all([
+        fetch("/api/employees").then((r) => r.json()),
+        fetch("/api/departments").then((r) => r.json()),
+        fetch("/api/job-roles").then((r) => r.json()),
+      ]);
+      setEmployees(empRes.filter((emp: any) => emp.user)); // Filter valid employees
+      setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
+      setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
+    } catch {
+      setError("Failed to load data");
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -57,10 +59,15 @@ export default function EmployeesPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        companyId: session?.user?.companyId, // ✅ include companyId in payload
+      };
+
       const res = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json();

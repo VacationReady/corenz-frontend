@@ -53,19 +53,16 @@ export default function DocumentsPage() {
     });
 
     if (res.ok) {
-  toast({
-    title: "Upload successful",
+  toast("Upload successful", {
     description: `${name} has been uploaded successfully.`,
-  });
+});
   setTimeout(() => {
     window.location.reload();
   }, 1500);
 } else {
-  toast({
-    title: "Upload failed",
+  toast("Upload failed", {
     description: "Please try again or check your connection.",
-    variant: "ghost",
-  });
+});
 }
 };
 

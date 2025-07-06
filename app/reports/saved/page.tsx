@@ -54,6 +54,11 @@ export default function SavedReportsPage() {
     fetchReports();
   }, []);
 
+  const handleViewReport = (fields: string[]) => {
+    const fieldsParam = encodeURIComponent(fields.join(","));
+    window.location.href = `/reports/preview?fields=${fieldsParam}`;
+  };
+
   return (
     <main className="max-w-3xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Saved Reports</h1>
@@ -82,12 +87,20 @@ export default function SavedReportsPage() {
                   Fields: {report.fields.join(", ")}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                onClick={() => deleteReport(report.id)}
-              >
-                Delete
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="default"
+                  onClick={() => handleViewReport(report.fields)}
+                >
+                  View
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => deleteReport(report.id)}
+                >
+                  Delete
+                </Button>
+              </div>
             </div>
           ))}
         </div>

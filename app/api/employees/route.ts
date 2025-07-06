@@ -4,6 +4,8 @@ import { Resend } from "resend";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -38,9 +40,18 @@ export async function GET() {
   }
 }
 
-// ✅ POST: Add new employee with activation email and correct manager linking
+// ✅ POST: Add new employee with companyId scoping and activation email
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized or missing company context." },
+        { status: 401 }
+      );
+    }
+    const companyId = session.user.companyId; // ✅ pulled securely from session
+
     const {
       firstName,
       lastName,
@@ -78,7 +89,7 @@ export async function POST(req: Request) {
     const activationToken = randomBytes(32).toString("hex");
     const hashedPassword = ""; // Leave blank for activation
 
-    // ✅ Handle manager linking safely with Prisma type correctness
+    // ✅ Handle manager linking safely
     let managerConnect: Prisma.UserCreateNestedOneWithoutSubordinatesInput | undefined = undefined;
     if (managerId && managerId.trim() !== "") {
       const managerEmployee = await prisma.employee.findUnique({
@@ -93,6 +104,7 @@ export async function POST(req: Request) {
       }
     }
 
+    // ✅ Create User with company linkage
     const user = await prisma.user.create({
       data: {
         email,
@@ -101,6 +113,7 @@ export async function POST(req: Request) {
         lastName,
         phone,
         role,
+        company: { connect: { id: companyId } }, // ✅ securely associate user with company
         department: departmentId ? { connect: { id: departmentId } } : undefined,
         jobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
         manager: managerConnect,

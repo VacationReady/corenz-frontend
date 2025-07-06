@@ -24,8 +24,8 @@ type Document = {
 };
 
 export default function EmployeeDocumentsPage() {
-  const params = useParams();
-  const employeeId = params.id as string;
+  const params = useParams() as { id: string } | undefined;
+const employeeId = params?.id ?? "";
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [file, setFile] = useState<File | null>(null);

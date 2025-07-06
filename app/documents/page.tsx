@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
 import { UploadCloud } from "lucide-react";
+import { toast } from "sonner";
 
 type Document = {
   id: string;
@@ -52,12 +53,20 @@ export default function DocumentsPage() {
     });
 
     if (res.ok) {
-      alert("Upload successful!");
-      window.location.reload();
-    } else {
-      alert("Upload failed.");
-    }
-  };
+  toast({
+    title: "Upload successful",
+    description: `${name} has been uploaded successfully.`,
+  });
+  setTimeout(() => {
+    window.location.reload();
+  }, 1500);
+} else {
+  toast({
+    title: "Upload failed",
+    description: "Please try again or check your connection.",
+    variant: "destructive",
+  });
+}
 
   const handleDownload = async (path: string) => {
     const res = await fetch(`/api/documents/download?path=${encodeURIComponent(path)}`);

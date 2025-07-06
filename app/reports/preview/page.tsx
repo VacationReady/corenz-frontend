@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
 import Button from "@/components/ui/Button";
 import Papa from "papaparse";
@@ -55,6 +55,7 @@ function downloadCSV(data: any[], columns: any[]) {
 
 export default function ReportsPreviewPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
   const selectedFields = fieldsParam ? fieldsParam.split(",") : [];
 
@@ -81,6 +82,32 @@ export default function ReportsPreviewPage() {
 
     fetchData();
   }, [fieldsParam]);
+
+  const handleSaveReport = async () => {
+    const reportName = prompt("Enter a name for this report:");
+    if (!reportName) return;
+
+    try {
+      const res = await fetch("/api/reports/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: reportName,
+          fields: selectedFields,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save report");
+      }
+
+      alert("Report saved successfully!");
+      router.push("/reports/saved");
+    } catch (error) {
+      console.error(error);
+      alert("Error saving report. Please try again.");
+    }
+  };
 
   if (!selectedFields.length) {
     return (
@@ -150,12 +177,10 @@ export default function ReportsPreviewPage() {
       <p className="mb-4">
         Your custom report is displayed below. You can sort and filter as needed.
       </p>
-      <Button
-        className="mb-4"
-        onClick={() => downloadCSV(data, columns)}
-      >
-        Download CSV
-      </Button>
+      <div className="flex gap-2 mb-4">
+        <Button onClick={() => downloadCSV(data, columns)}>Download CSV</Button>
+        <Button onClick={handleSaveReport}>Save Report</Button>
+      </div>
       <DataTable columns={columns} data={data} />
     </main>
   );

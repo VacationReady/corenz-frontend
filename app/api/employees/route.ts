@@ -43,7 +43,9 @@ export async function GET() {
 // ✅ POST: Add new employee with companyId scoping and activation email
 export async function POST(req: Request) {
   try {
+    console.log("⚡ Request cookies:", req.headers.get("cookie"));
     const session = await getServerSession(authOptions);
+    console.log("⚡ Session returned:", session);
     if (!session || !session.user || !session.user.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized or missing company context." },

@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
 import { UploadCloud } from "lucide-react";
 import { toast } from "sonner";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import Select, SelectTrigger, SelectValue, SelectContent, SelectItem from "@/components/ui/Select";
 
 
 type Document = {

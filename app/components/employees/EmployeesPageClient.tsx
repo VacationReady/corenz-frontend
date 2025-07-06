@@ -65,10 +65,11 @@ export default function EmployeesPageClient() {
       };
 
       const res = await fetch("/api/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload),
+  credentials: "include", // ✅ add this
+});
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || "Failed to create employee");

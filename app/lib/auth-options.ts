@@ -1,11 +1,13 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { AuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
-import { compare } from "bcryptjs";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { AuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 
 export const authOptions: AuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET, // ✅ added for server session consistency
+
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
@@ -21,29 +23,30 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing email or password");
+          return null;
         }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { company: true },
         });
 
-        if (!user || !user.password) {
-          throw new Error("User not found or missing password");
+        if (!user?.password) {
+          return null;
         }
 
-        const isValid = await compare(credentials.password, user.password);
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+
         if (!isValid) {
-          throw new Error("Invalid credentials");
+          return null;
         }
 
         return {
           id: user.id,
-          name: user.name,
           email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
-          companyId: user.companyId ?? user.company?.id ?? "",
+          companyId: user.companyId,
         };
       },
     }),
@@ -58,23 +61,15 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        if (
-          token.role === "ADMIN" ||
-          token.role === "MANAGER" ||
-          token.role === "EMPLOYEE"
-        ) {
-          session.user.role = token.role;
-        } else {
-          session.user.role = "EMPLOYEE";
-        }
-        session.user.companyId = token.companyId as string;
+      if (token && session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.companyId = token.companyId;
       }
       return session;
     },
   },
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/login",
   },
 };

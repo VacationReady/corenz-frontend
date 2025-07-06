@@ -4,9 +4,9 @@
 
 import React, { useEffect, useState } from "react";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
 import { UploadCloud } from "lucide-react";
 

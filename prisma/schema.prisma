@@ -58,6 +58,7 @@ model Employee {
   workingPatternAssignments EmployeeWorkingPatternAssignment[]
   leaveEntitlements         LeaveEntitlement[]
   leaveRequests             LeaveRequest[]
+  Document                  Document[]
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -265,6 +266,8 @@ model Document {
   companyId  String
   createdAt  DateTime  @default(now())
   deletedAt  DateTime?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  employeeId String?
 }
 
 enum Role {

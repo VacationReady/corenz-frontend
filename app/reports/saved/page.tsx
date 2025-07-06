@@ -83,7 +83,7 @@ export default function SavedReportsPage() {
                 </p>
               </div>
               <Button
-                variant="destructive"
+                variant="ghost"
                 onClick={() => deleteReport(report.id)}
               >
                 Delete

@@ -26,7 +26,7 @@ export const authOptions: AuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: { company: true }, // ✅ Ensure company is fetched
+          include: { company: true },
         });
 
         if (!user || !user.password) {
@@ -38,7 +38,14 @@ export const authOptions: AuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        return user;
+        // ✅ Return flat user with companyId for NextAuth compliance
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId ?? user.company?.id ?? "",
+        };
       },
     }),
   ],
@@ -47,7 +54,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.companyId = user.companyId; // ✅ Add companyId to token
+        token.companyId = user.companyId;
       }
       return token;
     },
@@ -55,7 +62,7 @@ export const authOptions: AuthOptions = {
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
-        session.user.companyId = token.companyId as string; // ✅ Add companyId to session
+        session.user.companyId = token.companyId as string;
       }
       return session;
     },

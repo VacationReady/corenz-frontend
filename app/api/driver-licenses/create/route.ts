@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const expiryDate = new Date(formData.get('expiryDate') as string);
   const file = formData.get('file') as File | null;
 
-  let documentId = null;
+  let documentId: string | null = null; // ✅ FIXED TYPING
 
   if (file) {
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       },
     });
 
-    documentId = doc.id;
+    documentId = doc.id; // ✅ now valid
   }
 
   const licence = await prisma.driverLicence.create({

@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
 
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,33 +22,62 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
 
   let documentUrl: string | null = null;
+  let documentName: string | null = null;
+  let documentSize: number | null = null;
+  let documentType: string | null = null;
 
-  if (file) {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${randomUUID()}.${fileExt}`;
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .upload(fileName, file.stream(), {
-        contentType: file.type,
-      });
-    if (error) {
-      console.error(error);
-      return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  try {
+    if (file) {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${randomUUID()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from("documents")
+        .upload(fileName, file.stream(), {
+          contentType: file.type,
+        });
+
+      if (error) {
+        console.error(error);
+        return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+      }
+
+      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(data.path);
+      documentUrl = urlData.publicUrl;
+      documentName = file.name;
+      documentSize = file.size;
+      documentType = file.type;
     }
-    const { data: urlData } = supabase.storage.from("documents").getPublicUrl(data.path);
-    documentUrl = urlData.publicUrl;
+
+    const employmentCheck = await prisma.employmentCheck.create({
+      data: {
+        typeOfCheck,
+        documentNumber,
+        dateOfIssue: new Date(dateOfIssue),
+        expiryDate: new Date(expiryDate),
+        employeeId,
+        documentUrl,
+      },
+    });
+
+    // ✅ Create Document record for /documents page
+    if (documentUrl && documentName) {
+      await prisma.document.create({
+        data: {
+          name: documentName,
+          url: documentUrl,
+          size: documentSize ?? undefined,
+          type: documentType ?? undefined,
+          category: "Employment Checks",
+          employeeId,
+          uploaderId: session.user.id,
+          companyId: session.user.companyId ?? undefined,
+        },
+      });
+    }
+
+    return NextResponse.json(employmentCheck);
+  } catch (error) {
+    console.error("Employment Check creation error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-
-  const employmentCheck = await prisma.employmentCheck.create({
-    data: {
-      typeOfCheck,
-      documentNumber,
-      dateOfIssue: new Date(dateOfIssue),
-      expiryDate: new Date(expiryDate),
-      employeeId,
-      documentUrl,
-    },
-  });
-
-  return NextResponse.json(employmentCheck);
 }

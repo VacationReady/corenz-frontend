@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
           name: documentName,
           url: documentUrl,
           size: documentSize ?? 0,
-          type: documentType ?? undefined,
+          type: documentType ?? "",
           category: "Employment Checks",
           employeeId,
           uploaderId: session.user.id,

@@ -15,7 +15,9 @@ export async function GET(req: Request) {
       where: {
         employeeId: employeeId ?? undefined,
         employee: {
-          companyId: session.user.companyId,
+          is: {
+            companyId: session.user.companyId,
+          },
         },
       },
       include: {

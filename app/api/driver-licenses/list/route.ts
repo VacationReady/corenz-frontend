@@ -14,11 +14,6 @@ export async function GET(req: Request) {
     const licences = await prisma.driverLicence.findMany({
       where: {
         employeeId: employeeId ?? undefined,
-        employee: {
-          is: {
-            companyId: session.user.companyId,
-          },
-        },
       },
       include: {
         document: true,

@@ -7,10 +7,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
 
-
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const formData = await req.formData();
 
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
   let documentName: string | null = null;
   let documentSize: number | null = null;
   let documentType: string | null = null;
+  let documentPath: string | null = null;
 
   try {
     if (file) {
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
       documentName = file.name;
       documentSize = file.size;
       documentType = file.type;
+      documentPath = data.path; // ✅ capture the path for Prisma
     }
 
     const employmentCheck = await prisma.employmentCheck.create({
@@ -60,10 +63,11 @@ export async function POST(req: NextRequest) {
     });
 
     // ✅ Create Document record for /documents page
-    if (documentUrl && documentName) {
+    if (documentUrl && documentName && documentPath) {
       await prisma.document.create({
         data: {
           name: documentName,
+          path: documentPath, // ✅ added path as required
           url: documentUrl,
           size: documentSize ?? 0,
           type: documentType ?? "",

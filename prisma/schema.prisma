@@ -59,6 +59,7 @@ model Employee {
   leaveEntitlements         LeaveEntitlement[]
   leaveRequests             LeaveRequest[]
   Document                  Document[]
+  employmentChecks          EmploymentCheck[] // add this
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -268,6 +269,20 @@ model Document {
   deletedAt  DateTime?
   employee   Employee? @relation(fields: [employeeId], references: [id])
   employeeId String?
+}
+
+model EmploymentCheck {
+  id             String   @id @default(cuid())
+  employeeId     String
+  typeOfCheck    String
+  documentNumber String
+  dateOfIssue    DateTime
+  expiryDate     DateTime
+  documentUrl    String? // optional link to uploaded document
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
 }
 
 enum Role {

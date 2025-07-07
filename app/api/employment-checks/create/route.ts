@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { getServerSession } from "next-auth";
-import authOptions from "@/lib/auth-options";
+import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import {
   Dialog,
   DialogTrigger,
@@ -34,10 +34,10 @@ export default function EmploymentChecksPage() {
   const params = useParams();
   const employeeId = typeof params?.id === 'string' ? params.id : '';
 
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [checks, setChecks] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [selectedCheck, setSelectedCheck] = useState<any>(null);
 
   const [typeOfCheck, setTypeOfCheck] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
@@ -47,29 +47,27 @@ export default function EmploymentChecksPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchDocuments = async () => {
+    const fetchChecks = async () => {
       try {
-        const res = await fetch(
-          `/api/documents/list-employee?employeeId=${employeeId}&category=Employment Checks`
-        );
+        const res = await fetch(`/api/employment-checks/list?employeeId=${employeeId}`);
         const data = await res.json();
-        setDocuments(data);
+        setChecks(data);
       } catch (error) {
-        console.error('Failed to fetch documents:', error);
+        console.error('Failed to fetch checks:', error);
       }
     };
 
     if (employeeId) {
-      fetchDocuments();
+      fetchChecks();
     }
   }, [employeeId]);
 
-  const openEditModal = (doc: any) => {
-    setSelectedDoc(doc);
-    setTypeOfCheck(doc.name?.split(' - ')[0] || '');
-    setDocumentNumber(doc.documentNumber || '');
-    setDateOfIssue(doc.dateOfIssue ? doc.dateOfIssue.slice(0, 10) : '');
-    setDateOfExpiry(doc.expiryDate ? doc.expiryDate.slice(0, 10) : '');
+  const openEditModal = (check: any) => {
+    setSelectedCheck(check);
+    setTypeOfCheck(check.typeOfCheck || '');
+    setDocumentNumber(check.documentNumber || '');
+    setDateOfIssue(check.dateOfIssue ? check.dateOfIssue.slice(0, 10) : '');
+    setDateOfExpiry(check.expiryDate ? check.expiryDate.slice(0, 10) : '');
     setEditMode(true);
     setOpen(true);
   };
@@ -85,16 +83,15 @@ export default function EmploymentChecksPage() {
     try {
       const formData = new FormData();
       if (file) formData.append('file', file);
-      formData.append('name', `${typeOfCheck} - ${documentNumber}`);
-      formData.append('category', 'Employment Checks');
-      formData.append('employeeId', employeeId);
+      formData.append('typeOfCheck', typeOfCheck);
       formData.append('documentNumber', documentNumber);
       formData.append('dateOfIssue', dateOfIssue);
       formData.append('expiryDate', dateOfExpiry);
+      formData.append('employeeId', employeeId);
 
       const url = editMode
-        ? `/api/documents/update/${selectedDoc.id}`
-        : '/api/documents/upload-employee';
+        ? `/api/employment-checks/update/${selectedCheck.id}`
+        : '/api/employment-checks/create';
       const method = editMode ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
@@ -103,17 +100,18 @@ export default function EmploymentChecksPage() {
       });
 
       if (res.ok) {
-        const updatedDoc = await res.json();
-        toast.success(editMode ? 'Document updated successfully' : 'Document uploaded successfully');
+        const updatedCheck = await res.json();
+        toast.success(editMode ? 'Employment Check updated' : 'Employment Check created');
 
         if (editMode) {
-          setDocuments((prev) =>
-            prev.map((doc) => (doc.id === updatedDoc.id ? updatedDoc : doc))
+          setChecks((prev) =>
+            prev.map((c) => (c.id === updatedCheck.id ? updatedCheck : c))
           );
         } else {
-          setDocuments((prev) => [...prev, updatedDoc]);
+          setChecks((prev) => [updatedCheck, ...prev]);
         }
 
+        // reset form
         setTypeOfCheck('');
         setDocumentNumber('');
         setDateOfIssue('');
@@ -121,13 +119,13 @@ export default function EmploymentChecksPage() {
         setFile(null);
         setOpen(false);
         setEditMode(false);
-        setSelectedDoc(null);
+        setSelectedCheck(null);
       } else {
-        toast.error('Failed to save document.');
+        toast.error('Failed to save Employment Check');
       }
     } catch (error) {
-      console.error('Error submitting document:', error);
-      toast.error('An error occurred.');
+      console.error(error);
+      toast.error('An error occurred');
     }
 
     setLoading(false);
@@ -137,13 +135,13 @@ export default function EmploymentChecksPage() {
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Employment Checks</h2>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditMode(false); setSelectedDoc(null); } }}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditMode(false); setSelectedCheck(null); } }}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditMode(false); setSelectedDoc(null); }}>Add Document</Button>
+            <Button onClick={() => { setEditMode(false); setSelectedCheck(null); }}>Add Employment Check</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editMode ? 'Edit' : 'Add'} Employment Check Document</DialogTitle>
+              <DialogTitle>{editMode ? 'Edit' : 'Add'} Employment Check</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -184,7 +182,7 @@ export default function EmploymentChecksPage() {
                 />
               </div>
               <div>
-                <Label>{editMode ? 'Replace Document (optional)' : 'Upload Document'}</Label>
+                <Label>{editMode ? 'Replace Document (optional)' : 'Upload Document (optional)'}</Label>
                 <Input
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -196,8 +194,8 @@ export default function EmploymentChecksPage() {
                     ? 'Updating...'
                     : 'Uploading...'
                   : editMode
-                    ? 'Update Document'
-                    : 'Upload Document'}
+                    ? 'Update Employment Check'
+                    : 'Upload Employment Check'}
               </Button>
             </div>
           </DialogContent>
@@ -214,29 +212,29 @@ export default function EmploymentChecksPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {documents.map((doc) => (
+          {checks.map((check) => (
             <TableRow
-              key={doc.id}
-              onClick={() => openEditModal(doc)}
+              key={check.id}
+              onClick={() => openEditModal(check)}
               className="cursor-pointer hover:bg-muted"
             >
-              <TableCell>{doc.name?.split(' - ')[0]}</TableCell>
-              <TableCell>{doc.documentNumber || 'N/A'}</TableCell>
+              <TableCell>{check.typeOfCheck}</TableCell>
+              <TableCell>{check.documentNumber}</TableCell>
+              <TableCell>{check.dateOfIssue ? format(new Date(check.dateOfIssue), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+              <TableCell>{check.expiryDate ? format(new Date(check.expiryDate), 'dd/MM/yyyy') : 'N/A'}</TableCell>
               <TableCell>
-                {doc.dateOfIssue ? format(new Date(doc.dateOfIssue), 'dd/MM/yyyy') : 'N/A'}
-              </TableCell>
-              <TableCell>
-                {doc.expiryDate ? format(new Date(doc.expiryDate), 'dd/MM/yyyy') : 'N/A'}
-              </TableCell>
-              <TableCell>
-                <a
-                  href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  Download
-                </a>
+                {check.documentUrl ? (
+                  <a
+                    href={check.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Download
+                  </a>
+                ) : (
+                  'N/A'
+                )}
               </TableCell>
             </TableRow>
           ))}

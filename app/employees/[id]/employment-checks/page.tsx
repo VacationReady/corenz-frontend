@@ -1,57 +1,41 @@
+```tsx
 // /app/employees/[id]/employment-checks/page.tsx
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { getSession } from 'next-auth/react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/Select';
-import { format } from 'date-fns';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select';
 
 export default function EmploymentChecksPage() {
   const params = useParams();
-  const employeeId = typeof params?.id === "string" ? params.id : "";
+  const employeeId = typeof params?.id === 'string' ? params.id : '';
 
-  const [documents, setDocuments] = useState<any[]>([]);
   const [typeOfCheck, setTypeOfCheck] = useState('');
-  const [documentNumber, setDocumentNumber] = useState('');
-  const [dateOfIssue, setDateOfIssue] = useState('');
-  const [dateOfExpiry, setDateOfExpiry] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      const res = await fetch(`/api/documents/list-employee?employeeId=${employeeId}&category=Employment Checks`);
-      const data = await res.json();
-      setDocuments(data);
-    };
-    fetchDocuments();
-  }, [employeeId]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setFile(selectedFile);
+    if (selectedFile) {
+      handleUpload(selectedFile);
+    }
+  };
 
-  const handleUpload = async () => {
-    if (!file || !typeOfCheck || !documentNumber || !dateOfIssue || !dateOfExpiry) {
-      toast.error('Please complete all fields.');
+  const handleUpload = async (selectedFile: File) => {
+    if (!selectedFile || !typeOfCheck) {
+      toast.error('Please select a check type and file.');
       return;
     }
     setLoading(true);
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', `${typeOfCheck} - ${documentNumber}`);
+    formData.append('file', selectedFile);
+    formData.append('name', typeOfCheck);
     formData.append('category', 'Employment Checks');
-    formData.append('documentNumber', documentNumber);
-    formData.append('dateOfIssue', dateOfIssue);
-    formData.append('expiryDate', dateOfExpiry);
     formData.append('employeeId', employeeId);
 
     const res = await fetch('/api/documents/upload-employee', {
@@ -62,12 +46,7 @@ export default function EmploymentChecksPage() {
     if (res.ok) {
       toast.success('Document uploaded successfully');
       setTypeOfCheck('');
-      setDocumentNumber('');
-      setDateOfIssue('');
-      setDateOfExpiry('');
       setFile(null);
-      const updated = await res.json();
-      setDocuments((prev) => [...prev, updated]);
     } else {
       toast.error('Failed to upload document');
     }
@@ -75,91 +54,34 @@ export default function EmploymentChecksPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-6">
-      <h2 className="text-2xl font-semibold">Employment Checks for Employee</h2>
-
-      <div className="space-y-4">
-        <div>
-          <Label>Type of Check</Label>
-          <Select value={typeOfCheck} onValueChange={setTypeOfCheck}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select check type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Passport">Passport</SelectItem>
-              <SelectItem value="Visa">Visa</SelectItem>
-              <SelectItem value="Right to Work">Right to Work</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Document Number</Label>
-          <Input
-            value={documentNumber}
-            onChange={(e) => setDocumentNumber(e.target.value)}
-            placeholder="E.g., 123456789"
-          />
-        </div>
-
-        <div>
-          <Label>Date of Issue</Label>
-          <Input
-            type="date"
-            value={dateOfIssue}
-            onChange={(e) => setDateOfIssue(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label>Date of Expiry</Label>
-          <Input
-            type="date"
-            value={dateOfExpiry}
-            onChange={(e) => setDateOfExpiry(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label>Document Upload</Label>
-          <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-        </div>
-
-        <Button onClick={handleUpload} disabled={loading}>
-          {loading ? 'Uploading...' : 'Upload Document'}
-        </Button>
+    <div className="max-w-md mx-auto p-4 space-y-4">
+      <h2 className="text-xl font-semibold">Upload Employment Check Document</h2>
+      <div>
+        <Label>Type of Check</Label>
+        <Select value={typeOfCheck} onValueChange={setTypeOfCheck}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select check type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Passport">Passport</SelectItem>
+            <SelectItem value="Visa">Visa</SelectItem>
+            <SelectItem value="Right to Work">Right to Work</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-2">Uploaded Documents</h3>
-        {documents.length === 0 ? (
-          <p className="text-gray-500">No documents uploaded yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {documents.map((doc) => (
-              <li
-                key={doc.id}
-                className="border p-2 rounded flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-medium">{doc.name}</p>
-                  <p className="text-sm text-gray-600">
-                    Issue: {doc.dateOfIssue ? format(new Date(doc.dateOfIssue), 'dd/MM/yyyy') : 'N/A'} | Expiry:{' '}
-                    {doc.expiryDate ? format(new Date(doc.expiryDate), 'dd/MM/yyyy') : 'N/A'}
-                  </p>
-                </div>
-                <a
-                  href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline text-sm"
-                >
-                  Download
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div>
+        <Label className="sr-only">Upload Document</Label>
+        <Button asChild disabled={!typeOfCheck || loading} className="w-full">
+          <label htmlFor="file-upload" className="cursor-pointer">
+            {loading ? 'Uploading...' : 'Upload Document'}
+          </label>
+        </Button>
+        <input
+          id="file-upload"
+          type="file"
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </div>
     </div>
   );

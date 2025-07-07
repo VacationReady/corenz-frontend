@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import Select from "@/components/ui/Select";
+import { Select } from "@/components/ui/Select";
 import { toast } from "sonner";
 
 interface Pattern {

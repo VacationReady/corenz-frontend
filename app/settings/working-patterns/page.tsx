@@ -7,7 +7,7 @@ import Checkbox from '@/components/ui/Checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/Card';
 import { toast } from 'sonner';
-import Select from '@/components/ui/Select';
+import { Select } from '@/components/ui/Select';
 import KebabMenu from '@/components/ui/KebabMenu';
 import Link from 'next/link';
 

@@ -7,7 +7,7 @@ import Checkbox from '@/components/ui/Checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/Card';
 import { toast } from 'sonner';
-import { Select } from '@/components/ui/Select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import KebabMenu from '@/components/ui/KebabMenu';
 import Link from 'next/link';
 
@@ -190,11 +190,20 @@ export default function WorkingPatternsPage() {
                           </div>
                           {day in week.days && (
                             <Select
-                              value={week.days[day]}
-                              onChange={(value) => handleTypeChange(weekIndex, day, value)}
-                              options={dayTypes}
-                              placeholder="Select type"
-                            />
+  value={week.days[day]}
+  onValueChange={(value) => handleTypeChange(weekIndex, day, value)}
+>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Select type" />
+  </SelectTrigger>
+  <SelectContent>
+    {dayTypes.map((type) => (
+      <SelectItem key={type.value} value={type.value}>
+        {type.label}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
                           )}
                         </div>
                       ))}

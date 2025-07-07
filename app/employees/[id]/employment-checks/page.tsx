@@ -1,6 +1,3 @@
-```tsx
-// /app/employees/[id]/employment-checks/page.tsx
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,7 +7,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -149,4 +146,3 @@ export default function EmploymentChecksPage() {
     </div>
   );
 }
-```

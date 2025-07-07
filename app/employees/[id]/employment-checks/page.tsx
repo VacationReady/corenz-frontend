@@ -97,7 +97,6 @@ export default function EmploymentChecksPage() {
       const res = await fetch(url, {
   method,
   body: formData,
-  duplex: "half",
 });
 
       if (res.ok) {

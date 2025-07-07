@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: documentName,
           url: documentUrl,
-          size: documentSize ?? undefined,
+          size: documentSize ?? 0,
           type: documentType ?? undefined,
           category: "Employment Checks",
           employeeId,

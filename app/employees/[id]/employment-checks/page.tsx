@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getSession } from 'next-auth/react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 import {
   Select,

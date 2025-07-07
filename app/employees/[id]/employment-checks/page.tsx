@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 
 export default function EmploymentChecksPage() {
   const params = useParams();
-  const employeeId = params.id as string;
+  const employeeId = typeof params?.id === "string" ? params.id : "";
 
   const [documents, setDocuments] = useState<any[]>([]);
   const [typeOfCheck, setTypeOfCheck] = useState('');

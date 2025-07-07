@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Supabase upload failed', details: error.message }, { status: 500 });
     }
 
-    const publicUrl = https://lzthrdwhziggqfbgogij.supabase.co;
+    const publicUrl = `https://lzthrdwhziggqfbgogij.supabase.co/storage/v1/object/public/documents/${data.path}`;
 
     const doc = await prisma.document.create({
       data: {

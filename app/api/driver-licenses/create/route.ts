@@ -24,16 +24,22 @@ export async function POST(req: Request) {
     const { data, error } = await supabase.storage.from('documents').upload(fileName, buffer);
 
     if (error) {
-      return NextResponse.json({ error: 'Supabase upload failed' }, { status: 500 });
+      return NextResponse.json({ error: 'Supabase upload failed', details: error.message }, { status: 500 });
     }
+
+    const publicUrl = https://lzthrdwhziggqfbgogij.supabase.co;
 
     const doc = await prisma.document.create({
       data: {
-        employeeId,
-        fileName: file.name,
-        filePath: data.path,
+        name: file.name,
+        path: data.path,
+        size: file.size,
+        type: file.type,
         category: 'Driver Licence',
-        uploadedByUserId: session.user.id,
+        url: publicUrl,
+        uploaderId: session.user.id,
+        companyId: session.user.companyId,
+        employeeId: employeeId,
       },
     });
 

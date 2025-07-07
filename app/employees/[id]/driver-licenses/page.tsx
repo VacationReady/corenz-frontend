@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import Button from '@/components/ui/Button';
 import Link from 'next/link';
 
 interface DriverLicence {
@@ -22,7 +22,7 @@ interface DriverLicence {
 export default function DriverLicencesPage() {
   const params = useParams();
   const router = useRouter();
-  const employeeId = params?.id as string; // ✅ FIXED
+  const employeeId = params?.id ?? '';
 
   const [licences, setLicences] = useState<DriverLicence[]>([]);
   const [loading, setLoading] = useState(true);

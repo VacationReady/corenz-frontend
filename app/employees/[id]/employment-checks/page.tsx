@@ -1,4 +1,3 @@
-```tsx
 // /app/employees/[id]/employment-checks/page.tsx
 
 'use client';
@@ -8,7 +7,13 @@ import { useParams } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/Select';
 
 export default function EmploymentChecksPage() {
   const params = useParams();

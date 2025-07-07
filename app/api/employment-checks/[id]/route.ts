@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const expiryDate = formData.get("expiryDate") as string;
   const file = formData.get("file") as File | null;
 
-  let documentUrl = undefined;
+  let documentUrl: string | undefined = undefined;
 
   if (file) {
     const fileExt = file.name.split(".").pop();

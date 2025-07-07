@@ -32,9 +32,14 @@ export async function POST(req: NextRequest) {
     if (file) {
       const fileExt = file.name.split(".").pop();
       const fileName = `${randomUUID()}.${fileExt}`;
+
+      // ✅ Convert to Buffer to avoid duplex issues
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
       const { data, error } = await supabase.storage
         .from("documents")
-        .upload(fileName, file.stream(), {
+        .upload(fileName, buffer, {
           contentType: file.type,
         });
 
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
       documentName = file.name;
       documentSize = file.size;
       documentType = file.type;
-      documentPath = data.path; // ✅ capture the path for Prisma
+      documentPath = data.path;
     }
 
     const employmentCheck = await prisma.employmentCheck.create({
@@ -62,12 +67,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ✅ Create Document record for /documents page
+    // ✅ Also create Document record for /documents view
     if (documentUrl && documentName && documentPath) {
       await prisma.document.create({
         data: {
           name: documentName,
-          path: documentPath, // ✅ added path as required
+          path: documentPath,
           url: documentUrl,
           size: documentSize ?? 0,
           type: documentType ?? "",

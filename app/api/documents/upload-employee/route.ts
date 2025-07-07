@@ -42,17 +42,18 @@ export async function POST(req: NextRequest) {
     }
 
     await prisma.document.create({
-        data: {
-            name,
-            category,
-            path,
-            size: file.size,
-            type: file.type,
-            uploaderId: session.user.id,
-            companyId,
-            employeeId,
-        },
-    });
+    data: {
+        name,
+        category,
+        path,
+        url: fileUrl,              // ✅ add this line
+        size,
+        type,
+        uploaderId,
+        companyId,
+        employeeId,
+    },
+});
 
     return NextResponse.json({ success: true });
 }

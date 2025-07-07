@@ -1,3 +1,6 @@
+```tsx
+// /app/employees/[id]/employment-checks/page.tsx
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -17,6 +20,8 @@ export default function EmploymentChecksPage() {
 
   const [documents, setDocuments] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<any>(null);
 
   const [typeOfCheck, setTypeOfCheck] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
@@ -34,14 +39,25 @@ export default function EmploymentChecksPage() {
     fetchDocuments();
   }, [employeeId]);
 
-  const handleUpload = async () => {
-    if (!file || !typeOfCheck || !documentNumber || !dateOfIssue || !dateOfExpiry) {
-      toast.error('Please complete all fields and select a file.');
+  const openEditModal = (doc: any) => {
+    setSelectedDoc(doc);
+    setTypeOfCheck(doc.name?.split(' - ')[0] || '');
+    setDocumentNumber(doc.documentNumber || '');
+    setDateOfIssue(doc.dateOfIssue ? doc.dateOfIssue.slice(0, 10) : '');
+    setDateOfExpiry(doc.expiryDate ? doc.expiryDate.slice(0, 10) : '');
+    setEditMode(true);
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!typeOfCheck || !documentNumber || !dateOfIssue || !dateOfExpiry || (editMode && !selectedDoc)) {
+      toast.error('Please complete all fields.');
       return;
     }
     setLoading(true);
+
     const formData = new FormData();
-    formData.append('file', file);
+    if (file) formData.append('file', file);
     formData.append('name', `${typeOfCheck} - ${documentNumber}`);
     formData.append('category', 'Employment Checks');
     formData.append('employeeId', employeeId);
@@ -49,13 +65,13 @@ export default function EmploymentChecksPage() {
     formData.append('dateOfIssue', dateOfIssue);
     formData.append('expiryDate', dateOfExpiry);
 
-    const res = await fetch('/api/documents/upload-employee', {
-      method: 'POST',
-      body: formData,
-    });
+    const url = editMode ? `/api/documents/update/${selectedDoc.id}` : '/api/documents/upload-employee';
+    const method = editMode ? 'PATCH' : 'POST';
+
+    const res = await fetch(url, { method, body: formData });
 
     if (res.ok) {
-      toast.success('Document uploaded successfully');
+      toast.success(editMode ? 'Document updated successfully' : 'Document uploaded successfully');
       setTypeOfCheck('');
       setDocumentNumber('');
       setDateOfIssue('');
@@ -63,9 +79,13 @@ export default function EmploymentChecksPage() {
       setFile(null);
       setOpen(false);
       const updated = await res.json();
-      setDocuments((prev) => [...prev, updated]);
+      if (editMode) {
+        setDocuments((prev) => prev.map((doc) => (doc.id === updated.id ? updated : doc)));
+      } else {
+        setDocuments((prev) => [...prev, updated]);
+      }
     } else {
-      toast.error('Failed to upload document');
+      toast.error('Failed to save document');
     }
     setLoading(false);
   };
@@ -74,13 +94,13 @@ export default function EmploymentChecksPage() {
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Employment Checks</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditMode(false); }}>
           <DialogTrigger asChild>
-            <Button>Add Document</Button>
+            <Button onClick={() => { setEditMode(false); setSelectedDoc(null); }}>Add Document</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Employment Check Document</DialogTitle>
+              <DialogTitle>{editMode ? 'Edit' : 'Add'} Employment Check Document</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -109,10 +129,10 @@ export default function EmploymentChecksPage() {
                 <Input type="date" value={dateOfExpiry} onChange={(e) => setDateOfExpiry(e.target.value)} />
               </div>
               <div>
-                <Label>Upload Document</Label>
+                <Label>{editMode ? 'Replace Document (optional)' : 'Upload Document'}</Label>
                 <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
-              <Button onClick={handleUpload} disabled={loading}>{loading ? 'Uploading...' : 'Upload Document'}</Button>
+              <Button onClick={handleSubmit} disabled={loading}>{loading ? (editMode ? 'Updating...' : 'Uploading...') : (editMode ? 'Update Document' : 'Upload Document')}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -129,15 +149,13 @@ export default function EmploymentChecksPage() {
         </TableHeader>
         <TableBody>
           {documents.map((doc) => (
-            <TableRow key={doc.id}>
+            <TableRow key={doc.id} onClick={() => openEditModal(doc)} className="cursor-pointer hover:bg-muted">
               <TableCell>{doc.name?.split(' - ')[0]}</TableCell>
               <TableCell>{doc.documentNumber || 'N/A'}</TableCell>
               <TableCell>{doc.dateOfIssue ? format(new Date(doc.dateOfIssue), 'dd/MM/yyyy') : 'N/A'}</TableCell>
               <TableCell>{doc.expiryDate ? format(new Date(doc.expiryDate), 'dd/MM/yyyy') : 'N/A'}</TableCell>
               <TableCell>
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  Download
-                </a>
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Download</a>
               </TableCell>
             </TableRow>
           ))}
@@ -146,3 +164,4 @@ export default function EmploymentChecksPage() {
     </div>
   );
 }
+```

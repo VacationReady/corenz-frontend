@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const employeeId = formData.get("employeeId") as string;
   const file = formData.get("file") as File | null;
 
-  let documentUrl = null;
+  let documentUrl: string | null = null;
 
   if (file) {
     const fileExt = file.name.split(".").pop();

@@ -17,7 +17,7 @@ interface SelectProps {
   placeholder?: string;
 }
 
-export default function Select({ value, onChange, options, placeholder = 'Select' }: SelectProps) {
+function Select({ value, onChange, options, placeholder = 'Select' }: SelectProps) {
   const selected = options.find((option) => option.value === value);
 
   return (
@@ -60,3 +60,7 @@ export default function Select({ value, onChange, options, placeholder = 'Select
     </Listbox>
   );
 }
+
+// ✅ Export as named and default to allow flexible import patterns
+export { Select };
+export default Select;

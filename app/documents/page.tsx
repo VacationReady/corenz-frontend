@@ -85,7 +85,7 @@ export default function DocumentsPage() {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" />
 
             <Label>Category</Label>
-<Select onValueChange={(value) => setCategory(value)}>
+<Select value={category} onValueChange={setCategory}>
   <SelectTrigger className="w-full">
     <SelectValue placeholder="Select a category" />
   </SelectTrigger>

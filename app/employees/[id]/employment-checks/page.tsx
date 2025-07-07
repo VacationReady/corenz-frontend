@@ -76,17 +76,19 @@ export default function EmploymentChecksPage() {
       </div>
       <div>
         <Label className="sr-only">Upload Document</Label>
-        <Button asChild disabled={!typeOfCheck || loading} className="w-full">
-          <label htmlFor="file-upload" className="cursor-pointer">
-            {loading ? 'Uploading...' : 'Upload Document'}
-          </label>
-        </Button>
-        <input
-          id="file-upload"
-          type="file"
-          onChange={handleFileChange}
-          className="hidden"
-        />
+        <Button
+  disabled={!typeOfCheck || loading}
+  className="w-full"
+  onClick={() => document.getElementById('file-upload')?.click()}
+>
+  {loading ? 'Uploading...' : 'Upload Document'}
+</Button>
+<input
+  id="file-upload"
+  type="file"
+  onChange={handleFileChange}
+  className="hidden"
+/>
       </div>
     </div>
   );

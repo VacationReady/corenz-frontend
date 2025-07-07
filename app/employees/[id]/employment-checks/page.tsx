@@ -95,9 +95,10 @@ export default function EmploymentChecksPage() {
       const method = editMode ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
-        method,
-        body: formData,
-      });
+  method,
+  body: formData,
+  duplex: "half",
+});
 
       if (res.ok) {
         const updatedCheck = await res.json();

@@ -75,15 +75,18 @@ export default function WorkingPatternAssignment({
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium">Pattern</label>
-              <Select
-                value={selected}
-                onChange={setSelected}
-                options={patterns.map((p) => ({
-                  label: p.name,
-                  value: p.id,
-                }))}
-                placeholder="Select pattern"
-              />
+              <Select value={selected} onValueChange={setSelected}>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Select a pattern" />
+  </SelectTrigger>
+  <SelectContent>
+    {patterns.map((p) => (
+      <SelectItem key={p.id} value={p.id}>
+        {p.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
             </div>
 
             <div>

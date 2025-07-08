@@ -90,21 +90,21 @@ export default function ExpirySettingsPage() {
                 <TableCell>
                   <Switch
                     checked={rule.notifyAdmin}
-                    onCheckedChange={(checked) => handleUpdate(rule.id, { notifyAdmin: checked })}
+                    onChecked={(checked) => handleUpdate(rule.id, { notifyAdmin: checked })}
                     disabled={updatingId === rule.id}
                   />
                 </TableCell>
                 <TableCell>
                   <Switch
                     checked={rule.notifyManager}
-                    onCheckedChange={(checked) => handleUpdate(rule.id, { notifyManager: checked })}
+                    onChecked={(checked) => handleUpdate(rule.id, { notifyManager: checked })}
                     disabled={updatingId === rule.id}
                   />
                 </TableCell>
                 <TableCell>
                   <Switch
                     checked={rule.notifyEmployee}
-                    onCheckedChange={(checked) => handleUpdate(rule.id, { notifyEmployee: checked })}
+                    onChecked={(checked) => handleUpdate(rule.id, { notifyEmployee: checked })}
                     disabled={updatingId === rule.id}
                   />
                 </TableCell>

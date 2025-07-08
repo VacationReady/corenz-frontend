@@ -17,6 +17,8 @@ export async function GET(req: Request) {
       },
       include: {
         document: true,
+        course: true,          // ✅ Include course details
+        provider: true,        // ✅ Include provider details
       },
       orderBy: { createdAt: 'desc' },
     });

@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";

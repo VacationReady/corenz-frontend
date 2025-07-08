@@ -76,7 +76,7 @@ export async function POST() {
           (item.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        const employeeName = `${item.employee.firstName} ${item.employee.lastName}`;
+        const employeeName = `${item.employee.user?.firstName ?? 'Unknown'} ${item.employee.user?.lastName ?? ''}`.trim();
         const recipients: string[] = [];
 
         if (rule.notifyAdmin) {

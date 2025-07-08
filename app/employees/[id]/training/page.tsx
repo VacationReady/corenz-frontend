@@ -69,29 +69,36 @@ export default function TrainingPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-  {records.map((record) => (
-    <TableRow key={record.id}>
-      <TableCell>{record.course?.name ?? '—'}</TableCell>
-      <TableCell>{record.provider?.name ?? '—'}</TableCell>
-      <TableCell>{new Date(record.dateCompleted).toLocaleDateString()}</TableCell>
-      <TableCell>{record.expiryDate ? new Date(record.expiryDate).toLocaleDateString() : '—'}</TableCell>
-      <TableCell>
-        {record.document ? (
-          <a
-            href={record.document.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline"
-          >
-            {record.document.name}
-          </a>
-        ) : (
-          '—'
-        )}
-      </TableCell>
-    </TableRow>
-  ))}
-</TableBody>
+            {records.map((record) => (
+              <TableRow
+                key={record.id}
+                onClick={() => router.push(`/employees/${employeeId}/training/${record.id}`)}
+                className="cursor-pointer hover:bg-muted transition"
+              >
+                <TableCell>{record.course?.name ?? '—'}</TableCell>
+                <TableCell>{record.provider?.name ?? '—'}</TableCell>
+                <TableCell>{new Date(record.dateCompleted).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {record.expiryDate ? new Date(record.expiryDate).toLocaleDateString() : '—'}
+                </TableCell>
+                <TableCell>
+                  {record.document ? (
+                    <a
+                      href={record.document.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {record.document.name}
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       )}
     </div>

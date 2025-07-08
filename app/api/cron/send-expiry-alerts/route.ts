@@ -102,7 +102,7 @@ export async function POST() {
 
         for (const recipient of recipients) {
           await resend.emails.send({
-            from: "notifications@corenz.co.nz",
+            from: "onboarding@resend.dev",
             to: recipient,
             subject: `Expiry Alert: ${item.type} for ${employeeName}`,
             html: `

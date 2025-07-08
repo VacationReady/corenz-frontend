@@ -7,14 +7,20 @@ import Button from '@/components/ui/Button';
 
 interface TrainingRecord {
   id: string;
-  courseName: string;
-  provider: string;
   dateCompleted: string;
   expiryDate: string | null;
   document: {
     id: string;
     name: string;
     url: string;
+  } | null;
+  course: {
+    id: string;
+    name: string;
+  } | null;
+  provider: {
+    id: string;
+    name: string;
   } | null;
 }
 

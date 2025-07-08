@@ -64,7 +64,7 @@ export async function POST() {
             employee: item.employee,
             expiryDate: item.expiryDate,
             type: "Employment Check",
-            itemName: item.type || "Employment Check",
+            itemName: item.typeOfCheck || "Employment Check",
           }))
         );
       }

@@ -1,9 +1,8 @@
-"use client";
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
+import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 import {
   Search,
   Bell,

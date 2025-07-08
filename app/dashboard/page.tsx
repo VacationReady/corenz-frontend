@@ -64,7 +64,7 @@ export default function DashboardPage() {
         </p>
         <div className="space-y-2">
           <Button onClick={handleRunCarryover}>Run Carryover</Button>
-          <Button onClick={handleRunExpiryAlerts} variant="secondary">
+          <Button onClick={handleRunExpiryAlerts} variant="ghost">
             Test Alerts
           </Button>
         </div>

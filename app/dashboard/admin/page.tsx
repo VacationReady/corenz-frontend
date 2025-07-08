@@ -1,17 +1,13 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import {
   Search,
   Bell,
-  ChevronDown,
   ClipboardList,
   Users,
   Megaphone,
-  Filter,
   FileText,
   FilePlus2,
   Mail,
@@ -51,16 +47,6 @@ export default async function AdminDashboardPage() {
     { month: "May", employees: 46, leavers: 0, starters: 2 },
     { month: "Jun", employees: 46, leavers: 0, starters: 1 },
   ];
-
-  const turnoverData = headcountData.map((item) => ({
-    month: item.month,
-    turnover: ((item.leavers / item.employees) * 100).toFixed(1),
-  }));
-
-  const startersData = headcountData.map((item) => ({
-    month: item.month,
-    starters: item.starters,
-  }));
 
   const peopleOffData = {
     Today: [
@@ -115,8 +101,8 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* ✅ Live Leave Balance & Booking */}
-        <LeaveBalanceWidget employeeId={employeeId} />
+        {/* ✅ Temporarily removed LeaveBalanceWidget to isolate error */}
+        {/* <LeaveBalanceWidget employeeId={employeeId} /> */}
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
@@ -153,7 +139,8 @@ export default async function AdminDashboardPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
         </DashboardWidget>
 
-        {/* Headcount & Turnover */}
+        {/* ✅ Recharts block fully commented out to isolate build error */}
+        {/*
         <DashboardWidget
           title="Headcount & Turnover"
           icon={Users}
@@ -169,6 +156,7 @@ export default async function AdminDashboardPage() {
             </LineChart>
           </ResponsiveContainer>
         </DashboardWidget>
+        */}
 
         {/* Who's Off */}
         <DashboardWidget title="Who's Off" icon={CalendarCheck2} className="h-full">

@@ -1,4 +1,4 @@
-// app/components/dashboard/LeaveBalanceWidget.tsx
+"use client"
 
 import { prisma } from "@/lib/prisma";
 import LeaveBalanceClientWidget from "./LeaveBalanceClientWidget";

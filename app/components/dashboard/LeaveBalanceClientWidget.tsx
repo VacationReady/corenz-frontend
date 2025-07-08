@@ -4,7 +4,15 @@ import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 
-export default function LeaveBalanceClientWidget({ employeeId, leaveEntitlements }) {
+interface LeaveBalanceClientWidgetProps {
+  employeeId: string;
+  leaveEntitlements: any[]; // adjust type if you have Entitlement type
+}
+
+export default function LeaveBalanceClientWidget({
+  employeeId,
+  leaveEntitlements,
+}: LeaveBalanceClientWidgetProps) {
   return (
     <Card>
       <div className="border-b p-4">

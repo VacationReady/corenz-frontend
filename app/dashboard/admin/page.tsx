@@ -18,7 +18,6 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);

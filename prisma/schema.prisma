@@ -61,6 +61,7 @@ model Employee {
   Document                  Document[]
   employmentChecks          EmploymentCheck[] // add this
   driverLicences            DriverLicence[]
+  trainingRecords           TrainingRecord[]
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -256,22 +257,23 @@ model SavedReport {
 }
 
 model Document {
-  id             String          @id @default(cuid())
-  name           String
-  category       String?
-  path           String
-  size           Int
-  type           String
-  uploader       User            @relation(fields: [uploaderId], references: [id])
-  uploaderId     String
-  company        Company         @relation(fields: [companyId], references: [id])
-  companyId      String
-  createdAt      DateTime        @default(now())
-  deletedAt      DateTime?
-  url            String
-  employee       Employee?       @relation(fields: [employeeId], references: [id])
-  employeeId     String?
-  driverLicences DriverLicence[]
+  id              String           @id @default(cuid())
+  name            String
+  category        String?
+  path            String
+  size            Int
+  type            String
+  uploader        User             @relation(fields: [uploaderId], references: [id])
+  uploaderId      String
+  company         Company          @relation(fields: [companyId], references: [id])
+  companyId       String
+  createdAt       DateTime         @default(now())
+  deletedAt       DateTime?
+  url             String
+  employee        Employee?        @relation(fields: [employeeId], references: [id])
+  employeeId      String?
+  driverLicences  DriverLicence[]
+  trainingRecords TrainingRecord[]
 }
 
 model EmploymentCheck {
@@ -298,6 +300,22 @@ model DriverLicence {
   documentId    String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  employee Employee  @relation(fields: [employeeId], references: [id])
+  document Document? @relation(fields: [documentId], references: [id])
+}
+
+model TrainingRecord {
+  id            String    @id @default(cuid())
+  employeeId    String
+  courseName    String
+  provider      String
+  dateCompleted DateTime
+  expiryDate    DateTime?
+  documentId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   employee Employee  @relation(fields: [employeeId], references: [id])
   document Document? @relation(fields: [documentId], references: [id])

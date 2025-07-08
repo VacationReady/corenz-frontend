@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/Switch";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -90,21 +90,21 @@ export default function ExpirySettingsPage() {
                 <TableCell>
                   <Switch
                     checked={rule.notifyAdmin}
-                    onChange={(e) => handleUpdate(rule.id, { notifyAdmin: e.target.checked })}
+                    onChange={(checked) => handleUpdate(rule.id, { notifyAdmin: checked })}
                     disabled={updatingId === rule.id}
                   />
                 </TableCell>
                 <TableCell>
                   <Switch
                     checked={rule.notifyManager}
-                    onChange={(e) => handleUpdate(rule.id, { notifyManager: e.target.checked })}
+                    onChange={(checked) => handleUpdate(rule.id, { notifyManager: checked })}
                     disabled={updatingId === rule.id}
                   />
                 </TableCell>
                 <TableCell>
                   <Switch
                     checked={rule.notifyEmployee}
-                    onChange={(e) => handleUpdate(rule.id, { notifyEmployee: e.target.checked })}
+                    onChange={(checked) => handleUpdate(rule.id, { notifyEmployee: checked })}
                     disabled={updatingId === rule.id}
                   />
                 </TableCell>

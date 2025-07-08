@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
-import { Switch } from "@/components/ui/Switch";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";

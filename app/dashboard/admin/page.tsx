@@ -1,8 +1,9 @@
+// app/dashboard/admin/page.tsx (clean, stable)
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 import {
   Search,
   Bell,
@@ -15,6 +16,7 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
+import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -33,39 +35,6 @@ export default async function AdminDashboardPage() {
   }
 
   const employeeId = user.employee.id;
-
-  const headcountData = [
-    { month: "Jul", employees: 40, leavers: 1, starters: 2 },
-    { month: "Aug", employees: 41, leavers: 0, starters: 1 },
-    { month: "Sep", employees: 42, leavers: 1, starters: 2 },
-    { month: "Oct", employees: 42, leavers: 0, starters: 1 },
-    { month: "Nov", employees: 43, leavers: 0, starters: 2 },
-    { month: "Dec", employees: 43, leavers: 1, starters: 1 },
-    { month: "Jan", employees: 44, leavers: 0, starters: 3 },
-    { month: "Feb", employees: 44, leavers: 1, starters: 1 },
-    { month: "Mar", employees: 45, leavers: 0, starters: 2 },
-    { month: "Apr", employees: 45, leavers: 0, starters: 1 },
-    { month: "May", employees: 46, leavers: 0, starters: 2 },
-    { month: "Jun", employees: 46, leavers: 0, starters: 1 },
-  ];
-
-  const peopleOffData = {
-    Today: [
-      { name: "John Doe", reason: "Annual Leave", initials: "JD", color: "bg-green-500" },
-      { name: "Jane Smith", reason: "Sick Leave", initials: "JS", color: "bg-red-500" },
-    ],
-    "This Week": [
-      { name: "John Doe", reason: "Annual Leave", initials: "JD", color: "bg-green-500" },
-      { name: "Jane Smith", reason: "Sick Leave", initials: "JS", color: "bg-red-500" },
-      { name: "Alice Brown", reason: "Maternity Leave", initials: "AB", color: "bg-pink-500" },
-    ],
-    "This Month": [
-      { name: "John Doe", reason: "Annual Leave", initials: "JD", color: "bg-green-500" },
-      { name: "Jane Smith", reason: "Sick Leave", initials: "JS", color: "bg-red-500" },
-      { name: "Alice Brown", reason: "Maternity Leave", initials: "AB", color: "bg-pink-500" },
-      { name: "Michael Green", reason: "Training", initials: "MG", color: "bg-blue-500" },
-    ],
-  };
 
   return (
     <div className="flex flex-col flex-1 w-full">
@@ -102,8 +71,8 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* ✅ Temporarily removed LeaveBalanceWidget to isolate error */}
-        {/* <LeaveBalanceWidget employeeId={employeeId} /> */}
+        {/* ✅ Leave Balance Widget reintroduced safely */}
+        <LeaveBalanceWidget employeeId={employeeId} />
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
@@ -140,38 +109,9 @@ export default async function AdminDashboardPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Awaiting your approval</p>
         </DashboardWidget>
 
-        {/* ✅ Recharts block fully commented out to isolate build error */}
-        {/*
-        <DashboardWidget
-          title="Headcount & Turnover"
-          icon={Users}
-          className="h-full"
-        >
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={headcountData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="employees" stroke="#6366f1" strokeWidth={2} dot />
-            </LineChart>
-          </ResponsiveContainer>
-        </DashboardWidget>
-        */}
-
         {/* Who's Off */}
         <DashboardWidget title="Who's Off" icon={CalendarCheck2} className="h-full">
-          {peopleOffData["Today"].map((person, idx) => (
-            <div key={idx} className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 mb-1">
-              <div className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full ${person.color} flex items-center justify-center text-white text-xs font-semibold`}>
-                  {person.initials}
-                </div>
-                <span>{person.name}</span>
-              </div>
-              <span className="text-gray-500 dark:text-gray-400">{person.reason}</span>
-            </div>
-          ))}
+          <p className="text-sm text-gray-600 dark:text-gray-300">Loading leave data...</p>
         </DashboardWidget>
       </main>
     </div>

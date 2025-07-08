@@ -308,8 +308,8 @@ model DriverLicence {
 model TrainingRecord {
   id            String    @id @default(cuid())
   employeeId    String
-  courseName    String
-  provider      String
+  courseId      String
+  providerId    String
   dateCompleted DateTime
   expiryDate    DateTime?
   documentId    String?
@@ -317,8 +317,22 @@ model TrainingRecord {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  employee Employee  @relation(fields: [employeeId], references: [id])
-  document Document? @relation(fields: [documentId], references: [id])
+  employee Employee         @relation(fields: [employeeId], references: [id])
+  document Document?        @relation(fields: [documentId], references: [id])
+  course   Course           @relation(fields: [courseId], references: [id])
+  provider TrainingProvider @relation(fields: [providerId], references: [id])
+}
+
+model Course {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  trainingRecords TrainingRecord[]
+}
+
+model TrainingProvider {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  trainingRecords TrainingRecord[]
 }
 
 enum Role {

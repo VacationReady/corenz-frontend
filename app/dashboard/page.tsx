@@ -33,6 +33,24 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRunExpiryAlerts = async () => {
+    try {
+      const res = await fetch("/api/cron/send-expiry-alerts", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.message) {
+        toast.success("Expiry alerts sent successfully.");
+      } else {
+        console.error(data.error);
+        toast.error(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("An unexpected error occurred while sending expiry alerts.");
+    }
+  };
+
   if (!role) {
     return <p className="p-4">Loading...</p>;
   }
@@ -42,9 +60,14 @@ export default function DashboardPage() {
       <div className="max-w-md mx-auto mt-10 p-4 text-center space-y-4">
         <h1 className="text-xl font-semibold">Admin Dashboard</h1>
         <p className="text-sm text-gray-600">
-          Use the button below to manually trigger the annual carryover process.
+          Use the buttons below to manually trigger processes.
         </p>
-        <Button onClick={handleRunCarryover}>Run Carryover</Button>
+        <div className="space-y-2">
+          <Button onClick={handleRunCarryover}>Run Carryover</Button>
+          <Button onClick={handleRunExpiryAlerts} variant="secondary">
+            Test Alerts
+          </Button>
+        </div>
       </div>
     );
   }

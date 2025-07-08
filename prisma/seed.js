@@ -114,6 +114,27 @@ async function main() {
   });
   console.log("✅ FieldMetadata seeded for dynamic report builder.");
 
+  // ✅ 6. Seed ExpiryRules for expiry alerts
+  const expiryRules = [
+    { category: "Employment Checks", daysBefore: 28, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Driver Licence", daysBefore: 30, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Training", daysBefore: 45, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+  ];
+
+  for (const rule of expiryRules) {
+    const result = await prisma.expiryRule.upsert({
+      where: { category: rule.category },
+      update: {
+        daysBefore: rule.daysBefore,
+        notifyAdmin: rule.notifyAdmin,
+        notifyManager: rule.notifyManager,
+        notifyEmployee: rule.notifyEmployee,
+      },
+      create: rule,
+    });
+    console.log(`✅ ExpiryRule created: ${result.category} (${result.id})`);
+  }
+
   console.log('✅ Seeding process completed.');
 }
 

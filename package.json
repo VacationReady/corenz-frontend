@@ -31,6 +31,7 @@
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.6.0",
     "bcryptjs": "^3.0.2",
+    "bufferutil": "^4.0.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -55,7 +56,8 @@
     "sonner": "^2.0.5",
     "supports-color": "^5.5.0",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "utf-8-validate": "^6.0.5"
   },
   "devDependencies": {
     "@types/next-auth": "^3.13.0",

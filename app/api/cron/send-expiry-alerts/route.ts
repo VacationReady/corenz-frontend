@@ -18,7 +18,7 @@ export async function POST() {
           where: {
             expiryDate: { lte: targetDate, gte: today },
           },
-          include: { employee: { include: { manager: true, user: true } } },
+          include: { employee: { include: { user: true } } },
         });
         expiringItems.push(
           ...items.map((item) => ({
@@ -35,7 +35,7 @@ export async function POST() {
           where: {
             expiryDate: { lte: targetDate, gte: today },
           },
-          include: { employee: { include: { manager: true, user: true } }, course: true },
+          include: { employee: { include: { user: true } }, course: true },
         });
         expiringItems.push(
           ...items.map((item) => ({
@@ -52,7 +52,7 @@ export async function POST() {
           where: {
             expiryDate: { lte: targetDate, gte: today },
           },
-          include: { employee: { include: { manager: true, user: true } } },
+          include: { employee: { include: { user: true } } },
         });
         expiringItems.push(
           ...items.map((item) => ({
@@ -64,11 +64,9 @@ export async function POST() {
         );
       }
 
-      // Send notifications for each expiring item
       for (const item of expiringItems) {
         const daysRemaining = Math.ceil((item.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         const employeeName = `${item.employee.firstName} ${item.employee.lastName}`;
-
         const recipients: string[] = [];
 
         if (rule.notifyAdmin) {
@@ -81,8 +79,11 @@ export async function POST() {
           recipients.push(...admins.map((admin) => admin.email));
         }
 
-        if (rule.notifyManager && item.employee.manager?.email) {
-          recipients.push(item.employee.manager.email);
+        if (rule.notifyManager && item.employee.managerId) {
+          const manager = await prisma.user.findUnique({
+            where: { id: item.employee.managerId },
+          });
+          if (manager?.email) recipients.push(manager.email);
         }
 
         if (rule.notifyEmployee && item.employee.user?.email) {

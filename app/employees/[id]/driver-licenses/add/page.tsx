@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 export default function AddDriverLicence() {
   const router = useRouter();
   const params = useParams();
-  const employeeId = params?.id ?? '';
+  const employeeIdRaw = params?.id ?? '';
+const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
 
   const [loading, setLoading] = useState(false);
 

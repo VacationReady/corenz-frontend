@@ -1,10 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface Course {
+  id: string;
+  name: string;
+}
+
+interface Provider {
+  id: string;
+  name: string;
+}
 
 export default function AddTraining() {
   const router = useRouter();
@@ -13,6 +24,24 @@ export default function AddTraining() {
   const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
 
   const [loading, setLoading] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [coursesRes, providersRes] = await Promise.all([
+        fetch('/api/courses/list'),
+        fetch('/api/providers/list'),
+      ]);
+      const coursesData = await coursesRes.json();
+      const providersData = await providersRes.json();
+      setCourses(coursesData);
+      setProviders(providersData);
+    };
+    fetchData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,6 +49,8 @@ export default function AddTraining() {
 
     const formData = new FormData(e.currentTarget);
     formData.append('employeeId', employeeId);
+    formData.append('courseId', selectedCourse);
+    formData.append('providerId', selectedProvider);
 
     try {
       const res = await fetch('/api/training-records/create', {
@@ -46,13 +77,35 @@ export default function AddTraining() {
       <h1 className="text-xl font-semibold mb-4">Add Training Record</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label>Course Name</Label>
-          <Input name="courseName" type="text" placeholder="Course Name" required />
+          <Label>Course</Label>
+          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a course" />
+            </SelectTrigger>
+            <SelectContent>
+              {courses.map((course) => (
+                <SelectItem key={course.id} value={course.id}>
+                  {course.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <Label>Provider</Label>
-          <Input name="provider" type="text" placeholder="Provider" required />
+          <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a provider" />
+            </SelectTrigger>
+            <SelectContent>
+              {providers.map((provider) => (
+                <SelectItem key={provider.id} value={provider.id}>
+                  {provider.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

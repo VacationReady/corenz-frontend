@@ -11,8 +11,8 @@ export async function POST(req: Request) {
   const formData = await req.formData();
   const employeeIdRaw = formData.get('employeeId');
   const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw ?? '';
-  const courseName = formData.get('courseName') as string;
-  const provider = formData.get('provider') as string;
+  const courseId = formData.get('courseId') as string;
+  const providerId = formData.get('providerId') as string;
   const dateCompleted = new Date(formData.get('dateCompleted') as string);
   const expiryDateRaw = formData.get('expiryDate') as string;
   const expiryDate = expiryDateRaw ? new Date(expiryDateRaw) : null;
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
   const trainingRecord = await prisma.trainingRecord.create({
     data: {
       employeeId: employeeId as string,
-      courseName,
-      provider,
+      courseId,
+      providerId,
       dateCompleted,
       expiryDate,
       documentId,

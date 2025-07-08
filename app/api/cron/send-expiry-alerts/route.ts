@@ -11,7 +11,12 @@ export async function POST() {
       const targetDate = new Date();
       targetDate.setDate(today.getDate() + rule.daysBefore);
 
-      let expiringItems: { employee: any; expiryDate: Date; type: string; itemName: string }[] = [];
+      let expiringItems: {
+        employee: any;
+        expiryDate: Date | null;
+        type: string;
+        itemName: string;
+      }[] = [];
 
       if (rule.category === "Driver Licence") {
         const items = await prisma.driverLicence.findMany({
@@ -65,7 +70,12 @@ export async function POST() {
       }
 
       for (const item of expiringItems) {
-        const daysRemaining = Math.ceil((item.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (!item.expiryDate) continue; // ✅ skip if expiryDate is null
+
+        const daysRemaining = Math.ceil(
+          (item.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         const employeeName = `${item.employee.firstName} ${item.employee.lastName}`;
         const recipients: string[] = [];
 

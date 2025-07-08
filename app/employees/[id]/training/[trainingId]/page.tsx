@@ -17,7 +17,8 @@ export default function EditTraining() {
   const employeeId = Array.isArray(params?.id) ? params.id[0] : params?.id ?? '';
   const trainingId = Array.isArray(params?.trainingId) ? params.trainingId[0] : params?.trainingId ?? '';
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -28,31 +29,46 @@ export default function EditTraining() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [coursesRes, providersRes, recordRes] = await Promise.all([
-        fetch('/api/courses/list'),
-        fetch('/api/providers/list'),
-        fetch(`/api/training-records/${trainingId}`),
-      ]);
-      const [coursesData, providersData, recordData] = await Promise.all([
-        coursesRes.json(),
-        providersRes.json(),
-        recordRes.json(),
-      ]);
+      try {
+        const [coursesRes, providersRes, recordRes] = await Promise.all([
+          fetch('/api/courses/list'),
+          fetch('/api/providers/list'),
+          fetch(`/api/training-records/${trainingId}`),
+        ]);
+        const [coursesData, providersData, recordData] = await Promise.all([
+          coursesRes.json(),
+          providersRes.json(),
+          recordRes.json(),
+        ]);
 
-      setCourses(coursesData);
-      setProviders(providersData);
-      setSelectedCourse(recordData.course?.id ?? '');
-      setSelectedProvider(recordData.provider?.id ?? '');
-      setDateCompleted(recordData.dateCompleted?.substring(0, 10));
-      setExpiryDate(recordData.expiryDate?.substring(0, 10) ?? '');
-      setDocument(recordData.document);
+        console.log('Fetched recordData:', recordData); // Debugging check
+
+        setCourses(coursesData);
+        setProviders(providersData);
+
+        if (recordData.course?.id) {
+          setSelectedCourse(recordData.course.id);
+        }
+        if (recordData.provider?.id) {
+          setSelectedProvider(recordData.provider.id);
+        }
+        setDateCompleted(recordData.dateCompleted?.substring(0, 10) ?? '');
+        setExpiryDate(recordData.expiryDate?.substring(0, 10) ?? '');
+        setDocument(recordData.document);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Failed to load data.');
+      } finally {
+        setLoading(false);
+      }
     };
+
     if (trainingId) fetchData();
   }, [trainingId]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
     formData.append('courseId', selectedCourse);
@@ -76,9 +92,17 @@ export default function EditTraining() {
       console.error(error);
       alert('Update failed.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto p-6">
+        <p>Loading training record...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto p-6 space-y-4">
@@ -118,12 +142,21 @@ export default function EditTraining() {
 
         <div>
           <Label>Date Completed</Label>
-          <Input type="date" value={dateCompleted} onChange={(e) => setDateCompleted(e.target.value)} required />
+          <Input
+            type="date"
+            value={dateCompleted}
+            onChange={(e) => setDateCompleted(e.target.value)}
+            required
+          />
         </div>
 
         <div>
           <Label>Expiry Date</Label>
-          <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+          <Input
+            type="date"
+            value={expiryDate}
+            onChange={(e) => setExpiryDate(e.target.value)}
+          />
         </div>
 
         <div>
@@ -134,14 +167,19 @@ export default function EditTraining() {
         {document && (
           <div className="text-sm">
             <p>Current Document:</p>
-            <a href={document.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+            <a
+              href={document.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
               {document.name}
             </a>
           </div>
         )}
 
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Updating...' : 'Update Training'}
+        <Button type="submit" disabled={submitting}>
+          {submitting ? 'Updating...' : 'Update Training'}
         </Button>
       </form>
     </div>

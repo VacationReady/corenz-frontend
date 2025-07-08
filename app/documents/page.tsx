@@ -1,17 +1,15 @@
-// /app/documents/page.tsx
-
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
-import { UploadCloud } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
+import { UploadCloud } from "lucide-react";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-
 
 type Document = {
   id: string;
@@ -21,6 +19,7 @@ type Document = {
   size: number;
   type: string;
   createdAt: string;
+  url: string;
 };
 
 export default function DocumentsPage() {
@@ -28,103 +27,177 @@ export default function DocumentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
   useEffect(() => {
     const fetchDocuments = async () => {
       const res = await fetch("/api/documents/list");
       const data = await res.json();
       setDocuments(data);
+      setLoading(false);
     };
     fetchDocuments();
   }, []);
 
-  const handleUpload = async () => {
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!file || !name || !category) {
-      alert("Please fill in all fields and select a file.");
+      toast("Please fill in all fields and select a file.");
       return;
     }
+    setUploading(true);
 
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", name);
     formData.append("category", category);
 
-    const res = await fetch("/api/documents/upload", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (res.ok) {
-  toast("Upload successful", {
-    description: `${name} has been uploaded successfully.`,
-});
-  setTimeout(() => {
-    window.location.reload();
-  }, 1500);
-} else {
-  toast("Upload failed", {
-    description: "Please try again or check your connection.",
-});
-}
-};
+      if (res.ok) {
+        toast("Upload successful", { description: `${name} has been uploaded.` });
+        setIsUploadModalOpen(false);
+        setFile(null);
+        setName("");
+        setCategory("");
+        const newDoc = await res.json();
+        setDocuments((prev) => [newDoc, ...prev]);
+      } else {
+        toast("Upload failed", { description: "Please try again or check your connection." });
+      }
+    } catch (error) {
+      console.error(error);
+      toast("Upload failed", { description: "An error occurred." });
+    } finally {
+      setUploading(false);
+    }
+  };
 
-  const handleDownload = async (path: string) => {
-    const res = await fetch(`/api/documents/download?path=${encodeURIComponent(path)}`);
-    const { url } = await res.json();
-    window.open(url, "_blank");
+  const formatFileSize = (size: number) =>
+    size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
+
+  const handleRowClick = (doc: Document) => {
+    setSelectedDoc(doc);
+    setIsPreviewModalOpen(true);
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Document Management</h1>
-
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="space-y-2">
-            <Label>Document Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" />
-
-            <Label>Category</Label>
-<Select value={category} onValueChange={setCategory}>
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Select a category" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
-    <SelectItem value="Training">Training</SelectItem>
-    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
-    <SelectItem value="General HR">General HR</SelectItem>
-  </SelectContent>
-</Select>
-
-            <Label>File</Label>
-            <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-
-            <Button onClick={handleUpload} className="mt-4">
-              <UploadCloud className="w-4 h-4 mr-2" /> Upload Document
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <h2 className="text-xl font-semibold mb-2">Uploaded Documents</h2>
-
-      <div className="space-y-2">
-        {documents.map((doc) => (
-          <Card key={doc.id}>
-            <CardContent className="p-3 flex justify-between items-center">
-              <div>
-                <p className="font-medium">{doc.name}</p>
-                <p className="text-sm text-gray-500">
-                  {doc.category ?? "Uncategorized"} • {new Date(doc.createdAt).toLocaleDateString()} • {Math.round(doc.size / 1024)} KB
-                </p>
-              </div>
-              <Button onClick={() => handleDownload(doc.path)}>Download</Button>
-            </CardContent>
-          </Card>
-        ))}
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Document Management</h1>
+        <Button onClick={() => setIsUploadModalOpen(true)}>
+          <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+        </Button>
       </div>
+
+      {loading ? (
+        <p>Loading documents...</p>
+      ) : documents.length === 0 ? (
+        <p>No documents uploaded yet.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Size</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {documents.map((doc) => (
+              <TableRow
+                key={doc.id}
+                onClick={() => handleRowClick(doc)}
+                className="cursor-pointer hover:bg-muted transition"
+              >
+                <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{formatFileSize(doc.size)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      {/* Upload Modal */}
+      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpload} className="space-y-4">
+            <div>
+              <Label>Document Name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="E.g., Leave Policy"
+                required
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                  <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                  <SelectItem value="Training">Training</SelectItem>
+                  <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                  <SelectItem value="General HR">General HR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>File</Label>
+              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Uploading..." : "Upload Document"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Modal */}
+      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedDoc?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedDoc && (
+            <div className="space-y-2">
+              <iframe
+                src={selectedDoc.url}
+                className="w-full h-[500px] rounded border"
+              ></iframe>
+              <a
+                href={selectedDoc.url}
+                download={selectedDoc.name}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
+                Download
+              </a>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

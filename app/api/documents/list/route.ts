@@ -1,20 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const employeeId = searchParams.get("employeeId");
 
   const documents = await prisma.document.findMany({
     where: {
       companyId: session.user.companyId,
-      deletedAt: null,
+      employeeId: employeeId ?? undefined,
     },
-    orderBy: { createdAt: 'desc' },
+    include: { uploader: true },
+    orderBy: { createdAt: "desc" },
   });
 
   return NextResponse.json(documents);

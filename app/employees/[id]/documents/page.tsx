@@ -1,53 +1,56 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { toast } from "sonner";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
-import { UploadCloud } from "lucide-react";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import { toast } from "sonner";
 
 type Document = {
   id: string;
   name: string;
   category: string | null;
-  path: string;
-  size: number;
-  type: string;
   createdAt: string;
-  uploader: {
-    name: string | null;
-    email: string | null;
-  };
+  size: number;
+  url: string;
 };
 
 export default function EmployeeDocumentsPage() {
-  const params = useParams() as { id: string } | undefined;
-const employeeId = params?.id ?? "";
+  const params = useParams();
+  const employeeId = Array.isArray(params?.id) ? params.id[0] : params?.id ?? '';
 
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
 
   useEffect(() => {
     const fetchDocuments = async () => {
-      const res = await fetch(`/api/documents/list-employee?employeeId=${employeeId}`);
+      const res = await fetch(`/api/documents/list?employeeId=${employeeId}`);
       const data = await res.json();
       setDocuments(data);
+      setLoading(false);
     };
-    if (employeeId) {
-      fetchDocuments();
-    }
+
+    if (employeeId) fetchDocuments();
   }, [employeeId]);
 
-  const handleUpload = async () => {
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!file || !name || !category) {
-      toast.error("Please fill in all fields and select a file.");
+      toast("Please fill in all fields and select a file.");
       return;
     }
+    setUploading(true);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -55,65 +58,138 @@ const employeeId = params?.id ?? "";
     formData.append("category", category);
     formData.append("employeeId", employeeId);
 
-    const res = await fetch("/api/documents/upload-employee", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (res.ok) {
-      toast.success(`${name} has been uploaded successfully.`);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } else {
-      toast.error("Upload failed. Please try again.");
+      if (res.ok) {
+        const newDoc = await res.json();
+        toast("Upload successful", { description: `${name} has been uploaded.` });
+        setDocuments((prev) => [newDoc, ...prev]);
+        setIsUploadModalOpen(false);
+        setFile(null);
+        setName("");
+        setCategory("");
+      } else {
+        toast("Upload failed", { description: "Please try again." });
+      }
+    } catch (error) {
+      console.error(error);
+      toast("Upload failed", { description: "An error occurred." });
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleDownload = async (path: string) => {
-    const res = await fetch(`/api/documents/download?path=${encodeURIComponent(path)}`);
-    const { url } = await res.json();
-    window.open(url, "_blank");
+  const formatFileSize = (size: number) =>
+    size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
+
+  const handleRowClick = (doc: Document) => {
+    setSelectedDoc(doc);
+    setIsPreviewModalOpen(true);
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Employee Documents</h1>
-
-      <Card className="mb-6">
-        <CardContent className="p-4 space-y-2">
-          <Label>Document Name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Signed Contract" />
-
-          <Label>Category</Label>
-          <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="E.g., Onboarding" />
-
-          <Label>File</Label>
-          <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-
-          <Button onClick={handleUpload} className="mt-4">
-            <UploadCloud className="w-4 h-4 mr-2" /> Upload Document
-          </Button>
-        </CardContent>
-      </Card>
-
-      <h2 className="text-xl font-semibold mb-2">Uploaded Documents</h2>
-      <div className="space-y-2">
-        {documents.map((doc) => (
-          <Card key={doc.id}>
-            <CardContent className="p-3 flex justify-between items-center">
-              <div>
-                <p className="font-medium">{doc.name}</p>
-                <p className="text-sm text-gray-500">
-                  {doc.category ?? "Uncategorized"} • Uploaded by {doc.uploader?.name ?? doc.uploader?.email ?? "Unknown"} •{" "}
-                  {new Date(doc.createdAt).toLocaleDateString()} • {Math.round(doc.size / 1024)} KB
-                </p>
-              </div>
-              <Button onClick={() => handleDownload(doc.path)}>Download</Button>
-            </CardContent>
-          </Card>
-        ))}
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Employee Documents</h1>
+        <Button onClick={() => setIsUploadModalOpen(true)}>Add Document</Button>
       </div>
+
+      {loading ? (
+        <p>Loading documents...</p>
+      ) : documents.length === 0 ? (
+        <p>No documents for this employee yet.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Size</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {documents.map((doc) => (
+              <TableRow
+                key={doc.id}
+                onClick={() => handleRowClick(doc)}
+                className="cursor-pointer hover:bg-muted transition"
+              >
+                <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{formatFileSize(doc.size)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      {/* Upload Modal */}
+      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpload} className="space-y-4">
+            <div>
+              <Label>Document Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                  <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                  <SelectItem value="Training">Training</SelectItem>
+                  <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                  <SelectItem value="General HR">General HR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>File</Label>
+              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Uploading..." : "Upload Document"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Modal */}
+      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedDoc?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedDoc && (
+            <div className="space-y-2">
+              <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+              <a
+                href={selectedDoc.url}
+                download={selectedDoc.name}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline"
+              >
+                Download
+              </a>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

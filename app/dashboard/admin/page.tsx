@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import type { NextAuthOptions } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import {
   Search,
@@ -17,45 +17,32 @@ import {
   Mail,
   CalendarCheck2,
 } from "lucide-react";
-// import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+import Link from "next/link";
+import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
-  // 1) Read session
+  // 1) Read the session on the server
   const session = await getServerSession(authOptions as NextAuthOptions);
 
-  // 2) If not logged in, show a login prompt (no redirect)
+  // 2) Redirect to login if not authenticated
   if (!session?.user) {
-    return (
-      <div className="p-6 text-center">
-        <p className="mb-4">You must be logged in to view this page.</p>
-        <Link
-          href="/login"
-          className="text-indigo-600 hover:underline"
-        >
-          Go to Login
-        </Link>
-      </div>
-    );
+    redirect("/login");
   }
 
-  // 3) Fetch your user record (with employee)
+  // 3) Fetch user record (including employee)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: { employee: true },
   });
 
-  // 4) If no employee record, show message
+  // 4) Redirect non-employee users to employee dashboard
   if (!user?.employee) {
-    return (
-      <div className="p-6 text-center">
-        No employee record found for your user.
-      </div>
-    );
+    redirect("/dashboard/employee");
   }
 
   const employeeId = user.employee.id;
 
-  // 5) Finally, render your admin dashboard UI
+  // 5) Render admin dashboard
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Header */}
@@ -93,10 +80,8 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* Leave Balance Widget (re-enable once auth is stable) */}
-        {/*
-          <LeaveBalanceWidget employeeId={employeeId} />
-        */}
+        {/* Live Leave Balance Widget */}
+        <LeaveBalanceWidget employeeId={employeeId} />
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">

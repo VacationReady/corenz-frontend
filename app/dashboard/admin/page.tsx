@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import AdminDashboardClient from "./AdminDashboardClient";
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
   // 1) Read the session on the server
@@ -32,7 +31,6 @@ export default async function AdminDashboardPage() {
   // 5) Render LeaveBalanceWidget (server) and client UI
   return (
     <>
-      <LeaveBalanceWidget employeeId={employeeId} />
       <AdminDashboardClient
         employeeId={employeeId}
         firstName={user.firstName ?? undefined}

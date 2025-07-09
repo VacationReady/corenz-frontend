@@ -11,7 +11,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Read role from data attribute injected by the layout
-    const roleAttr = document.querySelector("[data-role]")?.getAttribute("data-role");
+    const roleAttr = document
+      .querySelector("[data-role]")
+      ?.getAttribute("data-role");
+    console.log("🛰️ raw roleAttr =", roleAttr);  // ← Debug log
     setRole(roleAttr ?? null);
   }, []);
 

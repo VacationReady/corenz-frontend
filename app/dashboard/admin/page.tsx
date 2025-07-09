@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import type { NextAuthOptions } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import {
   Search,
@@ -16,28 +17,45 @@ import {
   Mail,
   CalendarCheck2,
 } from "lucide-react";
-import Link from "next/link";
 // import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
-  // ← Use the App-Router getServerSession import + cast
+  // 1) Read session
   const session = await getServerSession(authOptions as NextAuthOptions);
 
-  if (!session || !session.user) {
-    return <div className="p-6">You must be logged in to view this page.</div>;
+  // 2) If not logged in, show a login prompt (no redirect)
+  if (!session?.user) {
+    return (
+      <div className="p-6 text-center">
+        <p className="mb-4">You must be logged in to view this page.</p>
+        <Link
+          href="/login"
+          className="text-indigo-600 hover:underline"
+        >
+          Go to Login
+        </Link>
+      </div>
+    );
   }
 
+  // 3) Fetch your user record (with employee)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: { employee: true },
   });
 
+  // 4) If no employee record, show message
   if (!user?.employee) {
-    return <div className="p-6">No employee record found for your user.</div>;
+    return (
+      <div className="p-6 text-center">
+        No employee record found for your user.
+      </div>
+    );
   }
 
   const employeeId = user.employee.id;
 
+  // 5) Finally, render your admin dashboard UI
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Header */}
@@ -75,9 +93,9 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* 🚫 temporarily disabled until admin auth is fixed */}
+        {/* Leave Balance Widget (re-enable once auth is stable) */}
         {/*
-        <LeaveBalanceWidget employeeId={employeeId} />
+          <LeaveBalanceWidget employeeId={employeeId} />
         */}
 
         {/* Quick Actions */}

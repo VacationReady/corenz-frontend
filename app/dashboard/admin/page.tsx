@@ -1,7 +1,6 @@
 // app/dashboard/admin/page.tsx
 
-import { getServerSession } from "next-auth/next";
-import type { NextAuthOptions } from "next-auth";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -18,11 +17,11 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
-// import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
-  // 1) Read session on the server
-  const session = await getServerSession(authOptions as NextAuthOptions);
+  // 1) Read the session on the server using the Pages-Router helper
+  const session = await getServerSession(authOptions);
 
   // 2) Redirect to login if not authenticated
   if (!session?.user) {
@@ -35,14 +34,14 @@ export default async function AdminDashboardPage() {
     include: { employee: true },
   });
 
-  // 4) Redirect non-employee users to employee dashboard
+  // 4) Redirect non-employee users
   if (!user?.employee) {
     redirect("/dashboard/employee");
   }
 
   const employeeId = user.employee.id;
 
-  // 5) Render admin dashboard (widget commented out)
+  // 5) Render the admin dashboard
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Header */}
@@ -80,10 +79,8 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* Leave Balance Widget temporarily disabled */}
-        {/*
+        {/* Live Leave Balance Widget */}
         <LeaveBalanceWidget employeeId={employeeId} />
-        */}
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
@@ -110,15 +107,9 @@ export default async function AdminDashboardPage() {
         {/* People Metrics */}
         <DashboardWidget title="People Metrics" icon={Users} className="h-full">
           <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-            <li>
-              Active Employees: <span className="font-semibold">46</span>
-            </li>
-            <li>
-              Managers: <span className="font-semibold">5</span>
-            </li>
-            <li>
-              New Starters This Month: <span className="font-semibold">3</span>
-            </li>
+            <li>Active Employees: <span className="font-semibold">46</span></li>
+            <li>Managers: <span className="font-semibold">5</span></li>
+            <li>New Starters This Month: <span className="font-semibold">3</span></li>
           </ul>
         </DashboardWidget>
 

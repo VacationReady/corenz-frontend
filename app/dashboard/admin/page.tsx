@@ -5,32 +5,38 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import AdminDashboardClient from "./AdminDashboardClient";
+import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
-  // Read the session using the Pages-Router helper
+  // 1) Read the session on the server
   const session = await getServerSession(authOptions);
 
-  // If not authenticated, send to login
+  // 2) Redirect to login if not authenticated
   if (!session?.user) {
     redirect("/login");
   }
 
-  // Fetch the user record along with their employee info
+  // 3) Fetch user record (including employee)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: { employee: true },
   });
 
-  // If they don’t have an employee record, redirect to the employee dashboard
+  // 4) Redirect non-employee users to employee dashboard
   if (!user?.employee) {
     redirect("/dashboard/employee");
   }
 
-  // Render the client-side dashboard, passing only serializable props
+  const employeeId = user.employee.id;
+
+  // 5) Render LeaveBalanceWidget (server) and client UI
   return (
-    <AdminDashboardClient
-      employeeId={user.employee.id}
-      firstName={user.firstName ?? undefined}
-    />
+    <>
+      <LeaveBalanceWidget employeeId={employeeId} />
+      <AdminDashboardClient
+        employeeId={employeeId}
+        firstName={user.firstName ?? undefined}
+      />
+    </>
   );
 }

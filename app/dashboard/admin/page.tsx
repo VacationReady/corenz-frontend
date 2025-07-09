@@ -18,10 +18,10 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+// import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
-  // 1) Read the session on the server
+  // 1) Read session on the server
   const session = await getServerSession(authOptions as NextAuthOptions);
 
   // 2) Redirect to login if not authenticated
@@ -42,7 +42,7 @@ export default async function AdminDashboardPage() {
 
   const employeeId = user.employee.id;
 
-  // 5) Render admin dashboard
+  // 5) Render admin dashboard (widget commented out)
   return (
     <div className="flex flex-col flex-1 w-full">
       {/* Header */}
@@ -80,8 +80,10 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* Live Leave Balance Widget */}
+        {/* Leave Balance Widget temporarily disabled */}
+        {/*
         <LeaveBalanceWidget employeeId={employeeId} />
+        */}
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">

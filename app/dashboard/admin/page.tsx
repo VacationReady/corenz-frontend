@@ -1,6 +1,7 @@
-// app/dashboard/admin/page.tsx (clean, stable)
+// app/dashboard/admin/page.tsx
 
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
+import type { NextAuthOptions } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
@@ -16,10 +17,11 @@ import {
   CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+// import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 
 export default async function AdminDashboardPage() {
-  const session = await getServerSession(authOptions);
+  // ← Use the App-Router getServerSession import + cast
+  const session = await getServerSession(authOptions as NextAuthOptions);
 
   if (!session || !session.user) {
     return <div className="p-6">You must be logged in to view this page.</div>;
@@ -46,7 +48,9 @@ export default async function AdminDashboardPage() {
         <div className="flex items-center gap-4">
           <div className="relative cursor-pointer">
             <Bell className="w-6 h-6 text-gray-700 dark:text-gray-300 hover:scale-110 transition-transform" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
+              3
+            </span>
           </div>
           <div className="relative">
             <Link href="/profile">
@@ -71,8 +75,10 @@ export default async function AdminDashboardPage() {
       </div>
 
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
-        {/* ✅ Leave Balance Widget reintroduced safely */}
+        {/* 🚫 temporarily disabled until admin auth is fixed */}
+        {/*
         <LeaveBalanceWidget employeeId={employeeId} />
+        */}
 
         {/* Quick Actions */}
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
@@ -88,7 +94,9 @@ export default async function AdminDashboardPage() {
                 className="flex flex-col items-center justify-center bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg p-3 hover:shadow-md hover:scale-105 transition-transform"
               >
                 <action.icon className="w-5 h-5 text-indigo-600 mb-1" />
-                <span className="text-xs text-gray-700 dark:text-gray-300">{action.label}</span>
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  {action.label}
+                </span>
               </button>
             ))}
           </div>
@@ -97,9 +105,15 @@ export default async function AdminDashboardPage() {
         {/* People Metrics */}
         <DashboardWidget title="People Metrics" icon={Users} className="h-full">
           <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
-            <li>Active Employees: <span className="font-semibold">46</span></li>
-            <li>Managers: <span className="font-semibold">5</span></li>
-            <li>New Starters This Month: <span className="font-semibold">3</span></li>
+            <li>
+              Active Employees: <span className="font-semibold">46</span>
+            </li>
+            <li>
+              Managers: <span className="font-semibold">5</span>
+            </li>
+            <li>
+              New Starters This Month: <span className="font-semibold">3</span>
+            </li>
           </ul>
         </DashboardWidget>
 

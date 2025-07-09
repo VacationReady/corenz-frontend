@@ -1,8 +1,7 @@
 // /app/dashboard/layout.tsx
 
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import type { NextAuthOptions } from "next-auth";
 import type React from "react";
 import { ReactNode } from "react";
 

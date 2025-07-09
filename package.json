@@ -41,7 +41,7 @@
     "framer-motion": "^12.19.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.513.0",
-    "next": "14.2.3",
+    "next": "^14.2.3",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
     "papaparse": "^5.5.3",

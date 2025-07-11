@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import EmployeesPageClient from "@/components/employees/EmployeesPageClient";
+import EmployeesPageClient from "./EmployeesPageClient";
 
 export default function EmployeesPage() {
   return <EmployeesPageClient />;

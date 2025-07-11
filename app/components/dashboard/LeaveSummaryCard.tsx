@@ -1,11 +1,8 @@
-// components/dashboard/LeaveSummaryCard.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CalendarCheck2 } from "lucide-react";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 
@@ -22,6 +19,7 @@ type LeaveEntitlement = {
 
 export default function LeaveSummaryCard({ employeeId }: { employeeId: string }) {
   const [entitlements, setEntitlements] = useState<LeaveEntitlement[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchEntitlements = async () => {
@@ -55,17 +53,16 @@ export default function LeaveSummaryCard({ employeeId }: { employeeId: string })
         <p>Taken: <strong>{totalTaken} days</strong></p>
         <p>Remaining: <strong>{totalRemaining} days</strong></p>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="mt-2 w-full">Book Holiday</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Book Holiday</DialogTitle>
-            </DialogHeader>
-            <AddLeaveRequestDialog employeeId={employeeId} isAdminOrManager={true} />
-          </DialogContent>
-        </Dialog>
+        <Button className="mt-2 w-full" onClick={() => setModalOpen(true)}>
+          Book Holiday
+        </Button>
+
+        <AddLeaveRequestDialog
+          employeeId={employeeId}
+          isAdminOrManager={true}
+          open={modalOpen}
+          setOpen={setModalOpen}
+        />
       </div>
     </Card>
   );

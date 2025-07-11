@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+// import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
 import dynamic from "next/dynamic";
 
 // Dynamically load the client portion (no SSR)
@@ -30,7 +30,7 @@ export default async function AdminDashboardPage() {
         <h1 className="text-xl sm:text-2xl font-bold">
           Hi, {user.firstName ?? ""} 👋
         </h1>
-        <LeaveBalanceWidget employeeId={user.employee.id} titleOnly />
+        {/* <LeaveBalanceWidget employeeId={user.employee.id} titleOnly /> */}
       </div>
       <div className="px-6 mt-4 mb-2 max-w-md relative">
         <input
@@ -43,7 +43,7 @@ export default async function AdminDashboardPage() {
       {/* Unified Grid */}
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Server-only leave widget */}
-        <LeaveBalanceWidget employeeId={user.employee.id} />
+        {/* <LeaveBalanceWidget employeeId={user.employee.id} /> */}
 
         {/* Client-only UI */}
         <AdminDashboardClient

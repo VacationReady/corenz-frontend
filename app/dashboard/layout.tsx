@@ -22,6 +22,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     Sidebar = <EmployeeSidebar />;
   }
 
+  // ✅ Sidebar now shows consistently across all /dashboard/* pages, including calendar, employees, etc.
   return (
     <div className="flex h-full">
       {Sidebar}

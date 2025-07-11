@@ -12,7 +12,6 @@ export default async function LeaveBalanceWidget({
   employeeId,
   titleOnly = false,
 }: LeaveBalanceWidgetProps) {
-  // Render a compact 'Book Leave' card in the header if requested
   if (titleOnly) {
     return (
       <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
@@ -21,7 +20,6 @@ export default async function LeaveBalanceWidget({
     );
   }
 
-  // Otherwise, fetch and display full leave entitlements
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
     include: { leaveEntitlements: { include: { eventCategory: true } } },
@@ -31,19 +29,23 @@ export default async function LeaveBalanceWidget({
     return <div className="p-4">Employee not found for leave balances.</div>;
   }
 
+  // Fully serialize leaveEntitlements precisely for LeaveBalancePanel
+  const serializedEntitlements = employee.leaveEntitlements.map(entitlement => ({
+    id: entitlement.id,
+    totalDays: entitlement.totalDays,
+    usedDays: entitlement.usedDays,
+    carryoverDays: entitlement.carryoverDays ?? 0,
+    eventCategory: {
+      id: entitlement.eventCategory.id,
+      name: entitlement.eventCategory.name,
+      color: entitlement.eventCategory.color ?? null,
+    },
+  }));
+
   return (
-  <LeaveBalanceClientWidget
-    employeeId={employee.id}
-    leaveEntitlements={employee.leaveEntitlements.map(entitlement => ({
-      id: entitlement.id,
-      remaining: entitlement.remaining,
-      taken: entitlement.taken,
-      total: entitlement.total,
-      eventCategory: {
-        id: entitlement.eventCategory.id,
-        name: entitlement.eventCategory.name,
-        color: entitlement.eventCategory.color,
-      },
-    }))}
-  />
-);
+    <LeaveBalanceClientWidget
+      employeeId={employee.id}
+      leaveEntitlements={serializedEntitlements}
+    />
+  );
+}

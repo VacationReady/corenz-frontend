@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/Button";
-import EntitlementModal from "@/components/EntitlementModal"; // we will create this
 
 // Dynamically load the client portion (no SSR)
 const AdminDashboardClient = dynamic(() => import("./AdminDashboardClient"), { ssr: false });
@@ -31,8 +30,6 @@ export default async function AdminDashboardPage() {
         <h1 className="text-xl sm:text-2xl font-bold">
           Hi, {user.firstName ?? ""} 👋
         </h1>
-        {/* New Entitlement Modal Button */}
-        <EntitlementModal employeeId={user.employee.id} />
       </div>
 
       <div className="px-6 mt-4 mb-2 max-w-md relative">

@@ -11,6 +11,8 @@ import Tooltip from "@/components/ui/tooltip";
 interface AddLeaveRequestDialogProps {
   employeeId: string;
   isAdminOrManager: boolean;
+  open?: boolean;
+  setOpen?: (value: boolean) => void;
 }
 
 type EventCategory = {
@@ -22,8 +24,14 @@ type EventCategory = {
 export default function AddLeaveRequestDialog({
   employeeId,
   isAdminOrManager,
+  open,
+  setOpen,
 }: AddLeaveRequestDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isControlled = open !== undefined && setOpen !== undefined;
+  const modalOpen = isControlled ? open : isOpen;
+  const handleSetOpen = isControlled ? setOpen : setIsOpen;
+
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [type, setType] = useState("");
   const [subcategory, setSubcategory] = useState("");
@@ -56,10 +64,10 @@ export default function AddLeaveRequestDialog({
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchCategories(); // refresh categories on modal open
+    if (modalOpen) {
+      fetchCategories();
     }
-  }, [isOpen]);
+  }, [modalOpen]);
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -156,7 +164,7 @@ export default function AddLeaveRequestDialog({
       }
 
       toast.success("Leave request submitted successfully.");
-      setIsOpen(false);
+      handleSetOpen(false);
       setType("");
       setSubcategory("");
       setStartDate("");
@@ -181,11 +189,14 @@ export default function AddLeaveRequestDialog({
 
   return (
     <>
-      <Button variant="ghost" onClick={() => setIsOpen(true)}>
-        Book Leave
-      </Button>
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Book Leave">
+      {!isControlled && (
+        <Button variant="ghost" onClick={() => handleSetOpen(true)}>
+          Book Leave
+        </Button>
+      )}
+      <Modal isOpen={modalOpen} onClose={() => handleSetOpen(false)} title="Book Leave">
         <div className="space-y-4">
+          {/* Form fields remain exactly as before */}
           <div>
             <label className="block text-sm font-medium">Leave Type</label>
             <select
@@ -224,6 +235,7 @@ export default function AddLeaveRequestDialog({
             <label className="block text-sm font-medium">Start Date</label>
             <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
+
           <div>
             <div className="flex items-center gap-2">
               <label className="block text-sm font-medium">End Date</label>

@@ -32,9 +32,18 @@ export default async function LeaveBalanceWidget({
   }
 
   return (
-    <LeaveBalanceClientWidget
-      employeeId={employee.id}
-      leaveEntitlements={employee.leaveEntitlements}
-    />
-  );
-}
+  <LeaveBalanceClientWidget
+    employeeId={employee.id}
+    leaveEntitlements={employee.leaveEntitlements.map(entitlement => ({
+      id: entitlement.id,
+      remaining: entitlement.remaining,
+      taken: entitlement.taken,
+      total: entitlement.total,
+      eventCategory: {
+        id: entitlement.eventCategory.id,
+        name: entitlement.eventCategory.name,
+        color: entitlement.eventCategory.color,
+      },
+    }))}
+  />
+);

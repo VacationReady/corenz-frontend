@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 import dynamic from "next/dynamic";
-import { Button } from "@/components/ui/Button";
+import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 
 // Dynamically load the client portion (no SSR)
 const AdminDashboardClient = dynamic(() => import("./AdminDashboardClient"), { ssr: false });
@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col flex-1 w-full">
-      {/* Header + Search */}
+      {/* Header */}
       <div className="w-full px-6 pt-6 flex items-center justify-between">
         <h1 className="text-xl sm:text-2xl font-bold">
           Hi, {user.firstName ?? ""} 👋
@@ -42,7 +42,10 @@ export default async function AdminDashboardPage() {
 
       {/* Unified Grid */}
       <main className="flex-1 p-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Client-only UI */}
+        {/* Leave Summary Card for holiday management */}
+        <LeaveSummaryCard employeeId={user.employee.id} />
+
+        {/* Client-only Admin Dashboard widgets */}
         <AdminDashboardClient
           employeeId={user.employee.id}
           firstName={user.firstName ?? ""}

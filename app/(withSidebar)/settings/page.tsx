@@ -1,12 +1,33 @@
-"use client";
-export const dynamic = "force-dynamic";
+'use client'
 
-export default function SettingsPage() {
+import Link from 'next/link'
+import { PageShell } from '@/components/ui/layouts/PageShell'
+import { Card, CardContent } from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+
+const settingsLinks = [
+  { title: 'Working Patterns', href: '/settings/working-patterns' },
+  { title: 'Expiry Alerts', href: '/settings/expiry-alerts' },
+  { title: 'Event Rules', href: '/settings/event-rules' },
+  { title: 'Automatic Notifications', href: '/settings/automatic-triggers' },
+  { title: 'Leave Policies', href: '/settings/leave-policies' },
+]
+
+export default function SettingsIndexPage() {
   return (
-    <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Settings</h1>
-      <p>Manage your app settings here.</p>
-    </div>
-  );
+    <PageShell heading="Settings" description="Manage your system configurations">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {settingsLinks.map(({ title, href }) => (
+          <Card key={title}>
+            <CardContent className="p-4 flex flex-col gap-2">
+              <div className="text-lg font-semibold">{title}</div>
+              <Button asChild variant="outline">
+                <Link href={href}>Manage</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </PageShell>
+  )
 }
-

@@ -21,7 +21,7 @@ export default function SettingsIndexPage() {
           <Card key={title}>
             <CardContent className="p-4 flex flex-col gap-2">
               <div className="text-lg font-semibold">{title}</div>
-              <Button asChild variant="outline">
+              <Button asChild variant="ghost">
                 <Link href={href}>Manage</Link>
               </Button>
             </CardContent>

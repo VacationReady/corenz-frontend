@@ -104,7 +104,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
               ))}
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() =>
                   updateBlock(index, {
@@ -123,7 +123,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
       <div className="flex gap-2 flex-wrap">
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           onClick={() => addBlock('heading')}
           size="sm"
         >
@@ -131,7 +131,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           onClick={() => addBlock('paragraph')}
           size="sm"
         >
@@ -139,7 +139,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         </Button>
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           onClick={() => addBlock('bullet_list')}
           size="sm"
         >

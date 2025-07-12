@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Button from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/Textarea';
 import { Trash2, Plus } from 'lucide-react';
 
 type ContentBlock =
@@ -52,6 +52,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
       {blocks.map((block, index) => (
         <div key={index} className="border rounded p-4 space-y-2 relative bg-white">
           <button
+            type="button"
             onClick={() => removeBlock(index)}
             className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
             title="Remove block"
@@ -102,7 +103,8 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 />
               ))}
               <Button
-                variant="ghost"
+                type="button"
+                variant="outline"
                 size="sm"
                 onClick={() =>
                   updateBlock(index, {
@@ -118,23 +120,26 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         </div>
       ))}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
-          variant="ghost"
+          type="button"
+          variant="secondary"
           onClick={() => addBlock('heading')}
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" /> Add Heading
         </Button>
         <Button
-          variant="ghost"
+          type="button"
+          variant="secondary"
           onClick={() => addBlock('paragraph')}
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" /> Add Paragraph
         </Button>
         <Button
-          variant="ghost"
+          type="button"
+          variant="secondary"
           onClick={() => addBlock('bullet_list')}
           size="sm"
         >

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Button from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/Textarea';
 import { Trash2, Plus } from 'lucide-react';
 
 type ContentBlock =
@@ -47,6 +47,12 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
     updateBlocks(newBlocks);
   };
 
+  const preventEnterSubmit = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="space-y-4">
       {blocks.map((block, index) => (
@@ -69,6 +75,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 onChange={(e) =>
                   updateBlock(index, { ...block, text: e.target.value })
                 }
+                onKeyDown={preventEnterSubmit}
               />
             </>
           )}
@@ -82,6 +89,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 onChange={(e) =>
                   updateBlock(index, { ...block, text: e.target.value })
                 }
+                onKeyDown={preventEnterSubmit}
               />
             </>
           )}
@@ -100,11 +108,12 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                     newItems[i] = e.target.value;
                     updateBlock(index, { ...block, items: newItems });
                   }}
+                  onKeyDown={preventEnterSubmit}
                 />
               ))}
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() =>
                   updateBlock(index, {
@@ -123,7 +132,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
       <div className="flex gap-2 flex-wrap">
         <Button
           type="button"
-          variant="ghost"
+          variant="secondary"
           onClick={() => addBlock('heading')}
           size="sm"
         >
@@ -131,7 +140,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         </Button>
         <Button
           type="button"
-          variant="ghost"
+          variant="secondary"
           onClick={() => addBlock('paragraph')}
           size="sm"
         >
@@ -139,7 +148,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         </Button>
         <Button
           type="button"
-          variant="ghost"
+          variant="secondary"
           onClick={() => addBlock('bullet_list')}
           size="sm"
         >

@@ -14,6 +14,12 @@ import {
   Repeat,
   Settings
 } from 'lucide-react'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from '@/components/ui/accordion'
 
 const holidaySettings = [
   {
@@ -67,92 +73,50 @@ const systemSettings = [
   }
 ]
 
+function SettingSection({
+  id,
+  label,
+  items
+}: {
+  id: string
+  label: string
+  items: { title: string; href: string; icon: React.ReactNode }[]
+}) {
+  return (
+    <AccordionItem value={id}>
+      <AccordionTrigger className="text-xl font-semibold text-indigo-700">
+        {label}
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+          {items.map(({ title, href, icon }) => (
+            <Card key={title}>
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-lg font-semibold">
+                  {icon}
+                  {title}
+                </div>
+                <Button asChild variant="ghost">
+                  <Link href={href}>Manage</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
 export default function SettingsIndexPage() {
   return (
     <PageShell title="Settings" description="Manage your system configurations">
-      <div className="space-y-10">
-
-        {/* Holidays & Absence */}
-        <div>
-          <h2 className="text-xl font-semibold text-indigo-700 mb-4">Holidays & Absence</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {holidaySettings.map(({ title, href, icon }) => (
-              <Card key={title}>
-                <CardContent className="p-4 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    {icon}
-                    {title}
-                  </div>
-                  <Button asChild variant="ghost">
-                    <Link href={href}>Manage</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Documents */}
-        <div>
-          <h2 className="text-xl font-semibold text-indigo-700 mb-4">Documents</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {documentSettings.map(({ title, href, icon }) => (
-              <Card key={title}>
-                <CardContent className="p-4 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    {icon}
-                    {title}
-                  </div>
-                  <Button asChild variant="ghost">
-                    <Link href={href}>Manage</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Workflows */}
-        <div>
-          <h2 className="text-xl font-semibold text-indigo-700 mb-4">Workflows</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workflowSettings.map(({ title, href, icon }) => (
-              <Card key={title}>
-                <CardContent className="p-4 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    {icon}
-                    {title}
-                  </div>
-                  <Button asChild variant="ghost">
-                    <Link href={href}>Manage</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* System */}
-        <div>
-          <h2 className="text-xl font-semibold text-indigo-700 mb-4">System</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {systemSettings.map(({ title, href, icon }) => (
-              <Card key={title}>
-                <CardContent className="p-4 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-lg font-semibold">
-                    {icon}
-                    {title}
-                  </div>
-                  <Button asChild variant="ghost">
-                    <Link href={href}>Manage</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-      </div>
+      <Accordion type="multiple" className="space-y-6">
+        <SettingSection id="holidays" label="Holidays & Absence" items={holidaySettings} />
+        <SettingSection id="documents" label="Documents" items={documentSettings} />
+        <SettingSection id="workflows" label="Workflows" items={workflowSettings} />
+        <SettingSection id="system" label="System" items={systemSettings} />
+      </Accordion>
     </PageShell>
   )
 }

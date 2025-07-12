@@ -33,6 +33,7 @@ model User {
   subordinates                                 User[]           @relation("ManagerSubordinates")
   company                                      Company?         @relation(fields: [companyId], references: [id])
   companyId                                    String?
+newsPosts      NewsPost[] // Optional: add @relation if you want a named relation
 
   SavedReport SavedReport[]
   documents   Document[]
@@ -330,6 +331,24 @@ model ExpiryRule {
   notifyAdmin    Boolean  @default(true)
   notifyManager  Boolean  @default(true)
   notifyEmployee Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model NewsPost {
+  id             String   @id @default(uuid())
+  title          String
+  slug           String   @unique
+  content        Json     // Rich text (e.g. from Editor.js or Tiptap)
+  authorId       String
+  author         User     @relation(fields: [authorId], references: [id])
+  publishedAt    DateTime?
+  pinned         Boolean  @default(false)
+  tags           String[] // e.g. ["Policy", "Wellbeing"]
+  audience       Json     // Flexible: store dept/location/role filters here
+  attachments    String[] // Supabase file URLs
+  videoEmbedUrl  String?  // Optional video URL
+  sendEmail      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

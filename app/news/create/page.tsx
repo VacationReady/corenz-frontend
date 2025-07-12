@@ -62,7 +62,16 @@ export default function CreateNewsPostPage() {
     <div className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-6">Create News Post</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form
+  onSubmit={handleSubmit}
+  className="space-y-6"
+  onKeyDown={(e) => {
+    // Prevent Enter from triggering unexpected submit unless inside a textarea
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+      e.preventDefault();
+    }
+  }}
+>
         <div>
           <label className="block text-sm font-medium mb-1">Title</label>
           <Input value={title} onChange={e => setTitle(e.target.value)} required />

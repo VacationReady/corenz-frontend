@@ -1,13 +1,37 @@
 import { getAllNewsPosts } from '@/lib/news/getAllNewsPosts'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/lib/auth-options'
+import { prisma } from '@/lib/prisma'
+import { Button } from '@/components/ui/button'
 
 export default async function NewsPage() {
   const posts = await getAllNewsPosts()
+  const session = await getServerSession(authOptions)
+
+  let canPost = false
+  if (session?.user?.email) {
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    })
+
+    if (dbUser?.role === 'ADMIN' || dbUser?.role === 'MANAGER') {
+      canPost = true
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Company News</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Company News</h1>
+
+        {canPost && (
+          <Link href="/news/create">
+            <Button>Create News</Button>
+          </Link>
+        )}
+      </div>
 
       <div className="space-y-6">
         {posts.map((post) => (

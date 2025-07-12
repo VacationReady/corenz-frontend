@@ -2,11 +2,13 @@
 
 import React from "react";
 import clsx from "clsx";
+import { Slot } from "@radix-ui/react-slot"; // ✅ Added import
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   loading?: boolean; // ✅ New loading prop
+  asChild?: boolean; // ✅ New asChild support
 }
 
 export default function Button({
@@ -16,6 +18,7 @@ export default function Button({
   loading = false,
   disabled,
   type = "button", // ✅ Ensures default type is "button", not "submit"
+  asChild = false, // ✅ Default value
   ...props
 }: ButtonProps) {
   const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
@@ -31,8 +34,10 @@ export default function Button({
     lg: "px-6 py-3 text-lg",
   }[size];
 
+  const Comp = asChild ? Slot : "button"; // ✅ Support Slot
+
   return (
-    <button
+    <Comp
       {...props}
       disabled={disabled || loading}
       className={clsx(baseClasses, variantClasses, sizeClasses, props.className, {
@@ -61,7 +66,6 @@ export default function Button({
       ) : (
         children
       )}
-    </button>
+    </Comp>
   );
 }
-

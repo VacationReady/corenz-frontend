@@ -77,7 +77,7 @@ export default function CreateNewsPostPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Switch checked={sendEmail} onCheckedChange={setSendEmail} />
+          <Switch checked={sendEmail} onCheckedChange={(checked) => setSendEmail(checked)} />
           <span className="text-sm">Send email notification</span>
         </div>
 

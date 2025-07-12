@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { PageShell } from '@/components/ui/layouts/PageShell'
+import { PageShell } from '@/components/ui/PageShell'
 import { Card, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 

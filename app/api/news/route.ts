@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/lib/auth-options'
+import { authOptions } from '@/lib/auth-options'
 import { Resend } from 'resend'
 import slugify from 'slugify'
 

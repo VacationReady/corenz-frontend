@@ -102,7 +102,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 />
               ))}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() =>
                   updateBlock(index, {

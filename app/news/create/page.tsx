@@ -6,14 +6,19 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
-import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
+import NewsContentBuilder from '@/components/news/NewsContentBuilder'
+
+type ContentBlock =
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'paragraph'; text: string }
+  | { type: 'bullet_list'; items: string[] }
 
 export default function CreateNewsPostPage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState<ContentBlock[]>([])
   const [videoUrl, setVideoUrl] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [sendEmail, setSendEmail] = useState(false)
@@ -36,7 +41,7 @@ export default function CreateNewsPostPage() {
       method: 'POST',
       body: JSON.stringify({
         title,
-        content,
+        content, // already a structured JSON array
         videoEmbedUrl: videoUrl,
         attachments: uploadedUrls,
         sendEmail,
@@ -65,7 +70,7 @@ export default function CreateNewsPostPage() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Content</label>
-          <Textarea rows={8} value={content} onChange={e => setContent(e.target.value)} required />
+          <NewsContentBuilder value={content} onChange={setContent} />
         </div>
 
         <div>

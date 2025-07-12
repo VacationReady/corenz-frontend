@@ -1,5 +1,3 @@
-// app/api/working-patterns/route.ts
-
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -33,7 +31,24 @@ export async function GET() {
         },
       },
     });
-    return NextResponse.json(patterns, { status: 200 });
+
+    // ✅ Remap to structure expected by the frontend
+    const formatted = patterns.map((pattern) => ({
+      id: pattern.id,
+      name: pattern.name,
+      description: pattern.description,
+      weeks: pattern.WorkingPatternWeek.map((week) => ({
+        id: week.id,
+        weekNumber: week.weekNumber,
+        days: week.WorkingPatternDay.map((day) => ({
+          id: day.id,
+          day: day.day,
+          type: day.type,
+        })),
+      })),
+    }));
+
+    return NextResponse.json(formatted, { status: 200 });
   } catch (error) {
     console.error("GET /api/working-patterns error:", error);
     return NextResponse.json(

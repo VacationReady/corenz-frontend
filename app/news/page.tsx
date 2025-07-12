@@ -2,9 +2,9 @@ import { getAllNewsPosts } from '@/lib/news/getAllNewsPosts'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/lib/auth-options'
+import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
-import { Button } from '@/components/ui/button'
+import Button from '@/components/ui/Button'
 
 export default async function NewsPage() {
   const posts = await getAllNewsPosts()

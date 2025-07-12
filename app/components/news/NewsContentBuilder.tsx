@@ -127,14 +127,14 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
           <Plus className="mr-1 h-4 w-4" /> Add Heading
         </Button>
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={() => addBlock('paragraph')}
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" /> Add Paragraph
         </Button>
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={() => addBlock('bullet_list')}
           size="sm"
         >

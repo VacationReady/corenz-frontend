@@ -13,6 +13,7 @@ import {
   Megaphone,
   Settings,
   Menu,
+BarChart3,
   X,
   LogOut,
 } from "lucide-react";
@@ -106,7 +107,7 @@ const sidebarLinks = [
   { href: "/employees", icon: <Users size={18} />, label: "Employees" },
   { href: "/calendar", icon: <Calendar size={18} />, label: "Calendar" },
   { href: "/documents", icon: <FileText size={18} />, label: "Documents" },
-  { href: "/reports", icon: <FileText size={18} />, label: "Reports" }, // ✅ Added
+  { href: "/reports", icon: <BarChart3 size={18} />, label: "Reports" },
   { href: "/org-chart", icon: <Network size={18} />, label: "Org Chart" },
   { href: "/news", icon: <Megaphone size={18} />, label: "News" },
   { href: "/settings", icon: <Settings size={18} />, label: "Settings" },

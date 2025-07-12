@@ -2,6 +2,10 @@ import { getNewsPostBySlug } from '@/lib/news/getNewsPostBySlug'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
+
+// Dynamically import to ensure client-side rendering
+const NewsContentRenderer = dynamic(() => import('@/components/news/NewsContentRenderer'), { ssr: false })
 
 interface Props {
   params: { slug: string }
@@ -31,12 +35,14 @@ export default async function NewsDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Rich content (for now, fallback until full renderer is added) */}
-      <div className="prose prose-gray mt-6">
-        {typeof post.content === 'string' ? (
-          <p>{post.content}</p>
+      {/* Rich content */}
+      <div className="mt-6">
+        {Array.isArray(post.content) ? (
+          <NewsContentRenderer content={post.content as any} />
+        ) : typeof post.content === 'string' ? (
+          <p className="text-gray-700">{post.content}</p>
         ) : (
-          <p>[Rich content coming soon]</p>
+          <p className="text-sm text-muted-foreground italic">[No content]</p>
         )}
       </div>
 

@@ -15,7 +15,7 @@ const settingsLinks = [
 
 export default function SettingsIndexPage() {
   return (
-    <PageShell heading="Settings" description="Manage your system configurations">
+    <PageShell title="Settings" description="Manage your system configurations">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {settingsLinks.map(({ title, href }) => (
           <Card key={title}>

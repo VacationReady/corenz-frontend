@@ -120,7 +120,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
 
       <div className="flex gap-2">
         <Button
-          variant="secondary"
+          variant="ghost"
           onClick={() => addBlock('heading')}
           size="sm"
         >

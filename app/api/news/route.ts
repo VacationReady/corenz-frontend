@@ -32,17 +32,18 @@ export async function POST(req: Request) {
   }
 
   const post = await prisma.newsPost.create({
-    data: {
-      title,
-      slug,
-      content,
-      videoEmbedUrl,
-      attachments,
-      authorId: author.id,
-      publishedAt: new Date(),
-      sendEmail,
-    },
-  })
+  data: {
+    title,
+    slug,
+    content,
+    videoEmbedUrl,
+    attachments,
+    authorId: author.id,
+    publishedAt: new Date(),
+    sendEmail,
+    audience: { type: 'all' }, // ✅ this line prevents the error
+  },
+})
 
   if (sendEmail) {
     try {

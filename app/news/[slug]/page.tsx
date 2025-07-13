@@ -21,7 +21,7 @@ export default async function NewsDetailPage({ params }: Props) {
   if (!post || !post.publishedAt) return notFound()
 
   const isAuthor = session?.user?.id === post.authorId
-  const isAdmin = session?.user?.role === 'admin'
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

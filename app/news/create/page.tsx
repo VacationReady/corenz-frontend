@@ -31,7 +31,7 @@ export default function CreateNewsPostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+ console.log('SUBMIT');
     // Upload all files to Supabase and get URLs
     const uploadedUrls = await Promise.all(
       attachments.map(file => uploadFileToSupabase(file))

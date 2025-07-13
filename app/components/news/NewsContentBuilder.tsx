@@ -137,7 +137,9 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
 
               <div
                 contentEditable
-                ref={(el) => (paragraphRefs.current[index] = el)}
+                ref={(el) => {
+  paragraphRefs.current[index] = el;
+}}
                 className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
                 dangerouslySetInnerHTML={{ __html: block.text }}
                 onInput={(e) =>

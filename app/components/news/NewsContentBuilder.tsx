@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Plus } from 'lucide-react';
 
 type ContentBlock =
@@ -47,16 +46,13 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
     updateBlocks(newBlocks);
   };
 
-  const preventEnterSubmit = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
-  };
-
   return (
     <div className="space-y-4">
       {blocks.map((block, index) => (
-        <div key={index} className="border rounded p-4 space-y-2 relative bg-white">
+        <div
+          key={index}
+          className="border rounded p-4 space-y-2 relative bg-white"
+        >
           <button
             type="button"
             onClick={() => removeBlock(index)}
@@ -75,22 +71,27 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 onChange={(e) =>
                   updateBlock(index, { ...block, text: e.target.value })
                 }
-                onKeyDown={preventEnterSubmit}
               />
             </>
           )}
 
           {block.type === 'paragraph' && (
             <>
-              <label className="block text-sm font-medium">Paragraph</label>
-              <Textarea
-                placeholder="Paragraph text"
-                value={block.text}
-                onChange={(e) =>
-                  updateBlock(index, { ...block, text: e.target.value })
+              <label className="block text-sm font-medium">Paragraph (Rich Text)</label>
+              <div
+                contentEditable
+                className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
+                dangerouslySetInnerHTML={{ __html: block.text }}
+                onInput={(e) =>
+                  updateBlock(index, {
+                    ...block,
+                    text: (e.target as HTMLDivElement).innerHTML,
+                  })
                 }
-                onKeyDown={preventEnterSubmit}
               />
+              <p className="text-xs text-muted-foreground">
+                Use formatting shortcuts (e.g. Ctrl+B, Ctrl+I)
+              </p>
             </>
           )}
 
@@ -108,7 +109,6 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                     newItems[i] = e.target.value;
                     updateBlock(index, { ...block, items: newItems });
                   }}
-                  onKeyDown={preventEnterSubmit}
                 />
               ))}
               <Button

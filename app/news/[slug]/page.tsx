@@ -1,6 +1,6 @@
 import { getNewsPostBySlug } from '@/lib/news/getNewsPostBySlug'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/lib/auth-options'
+import { authOptions } from '@/lib/auth-options'
 import { notFound, redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import Image from 'next/image'

@@ -24,27 +24,48 @@ export default function NewsContentRenderer({ content }: Props) {
         switch (block.type) {
           case 'heading': {
             const Tag = `h${block.level || 2}` as keyof JSX.IntrinsicElements;
-            return <Tag key={index} className="text-xl font-semibold">{block.text}</Tag>;
+            return (
+              <Tag key={index} className="text-xl font-semibold">
+                {block.text}
+              </Tag>
+            );
           }
           case 'paragraph':
-            return <p key={index} className="text-base">{block.text}</p>;
+            return (
+              <p
+                key={index}
+                className="text-base"
+                dangerouslySetInnerHTML={{ __html: block.text }}
+              />
+            );
           case 'bullet_list':
             return (
-              <ul key={index} className="list-disc list-inside pl-4 space-y-1">
-                {block.items.map((item, i) => <li key={i}>{item}</li>)}
+              <ul
+                key={index}
+                className="list-disc list-inside pl-4 space-y-1"
+              >
+                {block.items.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
               </ul>
             );
           case 'divider':
             return <hr key={index} className="border-t my-4" />;
           case 'quote':
             return (
-              <blockquote key={index} className="border-l-4 border-gray-300 pl-4 italic text-gray-600">
+              <blockquote
+                key={index}
+                className="border-l-4 border-gray-300 pl-4 italic text-gray-600"
+              >
                 {block.text}
               </blockquote>
             );
           case 'code':
             return (
-              <pre key={index} className="bg-gray-100 p-2 rounded text-sm overflow-x-auto">
+              <pre
+                key={index}
+                className="bg-gray-100 p-2 rounded text-sm overflow-x-auto"
+              >
                 <code>{block.code}</code>
               </pre>
             );

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Bold, Italic, Underline } from 'lucide-react';
 
 type ContentBlock =
   | { type: 'heading'; level: number; text: string }
@@ -17,6 +17,7 @@ interface Props {
 
 export default function NewsContentBuilder({ value, onChange }: Props) {
   const [blocks, setBlocks] = useState<ContentBlock[]>(value || []);
+  const paragraphRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const updateBlocks = (newBlocks: ContentBlock[]) => {
     setBlocks(newBlocks);
@@ -45,6 +46,17 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
     newBlocks.splice(index, 1);
     updateBlocks(newBlocks);
   };
+
+  const applyCommand = (cmd: string, value?: string) => {
+    document.execCommand(cmd, false, value);
+  };
+
+  const FONT_SIZES: { label: string; value: string }[] = [
+    { label: 'Small', value: '2' },
+    { label: 'Normal', value: '3' },
+    { label: 'Large', value: '5' },
+    { label: 'Huge', value: '7' },
+  ];
 
   return (
     <div className="space-y-4">
@@ -77,9 +89,55 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
 
           {block.type === 'paragraph' && (
             <>
-              <label className="block text-sm font-medium">Paragraph (Rich Text)</label>
+              <label className="block text-sm font-medium mb-1">
+                Paragraph (Rich Text)
+              </label>
+
+              {/* Toolbar */}
+              <div className="flex items-center gap-2 mb-2">
+                <select
+                  className="border text-sm px-2 py-1 rounded"
+                  onChange={(e) => applyCommand('fontSize', e.target.value)}
+                  defaultValue="3"
+                >
+                  {FONT_SIZES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyCommand('bold')}
+                  title="Bold"
+                >
+                  <Bold className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyCommand('italic')}
+                  title="Italic"
+                >
+                  <Italic className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyCommand('underline')}
+                  title="Underline"
+                >
+                  <Underline className="w-4 h-4" />
+                </Button>
+              </div>
+
               <div
                 contentEditable
+                ref={(el) => (paragraphRefs.current[index] = el)}
                 className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
                 dangerouslySetInnerHTML={{ __html: block.text }}
                 onInput={(e) =>
@@ -90,7 +148,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 }
               />
               <p className="text-xs text-muted-foreground">
-                Use formatting shortcuts (e.g. Ctrl+B, Ctrl+I)
+                Use formatting buttons or keyboard shortcuts (e.g. Ctrl+B)
               </p>
             </>
           )}

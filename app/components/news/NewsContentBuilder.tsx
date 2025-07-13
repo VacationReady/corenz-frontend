@@ -88,72 +88,76 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
           )}
 
           {block.type === 'paragraph' && (
-            <>
-              <label className="block text-sm font-medium mb-1">
-                Paragraph (Rich Text)
-              </label>
+  <>
+    <label className="block text-sm font-medium mb-1">
+      Paragraph (Rich Text)
+    </label>
 
-              {/* Toolbar */}
-              <div className="flex items-center gap-2 mb-2">
-                <select
-                  className="border text-sm px-2 py-1 rounded"
-                  onChange={(e) => applyCommand('fontSize', e.target.value)}
-                  defaultValue="3"
-                >
-                  {FONT_SIZES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyCommand('bold')}
-                  title="Bold"
-                >
-                  <Bold className="w-4 h-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyCommand('italic')}
-                  title="Italic"
-                >
-                  <Italic className="w-4 h-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyCommand('underline')}
-                  title="Underline"
-                >
-                  <Underline className="w-4 h-4" />
-                </Button>
-              </div>
+    {/* Toolbar (unchanged) */}
+    <div className="flex items-center gap-2 mb-2">
+      <select
+        className="border text-sm px-2 py-1 rounded"
+        onChange={(e) => applyCommand('fontSize', e.target.value)}
+        defaultValue="3"
+      >
+        {FONT_SIZES.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={() => applyCommand('bold')}
+        title="Bold"
+      >
+        <Bold className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={() => applyCommand('italic')}
+        title="Italic"
+      >
+        <Italic className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={() => applyCommand('underline')}
+        title="Underline"
+      >
+        <Underline className="w-4 h-4" />
+      </Button>
+    </div>
 
-              <div
-                contentEditable
-                ref={(el) => {
-  paragraphRefs.current[index] = el;
-}}
-                className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
-                dangerouslySetInnerHTML={{ __html: block.text }}
-                onInput={(e) =>
-                  updateBlock(index, {
-                    ...block,
-                    text: (e.target as HTMLDivElement).innerHTML,
-                  })
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                Use formatting buttons or keyboard shortcuts (e.g. Ctrl+B)
-              </p>
-            </>
-          )}
+    {/* Rich paragraph box */}
+    <div
+      contentEditable
+      suppressContentEditableWarning
+      ref={(el) => {
+        paragraphRefs.current[index] = el;
+        if (el && el.innerHTML !== block.text) {
+          el.innerHTML = block.text;
+        }
+      }}
+      className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
+      onInput={(e) =>
+        updateBlock(index, {
+          ...block,
+          text: (e.target as HTMLDivElement).innerHTML,
+        })
+      }
+    />
+    <p className="text-xs text-muted-foreground">
+      Use formatting buttons or keyboard shortcuts (e.g. Ctrl+B)
+    </p>
+  </>
+)}
 
           {block.type === 'bullet_list' && (
             <>

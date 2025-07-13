@@ -2,13 +2,13 @@
 
 import React from "react";
 import clsx from "clsx";
-import { Slot } from "@radix-ui/react-slot"; // ✅ Added import
+import { Slot } from "@radix-ui/react-slot";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
-  loading?: boolean; // ✅ New loading prop
-  asChild?: boolean; // ✅ New asChild support
+  loading?: boolean;
+  asChild?: boolean;
 }
 
 export default function Button({
@@ -17,11 +17,12 @@ export default function Button({
   size = "md",
   loading = false,
   disabled,
-  type = "button", // ✅ Ensures default type is "button", not "submit"
-  asChild = false, // ✅ Default value
+  type = "button", // ✅ Ensures default type is "button"
+  asChild = false,
   ...props
 }: ButtonProps) {
-  const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const baseClasses =
+    "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
   const variantClasses = {
     primary: "bg-blue-600 text-white hover:bg-blue-700",
     ghost: "bg-transparent text-blue-600 hover:bg-blue-50",
@@ -34,19 +35,31 @@ export default function Button({
     lg: "px-6 py-3 text-lg",
   }[size];
 
-  const Comp = asChild ? Slot : "button"; // ✅ Support Slot
+  const Comp = asChild ? Slot : "button";
 
   return (
     <Comp
       {...props}
+      {...(asChild ? {} : { type })} // ✅ Only apply type when rendering a <button>
       disabled={disabled || loading}
-      className={clsx(baseClasses, variantClasses, sizeClasses, props.className, {
-        "opacity-50 cursor-not-allowed": disabled || loading,
-      })}
+      className={clsx(
+        baseClasses,
+        variantClasses,
+        sizeClasses,
+        props.className,
+        {
+          "opacity-50 cursor-not-allowed": disabled || loading,
+        }
+      )}
     >
       {loading ? (
         <span className="flex items-center gap-2">
-          <svg className="animate-spin h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg
+            className="animate-spin h-4 w-4 text-current"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
             <circle
               className="opacity-25"
               cx="12"

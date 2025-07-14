@@ -29,13 +29,13 @@ export default function AudienceSelector({ value, onChange }: Props) {
   }, [])
 
   const toggleValue = (field: keyof AudienceFilter, option: string) => {
-    const current = value[field] || []
-    const newValues = current.includes(option)
-      ? current.filter((v) => v !== option)
-      : [...current, option]
+  const current = Array.isArray(value[field]) ? (value[field] as string[]) : []
+  const newValues = current.includes(option)
+    ? current.filter((v) => v !== option)
+    : [...current, option]
 
-    onChange({ ...value, [field]: newValues })
-  }
+  onChange({ ...value, [field]: newValues, type: undefined })
+}
 
   const isChecked = (field: keyof AudienceFilter, option: string) => {
     return value[field]?.includes(option)

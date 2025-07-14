@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@lib/auth-options'
+import { authOptions } from '@/app/lib/auth-options'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { Switch } from '@/components/ui/switch'

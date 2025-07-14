@@ -20,8 +20,12 @@ interface Props {
 export default function EditNewsPostPage({ params }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState([])
+  const [title, setTitle] = useState('')type ContentBlock =
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'paragraph'; text: string }
+  | { type: 'bullet_list'; items: string[] }
+
+const [content, setContent] = useState<ContentBlock[]>([])
   const [videoUrl, setVideoUrl] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [existingFiles, setExistingFiles] = useState<string[]>([])

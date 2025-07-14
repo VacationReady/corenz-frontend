@@ -60,7 +60,7 @@ export default async function NewsDetailPage({ params }: Props) {
         </div>
       )}
 
-      {post.audience?.type !== 'all' && (
+      {(post.audience as any)?.type !== 'all' && (
         <div className="mb-6 text-sm text-muted-foreground">
           <p>Targeted Audience:</p>
           <ul className="list-disc pl-5">

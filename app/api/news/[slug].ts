@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (sendEmail) {
         const recipients = await prisma.user.findMany({
-          where: { email: { not: null } },
+          where: { email: { not: '' } },
           select: { email: true },
         })
 

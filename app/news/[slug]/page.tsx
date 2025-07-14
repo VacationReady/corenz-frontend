@@ -61,16 +61,21 @@ export default async function NewsDetailPage({ params }: Props) {
       )}
 
       {(post.audience as any)?.type !== 'all' && (
-        <div className="mb-6 text-sm text-muted-foreground">
-          <p>Targeted Audience:</p>
-          <ul className="list-disc pl-5">
-            {post.audience.departments?.length > 0 && <li>Departments: {post.audience.departments.join(', ')}</li>}
-            {post.audience.roles?.length > 0 && <li>Roles: {post.audience.roles.join(', ')}</li>}
-            {post.audience.locations?.length > 0 && <li>Locations: {post.audience.locations.join(', ')}</li>}
-          </ul>
-        </div>
+  <div className="mb-6 text-sm text-muted-foreground">
+    <p>Targeted Audience:</p>
+    <ul className="list-disc pl-5">
+      {(post.audience as any)?.departments?.length > 0 && (
+        <li>Departments: {(post.audience as any).departments.join(', ')}</li>
       )}
-
+      {(post.audience as any)?.roles?.length > 0 && (
+        <li>Roles: {(post.audience as any).roles.join(', ')}</li>
+      )}
+      {(post.audience as any)?.locations?.length > 0 && (
+        <li>Locations: {(post.audience as any).locations.join(', ')}</li>
+      )}
+    </ul>
+  </div>
+)}
       {(isAdmin || isAuthor) && (
         <div className="mt-10 flex gap-3">
           <Link

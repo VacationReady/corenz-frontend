@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     if (body.sendEmail) {
       const recipients = await prisma.user.findMany({
-        where: { email: { not: null } },
+        where: { email: { not: '' } },
         select: { email: true },
       })
 

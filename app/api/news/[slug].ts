@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { prisma } from '@/lib/prisma'
+import { sendNewsEmail } from '@/lib/news/sendNewsEmail'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -37,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json(existing)
 
     case 'PUT': {
-      const { title, content, videoEmbedUrl, attachments, sendEmail } = req.body
+      const { title, content, videoEmbedUrl, attachments, sendEmail, audience } = req.body
 
       const updated = await prisma.newsPost.update({
         where: { slug },
@@ -47,9 +48,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           videoEmbedUrl,
           attachments,
           sendEmail,
+          audience: audience || { type: 'all' },
           updatedAt: new Date(),
         },
       })
+
+      if (sendEmail) {
+        const recipients = await prisma.user.findMany({
+          where: { email: { not: null } },
+          select: { email: true },
+        })
+
+        await sendNewsEmail({
+          title: updated.title,
+          slug: updated.slug,
+          recipients: recipients.map((u) => u.email!) || [],
+        })
+      }
 
       return res.status(200).json(updated)
     }

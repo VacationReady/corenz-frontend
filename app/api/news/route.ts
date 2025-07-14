@@ -1,62 +1,54 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
-import { Resend } from 'resend'
+import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
 import slugify from 'slugify'
+import { sendNewsEmail } from '@/lib/news/sendNewsEmail'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
 
-  if (!session || !session.user?.email) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await req.json()
-  const { title, content, videoEmbedUrl, attachments, sendEmail } = body
 
-  if (!title || !content) {
-    return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
-  }
+  const slug = slugify(body.title, { lower: true, strict: true })
 
-  const slug = slugify(title, { lower: true, strict: true })
+  try {
+    const post = await prisma.newsPost.create({
+      data: {
+        title: body.title,
+        slug,
+        content: body.content,
+        authorId: session.user.id,
+        publishedAt: new Date(),
+        pinned: false,
+        tags: body.tags || [],
+        audience: body.audience || { type: 'all' },
+        attachments: body.attachments || [],
+        videoEmbedUrl: body.videoEmbedUrl || null,
+        sendEmail: body.sendEmail || false,
+      },
+    })
 
-  const author = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  })
-
-  if (!author) {
-    return NextResponse.json({ error: 'Author not found' }, { status: 404 })
-  }
-
-  const post = await prisma.newsPost.create({
-  data: {
-    title,
-    slug,
-    content,
-    videoEmbedUrl,
-    attachments,
-    authorId: author.id,
-    publishedAt: new Date(),
-    sendEmail,
-    audience: { type: 'all' }, // ✅ this line prevents the error
-  },
-})
-
-  if (sendEmail) {
-    try {
-      await resend.emails.send({
-        from: 'CoreNZ News <news@corenz.app>',
-        to: session.user.email, // 👈 Replace with audience list later
-        subject: `📰 New Post: ${title}`,
-        html: `<h1>${title}</h1><p>${typeof content === 'string' ? content : '[News post]'}</p><a href="https://yourdomain.com/news/${slug}">Read more</a>`,
+    if (body.sendEmail) {
+      const recipients = await prisma.user.findMany({
+        where: { email: { not: null } },
+        select: { email: true },
       })
-    } catch (err) {
-      console.error('Email send error:', err)
-    }
-  }
 
-  return NextResponse.json({ success: true, post })
+      await sendNewsEmail({
+        title: post.title,
+        slug: post.slug,
+        recipients: recipients.map((u) => u.email!) || [],
+      })
+    }
+
+    return NextResponse.json(post)
+  } catch (error) {
+    console.error('Error creating news post:', error)
+    return NextResponse.json({ error: 'Failed to create news post.' }, { status: 500 })
+  }
 }

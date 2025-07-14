@@ -1,14 +1,10 @@
-import { getNewsPostBySlug } from '@/lib/news/getNewsPostBySlug'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
-import { notFound, redirect } from 'next/navigation'
-import { format } from 'date-fns'
-import Image from 'next/image'
-import dynamic from 'next/dynamic'
+import { prisma } from '@/lib/prisma'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
-
-// Dynamically import to ensure client-side rendering
-const NewsContentRenderer = dynamic(() => import('@/components/news/NewsContentRenderer'), { ssr: false })
+import NewsContentRenderer from '@/components/news/NewsContentRenderer'
+import DeleteNewsButton from '@/components/news/DeleteNewsButton'
 
 interface Props {
   params: { slug: string }
@@ -16,51 +12,46 @@ interface Props {
 
 export default async function NewsDetailPage({ params }: Props) {
   const session = await getServerSession(authOptions)
-  const post = await getNewsPostBySlug(params.slug)
 
-  if (!post || !post.publishedAt) return notFound()
+  const post = await prisma.newsPost.findUnique({
+    where: { slug: params.slug },
+    include: { author: true },
+  })
+
+  if (!post) return notFound()
 
   const isAuthor = session?.user?.id === post.authorId
   const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold">{post.title}</h1>
-      <p className="text-sm text-muted-foreground mt-1">
-        By {post.author?.name ?? 'Unknown'} •{' '}
-        {format(new Date(post.publishedAt), 'dd MMM yyyy')}
+      <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
+      <p className="text-sm text-muted-foreground mb-4">
+        Posted by {post.author.name || 'Unknown'} on{' '}
+        {new Date(post.publishedAt ?? post.createdAt).toLocaleDateString()}
       </p>
 
-      {/* Optional video */}
+      <div className="mb-6">
+        <NewsContentRenderer content={post.content} />
+      </div>
+
       {post.videoEmbedUrl && (
-        <div className="mt-6">
+        <div className="mb-6">
           <iframe
             src={post.videoEmbedUrl}
             className="w-full aspect-video rounded"
             allowFullScreen
-          />
+          ></iframe>
         </div>
       )}
 
-      {/* Rich content */}
-      <div className="mt-6">
-        {Array.isArray(post.content) ? (
-          <NewsContentRenderer content={post.content as any} />
-        ) : typeof post.content === 'string' ? (
-          <p className="text-gray-700">{post.content}</p>
-        ) : (
-          <p className="text-sm text-muted-foreground italic">[No content]</p>
-        )}
-      </div>
-
-      {/* Attachments */}
-      {post.attachments && post.attachments.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-2">Attachments</h3>
-          <ul className="list-disc list-inside text-blue-600">
+      {post.attachments.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-semibold text-lg mb-2">Attachments</h2>
+          <ul className="list-disc pl-5">
             {post.attachments.map((url, i) => (
               <li key={i}>
-                <a href={url} target="_blank" rel="noopener noreferrer">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                   {url.split('/').pop()}
                 </a>
               </li>
@@ -69,7 +60,17 @@ export default async function NewsDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Edit/Delete controls */}
+      {post.audience?.type !== 'all' && (
+        <div className="mb-6 text-sm text-muted-foreground">
+          <p>Targeted Audience:</p>
+          <ul className="list-disc pl-5">
+            {post.audience.departments?.length > 0 && <li>Departments: {post.audience.departments.join(', ')}</li>}
+            {post.audience.roles?.length > 0 && <li>Roles: {post.audience.roles.join(', ')}</li>}
+            {post.audience.locations?.length > 0 && <li>Locations: {post.audience.locations.join(', ')}</li>}
+          </ul>
+        </div>
+      )}
+
       {(isAdmin || isAuthor) && (
         <div className="mt-10 flex gap-3">
           <Link
@@ -78,23 +79,8 @@ export default async function NewsDetailPage({ params }: Props) {
           >
             Edit
           </Link>
-          <form
-            action={`/api/news/${params.slug}`}
-            method="POST"
-            onSubmit={(e) => {
-              if (!confirm('Are you sure you want to delete this post?')) {
-                e.preventDefault()
-              }
-            }}
-          >
-            <input type="hidden" name="_method" value="DELETE" />
-            <button
-              type="submit"
-              className="text-sm px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Delete
-            </button>
-          </form>
+
+          <DeleteNewsButton slug={params.slug} />
         </div>
       )}
     </div>

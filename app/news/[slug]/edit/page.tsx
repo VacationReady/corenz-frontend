@@ -9,10 +9,10 @@ import Button from '@/components/ui/Button'
 import { Switch } from '@/components/ui/switch'
 import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
 import dynamic from 'next/dynamic'
+import AudienceSelector from '@/components/news/AudienceSelector'
 
 const NewsContentBuilder = dynamic(() => import('@/components/news/NewsContentBuilder'), { ssr: false })
 
-// ✅ Type declaration outside function
 type ContentBlock =
   | { type: 'heading'; level: number; text: string }
   | { type: 'paragraph'; text: string }
@@ -31,6 +31,7 @@ export default function EditNewsPostPage({ params }: Props) {
   const [attachments, setAttachments] = useState<File[]>([])
   const [existingFiles, setExistingFiles] = useState<string[]>([])
   const [sendEmail, setSendEmail] = useState(false)
+  const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
 
   useEffect(() => {
     async function fetchPost() {
@@ -52,6 +53,7 @@ export default function EditNewsPostPage({ params }: Props) {
       setVideoUrl(post.videoEmbedUrl || '')
       setExistingFiles(post.attachments || [])
       setSendEmail(post.sendEmail || false)
+      setAudience(post.audience || { type: 'all' })
       setLoading(false)
     }
 
@@ -79,7 +81,8 @@ export default function EditNewsPostPage({ params }: Props) {
         content,
         videoEmbedUrl: videoUrl,
         attachments: [...existingFiles, ...uploadedUrls],
-        sendEmail
+        sendEmail,
+        audience,
       })
     })
 
@@ -127,6 +130,10 @@ export default function EditNewsPostPage({ params }: Props) {
             </ul>
           </div>
         )}
+
+        <div>
+          <AudienceSelector value={audience} onChange={setAudience} />
+        </div>
 
         <div className="flex items-center gap-2">
           <Switch checked={sendEmail} onChange={setSendEmail} />

@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import { Switch } from '@/components/ui/switch'
 import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
 import NewsContentBuilder from '@/components/news/NewsContentBuilder'
+import AudienceSelector from '@/components/news/AudienceSelector'
 
 type ContentBlock =
   | { type: 'heading'; level: number; text: string }
@@ -22,6 +23,7 @@ export default function CreateNewsPostPage() {
   const [videoUrl, setVideoUrl] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
   const [sendEmail, setSendEmail] = useState(false)
+  const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -31,8 +33,8 @@ export default function CreateNewsPostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
- console.log('SUBMIT');
-    // Upload all files to Supabase and get URLs
+    console.log('SUBMIT');
+
     const uploadedUrls = await Promise.all(
       attachments.map(file => uploadFileToSupabase(file))
     )
@@ -41,10 +43,11 @@ export default function CreateNewsPostPage() {
       method: 'POST',
       body: JSON.stringify({
         title,
-        content, // already a structured JSON array
+        content,
         videoEmbedUrl: videoUrl,
         attachments: uploadedUrls,
         sendEmail,
+        audience,
       }),
       headers: {
         'Content-Type': 'application/json',
@@ -63,15 +66,14 @@ export default function CreateNewsPostPage() {
       <h1 className="text-2xl font-bold mb-6">Create News Post</h1>
 
       <form
-  onSubmit={handleSubmit}
-  className="space-y-6"
-  onKeyDown={(e) => {
-    // Prevent Enter from triggering unexpected submit unless inside a textarea
-    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
-      e.preventDefault();
-    }
-  }}
->
+        onSubmit={handleSubmit}
+        className="space-y-6"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }}
+      >
         <div>
           <label className="block text-sm font-medium mb-1">Title</label>
           <Input value={title} onChange={e => setTitle(e.target.value)} required />
@@ -90,6 +92,10 @@ export default function CreateNewsPostPage() {
         <div>
           <label className="block text-sm font-medium mb-1">Attachments</label>
           <Input type="file" multiple onChange={handleFileChange} />
+        </div>
+
+        <div>
+          <AudienceSelector value={audience} onChange={setAudience} />
         </div>
 
         <div className="flex items-center gap-2">

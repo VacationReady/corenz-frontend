@@ -129,7 +129,7 @@ export default function EditNewsPostPage({ params }: Props) {
         )}
 
         <div className="flex items-center gap-2">
-          <Switch checked={sendEmail} onCheckedChange={setSendEmail} />
+          <Switch checked={sendEmail} onChange={setSendEmail} />
           <span className="text-sm">Send email notification</span>
         </div>
 

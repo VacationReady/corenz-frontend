@@ -32,7 +32,7 @@ export default async function NewsDetailPage({ params }: Props) {
       </p>
 
       <div className="mb-6">
-        <NewsContentRenderer content={post.content} />
+        <NewsContentRenderer content={(post.content as any) || []} />
       </div>
 
       {post.videoEmbedUrl && (

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth-options'
+import { useSession } from 'next-auth/react'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { Switch } from '@/components/ui/switch'
@@ -24,6 +23,8 @@ interface Props {
 
 export default function EditNewsPostPage({ params }: Props) {
   const router = useRouter()
+  const { data: session, status } = useSession()
+
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState<ContentBlock[]>([])
@@ -34,17 +35,20 @@ export default function EditNewsPostPage({ params }: Props) {
   const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
 
   useEffect(() => {
+    if (status === 'loading') return
+
+    if (!session?.user) return router.push('/news')
+
     async function fetchPost() {
       const res = await fetch(`/api/news/${params.slug}`)
       if (!res.ok) return router.push('/news')
 
       const post = await res.json()
-      const session = await getServerSession(authOptions)
 
-      if (!post || !session) return router.push('/news')
+      if (!post) return router.push('/news')
 
-      const isAdmin = session.user?.role === 'ADMIN'
-      const isAuthor = session.user?.id === post.authorId
+      const isAdmin = session.user.role === 'ADMIN'
+      const isAuthor = session.user.id === post.authorId
 
       if (!isAdmin && !isAuthor) return router.push('/news')
 
@@ -58,7 +62,7 @@ export default function EditNewsPostPage({ params }: Props) {
     }
 
     fetchPost()
-  }, [params.slug, router])
+  }, [params.slug, router, session, status])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -93,7 +97,7 @@ export default function EditNewsPostPage({ params }: Props) {
     }
   }
 
-  if (loading) return <p className="p-4">Loading post…</p>
+  if (loading || status === 'loading') return <p className="p-4">Loading post…</p>
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Input } from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
+import useSWR from 'swr'
+import { Button } from '@/components/ui/Button'
+import { toast } from 'sonner'
 
 type AudienceFilter = {
   departments?: string[]
@@ -16,30 +17,43 @@ interface Props {
   onChange: (audience: AudienceFilter) => void
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
 export default function AudienceSelector({ value, onChange }: Props) {
+  const { data, error, isLoading } = useSWR('/api/audience', fetcher)
+
   const [departments, setDepartments] = useState<string[]>([])
   const [roles, setRoles] = useState<string[]>([])
   const [locations, setLocations] = useState<string[]>([])
 
-  // Simulate loading options (replace with your API calls if needed)
   useEffect(() => {
-    setDepartments(['Sales', 'HR', 'Engineering'])
-    setRoles(['Admin', 'Manager', 'Employee'])
-    setLocations(['Auckland', 'Wellington', 'Christchurch'])
-  }, [])
+    if (data) {
+      setDepartments(data.departments?.map((d: { id: string; name: string }) => d.name) || [])
+      setRoles(data.jobRoles?.map((r: { id: string; name: string }) => r.name) || [])
+      setLocations(data.locations?.map((l: { id: string; name: string }) => l.name) || [])
+    }
+  }, [data])
+
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to load audience options')
+    }
+  }, [error])
 
   const toggleValue = (field: keyof AudienceFilter, option: string) => {
-  const current = Array.isArray(value[field]) ? (value[field] as string[]) : []
-  const newValues = current.includes(option)
-    ? current.filter((v) => v !== option)
-    : [...current, option]
+    const current = Array.isArray(value[field]) ? (value[field] as string[]) : []
+    const newValues = current.includes(option)
+      ? current.filter((v) => v !== option)
+      : [...current, option]
 
-  onChange({ ...value, [field]: newValues, type: undefined })
-}
+    onChange({ ...value, [field]: newValues, type: undefined })
+  }
 
   const isChecked = (field: keyof AudienceFilter, option: string) => {
     return value[field]?.includes(option)
   }
+
+  if (isLoading) return <div>Loading audience options...</div>
 
   return (
     <div className="space-y-4 border rounded p-4">

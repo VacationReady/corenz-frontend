@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { mutate } from "swr"; // ✅ Import mutate from SWR
 
 export default function NewDepartmentModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
@@ -26,6 +27,7 @@ export default function NewDepartmentModal({ onClose }: { onClose: () => void })
         setError(data.error || "Failed to create department.");
         return;
       }
+      mutate("/api/audience"); // ✅ Refetch audience after successful create
       onClose();
     } catch {
       setError("Network error.");
@@ -38,9 +40,16 @@ export default function NewDepartmentModal({ onClose }: { onClose: () => void })
         <h2 className="text-lg font-semibold">Add New Department</h2>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Department Name" required />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Department Name"
+            required
+          />
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
             <Button type="submit">Save</Button>
           </div>
         </form>

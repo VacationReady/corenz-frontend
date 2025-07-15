@@ -110,7 +110,7 @@ async function main() {
       { model: "leaveentitlement", field: "carryoverDays", label: "Carryover Days", fieldType: "int" },
       { model: "leaveentitlement", field: "carryoverExpiry", label: "Carryover Expiry", fieldType: "date" },
     ],
-    skipDuplicates: true, // prevent duplication on re-seeding
+    skipDuplicates: true,
   });
   console.log("✅ FieldMetadata seeded for dynamic report builder.");
 
@@ -133,6 +133,46 @@ async function main() {
       create: rule,
     });
     console.log(`✅ ExpiryRule created: ${result.category} (${result.id})`);
+  }
+
+  // ✅ 7. Seed Additional Departments
+  const additionalDepartments = ['HR', 'Finance', 'Engineering']
+  for (const deptName of additionalDepartments) {
+    const dept = await prisma.department.upsert({
+      where: { name: deptName },
+      update: { companyId: company.id },
+      create: {
+        name: deptName,
+        companyId: company.id,
+      },
+    })
+    console.log(`✅ Department created: ${dept.name} (${dept.id})`)
+  }
+
+  // ✅ 8. Seed Job Roles
+  const jobRoles = ['Manager', 'Employee', 'Admin']
+  for (const roleName of jobRoles) {
+    const role = await prisma.jobRole.upsert({
+      where: { name: roleName },
+      update: {},
+      create: {
+        name: roleName,
+      },
+    })
+    console.log(`✅ JobRole created: ${role.name} (${role.id})`)
+  }
+
+  // ✅ 9. Seed Locations
+  const locations = ['Auckland', 'Wellington', 'Christchurch']
+  for (const locName of locations) {
+    const loc = await prisma.location.upsert({
+      where: { name: locName },
+      update: {},
+      create: {
+        name: locName,
+      },
+    })
+    console.log(`✅ Location created: ${loc.name} (${loc.id})`)
   }
 
   console.log('✅ Seeding process completed.');

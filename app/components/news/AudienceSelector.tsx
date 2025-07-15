@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
-import { Button } from '@/components/ui/Button'
+import Button from '@/components/ui/Button'
 import { toast } from 'sonner'
 
 type AudienceFilter = {

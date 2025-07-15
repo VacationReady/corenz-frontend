@@ -365,6 +365,11 @@ model TrainingProvider {
   trainingRecords TrainingRecord[]
 }
 
+model Location {
+  id   String @id @default(uuid())
+  name String @unique
+}
+
 enum Role {
   ADMIN
   MANAGER

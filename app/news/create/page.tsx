@@ -10,6 +10,8 @@ import { Switch } from '@/components/ui/switch'
 import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
 import NewsContentBuilder from '@/components/news/NewsContentBuilder'
 import AudienceSelector from '@/components/news/AudienceSelector'
+import NewDepartmentModal from '@/components/news/NewDepartmentModal'
+import NewJobRoleModal from '@/components/news/NewJobRoleModal'
 
 type ContentBlock =
   | { type: 'heading'; level: number; text: string }
@@ -24,7 +26,9 @@ export default function CreateNewsPostPage() {
   const [attachments, setAttachments] = useState<File[]>([])
   const [sendEmail, setSendEmail] = useState(false)
   const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
-  const [refreshKey, setRefreshKey] = useState(0)  // ✅ Added state for forcing refresh
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false)
+  const [showJobRoleModal, setShowJobRoleModal] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -62,7 +66,7 @@ export default function CreateNewsPostPage() {
     }
   }
 
-  const handleAudienceRefresh = () => {  // ✅ Added callback for refreshing AudienceSelector
+  const handleAudienceRefresh = () => {
     setRefreshKey(prev => prev + 1)
   }
 
@@ -108,8 +112,27 @@ export default function CreateNewsPostPage() {
           <span className="text-sm">Send email notification</span>
         </div>
 
+        <div className="flex gap-2">
+          <Button type="button" onClick={() => setShowDepartmentModal(true)}>Add Department</Button>
+          <Button type="button" onClick={() => setShowJobRoleModal(true)}>Add Job Role</Button>
+        </div>
+
         <Button type="submit">Publish News</Button>
       </form>
+
+      {showDepartmentModal && (
+        <NewDepartmentModal
+          onClose={() => setShowDepartmentModal(false)}
+          onAdded={handleAudienceRefresh}
+        />
+      )}
+
+      {showJobRoleModal && (
+        <NewJobRoleModal
+          onClose={() => setShowJobRoleModal(false)}
+          onAdded={handleAudienceRefresh}
+        />
+      )}
     </div>
   )
 }

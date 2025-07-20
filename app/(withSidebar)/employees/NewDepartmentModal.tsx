@@ -4,9 +4,9 @@ import { useState, FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { mutate } from "swr"; // ✅ Import mutate from SWR
+import { mutate } from "swr";
 
-export default function NewDepartmentModal({ onClose }: { onClose: () => void }) {
+export default function NewDepartmentModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -27,7 +27,8 @@ export default function NewDepartmentModal({ onClose }: { onClose: () => void })
         setError(data.error || "Failed to create department.");
         return;
       }
-      mutate("/api/audience"); // ✅ Refetch audience after successful create
+      mutate("/api/audience");
+      onAdded();
       onClose();
     } catch {
       setError("Network error.");

@@ -24,6 +24,7 @@ export default function CreateNewsPostPage() {
   const [attachments, setAttachments] = useState<File[]>([])
   const [sendEmail, setSendEmail] = useState(false)
   const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
+  const [refreshKey, setRefreshKey] = useState(0)  // ✅ Added state for forcing refresh
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -61,6 +62,10 @@ export default function CreateNewsPostPage() {
     }
   }
 
+  const handleAudienceRefresh = () => {  // ✅ Added callback for refreshing AudienceSelector
+    setRefreshKey(prev => prev + 1)
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-6">Create News Post</h1>
@@ -95,7 +100,7 @@ export default function CreateNewsPostPage() {
         </div>
 
         <div>
-          <AudienceSelector value={audience} onChange={setAudience} />
+          <AudienceSelector value={audience} onChange={setAudience} refreshKey={refreshKey} />
         </div>
 
         <div className="flex items-center gap-2">

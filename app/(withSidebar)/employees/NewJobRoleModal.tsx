@@ -27,6 +27,7 @@ export default function NewJobRoleModal({ onClose }: { onClose: () => void }) {
         setError(data.error || "Failed to create job role.");
         return;
       }
+      mutate("/api/audience"); // ✅ Refetch audience after successful create
       onClose();
     } catch {
       setError("Network error.");

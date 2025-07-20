@@ -15,12 +15,13 @@ type AudienceFilter = {
 interface Props {
   value: AudienceFilter
   onChange: (audience: AudienceFilter) => void
+  refreshKey: number
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-export default function AudienceSelector({ value, onChange }: Props) {
-  const { data, error, isLoading } = useSWR('/api/audience', fetcher)
+export default function AudienceSelector({ value, onChange, refreshKey }: Props) {
+  const { data, error, isLoading } = useSWR(['/api/audience', refreshKey], ([url]) => fetcher(url))
 
   const [departments, setDepartments] = useState<string[]>([])
   const [roles, setRoles] = useState<string[]>([])

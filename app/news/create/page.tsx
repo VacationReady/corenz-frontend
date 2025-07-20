@@ -10,8 +10,8 @@ import { Switch } from '@/components/ui/switch'
 import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
 import NewsContentBuilder from '@/components/news/NewsContentBuilder'
 import AudienceSelector from '@/components/news/AudienceSelector'
-import NewDepartmentModal from '@/components/news/NewDepartmentModal'
-import NewJobRoleModal from '@/components/news/NewJobRoleModal'
+import NewDepartmentModal from '@/app/employees/NewDepartmentModal'
+import NewJobRoleModal from '@/app/employees/NewJobRoleModal'
 
 type ContentBlock =
   | { type: 'heading'; level: number; text: string }

@@ -136,7 +136,7 @@ const isAuthor = session?.user?.id === post.authorId
         )}
 
         <div>
-          <AudienceSelector value={audience} onChange={setAudience} />
+          <AudienceSelector value={audience} onChange={setAudience} refreshKey={0} />
         </div>
 
         <div className="flex items-center gap-2">

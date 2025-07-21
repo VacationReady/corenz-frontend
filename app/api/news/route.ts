@@ -43,31 +43,29 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ Resend Email Handler with Target All Logic Added — Nothing Removed
+// ✅ Resend Email Handler with Correct "Target All" Handling
 async function sendNewsEmails(audience: any, title: string, content: any) {
   try {
     let filters: any = {}
-    let users: { email: string; firstName: string | null }[] = []
 
-    if (audience?.type === 'all') {
-      users = await prisma.user.findMany({
-        select: { email: true, firstName: true },
-      })
-    } else {
-      if (audience.departments?.length) {
-        filters.departmentId = { in: await getDepartmentIdsByName(audience.departments) }
-      }
-      if (audience.roles?.length) {
-        filters.jobRoleId = { in: await getJobRoleIdsByName(audience.roles) }
-      }
-      if (audience.locations?.length) {
-        filters.locationId = { in: await getLocationIdsByName(audience.locations) }
-      }
-      users = await prisma.user.findMany({
-        where: filters,
-        select: { email: true, firstName: true },
-      })
+    if (audience.departments?.length) {
+      filters.departmentId = { in: await getDepartmentIdsByName(audience.departments) }
     }
+    if (audience.roles?.length) {
+      filters.jobRoleId = { in: await getJobRoleIdsByName(audience.roles) }
+    }
+    if (audience.locations?.length) {
+      filters.locationId = { in: await getLocationIdsByName(audience.locations) }
+    }
+
+    const users = audience?.type === 'all'
+      ? await prisma.user.findMany({
+          select: { email: true, firstName: true },
+        })
+      : await prisma.user.findMany({
+          where: filters,
+          select: { email: true, firstName: true },
+        })
 
     if (!users.length) {
       console.log('⚠️ No users matched the audience filter. No emails sent.')

@@ -6,7 +6,13 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { mutate } from "swr";
 
-export default function NewDepartmentModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+export default function NewDepartmentModal({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  onAdded?: () => void;
+}) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -28,7 +34,7 @@ export default function NewDepartmentModal({ onClose, onAdded }: { onClose: () =
         return;
       }
       mutate("/api/audience");
-      onAdded();
+      onAdded?.(); // ✅ Optional safe call
       onClose();
     } catch {
       setError("Network error.");

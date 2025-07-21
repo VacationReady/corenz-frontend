@@ -110,11 +110,6 @@ export default function CreateNewsPostPage() {
           <span className="text-sm">Send email notification</span>
         </div>
 
-        <div className="flex gap-2">
-          <Button type="button" onClick={() => setShowDepartmentModal(true)}>Add Department</Button>
-          <Button type="button" onClick={() => setShowJobRoleModal(true)}>Add Job Role</Button>
-        </div>
-
         <Button type="submit">Publish News</Button>
       </form>
 

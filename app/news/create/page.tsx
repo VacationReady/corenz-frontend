@@ -118,19 +118,6 @@ export default function CreateNewsPostPage() {
         <Button type="submit">Publish News</Button>
       </form>
 
-      {showDepartmentModal && (
-        <NewDepartmentModal
-          onClose={() => setShowDepartmentModal(false)}
-          onAdded={handleAudienceRefresh}
-        />
-      )}
-
-      {showJobRoleModal && (
-        <NewJobRoleModal
-          onClose={() => setShowJobRoleModal(false)}
-          onAdded={handleAudienceRefresh}
-        />
-      )}
     </div>
   )
 }

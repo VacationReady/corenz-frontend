@@ -60,10 +60,16 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
 
     const users = audience?.type === 'all'
       ? await prisma.user.findMany({
+          where: {
+            email: { not: null },   // ✅ Only fetch users with email
+          },
           select: { email: true, firstName: true },
         })
       : await prisma.user.findMany({
-          where: filters,
+          where: {
+            ...filters,
+            email: { not: null },   // ✅ Apply filters AND check for valid email
+          },
           select: { email: true, firstName: true },
         })
 

@@ -6,7 +6,13 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { mutate } from "swr";
 
-export default function NewJobRoleModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+export default function NewJobRoleModal({
+  onClose,
+  onAdded,
+}: {
+  onClose: () => void;
+  onAdded?: () => void;
+}) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -28,7 +34,7 @@ export default function NewJobRoleModal({ onClose, onAdded }: { onClose: () => v
         return;
       }
       mutate("/api/audience");
-      onAdded();
+      onAdded?.(); // ✅ Optional safe call
       onClose();
     } catch {
       setError("Network error.");
@@ -41,9 +47,16 @@ export default function NewJobRoleModal({ onClose, onAdded }: { onClose: () => v
         <h2 className="text-lg font-semibold">Add New Job Role</h2>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Job Role Name" required />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Job Role Name"
+            required
+          />
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
             <Button type="submit">Save</Button>
           </div>
         </form>

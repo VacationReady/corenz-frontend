@@ -21,7 +21,11 @@ interface Props {
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function AudienceSelector({ value, onChange, refreshKey }: Props) {
-  const { data, error, isLoading } = useSWR(['/api/audience', refreshKey], ([url]) => fetcher(url))
+  const { data, error, isLoading } = useSWR(['/api/audience', refreshKey], ([url]) => fetcher(url), {
+    revalidateOnMount: true,
+    revalidateIfStale: true,
+    dedupingInterval: 0,
+  })
 
   const [departments, setDepartments] = useState<string[]>([])
   const [roles, setRoles] = useState<string[]>([])

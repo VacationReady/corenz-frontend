@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic' // ✅ Required for dynamic Supabase use at runtime
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -25,8 +25,6 @@ export default function CreateNewsPostPage() {
   const [sendEmail, setSendEmail] = useState(false)
   const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
   const [refreshKey, setRefreshKey] = useState(0)
-  const [showDepartmentModal, setShowDepartmentModal] = useState(false)
-  const [showJobRoleModal, setShowJobRoleModal] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -36,7 +34,6 @@ export default function CreateNewsPostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('SUBMIT');
 
     const uploadedUrls = await Promise.all(
       attachments.map(file => uploadFileToSupabase(file))
@@ -67,6 +64,10 @@ export default function CreateNewsPostPage() {
   const handleAudienceRefresh = () => {
     setRefreshKey(prev => prev + 1)
   }
+
+  useEffect(() => {
+    handleAudienceRefresh()  // ✅ Force refresh on page mount
+  }, [])
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

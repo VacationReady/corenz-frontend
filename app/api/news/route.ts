@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 async function sendNewsEmails(audience: any, title: string, content: any) {
   try {
     let filters: any = {}
-    let users = []
+    let users: { email: string; firstName: string | null }[] = []
 
     if (audience?.type === 'all') {
       users = await prisma.user.findMany({

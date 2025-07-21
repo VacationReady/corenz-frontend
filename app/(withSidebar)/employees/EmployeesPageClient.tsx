@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageShell } from "@/components/ui/PageShell";
-import NewDepartmentModal from "./NewDepartmentModal";
-import NewJobRoleModal from "./NewJobRoleModal";
+import NewDepartmentModal from '@/components/shared/NewDepartmentModal'
+import NewJobRoleModal from '@/components/shared/NewJobRoleModal'
 import { useSession } from "next-auth/react";
 
 export default function EmployeesPageClient() {

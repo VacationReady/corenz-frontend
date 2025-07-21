@@ -19,17 +19,18 @@ export async function POST(req: NextRequest) {
     const { title, content, videoEmbedUrl, attachments, sendEmail, audience } = body
 
     const newsPost = await prisma.newsPost.create({
-      data: {
-        title,
-        slug: generateSlug(title), // ✅ Added slug generation
-        content,
-        videoEmbedUrl,
-        attachments,
-        sendEmail,
-        audience,
-        author: { connect: { id: userId } }, // ✅ Added author relation
-      },
-    })
+  data: {
+    title,
+    slug: generateSlug(title),
+    content,
+    videoEmbedUrl,
+    attachments,
+    sendEmail,
+    audience,
+    publishedAt: new Date(),  // ✅ This ensures the post shows up in your list
+    author: { connect: { id: userId } },
+  },
+})
 
     if (sendEmail) {
       await sendNewsEmails(audience, title, content)

@@ -17,7 +17,7 @@ export default function Button({
   size = "md",
   loading = false,
   disabled,
-  type = "button", // ✅ Ensures default type is "button"
+  type = "submit"
   asChild = false,
   ...props
 }: ButtonProps) {

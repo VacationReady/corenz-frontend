@@ -19,18 +19,18 @@ export async function POST(req: NextRequest) {
     const { title, content, videoEmbedUrl, attachments, sendEmail, audience } = body
 
     const newsPost = await prisma.newsPost.create({
-  data: {
-    title,
-    slug: generateSlug(title),
-    content,
-    videoEmbedUrl,
-    attachments,
-    sendEmail,
-    audience,
-    publishedAt: new Date(),  // ✅ This ensures the post shows up in your list
-    author: { connect: { id: userId } },
-  },
-})
+      data: {
+        title,
+        slug: generateSlug(title),
+        content,
+        videoEmbedUrl,
+        attachments,
+        sendEmail,
+        audience,
+        publishedAt: new Date(),
+        author: { connect: { id: userId } },
+      },
+    })
 
     if (sendEmail) {
       await sendNewsEmails(audience, title, content)
@@ -43,13 +43,16 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ Added Resend Email Handler (Your logic remains intact)
+// ✅ Resend Email Handler with Target All Logic Added — Nothing Removed
 async function sendNewsEmails(audience: any, title: string, content: any) {
   try {
     let filters: any = {}
+    let users = []
 
     if (audience?.type === 'all') {
-      // No filters, send to all users
+      users = await prisma.user.findMany({
+        select: { email: true, firstName: true },
+      })
     } else {
       if (audience.departments?.length) {
         filters.departmentId = { in: await getDepartmentIdsByName(audience.departments) }
@@ -60,14 +63,19 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
       if (audience.locations?.length) {
         filters.locationId = { in: await getLocationIdsByName(audience.locations) }
       }
+      users = await prisma.user.findMany({
+        where: filters,
+        select: { email: true, firstName: true },
+      })
     }
 
-    const users = await prisma.user.findMany({
-      where: filters,
-      select: { email: true, firstName: true },
-    })
+    if (!users.length) {
+      console.log('⚠️ No users matched the audience filter. No emails sent.')
+      return
+    }
 
     for (const user of users) {
+      console.log(`📨 Sending email to ${user.email}`)
       await resend.emails.send({
         from: 'onboarding@resend.dev',
         to: user.email,
@@ -86,14 +94,14 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
   }
 }
 
-// ✅ Content Preview Helper — kept as is
+// ✅ Content Preview Helper — unchanged
 function renderContentPreview(content: any) {
   if (!Array.isArray(content)) return ''
   const firstParagraph = content.find((block: any) => block.type === 'paragraph')
   return firstParagraph ? firstParagraph.text : ''
 }
 
-// ✅ Helper Functions to Get IDs — unchanged
+// ✅ Helper Functions — unchanged
 async function getDepartmentIdsByName(names: string[]) {
   const deps = await prisma.department.findMany({
     where: { name: { in: names } },
@@ -118,7 +126,7 @@ async function getLocationIdsByName(names: string[]) {
   return locs.map((l) => l.id)
 }
 
-// ✅ Added Slug Generator — non-destructive helper
+// ✅ Slug Generator — unchanged
 function generateSlug(title: string) {
   return title
     .toLowerCase()

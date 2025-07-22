@@ -45,7 +45,7 @@ export default function ReportBuilder() {
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [filters, setFilters] = useState<any[]>([]);
-  const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" }>({ field: "", direction: "asc" });
+  const [sort, setSort] = useState<{ field: string | undefined; direction: "asc" | "desc" }>({ field: undefined, direction: "asc" });
   const [pagination, setPagination] = useState({ page: 1, limit: 50 });
   const [results, setResults] = useState<any[]>([]);
 
@@ -71,7 +71,7 @@ export default function ReportBuilder() {
   };
 
   const addFilter = () => {
-    setFilters((prev) => [...prev, { field: "", operator: "equals", value: "" }]);
+    setFilters((prev) => [...prev, { field: undefined, operator: "equals", value: "" }]);
   };
 
   const updateFilter = (index: number, key: string, value: any) => {
@@ -127,7 +127,7 @@ export default function ReportBuilder() {
             <h2 className="font-semibold mb-2">Filters</h2>
             {filters.map((filter, idx) => (
               <div key={idx} className="flex gap-2 items-center mb-2">
-                <Select value={filter.field} onValueChange={(val) => updateFilter(idx, "field", val)}>
+                <Select value={filter.field || undefined} onValueChange={(val) => updateFilter(idx, "field", val)}>
                   <SelectTrigger>Select Field</SelectTrigger>
                   <SelectContent>
                     {fieldsData &&
@@ -163,7 +163,7 @@ export default function ReportBuilder() {
           <div className="border p-4 rounded">
             <h2 className="font-semibold mb-2">Sorting & Pagination</h2>
             <div className="flex gap-2 items-center">
-              <Select value={sort.field} onValueChange={(val) => setSort({ ...sort, field: val })}>
+              <Select value={sort.field || undefined} onValueChange={(val) => setSort({ ...sort, field: val })}>
                 <SelectTrigger>Sort By</SelectTrigger>
                 <SelectContent>
                   {selectedFields.map((field) => (

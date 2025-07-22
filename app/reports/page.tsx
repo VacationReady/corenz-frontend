@@ -1,95 +1,96 @@
 "use client";
-export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import Button from "@/components/ui/Button";
-import Checkbox from "@/components/ui/Checkbox";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+interface SavedReport {
+  id: number;
+  name: string;
+  category: string;
+  createdAt: string;
+  createdBy: {
+    email: string;
+  };
+}
 
 export default function ReportsPage() {
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [fieldGroups, setFieldGroups] = useState<
-    Record<string, { label: string; value: string }[]>
-  >({});
+  const [reports, setReports] = useState<SavedReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchFields = async () => {
-      try {
-        const res = await fetch("/api/fields");
-        const data = await res.json();
-        setFieldGroups(data);
-      } catch (error) {
-        console.error("Error fetching fields:", error);
-      }
+    const fetchReports = async () => {
+      const res = await fetch("/api/reports");
+      const data = await res.json();
+      setReports(data);
+      setLoading(false);
     };
-
-    fetchFields();
+    fetchReports();
   }, []);
 
-  const handleFieldToggle = (field: string) => {
-    setSelectedFields((prev) =>
-      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
-    );
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this report?")) return;
+    await fetch(`/api/reports/${id}`, { method: "DELETE" });
+    setReports((prev) => prev.filter((r) => r.id !== id));
   };
-
-  const handleNext = () => {
-    if (selectedFields.length === 0) return;
-    const params = new URLSearchParams();
-    params.set("fields", selectedFields.join(","));
-    window.location.href = `/reports/preview?${params.toString()}`;
-  };
-
-  const renderFieldGroup = (
-    id: string,
-    title: string,
-    fields: { label: string; value: string }[]
-  ) => (
-    <AccordionItem value={id} key={id}>
-      <AccordionTrigger>{title}</AccordionTrigger>
-      <AccordionContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2">
-          {fields.map((field) => (
-            <label key={field.value} className="flex items-center gap-2">
-              <Checkbox
-                id={field.value}
-                checked={selectedFields.includes(field.value)}
-                onCheckedChange={() => handleFieldToggle(field.value)}
-              />
-              <span>{field.label}</span>
-            </label>
-          ))}
-        </div>
-      </AccordionContent>
-    </AccordionItem>
-  );
 
   return (
-    <main className="flex-1 p-6 overflow-y-auto">
-      <h1 className="text-2xl font-bold mb-6">Build a Custom Report</h1>
-      <p className="mb-4">Select the fields you would like to include in your report:</p>
+    <main className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Saved Reports</h1>
+        <Button onClick={() => router.push("/reports/create")}>+ Create Report</Button>
+      </div>
 
-      {Object.keys(fieldGroups).length === 0 ? (
-        <p>Loading fields...</p>
+      {loading ? (
+        <p>Loading...</p>
+      ) : reports.length === 0 ? (
+        <p>No saved reports found.</p>
       ) : (
-        <Accordion type="multiple" className="w-full space-y-2">
-          {Object.entries(fieldGroups).map(([model, fields]) =>
-            renderFieldGroup(model, `${model.charAt(0).toUpperCase() + model.slice(1)} Fields`, fields)
-          )}
-        </Accordion>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Created By</TableHead>
+              <TableHead>Created At</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {reports.map((report) => (
+              <TableRow key={report.id}>
+                <TableCell>{report.name}</TableCell>
+                <TableCell>{report.category}</TableCell>
+                <TableCell>{report.createdBy?.email || "Unknown"}</TableCell>
+                <TableCell>{format(new Date(report.createdAt), "PPP")}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      router.push(`/reports/preview?fields=${encodeURIComponent(report.name)}`)
+                    }
+                  >
+                    View
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleDelete(report.id)}>
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
-
-      <Button
-        onClick={handleNext}
-        disabled={selectedFields.length === 0}
-        className="mt-4"
-      >
-        Next: Preview Report
-      </Button>
     </main>
   );
 }

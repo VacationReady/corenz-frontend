@@ -111,9 +111,10 @@ export default function ReportBuilder() {
                 .map((field) => (
                   <div key={field.field}>
                     <Checkbox
-                      checked={selectedFields.includes(field.field)}
-                      onCheckedChange={() => toggleField(field.field)}
-                    />
+  id={field.field}
+  checked={selectedFields.includes(field.field)}
+  onCheckedChange={() => toggleField(field.field)}
+/>
                     <span className="ml-2">{field.label}</span>
                   </div>
                 ))}

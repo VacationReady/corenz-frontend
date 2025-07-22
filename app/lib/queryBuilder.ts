@@ -129,5 +129,14 @@ export async function buildDynamicQuery({ model, selectedFields, filters, pagina
       throw new Error(`Unsupported model: ${model}`);
   }
 
-  return await attachComputedFields(results, selectedFields, model);
+  const computedFields = selectedFields
+    .filter((field: string) => field.startsWith("_computed."))
+    .map((field: string) => ({ field }));
+
+  const resultsWithComputed = await attachComputedFields(results, selectedFields, model);
+
+  return {
+    results: resultsWithComputed,
+    computedFields,
+  };
 }

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ Resend Email Handler with Correct "Target All" Handling and Logging
+// ✅ Resend Email Handler with Batch Sending and Logging
 async function sendNewsEmails(audience: any, title: string, content: any) {
   try {
     console.log('🚀 sendNewsEmails called with audience:', JSON.stringify(audience))
@@ -84,6 +84,30 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
       return
     }
 
+    // ✅ Batch send logic
+    const batchRecipients = users.map((user) => ({
+      from: 'onboarding@resend.dev',
+      to: user.email,
+      subject: `New News Post: ${title}`,
+      html: `
+        <p>Hi ${user.firstName || 'there'},</p>
+        <p>There's a new news post on your portal.</p>
+        <p><strong>${title}</strong></p>
+        <p>${renderContentPreview(content)}</p>
+        <p>Log in to view the full post.</p>
+      `,
+    }))
+
+    console.log('📨 Sending batch of', batchRecipients.length, 'emails')
+
+    for (const emailData of batchRecipients) {
+      await resend.emails.send(emailData)
+        .then(result => console.log('✅ Resend success:', result))
+        .catch(err => console.error('❌ Resend failed:', err))
+    }
+
+    // ✅ If you want to switch back to single send, uncomment below:
+    /*
     for (const user of users) {
       console.log(`📨 Sending Resend email to ${user.email}`)
       await resend.emails.send({
@@ -99,6 +123,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
         `,
       }).catch(err => console.error('❌ Error sending email:', err))
     }
+    */
   } catch (err) {
     console.error('Error sending emails via Resend:', err)
   }

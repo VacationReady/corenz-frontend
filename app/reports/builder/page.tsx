@@ -42,7 +42,7 @@ export default function ReportBuilder() {
   const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetcher);
   const models: string[] = Array.from(new Set(fieldsData?.map((f) => f.model) || []));
 
-  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [filters, setFilters] = useState<any[]>([]);
   const [sort, setSort] = useState<{ field: string | undefined; direction: "asc" | "desc" }>({ field: undefined, direction: "asc" });
@@ -92,9 +92,8 @@ export default function ReportBuilder() {
 
       <div className="flex gap-4 items-center">
         <Select value={selectedModel} onValueChange={setSelectedModel}>
-          <SelectTrigger>Select Model</SelectTrigger>
+          <SelectTrigger>{selectedModel || "Select Model"}</SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Select Model</SelectItem>
             {models.map((model) => (
               <SelectItem key={model} value={model}>
                 {model}
@@ -128,7 +127,7 @@ export default function ReportBuilder() {
             {filters.map((filter, idx) => (
               <div key={idx} className="flex gap-2 items-center mb-2">
                 <Select value={filter.field || undefined} onValueChange={(val) => updateFilter(idx, "field", val)}>
-                  <SelectTrigger>Select Field</SelectTrigger>
+                  <SelectTrigger>{filter.field || "Select Field"}</SelectTrigger>
                   <SelectContent>
                     {fieldsData &&
                       fieldsData
@@ -141,7 +140,7 @@ export default function ReportBuilder() {
                   </SelectContent>
                 </Select>
                 <Select value={filter.operator} onValueChange={(val) => updateFilter(idx, "operator", val)}>
-                  <SelectTrigger>Operator</SelectTrigger>
+                  <SelectTrigger>{filter.operator}</SelectTrigger>
                   <SelectContent>
                     <SelectItem value="equals">Equals</SelectItem>
                     <SelectItem value="contains">Contains</SelectItem>
@@ -164,7 +163,7 @@ export default function ReportBuilder() {
             <h2 className="font-semibold mb-2">Sorting & Pagination</h2>
             <div className="flex gap-2 items-center">
               <Select value={sort.field || undefined} onValueChange={(val) => setSort({ ...sort, field: val })}>
-                <SelectTrigger>Sort By</SelectTrigger>
+                <SelectTrigger>{sort.field || "Sort By"}</SelectTrigger>
                 <SelectContent>
                   {selectedFields.map((field) => (
                     <SelectItem key={field} value={field}>{field}</SelectItem>
@@ -172,7 +171,7 @@ export default function ReportBuilder() {
                 </SelectContent>
               </Select>
               <Select value={sort.direction} onValueChange={(val) => setSort({ ...sort, direction: val as "asc" | "desc" })}>
-                <SelectTrigger>Sort Direction</SelectTrigger>
+                <SelectTrigger>{sort.direction}</SelectTrigger>
                 <SelectContent>
                   <SelectItem value="asc">Ascending</SelectItem>
                   <SelectItem value="desc">Descending</SelectItem>

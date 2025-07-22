@@ -29,14 +29,16 @@ function buildWhere(filters: any[]) {
   }, {});
 }
 
-function buildPaginationAndSort(pagination = {}, sort = {}) {
+function buildPaginationAndSort(
+  pagination: { limit?: number; page?: number } = {},
+  sort: { field?: string; direction?: "asc" | "desc" } = {}
+) {
   return {
     take: pagination.limit || 50,
     skip: ((pagination.page || 1) - 1) * (pagination.limit || 50),
     orderBy: sort.field ? { [sort.field]: sort.direction || "asc" } : undefined,
   };
 }
-
 export async function buildDynamicQuery({ model, selectedFields, filters, pagination, sort }: any) {
   switch (model) {
     case "employee":

@@ -30,8 +30,17 @@ function exportToCsv(rows: any[], selectedFields: string[]) {
 }
 
 export default function ReportBuilder() {
-  const { data: fieldsData } = useSWR("/api/reports/fields", fetcher);
-  const models = Array.from(new Set(fieldsData?.map((f: any) => f.model) || []));
+  type ReportField = {
+  model: string;
+  field: string;
+  label: string;
+  type: string;
+  filterable: boolean;
+  join?: string;
+};
+
+const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetcher);
+  const models: string[] = Array.from(new Set(fieldsData?.map((f: any) => f.model) || []));
 
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);

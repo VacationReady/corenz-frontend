@@ -1,20 +1,38 @@
+// /api/reports/query/route.ts
+
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import prisma from "@/lib/prisma";
+import { reportFields } from "@/lib/reportFields";
 import { buildDynamicQuery } from "@/lib/queryBuilder";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const { model, selectedFields, filters, pagination, sort } = await req.json();
-    const data = await buildDynamicQuery({ model, selectedFields, filters, pagination, sort });
-    return NextResponse.json({ data });
-  } catch (error) {
-    console.error("Query error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+
+    if (!model || !selectedFields || selectedFields.length === 0) {
+      return NextResponse.json({ status: "error", message: "Invalid request parameters", data: [] }, { status: 400 });
+    }
+
+    const { prismaQuery, computedFields } = buildDynamicQuery({ model, selectedFields, filters, pagination, sort });
+
+    // @ts-ignore - dynamic model access
+    const result = await prisma[model].findMany(prismaQuery);
+
+    if (!result || result.length === 0) {
+      return NextResponse.json({ status: "success", message: "No data found", data: [] });
+    }
+
+    const finalResult = result.map((row: any) => {
+      const computedData = computedFields.reduce((acc: any, computed: any) => {
+        acc[computed.field] = computed.compute(row);
+        return acc;
+      }, {});
+      return { ...row, ...computedData };
+    });
+
+    return NextResponse.json({ status: "success", message: "Report generated successfully", data: finalResult });
+  } catch (error: any) {
+    console.error("Error in report query API:", error);
+    return NextResponse.json({ status: "error", message: "Internal server error", data: [] }, { status: 500 });
   }
 }

@@ -37,7 +37,7 @@ export const reportFields = [
   // EmploymentCheck Fields
   { model: "employmentCheck", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
   { model: "employmentCheck", field: "employee.user.email", label: "Employee Email", type: "string", filterable: true, join: "employee.user" },
-  { model: "employmentCheck", field: "checkType", label: "Check Type", type: "string", filterable: true },
+  { model: "employmentCheck", field: "type", label: "Check Type", type: "string", filterable: true }, // ✅ Fixed from checkType to type
   { model: "employmentCheck", field: "completedAt", label: "Check Completed At", type: "date", filterable: true },
 
   // Document Fields

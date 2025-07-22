@@ -179,14 +179,16 @@ export default function ReportBuilder() {
               </Select>
               <Input
                 type="number"
+                min="1"
                 value={pagination.page}
-                onChange={(e) => setPagination({ ...pagination, page: parseInt(e.target.value) || 1 })}
+                onChange={(e) => setPagination({ ...pagination, page: Math.max(1, parseInt(e.target.value) || 1) })}
                 placeholder="Page"
               />
               <Input
                 type="number"
+                min="1"
                 value={pagination.limit}
-                onChange={(e) => setPagination({ ...pagination, limit: parseInt(e.target.value) || 50 })}
+                onChange={(e) => setPagination({ ...pagination, limit: Math.max(1, parseInt(e.target.value) || 50) })}
                 placeholder="Limit"
               />
             </div>

@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+interface Params {
+  params: { id: string };
+}
+
+export async function GET(req: Request, { params }: Params) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -18,28 +19,23 @@ export async function GET(
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    const savedReport = await prisma.savedReport.findUnique({
+    const report = await prisma.savedReport.findUnique({
       where: { id },
+      include: { user: { select: { email: true } } },
     });
 
-    if (!savedReport) {
+    if (!report) {
       return NextResponse.json({ error: "Not Found" }, { status: 404 });
     }
 
-    return NextResponse.json(savedReport);
+    return NextResponse.json(report);
   } catch (error) {
-    console.error("Error fetching saved report:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error("Error fetching report:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: Request, { params }: Params) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
@@ -51,16 +47,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
     }
 
-    await prisma.savedReport.delete({
-      where: { id },
-    });
+    await prisma.savedReport.delete({ where: { id } });
 
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error) {
-    console.error("Error deleting saved report:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error("Error deleting report:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -22,11 +22,11 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function AudienceSelector({ value, onChange, refreshKey }: Props) {
   const { data, error, isLoading } = useSWR(['/api/audience', refreshKey], ([url]) => fetcher(url), {
-  revalidateOnMount: true,
-  revalidateIfStale: true,
-  revalidateOnFocus: true,   // ✅ Added
-  dedupingInterval: 0,
-})
+    revalidateOnMount: true,
+    revalidateIfStale: true,
+    revalidateOnFocus: true,   // ✅ Added
+    dedupingInterval: 0,
+  })
 
   const [departments, setDepartments] = useState<string[]>([])
   const [roles, setRoles] = useState<string[]>([])
@@ -45,6 +45,18 @@ export default function AudienceSelector({ value, onChange, refreshKey }: Props)
       toast.error('Failed to load audience options')
     }
   }, [error])
+
+  // ✅ Added useEffect to ensure 'all' is set on mount if nothing selected
+  useEffect(() => {
+    if (
+      !value.type &&
+      (!value.departments || value.departments.length === 0) &&
+      (!value.roles || value.roles.length === 0) &&
+      (!value.locations || value.locations.length === 0)
+    ) {
+      onChange({ type: 'all' })
+    }
+  }, [])
 
   const toggleValue = (field: keyof AudienceFilter, option: string) => {
     const current = Array.isArray(value[field]) ? (value[field] as string[]) : []

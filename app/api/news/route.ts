@@ -61,7 +61,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
     const users = audience?.type === 'all'
       ? await prisma.user.findMany({
           where: {
-            email: { not: null },   // ✅ Only fetch users with email
+            email: { not: '' }
           },
           select: { email: true, firstName: true },
         })

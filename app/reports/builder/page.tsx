@@ -146,7 +146,7 @@ export default function ReportBuilder() {
                   onChange={(e) => updateFilter(idx, "value", e.target.value)}
                   placeholder="Value"
                 />
-                <Button variant="destructive" onClick={() => removeFilter(idx)}>Remove</Button>
+                <Button variant="ghost" onClick={() => removeFilter(idx)}>Remove</Button>
               </div>
             ))}
             <Button onClick={addFilter}>Add Filter</Button>

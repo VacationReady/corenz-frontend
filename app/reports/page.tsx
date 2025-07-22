@@ -82,7 +82,7 @@ export default function ReportsPage() {
                   >
                     View
                   </Button>
-                  <Button variant="destructive" onClick={() => handleDelete(report.id)}>
+                  <Button variant="ghost" onClick={() => handleDelete(report.id)}>
                     Delete
                   </Button>
                 </TableCell>

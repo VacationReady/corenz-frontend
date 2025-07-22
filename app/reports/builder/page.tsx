@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select, SelectItem } from "@/components/ui/Select";
+import Checkbox from "@/components/ui/Checkbox";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 

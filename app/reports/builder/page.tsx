@@ -155,7 +155,7 @@ export default function ReportBuilder() {
                   onChange={(e) => updateFilter(idx, "value", e.target.value)}
                   placeholder="Value"
                 />
-                <Button variant="destructive" onClick={() => removeFilter(idx)}>Remove</Button>
+                <Button variant="ghost" onClick={() => removeFilter(idx)}>Remove</Button>
               </div>
             ))}
             <Button onClick={addFilter}>Add Filter</Button>
@@ -199,7 +199,7 @@ export default function ReportBuilder() {
 
       <div className="flex gap-2">
         <Button onClick={handleGenerate} disabled={!selectedModel || selectedFields.length === 0}>Generate Report</Button>
-        <Button variant="outline" onClick={() => exportToCsv(results, selectedFields)} disabled={results.length === 0}>Export CSV</Button>
+        <Button variant="ghost" onClick={() => exportToCsv(results, selectedFields)} disabled={results.length === 0}>Export CSV</Button>
       </div>
 
       {results.length > 0 && (

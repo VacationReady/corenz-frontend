@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 function buildSelect(selectedFields: string[]) {
   return selectedFields.reduce((acc: any, field) => {
+    if (field.startsWith("_computed.")) return acc; // Skip computed fields
     const parts = field.split(".");
     if (parts.length === 2) {
       const [relation, fieldName] = parts;
@@ -16,7 +17,8 @@ function buildSelect(selectedFields: string[]) {
 
 function buildWhere(filters: any[]) {
   return filters.reduce((acc: any, filter) => {
-    const { field, operator, value } = filter;
+    const { field, value } = filter;
+    if (!field || field.startsWith("_computed.")) return acc; // Skip computed filters
     const parts = field.split(".");
     if (parts.length === 2) {
       const [relation, fieldName] = parts;
@@ -36,75 +38,96 @@ function buildPaginationAndSort(
   return {
     take: pagination.limit || 50,
     skip: ((pagination.page || 1) - 1) * (pagination.limit || 50),
-    orderBy: sort.field ? { [sort.field]: sort.direction || "asc" } : undefined,
+    orderBy: sort.field && !sort.field.startsWith("_computed.")
+      ? { [sort.field]: sort.direction || "asc" }
+      : undefined,
   };
 }
+
+async function attachComputedFields(results: any[], selectedFields: string[], model: string) {
+  if (!selectedFields.some((f) => f.startsWith("_computed."))) return results;
+
+  return results.map((item) => {
+    if (model === "leaveEntitlement" && selectedFields.includes("_computed.remainingEntitlement")) {
+      item["_computed"] = {
+        remainingEntitlement:
+          (item.totalDays || 0) + (item.daysAllocated || 0) + (item.carryoverDays || 0) - (item.usedDays || 0),
+      };
+    }
+    return item;
+  });
+}
+
 export async function buildDynamicQuery({ model, selectedFields, filters, pagination, sort }: any) {
+  let results: any[] = [];
+
   switch (model) {
     case "employee":
-      return prisma.employee.findMany({
+      results = await prisma.employee.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "leaveRequest":
-      return prisma.leaveRequest.findMany({
+      results = await prisma.leaveRequest.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "driverLicence":
-  return prisma.driverLicence.findMany({
-    select: buildSelect(selectedFields),
-    where: buildWhere(filters),
-    ...buildPaginationAndSort(pagination, sort),
-  });
-
+      results = await prisma.driverLicence.findMany({
+        select: buildSelect(selectedFields),
+        where: buildWhere(filters),
+        ...buildPaginationAndSort(pagination, sort),
+      });
+      break;
     case "leaveEntitlement":
-      return prisma.leaveEntitlement.findMany({
+      results = await prisma.leaveEntitlement.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "trainingRecord":
-      return prisma.trainingRecord.findMany({
+      results = await prisma.trainingRecord.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "employmentCheck":
-      return prisma.employmentCheck.findMany({
+      results = await prisma.employmentCheck.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "document":
-      return prisma.document.findMany({
+      results = await prisma.document.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "workingPattern":
-      return prisma.workingPattern.findMany({
+      results = await prisma.workingPattern.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     case "company":
-      return prisma.company.findMany({
+      results = await prisma.company.findMany({
         select: buildSelect(selectedFields),
         where: buildWhere(filters),
         ...buildPaginationAndSort(pagination, sort),
       });
-
+      break;
     default:
       throw new Error(`Unsupported model: ${model}`);
   }
+
+  return await attachComputedFields(results, selectedFields, model);
 }

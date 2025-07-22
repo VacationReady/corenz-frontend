@@ -1,9 +1,6 @@
-// /api/reports/query/route.ts
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { reportFields } from "@/lib/reportFields";
-import { buildDynamicQuery } from "@/lib/queryBuilder";
+import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 
 export async function POST(req: Request) {
   try {
@@ -13,24 +10,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "error", message: "Invalid request parameters", data: [] }, { status: 400 });
     }
 
-    const { prismaQuery, computedFields } = buildDynamicQuery({ model, selectedFields, filters, pagination, sort });
+    const { prismaQuery, computedFields } = buildDynamicQuery({ selectedFields, filters, pagination, sort });
 
     // @ts-ignore - dynamic model access
-    const result = await prisma[model].findMany(prismaQuery);
+    const results = await prisma[model].findMany(prismaQuery);
 
-    if (!result || result.length === 0) {
-      return NextResponse.json({ status: "success", message: "No data found", data: [] });
-    }
+    const finalResults = await attachComputedFields(results, selectedFields, model);
 
-    const finalResult = result.map((row: any) => {
-      const computedData = computedFields.reduce((acc: any, computed: any) => {
-        acc[computed.field] = computed.compute(row);
-        return acc;
-      }, {});
-      return { ...row, ...computedData };
-    });
-
-    return NextResponse.json({ status: "success", message: "Report generated successfully", data: finalResult });
+    return NextResponse.json({ status: "success", message: "Report generated successfully", data: finalResults });
   } catch (error: any) {
     console.error("Error in report query API:", error);
     return NextResponse.json({ status: "error", message: "Internal server error", data: [] }, { status: 500 });

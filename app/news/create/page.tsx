@@ -35,6 +35,14 @@ export default function CreateNewsPostPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!audience || (!audience.type && !audience.departments?.length && !audience.roles?.length && !audience.locations?.length)) {
+      console.warn('⚠️ Audience is empty on submit. Defaulting to Target All.')
+      setAudience({ type: 'all' })
+      return
+    }
+
+    console.log('🔍 Submitting News with audience:', audience)
+
     const uploadedUrls = await Promise.all(
       attachments.map(file => uploadFileToSupabase(file))
     )

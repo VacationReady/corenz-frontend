@@ -55,12 +55,12 @@ export async function buildDynamicQuery({ model, selectedFields, filters, pagina
         ...buildPaginationAndSort(pagination, sort),
       });
 
-    case "drivingLicence":
-      return prisma.drivingLicence.findMany({
-        select: buildSelect(selectedFields),
-        where: buildWhere(filters),
-        ...buildPaginationAndSort(pagination, sort),
-      });
+    case "driverLicence":
+  return prisma.driverLicence.findMany({
+    select: buildSelect(selectedFields),
+    where: buildWhere(filters),
+    ...buildPaginationAndSort(pagination, sort),
+  });
 
     case "leaveEntitlement":
       return prisma.leaveEntitlement.findMany({

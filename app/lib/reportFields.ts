@@ -17,10 +17,10 @@ export const reportFields = [
   { model: "leaveEntitlement", field: "totalEntitlement", label: "Total Entitlement", type: "number", filterable: true },
   { model: "leaveEntitlement", field: "remainingEntitlement", label: "Remaining Entitlement", type: "number", filterable: true },
 
-  // DrivingLicence Fields
-  { model: "drivingLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
-  { model: "drivingLicence", field: "category", label: "Licence Category", type: "string", filterable: true },
-  { model: "drivingLicence", field: "expiryDate", label: "Licence Expiry Date", type: "date", filterable: true },
+  // DriverLicence Fields
+{ model: "driverLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
+{ model: "driverLicence", field: "category", label: "Licence Category", type: "string", filterable: true },
+{ model: "driverLicence", field: "expiryDate", label: "Licence Expiry Date", type: "date", filterable: true },
 
   // TrainingRecord Fields
   { model: "trainingRecord", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },

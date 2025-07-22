@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select, SelectItem } from "@/components/ui/Select";
-import Checkbox from "@/components/ui/Checkbox";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -31,16 +31,16 @@ function exportToCsv(rows: any[], selectedFields: string[]) {
 
 export default function ReportBuilder() {
   type ReportField = {
-  model: string;
-  field: string;
-  label: string;
-  type: string;
-  filterable: boolean;
-  join?: string;
-};
+    model: string;
+    field: string;
+    label: string;
+    type: string;
+    filterable: boolean;
+    join?: string;
+  };
 
-const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetcher);
-  const models: string[] = Array.from(new Set(fieldsData?.map((f: any) => f.model) || []));
+  const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetcher);
+  const models: string[] = Array.from(new Set(fieldsData?.map((f) => f.model) || []));
 
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
@@ -105,17 +105,18 @@ const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetche
         <>
           <div className="border p-4 rounded">
             <h2 className="font-semibold mb-2">Select Fields</h2>
-            {fieldsData
-              .filter((f: any) => f.model === selectedModel)
-              .map((field: any) => (
-                <div key={field.field}>
-                  <Checkbox
-                    checked={selectedFields.includes(field.field)}
-                    onCheckedChange={() => toggleField(field.field)}
-                  />
-                  <span className="ml-2">{field.label}</span>
-                </div>
-              ))}
+            {fieldsData &&
+              fieldsData
+                .filter((f) => f.model === selectedModel)
+                .map((field) => (
+                  <div key={field.field}>
+                    <Checkbox
+                      checked={selectedFields.includes(field.field)}
+                      onCheckedChange={() => toggleField(field.field)}
+                    />
+                    <span className="ml-2">{field.label}</span>
+                  </div>
+                ))}
           </div>
 
           <div className="border p-4 rounded">
@@ -124,13 +125,14 @@ const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetche
               <div key={idx} className="flex gap-2 items-center mb-2">
                 <Select value={filter.field} onValueChange={(val) => updateFilter(idx, "field", val)}>
                   <SelectItem value="">Select Field</SelectItem>
-                  {fieldsData
-                    .filter((f: any) => f.model === selectedModel)
-                    .map((field: any) => (
-                      <SelectItem key={field.field} value={field.field}>
-                        {field.label}
-                      </SelectItem>
-                    ))}
+                  {fieldsData &&
+                    fieldsData
+                      .filter((f) => f.model === selectedModel)
+                      .map((field) => (
+                        <SelectItem key={field.field} value={field.field}>
+                          {field.label}
+                        </SelectItem>
+                      ))}
                 </Select>
                 <Select value={filter.operator} onValueChange={(val) => updateFilter(idx, "operator", val)}>
                   <SelectItem value="equals">Equals</SelectItem>

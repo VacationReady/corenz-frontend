@@ -4,7 +4,6 @@ export const reportFields = [
   { model: "employee", field: "user.email", label: "Employee Email", type: "string", filterable: true, join: "user" },
   { model: "employee", field: "department.name", label: "Department Name", type: "string", filterable: true, join: "department" },
   { model: "employee", field: "isActive", label: "Active Status", type: "boolean", filterable: true },
-  { model: "employee", field: "jobTitle", label: "Job Title", type: "string", filterable: true },
 
   // LeaveRequest Fields
   { model: "leaveRequest", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
@@ -14,9 +13,16 @@ export const reportFields = [
 
   // LeaveEntitlement Fields
   { model: "leaveEntitlement", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
-  { model: "leaveEntitlement", field: "leaveType", label: "Leave Type", type: "string", filterable: true },
-  { model: "leaveEntitlement", field: "totalEntitlement", label: "Total Entitlement", type: "number", filterable: true },
-  { model: "leaveEntitlement", field: "remainingEntitlement", label: "Remaining Entitlement", type: "number", filterable: true },
+  { model: "leaveEntitlement", field: "eventCategory.name", label: "Leave Type", type: "string", filterable: true, join: "eventCategory" },
+  { model: "leaveEntitlement", field: "totalDays", label: "Total Days", type: "number", filterable: true },
+  { model: "leaveEntitlement", field: "usedDays", label: "Used Days", type: "number", filterable: true },
+  { model: "leaveEntitlement", field: "daysAllocated", label: "Days Allocated", type: "number", filterable: true },
+  { model: "leaveEntitlement", field: "carryoverDays", label: "Carryover Days", type: "number", filterable: true },
+  { model: "leaveEntitlement", field: "carryoverExpiry", label: "Carryover Expiry", type: "date", filterable: true },
+  { model: "leaveEntitlement", field: "createdAt", label: "Created At", type: "date", filterable: true },
+  { model: "leaveEntitlement", field: "updatedAt", label: "Updated At", type: "date", filterable: true },
+  // ✅ Computed Remaining Entitlement
+  { model: "leaveEntitlement", field: "_computed.remainingEntitlement", label: "Remaining Entitlement", type: "number", filterable: false },
 
   // DriverLicence Fields
   { model: "driverLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },

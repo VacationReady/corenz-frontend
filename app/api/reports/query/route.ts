@@ -1,7 +1,7 @@
 // /api/reports/query/route.ts
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { reportFields } from "@/lib/reportFields";
 import { buildDynamicQuery } from "@/lib/queryBuilder";
 

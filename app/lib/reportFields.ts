@@ -4,6 +4,7 @@ export const reportFields = [
   { model: "employee", field: "user.email", label: "Employee Email", type: "string", filterable: true, join: "user" },
   { model: "employee", field: "department.name", label: "Department Name", type: "string", filterable: true, join: "department" },
   { model: "employee", field: "isActive", label: "Active Status", type: "boolean", filterable: true },
+  { model: "employee", field: "jobTitle", label: "Job Title", type: "string", filterable: true },
 
   // LeaveRequest Fields
   { model: "leaveRequest", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
@@ -18,9 +19,9 @@ export const reportFields = [
   { model: "leaveEntitlement", field: "remainingEntitlement", label: "Remaining Entitlement", type: "number", filterable: true },
 
   // DriverLicence Fields
-{ model: "driverLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
-{ model: "driverLicence", field: "category", label: "Licence Category", type: "string", filterable: true },
-{ model: "driverLicence", field: "expiryDate", label: "Licence Expiry Date", type: "date", filterable: true },
+  { model: "driverLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
+  { model: "driverLicence", field: "category", label: "Licence Category", type: "string", filterable: true },
+  { model: "driverLicence", field: "expiryDate", label: "Licence Expiry Date", type: "date", filterable: true },
 
   // TrainingRecord Fields
   { model: "trainingRecord", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
@@ -29,6 +30,7 @@ export const reportFields = [
 
   // EmploymentCheck Fields
   { model: "employmentCheck", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user" },
+  { model: "employmentCheck", field: "employee.user.email", label: "Employee Email", type: "string", filterable: true, join: "employee.user" },
   { model: "employmentCheck", field: "checkType", label: "Check Type", type: "string", filterable: true },
   { model: "employmentCheck", field: "completedAt", label: "Check Completed At", type: "date", filterable: true },
 
@@ -39,9 +41,6 @@ export const reportFields = [
 
   // WorkingPattern Fields
   { model: "workingPattern", field: "name", label: "Working Pattern Name", type: "string", filterable: true },
-
-  // EmploymentCheck Fields
-  { model: "employmentCheck", field: "employee.user.email", label: "Employee Email", type: "string", filterable: true, join: "employee.user" },
 
   // Company Fields
   { model: "company", field: "name", label: "Company Name", type: "string", filterable: true },

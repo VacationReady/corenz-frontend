@@ -4,7 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectItem } from "@/components/ui/Select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/Select";
 import Checkbox from "@/components/ui/Checkbox";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -92,12 +92,15 @@ export default function ReportBuilder() {
 
       <div className="flex gap-4 items-center">
         <Select value={selectedModel} onValueChange={setSelectedModel}>
-          <SelectItem value="">Select Model</SelectItem>
-          {models.map((model) => (
-            <SelectItem key={model} value={model}>
-              {model}
-            </SelectItem>
-          ))}
+          <SelectTrigger>Select Model</SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Select Model</SelectItem>
+            {models.map((model) => (
+              <SelectItem key={model} value={model}>
+                {model}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 
@@ -111,10 +114,10 @@ export default function ReportBuilder() {
                 .map((field) => (
                   <div key={field.field}>
                     <Checkbox
-  id={field.field}
-  checked={selectedFields.includes(field.field)}
-  onCheckedChange={() => toggleField(field.field)}
-/>
+                      id={field.field}
+                      checked={selectedFields.includes(field.field)}
+                      onCheckedChange={() => toggleField(field.field)}
+                    />
                     <span className="ml-2">{field.label}</span>
                   </div>
                 ))}
@@ -125,28 +128,34 @@ export default function ReportBuilder() {
             {filters.map((filter, idx) => (
               <div key={idx} className="flex gap-2 items-center mb-2">
                 <Select value={filter.field} onValueChange={(val) => updateFilter(idx, "field", val)}>
-                  <SelectItem value="">Select Field</SelectItem>
-                  {fieldsData &&
-                    fieldsData
-                      .filter((f) => f.model === selectedModel)
-                      .map((field) => (
-                        <SelectItem key={field.field} value={field.field}>
-                          {field.label}
-                        </SelectItem>
-                      ))}
+                  <SelectTrigger>Select Field</SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Select Field</SelectItem>
+                    {fieldsData &&
+                      fieldsData
+                        .filter((f) => f.model === selectedModel)
+                        .map((field) => (
+                          <SelectItem key={field.field} value={field.field}>
+                            {field.label}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
                 </Select>
                 <Select value={filter.operator} onValueChange={(val) => updateFilter(idx, "operator", val)}>
-                  <SelectItem value="equals">Equals</SelectItem>
-                  <SelectItem value="contains">Contains</SelectItem>
-                  <SelectItem value="gt">Greater Than</SelectItem>
-                  <SelectItem value="lt">Less Than</SelectItem>
+                  <SelectTrigger>Operator</SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="equals">Equals</SelectItem>
+                    <SelectItem value="contains">Contains</SelectItem>
+                    <SelectItem value="gt">Greater Than</SelectItem>
+                    <SelectItem value="lt">Less Than</SelectItem>
+                  </SelectContent>
                 </Select>
                 <Input
                   value={filter.value}
                   onChange={(e) => updateFilter(idx, "value", e.target.value)}
                   placeholder="Value"
                 />
-                <Button variant="ghost" onClick={() => removeFilter(idx)}>Remove</Button>
+                <Button variant="destructive" onClick={() => removeFilter(idx)}>Remove</Button>
               </div>
             ))}
             <Button onClick={addFilter}>Add Filter</Button>
@@ -156,14 +165,20 @@ export default function ReportBuilder() {
             <h2 className="font-semibold mb-2">Sorting & Pagination</h2>
             <div className="flex gap-2 items-center">
               <Select value={sort.field} onValueChange={(val) => setSort({ ...sort, field: val })}>
-                <SelectItem value="">Sort By</SelectItem>
-                {selectedFields.map((field) => (
-                  <SelectItem key={field} value={field}>{field}</SelectItem>
-                ))}
+                <SelectTrigger>Sort By</SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sort By</SelectItem>
+                  {selectedFields.map((field) => (
+                    <SelectItem key={field} value={field}>{field}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               <Select value={sort.direction} onValueChange={(val) => setSort({ ...sort, direction: val as "asc" | "desc" })}>
-                <SelectItem value="asc">Ascending</SelectItem>
-                <SelectItem value="desc">Descending</SelectItem>
+                <SelectTrigger>Sort Direction</SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asc">Ascending</SelectItem>
+                  <SelectItem value="desc">Descending</SelectItem>
+                </SelectContent>
               </Select>
               <Input
                 type="number"
@@ -184,7 +199,7 @@ export default function ReportBuilder() {
 
       <div className="flex gap-2">
         <Button onClick={handleGenerate} disabled={!selectedModel || selectedFields.length === 0}>Generate Report</Button>
-        <Button variant="ghost" onClick={() => exportToCsv(results, selectedFields)} disabled={results.length === 0}>Export CSV</Button>
+        <Button variant="outline" onClick={() => exportToCsv(results, selectedFields)} disabled={results.length === 0}>Export CSV</Button>
       </div>
 
       {results.length > 0 && (

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/Select";
-import Checkbox from "@/components/ui/Checkbox";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -130,7 +130,6 @@ export default function ReportBuilder() {
                 <Select value={filter.field} onValueChange={(val) => updateFilter(idx, "field", val)}>
                   <SelectTrigger>Select Field</SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select Field</SelectItem>
                     {fieldsData &&
                       fieldsData
                         .filter((f) => f.model === selectedModel)
@@ -167,7 +166,6 @@ export default function ReportBuilder() {
               <Select value={sort.field} onValueChange={(val) => setSort({ ...sort, field: val })}>
                 <SelectTrigger>Sort By</SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sort By</SelectItem>
                   {selectedFields.map((field) => (
                     <SelectItem key={field} value={field}>{field}</SelectItem>
                   ))}

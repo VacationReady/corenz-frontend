@@ -18,6 +18,8 @@ export async function POST(req: NextRequest) {
 
     const { title, content, videoEmbedUrl, attachments, sendEmail, audience } = body
 
+    console.log('📝 Incoming news POST:', { title, sendEmail, audience })
+
     const newsPost = await prisma.newsPost.create({
       data: {
         title,
@@ -43,9 +45,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ Resend Email Handler with Correct "Target All" Handling
+// ✅ Resend Email Handler with Correct "Target All" Handling and Logging
 async function sendNewsEmails(audience: any, title: string, content: any) {
   try {
+    console.log('🚀 sendNewsEmails called with audience:', JSON.stringify(audience))
+
     let filters: any = {}
 
     if (audience.departments?.length) {
@@ -68,10 +72,12 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
       : await prisma.user.findMany({
           where: {
             ...filters,
-            email: { not: null },   // ✅ Apply filters AND check for valid email
+            email: { not: '' },
           },
           select: { email: true, firstName: true },
         })
+
+    console.log('👥 Found users:', users.map(u => u.email))
 
     if (!users.length) {
       console.log('⚠️ No users matched the audience filter. No emails sent.')
@@ -79,7 +85,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
     }
 
     for (const user of users) {
-      console.log(`📨 Sending email to ${user.email}`)
+      console.log(`📨 Sending Resend email to ${user.email}`)
       await resend.emails.send({
         from: 'onboarding@resend.dev',
         to: user.email,
@@ -91,7 +97,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
           <p>${renderContentPreview(content)}</p>
           <p>Log in to view the full post.</p>
         `,
-      })
+      }).catch(err => console.error('❌ Error sending email:', err))
     }
   } catch (err) {
     console.error('Error sending emails via Resend:', err)

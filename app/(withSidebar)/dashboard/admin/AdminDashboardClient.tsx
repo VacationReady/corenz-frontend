@@ -86,10 +86,10 @@ export default function AdminDashboardClient({
         icon={CalendarCheck2}
         className="h-full"
       >
-<NewsWidget />
         <p className="text-sm text-gray-600 dark:text-gray-300">
           Loading leave data...
         </p>
+<NewsWidget />
       </DashboardWidget>
     </>
   );

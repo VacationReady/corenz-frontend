@@ -147,7 +147,7 @@ export default function ReportsPreviewClient() {
       const [parent, child] = key.split(".");
       return {
         header: key,
-        accessorFn: (row) => row[parent]?.[child] ?? "",
+        accessorFn: (row: any) => row[parent]?.[child] ?? "",
         cell: (info) => info.getValue(),
       };
     } else if (typeof data[0][key] === "object" && data[0][key] !== null) {

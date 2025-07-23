@@ -153,7 +153,7 @@ export default function ReportsPreviewClient() {
     } else if (typeof data[0][key] === "object" && data[0][key] !== null) {
       return {
         header: key,
-        accessorFn: (row) => {
+        accessorFn: (row: any) => {
           const obj = row[key];
           if (obj?.name) return obj.name;
           if (obj?.id) return obj.id;

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { reportType, filters = {}, pagination = { page: 1, limit: 50, sortBy: null, sortOrder: "asc" } } = body;
+    const { reportType, filters = {}, pagination = { page: 1, limit: 50, sortBy: null, sortOrder: "asc" } }: { reportType: string; filters?: any; pagination?: any } = body;
 
     if (!reportDefinitions[reportType]) {
       return NextResponse.json({ error: "Invalid report type" }, { status: 400 });

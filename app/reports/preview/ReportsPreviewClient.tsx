@@ -148,7 +148,7 @@ export default function ReportsPreviewClient() {
       return {
         header: key,
         accessorFn: (row: any) => row[parent]?.[child] ?? "",
-        cell: (info) => info.getValue(),
+        cell: (info: any) => info.getValue(),
       };
     } else if (typeof data[0][key] === "object" && data[0][key] !== null) {
       return {

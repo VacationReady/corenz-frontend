@@ -159,7 +159,7 @@ export default function ReportsPreviewClient() {
           if (obj?.id) return obj.id;
           return JSON.stringify(obj);
         },
-        cell: (info) => info.getValue(),
+        cell: (info: any) => info.getValue(),
       };
     } else {
       return {

@@ -21,7 +21,7 @@ function downloadCSV(data: any[], columns: any[]) {
       if (field.includes(".")) {
         value = field
   .split(".")
-  .reduce((obj: any, key) => (obj ? obj[key] : ""), row);
+  .reduce((obj: any, key: string) => (obj ? obj[key] : ""), row);
       } else {
         const cellValue = row[field];
         if (typeof cellValue === "object" && cellValue !== null) {

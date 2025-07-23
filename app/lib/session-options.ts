@@ -5,7 +5,7 @@ export const sessionOptions = {
     strategy: "jwt" as const,
   },
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;

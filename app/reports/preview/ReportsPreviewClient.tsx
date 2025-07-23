@@ -68,6 +68,7 @@ export default function ReportsPreviewClient() {
         const results = json.data?.[firstModel] ?? [];
 
         setData(results);
+console.log("🔥 RAW DATA FROM API:", results);
       } catch (error) {
         console.error("Error fetching report data:", error);
       } finally {
@@ -137,13 +138,14 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-    return {
-      header: field,
-      accessorFn: (row: any) =>
-        field.split(".").reduce((obj: any, key: string) => (obj ? obj[key] : ""), row),
-      cell: (info: any) => info.getValue(),
-    };
-  });
+  const flatKey = field.split(".")[1] || field;
+
+  return {
+    header: flatKey,
+    accessorFn: (row: any) => row[flatKey] ?? "",
+    cell: (info: any) => info.getValue(),
+  };
+});
 
   return (
     <main className="p-6">

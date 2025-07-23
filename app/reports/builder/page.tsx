@@ -6,6 +6,9 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/Select";
 import Checkbox from "@/components/ui/Checkbox";
+import { useRouter } from "next/navigation";
+
+const router = useRouter();
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -66,10 +69,7 @@ export default function ReportBuilder() {
     }),
   });
 
-  const json = await res.json();
-  const firstModelKey = Object.keys(json.data || {})[0];
-  const firstModelResults = json.data?.[firstModelKey] || [];
-  setResults(firstModelResults);
+  router.push(`/reports/preview?fields=${selectedFields.join(",")}`);
 };
 
   const toggleField = (field: string) => {

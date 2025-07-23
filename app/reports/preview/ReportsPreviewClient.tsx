@@ -67,11 +67,20 @@ export default function ReportsPreviewClient() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/reports/generate?fields=${encodeURIComponent(fieldsParam)}`
-        );
+        const res = await fetch("/api/reports/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedFields,
+            filters: [],
+            pagination: { page: 1, limit: 50 },
+            sort: { direction: "asc" },
+          }),
+        });
+
         const json = await res.json();
-        setData(json);
+        const results = Object.values(json.data || {})[0] || [];
+        setData(results);
       } catch (error) {
         console.error("Error fetching report data:", error);
       } finally {

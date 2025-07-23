@@ -142,18 +142,11 @@ export default function ReportsPreviewClient() {
 
   const columns = selectedFields.map((field) => {
   const keys = field.split(".");
-  const flatKey = keys[1] || keys[0]; // e.g., "User.email" -> "email"
+  const flatKey = keys[1] || keys[0];
 
   return {
     header: flatKey,
-    accessorFn: (row: any) => {
-      // Fast path for flat fields
-      if (keys.length === 1) return row[keys[0]] ?? "";
-
-      // Deep path for nested fields
-      return keys.reduce((acc, key) => acc?.[key], row) ?? "";
-    },
-    cell: (info: any) => info.getValue(),
+    accessorKey: flatKey, // ✅ simpler, faster, and works
   };
 });
 

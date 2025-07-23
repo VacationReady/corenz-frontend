@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       let results = await (prisma[prismaModelKey as keyof typeof prisma] as any).findMany(prismaQuery);
 
       results = await attachComputedFields(results, selectedFields, model);
-      combinedResults[prismaModel] = results;
+      combinedResults[model] = results;
     }
 
     return NextResponse.json({

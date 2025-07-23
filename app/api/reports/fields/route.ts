@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
-import { reportFields } from "@/lib/reportFields";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  return NextResponse.json(reportFields);
+  try {
+    const fields = await prisma.fieldMetadata.findMany({
+      where: { isReportable: true },
+      orderBy: { model: "asc" },
+    });
+
+    return NextResponse.json(fields);
+  } catch (error) {
+    console.error("Error fetching report fields:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

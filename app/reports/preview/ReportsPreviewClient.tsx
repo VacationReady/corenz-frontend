@@ -149,9 +149,16 @@ export default function ReportsPreviewClient() {
     );
   }
 
-  const dataKeys = data.length > 0 ? Object.keys(data[0]) : [];
-
-  const columns = dataKeys.map((key) => {
+  const columns = selectedFields.map((field) => {
+  return {
+    header: field,
+    accessorFn: (row: any) => {
+      const value = field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row);
+      return value ?? "";
+    },
+    cell: (info: any) => info.getValue(),
+  };
+});
     if (key.includes(".")) {
       const [parent, child] = key.split(".");
       return {

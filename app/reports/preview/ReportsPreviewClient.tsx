@@ -152,7 +152,7 @@ export default function ReportsPreviewClient() {
 
   const columns = selectedFields.map((field) => {
   const label = field;
-  const fieldKey = field.split(".").pop() as string;
+  const fieldKey = field.includes(".") ? field.split(".")[1] : field;
 
   return {
     header: label,

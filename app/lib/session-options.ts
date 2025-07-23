@@ -12,7 +12,7 @@ export const sessionOptions = {
       }
       return session;
     },
-    async jwt({ token }) {
+    async jwt({ token }: { token: any }) {
       return token;
     },
   },

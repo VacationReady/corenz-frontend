@@ -40,6 +40,8 @@ export default function ReportsPreviewClient() {
   const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
   const selectedFields = fieldsParam ? fieldsParam.split(",") : [];
+console.log("🔍 useSearchParams:", searchParams?.toString());
+console.log("🔍 fieldsParam:", fieldsParam);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

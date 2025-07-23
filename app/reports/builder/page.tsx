@@ -53,25 +53,24 @@ export default function ReportBuilder() {
   const [results, setResults] = useState<any[]>([]);
 
   const handleGenerate = async () => {
-    const res = await fetch("/api/reports/query", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        // Removed `model: selectedModel` from here 👇
-        selectedFields,
-        filters,
-        pagination,
-        sort,
-      }),
-    });
+  const res = await fetch("/api/reports/query", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      selectedFields,
+      filters,
+      pagination,
+      sort,
+    }),
+  });
 
-    const json = await res.json();
-    const firstModelKey = Object.keys(json.data || {})[0];
-    const firstModelResults = json.data?.[firstModelKey] || [];
-    setResults(firstModelResults);
-  };
+  const json = await res.json();
+  const firstModelKey = Object.keys(json.data || {})[0];
+  const firstModelResults = json.data?.[firstModelKey] || [];
+  setResults(firstModelResults);
+};
 
   const toggleField = (field: string) => {
     setSelectedFields((prev) =>

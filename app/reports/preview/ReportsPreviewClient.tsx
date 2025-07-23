@@ -20,8 +20,8 @@ function downloadCSV(data: any[], columns: any[]) {
       let value;
       if (field.includes(".")) {
         value = field
-          .split(".")
-          .reduce((obj, key) => (obj ? obj[key] : ""), row);
+  .split(".")
+  .reduce((obj: any, key) => (obj ? obj[key] : ""), row);
       } else {
         const cellValue = row[field];
         if (typeof cellValue === "object" && cellValue !== null) {
@@ -153,7 +153,7 @@ export default function ReportsPreviewClient() {
   const columns = selectedFields.map((field) => ({
     header: field,
     accessorFn: (row: any) =>
-      field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row) ?? "",
+      field.split(".").reduce((obj: any, key) => (obj ? obj[key] : ""), row) ?? "",
     cell: (info: any) => info.getValue(),
   }));
 

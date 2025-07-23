@@ -29,13 +29,13 @@ export async function POST(req: Request) {
     const combinedResults: Record<string, any[]> = {};
 
     for (const { model, prismaQuery } of queries) {
-      const prismaModel = model.charAt(0).toUpperCase() + model.slice(1);
+      const prismaModelKey = model.charAt(0).toLowerCase() + model.slice(1);
 
       console.log("🔵 Processing model:", model);
-      console.log("🔵 Prisma model resolved as:", prismaModel);
+      console.log("🔵 Prisma model resolved as:", prismaModelKey);
       console.log("🔵 Prisma query payload:", JSON.stringify(prismaQuery, null, 2));
 
-      if (!(prismaModel in prisma)) {
+      if (!(prismaModelKey in prisma)) {
         console.error("❌ Invalid model:", model);
         console.error("✅ Available models in Prisma client:", Object.keys(prisma));
         return NextResponse.json(
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       }
 
       // @ts-ignore – dynamic model access is safe here
-      let results = await (prisma[prismaModel as keyof typeof prisma] as any).findMany(prismaQuery);
+      let results = await (prisma[prismaModelKey as keyof typeof prisma] as any).findMany(prismaQuery);
 
       results = await attachComputedFields(results, selectedFields, model);
       combinedResults[model] = results;

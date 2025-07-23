@@ -63,7 +63,7 @@ export default function CalendarPage() {
       const leaveData = await leaveRes.json();
       const blackoutData = await blackoutRes.json();
 
-      const blackoutEvents = blackoutData.map((b) => ({
+      const blackoutEvents = blackoutData.map((b: any) => ({
         id: b.id,
         title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
         start: b.date,

@@ -14,7 +14,7 @@ function buildSelect(selectedFields: string[]) {
       const key = parts[i];
 
       if (i === parts.length - 1) {
-        current[key] = true; // Final field
+        current[key] = true;
       } else {
         current[key] = current[key] || { select: {} };
         current = current[key].select;
@@ -39,7 +39,7 @@ function buildWhere(filters: any[]) {
       const key = parts[i];
 
       if (i === parts.length - 1) {
-        current[key] = value; // Final condition
+        current[key] = value;
       } else {
         current[key] = current[key] || {};
         current = current[key];
@@ -63,18 +63,49 @@ function buildPaginationAndSort(
   };
 }
 
+function groupFieldsByModel(selectedFields: string[]) {
+  const modelMap: Record<string, string[]> = {};
+
+  for (const fullField of selectedFields) {
+    if (fullField.startsWith("_computed.")) continue;
+
+    const [model, ...fieldParts] = fullField.split(".");
+    const actualField = fieldParts.join(".");
+
+    if (!modelMap[model]) modelMap[model] = [];
+    modelMap[model].push(actualField);
+  }
+
+  return modelMap;
+}
+
 export function buildDynamicQuery({ selectedFields, filters, pagination, sort }: any) {
-  const prismaQuery: any = {
-    select: buildSelect(selectedFields),
-    where: buildWhere(filters),
-    ...buildPaginationAndSort(pagination, sort),
-  };
+  const fieldGroups = groupFieldsByModel(selectedFields);
+  const queries = [];
+
+  for (const model in fieldGroups) {
+    const fields = fieldGroups[model];
+    const modelFilters = filters.filter((f: any) => f.field.startsWith(`${model}.`));
+    const strippedFilters = modelFilters.map((f: any) => ({
+      ...f,
+      field: f.field.replace(`${model}.`, "")
+    }));
+
+    queries.push({
+      model,
+      prismaQuery: {
+        select: buildSelect(fields),
+        where: buildWhere(strippedFilters),
+        ...buildPaginationAndSort(pagination, sort),
+      },
+    });
+  }
 
   const computedFields = selectedFields
     .filter((field: string) => field.startsWith("_computed."))
     .map((field: string) => ({ field }));
 
-  return { prismaQuery, computedFields };
+  return { queries, computedFields };
 }
 
 export async function attachComputedFields(
@@ -82,7 +113,6 @@ export async function attachComputedFields(
   selectedFields: string[],
   model: string
 ) {
-  // Skip if no computed fields were selected
   if (!selectedFields.some((f) => f.startsWith("_computed."))) return results;
 
   return results.map((item) => {

@@ -150,12 +150,19 @@ export default function ReportsPreviewClient() {
     );
   }
 
-  const columns = selectedFields.map((field) => ({
-    header: field,
-    accessorFn: (row: any) =>
-      field.split(".").reduce((obj: any, key) => (obj ? obj[key] : ""), row) ?? "",
+  const columns = selectedFields.map((field) => {
+  const label = field;
+  const fieldKey = field.includes(".") ? field.split(".")[1] : field;
+
+  return {
+    header: label,
+    accessorKey: fieldKey,
+    accessorFn: (row: any) => {
+      return row[fieldKey] ?? "";
+    },
     cell: (info: any) => info.getValue(),
-  }));
+  };
+});
 
   return (
     <main className="p-6">

@@ -67,7 +67,7 @@ export default function ReportsPreviewClient() {
         console.log("🔥 FULL API RESPONSE:", json);
 
         const firstModel = selectedFields[0]?.split(".")[0];
-        const results = json.data?.[firstModel] ?? [];
+        const results = json?.[firstModel] ?? [];
         console.log("🔥 Extracted modelKey:", firstModel);
         console.log("🔥 Raw results:", results);
 
@@ -141,22 +141,26 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-  const keys = field.split(".");
-  const flatKey = keys[1] || keys[0]; // e.g., "User.email" -> "email"
+    const keys = field.split(".");
+    const flatKey = keys[1] || keys[0]; // e.g., "User.email" -> "email"
 
-  return {
-    header: flatKey,
-    accessorFn: (row: any) => {
-      // Try deep access
-      try {
-        return keys.reduce((acc, key) => acc?.[key], row) ?? "";
-      } catch {
-        return "";
-      }
-    },
-    cell: (info: any) => info.getValue(),
-  };
-});
+    return {
+      header: flatKey,
+      accessorFn: (row: any) => {
+        // Try deep access
+        try {
+          return keys.reduce((acc, key) => acc?.[key], row) ?? "";
+        } catch {
+          return "";
+        }
+      },
+      cell: (info: any) => info.getValue(),
+    };
+  });
+
+  // ✅ Moved outside JSX so it executes
+  console.log("✅ Final data being sent to DataTable:", data);
+  console.log("✅ Columns:", columns);
 
   return (
     <main className="p-6">
@@ -168,8 +172,6 @@ export default function ReportsPreviewClient() {
         <Button onClick={() => downloadCSV(data, columns)}>Download CSV</Button>
         <Button onClick={handleSaveReport}>Save Report</Button>
       </div>
-console.log("✅ Final data being sent to DataTable:", data);
-console.log("✅ Columns:", columns);
       <DataTable columns={columns} data={data} />
     </main>
   );

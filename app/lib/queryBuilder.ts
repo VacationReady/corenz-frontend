@@ -2,7 +2,7 @@
 import { computedHandlers } from "@/lib/computedHandlers";
 
 function buildSelect(selectedFields: string[]) {
-  const select = {};
+  const select: Record<string, any> = {};
 
   for (const field of selectedFields) {
     if (field.startsWith("_computed.")) continue;
@@ -26,7 +26,7 @@ function buildSelect(selectedFields: string[]) {
 }
 
 function buildWhere(filters: any[]) {
-  const where = {};
+  const where: Record<string, any> = {};
 
   for (const filter of filters) {
     const { field, value } = filter;

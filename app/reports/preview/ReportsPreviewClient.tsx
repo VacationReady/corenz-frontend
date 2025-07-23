@@ -165,7 +165,7 @@ export default function ReportsPreviewClient() {
       return {
         header: key,
         accessorFn: (row: any) => row[key] ?? "",
-        cell: (info) => info.getValue(),
+        cell: (info: any) => info.getValue(),
       };
     }
   });

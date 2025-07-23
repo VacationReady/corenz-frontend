@@ -12,6 +12,7 @@ import {
   ClipboardList,
   CalendarCheck2,
 } from "lucide-react";
+import { NewsWidget } from "@/components/dashboard/NewsWidget";
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -85,6 +86,7 @@ export default function AdminDashboardClient({
         icon={CalendarCheck2}
         className="h-full"
       >
+<NewsWidget />
         <p className="text-sm text-gray-600 dark:text-gray-300">
           Loading leave data...
         </p>

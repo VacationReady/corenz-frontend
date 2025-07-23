@@ -89,8 +89,8 @@ export default function AdminDashboardClient({
         <p className="text-sm text-gray-600 dark:text-gray-300">
           Loading leave data...
         </p>
-<NewsWidget />
       </DashboardWidget>
+<NewsWidget />
     </>
   );
 }

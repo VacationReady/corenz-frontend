@@ -45,6 +45,23 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const limit = parseInt(searchParams.get("limit") || "5", 10)
+
+  const posts = await prisma.newsPost.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+    },
+  })
+
+  return NextResponse.json(posts)
+}
+
 // ✅ Resend Email Handler with Batch Sending and Logging
 async function sendNewsEmails(audience: any, title: string, content: any) {
   try {

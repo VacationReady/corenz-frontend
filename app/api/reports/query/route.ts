@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const combinedResults: Record<string, any[]> = {};
 
     for (const { model, prismaQuery } of queries) {
-      const prismaModelKey = model.charAt(0).toLowerCase() + model.slice(1);
+      const prismaModelKey = model; // Use model name as-is (case-sensitive)
 
       console.log("🔵 Processing model:", model);
       console.log("🔵 Prisma model resolved as:", prismaModelKey);

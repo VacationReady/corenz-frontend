@@ -149,42 +149,12 @@ export default function ReportsPreviewClient() {
     );
   }
 
-  const columns = selectedFields.map((field) => {
-  return {
+  const columns = selectedFields.map((field) => ({
     header: field,
-    accessorFn: (row: any) => {
-      const value = field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row);
-      return value ?? "";
-    },
+    accessorFn: (row: any) =>
+      field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row) ?? "",
     cell: (info: any) => info.getValue(),
-  };
-});
-    if (key.includes(".")) {
-      const [parent, child] = key.split(".");
-      return {
-        header: key,
-        accessorFn: (row: any) => row[parent]?.[child] ?? "",
-        cell: (info: any) => info.getValue(),
-      };
-    } else if (typeof data[0][key] === "object" && data[0][key] !== null) {
-      return {
-        header: key,
-        accessorFn: (row: any) => {
-          const obj = row[key];
-          if (obj?.name) return obj.name;
-          if (obj?.id) return obj.id;
-          return JSON.stringify(obj);
-        },
-        cell: (info: any) => info.getValue(),
-      };
-    } else {
-      return {
-        header: key,
-        accessorFn: (row: any) => row[key] ?? "",
-        cell: (info: any) => info.getValue(),
-      };
-    }
-  });
+  }));
 
   return (
     <main className="p-6">

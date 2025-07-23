@@ -4,31 +4,43 @@ import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 
 export async function POST(req: Request) {
   try {
-    const { model, selectedFields, filters, pagination, sort } = await req.json();
+    const { selectedFields, filters, pagination, sort } = await req.json();
 
-    if (!model || !selectedFields || selectedFields.length === 0) {
+    if (!selectedFields || selectedFields.length === 0) {
       return NextResponse.json(
-        { status: "error", message: "Invalid request parameters", data: [] },
+        { status: "error", message: "No fields selected", data: [] },
         { status: 400 }
       );
     }
 
-    const { prismaQuery, computedFields } = buildDynamicQuery({
+    const { queries, computedFields } = buildDynamicQuery({
       selectedFields,
       filters,
       pagination,
       sort,
     });
 
-    // @ts-ignore – dynamic access to model
-    const results = await prisma[model].findMany(prismaQuery);
+    const combinedResults: Record<string, any[]> = {};
 
-    const finalResults = await attachComputedFields(results, selectedFields, model);
+    for (const { model, prismaQuery } of queries) {
+      if (typeof prisma[model] !== "function") {
+        return NextResponse.json(
+          { status: "error", message: `Invalid model '${model}'`, data: [] },
+          { status: 400 }
+        );
+      }
+
+      // @ts-ignore – dynamic model access is safe here
+      let results = await prisma[model].findMany(prismaQuery);
+
+      results = await attachComputedFields(results, selectedFields, model);
+      combinedResults[model] = results;
+    }
 
     return NextResponse.json({
       status: "success",
       message: "Report generated successfully",
-      data: finalResults,
+      data: combinedResults,
     });
   } catch (error: any) {
     console.error("Error in report query API:", error);

@@ -67,7 +67,7 @@ export default function ReportsPreviewClient() {
         console.log("🔥 FULL API RESPONSE:", json);
 
         const firstModel = selectedFields[0]?.split(".")[0];
-        const results = json?.[firstModel] ?? [];
+        const results = json.data?.[firstModel] ?? [];
         console.log("🔥 Extracted modelKey:", firstModel);
         console.log("🔥 Raw results:", results);
 

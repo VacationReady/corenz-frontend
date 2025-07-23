@@ -141,11 +141,10 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-  const label = field;
   const fieldKey = field.includes(".") ? field.split(".")[1] : field;
 
   return {
-    header: label,
+    header: fieldKey, // <-- use fieldKey for cleaner headers like 'email', not 'User.email'
     accessorFn: (row: any) => row[fieldKey] ?? "",
     cell: (info: any) => info.getValue(),
   };

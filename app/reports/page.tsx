@@ -94,7 +94,7 @@ export default function ReportsPage() {
       return;
     }
 
-    router.push(`/reports/preview?fields=${fieldArray.join(",")}`);
+    router.push(`/reports/preview?fields=${encodeURIComponent(fieldArray.join(","))}`);
   }}
 >
   View

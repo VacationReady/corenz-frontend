@@ -17,15 +17,7 @@ function downloadCSV(data: any[], columns: any[]) {
   const csvData = data.map((row) => {
     const obj: Record<string, any> = {};
     fields.forEach((field, idx) => {
-      const fieldKey = field.includes(".") ? field.split(".")[1] : field;
-      let value = row[fieldKey];
-
-      if (typeof value === "object" && value !== null) {
-        if (value?.name) value = value.name;
-        else if (value?.id) value = value.id;
-        else value = JSON.stringify(value);
-      }
-
+      const value = field.split(".").reduce((acc: any, part: string) => acc?.[part], row);
       obj[headers[idx]] = value ?? "";
     });
     return obj;
@@ -70,7 +62,11 @@ export default function ReportsPreviewClient() {
         });
 
         const json = await res.json();
-        const results = (Object.values(json.data || {})[0] || []) as any[];
+
+        // ✅ Safely derive the top-level model from first field
+        const firstModel = selectedFields[0]?.split(".")[0];
+        const results = json.data?.[firstModel] ?? [];
+
         setData(results);
       } catch (error) {
         console.error("Error fetching report data:", error);
@@ -141,13 +137,13 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-  return {
-    header: field, // Shows "User.email" for now — can prettify later
-    accessorFn: (row: any) =>
-      field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row),
-    cell: (info: any) => info.getValue(),
-  };
-});
+    return {
+      header: field,
+      accessorFn: (row: any) =>
+        field.split(".").reduce((obj: any, key: string) => (obj ? obj[key] : ""), row),
+      cell: (info: any) => info.getValue(),
+    };
+  });
 
   return (
     <main className="p-6">

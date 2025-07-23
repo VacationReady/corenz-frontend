@@ -66,7 +66,7 @@ export default function ReportsPreviewClient() {
         // ✅ Safely derive the top-level model from first field
         const firstModel = selectedFields[0]?.split(".")[0];
         const results = json.data?.[firstModel] ?? [];
-
+console.log("🔥 FULL API RESPONSE:", json);
         setData(results);
 console.log("🔥 RAW DATA FROM API:", results);
       } catch (error) {

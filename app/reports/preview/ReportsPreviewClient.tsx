@@ -141,14 +141,22 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-    const flatKey = field.includes(".") ? field.split(".")[1] : field;
+  const keys = field.split(".");
+  const flatKey = keys[1] || keys[0]; // e.g., "User.email" -> "email"
 
-    return {
-      header: flatKey,
-      accessorKey: flatKey,
-      cell: (info: any) => info.getValue(),
-    };
-  });
+  return {
+    header: flatKey,
+    accessorFn: (row: any) => {
+      // Try deep access
+      try {
+        return keys.reduce((acc, key) => acc?.[key], row) ?? "";
+      } catch {
+        return "";
+      }
+    },
+    cell: (info: any) => info.getValue(),
+  };
+});
 
   return (
     <main className="p-6">

@@ -152,14 +152,11 @@ export default function ReportsPreviewClient() {
 
   const columns = selectedFields.map((field) => {
   const label = field;
-  const fieldKey = field.includes(".") ? field.split(".")[1] : field;
+  const fieldKey = field.split(".").pop() as string;
 
   return {
     header: label,
-    accessorKey: fieldKey,
-    accessorFn: (row: any) => {
-      return row[fieldKey] ?? "";
-    },
+    accessorFn: (row: any) => row[fieldKey] ?? "",
     cell: (info: any) => info.getValue(),
   };
 });

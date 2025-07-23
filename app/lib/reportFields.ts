@@ -42,7 +42,7 @@ export const reportFields: ReportField[] = [
 { model: "driverLicence", field: "issueDate", label: "Issue Date", type: "date", filterable: true },
 { model: "driverLicence", field: "expiryDate", label: "Expiry Date", type: "date", filterable: true },
 { model: "driverLicence", field: "createdAt", label: "Created At", type: "date", filterable: false },
-{ model: "driverLicence", field: "updatedAt", label: "Updated At", type: "date", filterable: false }
+{ model: "driverLicence", field: "updatedAt", label: "Updated At", type: "date", filterable: false },
 
   // TrainingRecord Fields
   { model: "trainingRecord", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user", dependsOn: ["employee", "user"] },

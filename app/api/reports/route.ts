@@ -13,14 +13,15 @@ export async function GET() {
     });
 
     return NextResponse.json(
-      reports.map((report) => ({
-        id: report.id,
-        name: report.name,
-        category: report.category,
-        createdAt: report.createdAt,
-        createdBy: { email: report.user?.email || "Unknown" },
-      }))
-    );
+  reports.map((report) => ({
+    id: report.id,
+    name: report.name,
+    category: report.category,
+    createdAt: report.createdAt,
+    createdBy: { email: report.user?.email || "Unknown" },
+    fields: report.fields, // ✅ ADD THIS LINE
+  }))
+);
   } catch (error) {
     console.error("Error fetching reports:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

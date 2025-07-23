@@ -78,7 +78,11 @@ export default function ReportsPage() {
                   <Button
   variant="ghost"
   onClick={() => {
-    router.push(`/reports/preview?fields=${report.fields.join(",")}`);
+    const fieldArray = Array.isArray(report.fields)
+  ? report.fields
+  : JSON.parse(report.fields);
+
+router.push(`/reports/preview?fields=${fieldArray.join(",")}`);
   }}
 >
   View

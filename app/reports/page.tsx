@@ -78,11 +78,21 @@ export default function ReportsPage() {
                   <Button
   variant="ghost"
   onClick={() => {
-    const fieldArray = Array.isArray(report.fields)
-  ? report.fields
-  : JSON.parse(report.fields);
+    if (!report.fields) {
+      alert("No fields found in this report.");
+      return;
+    }
 
-router.push(`/reports/preview?fields=${fieldArray.join(",")}`);
+    const fieldArray = Array.isArray(report.fields)
+      ? report.fields
+      : JSON.parse(report.fields || "[]");
+
+    if (!fieldArray.length) {
+      alert("This report has no fields.");
+      return;
+    }
+
+    router.push(`/reports/preview?fields=${fieldArray.join(",")}`);
   }}
 >
   View

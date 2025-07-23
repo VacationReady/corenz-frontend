@@ -10,7 +10,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { toast } from "sonner";
 import BlockDayModal from "./BlockDayModal";
-import { EventInput, EventSourceFuncArgs } from "@fullcalendar/core";
+import { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
 
 interface Department {
   id: string;
@@ -46,7 +46,7 @@ export default function CalendarPage() {
   }, []);
 
   const fetchCalendarEvents = async (
-    fetchInfo: EventSourceFuncArgs,
+    fetchInfo: EventSourceFuncArg,
     successCallback: (events: EventInput[]) => void,
     failureCallback: (error: any) => void
   ) => {

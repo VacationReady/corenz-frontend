@@ -141,13 +141,10 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-  const parts = field.split(".");
-  const model = parts[0];
-  const key = parts[1] || parts[0]; // handles both 'User.firstName' and 'firstName'
-
   return {
-    header: key.charAt(0).toUpperCase() + key.slice(1),
-    accessorFn: (row: any) => row[key] ?? "",
+    header: field, // Shows "User.email" for now — can prettify later
+    accessorFn: (row: any) =>
+      field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row),
     cell: (info: any) => info.getValue(),
   };
 });

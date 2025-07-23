@@ -45,23 +45,32 @@ export default function ReportBuilder() {
   const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [filters, setFilters] = useState<any[]>([]);
-  const [sort, setSort] = useState<{ field: string | undefined; direction: "asc" | "desc" }>({ field: undefined, direction: "asc" });
+  const [sort, setSort] = useState<{ field: string | undefined; direction: "asc" | "desc" }>({
+    field: undefined,
+    direction: "asc",
+  });
   const [pagination, setPagination] = useState({ page: 1, limit: 50 });
   const [results, setResults] = useState<any[]>([]);
 
   const handleGenerate = async () => {
     const res = await fetch("/api/reports/query", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: selectedModel,
+        // Removed `model: selectedModel` from here 👇
         selectedFields,
         filters,
         pagination,
         sort,
       }),
     });
-    const data = await res.json();
-    setResults(data.data || []);
+
+    const json = await res.json();
+    const firstModelKey = Object.keys(json.data || {})[0];
+    const firstModelResults = json.data?.[firstModelKey] || [];
+    setResults(firstModelResults);
   };
 
   const toggleField = (field: string) => {
@@ -126,7 +135,10 @@ export default function ReportBuilder() {
             <h2 className="font-semibold mb-2">Filters</h2>
             {filters.map((filter, idx) => (
               <div key={idx} className="flex gap-2 items-center mb-2">
-                <Select value={filter.field || undefined} onValueChange={(val) => updateFilter(idx, "field", val)}>
+                <Select
+                  value={filter.field || undefined}
+                  onValueChange={(val) => updateFilter(idx, "field", val)}
+                >
                   <SelectTrigger>{filter.field || "Select Field"}</SelectTrigger>
                   <SelectContent>
                     {fieldsData &&
@@ -139,7 +151,10 @@ export default function ReportBuilder() {
                         ))}
                   </SelectContent>
                 </Select>
-                <Select value={filter.operator} onValueChange={(val) => updateFilter(idx, "operator", val)}>
+                <Select
+                  value={filter.operator}
+                  onValueChange={(val) => updateFilter(idx, "operator", val)}
+                >
                   <SelectTrigger>{filter.operator}</SelectTrigger>
                   <SelectContent>
                     <SelectItem value="equals">Equals</SelectItem>
@@ -153,7 +168,9 @@ export default function ReportBuilder() {
                   onChange={(e) => updateFilter(idx, "value", e.target.value)}
                   placeholder="Value"
                 />
-                <Button variant="ghost" onClick={() => removeFilter(idx)}>Remove</Button>
+                <Button variant="ghost" onClick={() => removeFilter(idx)}>
+                  Remove
+                </Button>
               </div>
             ))}
             <Button onClick={addFilter}>Add Filter</Button>
@@ -162,15 +179,23 @@ export default function ReportBuilder() {
           <div className="border p-4 rounded">
             <h2 className="font-semibold mb-2">Sorting & Pagination</h2>
             <div className="flex gap-2 items-center">
-              <Select value={sort.field || undefined} onValueChange={(val) => setSort({ ...sort, field: val })}>
+              <Select
+                value={sort.field || undefined}
+                onValueChange={(val) => setSort({ ...sort, field: val })}
+              >
                 <SelectTrigger>{sort.field || "Sort By"}</SelectTrigger>
                 <SelectContent>
                   {selectedFields.map((field) => (
-                    <SelectItem key={field} value={field}>{field}</SelectItem>
+                    <SelectItem key={field} value={field}>
+                      {field}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={sort.direction} onValueChange={(val) => setSort({ ...sort, direction: val as "asc" | "desc" })}>
+              <Select
+                value={sort.direction}
+                onValueChange={(val) => setSort({ ...sort, direction: val as "asc" | "desc" })}
+              >
                 <SelectTrigger>{sort.direction}</SelectTrigger>
                 <SelectContent>
                   <SelectItem value="asc">Ascending</SelectItem>
@@ -181,14 +206,24 @@ export default function ReportBuilder() {
                 type="number"
                 min="1"
                 value={pagination.page}
-                onChange={(e) => setPagination({ ...pagination, page: Math.max(1, parseInt(e.target.value) || 1) })}
+                onChange={(e) =>
+                  setPagination({
+                    ...pagination,
+                    page: Math.max(1, parseInt(e.target.value) || 1),
+                  })
+                }
                 placeholder="Page"
               />
               <Input
                 type="number"
                 min="1"
                 value={pagination.limit}
-                onChange={(e) => setPagination({ ...pagination, limit: Math.max(1, parseInt(e.target.value) || 50) })}
+                onChange={(e) =>
+                  setPagination({
+                    ...pagination,
+                    limit: Math.max(1, parseInt(e.target.value) || 50),
+                  })
+                }
                 placeholder="Limit"
               />
             </div>
@@ -197,8 +232,19 @@ export default function ReportBuilder() {
       )}
 
       <div className="flex gap-2">
-        <Button onClick={handleGenerate} disabled={!selectedModel || selectedFields.length === 0}>Generate Report</Button>
-        <Button variant="ghost" onClick={() => exportToCsv(results, selectedFields)} disabled={results.length === 0}>Export CSV</Button>
+        <Button
+          onClick={handleGenerate}
+          disabled={!selectedModel || selectedFields.length === 0}
+        >
+          Generate Report
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => exportToCsv(results, selectedFields)}
+          disabled={results.length === 0}
+        >
+          Export CSV
+        </Button>
       </div>
 
       {results.length > 0 && (
@@ -208,7 +254,9 @@ export default function ReportBuilder() {
             <thead>
               <tr>
                 {selectedFields.map((field) => (
-                  <th key={field} className="border p-2">{field}</th>
+                  <th key={field} className="border p-2">
+                    {field}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -217,7 +265,9 @@ export default function ReportBuilder() {
                 <tr key={idx}>
                   {selectedFields.map((field) => (
                     <td key={field} className="border p-2">
-                      {field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row) || ""}
+                      {field
+                        .split(".")
+                        .reduce((obj, key) => (obj ? obj[key] : ""), row) || ""}
                     </td>
                   ))}
                 </tr>

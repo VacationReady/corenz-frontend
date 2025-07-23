@@ -83,30 +83,29 @@ export default function ReportsPreviewClient() {
   }, [fieldsParam]);
 
   const handleSaveReport = async () => {
-    const reportName = prompt("Enter a name for this report:");
-    if (!reportName) return;
+  const reportName = prompt("Enter a name for this report:");
+  if (!reportName) return;
 
-    try {
-      const res = await fetch("/api/reports/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: reportName,
-          fields: selectedFields,
-        }),
-      });
+  try {
+    const res = await fetch("/api/reports/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: reportName,
+        fields: selectedFields,
+        category: "General", // or let user choose later
+      }),
+    });
 
-      if (!res.ok) {
-        throw new Error("Failed to save report");
-      }
+    if (!res.ok) throw new Error("Failed to save report");
 
-      alert("Report saved successfully!");
-      router.push("/reports/saved");
-    } catch (error) {
-      console.error(error);
-      alert("Error saving report. Please try again.");
-    }
-  };
+    alert("Report saved!");
+    router.push("/reports");
+  } catch (err) {
+    console.error(err);
+    alert("Error saving report.");
+  }
+};
 
   if (!selectedFields.length) {
     return (

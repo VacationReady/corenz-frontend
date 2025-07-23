@@ -78,6 +78,8 @@ export default function ReportsPage() {
                   <Button
   variant="ghost"
   onClick={() => {
+    console.log("🧪 Raw report.fields:", report.fields);
+
     if (!report.fields) {
       alert("No fields found in this report.");
       return;

@@ -1,32 +1,53 @@
+// lib/queryBuilder.ts
+import { computedHandlers } from "@/lib/computedHandlers";
+
 function buildSelect(selectedFields: string[]) {
-  return selectedFields.reduce((acc: any, field) => {
-    if (field.startsWith("_computed.")) return acc; // Skip computed fields
+  const select = {};
+
+  for (const field of selectedFields) {
+    if (field.startsWith("_computed.")) continue;
+
     const parts = field.split(".");
-    if (parts.length === 2) {
-      const [relation, fieldName] = parts;
-      acc[relation] = acc[relation] || { select: {} };
-      acc[relation].select[fieldName] = true;
-    } else {
-      acc[parts[0]] = true;
+    let current = select;
+
+    for (let i = 0; i < parts.length; i++) {
+      const key = parts[i];
+
+      if (i === parts.length - 1) {
+        current[key] = true; // Final field
+      } else {
+        current[key] = current[key] || { select: {} };
+        current = current[key].select;
+      }
     }
-    return acc;
-  }, {});
+  }
+
+  return select;
 }
 
 function buildWhere(filters: any[]) {
-  return filters.reduce((acc: any, filter) => {
+  const where = {};
+
+  for (const filter of filters) {
     const { field, value } = filter;
-    if (!field || field.startsWith("_computed.")) return acc; // Skip computed filters
+    if (!field || field.startsWith("_computed.")) continue;
+
     const parts = field.split(".");
-    if (parts.length === 2) {
-      const [relation, fieldName] = parts;
-      acc[relation] = acc[relation] || {};
-      acc[relation][fieldName] = value;
-    } else {
-      acc[field] = value;
+    let current = where;
+
+    for (let i = 0; i < parts.length; i++) {
+      const key = parts[i];
+
+      if (i === parts.length - 1) {
+        current[key] = value; // Final condition
+      } else {
+        current[key] = current[key] || {};
+        current = current[key];
+      }
     }
-    return acc;
-  }, {});
+  }
+
+  return where;
 }
 
 function buildPaginationAndSort(
@@ -56,16 +77,33 @@ export function buildDynamicQuery({ selectedFields, filters, pagination, sort }:
   return { prismaQuery, computedFields };
 }
 
-export async function attachComputedFields(results: any[], selectedFields: string[], model: string) {
+export async function attachComputedFields(
+  results: any[],
+  selectedFields: string[],
+  model: string
+) {
+  // Skip if no computed fields were selected
   if (!selectedFields.some((f) => f.startsWith("_computed."))) return results;
 
   return results.map((item) => {
-    if (model === "leaveEntitlement" && selectedFields.includes("_computed.remainingEntitlement")) {
-      item["_computed"] = {
-        remainingEntitlement:
-          (item.totalDays || 0) + (item.daysAllocated || 0) + (item.carryoverDays || 0) - (item.usedDays || 0),
-      };
+    const modelHandlers = computedHandlers[model];
+    if (!modelHandlers) return item;
+
+    const computed: Record<string, any> = {};
+
+    for (const field of selectedFields) {
+      if (field.startsWith("_computed.") && modelHandlers[field]) {
+        try {
+          computed[field.replace("_computed.", "")] = modelHandlers[field](item);
+        } catch (err) {
+          console.warn(`Computed field error on ${field}:`, err);
+        }
+      }
     }
-    return item;
+
+    return {
+      ...item,
+      _computed: computed,
+    };
   });
 }

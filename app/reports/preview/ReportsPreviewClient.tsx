@@ -71,7 +71,7 @@ export default function ReportsPreviewClient() {
         console.log("🔥 Extracted modelKey:", firstModel);
         console.log("🔥 Raw results:", results);
 
-        setData(results);
+        setData([...results]);
       } catch (error) {
         console.error("❌ Error fetching report data:", error);
       } finally {
@@ -168,6 +168,8 @@ export default function ReportsPreviewClient() {
         <Button onClick={() => downloadCSV(data, columns)}>Download CSV</Button>
         <Button onClick={handleSaveReport}>Save Report</Button>
       </div>
+console.log("✅ Final data being sent to DataTable:", data);
+console.log("✅ Columns:", columns);
       <DataTable columns={columns} data={data} />
     </main>
   );

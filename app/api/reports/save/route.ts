@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       data: {
         name,
         category: category || "Uncategorised",
-        fields: JSON.stringify(fields),
+        fields, // ✅ native array, no stringify
         createdBy: session.user.id,
         companyId: session.user.companyId ?? null,
       },

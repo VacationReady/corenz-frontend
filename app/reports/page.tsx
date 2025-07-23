@@ -17,6 +17,7 @@ interface SavedReport {
   id: number;
   name: string;
   category: string;
+  fields: string[]; // ✅ native array
   createdAt: string;
   createdBy: {
     email: string;
@@ -75,13 +76,13 @@ export default function ReportsPage() {
                 <TableCell>{format(new Date(report.createdAt), "PPP")}</TableCell>
                 <TableCell>
                   <Button
-                    variant="ghost"
-                    onClick={() =>
-                      router.push(`/reports/preview?fields=${encodeURIComponent(report.name)}`)
-                    }
-                  >
-                    View
-                  </Button>
+  variant="ghost"
+  onClick={() => {
+    router.push(`/reports/preview?fields=${report.fields.join(",")}`);
+  }}
+>
+  View
+</Button>
                   <Button variant="ghost" onClick={() => handleDelete(report.id)}>
                     Delete
                   </Button>

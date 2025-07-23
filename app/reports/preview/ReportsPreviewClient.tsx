@@ -96,7 +96,7 @@ export default function ReportsPreviewClient() {
     if (!reportName) return;
 
     try {
-      const res = await fetch("/api/reports/saved", {
+      const res = await fetch("/api/reports/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

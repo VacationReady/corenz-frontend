@@ -17,26 +17,16 @@ function downloadCSV(data: any[], columns: any[]) {
   const csvData = data.map((row) => {
     const obj: Record<string, any> = {};
     fields.forEach((field, idx) => {
-      let value;
-      if (field.includes(".")) {
-        value = field
-  .split(".")
-  .reduce((obj: any, key: string) => (obj ? obj[key] : ""), row);
-      } else {
-        const cellValue = row[field];
-        if (typeof cellValue === "object" && cellValue !== null) {
-          if (cellValue?.name) {
-            value = cellValue.name;
-          } else if (cellValue?.id) {
-            value = cellValue.id;
-          } else {
-            value = JSON.stringify(cellValue);
-          }
-        } else {
-          value = cellValue ?? "";
-        }
+      const fieldKey = field.includes(".") ? field.split(".")[1] : field;
+      let value = row[fieldKey];
+
+      if (typeof value === "object" && value !== null) {
+        if (value?.name) value = value.name;
+        else if (value?.id) value = value.id;
+        else value = JSON.stringify(value);
       }
-      obj[headers[idx]] = value;
+
+      obj[headers[idx]] = value ?? "";
     });
     return obj;
   });

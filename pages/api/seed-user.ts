@@ -1,8 +1,12 @@
 // pages/api/seed-user.ts
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import type { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     const hashedPassword = await bcrypt.hash("password123", 10);
 
@@ -16,7 +20,7 @@ export default async function handler(req, res) {
     });
 
     res.status(200).json({ message: "Test user created", user });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
     res.status(500).json({ error: error.message });
   }

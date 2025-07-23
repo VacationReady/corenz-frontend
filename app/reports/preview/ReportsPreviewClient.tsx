@@ -19,8 +19,9 @@ function downloadCSV(data: any[], columns: any[]) {
     fields.forEach((field, idx) => {
       let value;
       if (field.includes(".")) {
-        const [, child] = field.split(".");
-        value = row[child] ?? "";
+        value = field
+          .split(".")
+          .reduce((obj, key) => (obj ? obj[key] : ""), row);
       } else {
         const cellValue = row[field];
         if (typeof cellValue === "object" && cellValue !== null) {
@@ -149,16 +150,12 @@ export default function ReportsPreviewClient() {
     );
   }
 
-  const columns = selectedFields.map((field) => {
-    const label = field;
-    const fieldKey = field.includes(".") ? field.split(".")[1] : field;
-
-    return {
-      header: label,
-      accessorFn: (row: any) => row[fieldKey] ?? "",
-      cell: (info: any) => info.getValue(),
-    };
-  });
+  const columns = selectedFields.map((field) => ({
+    header: field,
+    accessorFn: (row: any) =>
+      field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row) ?? "",
+    cell: (info: any) => info.getValue(),
+  }));
 
   return (
     <main className="p-6">

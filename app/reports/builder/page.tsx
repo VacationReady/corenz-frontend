@@ -8,8 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import Checkbox from "@/components/ui/Checkbox";
 import { useRouter } from "next/navigation";
 
-const router = useRouter();
-
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function exportToCsv(rows: any[], selectedFields: string[]) {
@@ -33,6 +31,7 @@ function exportToCsv(rows: any[], selectedFields: string[]) {
 }
 
 export default function ReportBuilder() {
+const router = useRouter();
   type ReportField = {
     model: string;
     field: string;

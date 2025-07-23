@@ -48,7 +48,7 @@ export default function ReportsPage() {
     <main className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Saved Reports</h1>
-        <Button onClick={() => router.push("/reports/create")}>+ Create Report</Button>
+        <Button onClick={() => router.push("/reports/builder")}>+ Create Report</Button>
       </div>
 
       {loading ? (

@@ -141,22 +141,21 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-    const keys = field.split(".");
-    const flatKey = keys[1] || keys[0]; // e.g., "User.email" -> "email"
+  const keys = field.split(".");
+  const flatKey = keys[1] || keys[0]; // e.g., "User.email" -> "email"
 
-    return {
-      header: flatKey,
-      accessorFn: (row: any) => {
-        // Try deep access
-        try {
-          return keys.reduce((acc, key) => acc?.[key], row) ?? "";
-        } catch {
-          return "";
-        }
-      },
-      cell: (info: any) => info.getValue(),
-    };
-  });
+  return {
+    header: flatKey,
+    accessorFn: (row: any) => {
+      // Fast path for flat fields
+      if (keys.length === 1) return row[keys[0]] ?? "";
+
+      // Deep path for nested fields
+      return keys.reduce((acc, key) => acc?.[key], row) ?? "";
+    },
+    cell: (info: any) => info.getValue(),
+  };
+});
 
   // ✅ Moved outside JSX so it executes
   console.log("✅ Final data being sent to DataTable:", data);

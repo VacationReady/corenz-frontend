@@ -17,8 +17,7 @@ function downloadCSV(data: any[], columns: any[]) {
   const csvData = data.map((row) => {
     const obj: Record<string, any> = {};
     fields.forEach((field, idx) => {
-      const value = field.split(".").reduce((acc: any, part: string) => acc?.[part], row);
-      obj[headers[idx]] = value ?? "";
+      obj[headers[idx]] = row[field] ?? "";
     });
     return obj;
   });
@@ -40,8 +39,9 @@ export default function ReportsPreviewClient() {
   const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
   const selectedFields = fieldsParam ? fieldsParam.split(",") : [];
-console.log("🔍 useSearchParams:", searchParams?.toString());
-console.log("🔍 fieldsParam:", fieldsParam);
+
+  console.log("🔍 useSearchParams:", searchParams?.toString());
+  console.log("🔍 fieldsParam:", fieldsParam);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,15 +64,16 @@ console.log("🔍 fieldsParam:", fieldsParam);
         });
 
         const json = await res.json();
+        console.log("🔥 FULL API RESPONSE:", json);
 
-        // ✅ Safely derive the top-level model from first field
         const firstModel = selectedFields[0]?.split(".")[0];
         const results = json.data?.[firstModel] ?? [];
-console.log("🔥 FULL API RESPONSE:", json);
+        console.log("🔥 Extracted modelKey:", firstModel);
+        console.log("🔥 Raw results:", results);
+
         setData(results);
-console.log("🔥 RAW DATA FROM API:", results);
       } catch (error) {
-        console.error("Error fetching report data:", error);
+        console.error("❌ Error fetching report data:", error);
       } finally {
         setLoading(false);
       }
@@ -140,14 +141,14 @@ console.log("🔥 RAW DATA FROM API:", results);
   }
 
   const columns = selectedFields.map((field) => {
-  const flatKey = field.split(".")[1] || field;
+    const flatKey = field.includes(".") ? field.split(".")[1] : field;
 
-  return {
-    header: flatKey,
-    accessorFn: (row: any) => row[flatKey] ?? "",
-    cell: (info: any) => info.getValue(),
-  };
-});
+    return {
+      header: flatKey,
+      accessorKey: flatKey,
+      cell: (info: any) => info.getValue(),
+    };
+  });
 
   return (
     <main className="p-6">

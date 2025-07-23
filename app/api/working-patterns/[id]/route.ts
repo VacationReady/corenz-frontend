@@ -36,10 +36,10 @@ export async function PATCH(
         description,  // ← now supported in schema
         WorkingPatternWeek: {
           deleteMany: {}, // clear out existing weeks & days
-          create: weeks.map((week) => ({
+          create: weeks.map((week: any) => ({
             weekNumber: week.weekNumber,
             WorkingPatternDay: {
-              create: week.days.map((day) => ({
+              create: week.days.map((day: any) => ({
                 day: day.day,
                 type: day.type,
               })),

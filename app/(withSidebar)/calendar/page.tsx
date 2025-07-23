@@ -94,7 +94,7 @@ export default function CalendarPage() {
     setBlockModalOpen(true);
   };
 
-  const handleEventClick = async (clickInfo) => {
+  const handleEventClick = async (clickInfo: any) => {
     if (clickInfo.event.extendedProps.isBlackout) {
       if (confirm("Delete this blackout day?")) {
         try {

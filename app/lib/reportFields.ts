@@ -10,7 +10,7 @@ export type ReportField = {
   dependsOn?: string[];
 };
 
-export const reportFields = [
+export const reportFields: ReportField[] = [
   // Employee Fields
   { model: "employee", field: "user.name", label: "Employee Name", type: "string", filterable: true, join: "user", dependsOn: ["user"] },
   { model: "employee", field: "user.email", label: "Employee Email", type: "string", filterable: true, join: "user", dependsOn: ["user"] },
@@ -36,9 +36,13 @@ export const reportFields = [
   { model: "leaveEntitlement", field: "_computed.remainingEntitlement", label: "Remaining Entitlement", type: "number", filterable: false },
 
   // DriverLicence Fields
-  { model: "driverLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user", dependsOn: ["employee", "user"] },
-  { model: "driverLicence", field: "category", label: "Licence Category", type: "string", filterable: true },
-  { model: "driverLicence", field: "expiryDate", label: "Licence Expiry Date", type: "date", filterable: true },
+{ model: "driverLicence", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user", dependsOn: ["employee", "user"] },
+{ model: "driverLicence", field: "licenceNumber", label: "Licence Number", type: "string", filterable: true },
+{ model: "driverLicence", field: "type", label: "Licence Type", type: "string", filterable: true },
+{ model: "driverLicence", field: "issueDate", label: "Issue Date", type: "date", filterable: true },
+{ model: "driverLicence", field: "expiryDate", label: "Expiry Date", type: "date", filterable: true },
+{ model: "driverLicence", field: "createdAt", label: "Created At", type: "date", filterable: false },
+{ model: "driverLicence", field: "updatedAt", label: "Updated At", type: "date", filterable: false }
 
   // TrainingRecord Fields
   { model: "trainingRecord", field: "employee.user.name", label: "Employee Name", type: "string", filterable: true, join: "employee.user", dependsOn: ["employee", "user"] },

@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       data: {
         name,
         category,
-        fields: JSON.stringify(fields),
+        fields: fields,
         createdBy: session.user.id,
         companyId: session.user.companyId,
       },

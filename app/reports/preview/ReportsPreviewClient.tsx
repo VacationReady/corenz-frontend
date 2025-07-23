@@ -79,7 +79,7 @@ export default function ReportsPreviewClient() {
         });
 
         const json = await res.json();
-        const results = Object.values(json.data || {})[0] || [];
+        const results = (Object.values(json.data || {})[0] || []) as any[];
         setData(results);
       } catch (error) {
         console.error("Error fetching report data:", error);

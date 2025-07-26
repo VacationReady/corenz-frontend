@@ -53,14 +53,15 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
-      id: true,
-      title: true,
-      createdAt: true,
-    },
+  id: true,
+  title: true,
+  slug: true, // ✅ Add this
+  createdAt: true,
+},
   })
 
   return NextResponse.json(posts)
-}
+}a
 
 // ✅ Resend Email Handler with Batch Sending and Logging
 async function sendNewsEmails(audience: any, title: string, content: any) {

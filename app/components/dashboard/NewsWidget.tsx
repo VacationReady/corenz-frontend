@@ -30,17 +30,21 @@ export function NewsWidget() {
   }, []);
 
   return (
-    <DashboardWidget title="Latest News" icon={Megaphone}>
-      {latestNews ? (
-        <div>
-          <h3 className="font-semibold text-base">{latestNews.title}</h3>
-          <p className="text-xs text-gray-500">
-            {new Date(latestNews.createdAt).toLocaleDateString()}
-          </p>
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500">No news available</p>
-      )}
-    </DashboardWidget>
-  );
+  <DashboardWidget title="Latest News" icon={Megaphone}>
+    {latestNews ? (
+      <div>
+        <Link href={`/news/${latestNews.slug}`} className="hover:underline">
+  <h3 className="font-semibold text-base text-indigo-600">
+    {latestNews.title}
+  </h3>
+</Link>
+        <p className="text-xs text-gray-500">
+          {new Date(latestNews.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+    ) : (
+      <p className="text-sm text-gray-500">No news available</p>
+    )}
+  </DashboardWidget>
+);
 }

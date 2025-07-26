@@ -155,6 +155,7 @@ model Department {
   company   Company    @relation(fields: [companyId], references: [id])
   employees Employee[]
   users     User[]
+  documents Document[]
 }
 
 model Company {
@@ -246,26 +247,27 @@ model FieldMetadata {
 }
 
 model SavedReport {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
   description String?
   category    String
-  fields      String[]   // ✅ clean native array
+  fields      String[] // ✅ clean native array
   filters     Json?
   sort        Json?
   pagination  Json?
   createdBy   String
-  user        User       @relation(fields: [createdBy], references: [id])
+  user        User     @relation(fields: [createdBy], references: [id])
   companyId   String?
-  Company     Company?   @relation(fields: [companyId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  Company     Company? @relation(fields: [companyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Document {
   id              String           @id @default(cuid())
   name            String
   category        String?
+  description     String? // ✅ New: allows optional context
   path            String
   size            Int
   type            String
@@ -278,6 +280,8 @@ model Document {
   url             String
   employee        Employee?        @relation(fields: [employeeId], references: [id])
   employeeId      String?
+  department      Department?      @relation(fields: [departmentId], references: [id]) // ✅ New
+  departmentId    String? // ✅ New
   driverLicences  DriverLicence[]
   trainingRecords TrainingRecord[]
 }

@@ -66,11 +66,11 @@ export default function EmployeesPageClient() {
       };
 
       const res = await fetch("/api/employees", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-  credentials: "include", // ✅ add this
-});
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
       if (!res.ok) {
         const data = await res.json();
         setError(data.error || "Failed to create employee");
@@ -156,48 +156,12 @@ export default function EmployeesPageClient() {
         </div>
       </Card>
 
+      {/* ✅ Correctly placed modal usage below */}
       <AddEmployeeModal
-  open={isModalOpen}
-  onClose={() => setModalOpen(false)}
-  onSuccess={fetchData}
-/>
-              </select>
-              <div className="flex space-x-2">
-                <select name="departmentId" value={formData.departmentId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                  <option value="">Select Department</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                <Button type="button" size="sm" onClick={() => setDeptModalOpen(true)}>+ New</Button>
-              </div>
-              <div className="flex space-x-2">
-                <select name="jobRoleId" value={formData.jobRoleId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                  <option value="">Select Job Role</option>
-                  {jobRoles.map((j) => (
-                    <option key={j.id} value={j.id}>{j.name}</option>
-                  ))}
-                </select>
-                <Button type="button" size="sm" onClick={() => setRoleModalOpen(true)}>+ New</Button>
-              </div>
-              <select name="managerId" value={formData.managerId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                <option value="">Select Line Manager (Optional)</option>
-                {employees.map((emp) => (
-                  emp.user && (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.user.firstName} {emp.user.lastName} ({emp.role})
-                    </option>
-                  )
-                ))}
-              </select>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
-                <Button type="submit">Save</Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
+        open={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={fetchData}
+      />
 
       {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
       {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}

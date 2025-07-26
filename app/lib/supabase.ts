@@ -16,15 +16,17 @@ export async function uploadToSupabase(file: File) {
 
   if (error) throw new Error(error.message);
 
-  const { data: publicUrlData, error: publicUrlError } = supabase
-    .storage
-    .from('documents')
-    .getPublicUrl(filePath);
+  const publicUrlResponse = supabase
+  .storage
+  .from('documents')
+  .getPublicUrl(filePath);
 
-  if (publicUrlError) throw new Error(publicUrlError.message);
+if (!publicUrlResponse.data?.publicUrl) {
+  throw new Error('Failed to get public URL from Supabase');
+}
 
-  return {
-    url: publicUrlData.publicUrl,
-    path: filePath,
-  };
+return {
+  url: publicUrlResponse.data.publicUrl,
+  path: filePath,
+};
 }

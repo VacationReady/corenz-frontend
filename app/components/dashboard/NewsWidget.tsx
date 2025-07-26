@@ -8,6 +8,7 @@ import Link from "next/link";
 interface NewsPost {
   id: string;
   title: string;
+  slug: string;
   createdAt: string;
 }
 

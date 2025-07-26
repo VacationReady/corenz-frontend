@@ -1,4 +1,3 @@
-// lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -12,18 +11,17 @@ export async function uploadToSupabase(file: File) {
   const filePath = `documents/${fileName}`;
 
   const { data, error } = await supabase.storage
-    .from('documents') // make sure the bucket is called 'documents'
+    .from('documents') // bucket must be called 'documents'
     .upload(filePath, file);
 
   if (error) throw new Error(error.message);
 
-  const { data: publicUrlData } = supabase
-    .storage
+  const publicUrlData = supabase.storage
     .from('documents')
     .getPublicUrl(filePath);
 
   return {
-    url: publicUrlData?.publicUrl,
+    url: publicUrlData.publicUrl, // ✅ corrected here
     path: filePath,
   };
 }

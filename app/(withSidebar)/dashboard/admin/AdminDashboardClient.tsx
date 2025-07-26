@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
+import AddDocumentModal from "@/components/documents/AddDocumentModal";
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -24,6 +25,7 @@ export default function AdminDashboardClient({
   firstName,
 }: AdminDashboardClientProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [addDocumentOpen, setAddDocumentOpen] = useState(false);
 
   const actions = [
     { label: "Post News", icon: FileText },
@@ -42,6 +44,7 @@ export default function AdminDashboardClient({
               key={label}
               onClick={() => {
                 if (label === "Add Employee") setModalOpen(true);
+                if (label === "Add Document") setAddDocumentOpen(true);
               }}
               className="flex flex-col items-center justify-center bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg p-3 hover:shadow-md hover:scale-105 transition-transform"
             >
@@ -81,10 +84,10 @@ export default function AdminDashboardClient({
       <NewsWidget />
 
       {/* Add Employee Modal */}
-      <AddEmployeeModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-      />
+      <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
+
+      {/* Add Document Modal */}
+      <AddDocumentModal open={addDocumentOpen} onClose={() => setAddDocumentOpen(false)} />
     </>
   );
 }

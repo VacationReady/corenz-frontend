@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { Megaphone } from "lucide-react";
+import Link from "next/link";
 
 interface NewsPost {
   id: string;

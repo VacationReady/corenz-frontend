@@ -11,6 +11,7 @@ import {
   Users,
   ClipboardList,
   CalendarCheck2,
+UserPlus,
 } from "lucide-react";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 
@@ -34,7 +35,7 @@ export default function AdminDashboardClient({
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: "Post News", icon: FileText },
-            { label: "Start Survey", icon: FilePlus2 },
+            { label: "Add Employee", icon: UserPlus },
             { label: "Add Document", icon: FileText },
             { label: "Email Employee", icon: Mail },
           ].map(({ label, icon: Icon }) => (

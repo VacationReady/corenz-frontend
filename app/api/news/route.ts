@@ -62,7 +62,8 @@ export async function GET(req: NextRequest) {
 });
 
 const postsWithPreview = posts.map(post => {
-  const firstParagraph = post.content?.find?.((block: any) => block.type === "paragraph");
+  const contentArray = Array.isArray(post.content) ? post.content : [];
+const firstParagraph = contentArray.find((block: any) => block.type === "paragraph");
   return {
     ...post,
     preview: firstParagraph?.text ?? "",

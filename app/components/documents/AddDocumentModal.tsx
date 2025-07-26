@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -22,8 +22,26 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
 
   const user = session?.user;
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [emp, dep] = await Promise.all([
+          fetchEmployees(),
+          fetchDepartments(),
+        ]);
+        setEmployees(emp);
+        setDepartments(dep);
+      } catch (err) {
+        console.error('Failed to fetch employees or departments', err);
+      }
+    };
+    if (open) loadData();
+  }, [open]);
 
   const categories = [
     'Contract',
@@ -111,7 +129,7 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
                 <SelectValue placeholder="Choose an employee" />
               </SelectTrigger>
               <SelectContent>
-                {(await fetchEmployees()).map(emp => (
+                {employees.map(emp => (
                   <SelectItem key={emp.id} value={emp.id}>
                     {emp.firstName} {emp.lastName} ({emp.email})
                   </SelectItem>
@@ -130,7 +148,7 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {(await fetchDepartments()).map(dep => (
+                {departments.map(dep => (
                   <SelectItem key={dep.id} value={dep.id}>
                     {dep.name}
                   </SelectItem>

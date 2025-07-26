@@ -10,6 +10,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import NewDepartmentModal from '@/components/shared/NewDepartmentModal'
 import NewJobRoleModal from '@/components/shared/NewJobRoleModal'
 import { useSession } from "next-auth/react";
+import AddEmployeeModal from "@/components/employees/AddEmployeeModal"
 
 export default function EmployeesPageClient() {
   const { data: session } = useSession();
@@ -155,20 +156,11 @@ export default function EmployeesPageClient() {
         </div>
       </Card>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Add Employee</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
-              <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
-              <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-              <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
-              <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
-              <select name="role" value={formData.role} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                {["EMPLOYEE", "MANAGER", "ADMIN"].map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
+      <AddEmployeeModal
+  open={isModalOpen}
+  onClose={() => setModalOpen(false)}
+  onSuccess={fetchData}
+/>
               </select>
               <div className="flex space-x-2">
                 <select name="departmentId" value={formData.departmentId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">

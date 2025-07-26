@@ -50,15 +50,26 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "5", 10)
 
   const posts = await prisma.newsPost.findMany({
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-  id: true,
-  title: true,
-  slug: true, // ✅ Add this
-  createdAt: true,
-},
-  })
+  orderBy: { createdAt: "desc" },
+  take: limit,
+  select: {
+    id: true,
+    title: true,
+    slug: true,
+    createdAt: true,
+    content: true, // ✅ Needed for preview tooltip
+  },
+});
+
+const postsWithPreview = posts.map(post => {
+  const firstParagraph = post.content?.find?.((block: any) => block.type === "paragraph");
+  return {
+    ...post,
+    preview: firstParagraph?.text ?? "",
+  };
+});
+
+return NextResponse.json(postsWithPreview);
 
   return NextResponse.json(posts)
 }

@@ -35,7 +35,11 @@ export function NewsWidget() {
   <DashboardWidget title="Latest News" icon={Megaphone}>
     {latestNews ? (
       <div>
-        <Link href={`/news/${latestNews.slug}`} className="hover:underline">
+        <Link
+  href={`/news/${latestNews.slug}`}
+  className="hover:underline"
+  title={latestNews.preview ?? ""}
+>
   <h3 className="font-semibold text-base text-indigo-600">
     {latestNews.title}
   </h3>

@@ -11,17 +11,20 @@ export async function uploadToSupabase(file: File) {
   const filePath = `documents/${fileName}`;
 
   const { data, error } = await supabase.storage
-    .from('documents') // bucket must be called 'documents'
+    .from('documents')
     .upload(filePath, file);
 
   if (error) throw new Error(error.message);
 
-  const publicUrlData = supabase.storage
+  const { data: publicUrlData, error: publicUrlError } = supabase
+    .storage
     .from('documents')
     .getPublicUrl(filePath);
 
+  if (publicUrlError) throw new Error(publicUrlError.message);
+
   return {
-    url: publicUrlData.publicUrl, // ✅ corrected here
+    url: publicUrlData.publicUrl,
     path: filePath,
   };
 }

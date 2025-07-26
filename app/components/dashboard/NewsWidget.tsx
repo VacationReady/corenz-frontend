@@ -10,6 +10,7 @@ interface NewsPost {
   title: string;
   slug: string;
   createdAt: string;
+  preview?: string; // ✅ Add this line
 }
 
 export function NewsWidget() {

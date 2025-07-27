@@ -12,8 +12,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ✅ GET: Return employees with their user data for listing
 export async function GET() {
   try {
-    import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {

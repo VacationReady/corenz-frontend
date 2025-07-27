@@ -41,6 +41,7 @@ export default function EmployeesPageClient() {
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
       ]);
+console.log("🔍 Flattened employee API response:", empRes);
       setEmployees(empRes);
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);

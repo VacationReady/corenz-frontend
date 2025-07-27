@@ -14,26 +14,26 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            role: true,
-          },
-        },
-        department: {
-          select: { id: true, name: true },
-        },
+  include: {
+    user: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        role: true,
         jobRole: {
           select: { id: true, name: true },
         },
       },
-      orderBy: { id: 'desc' },
-    });
+    },
+    department: {
+      select: { id: true, name: true },
+    },
+  },
+  orderBy: { id: 'desc' },
+});
 
     const flattened = employees.map(emp => ({
       id: emp.id,
@@ -45,8 +45,8 @@ export async function GET() {
       role: emp.user.role,
       departmentId: emp.department?.id ?? null,
       departmentName: emp.department?.name ?? null,
-      jobRoleId: emp.jobRole?.id ?? null,
-      jobRoleName: emp.jobRole?.name ?? null,
+      jobRoleId: emp.user.jobRole?.id ?? null,
+jobRoleName: emp.user.jobRole?.name ?? null,
     }));
 
     return NextResponse.json(flattened);

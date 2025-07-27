@@ -13,7 +13,9 @@ export async function GET(req: Request) {
   const documents = await prisma.document.findMany({
     where: {
       companyId: session.user.companyId,
-      employeeId: employeeId ?? undefined,
+      ...(employeeId
+        ? { employeeId }                      // When employeeId is passed, filter by it
+        : { employeeId: null }),              // Otherwise, only return general company docs
     },
     include: { uploader: true },
     orderBy: { createdAt: "desc" },

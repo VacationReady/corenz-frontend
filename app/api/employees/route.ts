@@ -56,14 +56,6 @@ export async function GET() {
   }
 }
 
-    return NextResponse.json(employees);
-  } catch (error) {
-    console.error("Error fetching employees:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch employees." },
-      { status: 500 }
-    );
-  }
 }
 
 // ✅ POST: Add new employee with companyId scoping and activation email

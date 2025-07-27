@@ -56,8 +56,6 @@ export async function GET() {
   }
 }
 
-}
-
 // ✅ POST: Add new employee with companyId scoping and activation email
 export async function POST(req: Request) {
   try {

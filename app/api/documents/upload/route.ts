@@ -15,6 +15,10 @@ export async function POST(req: Request) {
   const name = formData.get("name") as string;
   const category = formData.get("category") as string;
 
+  // 🆕 New additions to support employee documents
+  const employeeId = formData.get("employeeId") as string | null;
+  const type = formData.get("type") as string | null;
+
   if (!file || !name) {
     return NextResponse.json({ error: "File and name are required" }, { status: 400 });
   }
@@ -55,6 +59,8 @@ export async function POST(req: Request) {
         url: publicUrl,
         uploaderId: session.user.id,
         companyId: session.user.companyId,
+        // 🆕 Set employeeId if this is an employee document
+        employeeId: type === "employee" && employeeId ? employeeId : null,
       },
     });
 

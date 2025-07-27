@@ -41,7 +41,7 @@ export default function EmployeesPageClient() {
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
       ]);
-      setEmployees(empRes.filter((emp: any) => emp.user));
+      setEmployees(empRes);
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
     } catch {
@@ -112,45 +112,41 @@ export default function EmployeesPageClient() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
-                <tr key={emp.id} className="border-b hover:bg-neutral-50">
-                  <td className="p-3">
-                    {emp.user ? (
-                      <Link
-                        href={`/employees/${emp.id}/overview`}
-                        className="text-indigo-600 hover:underline"
-                      >
-                        {emp.user.firstName} {emp.user.lastName}
-                      </Link>
-                    ) : (
-                      <span className="text-gray-400">User missing</span>
-                    )}
-                  </td>
-                  <td className="p-3">{emp.user?.phone || "-"}</td>
-                  <td className="p-3">{emp.user?.department?.name || "-"}</td>
-                  <td className="p-3">{emp.user?.jobRole?.name || "-"}</td>
-                  <td className="p-3">{emp.user?.email || "-"}</td>
-                  <td className="p-3">
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={async () => {
-                        if (!confirm("Are you sure you want to delete this employee?")) return;
-                        try {
-                          const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
-                          if (!res.ok) throw new Error("Delete failed");
-                          fetchData();
-                        } catch (err) {
-                          alert("Error deleting employee.");
-                          console.error(err);
-                        }
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+{employees.map((emp) => (
+  <tr key={emp.id} className="border-b hover:bg-neutral-50">
+    <td className="p-3">
+      <Link
+        href={`/employees/${emp.id}/overview`}
+        className="text-indigo-600 hover:underline"
+      >
+        {emp.firstName} {emp.lastName}
+      </Link>
+    </td>
+    <td className="p-3">{emp.phone || "-"}</td>
+    <td className="p-3">{emp.departmentName || "-"}</td>
+    <td className="p-3">{emp.jobRoleName || "-"}</td>
+    <td className="p-3">{emp.email || "-"}</td>
+    <td className="p-3">
+      <Button
+        variant="danger"
+        size="sm"
+        onClick={async () => {
+          if (!confirm("Are you sure you want to delete this employee?")) return;
+          try {
+            const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Delete failed");
+            fetchData();
+          } catch (err) {
+            alert("Error deleting employee.");
+            console.error(err);
+          }
+        }}
+      >
+        Delete
+      </Button>
+    </td>
+  </tr>
+))}
             </tbody>
           </table>
         </div>

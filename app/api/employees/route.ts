@@ -10,8 +10,6 @@ import { authOptions } from "@/lib/auth-options";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ GET: Return employees with their user data for listing
-export async function GET() {
-  try {
 
 export async function GET() {
   try {

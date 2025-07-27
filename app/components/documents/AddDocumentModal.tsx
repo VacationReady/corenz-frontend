@@ -56,44 +56,42 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
   ];
 
   const handleSubmit = async () => {
-    if (!title || !file || !user?.id) {
-      toast.error('Title, file, and user must be provided');
-      return;
+  if (!title || !file || !user?.id) {
+    toast.error('Title, file, and user must be provided');
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', title);
+    formData.append('category', category || '');
+    // These will be ignored if your API doesn’t support them — no problem
+    formData.append('description', description || '');
+    formData.append('employeeId', type === 'employee' ? employeeId : '');
+    formData.append('departmentId', type === 'company' && departmentId !== 'all' ? departmentId : '');
+    formData.append('type', type || '');
+
+    const res = await fetch('/api/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      throw new Error(error || 'API call failed');
     }
 
-    setLoading(true);
-
-    try {
-      const upload = await uploadToSupabase(file);
-      if (!upload?.url || !upload?.path) throw new Error('File upload failed');
-
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: title,
-          category,
-          description,
-          path: upload.path,
-          size: file.size,
-          type: file.type,
-          url: upload.url,
-          uploaderId: user.id,
-          companyId: user.companyId,
-          employeeId: type === 'employee' ? employeeId : undefined,
-          departmentId: type === 'company' && departmentId !== 'all' ? departmentId : undefined,
-        }),
-      });
-
-      if (!res.ok) throw new Error('API call failed');
-
-      toast.success('Document uploaded successfully');
-      onClose();
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    toast.success('Document uploaded successfully');
+    onClose();
+  } catch (err) {
+    toast.error((err as Error).message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

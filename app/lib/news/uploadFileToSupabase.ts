@@ -1,25 +1,31 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function uploadFileToSupabase(file: File) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const filename = `${Date.now()}-${file.name}`
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`; // ✅ fixed: no documents/ prefix
 
   const { data, error } = await supabase.storage
-    .from('news-files')
-    .upload(filename, file)
+    .from('documents') // ✅ bucket name
+    .upload(filePath, file);
 
-  if (error) {
-    console.error('Upload error:', error)
-    return ''
+  if (error) throw new Error(error.message);
+
+  const publicUrlResponse = supabase.storage
+    .from('documents')
+    .getPublicUrl(filePath);
+
+  if (!publicUrlResponse.data?.publicUrl) {
+    throw new Error('Failed to get public URL from Supabase');
   }
 
-  const { data: urlData } = supabase.storage
-    .from('news-files')
-    .getPublicUrl(filename)
-
-  return urlData?.publicUrl || ''
+  return {
+    url: publicUrlResponse.data.publicUrl,
+    path: filePath,
+  };
 }

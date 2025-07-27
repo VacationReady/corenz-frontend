@@ -12,6 +12,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ✅ GET: Return employees with their user data for listing
 export async function GET() {
   try {
+    import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  try {
     const employees = await prisma.employee.findMany({
       include: {
         user: {
@@ -22,13 +27,38 @@ export async function GET() {
             email: true,
             phone: true,
             role: true,
-            department: { select: { name: true } },
-            jobRole: { select: { name: true } },
           },
         },
+        department: {
+          select: { id: true, name: true },
+        },
+        jobRole: {
+          select: { id: true, name: true },
+        },
       },
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
     });
+
+    const flattened = employees.map(emp => ({
+      id: emp.id,
+      userId: emp.user.id,
+      firstName: emp.user.firstName,
+      lastName: emp.user.lastName,
+      email: emp.user.email,
+      phone: emp.user.phone,
+      role: emp.user.role,
+      departmentId: emp.department?.id ?? null,
+      departmentName: emp.department?.name ?? null,
+      jobRoleId: emp.jobRole?.id ?? null,
+      jobRoleName: emp.jobRole?.name ?? null,
+    }));
+
+    return NextResponse.json(flattened);
+  } catch (error) {
+    console.error('Failed to load employees:', error);
+    return new NextResponse('Error loading employees', { status: 500 });
+  }
+}
 
     return NextResponse.json(employees);
   } catch (error) {

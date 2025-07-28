@@ -39,6 +39,7 @@ export function MultiSelect({
   const [open, setOpen] = React.useState(false);
 
   const toggleValue = (value: string) => {
+    console.log("Toggle value clicked:", value); // ✅ Log toggles
     if (selected.includes(value)) {
       onChange(selected.filter((v) => v !== value));
     } else {
@@ -50,13 +51,23 @@ export function MultiSelect({
     .filter((opt) => selected.includes(opt.value))
     .map((opt) => opt.label);
 
+  console.log("MultiSelect Render → open:", open, "selected:", selectedLabels);
+
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover
+      open={open}
+      onOpenChange={(state) => {
+        console.log("Popover onOpenChange:", state); // ✅ Log state changes
+        setOpen(state);
+      }}
+      modal={false}
+    >
       <PopoverTrigger asChild>
         <Button
-          variant="ghost" // ✅ Valid for your Button component
+          variant="ghost"
           role="combobox"
           aria-expanded={open}
+          onClick={() => console.log("PopoverTrigger clicked")} // ✅ Log clicks
           className="w-full justify-between border rounded-md"
         >
           <div className="flex flex-wrap gap-1">
@@ -74,12 +85,13 @@ export function MultiSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-full p-0 shadow-md border rounded-md bg-white"
+        className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
         align="start"
         sideOffset={4}
         avoidCollisions={false}
         forceMount
       >
+        {console.log("PopoverContent Mounted")} {/* ✅ Log mount */}
         <Command shouldFilter>
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No results found.</CommandEmpty>

@@ -35,7 +35,7 @@ export default function DocumentsPageClient() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  // ✅ Dynamic Department & Job Role dropdowns
+  // ✅ Dynamic dropdowns
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
@@ -58,8 +58,15 @@ export default function DocumentsPageClient() {
       const deptData = await deptRes.json();
       const roleData = await roleRes.json();
 
-      setDepartmentsList(deptData.map((d: any) => ({ label: d.name, value: d.id })));
-      setJobRolesList(roleData.map((r: any) => ({ label: r.name, value: r.id })));
+      const deptOptions = [{ label: "All Departments", value: "all" }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))];
+      const roleOptions = [{ label: "All Job Roles", value: "all" }, ...roleData.map((r: any) => ({ label: r.name, value: r.id }))];
+
+      setDepartmentsList(deptOptions);
+      setJobRolesList(roleOptions);
+
+      // ✅ Default to "All"
+      setUploadDepartments(["all"]);
+      setUploadJobRoles(["all"]);
     } catch (err) {
       console.error("Failed to load dropdown data", err);
     }
@@ -78,12 +85,16 @@ export default function DocumentsPageClient() {
     }
     setUploading(true);
 
+    // ✅ If "All" selected, send empty arrays (no restriction)
+    const selectedDepartments = uploadDepartments.includes("all") ? [] : uploadDepartments;
+    const selectedJobRoles = uploadJobRoles.includes("all") ? [] : uploadJobRoles;
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", name);
     formData.append("category", category);
-    formData.append("departments", JSON.stringify(uploadDepartments));
-    formData.append("jobRoles", JSON.stringify(uploadJobRoles));
+    formData.append("departments", JSON.stringify(selectedDepartments));
+    formData.append("jobRoles", JSON.stringify(selectedJobRoles));
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -93,8 +104,8 @@ export default function DocumentsPageClient() {
         setFile(null);
         setName("");
         setCategory("");
-        setUploadDepartments([]);
-        setUploadJobRoles([]);
+        setUploadDepartments(["all"]);
+        setUploadJobRoles(["all"]);
         fetchDocuments();
       } else {
         toast("Upload failed", { description: "Please try again or check your connection." });
@@ -185,23 +196,29 @@ export default function DocumentsPageClient() {
                 </SelectContent>
               </Select>
             </div>
-            {/* ✅ Dynamic Department MultiSelect */}
+            {/* ✅ Department MultiSelect */}
             <div>
-              <Label>Restrict by Department (optional)</Label>
+              <Label>Restrict by Department</Label>
               <MultiSelect
                 options={departmentsList}
                 selected={uploadDepartments}
-                onChange={setUploadDepartments}
+                onChange={(values) => {
+                  if (values.includes("all")) setUploadDepartments(["all"]);
+                  else setUploadDepartments(values);
+                }}
                 placeholder="Select department(s)"
               />
             </div>
-            {/* ✅ Dynamic Job Role MultiSelect */}
+            {/* ✅ Job Role MultiSelect */}
             <div>
-              <Label>Restrict by Job Role (optional)</Label>
+              <Label>Restrict by Job Role</Label>
               <MultiSelect
                 options={jobRolesList}
                 selected={uploadJobRoles}
-                onChange={setUploadJobRoles}
+                onChange={(values) => {
+                  if (values.includes("all")) setUploadJobRoles(["all"]);
+                  else setUploadJobRoles(values);
+                }}
                 placeholder="Select job role(s)"
               />
             </div>

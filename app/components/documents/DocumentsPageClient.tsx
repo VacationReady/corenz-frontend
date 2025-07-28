@@ -176,31 +176,32 @@ export default function DocumentsPageClient() {
                   className="cursor-pointer hover:bg-muted transition"
                 >
                   <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
-                  <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
                   <TableCell>
-                    {doc.departments.length > 0
-                      ? doc.departments.map((d) => d.name).join(", ")
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {doc.jobRoles.length > 0
-                      ? doc.jobRoles.map((jr) => jr.name).join(", ")
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip
-                      content={
-                        <div className="text-xs">
-                          {accessList.length > 0
-                            ? accessList.map((item, idx) => <div key={idx}>{item}</div>)
-                            : "No specific access (visible to all)"}
-                        </div>
-                      }
-                    >
-                      <span className="underline cursor-pointer">
-                        {accessList.length > 0 ? accessList.join(", ") : "—"}
-                      </span>
-                    </Tooltip>
+  {doc.departments.length > 0
+    ? doc.departments.map((d) => d.name).join(", ")
+    : "All Departments"}
+</TableCell>
+
+<TableCell>
+  {doc.jobRoles.length > 0
+    ? doc.jobRoles.map((jr) => jr.name).join(", ")
+    : "All Job Roles"}
+</TableCell>
+
+<TableCell>
+  <Tooltip
+    content={
+      <div className="text-xs">
+        {accessList.length > 0
+          ? accessList.map((item, idx) => <div key={idx}>{item}</div>)
+          : "Admin + All (Unrestricted)"}
+      </div>
+    }
+  >
+    <span className="underline cursor-pointer">
+      {accessList.length > 0 ? accessList.join(", ") : "Admin + All"}
+    </span>
+  </Tooltip>
                   </TableCell>
                   <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{formatFileSize(doc.size)}</TableCell>

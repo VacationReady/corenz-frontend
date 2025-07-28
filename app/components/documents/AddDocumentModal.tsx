@@ -7,9 +7,9 @@ import Button from '@/components/ui/Button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Switch } from '@/components/ui/switch'; // ✅ Ensure Switch is imported
 import { useSession } from 'next-auth/react';
 import { fetchEmployees, fetchDepartments } from '@/lib/fetchData';
-import { uploadToSupabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function AddDocumentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -25,15 +25,17 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
   const [employees, setEmployees] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
 
+  // ✅ Access control state
+  const [canViewAdmin, setCanViewAdmin] = useState(true);
+  const [canViewManager, setCanViewManager] = useState(false);
+  const [canViewEmployee, setCanViewEmployee] = useState(true);
+
   const user = session?.user;
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [emp, dep] = await Promise.all([
-          fetchEmployees(),
-          fetchDepartments(),
-        ]);
+        const [emp, dep] = await Promise.all([fetchEmployees(), fetchDepartments()]);
         setEmployees(emp);
         setDepartments(dep);
       } catch (err) {
@@ -56,42 +58,46 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
   ];
 
   const handleSubmit = async () => {
-  if (!title || !file || !user?.id) {
-    toast.error('Title, file, and user must be provided');
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', title);
-    formData.append('category', category || '');
-    // These will be ignored if your API doesn’t support them — no problem
-    formData.append('description', description || '');
-    formData.append('employeeId', type === 'employee' ? employeeId : '');
-    formData.append('departmentId', type === 'company' && departmentId !== 'all' ? departmentId : '');
-    formData.append('type', type || '');
-
-    const res = await fetch('/api/documents/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const { error } = await res.json();
-      throw new Error(error || 'API call failed');
+    if (!title || !file || !user?.id) {
+      toast.error('Title, file, and user must be provided');
+      return;
     }
 
-    toast.success('Document uploaded successfully');
-    onClose();
-  } catch (err) {
-    toast.error((err as Error).message);
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', title);
+      formData.append('category', category || '');
+      formData.append('description', description || '');
+      formData.append('employeeId', type === 'employee' ? employeeId : '');
+      formData.append('departmentId', type === 'company' && departmentId !== 'all' ? departmentId : '');
+      formData.append('type', type || '');
+
+      // ✅ Include access rights
+      formData.append('canViewAdmin', String(canViewAdmin));
+      formData.append('canViewManager', String(canViewManager));
+      formData.append('canViewEmployee', String(canViewEmployee));
+
+      const res = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || 'API call failed');
+      }
+
+      toast.success('Document uploaded successfully');
+      onClose();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -182,6 +188,24 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
           <Label>Description (optional)</Label>
           <Textarea value={description} onChange={e => setDescription(e.target.value)} />
         </div>
+
+        {/* ✅ Access Rights */}
+        {type === 'employee' && (
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Admin Access</Label>
+              <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
+            </div>
+            <div>
+              <Label>Manager Access</Label>
+              <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
+            </div>
+            <div>
+              <Label>Employee Access</Label>
+              <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
+            </div>
+          </div>
+        )}
 
         <div>
           <Label>Upload File</Label>

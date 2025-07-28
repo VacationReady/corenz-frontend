@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
     const companyId = session.user.companyId;
     const uploaderId = session.user.id;
 
+    // ✅ Access control flags
+    const canViewAdmin = formData.get("canViewAdmin") === "true";
+    const canViewManager = formData.get("canViewManager") === "true";
+    const canViewEmployee = formData.get("canViewEmployee") === "true";
+
     if (!file || !name || !category || !employeeId) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
     const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
     const fileUrl = urlData.publicUrl;
 
-    // ✅ Create document record in Prisma
+    // ✅ Create document record in Prisma with access flags
     await prisma.document.create({
         data: {
             name,
@@ -58,6 +63,9 @@ export async function POST(req: NextRequest) {
             uploaderId,
             companyId,
             employeeId,
+            canViewAdmin,
+            canViewManager,
+            canViewEmployee,
         },
     });
 

@@ -32,26 +32,31 @@ export function MultiSelect({
     : "All Job Roles";
 
   const toggleValue = (value: string) => {
-    if (value === isAllLabel) {
-      // Reset to just "All"
-      onChange([isAllLabel]);
+  const isAll = value === isAllLabel;
+
+  if (isAll) {
+    // If "All Departments" is clicked, reset to just that
+    onChange([isAllLabel]);
+  } else {
+    // Start by removing "All Departments" if present
+    let updated = selected.filter((v) => v !== isAllLabel);
+
+    if (updated.includes(value)) {
+      // Deselect value
+      updated = updated.filter((v) => v !== value);
     } else {
-      let updated = selected.filter((v) => v !== isAllLabel);
-
-      if (updated.includes(value)) {
-        updated = updated.filter((v) => v !== value); // deselect
-      } else {
-        updated = [...updated, value]; // add
-      }
-
-      // If nothing selected, revert to "All"
-      if (updated.length === 0) {
-        updated = [isAllLabel];
-      }
-
-      onChange(updated);
+      // Add value
+      updated = [...updated, value];
     }
-  };
+
+    // If no specific values left, default back to "All Departments"
+    if (updated.length === 0) {
+      updated = [isAllLabel];
+    }
+
+    onChange(updated);
+  }
+};
 
   const selectedLabels = options
     .filter((opt) => selected.includes(opt.value))

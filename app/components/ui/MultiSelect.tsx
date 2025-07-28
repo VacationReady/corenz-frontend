@@ -91,7 +91,8 @@ export function MultiSelect({
         avoidCollisions={false}
         forceMount
       >
-        {console.log("PopoverContent Mounted")} {/* ✅ Log mount */}
+        {/* ✅ Safe log outside JSX rendering */}
+        {open && console.log("PopoverContent Mounted")}
         <Command shouldFilter>
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No results found.</CommandEmpty>

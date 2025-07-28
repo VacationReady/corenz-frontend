@@ -14,7 +14,7 @@ interface Option {
 
 interface MultiSelectProps {
   options: Option[];
-  selected: string[];
+  selected: string[]; // stores values (e.g., IDs or slugs, NOT labels)
   onChange: (values: string[]) => void;
   placeholder?: string;
 }
@@ -27,39 +27,50 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Detect whether we're working with Departments or Job Roles
-  const isAllLabel =
+  // Define "All" option dynamically
+  const isAllOption =
     placeholder.toLowerCase().includes("department")
-      ? "All Departments"
-      : "All Job Roles";
+      ? { label: "All Departments", value: "all_departments" }
+      : { label: "All Job Roles", value: "all_job_roles" };
+
+  // Debug: Log incoming props
+  console.log("Options:", options);
+  console.log("Selected (values):", selected);
 
   const toggleValue = (value: string) => {
-    const isAll = value === isAllLabel;
+    console.log("Clicked:", value);
+    console.log("Selected before:", selected);
 
-    if (isAll) {
+    if (value === isAllOption.value) {
       // Reset to just "All"
-      onChange([isAllLabel]);
+      onChange([isAllOption.value]);
+      console.log("Reset to ALL:", [isAllOption.value]);
     } else {
       // Remove "All" if selecting a specific
-      let updated = selected.filter((v) => v !== isAllLabel);
+      let updated = selected.filter((v) => v !== isAllOption.value);
 
       if (updated.includes(value)) {
         // Deselect value
         updated = updated.filter((v) => v !== value);
+        console.log("Deselected:", value, "→", updated);
       } else {
         // Add value
         updated = [...updated, value];
+        console.log("Added:", value, "→", updated);
       }
 
-      // If no specific selections left, default back to "All"
+      // If no specifics remain, default back to "All"
       if (updated.length === 0) {
-        updated = [isAllLabel];
+        updated = [isAllOption.value];
+        console.log("Fallback to ALL:", updated);
       }
 
       onChange(updated);
+      console.log("Selected after:", updated);
     }
   };
 
+  // Map selected values to display labels
   const selectedLabels = options
     .filter((opt) => selected.includes(opt.value))
     .map((opt) => opt.label);
@@ -99,6 +110,33 @@ export function MultiSelect({
           static
           className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto"
         >
+          {/* Include "All" as the first option */}
+          <div key={isAllOption.value} className="w-full">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                toggleValue(isAllOption.value);
+                menuButtonRef.current?.focus();
+              }}
+              className={cn(
+                "flex w-full items-center px-3 py-2 text-sm text-left",
+                selected.includes(isAllOption.value)
+                  ? "bg-gray-50"
+                  : "hover:bg-gray-100"
+              )}
+            >
+              <Check
+                className={cn(
+                  "mr-2 h-4 w-4",
+                  selected.includes(isAllOption.value) ? "opacity-100" : "opacity-0"
+                )}
+              />
+              {isAllOption.label}
+            </button>
+          </div>
+
+          {/* Render actual options */}
           {options.map((option) => (
             <div key={option.value} className="w-full">
               <button
@@ -106,7 +144,7 @@ export function MultiSelect({
                 onClick={(e) => {
                   e.preventDefault();
                   toggleValue(option.value);
-                  menuButtonRef.current?.focus(); // keep dropdown open
+                  menuButtonRef.current?.focus(); // Keep dropdown open
                 }}
                 className={cn(
                   "flex w-full items-center px-3 py-2 text-sm text-left",

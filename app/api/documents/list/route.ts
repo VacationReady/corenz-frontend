@@ -40,20 +40,33 @@ export async function GET(req: Request) {
     return NextResponse.json(adminDocs);
   }
 
-  // ✅ Build OR conditions for MANAGER/EMPLOYEE
-  const orConditions: Prisma.DocumentWhereInput[] = [
-    { canViewAdmin: true },
-    ...(userRole === "MANAGER" ? [{ canViewManager: true }] : []),
-    ...(userRole === "EMPLOYEE" ? [{ canViewEmployee: true }] : []),
-    { departments: { some: { id: user?.departmentId || "" } } },
-    { jobRoles: { some: { id: user?.jobRoleId || "" } } },
-    { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // unrestricted docs
-  ];
+  // ✅ Role-based flag
+  const roleFlag =
+    userRole === "MANAGER"
+      ? { canViewManager: true }
+      : { canViewEmployee: true };
 
+  // ✅ Non-admin conditions: must meet roleFlag AND department/job role (or unrestricted)
   const documents = await prisma.document.findMany({
     where: {
       ...baseFilter,
-      OR: orConditions,
+      AND: [
+        roleFlag,
+        {
+          OR: [
+            // unrestricted docs (no dept/job restriction)
+            { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] },
+            // same department
+            user?.departmentId
+              ? { departments: { some: { id: user.departmentId } } }
+              : undefined,
+            // same job role
+            user?.jobRoleId
+              ? { jobRoles: { some: { id: user.jobRoleId } } }
+              : undefined,
+          ].filter(Boolean),
+        },
+      ],
     },
     include: {
       uploader: { select: { name: true, email: true } },

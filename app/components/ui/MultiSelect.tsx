@@ -26,12 +26,22 @@ export function MultiSelect({
   placeholder = "Select options...",
 }: MultiSelectProps) {
   const toggleValue = (value: string) => {
+  if (value === "All Departments" || value === "All Job Roles") {
+    // If "All" is selected, reset to just that
+    onChange([value]);
+  } else {
+    // Remove "All" if selecting a specific item
+    const filtered = selected.filter(
+      (v) => v !== "All Departments" && v !== "All Job Roles"
+    );
+
     if (selected.includes(value)) {
-      onChange(selected.filter((v) => v !== value));
+      onChange(filtered.filter((v) => v !== value)); // deselect value
     } else {
-      onChange([...selected, value]);
+      onChange([...filtered, value]); // add value
     }
-  };
+  }
+};
 
   const selectedLabels = options
     .filter((opt) => selected.includes(opt.value))

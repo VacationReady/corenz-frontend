@@ -62,7 +62,7 @@ export function MultiSelect({
           <div className="flex flex-wrap gap-1">
             {selectedLabels.length > 0 ? (
               selectedLabels.map((label) => (
-                <Badge key={label} variant="secondary" className="text-xs">
+                <Badge key={label} variant="ghost" className="text-xs">
                   {label}
                 </Badge>
               ))

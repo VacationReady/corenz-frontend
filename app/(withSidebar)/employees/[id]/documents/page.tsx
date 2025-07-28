@@ -178,17 +178,18 @@ export default function EmployeeDocumentsPage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Admin Access</Label>
-                <Switch checked={canViewAdmin} onChecked={setCanViewAdmin} />
-              </div>
-              <div>
-                <Label>Manager Access</Label>
-                <Switch checked={canViewManager} onChecked={setCanViewManager} />
-              </div>
-              <div>
-                <Label>Employee Access</Label>
-                <Switch checked={canViewEmployee} onChecked={setCanViewEmployee} />
-              </div>
-            </div>
+                <Switch
+  checked={canViewAdmin}
+  onChange={(e) => setCanViewAdmin(e.target.checked)}
+/>
+<Switch
+  checked={canViewManager}
+  onChange={(e) => setCanViewManager(e.target.checked)}
+/>
+<Switch
+  checked={canViewEmployee}
+  onChange={(e) => setCanViewEmployee(e.target.checked)}
+/>
 
             <DialogFooter>
               <Button type="submit" disabled={uploading}>

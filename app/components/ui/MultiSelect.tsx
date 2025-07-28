@@ -15,7 +15,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 
 interface Option {

@@ -8,35 +8,51 @@ datasource db {
 }
 
 model User {
-  id                                           String           @id @default(cuid())
-  email                                        String           @unique
-  password                                     String
-  role                                         Role
-  createdAt                                    DateTime         @default(now())
-  updatedAt                                    DateTime         @updatedAt
-  emailVerified                                DateTime?
-  name                                         String?
-  departmentId                                 String?
-  firstName                                    String?
-  isActivated                                  Boolean          @default(false)
-  jobRoleId                                    String?
-  lastName                                     String?
-  managerId                                    String?
-  phone                                        String?
-  activationToken                              ActivationToken?
-  employee                                     Employee?
-  LeaveRequest_LeaveRequest_approvedByIdToUser LeaveRequest[]   @relation("LeaveRequest_approvedByIdToUser")
-  leaveRequestsRequested                       LeaveRequest[]   @relation("RequestingUser")
-  department                                   Department?      @relation(fields: [departmentId], references: [id])
-  jobRole                                      JobRole?         @relation(fields: [jobRoleId], references: [id])
-  manager                                      User?            @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates                                 User[]           @relation("ManagerSubordinates")
-  company                                      Company?         @relation(fields: [companyId], references: [id])
-  companyId                                    String?
-  newsPosts                                    NewsPost[] // Optional: add @relation if you want a named relation
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  role          Role
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified DateTime?
+  name          String?
+  firstName     String?
+  lastName      String?
+  phone         String?
+  isActivated   Boolean   @default(false)
 
-  SavedReport SavedReport[]
+  // ✅ Relational links
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  jobRoleId String?
+  jobRole   JobRole? @relation(fields: [jobRoleId], references: [id])
+
+  managerId    String?
+  manager      User?   @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates User[]  @relation("ManagerSubordinates")
+
+  departmentHeadOf Department[] @relation("DepartmentHead") // ✅ For Department head relationship
+
+  // ✅ HR-related fields
+  employee         Employee? // Link to Employee record for HRIS core
+  activationToken  ActivationToken?
+  emailPreferences Json? // ✅ Optional: Store notification settings (flexible JSON)
+  profileImageUrl  String? // ✅ Optional: Profile image
+
+  // ✅ Leave and workflows
+  LeaveRequest_LeaveRequest_approvedByIdToUser LeaveRequest[] @relation("LeaveRequest_approvedByIdToUser")
+  leaveRequestsRequested                       LeaveRequest[] @relation("RequestingUser")
+
+  // ✅ Documents and reports
   documents   Document[]
+  SavedReport SavedReport[]
+
+  // ✅ News/posts authored
+  newsPosts NewsPost[]
 }
 
 model ActivationToken {
@@ -149,30 +165,66 @@ model LeaveEntitlement {
 }
 
 model Department {
-  id        String     @id @default(cuid())
-  name      String     @unique // ✅ ADD THIS
+  id          String  @id @default(cuid())
+  name        String
+  code        String? @unique
+  description String?
+  active      Boolean @default(true)
+
   companyId String
-  company   Company    @relation(fields: [companyId], references: [id])
+  company   Company @relation(fields: [companyId], references: [id])
+
+  headId String?
+  head   User?   @relation("DepartmentHead", fields: [headId], references: [id])
+
   employees Employee[]
   users     User[]
   documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
 }
 
 model Company {
-  id          String        @id @default(cuid())
-  name        String        @unique // ✅ ADD THIS
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id       String  @id @default(cuid())
+  name     String  @unique
+  code     String? @unique // ✅ Optional: ERP/payroll sync code
+  industry String? // ✅ Optional: Industry classification
+  size     Int? // ✅ Optional: Employee count (cached for reporting)
+  address  String? // ✅ Optional: Company HQ address
+  phone    String? // ✅ Optional: Contact number
+  website  String? // ✅ Optional: Corporate website
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   departments Department[]
+  jobRoles    JobRole[] // ✅ Added for multi-tenant job role relation
   users       User[]
   SavedReport SavedReport[]
   documents   Document[]
 }
 
 model JobRole {
-  id    String @id @default(cuid())
-  name  String @unique
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  active      Boolean @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  payGrade String?
+  level    Int?
+
   users User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
 }
 
 model WorkingPattern {
@@ -286,9 +338,9 @@ model Document {
   trainingRecords TrainingRecord[]
 
   // ✅ Access Control Flags
-  canViewAdmin    Boolean          @default(true)
-  canViewManager  Boolean          @default(false)
-  canViewEmployee Boolean          @default(true)
+  canViewAdmin    Boolean @default(true)
+  canViewManager  Boolean @default(false)
+  canViewEmployee Boolean @default(true)
 }
 
 model EmploymentCheck {

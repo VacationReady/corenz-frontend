@@ -1,26 +1,33 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth"; // ✅ If you use auth to scope by company
-import { authOptions } from "@/lib/auth-options"; // Adjust path as needed
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export async function GET() {
   try {
-    // ✅ Get user session (if scoping by company is required)
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const departments = await prisma.department.findMany({
       where: {
-        active: true, 
-        companyId: session.user.companyId, // ✅ Multi-tenant scoping
+        companyId: session.user.companyId,
+        active: true, // ✅ Only active
       },
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        code: true,         // ✅ Useful for ERP sync in dropdown metadata
+        head: {             // ✅ Optional: show department head in UI if needed
+          select: { id: true, name: true },
+        },
+      },
     });
 
-    return NextResponse.json(departments); // ✅ Raw array for dropdown
+    return NextResponse.json(departments);
   } catch (error) {
     console.error("Error fetching active departments:", error);
     return NextResponse.json({ error: "Failed to fetch active departments" }, { status: 500 });

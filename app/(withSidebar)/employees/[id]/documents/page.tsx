@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import { Switch } from "@/components/ui/switch"; // ✅ Added import for Switch
+import { Switch } from "@/components/ui/switch"; // ✅ Import Switch
 import { toast } from "sonner";
 
 type Document = {
@@ -34,7 +34,7 @@ export default function EmployeeDocumentsPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
 
-  // ✅ Added state for access control switches
+  // ✅ State for access control
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
@@ -83,7 +83,8 @@ export default function EmployeeDocumentsPage() {
         setFile(null);
         setName("");
         setCategory("");
-        setCanViewAdmin(true); // ✅ Reset switches after upload
+        // Reset switches
+        setCanViewAdmin(true);
         setCanViewManager(false);
         setCanViewEmployee(true);
       } else {
@@ -179,17 +180,25 @@ export default function EmployeeDocumentsPage() {
               <div>
                 <Label>Admin Access</Label>
                 <Switch
-  checked={canViewAdmin}
-  onChange={(e) => setCanViewAdmin(e.target.checked)}
-/>
-<Switch
-  checked={canViewManager}
-  onChange={(e) => setCanViewManager(e.target.checked)}
-/>
-<Switch
-  checked={canViewEmployee}
-  onChange={(e) => setCanViewEmployee(e.target.checked)}
-/>
+                  checked={canViewAdmin}
+                  onChange={(e) => setCanViewAdmin(e.target.checked)}
+                />
+              </div>
+              <div>
+                <Label>Manager Access</Label>
+                <Switch
+                  checked={canViewManager}
+                  onChange={(e) => setCanViewManager(e.target.checked)}
+                />
+              </div>
+              <div>
+                <Label>Employee Access</Label>
+                <Switch
+                  checked={canViewEmployee}
+                  onChange={(e) => setCanViewEmployee(e.target.checked)}
+                />
+              </div>
+            </div>
 
             <DialogFooter>
               <Button type="submit" disabled={uploading}>

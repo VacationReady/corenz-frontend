@@ -15,9 +15,9 @@ export async function GET(req: Request) {
 
   // ✅ Build role-based filter
   let accessFilter = {};
-  if (userRole === "admin") {
+  if (userRole === "ADMIN") {
     accessFilter = { canViewAdmin: true };
-  } else if (userRole === "manager") {
+  } else if (userRole === "MANAGER") {
     accessFilter = { canViewManager: true };
   } else {
     // Default to employee-level access

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -39,15 +40,15 @@ export async function GET(req: Request) {
     return NextResponse.json(adminDocs);
   }
 
-  // ✅ Build OR conditions explicitly for MANAGER/EMPLOYEE
-  const orConditions: any[] = [
+  // ✅ Build OR conditions for MANAGER/EMPLOYEE
+  const orConditions: Prisma.DocumentWhereInput[] = [
     { canViewAdmin: true },
-    userRole === "MANAGER" ? { canViewManager: true } : null,
-    userRole === "EMPLOYEE" ? { canViewEmployee: true } : null,
+    ...(userRole === "MANAGER" ? [{ canViewManager: true }] : []),
+    ...(userRole === "EMPLOYEE" ? [{ canViewEmployee: true }] : []),
     { departments: { some: { id: user?.departmentId || "" } } },
     { jobRoles: { some: { id: user?.jobRoleId || "" } } },
     { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // unrestricted docs
-  ].filter((cond): cond is Record<string, unknown> => cond !== null); // ✅ type guard
+  ];
 
   const documents = await prisma.document.findMany({
     where: {

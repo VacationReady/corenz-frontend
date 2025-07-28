@@ -79,6 +79,7 @@ model Employee {
   employmentChecks          EmploymentCheck[] // add this
   driverLicences            DriverLicence[]
   trainingRecords           TrainingRecord[]
+  DocumentAcknowledgement   DocumentAcknowledgement[]
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -165,26 +166,26 @@ model LeaveEntitlement {
 }
 
 model Department {
-  id          String        @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
-  code        String?       @unique
+  code        String? @unique
   description String?
-  active      Boolean       @default(true)
+  active      Boolean @default(true)
 
-  companyId   String
-  company     Company       @relation(fields: [companyId], references: [id])
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 
-  headId      String?
-  head        User?         @relation("DepartmentHead", fields: [headId], references: [id])
+  headId String?
+  head   User?   @relation("DepartmentHead", fields: [headId], references: [id])
 
-  employees   Employee[]
-  users       User[]
+  employees Employee[]
+  users     User[]
 
   // 🔥 Updated M:N for document restrictions
-  documents   Document[]    @relation("DocumentDepartments")
+  documents Document[] @relation("DocumentDepartments")
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([companyId, name])
 }
@@ -210,24 +211,24 @@ model Company {
 }
 
 model JobRole {
-  id          String        @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  active      Boolean       @default(true)
+  active      Boolean @default(true)
 
-  companyId   String
-  company     Company       @relation(fields: [companyId], references: [id])
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 
-  payGrade    String?
-  level       Int?
+  payGrade String?
+  level    Int?
 
-  users       User[]
+  users User[]
 
   // 🔥 Added M:N relation for document restrictions
-  documents   Document[]    @relation("DocumentJobRoles")
+  documents Document[] @relation("DocumentJobRoles")
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([companyId, name])
 }
@@ -321,37 +322,54 @@ model SavedReport {
 }
 
 model Document {
-  id              String           @id @default(cuid())
-  name            String
-  category        String?
-  description     String?          // Optional context or notes
-  path            String
-  size            Int
-  type            String
-  url             String
-  createdAt       DateTime         @default(now())
-  deletedAt       DateTime?
+  id          String    @id @default(cuid())
+  name        String
+  category    String?
+  description String?
+  path        String
+  size        Int
+  type        String
+  url         String
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
 
   // Relations
-  uploader        User             @relation(fields: [uploaderId], references: [id])
-  uploaderId      String
-  company         Company          @relation(fields: [companyId], references: [id])
-  companyId       String
-  employee        Employee?        @relation(fields: [employeeId], references: [id])
-  employeeId      String?
+  uploader   User      @relation(fields: [uploaderId], references: [id])
+  uploaderId String
+  company    Company   @relation(fields: [companyId], references: [id])
+  companyId  String
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  employeeId String?
 
   // 🔥 M:N Visibility Restrictions
-  departments     Department[]      @relation("DocumentDepartments")
-  jobRoles        JobRole[]         @relation("DocumentJobRoles")
+  departments Department[] @relation("DocumentDepartments")
+  jobRoles    JobRole[]    @relation("DocumentJobRoles")
 
   // Access Control Flags
   canViewAdmin    Boolean @default(true)
   canViewManager  Boolean @default(false)
   canViewEmployee Boolean @default(true)
 
+  // Acknowledgement
+  requiresAck      Boolean                   @default(false) // ✅ NEW
+  acknowledgements DocumentAcknowledgement[] // ✅ NEW RELATION
+
   // Other Relations
   driverLicences  DriverLicence[]
   trainingRecords TrainingRecord[]
+}
+
+model DocumentAcknowledgement {
+  id                String           @id @default(cuid())
+  document          Document         @relation(fields: [documentId], references: [id])
+  documentId        String
+  employee          Employee         @relation(fields: [employeeId], references: [id])
+  employeeId        String
+  acknowledgedAt    DateTime         @default(now())
+  EmploymentCheck   EmploymentCheck? @relation(fields: [employmentCheckId], references: [id])
+  employmentCheckId String?
+
+  @@unique([documentId, employeeId]) // ✅ Prevent duplicates
 }
 
 model EmploymentCheck {
@@ -365,7 +383,8 @@ model EmploymentCheck {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id])
+  employee                 Employee                  @relation(fields: [employeeId], references: [id])
+  documentAcknowledgements DocumentAcknowledgement[] // ✅ NEW back-reference
 }
 
 model DriverLicence {

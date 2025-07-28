@@ -1,9 +1,8 @@
-// /app/api/documents/delete/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from "@/lib/auth-options";
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import supabase from "@/lib/supabase-admin";
+import supabase from '@/lib/supabase-admin';
 
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
@@ -23,9 +22,9 @@ export async function DELETE(req: Request) {
     if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
     // Delete file from Supabase
-    await supabaseAdmin.storage.from('documents').remove([doc.filePath]);
+    await supabase.storage.from('documents').remove([doc.filePath]);
 
-    // Delete DB record (cascade deletes M:N automatically if defined in schema)
+    // Delete DB record
     await prisma.document.delete({ where: { id: documentId } });
 
     return NextResponse.json({ success: true });

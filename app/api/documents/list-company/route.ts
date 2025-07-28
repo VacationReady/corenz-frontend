@@ -12,35 +12,42 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
 
-  const userRole = session.user.role; // ADMIN | MANAGER | EMPLOYEE
-
-  // ✅ Role-based filter
-  let roleFilter: any = {};
-  if (userRole === "ADMIN") roleFilter = { canViewAdmin: true };
-  else if (userRole === "MANAGER") roleFilter = { canViewManager: true };
-  else roleFilter = { canViewEmployee: true };
-
-  // ✅ Fetch user department & job role
+  // ✅ Fetch user details for filtering
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { departmentId: true, jobRoleId: true },
+    select: { departmentId: true, jobRoleId: true, role: true },
   });
 
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // ✅ Build role-based access filter
+  let roleFilter: any = {};
+  if (user.role === "ADMIN") {
+    roleFilter = { canViewAdmin: true };
+  } else if (user.role === "MANAGER") {
+    roleFilter = { canViewManager: true };
+  } else {
+    roleFilter = { canViewEmployee: true };
+  }
+
+  // ✅ Fetch company documents with access control & department/job role restrictions
   const documents = await prisma.document.findMany({
     where: {
       companyId: session.user.companyId,
       ...(employeeId ? { employeeId } : { employeeId: null }),
       ...roleFilter,
       OR: [
-        { departments: { none: {} }, jobRoles: { none: {} } }, // Global docs
-        { departments: { some: { id: user?.departmentId || "" } } },
-        { jobRoles: { some: { id: user?.jobRoleId || "" } } },
+        { departments: { some: { id: user.departmentId || "" } } },
+        { jobRoles: { some: { id: user.jobRoleId || "" } } },
+        { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // ✅ Unrestricted (global) docs
       ],
     },
     include: {
       uploader: true,
-      departments: true,
-      jobRoles: true,
+      departments: { select: { id: true, name: true } },
+      jobRoles: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });

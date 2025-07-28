@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 
 type Department = { id: string; name: string };
@@ -36,8 +37,8 @@ export default function EditAccessModal({ isOpen, onClose, document, onSaved }: 
 
   useEffect(() => {
     if (document) {
-      setDeptIds(document.departments.map((d) => d.id));
-      setJobIds(document.jobRoles.map((j) => j.id));
+      setDeptIds(document.departments.length > 0 ? document.departments.map((d) => d.id) : ["all"]);
+      setJobIds(document.jobRoles.length > 0 ? document.jobRoles.map((j) => j.id) : ["all"]);
       setAdmin(document.canViewAdmin);
       setManager(document.canViewManager);
       setEmployee(document.canViewEmployee);
@@ -45,7 +46,6 @@ export default function EditAccessModal({ isOpen, onClose, document, onSaved }: 
   }, [document]);
 
   useEffect(() => {
-    // Fetch dropdown options
     const fetchDropdowns = async () => {
       const [deptRes, roleRes] = await Promise.all([
         fetch("/api/departments/active"),
@@ -53,14 +53,22 @@ export default function EditAccessModal({ isOpen, onClose, document, onSaved }: 
       ]);
       const deptData = await deptRes.json();
       const roleData = await roleRes.json();
-      setDepartmentsList(deptData.map((d: any) => ({ label: d.name, value: d.id })));
-      setJobRolesList(roleData.map((r: any) => ({ label: r.name, value: r.id })));
+
+      const deptOptions = [{ label: "All Departments", value: "all" }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))];
+      const roleOptions = [{ label: "All Job Roles", value: "all" }, ...roleData.map((r: any) => ({ label: r.name, value: r.id }))];
+
+      setDepartmentsList(deptOptions);
+      setJobRolesList(roleOptions);
     };
     fetchDropdowns();
   }, []);
 
   const handleSave = async () => {
     if (!document) return;
+
+    const selectedDepartments = deptIds.includes("all") ? [] : deptIds;
+    const selectedJobRoles = jobIds.includes("all") ? [] : jobIds;
+
     await fetch("/api/documents/update-access", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -69,10 +77,11 @@ export default function EditAccessModal({ isOpen, onClose, document, onSaved }: 
         canViewAdmin: admin,
         canViewManager: manager,
         canViewEmployee: employee,
-        departmentIds: deptIds,
-        jobRoleIds: jobIds,
+        departmentIds: selectedDepartments,
+        jobRoleIds: selectedJobRoles,
       }),
     });
+
     onSaved();
     onClose();
   };
@@ -85,20 +94,30 @@ export default function EditAccessModal({ isOpen, onClose, document, onSaved }: 
         </DialogHeader>
         {document && (
           <div className="space-y-4">
-            <MultiSelect
-              label="Departments"
-              options={departmentsList}
-              selected={deptIds}
-              onChange={setDeptIds}
-              placeholder="Select department(s)"
-            />
-            <MultiSelect
-              label="Job Roles"
-              options={jobRolesList}
-              selected={jobIds}
-              onChange={setJobIds}
-              placeholder="Select job role(s)"
-            />
+            <div>
+              <Label>Departments</Label>
+              <MultiSelect
+                options={departmentsList}
+                selected={deptIds}
+                onChange={(values) => {
+                  if (values.includes("all")) setDeptIds(["all"]);
+                  else setDeptIds(values);
+                }}
+                placeholder="Select department(s)"
+              />
+            </div>
+            <div>
+              <Label>Job Roles</Label>
+              <MultiSelect
+                options={jobRolesList}
+                selected={jobIds}
+                onChange={(values) => {
+                  if (values.includes("all")) setJobIds(["all"]);
+                  else setJobIds(values);
+                }}
+                placeholder="Select job role(s)"
+              />
+            </div>
             <div className="flex gap-4">
               <label>
                 <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> Admin

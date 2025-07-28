@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import { Switch } from "@/components/ui/switch"; // ✅ Import Switch
+import { Switch } from "@/components/ui/switch";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import EditAccessModal from "@/components/documents/EditAccessModal";
 import { toast } from "sonner";
 
 type Document = {
@@ -18,6 +20,9 @@ type Document = {
   createdAt: string;
   size: number;
   url: string;
+  canViewAdmin?: boolean;
+  canViewManager?: boolean;
+  canViewEmployee?: boolean;
 };
 
 export default function EmployeeDocumentsPage() {
@@ -34,20 +39,35 @@ export default function EmployeeDocumentsPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
 
-  // ✅ State for access control
+  // Access Control for Upload
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      const res = await fetch(`/api/documents/list?employeeId=${employeeId}`);
-      const data = await res.json();
-      setDocuments(data);
-      setLoading(false);
-    };
+  // Admin-only control
+  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
+  const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
-    if (employeeId) fetchDocuments();
+  // ✅ Fetch user role (for Admin restriction)
+  const fetchUserRole = async () => {
+    const res = await fetch("/api/auth/session");
+    const session = await res.json();
+    setUserRole(session?.user?.role || null);
+  };
+
+  const fetchDocuments = async () => {
+    const res = await fetch(`/api/documents/list?employeeId=${employeeId}`);
+    const data = await res.json();
+    setDocuments(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (employeeId) {
+      fetchDocuments();
+      fetchUserRole();
+    }
   }, [employeeId]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -63,18 +83,12 @@ export default function EmployeeDocumentsPage() {
     formData.append("name", name);
     formData.append("category", category);
     formData.append("employeeId", employeeId);
-
-    // ✅ Append access control flags
     formData.append("canViewAdmin", String(canViewAdmin));
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));
 
     try {
-      const res = await fetch("/api/documents/upload", {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
       if (res.ok) {
         const newDoc = await res.json();
         toast("Upload successful", { description: `${name} has been uploaded.` });
@@ -83,7 +97,6 @@ export default function EmployeeDocumentsPage() {
         setFile(null);
         setName("");
         setCategory("");
-        // Reset switches
         setCanViewAdmin(true);
         setCanViewManager(false);
         setCanViewEmployee(true);
@@ -98,6 +111,17 @@ export default function EmployeeDocumentsPage() {
     }
   };
 
+  const confirmDelete = async (id: string) => {
+    if (!confirm("Delete this document?")) return;
+    await fetch("/api/documents/delete", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId: id }),
+    });
+    toast("Document deleted");
+    fetchDocuments();
+  };
+
   const formatFileSize = (size: number) =>
     size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
@@ -110,7 +134,9 @@ export default function EmployeeDocumentsPage() {
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Employee Documents</h1>
-        <Button onClick={() => setIsUploadModalOpen(true)}>Add Document</Button>
+        {userRole === "ADMIN" && (
+          <Button onClick={() => setIsUploadModalOpen(true)}>Add Document</Button>
+        )}
       </div>
 
       {loading ? (
@@ -125,80 +151,99 @@ export default function EmployeeDocumentsPage() {
               <TableHead>Category</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Size</TableHead>
+              {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {documents.map((doc) => (
-              <TableRow
-                key={doc.id}
-                onClick={() => handleRowClick(doc)}
-                className="cursor-pointer hover:bg-muted transition"
-              >
+              <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
                 <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
                 <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
                 <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>{formatFileSize(doc.size)}</TableCell>
+                {userRole === "ADMIN" && (
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingDoc(doc);
+                          setIsEditAccessOpen(true);
+                        }}
+                      >
+                        Edit Access
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => confirmDelete(doc.id)}
+                        className="text-red-600"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
 
-      {/* Upload Modal */}
-      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div>
-              <Label>Document Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div>
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-                  <SelectItem value="Driver Licence">Driver Licence</SelectItem>
-                  <SelectItem value="Training">Training</SelectItem>
-                  <SelectItem value="Visa Documents">Visa Documents</SelectItem>
-                  <SelectItem value="General HR">General HR</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>File</Label>
-              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
-            </div>
+      {/* Upload Modal (Admin Only) */}
+      {userRole === "ADMIN" && (
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Document</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div>
+                <Label>Document Name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                    <SelectItem value="Training">Training</SelectItem>
+                    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                    <SelectItem value="General HR">General HR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>File</Label>
+                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+              </div>
 
-            {/* ✅ Access Control Switches */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Admin Access</Label>
-                <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+              {/* Access Control Switches */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Admin Access</Label>
+                  <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                </div>
+                <div>
+                  <Label>Manager Access</Label>
+                  <Switch checked={canViewManager} onChange={setCanViewManager} />
+                </div>
+                <div>
+                  <Label>Employee Access</Label>
+                  <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                </div>
               </div>
-              <div>
-                <Label>Manager Access</Label>
-                <Switch checked={canViewManager} onChange={setCanViewManager} />
-              </div>
-              <div>
-                <Label>Employee Access</Label>
-                <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
-              </div>
-            </div>
 
-            <DialogFooter>
-              <Button type="submit" disabled={uploading}>
-                {uploading ? "Uploading..." : "Upload Document"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button type="submit" disabled={uploading}>
+                  {uploading ? "Uploading..." : "Upload Document"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Preview Modal */}
       <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
@@ -222,6 +267,16 @@ export default function EmployeeDocumentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Access Modal (Admin Only) */}
+      {userRole === "ADMIN" && (
+        <EditAccessModal
+          isOpen={isEditAccessOpen}
+          onClose={() => setIsEditAccessOpen(false)}
+          document={editingDoc}
+          onSaved={fetchDocuments}
+        />
+      )}
     </div>
   );
 }

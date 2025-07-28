@@ -13,31 +13,38 @@ export async function GET(req: Request) {
   const employeeId = searchParams.get("employeeId");
   const userRole = session.user.role;
 
-  // ✅ Fetch user's department & job role (for filtering non-admins)
+  // ✅ Fetch user's department & job role
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { departmentId: true, jobRoleId: true },
   });
 
-  // ✅ ADMIN BYPASS LOGIC
+  // ✅ Base filter for company and (optional) employee scope
+  const baseFilter = {
+    companyId: session.user.companyId,
+    ...(employeeId ? { employeeId } : { employeeId: null }),
+  };
+
+  // ✅ Admin bypass: sees everything
   const documents = await prisma.document.findMany({
     where:
       userRole === "ADMIN"
-        ? {
-            companyId: session.user.companyId, // Admin sees everything for their company
-            ...(employeeId ? { employeeId } : {}),
-          }
+        ? baseFilter
         : {
-            companyId: session.user.companyId,
-            ...(employeeId ? { employeeId } : { employeeId: null }),
+            ...baseFilter,
             OR: [
-              { canViewAdmin: true }, // Admin-flagged docs visible
-              { canViewManager: userRole === "MANAGER" ? true : undefined },
-              { canViewEmployee: userRole === "EMPLOYEE" ? true : undefined },
+              { canViewAdmin: true },
+              userRole === "MANAGER" ? { canViewManager: true } : undefined,
+              userRole === "EMPLOYEE" ? { canViewEmployee: true } : undefined,
               { departments: { some: { id: user?.departmentId || "" } } },
               { jobRoles: { some: { id: user?.jobRoleId || "" } } },
-              { departments: { none: {} }, jobRoles: { none: {} } }, // Docs with no restriction
-            ],
+              {
+                AND: [
+                  { departments: { none: {} } },
+                  { jobRoles: { none: {} } },
+                ],
+              }, // unrestricted docs
+            ].filter(Boolean),
           },
     include: {
       uploader: { select: { name: true, email: true } },

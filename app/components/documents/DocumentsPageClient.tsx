@@ -12,7 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import Tooltip from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"; // ✅ Updated Headless UI dropdown
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -205,23 +205,23 @@ export default function DocumentsPageClient() {
                   <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{formatFileSize(doc.size)}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-2 hover:bg-gray-100 rounded">⋮</button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingDoc(doc);
-                            setIsEditAccessOpen(true);
-                          }}
-                        >
-                          Edit Access
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => confirmDelete(doc.id)}>
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
+                    <DropdownMenu
+                      trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}
+                    >
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditingDoc(doc);
+                          setIsEditAccessOpen(true);
+                        }}
+                      >
+                        Edit Access
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => confirmDelete(doc.id)}
+                        className="text-red-600"
+                      >
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>

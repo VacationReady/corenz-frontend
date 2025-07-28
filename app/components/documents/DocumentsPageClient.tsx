@@ -10,6 +10,7 @@ import { UploadCloud } from "lucide-react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import { MultiSelect } from "@/components/ui/MultiSelect"; // ✅ NEW (custom multi-select)
 
 type Document = {
   id: string;
@@ -20,7 +21,12 @@ type Document = {
   type: string;
   createdAt: string;
   url: string;
+  department?: string;
+  jobRole?: string;
 };
+
+const DEPARTMENTS = ["HR", "Finance", "IT", "Sales", "Marketing"];
+const JOB_ROLES = ["Manager", "Team Lead", "Staff", "Intern"];
 
 export default function DocumentsPageClient() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -33,15 +39,25 @@ export default function DocumentsPageClient() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
+  // ✅ New filter states
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>([]);
+
+  const fetchDocuments = async () => {
+    setLoading(true);
+    const query = new URLSearchParams();
+    if (selectedDepartments.length) query.append("departments", selectedDepartments.join(","));
+    if (selectedJobRoles.length) query.append("jobRoles", selectedJobRoles.join(","));
+
+    const res = await fetch(`/api/documents/list?${query.toString()}`);
+    const data = await res.json();
+    setDocuments(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchDocuments = async () => {
-      const res = await fetch("/api/documents/list");
-      const data = await res.json();
-      setDocuments(data);
-      setLoading(false);
-    };
     fetchDocuments();
-  }, []);
+  }, [selectedDepartments, selectedJobRoles]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,19 +73,14 @@ export default function DocumentsPageClient() {
     formData.append("category", category);
 
     try {
-      const res = await fetch("/api/documents/upload", {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
       if (res.ok) {
         toast("Upload successful", { description: `${name} has been uploaded.` });
         setIsUploadModalOpen(false);
         setFile(null);
         setName("");
         setCategory("");
-        const newDoc = await res.json();
-        setDocuments((prev) => [newDoc, ...prev]);
+        fetchDocuments(); // ✅ Refetch after upload
       } else {
         toast("Upload failed", { description: "Please try again or check your connection." });
       }
@@ -98,16 +109,40 @@ export default function DocumentsPageClient() {
         </Button>
       </div>
 
+      {/* ✅ Department & Job Role Filters */}
+      <div className="flex space-x-4">
+        <div className="flex-1">
+          <Label>Filter by Department</Label>
+          <MultiSelect
+            options={DEPARTMENTS.map((d) => ({ label: d, value: d }))}
+            selected={selectedDepartments}
+            onChange={setSelectedDepartments}
+            placeholder="Select department(s)"
+          />
+        </div>
+        <div className="flex-1">
+          <Label>Filter by Job Role</Label>
+          <MultiSelect
+            options={JOB_ROLES.map((r) => ({ label: r, value: r }))}
+            selected={selectedJobRoles}
+            onChange={setSelectedJobRoles}
+            placeholder="Select job role(s)"
+          />
+        </div>
+      </div>
+
       {loading ? (
         <p>Loading documents...</p>
       ) : documents.length === 0 ? (
-        <p>No documents uploaded yet.</p>
+        <p>No documents found for selected filters.</p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Job Role</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Size</TableHead>
             </TableRow>
@@ -121,6 +156,8 @@ export default function DocumentsPageClient() {
               >
                 <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
                 <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                <TableCell>{doc.department ?? "—"}</TableCell>
+                <TableCell>{doc.jobRole ?? "—"}</TableCell>
                 <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>{formatFileSize(doc.size)}</TableCell>
               </TableRow>
@@ -138,12 +175,7 @@ export default function DocumentsPageClient() {
           <form onSubmit={handleUpload} className="space-y-4">
             <div>
               <Label>Document Name</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="E.g., Leave Policy"
-                required
-              />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" required />
             </div>
             <div>
               <Label>Category</Label>
@@ -181,10 +213,7 @@ export default function DocumentsPageClient() {
           </DialogHeader>
           {selectedDoc && (
             <div className="space-y-2">
-              <iframe
-                src={selectedDoc.url}
-                className="w-full h-[500px] rounded border"
-              ></iframe>
+              <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
               <a
                 href={selectedDoc.url}
                 download={selectedDoc.name}

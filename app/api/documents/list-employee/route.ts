@@ -19,16 +19,16 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Missing employeeId" }, { status: 400 });
     }
 
-    // ✅ Determine user role
-    const userRole = session.user.role; // e.g., "admin" | "manager" | "employee"
+    // ✅ Determine user role (uppercase from session type)
+    const userRole = session.user.role; // "ADMIN" | "MANAGER" | "EMPLOYEE"
 
-    // ✅ Build role-based filter
+    // ✅ Build role-based filter using uppercase matches
     let accessFilter = {};
-    if (userRole === "admin") {
+    if (userRole === "ADMIN") {
         accessFilter = { canViewAdmin: true };
-    } else if (userRole === "manager") {
+    } else if (userRole === "MANAGER") {
         accessFilter = { canViewManager: true };
-    } else {
+    } else if (userRole === "EMPLOYEE") {
         accessFilter = { canViewEmployee: true };
     }
 

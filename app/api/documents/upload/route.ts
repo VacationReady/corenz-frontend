@@ -15,9 +15,14 @@ export async function POST(req: Request) {
   const name = formData.get("name") as string;
   const category = formData.get("category") as string;
 
-  // 🆕 New additions to support employee documents
+  // 🆕 Support employee docs
   const employeeId = formData.get("employeeId") as string | null;
   const type = formData.get("type") as string | null;
+
+  // 🆕 Access control flags
+  const canViewAdmin = formData.get("canViewAdmin") === "true";
+  const canViewManager = formData.get("canViewManager") === "true";
+  const canViewEmployee = formData.get("canViewEmployee") === "true";
 
   if (!file || !name) {
     return NextResponse.json({ error: "File and name are required" }, { status: 400 });
@@ -43,12 +48,11 @@ export async function POST(req: Request) {
       .getPublicUrl(data.path);
 
     const publicUrl = publicUrlData?.publicUrl;
-
     if (!publicUrl) {
       return NextResponse.json({ error: "Failed to generate public URL" }, { status: 500 });
     }
 
-    // Create document in Prisma
+    // ✅ Save document with access rights
     const document = await prisma.document.create({
       data: {
         name,
@@ -59,12 +63,13 @@ export async function POST(req: Request) {
         url: publicUrl,
         uploaderId: session.user.id,
         companyId: session.user.companyId,
-        // 🆕 Set employeeId if this is an employee document
         employeeId: type === "employee" && employeeId ? employeeId : null,
+        canViewAdmin,
+        canViewManager,
+        canViewEmployee,
       },
     });
 
-    // Return the full document object
     return NextResponse.json(document);
   } catch (error) {
     console.error(error);

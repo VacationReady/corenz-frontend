@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef } from "react";
+import { Fragment, useRef, useMemo } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -27,26 +27,33 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // ✅ Match your backend's "all" value
-  const isAllOption =
-    placeholder.toLowerCase().includes("department")
-      ? { label: "All Departments", value: "all" }
-      : { label: "All Job Roles", value: "all" };
+  // ✅ Dynamically determine "All" label & value
+  const isDepartment = placeholder.toLowerCase().includes("department");
+  const allOption = {
+    label: isDepartment ? "All Departments" : "All Job Roles",
+    value: "all",
+  };
 
-  console.log("Options:", options);
+  // ✅ Ensure "All" is included at the top of the options list if not provided by API
+  const fullOptions = useMemo(() => {
+    const hasAll = options.some((opt) => opt.value === "all");
+    return hasAll ? options : [allOption, ...options];
+  }, [options]);
+
+  console.log("Options (final):", fullOptions);
   console.log("Selected (values):", selected);
 
   const toggleValue = (value: string) => {
     console.log("Clicked:", value);
     console.log("Selected before:", selected);
 
-    if (value === isAllOption.value) {
+    if (value === allOption.value) {
       // ✅ Reset to just "all"
-      onChange([isAllOption.value]);
-      console.log("Reset to ALL:", [isAllOption.value]);
+      onChange([allOption.value]);
+      console.log("Reset to ALL:", [allOption.value]);
     } else {
       // ✅ Remove "all" if selecting a specific
-      let updated = selected.filter((v) => v !== isAllOption.value);
+      let updated = selected.filter((v) => v !== allOption.value);
 
       if (updated.includes(value)) {
         updated = updated.filter((v) => v !== value);
@@ -56,9 +63,9 @@ export function MultiSelect({
         console.log("Added:", value, "→", updated);
       }
 
-      // ✅ If none left, revert to "all"
+      // ✅ If none selected, fallback to "all"
       if (updated.length === 0) {
-        updated = [isAllOption.value];
+        updated = [allOption.value];
         console.log("Fallback to ALL:", updated);
       }
 
@@ -67,7 +74,8 @@ export function MultiSelect({
     }
   };
 
-  const selectedLabels = options
+  // ✅ Map selected values to display labels
+  const selectedLabels = fullOptions
     .filter((opt) => selected.includes(opt.value))
     .map((opt) => opt.label);
 
@@ -106,61 +114,32 @@ export function MultiSelect({
           static
           className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto"
         >
-          {/* ✅ Render "All" option */}
-          <div key={isAllOption.value} className="w-full">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                toggleValue(isAllOption.value);
-                menuButtonRef.current?.focus();
-              }}
-              className={cn(
-                "flex w-full items-center px-3 py-2 text-sm text-left",
-                selected.includes(isAllOption.value)
-                  ? "bg-gray-50"
-                  : "hover:bg-gray-100"
-              )}
-            >
-              <Check
+          {fullOptions.map((option) => (
+            <div key={option.value} className="w-full">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleValue(option.value);
+                  menuButtonRef.current?.focus(); // ✅ Keep dropdown open
+                }}
                 className={cn(
-                  "mr-2 h-4 w-4",
-                  selected.includes(isAllOption.value) ? "opacity-100" : "opacity-0"
+                  "flex w-full items-center px-3 py-2 text-sm text-left",
+                  selected.includes(option.value)
+                    ? "bg-gray-50"
+                    : "hover:bg-gray-100"
                 )}
-              />
-              {isAllOption.label}
-            </button>
-          </div>
-
-          {/* ✅ Render department/job role options */}
-          {options
-            .filter((opt) => opt.value !== isAllOption.value)
-            .map((option) => (
-              <div key={option.value} className="w-full">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toggleValue(option.value);
-                    menuButtonRef.current?.focus();
-                  }}
+              >
+                <Check
                   className={cn(
-                    "flex w-full items-center px-3 py-2 text-sm text-left",
-                    selected.includes(option.value)
-                      ? "bg-gray-50"
-                      : "hover:bg-gray-100"
+                    "mr-2 h-4 w-4",
+                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
                   )}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </button>
-              </div>
-            ))}
+                />
+                {option.label}
+              </button>
+            </div>
+          ))}
         </Menu.Items>
       </Transition>
     </Menu>

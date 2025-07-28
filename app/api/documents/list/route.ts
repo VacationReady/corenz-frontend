@@ -12,19 +12,15 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
 
-  const userRole = session.user.role; // "ADMIN", "MANAGER", "EMPLOYEE"
+  const userRole = session.user.role;
 
-  // ✅ Build role-based filter
+  // ✅ Role-based filter
   let roleFilter: any = {};
-  if (userRole === "ADMIN") {
-    roleFilter = { canViewAdmin: true };
-  } else if (userRole === "MANAGER") {
-    roleFilter = { canViewManager: true };
-  } else {
-    roleFilter = { canViewEmployee: true };
-  }
+  if (userRole === "ADMIN") roleFilter = { canViewAdmin: true };
+  else if (userRole === "MANAGER") roleFilter = { canViewManager: true };
+  else roleFilter = { canViewEmployee: true };
 
-  // ✅ Fetch user's department & job role (for scoped filtering)
+  // ✅ Fetch user's department & job role
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { departmentId: true, jobRoleId: true },
@@ -35,14 +31,17 @@ export async function GET(req: Request) {
       companyId: session.user.companyId,
       ...(employeeId ? { employeeId } : { employeeId: null }),
       ...roleFilter,
-      // 🔥 Department/Job Role visibility
       OR: [
+        { departments: { none: {} }, jobRoles: { none: {} } }, // No restrictions
         { departments: { some: { id: user?.departmentId || "" } } },
         { jobRoles: { some: { id: user?.jobRoleId || "" } } },
-        { departments: { none: {} }, jobRoles: { none: {} } }, // Global docs (no restriction)
       ],
     },
-    include: { uploader: true, departments: true, jobRoles: true },
+    include: {
+      uploader: true,
+      departments: true,
+      jobRoles: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 

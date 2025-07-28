@@ -156,7 +156,7 @@ export default function DocumentsPageClient() {
               <TableHead>Category</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Job Role</TableHead>
-              <TableHead>Access</TableHead> {/* ✅ New Access column */}
+              <TableHead>Access</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Size</TableHead>
             </TableRow>
@@ -175,35 +175,47 @@ export default function DocumentsPageClient() {
                   onClick={() => handleRowClick(doc)}
                   className="cursor-pointer hover:bg-muted transition"
                 >
+                  {/* ✅ Name */}
                   <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+
+                  {/* ✅ Category */}
+                  <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+
+                  {/* ✅ Department */}
                   <TableCell>
-  {doc.departments.length > 0
-    ? doc.departments.map((d) => d.name).join(", ")
-    : "All Departments"}
-</TableCell>
-
-<TableCell>
-  {doc.jobRoles.length > 0
-    ? doc.jobRoles.map((jr) => jr.name).join(", ")
-    : "All Job Roles"}
-</TableCell>
-
-<TableCell>
-  <Tooltip
-    content={
-      <div className="text-xs">
-        {accessList.length > 0
-          ? accessList.map((item, idx) => <div key={idx}>{item}</div>)
-          : "Admin + All (Unrestricted)"}
-      </div>
-    }
-  >
-    <span className="underline cursor-pointer">
-      {accessList.length > 0 ? accessList.join(", ") : "Admin + All"}
-    </span>
-  </Tooltip>
+                    {doc.departments.length > 0
+                      ? doc.departments.map((d) => d.name).join(", ")
+                      : "All Departments"}
                   </TableCell>
+
+                  {/* ✅ Job Role */}
+                  <TableCell>
+                    {doc.jobRoles.length > 0
+                      ? doc.jobRoles.map((jr) => jr.name).join(", ")
+                      : "All Job Roles"}
+                  </TableCell>
+
+                  {/* ✅ Access */}
+                  <TableCell>
+                    <Tooltip
+                      content={
+                        <div className="text-xs">
+                          {accessList.length > 0
+                            ? accessList.map((item, idx) => <div key={idx}>{item}</div>)
+                            : "Admin + All (Unrestricted)"}
+                        </div>
+                      }
+                    >
+                      <span className="underline cursor-pointer">
+                        {accessList.length > 0 ? accessList.join(", ") : "Admin + All"}
+                      </span>
+                    </Tooltip>
+                  </TableCell>
+
+                  {/* ✅ Date */}
                   <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+
+                  {/* ✅ Size */}
                   <TableCell>{formatFileSize(doc.size)}</TableCell>
                 </TableRow>
               );

@@ -7,6 +7,7 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
+  PopoverPortal,
 } from "@/components/ui/popover";
 import {
   Command,
@@ -39,7 +40,7 @@ export function MultiSelect({
   const [open, setOpen] = React.useState(false);
 
   const toggleValue = (value: string) => {
-    console.log("Toggle value clicked:", value); // ✅ Log toggles
+    console.log("Toggle value clicked:", value);
     if (selected.includes(value)) {
       onChange(selected.filter((v) => v !== value));
     } else {
@@ -53,7 +54,6 @@ export function MultiSelect({
 
   console.log("MultiSelect Render → open:", open, "selected:", selectedLabels);
 
-  // ✅ Log when popover content should mount
   React.useEffect(() => {
     if (open) console.log("PopoverContent Mounted");
   }, [open]);
@@ -62,7 +62,7 @@ export function MultiSelect({
     <Popover
       open={open}
       onOpenChange={(state) => {
-        console.log("Popover onOpenChange:", state); // ✅ Log state changes
+        console.log("Popover onOpenChange:", state);
         setOpen(state);
       }}
       modal={false}
@@ -72,7 +72,7 @@ export function MultiSelect({
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          onClick={() => console.log("PopoverTrigger clicked")} // ✅ Log clicks
+          onClick={() => console.log("PopoverTrigger clicked")}
           className="w-full justify-between border rounded-md"
         >
           <div className="flex flex-wrap gap-1">
@@ -89,36 +89,40 @@ export function MultiSelect({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
-        align="start"
-        sideOffset={4}
-        avoidCollisions={false}
-        forceMount
-      >
-        <Command shouldFilter>
-          <CommandInput placeholder="Search..." />
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup>
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                value={option.label}
-                onSelect={() => toggleValue(option.value)}
-                className="cursor-pointer"
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {option.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
+
+      {/* ✅ Portalized PopoverContent */}
+      <PopoverPortal>
+        <PopoverContent
+          className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
+          align="start"
+          sideOffset={4}
+          avoidCollisions={false}
+          forceMount
+        >
+          <Command shouldFilter>
+            <CommandInput placeholder="Search..." />
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onSelect={() => toggleValue(option.value)}
+                  className="cursor-pointer"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </PopoverPortal>
     </Popover>
   );
 }

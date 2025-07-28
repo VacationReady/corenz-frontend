@@ -24,9 +24,6 @@ type Document = {
   jobRole?: string;
 };
 
-const DEPARTMENTS = ["HR", "Finance", "IT", "Sales", "Marketing"];
-const JOB_ROLES = ["Manager", "Team Lead", "Staff", "Intern"];
-
 export default function DocumentsPageClient() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -38,7 +35,9 @@ export default function DocumentsPageClient() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  // ✅ New: For assigning visibility in upload modal
+  // ✅ Dynamic Department & Job Role dropdowns
+  const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
+  const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
   const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
 
@@ -50,8 +49,25 @@ export default function DocumentsPageClient() {
     setLoading(false);
   };
 
+  const fetchDropdownData = async () => {
+    try {
+      const [deptRes, roleRes] = await Promise.all([
+        fetch("/api/departments/active"),
+        fetch("/api/job-roles/active"),
+      ]);
+      const deptData = await deptRes.json();
+      const roleData = await roleRes.json();
+
+      setDepartmentsList(deptData.map((d: any) => ({ label: d.name, value: d.id })));
+      setJobRolesList(roleData.map((r: any) => ({ label: r.name, value: r.id })));
+    } catch (err) {
+      console.error("Failed to load dropdown data", err);
+    }
+  };
+
   useEffect(() => {
     fetchDocuments();
+    fetchDropdownData();
   }, []);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -169,21 +185,21 @@ export default function DocumentsPageClient() {
                 </SelectContent>
               </Select>
             </div>
-            {/* ✅ Department MultiSelect inside modal */}
+            {/* ✅ Dynamic Department MultiSelect */}
             <div>
               <Label>Restrict by Department (optional)</Label>
               <MultiSelect
-                options={DEPARTMENTS.map((d) => ({ label: d, value: d }))}
+                options={departmentsList}
                 selected={uploadDepartments}
                 onChange={setUploadDepartments}
                 placeholder="Select department(s)"
               />
             </div>
-            {/* ✅ Job Role MultiSelect inside modal */}
+            {/* ✅ Dynamic Job Role MultiSelect */}
             <div>
               <Label>Restrict by Job Role (optional)</Label>
               <MultiSelect
-                options={JOB_ROLES.map((r) => ({ label: r, value: r }))}
+                options={jobRolesList}
                 selected={uploadJobRoles}
                 onChange={setUploadJobRoles}
                 placeholder="Select job role(s)"

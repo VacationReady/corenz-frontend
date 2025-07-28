@@ -281,11 +281,12 @@ export default function EmployeeDocumentsPage() {
       {/* Edit Access Modal (Admin Only) */}
       {userRole === "ADMIN" && (
         <EditAccessModal
-          isOpen={isEditAccessOpen}
-          onClose={() => setIsEditAccessOpen(false)}
-          document={editingDoc}
-          onSaved={fetchDocuments}
-        />
+  isOpen={isEditAccessOpen}
+  onClose={() => setIsEditAccessOpen(false)}
+  document={editingDoc}
+  onSaved={fetchDocuments}
+  isEmployeeDocument // ✅ Hides dept/job selectors
+/>
       )}
     </div>
   );

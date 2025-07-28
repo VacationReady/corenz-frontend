@@ -89,13 +89,15 @@ export function MultiSelect({
         </Button>
       </PopoverTrigger>
 
-      {/* ✅ PopoverContent directly */}
+      {/* ✅ Fixed PopoverContent */}
       <PopoverContent
-        className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
+        className="w-full p-0 shadow-md border rounded-md bg-white z-[99999] relative"
         align="start"
         sideOffset={4}
         avoidCollisions={false}
         forceMount
+        onInteractOutside={(e) => e.preventDefault()} // ✅ prevent auto-close
+        onFocusOutside={(e) => e.preventDefault()}    // ✅ stop dialog focus stealing
       >
         <Command shouldFilter>
           <CommandInput placeholder="Search..." />

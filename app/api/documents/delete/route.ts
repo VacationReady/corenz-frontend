@@ -21,8 +21,8 @@ export async function DELETE(req: Request) {
     const doc = await prisma.document.findUnique({ where: { id: documentId } });
     if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
-    // Delete file from Supabase
-    await supabase.storage.from('documents').remove([doc.filePath]);
+    // Delete file from Supabase using `path`
+    await supabase.storage.from('documents').remove([doc.path]);
 
     // Delete DB record
     await prisma.document.delete({ where: { id: documentId } });

@@ -53,6 +53,11 @@ export function MultiSelect({
 
   console.log("MultiSelect Render → open:", open, "selected:", selectedLabels);
 
+  // ✅ Log when popover content should mount
+  React.useEffect(() => {
+    if (open) console.log("PopoverContent Mounted");
+  }, [open]);
+
   return (
     <Popover
       open={open}
@@ -91,8 +96,6 @@ export function MultiSelect({
         avoidCollisions={false}
         forceMount
       >
-        {/* ✅ Safe log outside JSX rendering */}
-        {open && console.log("PopoverContent Mounted")}
         <Command shouldFilter>
           <CommandInput placeholder="Search..." />
           <CommandEmpty>No results found.</CommandEmpty>

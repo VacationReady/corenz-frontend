@@ -54,7 +54,7 @@ export function MultiSelect({
     <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost" // ✅ valid per your Button props
+          variant="ghost" // ✅ Valid for your Button component
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between border rounded-md"
@@ -62,7 +62,7 @@ export function MultiSelect({
           <div className="flex flex-wrap gap-1">
             {selectedLabels.length > 0 ? (
               selectedLabels.map((label) => (
-                <Badge key={label} variant="primary" className="text-xs">
+                <Badge key={label} className="text-xs">
                   {label}
                 </Badge>
               ))

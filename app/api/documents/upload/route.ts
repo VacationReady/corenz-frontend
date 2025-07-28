@@ -18,16 +18,18 @@ export async function POST(req: Request) {
   const employeeId = formData.get("employeeId") as string | null;
   const type = formData.get("type") as string | null;
 
-  // ✅ Ensure canView defaults: Admin & Employee true by default, Manager optional
+  // ✅ Access control flags default to visible (Admin & Employee true by default)
   const canViewAdmin =
     formData.get("canViewAdmin") === "true" || formData.get("canViewAdmin") === null;
-  const canViewManager = formData.get("canViewManager") === "true" || false;
+  const canViewManager =
+    formData.get("canViewManager") === "true" || formData.get("canViewManager") === null;
   const canViewEmployee =
     formData.get("canViewEmployee") === "true" || formData.get("canViewEmployee") === null;
 
-  // ✅ Parse departments & job roles safely
+  // ✅ Department & Job Role restrictions
   const rawDepartments = formData.get("departments") as string | null;
   const rawJobRoles = formData.get("jobRoles") as string | null;
+
   const departments = rawDepartments ? JSON.parse(rawDepartments) : [];
   const jobRoles = rawJobRoles ? JSON.parse(rawJobRoles) : [];
 
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to generate public URL" }, { status: 500 });
     }
 
-    // ✅ Create document with M:N linking for departments & jobRoles
+    // ✅ Save document in DB
     const document = await prisma.document.create({
       data: {
         name,
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
         companyId: session.user.companyId,
         employeeId: type === "employee" && employeeId ? employeeId : null,
         canViewAdmin: canViewAdmin ?? true,
-        canViewManager: canViewManager ?? false,
+        canViewManager: canViewManager ?? true,
         canViewEmployee: canViewEmployee ?? true,
         ...(departments.length > 0 && departments[0] !== "all"
           ? { departments: { connect: departments.map((d: string) => ({ id: d })) } }

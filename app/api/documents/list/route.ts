@@ -20,13 +20,13 @@ export async function GET(req: Request) {
     select: { departmentId: true, jobRoleId: true },
   });
 
-  // ✅ Base filter for company and optional employee scope
+  // ✅ Base filter
   const baseFilter = {
     companyId: session.user.companyId,
     ...(employeeId ? { employeeId } : { employeeId: null }),
   };
 
-  // ✅ Admin bypass: sees everything
+  // ✅ Admin bypass
   if (userRole === "ADMIN") {
     const adminDocs = await prisma.document.findMany({
       where: baseFilter,
@@ -40,31 +40,32 @@ export async function GET(req: Request) {
     return NextResponse.json(adminDocs);
   }
 
-  // ✅ Role-based flag
+  // ✅ Role flag
   const roleFlag =
     userRole === "MANAGER"
       ? { canViewManager: true }
       : { canViewEmployee: true };
 
-  // ✅ Non-admin conditions: must meet roleFlag AND department/job role (or unrestricted)
+  // ✅ Build OR conditions safely
+  const orConditions: Prisma.DocumentWhereInput[] = [
+    { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // unrestricted
+  ];
+
+  if (user?.departmentId) {
+    orConditions.push({ departments: { some: { id: user.departmentId } } });
+  }
+  if (user?.jobRoleId) {
+    orConditions.push({ jobRoles: { some: { id: user.jobRoleId } } });
+  }
+
+  // ✅ Final query
   const documents = await prisma.document.findMany({
     where: {
       ...baseFilter,
       AND: [
         roleFlag,
         {
-          OR: [
-            // unrestricted docs (no dept/job restriction)
-            { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] },
-            // same department
-            user?.departmentId
-              ? { departments: { some: { id: user.departmentId } } }
-              : undefined,
-            // same job role
-            user?.jobRoleId
-              ? { jobRoles: { some: { id: user.jobRoleId } } }
-              : undefined,
-          ].filter(Boolean),
+          OR: orConditions,
         },
       ],
     },

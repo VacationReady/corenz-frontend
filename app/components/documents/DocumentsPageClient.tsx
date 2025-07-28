@@ -4,13 +4,12 @@ import React, { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { UploadCloud } from "lucide-react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import { MultiSelect } from "@/components/ui/MultiSelect"; // ✅ NEW (custom multi-select)
+import { MultiSelect } from "@/components/ui/MultiSelect";
 
 type Document = {
   id: string;
@@ -39,17 +38,13 @@ export default function DocumentsPageClient() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  // ✅ New filter states
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
-  const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>([]);
+  // ✅ New: For assigning visibility in upload modal
+  const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
+  const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
 
   const fetchDocuments = async () => {
     setLoading(true);
-    const query = new URLSearchParams();
-    if (selectedDepartments.length) query.append("departments", selectedDepartments.join(","));
-    if (selectedJobRoles.length) query.append("jobRoles", selectedJobRoles.join(","));
-
-    const res = await fetch(`/api/documents/list?${query.toString()}`);
+    const res = await fetch(`/api/documents/list`);
     const data = await res.json();
     setDocuments(data);
     setLoading(false);
@@ -57,7 +52,7 @@ export default function DocumentsPageClient() {
 
   useEffect(() => {
     fetchDocuments();
-  }, [selectedDepartments, selectedJobRoles]);
+  }, []);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,6 +66,8 @@ export default function DocumentsPageClient() {
     formData.append("file", file);
     formData.append("name", name);
     formData.append("category", category);
+    formData.append("departments", JSON.stringify(uploadDepartments));
+    formData.append("jobRoles", JSON.stringify(uploadJobRoles));
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -80,7 +77,9 @@ export default function DocumentsPageClient() {
         setFile(null);
         setName("");
         setCategory("");
-        fetchDocuments(); // ✅ Refetch after upload
+        setUploadDepartments([]);
+        setUploadJobRoles([]);
+        fetchDocuments();
       } else {
         toast("Upload failed", { description: "Please try again or check your connection." });
       }
@@ -109,32 +108,10 @@ export default function DocumentsPageClient() {
         </Button>
       </div>
 
-      {/* ✅ Department & Job Role Filters */}
-      <div className="flex space-x-4">
-        <div className="flex-1">
-          <Label>Filter by Department</Label>
-          <MultiSelect
-            options={DEPARTMENTS.map((d) => ({ label: d, value: d }))}
-            selected={selectedDepartments}
-            onChange={setSelectedDepartments}
-            placeholder="Select department(s)"
-          />
-        </div>
-        <div className="flex-1">
-          <Label>Filter by Job Role</Label>
-          <MultiSelect
-            options={JOB_ROLES.map((r) => ({ label: r, value: r }))}
-            selected={selectedJobRoles}
-            onChange={setSelectedJobRoles}
-            placeholder="Select job role(s)"
-          />
-        </div>
-      </div>
-
       {loading ? (
         <p>Loading documents...</p>
       ) : documents.length === 0 ? (
-        <p>No documents found for selected filters.</p>
+        <p>No documents found.</p>
       ) : (
         <Table>
           <TableHeader>
@@ -191,6 +168,26 @@ export default function DocumentsPageClient() {
                   <SelectItem value="General HR">General HR</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            {/* ✅ Department MultiSelect inside modal */}
+            <div>
+              <Label>Restrict by Department (optional)</Label>
+              <MultiSelect
+                options={DEPARTMENTS.map((d) => ({ label: d, value: d }))}
+                selected={uploadDepartments}
+                onChange={setUploadDepartments}
+                placeholder="Select department(s)"
+              />
+            </div>
+            {/* ✅ Job Role MultiSelect inside modal */}
+            <div>
+              <Label>Restrict by Job Role (optional)</Label>
+              <MultiSelect
+                options={JOB_ROLES.map((r) => ({ label: r, value: r }))}
+                selected={uploadJobRoles}
+                onChange={setUploadJobRoles}
+                placeholder="Select job role(s)"
+              />
             </div>
             <div>
               <Label>File</Label>

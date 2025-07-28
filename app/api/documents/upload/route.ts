@@ -18,17 +18,16 @@ export async function POST(req: Request) {
   const employeeId = formData.get("employeeId") as string | null;
   const type = formData.get("type") as string | null;
 
-  // ✅ Access control flags with defaults (ensure Admin/Employee always see it)
+  // ✅ Ensure canView defaults: Admin & Employee true by default, Manager optional
   const canViewAdmin =
     formData.get("canViewAdmin") === "true" || formData.get("canViewAdmin") === null;
   const canViewManager = formData.get("canViewManager") === "true" || false;
   const canViewEmployee =
     formData.get("canViewEmployee") === "true" || formData.get("canViewEmployee") === null;
 
-  // ✅ Department & Job Role restrictions (handle empty, "All" cases)
+  // ✅ Parse departments & job roles safely
   const rawDepartments = formData.get("departments") as string | null;
   const rawJobRoles = formData.get("jobRoles") as string | null;
-
   const departments = rawDepartments ? JSON.parse(rawDepartments) : [];
   const jobRoles = rawJobRoles ? JSON.parse(rawJobRoles) : [];
 
@@ -54,7 +53,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to generate public URL" }, { status: 500 });
     }
 
-    // ✅ Save document in DB
+    // ✅ Create document with M:N linking for departments & jobRoles
     const document = await prisma.document.create({
       data: {
         name,
@@ -66,10 +65,9 @@ export async function POST(req: Request) {
         uploaderId: session.user.id,
         companyId: session.user.companyId,
         employeeId: type === "employee" && employeeId ? employeeId : null,
-        canViewAdmin: canViewAdmin ?? true,       // ✅ Ensure admin visibility by default
+        canViewAdmin: canViewAdmin ?? true,
         canViewManager: canViewManager ?? false,
-        canViewEmployee: canViewEmployee ?? true, // ✅ Ensure employees see it by default
-        // 🔥 Only connect departments/jobRoles if selected and not "All"
+        canViewEmployee: canViewEmployee ?? true,
         ...(departments.length > 0 && departments[0] !== "all"
           ? { departments: { connect: departments.map((d: string) => ({ id: d })) } }
           : {}),

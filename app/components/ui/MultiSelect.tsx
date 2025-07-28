@@ -7,7 +7,6 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  PopoverPortal,
 } from "@/components/ui/popover";
 import {
   Command,
@@ -90,8 +89,8 @@ export function MultiSelect({
         </Button>
       </PopoverTrigger>
 
-      {/* ✅ Portalized PopoverContent */}
-      <PopoverPortal>
+      {/* ✅ Use Popover.Portal directly */}
+      <Popover.Portal>
         <PopoverContent
           className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
           align="start"
@@ -122,7 +121,7 @@ export function MultiSelect({
             </CommandGroup>
           </Command>
         </PopoverContent>
-      </PopoverPortal>
+      </Popover.Portal>
     </Popover>
   );
 }

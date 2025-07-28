@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import { Switch } from "@/components/ui/switch"; // ✅ Added import for Switch
 import { toast } from "sonner";
 
 type Document = {
@@ -32,6 +33,11 @@ export default function EmployeeDocumentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+
+  // ✅ Added state for access control switches
+  const [canViewAdmin, setCanViewAdmin] = useState(true);
+  const [canViewManager, setCanViewManager] = useState(false);
+  const [canViewEmployee, setCanViewEmployee] = useState(true);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -58,6 +64,11 @@ export default function EmployeeDocumentsPage() {
     formData.append("category", category);
     formData.append("employeeId", employeeId);
 
+    // ✅ Append access control flags
+    formData.append("canViewAdmin", String(canViewAdmin));
+    formData.append("canViewManager", String(canViewManager));
+    formData.append("canViewEmployee", String(canViewEmployee));
+
     try {
       const res = await fetch("/api/documents/upload", {
         method: "POST",
@@ -72,6 +83,9 @@ export default function EmployeeDocumentsPage() {
         setFile(null);
         setName("");
         setCategory("");
+        setCanViewAdmin(true); // ✅ Reset switches after upload
+        setCanViewManager(false);
+        setCanViewEmployee(true);
       } else {
         toast("Upload failed", { description: "Please try again." });
       }
@@ -159,6 +173,23 @@ export default function EmployeeDocumentsPage() {
               <Label>File</Label>
               <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
             </div>
+
+            {/* ✅ Access Control Switches */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Admin Access</Label>
+                <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
+              </div>
+              <div>
+                <Label>Manager Access</Label>
+                <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
+              </div>
+              <div>
+                <Label>Employee Access</Label>
+                <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
+              </div>
+            </div>
+
             <DialogFooter>
               <Button type="submit" disabled={uploading}>
                 {uploading ? "Uploading..." : "Upload Document"}

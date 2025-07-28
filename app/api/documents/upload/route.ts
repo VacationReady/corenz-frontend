@@ -6,7 +6,7 @@ import supabase from "@/lib/supabase-admin";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -15,14 +15,17 @@ export async function POST(req: Request) {
   const name = formData.get("name") as string;
   const category = formData.get("category") as string;
 
-  // 🆕 Support employee docs
   const employeeId = formData.get("employeeId") as string | null;
   const type = formData.get("type") as string | null;
 
-  // 🆕 Access control flags
+  // ✅ Access control flags
   const canViewAdmin = formData.get("canViewAdmin") === "true";
   const canViewManager = formData.get("canViewManager") === "true";
   const canViewEmployee = formData.get("canViewEmployee") === "true";
+
+  // ✅ Department & Job Role restrictions
+  const departments = JSON.parse(formData.get("departments") as string || "[]");
+  const jobRoles = JSON.parse(formData.get("jobRoles") as string || "[]");
 
   if (!file || !name) {
     return NextResponse.json({ error: "File and name are required" }, { status: 400 });
@@ -32,7 +35,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${Date.now()}-${file.name}`;
 
-    // Upload to Supabase
+    // ✅ Upload to Supabase
     const { data, error } = await supabase.storage
       .from("documents")
       .upload(fileName, buffer);
@@ -42,7 +45,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Supabase upload failed" }, { status: 500 });
     }
 
-    // Generate public URL
     const { data: publicUrlData } = supabase.storage
       .from("documents")
       .getPublicUrl(data.path);
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to generate public URL" }, { status: 500 });
     }
 
-    // ✅ Save document with access rights
+    // ✅ Save document in DB with restrictions
     const document = await prisma.document.create({
       data: {
         name,
@@ -67,6 +69,13 @@ export async function POST(req: Request) {
         canViewAdmin,
         canViewManager,
         canViewEmployee,
+        // 🔥 Link to departments and job roles (M:N relations assumed in schema)
+        departments: {
+          connect: departments.map((d: string) => ({ id: d })),
+        },
+        jobRoles: {
+          connect: jobRoles.map((j: string) => ({ id: j })),
+        },
       },
     });
 

@@ -10,6 +10,10 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+type Department = { id: string; name: string };
+type JobRole = { id: string; name: string };
 
 type Document = {
   id: string;
@@ -20,8 +24,9 @@ type Document = {
   type: string;
   createdAt: string;
   url: string;
-  department?: string;
-  jobRole?: string;
+  canViewAdmin: boolean;
+  departments: Department[];
+  jobRoles: JobRole[];
 };
 
 export default function DocumentsPageClient() {
@@ -35,7 +40,7 @@ export default function DocumentsPageClient() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
-  // ✅ Dynamic dropdowns
+  // ✅ Dropdown state
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
@@ -62,7 +67,6 @@ export default function DocumentsPageClient() {
         { label: "All Departments", value: "all" },
         ...deptData.map((d: any) => ({ label: d.name, value: d.id })),
       ];
-
       const roleOptions = [
         { label: "All Job Roles", value: "all" },
         ...roleData.map((r: any) => ({ label: r.name, value: r.id })),
@@ -70,10 +74,7 @@ export default function DocumentsPageClient() {
 
       setDepartmentsList(deptOptions);
       setJobRolesList(roleOptions);
- console.log("Departments loaded:", deptOptions);
-    console.log("Job roles loaded:", roleOptions);
 
-      // ✅ Ensure "All" is preselected
       if (!uploadDepartments.length) setUploadDepartments(["all"]);
       if (!uploadJobRoles.length) setUploadJobRoles(["all"]);
     } catch (err) {
@@ -94,7 +95,6 @@ export default function DocumentsPageClient() {
     }
     setUploading(true);
 
-    // ✅ If "All" selected, send empty arrays (no restriction)
     const selectedDepartments = uploadDepartments.includes("all") ? [] : uploadDepartments;
     const selectedJobRoles = uploadJobRoles.includes("all") ? [] : uploadJobRoles;
 
@@ -136,136 +136,169 @@ export default function DocumentsPageClient() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Document Management</h1>
-        <Button onClick={() => setIsUploadModalOpen(true)}>
-          <UploadCloud className="w-4 h-4 mr-2" /> Add Document
-        </Button>
-      </div>
+    <TooltipProvider>
+      <div className="max-w-6xl mx-auto p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Document Management</h1>
+          <Button onClick={() => setIsUploadModalOpen(true)}>
+            <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+          </Button>
+        </div>
 
-      {loading ? (
-        <p>Loading documents...</p>
-      ) : documents.length === 0 ? (
-        <p>No documents found.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Job Role</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Size</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map((doc) => (
-              <TableRow
-                key={doc.id}
-                onClick={() => handleRowClick(doc)}
-                className="cursor-pointer hover:bg-muted transition"
-              >
-                <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
-                <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
-                <TableCell>{doc.department ?? "—"}</TableCell>
-                <TableCell>{doc.jobRole ?? "—"}</TableCell>
-                <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>{formatFileSize(doc.size)}</TableCell>
+        {loading ? (
+          <p>Loading documents...</p>
+        ) : documents.length === 0 ? (
+          <p>No documents found.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Job Role</TableHead>
+                <TableHead>Access</TableHead> {/* ✅ NEW COLUMN */}
+                <TableHead>Date</TableHead>
+                <TableHead>Size</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => {
+                const accessList = [
+                  doc.canViewAdmin ? "Admin" : null,
+                  ...doc.departments.map((d) => d.name),
+                  ...doc.jobRoles.map((jr) => jr.name),
+                ].filter(Boolean);
 
-      {/* Upload Modal */}
-      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div>
-              <Label>Document Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" required />
-            </div>
-            <div>
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-                  <SelectItem value="Driver Licence">Driver Licence</SelectItem>
-                  <SelectItem value="Training">Training</SelectItem>
-                  <SelectItem value="Visa Documents">Visa Documents</SelectItem>
-                  <SelectItem value="General HR">General HR</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* ✅ Department MultiSelect */}
-            <div>
-              <Label>Restrict by Department</Label>
-              <MultiSelect
-                options={departmentsList}
-                selected={uploadDepartments}
-                onChange={(values) => {
-                  if (values.includes("all")) setUploadDepartments(["all"]);
-                  else setUploadDepartments(values);
-                }}
-                placeholder="Select department(s)"
-              />
-            </div>
-            {/* ✅ Job Role MultiSelect */}
-            <div>
-              <Label>Restrict by Job Role</Label>
-              <MultiSelect
-                options={jobRolesList}
-                selected={uploadJobRoles}
-                onChange={(values) => {
-                  if (values.includes("all")) setUploadJobRoles(["all"]);
-                  else setUploadJobRoles(values);
-                }}
-                placeholder="Select job role(s)"
-              />
-            </div>
-            <div>
-              <Label>File</Label>
-              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={uploading}>
-                {uploading ? "Uploading..." : "Upload Document"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                return (
+                  <TableRow
+                    key={doc.id}
+                    onClick={() => handleRowClick(doc)}
+                    className="cursor-pointer hover:bg-muted transition"
+                  >
+                    <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                    <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                    <TableCell>
+                      {doc.departments.length > 0
+                        ? doc.departments.map((d) => d.name).join(", ")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {doc.jobRoles.length > 0
+                        ? doc.jobRoles.map((jr) => jr.name).join(", ")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="underline cursor-pointer">
+                            {accessList.length > 0 ? accessList.join(", ") : "—"}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-sm">
+                            {accessList.length > 0
+                              ? accessList.map((item, idx) => <div key={idx}>{item}</div>)
+                              : "No specific access (visible to all)"}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatFileSize(doc.size)}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
 
-      {/* Preview Modal */}
-      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedDoc?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedDoc && (
-            <div className="space-y-2">
-              <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
-              <a
-                href={selectedDoc.url}
-                download={selectedDoc.name}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline"
-              >
-                Download
-              </a>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Upload Modal */}
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Document</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div>
+                <Label>Document Name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" required />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                    <SelectItem value="Training">Training</SelectItem>
+                    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                    <SelectItem value="General HR">General HR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Restrict by Department</Label>
+                <MultiSelect
+                  options={departmentsList}
+                  selected={uploadDepartments}
+                  onChange={(values) => {
+                    if (values.includes("all")) setUploadDepartments(["all"]);
+                    else setUploadDepartments(values);
+                  }}
+                  placeholder="Select department(s)"
+                />
+              </div>
+              <div>
+                <Label>Restrict by Job Role</Label>
+                <MultiSelect
+                  options={jobRolesList}
+                  selected={uploadJobRoles}
+                  onChange={(values) => {
+                    if (values.includes("all")) setUploadJobRoles(["all"]);
+                    else setUploadJobRoles(values);
+                  }}
+                  placeholder="Select job role(s)"
+                />
+              </div>
+              <div>
+                <Label>File</Label>
+                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={uploading}>
+                  {uploading ? "Uploading..." : "Upload Document"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Preview Modal */}
+        <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedDoc?.name}</DialogTitle>
+            </DialogHeader>
+            {selectedDoc && (
+              <div className="space-y-2">
+                <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+                <a
+                  href={selectedDoc.url}
+                  download={selectedDoc.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  Download
+                </a>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }

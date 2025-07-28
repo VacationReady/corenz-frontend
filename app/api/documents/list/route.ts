@@ -11,36 +11,38 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
-
   const userRole = session.user.role;
 
-  // ✅ Role-based filter
-  let roleFilter: any = {};
-  if (userRole === "ADMIN") roleFilter = { canViewAdmin: true };
-  else if (userRole === "MANAGER") roleFilter = { canViewManager: true };
-  else roleFilter = { canViewEmployee: true };
-
-  // ✅ Fetch user's department & job role
+  // ✅ Fetch user's department & job role (for filtering non-admins)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { departmentId: true, jobRoleId: true },
   });
 
+  // ✅ ADMIN BYPASS LOGIC
   const documents = await prisma.document.findMany({
-    where: {
-      companyId: session.user.companyId,
-      ...(employeeId ? { employeeId } : { employeeId: null }),
-      ...roleFilter,
-      OR: [
-        { departments: { none: {} }, jobRoles: { none: {} } }, // No restrictions
-        { departments: { some: { id: user?.departmentId || "" } } },
-        { jobRoles: { some: { id: user?.jobRoleId || "" } } },
-      ],
-    },
+    where:
+      userRole === "ADMIN"
+        ? {
+            companyId: session.user.companyId, // Admin sees everything for their company
+            ...(employeeId ? { employeeId } : {}),
+          }
+        : {
+            companyId: session.user.companyId,
+            ...(employeeId ? { employeeId } : { employeeId: null }),
+            OR: [
+              { canViewAdmin: true }, // Admin-flagged docs visible
+              { canViewManager: userRole === "MANAGER" ? true : undefined },
+              { canViewEmployee: userRole === "EMPLOYEE" ? true : undefined },
+              { departments: { some: { id: user?.departmentId || "" } } },
+              { jobRoles: { some: { id: user?.jobRoleId || "" } } },
+              { departments: { none: {} }, jobRoles: { none: {} } }, // Docs with no restriction
+            ],
+          },
     include: {
-      uploader: true,
-      departments: true,
-      jobRoles: true,
+      uploader: { select: { name: true, email: true } },
+      departments: { select: { id: true, name: true } },
+      jobRoles: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -46,7 +46,7 @@ export function MultiSelect({ options, selected, onChange, placeholder, allLabel
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between border rounded-md">
+        <Button variant="ghost" role="combobox" aria-expanded={open} className="w-full justify-between border rounded-md">
           {displayedText}
           <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
         </Button>

@@ -54,7 +54,7 @@ export function MultiSelect({
     <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="secondary"
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between border rounded-md"

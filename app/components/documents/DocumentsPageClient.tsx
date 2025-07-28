@@ -10,7 +10,9 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
-import Tooltip from "@/components/ui/tooltip"; // ✅ Using your custom Tooltip
+import Tooltip from "@/components/ui/tooltip";
+import EditAccessModal from "@/components/documents/EditAccessModal";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -25,6 +27,8 @@ type Document = {
   createdAt: string;
   url: string;
   canViewAdmin: boolean;
+  canViewManager: boolean;
+  canViewEmployee: boolean;
   departments: Department[];
   jobRoles: JobRole[];
 };
@@ -39,8 +43,9 @@ export default function DocumentsPageClient() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
-  // ✅ Dropdown state
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
@@ -63,14 +68,8 @@ export default function DocumentsPageClient() {
       const deptData = await deptRes.json();
       const roleData = await roleRes.json();
 
-      const deptOptions = [
-        { label: "All Departments", value: "all" },
-        ...deptData.map((d: any) => ({ label: d.name, value: d.id })),
-      ];
-      const roleOptions = [
-        { label: "All Job Roles", value: "all" },
-        ...roleData.map((r: any) => ({ label: r.name, value: r.id })),
-      ];
+      const deptOptions = [{ label: "All Departments", value: "all" }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))];
+      const roleOptions = [{ label: "All Job Roles", value: "all" }, ...roleData.map((r: any) => ({ label: r.name, value: r.id }))];
 
       setDepartmentsList(deptOptions);
       setJobRolesList(roleOptions);
@@ -127,6 +126,16 @@ export default function DocumentsPageClient() {
     }
   };
 
+  const confirmDelete = async (id: string) => {
+    if (!confirm("Delete this document?")) return;
+    await fetch("/api/documents/delete", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId: id }),
+    });
+    fetchDocuments();
+  };
+
   const formatFileSize = (size: number) =>
     size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
@@ -159,66 +168,62 @@ export default function DocumentsPageClient() {
               <TableHead>Access</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Size</TableHead>
+              <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {documents.map((doc) => {
               const accessList = [
                 doc.canViewAdmin ? "Admin" : null,
+                doc.canViewManager ? "Manager" : null,
+                doc.canViewEmployee ? "Employee" : null,
                 ...doc.departments.map((d) => d.name),
                 ...doc.jobRoles.map((jr) => jr.name),
               ].filter(Boolean);
 
               return (
-                <TableRow
-                  key={doc.id}
-                  onClick={() => handleRowClick(doc)}
-                  className="cursor-pointer hover:bg-muted transition"
-                >
-                  {/* ✅ Name */}
+                <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
                   <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
-
-                  {/* ✅ Category */}
                   <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
-
-                  {/* ✅ Department */}
+                  <TableCell>{doc.departments.length > 0 ? doc.departments.map((d) => d.name).join(", ") : "All Departments"}</TableCell>
+                  <TableCell>{doc.jobRoles.length > 0 ? doc.jobRoles.map((jr) => jr.name).join(", ") : "All Job Roles"}</TableCell>
                   <TableCell>
-                    {doc.departments.length > 0
-                      ? doc.departments.map((d) => d.name).join(", ")
-                      : "All Departments"}
+                    <Tooltip
+                      content={
+                        <div className="text-xs">
+                          {doc.departments.length === 0 && doc.jobRoles.length === 0
+                            ? "All (Unrestricted)"
+                            : accessList.map((item, idx) => <div key={idx}>{item}</div>)}
+                        </div>
+                      }
+                    >
+                      <span className="underline cursor-pointer">
+                        {doc.departments.length === 0 && doc.jobRoles.length === 0 ? "All" : accessList.join(", ")}
+                      </span>
+                    </Tooltip>
                   </TableCell>
-
-                  {/* ✅ Job Role */}
-                  <TableCell>
-                    {doc.jobRoles.length > 0
-                      ? doc.jobRoles.map((jr) => jr.name).join(", ")
-                      : "All Job Roles"}
-                  </TableCell>
-
-                  {/* ✅ Access */}
-<TableCell>
-  <Tooltip
-    content={
-      <div className="text-xs">
-        {doc.departments.length === 0 && doc.jobRoles.length === 0
-          ? "All (Unrestricted)"
-          : accessList.map((item, idx) => <div key={idx}>{item}</div>)}
-      </div>
-    }
-  >
-    <span className="underline cursor-pointer">
-      {doc.departments.length === 0 && doc.jobRoles.length === 0
-        ? "All"
-        : accessList.join(", ")}
-    </span>
-  </Tooltip>
-</TableCell>
-
-                  {/* ✅ Date */}
                   <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
-
-                  {/* ✅ Size */}
                   <TableCell>{formatFileSize(doc.size)}</TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-2 hover:bg-gray-100 rounded">⋮</button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingDoc(doc);
+                            setIsEditAccessOpen(true);
+                          }}
+                        >
+                          Edit Access
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => confirmDelete(doc.id)}>
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -311,6 +316,14 @@ export default function DocumentsPageClient() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Access Modal */}
+      <EditAccessModal
+        isOpen={isEditAccessOpen}
+        onClose={() => setIsEditAccessOpen(false)}
+        document={editingDoc}
+        onSaved={fetchDocuments}
+      />
     </div>
   );
 }

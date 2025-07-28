@@ -14,7 +14,7 @@ interface Option {
 
 interface MultiSelectProps {
   options: Option[];
-  selected: string[]; // stores values (e.g., IDs or slugs, NOT labels)
+  selected: string[];
   onChange: (values: string[]) => void;
   placeholder?: string;
 }
@@ -27,13 +27,12 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Define "All" option dynamically
+  // ✅ Match your backend's "all" value
   const isAllOption =
     placeholder.toLowerCase().includes("department")
-      ? { label: "All Departments", value: "all_departments" }
-      : { label: "All Job Roles", value: "all_job_roles" };
+      ? { label: "All Departments", value: "all" }
+      : { label: "All Job Roles", value: "all" };
 
-  // Debug: Log incoming props
   console.log("Options:", options);
   console.log("Selected (values):", selected);
 
@@ -42,24 +41,22 @@ export function MultiSelect({
     console.log("Selected before:", selected);
 
     if (value === isAllOption.value) {
-      // Reset to just "All"
+      // ✅ Reset to just "all"
       onChange([isAllOption.value]);
       console.log("Reset to ALL:", [isAllOption.value]);
     } else {
-      // Remove "All" if selecting a specific
+      // ✅ Remove "all" if selecting a specific
       let updated = selected.filter((v) => v !== isAllOption.value);
 
       if (updated.includes(value)) {
-        // Deselect value
         updated = updated.filter((v) => v !== value);
         console.log("Deselected:", value, "→", updated);
       } else {
-        // Add value
         updated = [...updated, value];
         console.log("Added:", value, "→", updated);
       }
 
-      // If no specifics remain, default back to "All"
+      // ✅ If none left, revert to "all"
       if (updated.length === 0) {
         updated = [isAllOption.value];
         console.log("Fallback to ALL:", updated);
@@ -70,7 +67,6 @@ export function MultiSelect({
     }
   };
 
-  // Map selected values to display labels
   const selectedLabels = options
     .filter((opt) => selected.includes(opt.value))
     .map((opt) => opt.label);
@@ -110,7 +106,7 @@ export function MultiSelect({
           static
           className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto"
         >
-          {/* Include "All" as the first option */}
+          {/* ✅ Render "All" option */}
           <div key={isAllOption.value} className="w-full">
             <button
               type="button"
@@ -136,33 +132,35 @@ export function MultiSelect({
             </button>
           </div>
 
-          {/* Render actual options */}
-          {options.map((option) => (
-            <div key={option.value} className="w-full">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleValue(option.value);
-                  menuButtonRef.current?.focus(); // Keep dropdown open
-                }}
-                className={cn(
-                  "flex w-full items-center px-3 py-2 text-sm text-left",
-                  selected.includes(option.value)
-                    ? "bg-gray-50"
-                    : "hover:bg-gray-100"
-                )}
-              >
-                <Check
+          {/* ✅ Render department/job role options */}
+          {options
+            .filter((opt) => opt.value !== isAllOption.value)
+            .map((option) => (
+              <div key={option.value} className="w-full">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleValue(option.value);
+                    menuButtonRef.current?.focus();
+                  }}
                   className={cn(
-                    "mr-2 h-4 w-4",
-                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                    "flex w-full items-center px-3 py-2 text-sm text-left",
+                    selected.includes(option.value)
+                      ? "bg-gray-50"
+                      : "hover:bg-gray-100"
                   )}
-                />
-                {option.label}
-              </button>
-            </div>
-          ))}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.label}
+                </button>
+              </div>
+            ))}
         </Menu.Items>
       </Transition>
     </Menu>

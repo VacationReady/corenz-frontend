@@ -27,36 +27,38 @@ export function MultiSelect({
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  const isAllLabel = placeholder.includes("Department")
-    ? "All Departments"
-    : "All Job Roles";
+  // Detect whether we're working with Departments or Job Roles
+  const isAllLabel =
+    placeholder.toLowerCase().includes("department")
+      ? "All Departments"
+      : "All Job Roles";
 
   const toggleValue = (value: string) => {
-  const isAll = value === isAllLabel;
+    const isAll = value === isAllLabel;
 
-  if (isAll) {
-    // If "All Departments" is clicked, reset to just that
-    onChange([isAllLabel]);
-  } else {
-    // Start by removing "All Departments" if present
-    let updated = selected.filter((v) => v !== isAllLabel);
-
-    if (updated.includes(value)) {
-      // Deselect value
-      updated = updated.filter((v) => v !== value);
+    if (isAll) {
+      // Reset to just "All"
+      onChange([isAllLabel]);
     } else {
-      // Add value
-      updated = [...updated, value];
-    }
+      // Remove "All" if selecting a specific
+      let updated = selected.filter((v) => v !== isAllLabel);
 
-    // If no specific values left, default back to "All Departments"
-    if (updated.length === 0) {
-      updated = [isAllLabel];
-    }
+      if (updated.includes(value)) {
+        // Deselect value
+        updated = updated.filter((v) => v !== value);
+      } else {
+        // Add value
+        updated = [...updated, value];
+      }
 
-    onChange(updated);
-  }
-};
+      // If no specific selections left, default back to "All"
+      if (updated.length === 0) {
+        updated = [isAllLabel];
+      }
+
+      onChange(updated);
+    }
+  };
 
   const selectedLabels = options
     .filter((opt) => selected.includes(opt.value))
@@ -64,7 +66,12 @@ export function MultiSelect({
 
   return (
     <Menu as="div" className="relative w-full">
-      <Menu.Button ref={menuButtonRef} as={Button} variant="ghost" className="w-full justify-between border rounded-md">
+      <Menu.Button
+        ref={menuButtonRef}
+        as={Button}
+        variant="ghost"
+        className="w-full justify-between border rounded-md"
+      >
         <div className="flex flex-wrap gap-1">
           {selectedLabels.length > 0 ? (
             selectedLabels.map((label) => (
@@ -89,7 +96,7 @@ export function MultiSelect({
         leaveTo="opacity-0 scale-95"
       >
         <Menu.Items
-          static // ✅ Keeps dropdown open
+          static
           className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto"
         >
           {options.map((option) => (
@@ -99,12 +106,13 @@ export function MultiSelect({
                 onClick={(e) => {
                   e.preventDefault();
                   toggleValue(option.value);
-                  // ✅ Refocus button so dropdown stays open
-                  menuButtonRef.current?.focus();
+                  menuButtonRef.current?.focus(); // keep dropdown open
                 }}
                 className={cn(
                   "flex w-full items-center px-3 py-2 text-sm text-left",
-                  selected.includes(option.value) ? "bg-gray-50" : "hover:bg-gray-100"
+                  selected.includes(option.value)
+                    ? "bg-gray-50"
+                    : "hover:bg-gray-100"
                 )}
               >
                 <Check

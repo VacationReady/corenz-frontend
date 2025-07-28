@@ -7,7 +7,7 @@ import Button from '@/components/ui/Button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Switch } from '@/components/ui/switch'; // ✅ Ensure Switch is imported
+import { Switch } from '@/components/ui/switch';
 import { useSession } from 'next-auth/react';
 import { fetchEmployees, fetchDepartments } from '@/lib/fetchData';
 import { toast } from 'sonner';
@@ -195,23 +195,24 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
             <div>
               <Label>Admin Access</Label>
               <Switch
-  checked={canViewAdmin}
-  onChange={(e) => setCanViewAdmin((e.target as HTMLInputElement).checked)}
-/>
-<div>
-  <Label>Manager Access</Label>
-  <Switch
-    checked={canViewManager}
-    onChange={(e) => setCanViewManager((e.target as HTMLInputElement).checked)}
-  />
-</div>
-<div>
-  <Label>Employee Access</Label>
-  <Switch
-    checked={canViewEmployee}
-    onChange={(e) => setCanViewEmployee((e.target as HTMLInputElement).checked)}
-  />
-</div>
+                checked={canViewAdmin}
+                onChange={(e) => setCanViewAdmin((e.target as HTMLInputElement).checked)}
+              />
+            </div>
+            <div>
+              <Label>Manager Access</Label>
+              <Switch
+                checked={canViewManager}
+                onChange={(e) => setCanViewManager((e.target as HTMLInputElement).checked)}
+              />
+            </div>
+            <div>
+              <Label>Employee Access</Label>
+              <Switch
+                checked={canViewEmployee}
+                onChange={(e) => setCanViewEmployee((e.target as HTMLInputElement).checked)}
+              />
+            </div>
           </div>
         )}
 

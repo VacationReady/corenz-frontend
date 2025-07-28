@@ -18,14 +18,19 @@ export async function POST(req: Request) {
   const employeeId = formData.get("employeeId") as string | null;
   const type = formData.get("type") as string | null;
 
-  // ✅ Access control flags
-  const canViewAdmin = formData.get("canViewAdmin") === "true";
-  const canViewManager = formData.get("canViewManager") === "true";
-  const canViewEmployee = formData.get("canViewEmployee") === "true";
+  // ✅ Access control flags with defaults (ensure Admin/Employee always see it)
+  const canViewAdmin =
+    formData.get("canViewAdmin") === "true" || formData.get("canViewAdmin") === null;
+  const canViewManager = formData.get("canViewManager") === "true" || false;
+  const canViewEmployee =
+    formData.get("canViewEmployee") === "true" || formData.get("canViewEmployee") === null;
 
-  // ✅ Department & Job Role restrictions
-  const departments = JSON.parse(formData.get("departments") as string || "[]");
-  const jobRoles = JSON.parse(formData.get("jobRoles") as string || "[]");
+  // ✅ Department & Job Role restrictions (handle empty, "All" cases)
+  const rawDepartments = formData.get("departments") as string | null;
+  const rawJobRoles = formData.get("jobRoles") as string | null;
+
+  const departments = rawDepartments ? JSON.parse(rawDepartments) : [];
+  const jobRoles = rawJobRoles ? JSON.parse(rawJobRoles) : [];
 
   if (!file || !name) {
     return NextResponse.json({ error: "File and name are required" }, { status: 400 });
@@ -36,25 +41,20 @@ export async function POST(req: Request) {
     const fileName = `${Date.now()}-${file.name}`;
 
     // ✅ Upload to Supabase
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .upload(fileName, buffer);
-
+    const { data, error } = await supabase.storage.from("documents").upload(fileName, buffer);
     if (error) {
       console.error("Supabase upload error:", error);
       return NextResponse.json({ error: "Supabase upload failed" }, { status: 500 });
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from("documents")
-      .getPublicUrl(data.path);
-
+    // ✅ Generate public URL
+    const { data: publicUrlData } = supabase.storage.from("documents").getPublicUrl(data.path);
     const publicUrl = publicUrlData?.publicUrl;
     if (!publicUrl) {
       return NextResponse.json({ error: "Failed to generate public URL" }, { status: 500 });
     }
 
-    // ✅ Save document in DB with restrictions
+    // ✅ Save document in DB
     const document = await prisma.document.create({
       data: {
         name,
@@ -66,22 +66,27 @@ export async function POST(req: Request) {
         uploaderId: session.user.id,
         companyId: session.user.companyId,
         employeeId: type === "employee" && employeeId ? employeeId : null,
-        canViewAdmin,
-        canViewManager,
-        canViewEmployee,
-        // 🔥 Link to departments and job roles (M:N relations assumed in schema)
-        departments: {
-          connect: departments.map((d: string) => ({ id: d })),
-        },
-        jobRoles: {
-          connect: jobRoles.map((j: string) => ({ id: j })),
-        },
+        canViewAdmin: canViewAdmin ?? true,       // ✅ Ensure admin visibility by default
+        canViewManager: canViewManager ?? false,
+        canViewEmployee: canViewEmployee ?? true, // ✅ Ensure employees see it by default
+        // 🔥 Only connect departments/jobRoles if selected and not "All"
+        ...(departments.length > 0 && departments[0] !== "all"
+          ? { departments: { connect: departments.map((d: string) => ({ id: d })) } }
+          : {}),
+        ...(jobRoles.length > 0 && jobRoles[0] !== "all"
+          ? { jobRoles: { connect: jobRoles.map((j: string) => ({ id: j })) } }
+          : {}),
+      },
+      include: {
+        departments: true,
+        jobRoles: true,
       },
     });
 
+    console.log("✅ Document uploaded:", document);
     return NextResponse.json(document);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Document upload error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

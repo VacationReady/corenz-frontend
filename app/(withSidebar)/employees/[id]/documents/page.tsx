@@ -11,7 +11,12 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EditAccessModal from "@/components/documents/EditAccessModal";
+import Tooltip from "@/components/ui/tooltip";
 import { toast } from "sonner";
+
+// ✅ Unified Document type to match EditAccessModal expectations
+type Department = { id: string; name: string };
+type JobRole = { id: string; name: string };
 
 type Document = {
   id: string;
@@ -20,9 +25,11 @@ type Document = {
   createdAt: string;
   size: number;
   url: string;
-  canViewAdmin?: boolean;
-  canViewManager?: boolean;
-  canViewEmployee?: boolean;
+  canViewAdmin: boolean;
+  canViewManager: boolean;
+  canViewEmployee: boolean;
+  departments: Department[];
+  jobRoles: JobRole[];
 };
 
 export default function EmployeeDocumentsPage() {
@@ -49,7 +56,6 @@ export default function EmployeeDocumentsPage() {
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
-  // ✅ Fetch user role (for Admin restriction)
   const fetchUserRole = async () => {
     const res = await fetch("/api/auth/session");
     const session = await res.json();
@@ -149,40 +155,44 @@ export default function EmployeeDocumentsPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Access</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Size</TableHead>
               {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {documents.map((doc) => (
-              <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
-                <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
-                <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
-                <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>{formatFileSize(doc.size)}</TableCell>
-                {userRole === "ADMIN" && (
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditingDoc(doc);
-                          setIsEditAccessOpen(true);
-                        }}
-                      >
-                        Edit Access
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => confirmDelete(doc.id)}
-                        className="text-red-600"
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenu>
+            {documents.map((doc) => {
+              const accessBadges = [
+                doc.canViewAdmin && <span key="admin" className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Admin</span>,
+                doc.canViewManager && <span key="manager" className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Manager</span>,
+                doc.canViewEmployee && <span key="employee" className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Employee</span>,
+              ].filter(Boolean);
+
+              return (
+                <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
+                  <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                  <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                  <TableCell>
+                    <Tooltip content={<div className="text-xs">{accessBadges}</div>}>
+                      <div className="flex gap-1">{accessBadges}</div>
+                    </Tooltip>
                   </TableCell>
-                )}
-              </TableRow>
-            ))}
+                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatFileSize(doc.size)}</TableCell>
+                  {userRole === "ADMIN" && (
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
+                        <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>Edit Access</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}

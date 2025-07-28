@@ -178,15 +178,15 @@ export default function EmployeeDocumentsPage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Admin Access</Label>
-                <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
+                <Switch checked={canViewAdmin} onChecked={setCanViewAdmin} />
               </div>
               <div>
                 <Label>Manager Access</Label>
-                <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
+                <Switch checked={canViewManager} onChecked={setCanViewManager} />
               </div>
               <div>
                 <Label>Employee Access</Label>
-                <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
+                <Switch checked={canViewEmployee} onChecked={setCanViewEmployee} />
               </div>
             </div>
 

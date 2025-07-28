@@ -1,9 +1,9 @@
 // /app/api/documents/delete/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/lib/auth-options';
+import { authOptions } from "@/lib/auth-options";
 import prisma from '@/app/lib/prisma';
-import { supabaseAdmin } from '@/app/lib/supabase-admin';
+import supabase from "@/lib/supabase-admin";
 
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);

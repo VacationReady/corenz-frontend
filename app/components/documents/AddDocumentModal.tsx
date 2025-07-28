@@ -9,21 +9,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/switch';
 import { useSession } from 'next-auth/react';
-import { fetchEmployees, fetchDepartments } from '@/lib/fetchData';
+import { fetchEmployees } from '@/lib/fetchData';
 import { toast } from 'sonner';
+import { MultiSelect } from '@/components/ui/MultiSelect';
 
 export default function AddDocumentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: session } = useSession();
   const [type, setType] = useState<'employee' | 'company' | null>(null);
   const [employeeId, setEmployeeId] = useState('');
-  const [departmentId, setDepartmentId] = useState('');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+
+  // ✅ Departments & Job Roles for Company Docs
+  const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
+  const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>(['all']);
+  const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>(['all']);
 
   // ✅ Access control state
   const [canViewAdmin, setCanViewAdmin] = useState(true);
@@ -32,14 +37,24 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
 
   const user = session?.user;
 
+  // ✅ Fetch employees, departments, job roles
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [emp, dep] = await Promise.all([fetchEmployees(), fetchDepartments()]);
-        setEmployees(emp);
-        setDepartments(dep);
+        const [empRes, deptRes, roleRes] = await Promise.all([
+          fetchEmployees(),
+          fetch('/api/departments/active'),
+          fetch('/api/job-roles/active'),
+        ]);
+
+        const deptData = await deptRes.json();
+        const roleData = await roleRes.json();
+
+        setEmployees(empRes);
+        setDepartmentsList([{ label: 'All Departments', value: 'all' }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))]);
+        setJobRolesList([{ label: 'All Job Roles', value: 'all' }, ...roleData.map((r: any) => ({ label: r.name, value: r.id }))]);
       } catch (err) {
-        console.error('Failed to fetch employees or departments', err);
+        console.error('Failed to fetch employees, departments, or job roles', err);
       }
     };
     if (open) loadData();
@@ -72,18 +87,26 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
       formData.append('category', category || '');
       formData.append('description', description || '');
       formData.append('employeeId', type === 'employee' ? employeeId : '');
-      formData.append('departmentId', type === 'company' && departmentId !== 'all' ? departmentId : '');
       formData.append('type', type || '');
+
+      if (type === 'company') {
+        // ✅ Send multi-select departments & job roles
+        formData.append(
+          'departments',
+          JSON.stringify(selectedDepartments.includes('all') ? [] : selectedDepartments)
+        );
+        formData.append(
+          'jobRoles',
+          JSON.stringify(selectedJobRoles.includes('all') ? [] : selectedJobRoles)
+        );
+      }
 
       // ✅ Include access rights
       formData.append('canViewAdmin', String(canViewAdmin));
       formData.append('canViewManager', String(canViewManager));
       formData.append('canViewEmployee', String(canViewEmployee));
 
-      const res = await fetch('/api/documents/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await fetch('/api/documents/upload', { method: 'POST', body: formData });
 
       if (!res.ok) {
         const { error } = await res.json();
@@ -120,11 +143,11 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
             className={`flex-1 border p-4 rounded-xl cursor-pointer ${type === 'company' ? 'ring-2 ring-blue-500' : ''}`}
           >
             <h4 className="font-semibold mb-1">Company Document</h4>
-            <p className="text-sm text-muted-foreground">Visible to all or specific departments</p>
+            <p className="text-sm text-muted-foreground">Visible to all or specific departments/job roles</p>
           </div>
         </div>
 
-        {/* Step 2: Conditional Fields */}
+        {/* Employee Document Fields */}
         {type === 'employee' && (
           <div>
             <Label>Select Employee</Label>
@@ -143,23 +166,32 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
           </div>
         )}
 
+        {/* Company Document Fields */}
         {type === 'company' && (
-          <div>
-            <Label>Select Department</Label>
-            <Select onValueChange={setDepartmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map(dep => (
-                  <SelectItem key={dep.id} value={dep.id}>
-                    {dep.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <>
+            <div>
+              <Label>Restrict by Department</Label>
+              <MultiSelect
+                options={departmentsList}
+                selected={selectedDepartments}
+                onChange={(values) =>
+                  values.includes('all') ? setSelectedDepartments(['all']) : setSelectedDepartments(values)
+                }
+                placeholder="Select department(s)"
+              />
+            </div>
+            <div>
+              <Label>Restrict by Job Role</Label>
+              <MultiSelect
+                options={jobRolesList}
+                selected={selectedJobRoles}
+                onChange={(values) =>
+                  values.includes('all') ? setSelectedJobRoles(['all']) : setSelectedJobRoles(values)
+                }
+                placeholder="Select job role(s)"
+              />
+            </div>
+          </>
         )}
 
         {/* Shared Fields */}
@@ -189,7 +221,7 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
           <Textarea value={description} onChange={e => setDescription(e.target.value)} />
         </div>
 
-        {/* ✅ Access Rights */}
+        {/* ✅ Access Rights (Employee Only) */}
         {type === 'employee' && (
           <div className="grid grid-cols-3 gap-4">
             <div>

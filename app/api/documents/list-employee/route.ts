@@ -19,11 +19,25 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Missing employeeId" }, { status: 400 });
     }
 
+    // ✅ Determine user role
+    const userRole = session.user.role; // e.g., "admin" | "manager" | "employee"
+
+    // ✅ Build role-based filter
+    let accessFilter = {};
+    if (userRole === "admin") {
+        accessFilter = { canViewAdmin: true };
+    } else if (userRole === "manager") {
+        accessFilter = { canViewManager: true };
+    } else {
+        accessFilter = { canViewEmployee: true };
+    }
+
     const documents = await prisma.document.findMany({
         where: {
             employeeId,
             companyId,
             deletedAt: null,
+            ...accessFilter, // ✅ Enforce access rights
         },
         include: {
             uploader: {

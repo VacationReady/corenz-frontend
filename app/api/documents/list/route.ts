@@ -10,12 +10,27 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
 
+  // ✅ Determine user role
+  const userRole = session.user.role; // Assumes you have session.user.role populated (e.g., "admin" | "manager" | "employee")
+
+  // ✅ Build role-based filter
+  let accessFilter = {};
+  if (userRole === "admin") {
+    accessFilter = { canViewAdmin: true };
+  } else if (userRole === "manager") {
+    accessFilter = { canViewManager: true };
+  } else {
+    // Default to employee-level access
+    accessFilter = { canViewEmployee: true };
+  }
+
   const documents = await prisma.document.findMany({
     where: {
       companyId: session.user.companyId,
       ...(employeeId
-        ? { employeeId }                      // When employeeId is passed, filter by it
-        : { employeeId: null }),              // Otherwise, only return general company docs
+        ? { employeeId }
+        : { employeeId: null }), // If no employeeId, fetch company docs only
+      ...accessFilter, // ✅ Enforce access rights
     },
     include: { uploader: true },
     orderBy: { createdAt: "desc" },

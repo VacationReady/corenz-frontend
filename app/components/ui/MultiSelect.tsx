@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useRef } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -25,23 +25,33 @@ export function MultiSelect({
   onChange,
   placeholder = "Select options...",
 }: MultiSelectProps) {
-  const toggleValue = (value: string) => {
-  if (value === "All Departments" || value === "All Job Roles") {
-    // If "All" is selected, reset to just that
-    onChange([value]);
-  } else {
-    // Remove "All" if selecting a specific item
-    const filtered = selected.filter(
-      (v) => v !== "All Departments" && v !== "All Job Roles"
-    );
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-    if (selected.includes(value)) {
-      onChange(filtered.filter((v) => v !== value)); // deselect value
+  const isAllLabel = placeholder.includes("Department")
+    ? "All Departments"
+    : "All Job Roles";
+
+  const toggleValue = (value: string) => {
+    if (value === isAllLabel) {
+      // Reset to just "All"
+      onChange([isAllLabel]);
     } else {
-      onChange([...filtered, value]); // add value
+      let updated = selected.filter((v) => v !== isAllLabel);
+
+      if (updated.includes(value)) {
+        updated = updated.filter((v) => v !== value); // deselect
+      } else {
+        updated = [...updated, value]; // add
+      }
+
+      // If nothing selected, revert to "All"
+      if (updated.length === 0) {
+        updated = [isAllLabel];
+      }
+
+      onChange(updated);
     }
-  }
-};
+  };
 
   const selectedLabels = options
     .filter((opt) => selected.includes(opt.value))
@@ -49,7 +59,7 @@ export function MultiSelect({
 
   return (
     <Menu as="div" className="relative w-full">
-      <Menu.Button as={Button} variant="ghost" className="w-full justify-between border rounded-md">
+      <Menu.Button ref={menuButtonRef} as={Button} variant="ghost" className="w-full justify-between border rounded-md">
         <div className="flex flex-wrap gap-1">
           {selectedLabels.length > 0 ? (
             selectedLabels.map((label) => (
@@ -73,28 +83,34 @@ export function MultiSelect({
         leaveFrom="opacity-100 scale-100"
         leaveTo="opacity-0 scale-95"
       >
-        <Menu.Items className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto">
+        <Menu.Items
+          static // ✅ Keeps dropdown open
+          className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto"
+        >
           {options.map((option) => (
-            <Menu.Item key={option.value} as="div">
-              {({ active }) => (
-                <button
-                  type="button"
-                  onClick={() => toggleValue(option.value)}
+            <div key={option.value} className="w-full">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleValue(option.value);
+                  // ✅ Refocus button so dropdown stays open
+                  menuButtonRef.current?.focus();
+                }}
+                className={cn(
+                  "flex w-full items-center px-3 py-2 text-sm text-left",
+                  selected.includes(option.value) ? "bg-gray-50" : "hover:bg-gray-100"
+                )}
+              >
+                <Check
                   className={cn(
-                    "flex w-full items-center px-3 py-2 text-sm",
-                    active ? "bg-gray-100" : "",
+                    "mr-2 h-4 w-4",
+                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
                   )}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </button>
-              )}
-            </Menu.Item>
+                />
+                {option.label}
+              </button>
+            </div>
           ))}
         </Menu.Items>
       </Transition>

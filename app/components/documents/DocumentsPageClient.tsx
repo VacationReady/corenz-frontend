@@ -12,7 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import Tooltip from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"; // ✅ Updated Headless UI dropdown
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -45,6 +45,7 @@ export default function DocumentsPageClient() {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null); // ✅ Track user role
 
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
@@ -81,9 +82,20 @@ export default function DocumentsPageClient() {
     }
   };
 
+  const fetchUserRole = async () => {
+    try {
+      const res = await fetch("/api/auth/session"); // ✅ Using NextAuth session route
+      const session = await res.json();
+      setUserRole(session?.user?.role || null);
+    } catch (err) {
+      console.error("Failed to fetch user role", err);
+    }
+  };
+
   useEffect(() => {
     fetchDocuments();
     fetchDropdownData();
+    fetchUserRole();
   }, []);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -148,9 +160,11 @@ export default function DocumentsPageClient() {
     <div className="max-w-6xl mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Document Management</h1>
-        <Button onClick={() => setIsUploadModalOpen(true)}>
-          <UploadCloud className="w-4 h-4 mr-2" /> Add Document
-        </Button>
+        {userRole === "ADMIN" && (
+          <Button onClick={() => setIsUploadModalOpen(true)}>
+            <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -168,7 +182,7 @@ export default function DocumentsPageClient() {
               <TableHead>Access</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Size</TableHead>
-              <TableHead className="w-[50px] text-right">Actions</TableHead>
+              {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -204,26 +218,26 @@ export default function DocumentsPageClient() {
                   </TableCell>
                   <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{formatFileSize(doc.size)}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu
-                      trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}
-                    >
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditingDoc(doc);
-                          setIsEditAccessOpen(true);
-                        }}
-                      >
-                        Edit Access
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => confirmDelete(doc.id)}
-                        className="text-red-600"
-                      >
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenu>
-                  </TableCell>
+                  {userRole === "ADMIN" && (
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingDoc(doc);
+                            setIsEditAccessOpen(true);
+                          }}
+                        >
+                          Edit Access
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => confirmDelete(doc.id)}
+                          className="text-red-600"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
@@ -231,68 +245,70 @@ export default function DocumentsPageClient() {
         </Table>
       )}
 
-      {/* Upload Modal */}
-      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpload} className="space-y-4">
-            <div>
-              <Label>Document Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" required />
-            </div>
-            <div>
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-                  <SelectItem value="Driver Licence">Driver Licence</SelectItem>
-                  <SelectItem value="Training">Training</SelectItem>
-                  <SelectItem value="Visa Documents">Visa Documents</SelectItem>
-                  <SelectItem value="General HR">General HR</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Restrict by Department</Label>
-              <MultiSelect
-                options={departmentsList}
-                selected={uploadDepartments}
-                onChange={(values) => {
-                  if (values.includes("all")) setUploadDepartments(["all"]);
-                  else setUploadDepartments(values);
-                }}
-                placeholder="Select department(s)"
-              />
-            </div>
-            <div>
-              <Label>Restrict by Job Role</Label>
-              <MultiSelect
-                options={jobRolesList}
-                selected={uploadJobRoles}
-                onChange={(values) => {
-                  if (values.includes("all")) setUploadJobRoles(["all"]);
-                  else setUploadJobRoles(values);
-                }}
-                placeholder="Select job role(s)"
-              />
-            </div>
-            <div>
-              <Label>File</Label>
-              <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={uploading}>
-                {uploading ? "Uploading..." : "Upload Document"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Upload Modal (Admin Only) */}
+      {userRole === "ADMIN" && (
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Document</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpload} className="space-y-4">
+              <div>
+                <Label>Document Name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" required />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                    <SelectItem value="Training">Training</SelectItem>
+                    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                    <SelectItem value="General HR">General HR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Restrict by Department</Label>
+                <MultiSelect
+                  options={departmentsList}
+                  selected={uploadDepartments}
+                  onChange={(values) => {
+                    if (values.includes("all")) setUploadDepartments(["all"]);
+                    else setUploadDepartments(values);
+                  }}
+                  placeholder="Select department(s)"
+                />
+              </div>
+              <div>
+                <Label>Restrict by Job Role</Label>
+                <MultiSelect
+                  options={jobRolesList}
+                  selected={uploadJobRoles}
+                  onChange={(values) => {
+                    if (values.includes("all")) setUploadJobRoles(["all"]);
+                    else setUploadJobRoles(values);
+                  }}
+                  placeholder="Select job role(s)"
+                />
+              </div>
+              <div>
+                <Label>File</Label>
+                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={uploading}>
+                  {uploading ? "Uploading..." : "Upload Document"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Preview Modal */}
       <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>

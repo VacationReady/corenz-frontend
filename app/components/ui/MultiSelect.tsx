@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { Portal } from "@radix-ui/react-portal"; // ✅ Import Radix Portal
 
 interface Option {
   label: string;
@@ -89,39 +90,41 @@ export function MultiSelect({
         </Button>
       </PopoverTrigger>
 
-      {/* ✅ Fixed PopoverContent */}
-      <PopoverContent
-        className="w-full p-0 shadow-md border rounded-md bg-white z-[99999] relative"
-        align="start"
-        sideOffset={4}
-        avoidCollisions={false}
-        forceMount
-        onInteractOutside={(e) => e.preventDefault()} // ✅ prevent auto-close
-        onFocusOutside={(e) => e.preventDefault()}    // ✅ stop dialog focus stealing
-      >
-        <Command shouldFilter>
-          <CommandInput placeholder="Search..." />
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup>
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                value={option.label}
-                onSelect={() => toggleValue(option.value)}
-                className="cursor-pointer"
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {option.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
+      {/* ✅ Force popover to render outside modal using Radix Portal */}
+      <Portal>
+        <PopoverContent
+          className="w-full p-0 shadow-md border rounded-md bg-white z-[99999] relative"
+          align="start"
+          sideOffset={4}
+          avoidCollisions={false}
+          forceMount
+          onInteractOutside={(e) => e.preventDefault()} // Prevent auto-close from dialog focus
+          onFocusOutside={(e) => e.preventDefault()}    // Stop dialog focus trap stealing focus
+        >
+          <Command shouldFilter>
+            <CommandInput placeholder="Search..." />
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onSelect={() => toggleValue(option.value)}
+                  className="cursor-pointer"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Portal>
     </Popover>
   );
 }

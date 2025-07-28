@@ -38,8 +38,8 @@ export default function DocumentsPageClient() {
   // ✅ Dynamic dropdowns
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
-  const [uploadDepartments, setUploadDepartments] = useState<string[]>(["all"]);
-  const [uploadJobRoles, setUploadJobRoles] = useState<string[]>(["all"]);
+  const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
+  const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -58,15 +58,22 @@ export default function DocumentsPageClient() {
       const deptData = await deptRes.json();
       const roleData = await roleRes.json();
 
-      // ✅ Prepend "All" options
-      setDepartmentsList([
+      const deptOptions = [
         { label: "All Departments", value: "all" },
         ...deptData.map((d: any) => ({ label: d.name, value: d.id })),
-      ]);
-      setJobRolesList([
+      ];
+
+      const roleOptions = [
         { label: "All Job Roles", value: "all" },
         ...roleData.map((r: any) => ({ label: r.name, value: r.id })),
-      ]);
+      ];
+
+      setDepartmentsList(deptOptions);
+      setJobRolesList(roleOptions);
+
+      // ✅ Ensure "All" is preselected
+      if (!uploadDepartments.length) setUploadDepartments(["all"]);
+      if (!uploadJobRoles.length) setUploadJobRoles(["all"]);
     } catch (err) {
       console.error("Failed to load dropdown data", err);
     }
@@ -85,7 +92,7 @@ export default function DocumentsPageClient() {
     }
     setUploading(true);
 
-    // ✅ Convert "All" to unrestricted
+    // ✅ If "All" selected, send empty arrays (no restriction)
     const selectedDepartments = uploadDepartments.includes("all") ? [] : uploadDepartments;
     const selectedJobRoles = uploadJobRoles.includes("all") ? [] : uploadJobRoles;
 
@@ -202,9 +209,11 @@ export default function DocumentsPageClient() {
               <MultiSelect
                 options={departmentsList}
                 selected={uploadDepartments}
-                onChange={(values) => setUploadDepartments(values.includes("all") ? ["all"] : values)}
+                onChange={(values) => {
+                  if (values.includes("all")) setUploadDepartments(["all"]);
+                  else setUploadDepartments(values);
+                }}
                 placeholder="Select department(s)"
-                allLabel="All Departments"
               />
             </div>
             {/* ✅ Job Role MultiSelect */}
@@ -213,9 +222,11 @@ export default function DocumentsPageClient() {
               <MultiSelect
                 options={jobRolesList}
                 selected={uploadJobRoles}
-                onChange={(values) => setUploadJobRoles(values.includes("all") ? ["all"] : values)}
+                onChange={(values) => {
+                  if (values.includes("all")) setUploadJobRoles(["all"]);
+                  else setUploadJobRoles(values);
+                }}
                 placeholder="Select job role(s)"
-                allLabel="All Job Roles"
               />
             </div>
             <div>

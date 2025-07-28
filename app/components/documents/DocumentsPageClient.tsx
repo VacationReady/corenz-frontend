@@ -196,21 +196,23 @@ export default function DocumentsPageClient() {
                   </TableCell>
 
                   {/* ✅ Access */}
-                  <TableCell>
-                    <Tooltip
-                      content={
-                        <div className="text-xs">
-                          {accessList.length > 0
-                            ? accessList.map((item, idx) => <div key={idx}>{item}</div>)
-                            : "Admin + All (Unrestricted)"}
-                        </div>
-                      }
-                    >
-                      <span className="underline cursor-pointer">
-                        {accessList.length > 0 ? accessList.join(", ") : "Admin + All"}
-                      </span>
-                    </Tooltip>
-                  </TableCell>
+<TableCell>
+  <Tooltip
+    content={
+      <div className="text-xs">
+        {doc.departments.length === 0 && doc.jobRoles.length === 0
+          ? "All (Unrestricted)"
+          : accessList.map((item, idx) => <div key={idx}>{item}</div>)}
+      </div>
+    }
+  >
+    <span className="underline cursor-pointer">
+      {doc.departments.length === 0 && doc.jobRoles.length === 0
+        ? "All"
+        : accessList.join(", ")}
+    </span>
+  </Tooltip>
+</TableCell>
 
                   {/* ✅ Date */}
                   <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>

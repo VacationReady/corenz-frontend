@@ -19,33 +19,41 @@ export async function GET(req: Request) {
     select: { departmentId: true, jobRoleId: true },
   });
 
-  // ✅ Base filter for company and (optional) employee scope
+  // ✅ Base filter for company and optional employee scope
   const baseFilter = {
     companyId: session.user.companyId,
     ...(employeeId ? { employeeId } : { employeeId: null }),
   };
 
   // ✅ Admin bypass: sees everything
+  if (userRole === "ADMIN") {
+    const adminDocs = await prisma.document.findMany({
+      where: baseFilter,
+      include: {
+        uploader: { select: { name: true, email: true } },
+        departments: { select: { id: true, name: true } },
+        jobRoles: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(adminDocs);
+  }
+
+  // ✅ Build OR conditions explicitly for MANAGER/EMPLOYEE
+  const orConditions: any[] = [
+    { canViewAdmin: true },
+    userRole === "MANAGER" ? { canViewManager: true } : null,
+    userRole === "EMPLOYEE" ? { canViewEmployee: true } : null,
+    { departments: { some: { id: user?.departmentId || "" } } },
+    { jobRoles: { some: { id: user?.jobRoleId || "" } } },
+    { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // unrestricted docs
+  ].filter((cond): cond is Record<string, unknown> => cond !== null); // ✅ type guard
+
   const documents = await prisma.document.findMany({
-    where:
-      userRole === "ADMIN"
-        ? baseFilter
-        : {
-            ...baseFilter,
-            OR: [
-              { canViewAdmin: true },
-              userRole === "MANAGER" ? { canViewManager: true } : undefined,
-              userRole === "EMPLOYEE" ? { canViewEmployee: true } : undefined,
-              { departments: { some: { id: user?.departmentId || "" } } },
-              { jobRoles: { some: { id: user?.jobRoleId || "" } } },
-              {
-                AND: [
-                  { departments: { none: {} } },
-                  { jobRoles: { none: {} } },
-                ],
-              }, // unrestricted docs
-            ].filter(Boolean),
-          },
+    where: {
+      ...baseFilter,
+      OR: orConditions,
+    },
     include: {
       uploader: { select: { name: true, email: true } },
       departments: { select: { id: true, name: true } },

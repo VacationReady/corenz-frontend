@@ -284,6 +284,11 @@ model Document {
   departmentId    String? // ✅ New
   driverLicences  DriverLicence[]
   trainingRecords TrainingRecord[]
+
+  // ✅ Access Control Flags
+  canViewAdmin    Boolean          @default(true)
+  canViewManager  Boolean          @default(false)
+  canViewEmployee Boolean          @default(true)
 }
 
 model EmploymentCheck {

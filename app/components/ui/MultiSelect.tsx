@@ -89,39 +89,37 @@ export function MultiSelect({
         </Button>
       </PopoverTrigger>
 
-      {/* ✅ Use Popover.Portal directly */}
-      <Popover.Portal>
-        <PopoverContent
-          className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
-          align="start"
-          sideOffset={4}
-          avoidCollisions={false}
-          forceMount
-        >
-          <Command shouldFilter>
-            <CommandInput placeholder="Search..." />
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.label}
-                  onSelect={() => toggleValue(option.value)}
-                  className="cursor-pointer"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selected.includes(option.value) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </Command>
-        </PopoverContent>
-      </Popover.Portal>
+      {/* ✅ PopoverContent directly */}
+      <PopoverContent
+        className="w-full p-0 shadow-md border rounded-md bg-white z-[9999]"
+        align="start"
+        sideOffset={4}
+        avoidCollisions={false}
+        forceMount
+      >
+        <Command shouldFilter>
+          <CommandInput placeholder="Search..." />
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup>
+            {options.map((option) => (
+              <CommandItem
+                key={option.value}
+                value={option.label}
+                onSelect={() => toggleValue(option.value)}
+                className="cursor-pointer"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {option.label}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
     </Popover>
   );
 }

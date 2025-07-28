@@ -70,6 +70,8 @@ export default function DocumentsPageClient() {
 
       setDepartmentsList(deptOptions);
       setJobRolesList(roleOptions);
+ console.log("Departments loaded:", deptOptions);
+    console.log("Job roles loaded:", roleOptions);
 
       // ✅ Ensure "All" is preselected
       if (!uploadDepartments.length) setUploadDepartments(["all"]);

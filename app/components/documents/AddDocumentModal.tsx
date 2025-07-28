@@ -194,16 +194,24 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label>Admin Access</Label>
-              <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
-            </div>
-            <div>
-              <Label>Manager Access</Label>
-              <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
-            </div>
-            <div>
-              <Label>Employee Access</Label>
-              <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
-            </div>
+              <Switch
+  checked={canViewAdmin}
+  onChange={(e) => setCanViewAdmin((e.target as HTMLInputElement).checked)}
+/>
+<div>
+  <Label>Manager Access</Label>
+  <Switch
+    checked={canViewManager}
+    onChange={(e) => setCanViewManager((e.target as HTMLInputElement).checked)}
+  />
+</div>
+<div>
+  <Label>Employee Access</Label>
+  <Switch
+    checked={canViewEmployee}
+    onChange={(e) => setCanViewEmployee((e.target as HTMLInputElement).checked)}
+  />
+</div>
           </div>
         )}
 

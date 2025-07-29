@@ -333,9 +333,9 @@ export default function DocumentsPageClient() {
               </div>
               <div>
                 <Label>Requires Acknowledgement</Label>
-                <Switch
-  checked={requiresAck}
-  onChange={(e) => setRequiresAck((e.target as HTMLInputElement).checked)}
+                <Switch 
+  checked={requiresAck} 
+  onChange={(checked: boolean) => setRequiresAck(checked)} 
 />
               </div>
               <div>

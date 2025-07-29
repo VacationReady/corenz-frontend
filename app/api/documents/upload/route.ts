@@ -31,6 +31,10 @@ export async function POST(req: Request) {
   // ✅ Requires Acknowledgement toggle
   const requiresAck = formData.get("requiresAck") === "true";
 
+  // ✅ NEW: Require Acknowledgement for New Starters
+  // Accepts "true" or "false" string, default false
+  const requireAckFromNewStarters = formData.get("requireAckFromNewStarters") === "true";
+
   // ✅ Department & Job Role restrictions
   const rawDepartments = formData.get("departments") as string | null;
   const rawJobRoles = formData.get("jobRoles") as string | null;
@@ -76,6 +80,7 @@ export async function POST(req: Request) {
         canViewManager: canViewManager ?? true,
         canViewEmployee: canViewEmployee ?? true,
         requiresAck, // ✅ Persist toggle!
+        requireAckFromNewStarters, // ✅ Persist new field!
         ...(departments.length > 0 && departments[0] !== "all"
           ? { departments: { connect: departments.map((d: string) => ({ id: d })) } }
           : {}),
@@ -91,14 +96,12 @@ export async function POST(req: Request) {
 
     // --- BEGIN: Send Resend email for employee docs with requiresAck ---
     if (requiresAck && document.employeeId) {
-      // Find the Employee row for this document
       const employee = await prisma.employee.findUnique({
         where: { id: document.employeeId },
         select: { userId: true },
       });
       console.log("Employee found:", employee);
 
-      // If the Employee has a User linked, notify that user
       if (employee?.userId) {
         const user = await prisma.user.findUnique({
           where: { id: employee.userId },
@@ -138,12 +141,9 @@ export async function POST(req: Request) {
       requiresAck &&
       !document.employeeId // Company doc (not employee-specific)
     ) {
-      // 1. Build document access query
       const departmentIds = document.departments.map((d) => d.id);
       const jobRoleIds = document.jobRoles.map((j) => j.id);
 
-      // 2. Find all employees who are in scope for this doc
-      // If unrestricted, fetch all active employees in the company
       let employees: { id: string; userId: string }[] = [];
       if (
         (!departmentIds || departmentIds.length === 0) &&
@@ -175,16 +175,14 @@ export async function POST(req: Request) {
       }
       console.log("Company doc notification: Employees in scope:", employees.length);
 
-      // 3. Fetch all users for those employees
       const users = await prisma.user.findMany({
-  where: {
-    id: { in: employees.map((e) => e.userId) },
-    email: { not: "" },
-  },
-  select: { id: true, email: true, name: true },
-});
+        where: {
+          id: { in: employees.map((e) => e.userId) },
+          email: { not: "" },
+        },
+        select: { id: true, email: true, name: true },
+      });
 
-      // 4. Send emails (in batches of 50 for free Resend)
       const chunkSize = 50;
       for (let i = 0; i < users.length; i += chunkSize) {
         const chunk = users.slice(i, i + chunkSize);

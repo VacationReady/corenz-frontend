@@ -145,7 +145,7 @@ export default function EditAccessModal({
           {/* Requires Acknowledgement Toggle */}
           <div className="flex items-center justify-between border-t pt-4 mt-4">
             <Label className="text-sm">Requires Acknowledgement</Label>
-            <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+            <Switch checked={requiresAck} onChange={setRequiresAck} />
           </div>
           <p className="text-xs text-gray-500">
             Employees must confirm they’ve read this document.

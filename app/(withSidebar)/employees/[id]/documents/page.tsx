@@ -28,6 +28,7 @@ type Document = {
   canViewAdmin: boolean;
   canViewManager: boolean;
   canViewEmployee: boolean;
+  requiresAck?: boolean; // ✅ Added acknowledgement flag
   departments: Department[];
   jobRoles: JobRole[];
 };
@@ -56,6 +57,10 @@ export default function EmployeeDocumentsPage() {
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
+  // ✅ Acknowledgement state
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [ackDate, setAckDate] = useState<Date | null>(null);
+
   const fetchUserRole = async () => {
     const res = await fetch("/api/auth/session");
     const session = await res.json();
@@ -68,6 +73,23 @@ export default function EmployeeDocumentsPage() {
     setDocuments(data);
     setLoading(false);
   };
+
+  // ✅ Check acknowledgement when previewing
+  useEffect(() => {
+    if (selectedDoc?.id) {
+      fetch(`/api/documents/acknowledgements/${selectedDoc.id}/me`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.acknowledged) {
+            setAcknowledged(true);
+            setAckDate(new Date(data.acknowledgedAt));
+          } else {
+            setAcknowledged(false);
+            setAckDate(null);
+          }
+        });
+    }
+  }, [selectedDoc]);
 
   useEffect(() => {
     if (employeeId) {
@@ -134,6 +156,19 @@ export default function EmployeeDocumentsPage() {
   const handleRowClick = (doc: Document) => {
     setSelectedDoc(doc);
     setIsPreviewModalOpen(true);
+  };
+
+  // ✅ Handle Acknowledgement click
+  const handleAcknowledge = async () => {
+    if (!selectedDoc?.id) return;
+    await fetch("/api/documents/acknowledge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId: selectedDoc.id }),
+    });
+    setAcknowledged(true);
+    setAckDate(new Date());
+    toast("Document acknowledged");
   };
 
   return (
@@ -262,17 +297,29 @@ export default function EmployeeDocumentsPage() {
             <DialogTitle>{selectedDoc?.name}</DialogTitle>
           </DialogHeader>
           {selectedDoc && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
               <a
                 href={selectedDoc.url}
                 download={selectedDoc.name}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 underline"
+                className="text-blue-600 underline block"
               >
                 Download
               </a>
+
+              {/* ✅ Acknowledgement UI */}
+              {selectedDoc.requiresAck && !acknowledged && (
+                <Button onClick={handleAcknowledge} className="w-full mt-2">
+                  Acknowledge Document
+                </Button>
+              )}
+              {selectedDoc.requiresAck && acknowledged && (
+                <p className="text-green-600 text-sm">
+                  ✅ Acknowledged on {ackDate?.toLocaleDateString()}
+                </p>
+              )}
             </div>
           )}
         </DialogContent>
@@ -281,12 +328,12 @@ export default function EmployeeDocumentsPage() {
       {/* Edit Access Modal (Admin Only) */}
       {userRole === "ADMIN" && (
         <EditAccessModal
-  isOpen={isEditAccessOpen}
-  onClose={() => setIsEditAccessOpen(false)}
-  document={editingDoc}
-  onSaved={fetchDocuments}
-  isEmployeeDocument // ✅ Hides dept/job selectors
-/>
+          isOpen={isEditAccessOpen}
+          onClose={() => setIsEditAccessOpen(false)}
+          document={editingDoc}
+          onSaved={fetchDocuments}
+          isEmployeeDocument // ✅ Hides dept/job selectors
+        />
       )}
     </div>
   );

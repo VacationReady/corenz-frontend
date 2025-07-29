@@ -35,18 +35,18 @@ export async function GET(
 
       // ✅ Fetch all employees in scope (filtered by dept/role if present)
       const employeesInScope = await prisma.employee.findMany({
-  where: {
-    user: { companyId: session.user.companyId }, // ✅ Corrected
-    ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
-    ...(jobRoleIds.length > 0
-      ? { user: { jobRoleId: { in: jobRoleIds } } }
-      : {}),
-  },
-  include: {
-    user: { include: { jobRole: true } },
-    department: true,
-  },
-});
+        where: {
+          user: { companyId: session.user.companyId },
+          ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
+          ...(jobRoleIds.length > 0
+            ? { user: { jobRoleId: { in: jobRoleIds } } }
+            : {}),
+        },
+        include: {
+          user: { include: { jobRole: true } },
+          department: true,
+        },
+      });
 
       // ✅ Fetch acknowledgements for this document
       const acknowledgements = await prisma.documentAcknowledgement.findMany({
@@ -64,24 +64,26 @@ export async function GET(
 
       // ✅ Split acknowledged vs pending
       const acknowledgedIds = acknowledgements.map((ack) => ack.employeeId);
-      const pending = employeesInScope.filter(
-        (emp) => !acknowledgedIds.includes(emp.id)
-      );
+      const acknowledged = acknowledgements.map((ack) => ({
+        name: ack.employee.user.name,
+        email: ack.employee.user.email,
+        department: ack.employee.department?.name || "—",
+        jobRole: ack.employee.user.jobRole?.name || "—",
+        acknowledgedAt: ack.acknowledgedAt,
+      }));
 
-      return NextResponse.json({
-        acknowledged: acknowledgements.map((ack) => ({
-          name: ack.employee.user.name,
-          email: ack.employee.user.email,
-          department: ack.employee.department?.name || "—",
-          jobRole: ack.employee.user.jobRole?.name || "—",
-          acknowledgedAt: ack.acknowledgedAt,
-        })),
-        pending: pending.map((emp) => ({
+      const pending = employeesInScope
+        .filter((emp) => !acknowledgedIds.includes(emp.id))
+        .map((emp) => ({
           name: emp.user.name,
           email: emp.user.email,
           department: emp.department?.name || "—",
           jobRole: emp.user.jobRole?.name || "—",
-        })),
+        }));
+
+      return NextResponse.json({
+        acknowledged,
+        pending,
       });
     }
 

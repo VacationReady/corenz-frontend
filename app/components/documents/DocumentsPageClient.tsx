@@ -239,7 +239,7 @@ export default function DocumentsPageClient() {
                         >
                           Edit Access
                         </DropdownMenuItem>
-                        {doc.requiresAck && ( // ✅ Only show for ack docs
+                        {doc.requiresAck && (
                           <DropdownMenuItem
                             onClick={() => {
                               setAckDocId(doc.id);
@@ -266,7 +266,7 @@ export default function DocumentsPageClient() {
         </Table>
       )}
 
-      {/* Upload Modal (Admin Only) */}
+      {/* Upload Modal */}
       {userRole === "ADMIN" && (
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
           <DialogContent>
@@ -295,7 +295,7 @@ export default function DocumentsPageClient() {
               </div>
               <div>
                 <Label>Requires Acknowledgement</Label>
-                <Switch checked={requiresAck} onChange={setRequiresAck} />
+                <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
               </div>
               <div>
                 <Label>Restrict by Department</Label>
@@ -353,7 +353,7 @@ export default function DocumentsPageClient() {
               >
                 Download
               </a>
-              {selectedDoc.requiresAck && userRole === "EMPLOYEE" && ( // ✅ Ack button
+              {selectedDoc.requiresAck && userRole === "EMPLOYEE" && (
                 <Button
                   className="w-full mt-4"
                   onClick={async () => {
@@ -379,7 +379,6 @@ export default function DocumentsPageClient() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Access Modal */}
       <EditAccessModal
         isOpen={isEditAccessOpen}
         onClose={() => setIsEditAccessOpen(false)}
@@ -387,7 +386,6 @@ export default function DocumentsPageClient() {
         onSaved={fetchDocuments}
       />
 
-      {/* View Acknowledgements Modal */}
       <ViewAcknowledgementsModal
         isOpen={isViewAckOpen}
         onClose={() => setIsViewAckOpen(false)}

@@ -81,7 +81,7 @@ export default function EmployeeDocumentsPage() {
   // ✅ Check acknowledgement when previewing
   useEffect(() => {
     if (selectedDoc?.id) {
-      fetch(`/api/documents/acknowledgements/${selectedDoc.id}/me`)
+      fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => {
           if (data.acknowledged) {

@@ -25,26 +25,37 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (documentId && isOpen) {
-      setLoading(true);
+  if (documentId && isOpen) {
+    setLoading(true);
 
-      // ✅ Employee docs: fetch only single-employee acknowledgement
-      if (isEmployeeDocument) {
-        fetch(`/api/documents/acknowledge/${documentId}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.acknowledged) {
-              setAcknowledged([
-                { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
-              ]);
-              setPending([]);
-            } else {
-              setAcknowledged([]);
-              setPending([{ name: data.employee.name, email: data.employee.email }]);
-            }
-          })
-          .finally(() => setLoading(false));
-      }
+    if (isEmployeeDocument) {
+      // ✅ Employee-specific docs: single acknowledgement check
+      fetch(`/api/documents/acknowledge/${documentId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.acknowledged) {
+            setAcknowledged([
+              { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
+            ]);
+            setPending([]);
+          } else {
+            setAcknowledged([]);
+            setPending([{ name: data.employee.name, email: data.employee.email }]);
+          }
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // ✅ Company-wide docs: fetch full lists
+      fetch(`/api/documents/acknowledge/${documentId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setAcknowledged(data.acknowledged || []);
+          setPending(data.pending || []);
+        })
+        .finally(() => setLoading(false));
+    }
+  }
+}, [documentId, isOpen]); // ✅ Depend on both documentId and modal state
 
       // ✅ Company docs: fetch full acknowledged & pending list
       else {

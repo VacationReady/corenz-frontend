@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import Tooltip from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal"; // ✅ NEW
+import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 
 // ✅ Unified Document type to match EditAccessModal expectations
 type Department = { id: string; name: string };
@@ -52,6 +52,9 @@ export default function EmployeeDocumentsPage() {
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
+
+  // ✅ Requires Acknowledgement toggle for employee docs
+  const [requiresAck, setRequiresAck] = useState(false);
 
   // Admin-only control
   const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
@@ -118,6 +121,7 @@ export default function EmployeeDocumentsPage() {
     formData.append("canViewAdmin", String(canViewAdmin));
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));
+    formData.append("requiresAck", String(requiresAck)); // ✅ Include toggle
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -129,6 +133,7 @@ export default function EmployeeDocumentsPage() {
         setFile(null);
         setName("");
         setCategory("");
+        setRequiresAck(false);
         setCanViewAdmin(true);
         setCanViewManager(false);
         setCanViewEmployee(true);
@@ -223,7 +228,11 @@ export default function EmployeeDocumentsPage() {
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
                         <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>Edit Access</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setSelectedDoc(doc); setIsViewAckOpen(true); }}>View Acknowledgements</DropdownMenuItem>
+                        {doc.requiresAck && (
+                          <DropdownMenuItem onClick={() => { setSelectedDoc(doc); setIsViewAckOpen(true); }}>
+                            View Acknowledgements
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
                           Delete
                         </DropdownMenuItem>
@@ -265,6 +274,10 @@ export default function EmployeeDocumentsPage() {
                 </Select>
               </div>
               <div>
+                <Label>Requires Acknowledgement</Label>
+                <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+              </div>
+              <div>
                 <Label>File</Label>
                 <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
               </div>
@@ -273,15 +286,15 @@ export default function EmployeeDocumentsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Admin Access</Label>
-                  <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                  <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
                 </div>
                 <div>
                   <Label>Manager Access</Label>
-                  <Switch checked={canViewManager} onChange={setCanViewManager} />
+                  <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
                 </div>
                 <div>
                   <Label>Employee Access</Label>
-                  <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                  <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
                 </div>
               </div>
 
@@ -348,6 +361,7 @@ export default function EmployeeDocumentsPage() {
           onClose={() => setIsViewAckOpen(false)}
           documentId={selectedDoc?.id || null}
           documentName={selectedDoc?.name || null}
+          isEmployeeDocument
         />
       )}
     </div>

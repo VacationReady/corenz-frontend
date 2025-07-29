@@ -133,6 +133,93 @@ export async function POST(req: Request) {
     }
     // --- END: Send Resend email for employee docs with requiresAck ---
 
+    // --- BEGIN: Send Resend emails for company docs with requiresAck ---
+    if (
+      requiresAck &&
+      !document.employeeId // Company doc (not employee-specific)
+    ) {
+      // 1. Build document access query
+      const departmentIds = document.departments.map((d) => d.id);
+      const jobRoleIds = document.jobRoles.map((j) => j.id);
+
+      // 2. Find all employees who are in scope for this doc
+      // If unrestricted, fetch all active employees in the company
+      let employees: { id: string; userId: string }[] = [];
+      if (
+        (!departmentIds || departmentIds.length === 0) &&
+        (!jobRoleIds || jobRoleIds.length === 0)
+      ) {
+        employees = await prisma.employee.findMany({
+          where: {
+            companyId: document.companyId,
+            isActive: true,
+          },
+          select: { id: true, userId: true },
+        });
+      } else {
+        employees = await prisma.employee.findMany({
+          where: {
+            companyId: document.companyId,
+            isActive: true,
+            OR: [
+              departmentIds && departmentIds.length > 0
+                ? { departmentId: { in: departmentIds } }
+                : undefined,
+              jobRoleIds && jobRoleIds.length > 0
+                ? { jobRoleId: { in: jobRoleIds } }
+                : undefined,
+            ].filter(Boolean) as any,
+          },
+          select: { id: true, userId: true },
+        });
+      }
+      console.log("Company doc notification: Employees in scope:", employees.length);
+
+      // 3. Fetch all users for those employees
+      const users = await prisma.user.findMany({
+        where: {
+          id: { in: employees.map((e) => e.userId) },
+          email: { not: null },
+        },
+        select: { id: true, email: true, name: true },
+      });
+
+      // 4. Send emails (in batches of 50 for free Resend)
+      const chunkSize = 50;
+      for (let i = 0; i < users.length; i += chunkSize) {
+        const chunk = users.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(async (user) => {
+            const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/documents`;
+            const resendRes = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: "onboarding@resend.dev",
+                to: user.email,
+                subject: "New Document Requires Your Acknowledgement",
+                html: `
+                  <p>Hi ${user.name || "there"},</p>
+                  <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your acknowledgement.</p>
+                  <p><a href="${docLink}">View & Acknowledge Document</a></p>
+                  <p>Thank you,<br/>HR Team</p>
+                `,
+              }),
+            });
+            const resendJson = await resendRes.json();
+            console.log(
+              `Resend API response for user ${user.email}:`,
+              resendJson
+            );
+          })
+        );
+      }
+    }
+    // --- END: Send Resend emails for company docs with requiresAck ---
+
     console.log("✅ Document uploaded:", document);
     return NextResponse.json(document);
   } catch (error) {

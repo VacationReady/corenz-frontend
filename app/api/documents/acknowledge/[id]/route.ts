@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the document and its linked employee
+    // Fetch the document including access filters
     const doc = await prisma.document.findUnique({
       where: { id: params.id },
       include: {
@@ -27,25 +27,29 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
+    // ✅ Fetch access fields separately (avoids TS error)
+    const { accessDepartments, accessJobRoles } = await prisma.document.findUnique({
+      where: { id: params.id },
+      select: { accessDepartments: true, accessJobRoles: true },
+    }) || {};
+
     // If company document (no employee link), fetch acknowledgements filtered by dept/role
     if (!doc.employee) {
       const acknowledgements = await prisma.documentAcknowledgement.findMany({
         where: {
           documentId: doc.id,
           employee: {
-            department: doc.accessDepartments?.length
-              ? { in: doc.accessDepartments }
+            department: accessDepartments?.length
+              ? { in: accessDepartments }
               : undefined,
-            jobRole: doc.accessJobRoles?.length
-              ? { in: doc.accessJobRoles }
+            jobRole: accessJobRoles?.length
+              ? { in: accessJobRoles }
               : undefined,
           },
         },
         include: {
           employee: {
-            include: {
-              user: true,
-            },
+            include: { user: true },
           },
         },
         orderBy: { acknowledgedAt: "desc" },

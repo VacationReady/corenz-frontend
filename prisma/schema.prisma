@@ -70,6 +70,7 @@ model Employee {
   workingPatternId          String?
   departmentId              String?
   department                Department?                        @relation(fields: [departmentId], references: [id])
+  jobRoleId    String?   
   user                      User                               @relation(fields: [userId], references: [id])
   workingPattern            WorkingPattern?                    @relation(fields: [workingPatternId], references: [id])
   workingPatternAssignments EmployeeWorkingPatternAssignment[]

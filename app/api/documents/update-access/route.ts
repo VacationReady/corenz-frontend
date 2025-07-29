@@ -9,20 +9,21 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
-  const { documentId, canViewAdmin, canViewManager, canViewEmployee, departmentIds, jobRoleIds } = await req.json();
+  const { documentId, canViewAdmin, canViewManager, canViewEmployee, departmentIds, jobRoleIds, requiresAck } = await req.json();
 
   if (!documentId) {
     return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
   }
 
   try {
-    // Update access flags and reset department/job role M:N relations
+    // Update access flags, requiresAck, and reset department/job role M:N relations
     const updatedDoc = await prisma.document.update({
       where: { id: documentId },
       data: {
         canViewAdmin,
         canViewManager,
         canViewEmployee,
+        requiresAck: requiresAck ?? false, // ✅ NEW: Toggle for acknowledgement
         departments: {
           set: departmentIds?.map((id: string) => ({ id })) || [], // Clear if empty
         },

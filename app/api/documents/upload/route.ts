@@ -91,40 +91,44 @@ export async function POST(req: Request) {
 
     // --- BEGIN: Send Resend email for employee docs with requiresAck ---
     if (requiresAck && document.employeeId) {
-      console.log("requiresAck is TRUE and employeeId present:", document.employeeId);
-
-      // Fetch employee email
-      const employee = await prisma.user.findUnique({
+      // Find the Employee row for this document
+      const employee = await prisma.employee.findUnique({
         where: { id: document.employeeId },
-        select: { email: true, name: true },
+        select: { userId: true },
       });
-      console.log("Employee found for notification:", employee);
+      console.log("Employee found:", employee);
 
-      if (employee?.email) {
-        // Compose a link to the employee's document page (update as needed)
-        const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${document.employeeId}/documents`;
-
-        // Send email using Resend API (basic fetch version)
-        const resendRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'onboarding@resend.dev',
-            to: employee.email,
-            subject: 'New Document Requires Your Acknowledgement',
-            html: `
-              <p>Hi ${employee.name || 'there'},</p>
-              <p>A new document <b>${document.name}</b> (${document.category || 'General'}) has been uploaded and requires your acknowledgement.</p>
-              <p><a href="${docLink}">View & Acknowledge Document</a></p>
-              <p>Thank you,<br/>HR Team</p>
-            `
-          })
+      // If the Employee has a User linked, notify that user
+      if (employee?.userId) {
+        const user = await prisma.user.findUnique({
+          where: { id: employee.userId },
+          select: { email: true, name: true },
         });
-        const resendJson = await resendRes.json();
-        console.log("Resend API response:", resendJson);
+        console.log("User found for notification:", user);
+
+        if (user?.email) {
+          const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${document.employeeId}/documents`;
+          const resendRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'onboarding@resend.dev',
+              to: user.email,
+              subject: 'New Document Requires Your Acknowledgement',
+              html: `
+                <p>Hi ${user.name || 'there'},</p>
+                <p>A new document <b>${document.name}</b> (${document.category || 'General'}) has been uploaded and requires your acknowledgement.</p>
+                <p><a href="${docLink}">View & Acknowledge Document</a></p>
+                <p>Thank you,<br/>HR Team</p>
+              `
+            })
+          });
+          const resendJson = await resendRes.json();
+          console.log("Resend API response:", resendJson);
+        }
       }
     }
     // --- END: Send Resend email for employee docs with requiresAck ---

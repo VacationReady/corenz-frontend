@@ -14,7 +14,7 @@ import Tooltip from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
-import { Switch } from "@/components/ui/switch"; // ✅ Toggle import
+import { Switch } from "@/components/ui/switch";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -33,7 +33,7 @@ type Document = {
   canViewEmployee: boolean;
   departments: Department[];
   jobRoles: JobRole[];
-  requiresAck: boolean; // ✅ NEW
+  requiresAck: boolean;
 };
 
 export default function DocumentsPageClient() {
@@ -41,7 +41,7 @@ export default function DocumentsPageClient() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
-  const [requiresAck, setRequiresAck] = useState(false); // ✅ NEW
+  const [requiresAck, setRequiresAck] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -54,6 +54,10 @@ export default function DocumentsPageClient() {
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
   const [ackDocId, setAckDocId] = useState<string | null>(null);
   const [ackDocName, setAckDocName] = useState<string | null>(null);
+
+  // ✅ New acknowledgment states
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [ackDate, setAckDate] = useState<Date | null>(null);
 
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
@@ -100,6 +104,23 @@ export default function DocumentsPageClient() {
     }
   };
 
+  // ✅ Check acknowledgment status when opening preview
+  useEffect(() => {
+    if (selectedDoc?.id) {
+      fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.acknowledged) {
+            setAcknowledged(true);
+            setAckDate(new Date(data.acknowledgedAt));
+          } else {
+            setAcknowledged(false);
+            setAckDate(null);
+          }
+        });
+    }
+  }, [selectedDoc]);
+
   useEffect(() => {
     fetchDocuments();
     fetchDropdownData();
@@ -123,7 +144,7 @@ export default function DocumentsPageClient() {
     formData.append("category", category);
     formData.append("departments", JSON.stringify(selectedDepartments));
     formData.append("jobRoles", JSON.stringify(selectedJobRoles));
-    formData.append("requiresAck", JSON.stringify(requiresAck)); // ✅ Pass toggle state
+    formData.append("requiresAck", JSON.stringify(requiresAck));
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -156,6 +177,23 @@ export default function DocumentsPageClient() {
       body: JSON.stringify({ documentId: id }),
     });
     fetchDocuments();
+  };
+
+  const handleAcknowledge = async () => {
+    if (!selectedDoc?.id) return;
+    const res = await fetch("/api/documents/acknowledge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId: selectedDoc.id }),
+    });
+    if (res.ok) {
+      setAcknowledged(true);
+      setAckDate(new Date());
+      toast("Document acknowledged successfully!");
+      fetchDocuments();
+    } else {
+      toast("Failed to acknowledge document.");
+    }
   };
 
   const formatFileSize = (size: number) =>
@@ -295,7 +333,7 @@ export default function DocumentsPageClient() {
               </div>
               <div>
                 <Label>Requires Acknowledgement</Label>
-                <Switch checked={requiresAck} onChange={(checked: boolean) => setRequiresAck(checked)} />
+                <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
               </div>
               <div>
                 <Label>Restrict by Department</Label>
@@ -353,32 +391,23 @@ export default function DocumentsPageClient() {
               >
                 Download
               </a>
-              {selectedDoc.requiresAck && userRole === "EMPLOYEE" && (
-                <Button
-                  className="w-full mt-4"
-                  onClick={async () => {
-                    const res = await fetch("/api/documents/acknowledge", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ documentId: selectedDoc.id }),
-                    });
-                    if (res.ok) {
-                      toast("Acknowledged successfully!");
-                      setIsPreviewModalOpen(false);
-                      fetchDocuments();
-                    } else {
-                      toast("Failed to acknowledge document.");
-                    }
-                  }}
-                >
+              {/* ✅ Acknowledgment UI */}
+              {selectedDoc.requiresAck && !acknowledged && userRole === "EMPLOYEE" && (
+                <Button onClick={handleAcknowledge} className="w-full mt-2">
                   Acknowledge Document
                 </Button>
+              )}
+              {selectedDoc.requiresAck && acknowledged && (
+                <p className="text-green-600 text-sm">
+                  ✅ Acknowledged on {ackDate?.toLocaleDateString()}
+                </p>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
+      {/* Edit Access Modal */}
       <EditAccessModal
         isOpen={isEditAccessOpen}
         onClose={() => setIsEditAccessOpen(false)}
@@ -386,6 +415,7 @@ export default function DocumentsPageClient() {
         onSaved={fetchDocuments}
       />
 
+      {/* View Acknowledgements Modal */}
       <ViewAcknowledgementsModal
         isOpen={isViewAckOpen}
         onClose={() => setIsViewAckOpen(false)}

@@ -35,18 +35,18 @@ export async function GET(
 
       // ✅ Fetch all employees in scope (filtered by dept/role if present)
       const employeesInScope = await prisma.employee.findMany({
-        where: {
-          companyId: session.user.companyId,
-          ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
-          ...(jobRoleIds.length > 0
-            ? { user: { jobRoleId: { in: jobRoleIds } } }
-            : {}),
-        },
-        include: {
-          user: { include: { jobRole: true } },
-          department: true,
-        },
-      });
+  where: {
+    user: { companyId: session.user.companyId }, // ✅ Corrected
+    ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
+    ...(jobRoleIds.length > 0
+      ? { user: { jobRoleId: { in: jobRoleIds } } }
+      : {}),
+  },
+  include: {
+    user: { include: { jobRole: true } },
+    department: true,
+  },
+});
 
       // ✅ Fetch acknowledgements for this document
       const acknowledgements = await prisma.documentAcknowledgement.findMany({

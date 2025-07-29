@@ -15,7 +15,6 @@ import Tooltip from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 
-// ✅ Unified Document type to match EditAccessModal expectations
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
 
@@ -29,7 +28,7 @@ type Document = {
   canViewAdmin: boolean;
   canViewManager: boolean;
   canViewEmployee: boolean;
-  requiresAck?: boolean; // ✅ Added acknowledgement flag
+  requiresAck?: boolean;
   departments: Department[];
   jobRoles: JobRole[];
 };
@@ -47,25 +46,19 @@ export default function EmployeeDocumentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [requiresAck, setRequiresAck] = useState(false);
 
-  // Access Control for Upload
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
-  // ✅ Requires Acknowledgement toggle for employee docs
-  const [requiresAck, setRequiresAck] = useState(false);
-
-  // Admin-only control
   const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
-  // ✅ Acknowledgement state
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
 
-  // ✅ View Acknowledgements modal state
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
 
   const fetchUserRole = async () => {
@@ -81,7 +74,6 @@ export default function EmployeeDocumentsPage() {
     setLoading(false);
   };
 
-  // ✅ Check acknowledgement when previewing
   useEffect(() => {
     if (selectedDoc?.id) {
       fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
@@ -121,7 +113,7 @@ export default function EmployeeDocumentsPage() {
     formData.append("canViewAdmin", String(canViewAdmin));
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));
-    formData.append("requiresAck", String(requiresAck)); // ✅ Include toggle
+    formData.append("requiresAck", String(requiresAck));
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -133,10 +125,10 @@ export default function EmployeeDocumentsPage() {
         setFile(null);
         setName("");
         setCategory("");
-        setRequiresAck(false);
         setCanViewAdmin(true);
         setCanViewManager(false);
         setCanViewEmployee(true);
+        setRequiresAck(false);
       } else {
         toast("Upload failed", { description: "Please try again." });
       }
@@ -167,7 +159,6 @@ export default function EmployeeDocumentsPage() {
     setIsPreviewModalOpen(true);
   };
 
-  // ✅ Handle Acknowledgement click
   const handleAcknowledge = async () => {
     if (!selectedDoc?.id) return;
     await fetch("/api/documents/acknowledge", {
@@ -246,7 +237,7 @@ export default function EmployeeDocumentsPage() {
         </Table>
       )}
 
-      {/* Upload Modal (Admin Only) */}
+      {/* Upload Modal */}
       {userRole === "ADMIN" && (
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
           <DialogContent>
@@ -275,38 +266,25 @@ export default function EmployeeDocumentsPage() {
               </div>
               <div>
                 <Label>Requires Acknowledgement</Label>
-                <Switch
-                  checked={requiresAck}
-                  onChange={(e) => setRequiresAck((e.target as HTMLInputElement).checked)}
-                />
+                <Switch checked={requiresAck} onChange={(checked) => setRequiresAck(checked)} />
               </div>
               <div>
                 <Label>File</Label>
                 <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
               </div>
 
-              {/* Access Control Switches */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Admin Access</Label>
-                  <Switch
-                    checked={canViewAdmin}
-                    onChange={(e) => setCanViewAdmin((e.target as HTMLInputElement).checked)}
-                  />
+                  <Switch checked={canViewAdmin} onChange={(checked) => setCanViewAdmin(checked)} />
                 </div>
                 <div>
                   <Label>Manager Access</Label>
-                  <Switch
-                    checked={canViewManager}
-                    onChange={(e) => setCanViewManager((e.target as HTMLInputElement).checked)}
-                  />
+                  <Switch checked={canViewManager} onChange={(checked) => setCanViewManager(checked)} />
                 </div>
                 <div>
                   <Label>Employee Access</Label>
-                  <Switch
-                    checked={canViewEmployee}
-                    onChange={(e) => setCanViewEmployee((e.target as HTMLInputElement).checked)}
-                  />
+                  <Switch checked={canViewEmployee} onChange={(checked) => setCanViewEmployee(checked)} />
                 </div>
               </div>
 
@@ -339,7 +317,6 @@ export default function EmployeeDocumentsPage() {
                 Download
               </a>
 
-              {/* ✅ Acknowledgement UI */}
               {selectedDoc.requiresAck && !acknowledged && (
                 <Button onClick={handleAcknowledge} className="w-full mt-2">
                   Acknowledge Document
@@ -355,7 +332,6 @@ export default function EmployeeDocumentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Access Modal (Admin Only) */}
       {userRole === "ADMIN" && (
         <EditAccessModal
           isOpen={isEditAccessOpen}
@@ -366,7 +342,6 @@ export default function EmployeeDocumentsPage() {
         />
       )}
 
-      {/* View Acknowledgements Modal (Admin Only) */}
       {userRole === "ADMIN" && (
         <ViewAcknowledgementsModal
           isOpen={isViewAckOpen}

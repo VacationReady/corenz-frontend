@@ -21,10 +21,10 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
   const [pending, setPending] = useState<Acknowledgement[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (documentId && isOpen) {
-      setLoading(true);
-      fetch(`/api/documents/acknowledgements/${documentId}`)
+ useEffect(() => {
+  if (documentId && isOpen) {
+    setLoading(true);
+    fetch(`/api/documents/acknowledge/${documentId}`)
         .then((res) => res.json())
         .then((data) => {
           setAcknowledged(data.acknowledged || []);

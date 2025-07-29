@@ -275,7 +275,10 @@ export default function EmployeeDocumentsPage() {
               </div>
               <div>
                 <Label>Requires Acknowledgement</Label>
-                <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+                <Switch
+                  checked={requiresAck}
+                  onChange={(e) => setRequiresAck((e.target as HTMLInputElement).checked)}
+                />
               </div>
               <div>
                 <Label>File</Label>
@@ -286,15 +289,24 @@ export default function EmployeeDocumentsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label>Admin Access</Label>
-                  <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
+                  <Switch
+                    checked={canViewAdmin}
+                    onChange={(e) => setCanViewAdmin((e.target as HTMLInputElement).checked)}
+                  />
                 </div>
                 <div>
                   <Label>Manager Access</Label>
-                  <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
+                  <Switch
+                    checked={canViewManager}
+                    onChange={(e) => setCanViewManager((e.target as HTMLInputElement).checked)}
+                  />
                 </div>
                 <div>
                   <Label>Employee Access</Label>
-                  <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
+                  <Switch
+                    checked={canViewEmployee}
+                    onChange={(e) => setCanViewEmployee((e.target as HTMLInputElement).checked)}
+                  />
                 </div>
               </div>
 

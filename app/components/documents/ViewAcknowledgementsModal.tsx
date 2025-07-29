@@ -14,9 +14,10 @@ interface Props {
   onClose: () => void;
   documentId: string | null;
   documentName: string | null;
+  isEmployeeDocument?: boolean; // ✅ NEW FLAG
 }
 
-export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId, documentName }: Props) {
+export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId, documentName, isEmployeeDocument = false }: Props) {
   const [acknowledged, setAcknowledged] = useState<Acknowledgement[]>([]);
   const [pending, setPending] = useState<Acknowledgement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,23 +25,37 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
   useEffect(() => {
     if (documentId && isOpen) {
       setLoading(true);
-      fetch(`/api/documents/acknowledge/${documentId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          // ✅ For employee-level docs, convert API response to single-item acknowledged or pending
-          if (data.acknowledged) {
-            setAcknowledged([
-              { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
-            ]);
-            setPending([]); // no pending for individual employee docs
-          } else {
-            setAcknowledged([]);
-            setPending([{ name: data.employee.name, email: data.employee.email }]);
-          }
-        })
-        .finally(() => setLoading(false));
+
+      // ✅ Employee docs: fetch only single-employee acknowledgement
+      if (isEmployeeDocument) {
+        fetch(`/api/documents/acknowledge/${documentId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.acknowledged) {
+              setAcknowledged([
+                { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
+              ]);
+              setPending([]);
+            } else {
+              setAcknowledged([]);
+              setPending([{ name: data.employee.name, email: data.employee.email }]);
+            }
+          })
+          .finally(() => setLoading(false));
+      }
+
+      // ✅ Company docs: fetch full acknowledged & pending list
+      else {
+        fetch(`/api/documents/acknowledge/${documentId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            setAcknowledged(data.acknowledged || []);
+            setPending(data.pending || []);
+          })
+          .finally(() => setLoading(false));
+      }
     }
-  }, [documentId, isOpen]);
+  }, [documentId, isOpen, isEmployeeDocument]);
 
   const exportCSV = () => {
     const rows = [
@@ -62,11 +77,13 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>View Acknowledgement: {documentName}</DialogTitle>
+          <DialogTitle>
+            {isEmployeeDocument ? "View Acknowledgement" : "View Acknowledgements"}: {documentName}
+          </DialogTitle>
         </DialogHeader>
 
         {loading ? (
-          <p>Loading acknowledgement...</p>
+          <p>Loading acknowledgements...</p>
         ) : (
           <div className="space-y-4">
             <h3 className="font-semibold">✅ Acknowledged ({acknowledged.length})</h3>
@@ -90,29 +107,36 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-sm text-gray-500">No acknowledgements yet.</p>
+              <p className="text-sm text-gray-500">
+                {isEmployeeDocument ? "No acknowledgement yet from this employee." : "No acknowledgements yet."}
+              </p>
             )}
 
-            <h3 className="font-semibold mt-4">❌ Pending ({pending.length})</h3>
-            {pending.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pending.map((p) => (
-                    <TableRow key={p.email}>
-                      <TableCell>{p.name}</TableCell>
-                      <TableCell>{p.email}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-sm text-gray-500">No pending acknowledgements.</p>
+            {/* ✅ Only show pending for company docs */}
+            {!isEmployeeDocument && (
+              <>
+                <h3 className="font-semibold mt-4">❌ Pending ({pending.length})</h3>
+                {pending.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pending.map((p) => (
+                        <TableRow key={p.email}>
+                          <TableCell>{p.name}</TableCell>
+                          <TableCell>{p.email}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-sm text-gray-500">No pending acknowledgements.</p>
+                )}
+              </>
             )}
 
             <Button onClick={exportCSV} className="mt-4 w-full">

@@ -32,6 +32,7 @@ type Document = {
   canViewEmployee: boolean;
   departments: Department[];
   jobRoles: JobRole[];
+  requiresAck: boolean;
 };
 
 export default function DocumentsPageClient() {

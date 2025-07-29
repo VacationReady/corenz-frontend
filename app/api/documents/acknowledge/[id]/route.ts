@@ -27,6 +27,42 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
+    // If company document (no employee link), fetch acknowledgements filtered by dept/role
+    if (!doc.employee) {
+      const acknowledgements = await prisma.documentAcknowledgement.findMany({
+        where: {
+          documentId: doc.id,
+          employee: {
+            department: doc.accessDepartments?.length
+              ? { in: doc.accessDepartments }
+              : undefined,
+            jobRole: doc.accessJobRoles?.length
+              ? { in: doc.accessJobRoles }
+              : undefined,
+          },
+        },
+        include: {
+          employee: {
+            include: {
+              user: true,
+            },
+          },
+        },
+        orderBy: { acknowledgedAt: "desc" },
+      });
+
+      return NextResponse.json({
+        acknowledgements: acknowledgements.map((ack) => ({
+          id: ack.id,
+          employeeName: ack.employee.user.name,
+          employeeEmail: ack.employee.user.email,
+          department: ack.employee.department,
+          jobRole: ack.employee.jobRole,
+          acknowledgedAt: ack.acknowledgedAt,
+        })),
+      });
+    }
+
     // Ensure this is employee-specific
     if (!doc.employee) {
       return NextResponse.json({ error: "This is not an employee-specific document" }, { status: 400 });

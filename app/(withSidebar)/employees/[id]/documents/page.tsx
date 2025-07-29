@@ -110,6 +110,7 @@ export default function EmployeeDocumentsPage() {
     formData.append("name", name);
     formData.append("category", category);
     formData.append("employeeId", employeeId);
+    formData.append("type", "employee"); // <-- REQUIRED FIX ADDED HERE
     formData.append("canViewAdmin", String(canViewAdmin));
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));

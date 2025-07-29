@@ -70,7 +70,8 @@ model Employee {
   workingPatternId          String?
   departmentId              String?
   department                Department?                        @relation(fields: [departmentId], references: [id])
-  jobRoleId    String?   
+  jobRoleId                 String?
+  jobRole                   JobRole?                           @relation(fields: [jobRoleId], references: [id])
   user                      User                               @relation(fields: [userId], references: [id])
   workingPattern            WorkingPattern?                    @relation(fields: [workingPatternId], references: [id])
   workingPatternAssignments EmployeeWorkingPatternAssignment[]
@@ -223,7 +224,8 @@ model JobRole {
   payGrade String?
   level    Int?
 
-  users User[]
+  users     User[]
+  employees Employee[] // ✅ Added opposite relation to Employee
 
   // 🔥 Added M:N relation for document restrictions
   documents Document[] @relation("DocumentJobRoles")

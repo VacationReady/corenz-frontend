@@ -42,6 +42,9 @@ export default function DocumentsPageClient() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [requiresAck, setRequiresAck] = useState(false);
+  // --- ADD: requireAckFromNewStarters state ---
+  const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
+  // ----------------------------------------------------
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -145,6 +148,9 @@ export default function DocumentsPageClient() {
     formData.append("departments", JSON.stringify(selectedDepartments));
     formData.append("jobRoles", JSON.stringify(selectedJobRoles));
     formData.append("requiresAck", JSON.stringify(requiresAck));
+    // --- ADD: new starters toggle to upload payload ---
+    formData.append("requireAckFromNewStarters", JSON.stringify(requireAckFromNewStarters));
+    // ---------------------------------------------------
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -155,6 +161,7 @@ export default function DocumentsPageClient() {
         setName("");
         setCategory("");
         setRequiresAck(false);
+        setRequireAckFromNewStarters(false); // clear on success
         setUploadDepartments(["all"]);
         setUploadJobRoles(["all"]);
         fetchDocuments();
@@ -330,10 +337,19 @@ export default function DocumentsPageClient() {
               <div>
                 <Label>Requires Acknowledgement</Label>
                 <Switch 
-  checked={requiresAck} 
-  onChange={(checked: boolean) => setRequiresAck(checked)} 
-/>
+                  checked={requiresAck} 
+                  onChange={(checked: boolean) => setRequiresAck(checked)} 
+                />
               </div>
+              {/* --- ADDITION: Require Ack from New Starters toggle --- */}
+              <div>
+                <Label>Require new starters to acknowledge?</Label>
+                <Switch 
+                  checked={requireAckFromNewStarters} 
+                  onChange={(checked: boolean) => setRequireAckFromNewStarters(checked)} 
+                />
+              </div>
+              {/* ---------------------------------------------------- */}
               <div>
                 <Label>Restrict by Department</Label>
                 <MultiSelect
@@ -393,10 +409,10 @@ export default function DocumentsPageClient() {
 
               {/* ✅ Acknowledgement UI */}
               {selectedDoc.requiresAck && !acknowledged && (
-  <Button onClick={handleAcknowledge} className="w-full mt-2">
-    Acknowledge Document
-  </Button>
-)}
+                <Button onClick={handleAcknowledge} className="w-full mt-2">
+                  Acknowledge Document
+                </Button>
+              )}
               {selectedDoc.requiresAck && acknowledged && (
                 <p className="text-green-600 text-sm">
                   ✅ Acknowledged on {ackDate?.toLocaleDateString()}

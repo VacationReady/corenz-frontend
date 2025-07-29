@@ -35,18 +35,24 @@ export async function GET(
       const jobRoleIds = doc.jobRoles.map((jr) => jr.id);
 
       const acknowledgements = await prisma.documentAcknowledgement.findMany({
-        where: {
-          documentId: doc.id,
-          employee: {
-            departmentId: deptIds.length > 0 ? { in: deptIds } : undefined,
-            jobRoleId: jobRoleIds.length > 0 ? { in: jobRoleIds } : undefined,
-          },
-        },
-        include: {
-          employee: { include: { user: true } },
-        },
-        orderBy: { acknowledgedAt: "desc" },
-      });
+  where: {
+    documentId: doc.id,
+    employee: {
+      departmentId: deptIds.length > 0 ? { in: deptIds } : undefined,
+      user: {
+        jobRoleId: jobRoleIds.length > 0 ? { in: jobRoleIds } : undefined,
+      },
+    },
+  },
+  include: {
+    employee: {
+      include: {
+        user: true, // includes jobRoleId from user
+      },
+    },
+  },
+  orderBy: { acknowledgedAt: "desc" },
+});
 
       return NextResponse.json({
         acknowledgements: acknowledgements.map((ack) => ({

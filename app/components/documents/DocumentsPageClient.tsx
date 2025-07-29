@@ -13,6 +13,7 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import Tooltip from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal"; // ✅ Added import
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -46,6 +47,11 @@ export default function DocumentsPageClient() {
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null); // ✅ Track user role
+
+  // ✅ New state for ViewAcknowledgementsModal
+  const [isViewAckOpen, setIsViewAckOpen] = useState(false);
+  const [ackDocId, setAckDocId] = useState<string | null>(null);
+  const [ackDocName, setAckDocName] = useState<string | null>(null);
 
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
@@ -230,6 +236,15 @@ export default function DocumentsPageClient() {
                           Edit Access
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          onClick={() => {
+                            setAckDocId(doc.id);
+                            setAckDocName(doc.name);
+                            setIsViewAckOpen(true); // ✅ Open ViewAcknowledgementsModal
+                          }}
+                        >
+                          View Acknowledgements
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => confirmDelete(doc.id)}
                           className="text-red-600"
                         >
@@ -339,6 +354,14 @@ export default function DocumentsPageClient() {
         onClose={() => setIsEditAccessOpen(false)}
         document={editingDoc}
         onSaved={fetchDocuments}
+      />
+
+      {/* ✅ View Acknowledgements Modal */}
+      <ViewAcknowledgementsModal
+        isOpen={isViewAckOpen}
+        onClose={() => setIsViewAckOpen(false)}
+        documentId={ackDocId}
+        documentName={ackDocName}
       />
     </div>
   );

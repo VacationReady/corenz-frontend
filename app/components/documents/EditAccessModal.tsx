@@ -14,6 +14,7 @@ type Document = {
   canViewAdmin: boolean;
   canViewManager: boolean;
   canViewEmployee: boolean;
+  requiresAck?: boolean; // ✅ NEW FIELD
   departments?: Department[];
   jobRoles?: JobRole[];
 };
@@ -23,7 +24,7 @@ interface EditAccessModalProps {
   onClose: () => void;
   document: Document | null;
   onSaved: () => void;
-  isEmployeeDocument?: boolean; // ✅ NEW: Context flag
+  isEmployeeDocument?: boolean;
 }
 
 export default function EditAccessModal({
@@ -38,6 +39,7 @@ export default function EditAccessModal({
   const [canAdmin, setCanAdmin] = useState(false);
   const [canManager, setCanManager] = useState(false);
   const [canEmployee, setCanEmployee] = useState(false);
+  const [requiresAck, setRequiresAck] = useState(false); // ✅ NEW STATE
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
 
@@ -61,6 +63,7 @@ export default function EditAccessModal({
       setCanAdmin(document.canViewAdmin);
       setCanManager(document.canViewManager);
       setCanEmployee(document.canViewEmployee);
+      setRequiresAck(document.requiresAck || false); // ✅ Initialize toggle
     }
   }, [document]);
 
@@ -74,8 +77,9 @@ export default function EditAccessModal({
         canViewAdmin: canAdmin,
         canViewManager: canManager,
         canViewEmployee: canEmployee,
-        departments: isEmployeeDocument ? [] : deptIds.includes("all") ? [] : deptIds,
-        jobRoles: isEmployeeDocument ? [] : roleIds.includes("all") ? [] : roleIds,
+        requiresAck, // ✅ Send to API
+        departmentIds: isEmployeeDocument ? [] : deptIds.includes("all") ? [] : deptIds,
+        jobRoleIds: isEmployeeDocument ? [] : roleIds.includes("all") ? [] : roleIds,
       }),
     });
 
@@ -137,6 +141,15 @@ export default function EditAccessModal({
               <span>Employee</span>
             </label>
           </div>
+
+          {/* Requires Acknowledgement Toggle */}
+          <div className="flex items-center justify-between border-t pt-4 mt-4">
+            <Label className="text-sm">Requires Acknowledgement</Label>
+            <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+          </div>
+          <p className="text-xs text-gray-500">
+            Employees must confirm they’ve read this document.
+          </p>
 
           <Button onClick={handleSave} className="w-full mt-4">
             Save Changes

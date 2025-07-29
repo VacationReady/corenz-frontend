@@ -37,7 +37,14 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(adminDocs);
+
+    // ✅ Include requiresAck explicitly
+    return NextResponse.json(
+      adminDocs.map((doc) => ({
+        ...doc,
+        requiresAck: doc.requiresAck,
+      }))
+    );
   }
 
   // ✅ Role flag
@@ -77,5 +84,11 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(documents);
+  // ✅ Include requiresAck explicitly
+  return NextResponse.json(
+    documents.map((doc) => ({
+      ...doc,
+      requiresAck: doc.requiresAck,
+    }))
+  );
 }

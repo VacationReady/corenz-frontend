@@ -18,13 +18,16 @@ export async function POST(req: Request) {
   const employeeId = formData.get("employeeId") as string | null;
   const type = formData.get("type") as string | null;
 
-  // ✅ Access control flags default to visible (Admin & Employee true by default)
+  // ✅ Access control flags default to visible
   const canViewAdmin =
     formData.get("canViewAdmin") === "true" || formData.get("canViewAdmin") === null;
   const canViewManager =
     formData.get("canViewManager") === "true" || formData.get("canViewManager") === null;
   const canViewEmployee =
     formData.get("canViewEmployee") === "true" || formData.get("canViewEmployee") === null;
+
+  // ✅ Requires Acknowledgement toggle
+  const requiresAck = formData.get("requiresAck") === "true";
 
   // ✅ Department & Job Role restrictions
   const rawDepartments = formData.get("departments") as string | null;
@@ -70,6 +73,7 @@ export async function POST(req: Request) {
         canViewAdmin: canViewAdmin ?? true,
         canViewManager: canViewManager ?? true,
         canViewEmployee: canViewEmployee ?? true,
+        requiresAck, // ✅ Persist toggle!
         ...(departments.length > 0 && departments[0] !== "all"
           ? { departments: { connect: departments.map((d: string) => ({ id: d })) } }
           : {}),

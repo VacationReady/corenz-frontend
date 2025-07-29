@@ -35,6 +35,9 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
+  // --- ADDED: Requires Acknowledgement state ---
+  const [requiresAck, setRequiresAck] = useState(false);
+
   const user = session?.user;
 
   // ✅ Fetch employees, departments, job roles
@@ -105,6 +108,9 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
       formData.append('canViewAdmin', String(canViewAdmin));
       formData.append('canViewManager', String(canViewManager));
       formData.append('canViewEmployee', String(canViewEmployee));
+
+      // --- ADDED: Requires Acknowledgement ---
+      formData.append('requiresAck', String(requiresAck));
 
       const res = await fetch('/api/documents/upload', { method: 'POST', body: formData });
 
@@ -236,6 +242,14 @@ export default function AddDocumentModal({ open, onClose }: { open: boolean; onC
               <Label>Employee Access</Label>
               <Switch checked={canViewEmployee} onChange={(checked) => setCanViewEmployee(checked)} />
             </div>
+          </div>
+        )}
+
+        {/* --- ADDED: Requires Acknowledgement for both types --- */}
+        {(type === 'employee' || type === 'company') && (
+          <div>
+            <Label>Requires Acknowledgement</Label>
+            <Switch checked={requiresAck} onChange={setRequiresAck} />
           </div>
         )}
 

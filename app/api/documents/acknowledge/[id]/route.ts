@@ -14,14 +14,13 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch document, including departments & jobRoles for filtering
+    // ✅ Fetch the document, including departments & jobRoles
     const doc = await prisma.document.findUnique({
       where: { id: params.id },
       include: {
-        employee: { include: { user: true } },
-        acknowledgements: true,
         departments: true,
         jobRoles: true,
+        employee: { include: { user: true } }, // for employee-specific docs
       },
     });
 
@@ -29,48 +28,64 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    // If company document (no employee link), fetch acknowledgements filtered by dept/role
+    // ✅ Handle company-level documents (no employee link)
     if (!doc.employee) {
       const deptIds = doc.departments.map((d) => d.id);
       const jobRoleIds = doc.jobRoles.map((jr) => jr.id);
 
-      const acknowledgements = await prisma.documentAcknowledgement.findMany({
+      // ✅ Fetch all employees in scope (filtered by dept/role if present)
+      const employeesInScope = await prisma.employee.findMany({
         where: {
-          documentId: doc.id,
-          employee: {
-            departmentId: deptIds.length > 0 ? { in: deptIds } : undefined,
-            jobRoleId: jobRoleIds.length > 0 ? { in: jobRoleIds } : undefined,
-          },
+          companyId: session.user.companyId,
+          ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
+          ...(jobRoleIds.length > 0
+            ? { user: { jobRoleId: { in: jobRoleIds } } }
+            : {}),
         },
+        include: {
+          user: { include: { jobRole: true } },
+          department: true,
+        },
+      });
+
+      // ✅ Fetch acknowledgements for this document
+      const acknowledgements = await prisma.documentAcknowledgement.findMany({
+        where: { documentId: doc.id },
         include: {
           employee: {
             include: {
-              user: true,
-              department: true, // ✅ include department relation
-              jobRole: true,    // ✅ include job role relation
+              user: { include: { jobRole: true } },
+              department: true,
             },
           },
         },
         orderBy: { acknowledgedAt: "desc" },
       });
 
+      // ✅ Split acknowledged vs pending
+      const acknowledgedIds = acknowledgements.map((ack) => ack.employeeId);
+      const pending = employeesInScope.filter(
+        (emp) => !acknowledgedIds.includes(emp.id)
+      );
+
       return NextResponse.json({
-        acknowledgements: acknowledgements.map((ack) => ({
-          id: ack.id,
-          employeeName: ack.employee.user.name,
-          employeeEmail: ack.employee.user.email,
-          department: ack.employee.department?.name || null,
-          jobRole: ack.employee.jobRole?.name || null,
+        acknowledged: acknowledgements.map((ack) => ({
+          name: ack.employee.user.name,
+          email: ack.employee.user.email,
+          department: ack.employee.department?.name || "—",
+          jobRole: ack.employee.user.jobRole?.name || "—",
           acknowledgedAt: ack.acknowledgedAt,
+        })),
+        pending: pending.map((emp) => ({
+          name: emp.user.name,
+          email: emp.user.email,
+          department: emp.department?.name || "—",
+          jobRole: emp.user.jobRole?.name || "—",
         })),
       });
     }
 
-    // Employee-specific document
-    if (!doc.employee) {
-      return NextResponse.json({ error: "This is not an employee-specific document" }, { status: 400 });
-    }
-
+    // ✅ Handle employee-specific documents
     const ack = await prisma.documentAcknowledgement.findFirst({
       where: { documentId: doc.id, employeeId: doc.employee.id },
     });

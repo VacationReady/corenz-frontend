@@ -14,7 +14,7 @@ import Tooltip from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
-import { Switch } from "@/components/ui/Switch"; // ✅ Toggle import
+import { Switch } from "@/components/ui/switch"; // ✅ Toggle import
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };

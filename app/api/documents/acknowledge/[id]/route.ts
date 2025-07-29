@@ -14,12 +14,14 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the document including access filters
+    // Fetch document, including departments & jobRoles for filtering
     const doc = await prisma.document.findUnique({
       where: { id: params.id },
       include: {
         employee: { include: { user: true } },
         acknowledgements: true,
+        departments: true,
+        jobRoles: true,
       },
     });
 
@@ -27,30 +29,21 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    // ✅ Fetch access fields separately (avoids TS error)
-    const { accessDepartments, accessJobRoles } = await prisma.document.findUnique({
-      where: { id: params.id },
-      select: { accessDepartments: true, accessJobRoles: true },
-    }) || {};
-
     // If company document (no employee link), fetch acknowledgements filtered by dept/role
     if (!doc.employee) {
+      const deptIds = doc.departments.map((d) => d.id);
+      const jobRoleIds = doc.jobRoles.map((jr) => jr.id);
+
       const acknowledgements = await prisma.documentAcknowledgement.findMany({
         where: {
           documentId: doc.id,
           employee: {
-            department: accessDepartments?.length
-              ? { in: accessDepartments }
-              : undefined,
-            jobRole: accessJobRoles?.length
-              ? { in: accessJobRoles }
-              : undefined,
+            departmentId: deptIds.length > 0 ? { in: deptIds } : undefined,
+            jobRoleId: jobRoleIds.length > 0 ? { in: jobRoleIds } : undefined,
           },
         },
         include: {
-          employee: {
-            include: { user: true },
-          },
+          employee: { include: { user: true } },
         },
         orderBy: { acknowledgedAt: "desc" },
       });
@@ -67,12 +60,11 @@ export async function GET(
       });
     }
 
-    // Ensure this is employee-specific
+    // Employee-specific document
     if (!doc.employee) {
       return NextResponse.json({ error: "This is not an employee-specific document" }, { status: 400 });
     }
 
-    // Check if that employee has acknowledged
     const ack = await prisma.documentAcknowledgement.findFirst({
       where: { documentId: doc.id, employeeId: doc.employee.id },
     });

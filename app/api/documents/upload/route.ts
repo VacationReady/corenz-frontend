@@ -87,6 +87,40 @@ export async function POST(req: Request) {
       },
     });
 
+    // --- BEGIN: Send Resend email for employee docs with requiresAck ---
+    if (requiresAck && document.employeeId) {
+      // Fetch employee email
+      const employee = await prisma.user.findUnique({
+        where: { id: document.employeeId },
+        select: { email: true, name: true },
+      });
+      if (employee?.email) {
+        // Compose a link to the employee's document page (update as needed)
+        const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${document.employeeId}/documents`;
+
+        // Send email using Resend API (basic fetch version)
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'onboarding@resend.dev',
+            to: employee.email,
+            subject: 'New Document Requires Your Acknowledgement',
+            html: `
+              <p>Hi ${employee.name || 'there'},</p>
+              <p>A new document <b>${document.name}</b> (${document.category || 'General'}) has been uploaded and requires your acknowledgement.</p>
+              <p><a href="${docLink}">View & Acknowledge Document</a></p>
+              <p>Thank you,<br/>HR Team</p>
+            `
+          })
+        });
+      }
+    }
+    // --- END: Send Resend email for employee docs with requiresAck ---
+
     console.log("✅ Document uploaded:", document);
     return NextResponse.json(document);
   } catch (error) {

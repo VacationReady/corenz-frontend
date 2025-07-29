@@ -177,12 +177,12 @@ export async function POST(req: Request) {
 
       // 3. Fetch all users for those employees
       const users = await prisma.user.findMany({
-        where: {
-          id: { in: employees.map((e) => e.userId) },
-          email: { not: null },
-        },
-        select: { id: true, email: true, name: true },
-      });
+  where: {
+    id: { in: employees.map((e) => e.userId) },
+    email: { not: "" },
+  },
+  select: { id: true, email: true, name: true },
+});
 
       // 4. Send emails (in batches of 50 for free Resend)
       const chunkSize = 50;

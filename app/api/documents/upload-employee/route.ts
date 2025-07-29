@@ -8,6 +8,8 @@ import { randomUUID } from "crypto";
 export const runtime = "nodejs"; // Ensure Node runtime for FormData upload
 
 export async function POST(req: NextRequest) {
+    console.log("DOC UPLOAD EMPLOYEE API HIT:", new Date().toISOString());
+
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -75,17 +77,21 @@ export async function POST(req: NextRequest) {
 
     // --- BEGIN: Send Resend email for employee docs with requiresAck ---
     if (requiresAck && employeeId) {
+        console.log("requiresAck is TRUE and employeeId present:", employeeId);
+
         // Fetch employee email
         const employee = await prisma.user.findUnique({
             where: { id: employeeId },
             select: { email: true, name: true },
         });
+        console.log("Employee found for notification:", employee);
+
         if (employee?.email) {
             // Compose a link to the employee's document page (update as needed)
             const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${employeeId}/documents`;
 
             // Send email using Resend API (basic fetch version)
-            await fetch('https://api.resend.com/emails', {
+            const resendRes = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -103,6 +109,8 @@ export async function POST(req: NextRequest) {
                     `
                 })
             });
+            const resendJson = await resendRes.json();
+            console.log("Resend API response:", resendJson);
         }
     }
     // --- END: Send Resend email for employee docs with requiresAck ---

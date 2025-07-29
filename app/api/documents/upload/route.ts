@@ -151,16 +151,16 @@ export async function POST(req: Request) {
       ) {
         employees = await prisma.employee.findMany({
           where: {
-            companyId: document.companyId,
             isActive: true,
+            user: { companyId: document.companyId },
           },
           select: { id: true, userId: true },
         });
       } else {
         employees = await prisma.employee.findMany({
           where: {
-            companyId: document.companyId,
             isActive: true,
+            user: { companyId: document.companyId },
             OR: [
               departmentIds && departmentIds.length > 0
                 ? { departmentId: { in: departmentIds } }

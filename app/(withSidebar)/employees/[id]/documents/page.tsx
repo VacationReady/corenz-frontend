@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import Tooltip from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal"; // ✅ NEW
 
 // ✅ Unified Document type to match EditAccessModal expectations
 type Department = { id: string; name: string };
@@ -60,6 +61,9 @@ export default function EmployeeDocumentsPage() {
   // ✅ Acknowledgement state
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
+
+  // ✅ View Acknowledgements modal state
+  const [isViewAckOpen, setIsViewAckOpen] = useState(false);
 
   const fetchUserRole = async () => {
     const res = await fetch("/api/auth/session");
@@ -219,6 +223,7 @@ export default function EmployeeDocumentsPage() {
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
                         <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>Edit Access</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedDoc(doc); setIsViewAckOpen(true); }}>View Acknowledgements</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
                           Delete
                         </DropdownMenuItem>
@@ -332,7 +337,17 @@ export default function EmployeeDocumentsPage() {
           onClose={() => setIsEditAccessOpen(false)}
           document={editingDoc}
           onSaved={fetchDocuments}
-          isEmployeeDocument // ✅ Hides dept/job selectors
+          isEmployeeDocument
+        />
+      )}
+
+      {/* View Acknowledgements Modal (Admin Only) */}
+      {userRole === "ADMIN" && (
+        <ViewAcknowledgementsModal
+          isOpen={isViewAckOpen}
+          onClose={() => setIsViewAckOpen(false)}
+          documentId={selectedDoc?.id || null}
+          documentName={selectedDoc?.name || null}
         />
       )}
     </div>

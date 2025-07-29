@@ -13,7 +13,8 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import Tooltip from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal"; // ✅ Added import
+import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+import { Switch } from "@/components/ui/Switch"; // ✅ Toggle import
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -32,7 +33,7 @@ type Document = {
   canViewEmployee: boolean;
   departments: Department[];
   jobRoles: JobRole[];
-  requiresAck: boolean;
+  requiresAck: boolean; // ✅ NEW
 };
 
 export default function DocumentsPageClient() {
@@ -40,6 +41,7 @@ export default function DocumentsPageClient() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [requiresAck, setRequiresAck] = useState(false); // ✅ NEW
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -47,9 +49,8 @@ export default function DocumentsPageClient() {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
-  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null); // ✅ Track user role
+  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
 
-  // ✅ New state for ViewAcknowledgementsModal
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
   const [ackDocId, setAckDocId] = useState<string | null>(null);
   const [ackDocName, setAckDocName] = useState<string | null>(null);
@@ -91,7 +92,7 @@ export default function DocumentsPageClient() {
 
   const fetchUserRole = async () => {
     try {
-      const res = await fetch("/api/auth/session"); // ✅ Using NextAuth session route
+      const res = await fetch("/api/auth/session");
       const session = await res.json();
       setUserRole(session?.user?.role || null);
     } catch (err) {
@@ -122,6 +123,7 @@ export default function DocumentsPageClient() {
     formData.append("category", category);
     formData.append("departments", JSON.stringify(selectedDepartments));
     formData.append("jobRoles", JSON.stringify(selectedJobRoles));
+    formData.append("requiresAck", JSON.stringify(requiresAck)); // ✅ Pass toggle state
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -131,6 +133,7 @@ export default function DocumentsPageClient() {
         setFile(null);
         setName("");
         setCategory("");
+        setRequiresAck(false);
         setUploadDepartments(["all"]);
         setUploadJobRoles(["all"]);
         fetchDocuments();
@@ -236,15 +239,17 @@ export default function DocumentsPageClient() {
                         >
                           Edit Access
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setAckDocId(doc.id);
-                            setAckDocName(doc.name);
-                            setIsViewAckOpen(true); // ✅ Open ViewAcknowledgementsModal
-                          }}
-                        >
-                          View Acknowledgements
-                        </DropdownMenuItem>
+                        {doc.requiresAck && ( // ✅ Only show for ack docs
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setAckDocId(doc.id);
+                              setAckDocName(doc.name);
+                              setIsViewAckOpen(true);
+                            }}
+                          >
+                            View Acknowledgements
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => confirmDelete(doc.id)}
                           className="text-red-600"
@@ -287,6 +292,10 @@ export default function DocumentsPageClient() {
                     <SelectItem value="General HR">General HR</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Requires Acknowledgement</Label>
+                <Switch checked={requiresAck} onCheckedChange={setRequiresAck} /> {/* ✅ Added toggle */}
               </div>
               <div>
                 <Label>Restrict by Department</Label>
@@ -344,6 +353,27 @@ export default function DocumentsPageClient() {
               >
                 Download
               </a>
+              {selectedDoc.requiresAck && userRole === "EMPLOYEE" && ( // ✅ Ack button
+                <Button
+                  className="w-full mt-4"
+                  onClick={async () => {
+                    const res = await fetch("/api/documents/acknowledge", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ documentId: selectedDoc.id }),
+                    });
+                    if (res.ok) {
+                      toast("Acknowledged successfully!");
+                      setIsPreviewModalOpen(false);
+                      fetchDocuments();
+                    } else {
+                      toast("Failed to acknowledge document.");
+                    }
+                  }}
+                >
+                  Acknowledge Document
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>
@@ -357,7 +387,7 @@ export default function DocumentsPageClient() {
         onSaved={fetchDocuments}
       />
 
-      {/* ✅ View Acknowledgements Modal */}
+      {/* View Acknowledgements Modal */}
       <ViewAcknowledgementsModal
         isOpen={isViewAckOpen}
         onClose={() => setIsViewAckOpen(false)}

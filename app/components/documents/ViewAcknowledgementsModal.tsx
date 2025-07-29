@@ -7,6 +7,8 @@ interface Acknowledgement {
   name: string;
   email: string;
   acknowledgedAt?: string;
+  department?: string | null; // ✅ Added for company docs
+  jobRole?: string | null;    // ✅ Added for company docs
 }
 
 interface Props {
@@ -49,7 +51,17 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
         fetch(`/api/documents/acknowledge/${documentId}`)
           .then((res) => res.json())
           .then((data) => {
-            setAcknowledged(data.acknowledged || []);
+            // ✅ Acknowledged list with department & job role
+            setAcknowledged(
+              (data.acknowledgements || []).map((ack: any) => ({
+                name: ack.employeeName,
+                email: ack.employeeEmail,
+                acknowledgedAt: ack.acknowledgedAt,
+                department: ack.department || null,
+                jobRole: ack.jobRole || null,
+              }))
+            );
+            // ✅ Pending list fallback (if provided later)
             setPending(data.pending || []);
           })
           .finally(() => setLoading(false));
@@ -59,9 +71,16 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
 
   const exportCSV = () => {
     const rows = [
-      ["Name", "Email", "Status", "Acknowledged At"],
-      ...acknowledged.map((a) => [a.name, a.email, "Acknowledged", a.acknowledgedAt || ""]),
-      ...pending.map((p) => [p.name, p.email, "Pending", ""]),
+      ["Name", "Email", "Department", "Job Role", "Status", "Acknowledged At"],
+      ...acknowledged.map((a) => [
+        a.name,
+        a.email,
+        a.department || "",
+        a.jobRole || "",
+        "Acknowledged",
+        a.acknowledgedAt || "",
+      ]),
+      ...pending.map((p) => [p.name, p.email, "", "", "Pending", ""]),
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -93,6 +112,8 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
+                    {!isEmployeeDocument && <TableHead>Department</TableHead>}
+                    {!isEmployeeDocument && <TableHead>Job Role</TableHead>}
                     <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -101,6 +122,8 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
                     <TableRow key={a.email}>
                       <TableCell>{a.name}</TableCell>
                       <TableCell>{a.email}</TableCell>
+                      {!isEmployeeDocument && <TableCell>{a.department || "-"}</TableCell>}
+                      {!isEmployeeDocument && <TableCell>{a.jobRole || "-"}</TableCell>}
                       <TableCell>{a.acknowledgedAt ? new Date(a.acknowledgedAt).toLocaleDateString() : "-"}</TableCell>
                     </TableRow>
                   ))}

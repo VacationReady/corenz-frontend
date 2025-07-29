@@ -34,9 +34,9 @@ export async function GET(
 
     // Fetch all employees in this company (eligible for acknowledgement)
     const allEmployees = await prisma.employee.findMany({
-      where: { companyId: doc.companyId },
-      include: { user: true },
-    });
+  where: { user: { companyId: doc.companyId } }, // ✅ filter via User
+  include: { user: true },
+});
 
     const acknowledged = doc.acknowledgements.map((ack) => ({
       name: ack.employee.user.name,

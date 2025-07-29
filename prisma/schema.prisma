@@ -360,6 +360,7 @@ model Document {
   // Other Relations
   driverLicences  DriverLicence[]
   trainingRecords TrainingRecord[]
+requireAckFromNewStarters Boolean @default(false)
 }
 
 model DocumentAcknowledgement {

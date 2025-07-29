@@ -21,14 +21,22 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
   const [pending, setPending] = useState<Acknowledgement[]>([]);
   const [loading, setLoading] = useState(false);
 
- useEffect(() => {
-  if (documentId && isOpen) {
-    setLoading(true);
-    fetch(`/api/documents/acknowledge/${documentId}`)
+  useEffect(() => {
+    if (documentId && isOpen) {
+      setLoading(true);
+      fetch(`/api/documents/acknowledge/${documentId}`)
         .then((res) => res.json())
         .then((data) => {
-          setAcknowledged(data.acknowledged || []);
-          setPending(data.pending || []);
+          // ✅ For employee-level docs, convert API response to single-item acknowledged or pending
+          if (data.acknowledged) {
+            setAcknowledged([
+              { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
+            ]);
+            setPending([]); // no pending for individual employee docs
+          } else {
+            setAcknowledged([]);
+            setPending([{ name: data.employee.name, email: data.employee.email }]);
+          }
         })
         .finally(() => setLoading(false));
     }
@@ -54,11 +62,11 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>View Acknowledgements: {documentName}</DialogTitle>
+          <DialogTitle>View Acknowledgement: {documentName}</DialogTitle>
         </DialogHeader>
 
         {loading ? (
-          <p>Loading acknowledgements...</p>
+          <p>Loading acknowledgement...</p>
         ) : (
           <div className="space-y-4">
             <h3 className="font-semibold">✅ Acknowledged ({acknowledged.length})</h3>

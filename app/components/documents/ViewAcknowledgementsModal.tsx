@@ -25,60 +25,45 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-  if (documentId && isOpen) {
-    setLoading(true);
+    if (documentId && isOpen) {
+      setLoading(true);
 
-    if (isEmployeeDocument) {
-      // ✅ Employee-specific docs: single acknowledgement check
-      fetch(`/api/documents/acknowledge/${documentId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.acknowledged) {
-            setAcknowledged([
-              { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
-            ]);
-            setPending([]);
-          } else {
-            setAcknowledged([]);
-            setPending([{ name: data.employee.name, email: data.employee.email }]);
-          }
-        })
-        .finally(() => setLoading(false));
-    } else {
-      // ✅ Company-wide docs: fetch full lists
-      fetch(`/api/documents/acknowledge/${documentId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setAcknowledged(data.acknowledged || []);
-          setPending(data.pending || []);
-        })
-        .finally(() => setLoading(false));
-    }
-  }
-}, [documentId, isOpen]); // ✅ Depend on both documentId and modal state
-
-      // ✅ Company docs: fetch full acknowledged & pending list
-      else {
+      if (isEmployeeDocument) {
+        // ✅ Employee-specific docs: single acknowledgement check
         fetch(`/api/documents/acknowledge/${documentId}`)
           .then((res) => res.json())
           .then((data) => {
-            // ✅ Acknowledged list with department & job role
+            if (data.acknowledged) {
+              setAcknowledged([
+                { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
+              ]);
+              setPending([]);
+            } else {
+              setAcknowledged([]);
+              setPending([{ name: data.employee.name, email: data.employee.email }]);
+            }
+          })
+          .finally(() => setLoading(false));
+      } else {
+        // ✅ Company-wide docs: fetch full lists
+        fetch(`/api/documents/acknowledge/${documentId}`)
+          .then((res) => res.json())
+          .then((data) => {
             setAcknowledged(
-              (data.acknowledgements || []).map((ack: any) => ({
-                name: ack.employeeName,
-                email: ack.employeeEmail,
+              (data.acknowledged || []).map((ack: any) => ({
+                name: ack.name,
+                email: ack.email,
                 acknowledgedAt: ack.acknowledgedAt,
                 department: ack.department || null,
                 jobRole: ack.jobRole || null,
               }))
             );
-            // ✅ Pending list fallback (if provided later)
             setPending(data.pending || []);
           })
           .finally(() => setLoading(false));
       }
     }
-  }, [documentId, isOpen, isEmployeeDocument]);
+  }, [documentId, isOpen, isEmployeeDocument]); // ✅ Depend on all relevant triggers
 
   const exportCSV = () => {
     const rows = [

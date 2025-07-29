@@ -14,17 +14,12 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the document with acknowledgements
+    // Fetch the document and its linked employee
     const doc = await prisma.document.findUnique({
       where: { id: params.id },
       include: {
-        acknowledgements: {
-          include: {
-            employee: {
-              include: { user: true }, // So we can access name/email
-            },
-          },
-        },
+        employee: { include: { user: true } },
+        acknowledgements: true,
       },
     });
 
@@ -32,28 +27,21 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    // Fetch all employees in this company (eligible for acknowledgement)
-    const allEmployees = await prisma.employee.findMany({
-  where: { user: { companyId: doc.companyId } }, // ✅ filter via User
-  include: { user: true },
-});
+    // Ensure this is employee-specific
+    if (!doc.employee) {
+      return NextResponse.json({ error: "This is not an employee-specific document" }, { status: 400 });
+    }
 
-    const acknowledged = doc.acknowledgements.map((ack) => ({
-      name: ack.employee.user.name,
-      email: ack.employee.user.email,
-      acknowledgedAt: ack.acknowledgedAt,
-    }));
+    // Check if that employee has acknowledged
+    const ack = await prisma.documentAcknowledgement.findFirst({
+      where: { documentId: doc.id, employeeId: doc.employee.id },
+    });
 
-    const acknowledgedIds = doc.acknowledgements.map((ack) => ack.employeeId);
-
-    const pending = allEmployees
-      .filter((emp) => !acknowledgedIds.includes(emp.id))
-      .map((emp) => ({
-        name: emp.user.name,
-        email: emp.user.email,
-      }));
-
-    return NextResponse.json({ acknowledged, pending });
+    return NextResponse.json({
+      employee: { name: doc.employee.user.name, email: doc.employee.user.email },
+      acknowledged: !!ack,
+      acknowledgedAt: ack?.acknowledgedAt || null,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

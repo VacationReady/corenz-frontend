@@ -55,14 +55,14 @@ export default function DocumentsPageClient() {
   const [ackDocId, setAckDocId] = useState<string | null>(null);
   const [ackDocName, setAckDocName] = useState<string | null>(null);
 
-  // ✅ New acknowledgment states
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [ackDate, setAckDate] = useState<Date | null>(null);
-
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
   const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
+
+  // ✅ Acknowledgement state for preview
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [ackDate, setAckDate] = useState<Date | null>(null);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -104,9 +104,9 @@ export default function DocumentsPageClient() {
     }
   };
 
-  // ✅ Check acknowledgment status when opening preview
+  // ✅ Check acknowledgement status when previewing
   useEffect(() => {
-    if (selectedDoc?.id) {
+    if (selectedDoc?.id && selectedDoc.requiresAck) {
       fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => {
@@ -169,6 +169,19 @@ export default function DocumentsPageClient() {
     }
   };
 
+  const handleAcknowledge = async () => {
+    if (!selectedDoc?.id) return;
+    await fetch("/api/documents/acknowledge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId: selectedDoc.id }),
+    });
+    setAcknowledged(true);
+    setAckDate(new Date());
+    toast("Document acknowledged");
+    fetchDocuments();
+  };
+
   const confirmDelete = async (id: string) => {
     if (!confirm("Delete this document?")) return;
     await fetch("/api/documents/delete", {
@@ -177,23 +190,6 @@ export default function DocumentsPageClient() {
       body: JSON.stringify({ documentId: id }),
     });
     fetchDocuments();
-  };
-
-  const handleAcknowledge = async () => {
-    if (!selectedDoc?.id) return;
-    const res = await fetch("/api/documents/acknowledge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: selectedDoc.id }),
-    });
-    if (res.ok) {
-      setAcknowledged(true);
-      setAckDate(new Date());
-      toast("Document acknowledged successfully!");
-      fetchDocuments();
-    } else {
-      toast("Failed to acknowledge document.");
-    }
   };
 
   const formatFileSize = (size: number) =>
@@ -314,7 +310,7 @@ export default function DocumentsPageClient() {
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
                 <Label>Document Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="E.g., Leave Policy" required />
+                <Input value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
               <div>
                 <Label>Category</Label>
@@ -333,10 +329,7 @@ export default function DocumentsPageClient() {
               </div>
               <div>
                 <Label>Requires Acknowledgement</Label>
-                <Switch 
-  checked={requiresAck} 
-  onChange={(checked: boolean) => setRequiresAck(checked)} 
-/>
+                <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
               </div>
               <div>
                 <Label>Restrict by Department</Label>
@@ -383,19 +376,20 @@ export default function DocumentsPageClient() {
             <DialogTitle>{selectedDoc?.name}</DialogTitle>
           </DialogHeader>
           {selectedDoc && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
               <a
                 href={selectedDoc.url}
                 download={selectedDoc.name}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 underline"
+                className="text-blue-600 underline block"
               >
                 Download
               </a>
-              {/* ✅ Acknowledgment UI */}
-              {selectedDoc.requiresAck && !acknowledged && userRole === "EMPLOYEE" && (
+
+              {/* ✅ Acknowledgement UI */}
+              {selectedDoc.requiresAck && userRole === "EMPLOYEE" && !acknowledged && (
                 <Button onClick={handleAcknowledge} className="w-full mt-2">
                   Acknowledge Document
                 </Button>

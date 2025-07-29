@@ -392,11 +392,11 @@ export default function DocumentsPageClient() {
               </a>
 
               {/* ✅ Acknowledgement UI */}
-              {selectedDoc.requiresAck && userRole === "EMPLOYEE" && !acknowledged && (
-                <Button onClick={handleAcknowledge} className="w-full mt-2">
-                  Acknowledge Document
-                </Button>
-              )}
+              {selectedDoc.requiresAck && !acknowledged && (
+  <Button onClick={handleAcknowledge} className="w-full mt-2">
+    Acknowledge Document
+  </Button>
+)}
               {selectedDoc.requiresAck && acknowledged && (
                 <p className="text-green-600 text-sm">
                   ✅ Acknowledged on {ackDate?.toLocaleDateString()}

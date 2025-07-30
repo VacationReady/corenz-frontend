@@ -159,7 +159,7 @@ export default function OnboardingTemplateEditor({
           <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
           <span className="uppercase text-xs font-semibold text-gray-500">{STEP_TYPES.find((t) => t.value === step.type)?.label}</span>
         </div>
-        <Button size="icon" variant="ghost" onClick={() => removeStep(idx)}><X className="w-4 h-4" /></Button>
+        <Button size="md" variant="ghost" onClick={() => removeStep(idx)}><X className="w-4 h-4" /></Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>

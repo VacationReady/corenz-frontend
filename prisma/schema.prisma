@@ -519,6 +519,7 @@ model OnboardingInstance {
   template    OnboardingTemplate       @relation(fields: [templateId], references: [id])
   startedAt   DateTime                 @default(now())
   completedAt DateTime?
+status String @default("active")
   steps       OnboardingStepInstance[]
 }
 

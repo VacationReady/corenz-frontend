@@ -72,6 +72,10 @@ export async function POST(
       const employee = stepInstance.onboardingInstance.employee;
 const user = employee.user;
 
+if (!user.companyId) {
+  throw new Error("CompanyId missing for uploader user. Cannot create document.");
+}
+
 await prisma.document.create({
   data: {
     name: body.fileName || "Uploaded Document",
@@ -81,7 +85,7 @@ await prisma.document.create({
     type: body.fileType || "other",
     employeeId: employee.id,
     uploaderId: user.id,
-    companyId: user.companyId ?? undefined,
+    companyId: user.companyId, // now always a string
     // ...other fields
   },
 });

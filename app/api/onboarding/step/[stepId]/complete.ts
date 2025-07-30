@@ -34,7 +34,7 @@ export async function POST(
     },
     step: true,
   },
-});git
+});
 
     if (!stepInstance) {
       return NextResponse.json({ error: "Step not found." }, { status: 404 });

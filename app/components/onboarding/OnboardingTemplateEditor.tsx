@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, memo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+// --- Step Types
 const STEP_TYPES = [
   { value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
   { value: "upload-document", label: "Upload Document", icon: UploadCloud },
@@ -19,6 +20,7 @@ const STEP_TYPES = [
   { value: "instructions", label: "Welcome/Instructions", icon: Info },
 ];
 
+// --- Key generator utility
 function getStepKey(step: any) {
   return step.id || step.key;
 }
@@ -39,15 +41,15 @@ function createStep(type: string) {
   };
 }
 
-const StepEditor = memo(({
+// --- StepEditor (memoized)
+const StepEditor = React.memo(function StepEditor({
   step, idx, updateStep, removeStep
-}: { 
-  step: any; 
-  idx: number; 
+}: {
+  step: any;
+  idx: number;
   updateStep: (idx: number, data: any) => void;
   removeStep: (idx: number) => void;
-}) => {
-  console.log("StepEditor mounted for key:", step.key, "idx:", idx);
+}) {
   return (
     <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
       <div className="flex items-center justify-between gap-2 mb-2">
@@ -64,14 +66,7 @@ const StepEditor = memo(({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <Label>Step Title</Label>
-          <Input
-            value={step.title}
-            onChange={e => {
-              console.log("Step title onChange for idx", idx, "value", e.target.value);
-              updateStep(idx, { title: e.target.value });
-            }}
-            maxLength={80}
-          />
+          <Input value={step.title} onChange={e => updateStep(idx, { title: e.target.value })} maxLength={80} />
         </div>
         <div>
           <Label>Description</Label>
@@ -121,8 +116,6 @@ const StepEditor = memo(({
   );
 });
 
-StepEditor.displayName = 'StepEditor';
-
 export default function OnboardingTemplateEditor({
   template,
   onSaved,
@@ -132,8 +125,6 @@ export default function OnboardingTemplateEditor({
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  console.log("OnboardingTemplateEditor mounted at", Date.now());
-
   // --- General
   const [name, setName] = useState(template?.name || "");
   const [description, setDescription] = useState(template?.description || "");
@@ -153,12 +144,6 @@ export default function OnboardingTemplateEditor({
       }))
       : []
   );
-
-  // Log current step keys and steps after every render
-  useEffect(() => {
-    console.log("Current steps:", steps.map(s => s.key));
-    console.log("Current steps full:", steps);
-  });
 
   // --- State
   const [saving, setSaving] = useState(false);
@@ -182,16 +167,13 @@ export default function OnboardingTemplateEditor({
   }, []);
 
   // --- Add new step
-  const addStep = (type: string) => {
-    setSteps((prev) => [
-      ...prev,
-      createStep(type),
-    ]);
-  };
+  const addStep = useCallback((type: string) => {
+    setSteps(prev => [...prev, createStep(type)]);
+  }, []);
 
   // --- Update a step (memoized)
   const updateStep = useCallback((idx: number, data: any) => {
-    setSteps((prev) => {
+    setSteps(prev => {
       const arr = [...prev];
       arr[idx] = { ...arr[idx], ...data };
       return arr;
@@ -200,7 +182,7 @@ export default function OnboardingTemplateEditor({
 
   // --- Remove a step (memoized)
   const removeStep = useCallback((idx: number) => {
-    setSteps((prev) => prev.filter((_, i) => i !== idx));
+    setSteps(prev => prev.filter((_, i) => i !== idx));
   }, []);
 
   // --- Save/publish
@@ -254,9 +236,6 @@ export default function OnboardingTemplateEditor({
       ))}
     </div>
   );
-
-  // --- Step Editor with diagnostics
-  // StepEditor moved outside the main component
 
   // --- Preview block
   const PreviewBlock = () => (
@@ -362,9 +341,13 @@ export default function OnboardingTemplateEditor({
         <StepTypePicker />
         <div className="space-y-2">
           {steps.map((step, idx) => (
-            <div key={step.key}>
-              <StepEditor step={step} idx={idx} updateStep={updateStep} removeStep={removeStep} />
-            </div>
+            <StepEditor
+              key={step.key}
+              step={step}
+              idx={idx}
+              updateStep={updateStep}
+              removeStep={removeStep}
+            />
           ))}
         </div>
       </div>

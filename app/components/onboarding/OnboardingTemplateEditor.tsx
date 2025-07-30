@@ -95,12 +95,12 @@ export default function OnboardingTemplateEditor({
 
   // Update a step, preserve key!
   const updateStep = (idx: number, data: any) => {
-    setSteps(prev => {
-      const arr = [...prev];
-      arr[idx] = { ...arr[idx], ...data }; // arr[idx].key is not touched
-      return arr;
-    });
-  };
+  setSteps((prev) => {
+    const arr = [...prev];
+    Object.assign(arr[idx], data);  // <-- The critical change!
+    return arr;
+  });
+};
 
   // Remove a step
   const removeStep = (idx: number) => {

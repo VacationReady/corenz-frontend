@@ -171,7 +171,7 @@ export default function OnboardingTemplateEditor({
   );
 
   // --- Step Editor
-  const StepEditor = ({ step, idx }: { step: any; idx: number }) => (
+  const StepEditor = ({ step, idx, updateStep }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => (
     <Card className={cn("mb-3 relative", preview && "opacity-70 pointer-events-none")}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex gap-2 items-center">

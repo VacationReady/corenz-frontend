@@ -29,7 +29,7 @@ export async function POST(
       include: {
         onboardingInstance: {
           include: {
-            employee: { include: { company: true } },
+            employee: { include: {}, company: true },
           },
         },
         step: true,

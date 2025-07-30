@@ -144,7 +144,7 @@ export default function OnboardingTemplateEditor({
   const StepTypePicker = () => (
     <div className="flex flex-wrap gap-2 mt-3 mb-6">
       {STEP_TYPES.map((t) => (
-        <Button key={t.value} variant="secondary" onClick={() => addStep(t.value)} className="flex items-center gap-2">
+        <Button key={t.value} variant="ghost" onClick={() => addStep(t.value)} className="flex items-center gap-2">
           <t.icon className="w-4 h-4" /> {t.label}
         </Button>
       ))}
@@ -282,7 +282,7 @@ export default function OnboardingTemplateEditor({
             </div>
           ))}
         </div>
-        <Button type="button" variant="secondary" onClick={() =>
+        <Button type="button" variant="ghost" onClick={() =>
           setEditFields([...editFields, { label: "", type: "text" }])}>
           + Add Field
         </Button>
@@ -334,7 +334,7 @@ export default function OnboardingTemplateEditor({
 
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="secondary" onClick={() => handleSave(false)} disabled={saving}>Save as Draft</Button>
+        <Button variant="ghost" onClick={() => handleSave(false)} disabled={saving}>Save as Draft</Button>
         <Button onClick={() => { setPublishing(true); handleSave(true); }} disabled={publishing || saving}>Publish</Button>
       </DialogFooter>
     </div>

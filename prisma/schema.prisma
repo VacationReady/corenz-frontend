@@ -531,6 +531,7 @@ model OnboardingStepInstance {
   step                 OnboardingStep     @relation(fields: [stepId], references: [id])
   status               String // "pending", "completed"
   completedAt          DateTime?
+order Int @default(0)
 }
 
 enum Role {

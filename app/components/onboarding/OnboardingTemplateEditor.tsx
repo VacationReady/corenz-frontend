@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
@@ -105,14 +105,14 @@ export default function OnboardingTemplateEditor({
     ]);
   };
 
-  // --- Update a step
-  const updateStep = (idx: number, data: any) => {
+  // --- Update a step (memoized)
+  const updateStep = useCallback((idx: number, data: any) => {
     setSteps((prev) => {
       const arr = [...prev];
       arr[idx] = { ...arr[idx], ...data };
       return arr;
     });
-  };
+  }, []);
 
   // --- Remove a step
   const removeStep = (idx: number) => {

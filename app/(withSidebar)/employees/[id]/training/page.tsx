@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import Training from '@/components/employee/Training'; // Adjust import path if needed
+import Training from '@/components/employees/Training'; // Adjust import path if needed
 
 export default function TrainingPage() {
   const params = useParams();

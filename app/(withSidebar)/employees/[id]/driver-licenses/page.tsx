@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import DriverLicenses from '@/components/employee/DriverLicenses'; // Path as appropriate
+import DriverLicenses from '@/components/employees/DriverLicenses'; // Path as appropriate
 
 export default function DriverLicensesPage() {
   const params = useParams();

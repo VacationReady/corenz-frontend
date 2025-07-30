@@ -273,7 +273,7 @@ export default function OnboardingTemplateEditor({
               </select>
               <Button
                 type="button"
-                size="icon"
+                size="md"
                 variant="ghost"
                 onClick={() => setEditFields(editFields.filter((_, idx) => idx !== i))}
               >

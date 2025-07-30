@@ -69,17 +69,20 @@ export async function POST(
     // 4. (Optional) Handle uploaded file - link to Document table if you have fileUrl
     if (body.fileUrl) {
       // You already have Document model; insert a new document and associate it to this step
-      await prisma.document.create({
+      const employee = stepInstance.onboardingInstance.employee;
+const user = employee.user;
+
+await prisma.document.create({
   data: {
     name: body.fileName || "Uploaded Document",
     url: body.fileUrl,
-    path: body.filePath || body.fileUrl, // fallback if you don't store path separately
-    size: body.fileSize || 0,            // set actual file size
+    path: body.filePath || body.fileUrl,
+    size: body.fileSize || 0,
     type: body.fileType || "other",
-    employeeId: stepInstance.onboardingInstance.employeeId,
-    uploaderId: stepInstance.onboardingInstance.employee.userId,
-    companyId: stepInstance.onboardingInstance.employee.companyId,
-    // Add category/description as needed
+    employeeId: employee.id,
+    uploaderId: user.id,
+    companyId: user.companyId, // <-- now correct!
+    // Add more fields as needed
   },
 });
     }

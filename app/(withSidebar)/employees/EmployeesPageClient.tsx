@@ -117,7 +117,6 @@ export default function EmployeesPageClient() {
     } catch {
       alert("Network error while starting onboarding");
     }
-  };
 
   return (
     <PageShell title="Employees" action={<Button onClick={() => setModalOpen(true)}>Add Employee</Button>}>

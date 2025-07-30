@@ -23,12 +23,16 @@ export default async function EmployeeLayout({
   }
 
   const menu = [
-    { href: `/employees/${params.id}/overview`, label: "Overview" },
-    { href: `/employees/${params.id}/leave`, label: "Leave" },
-    { href: `/employees/${params.id}/documents`, label: "Documents" },
-    { href: `/employees/${params.id}/performance`, label: "Performance" },
-{ href: `/employees/${params.id}/settings`,   label: "Settings" },
-  ];
+  { href: `/employees/${params.id}/overview`, label: "Overview" },
+  { href: `/employees/${params.id}/leave`, label: "Leave" },
+  { href: `/employees/${params.id}/documents`, label: "Documents" },
+  { href: `/employees/${params.id}/performance`, label: "Performance" },
+  { href: `/employees/${params.id}/onboarding`, label: "Onboarding History" },
+  { href: `/employees/${params.id}/driver-licenses`, label: "Driver Licenses" },
+  { href: `/employees/${params.id}/training`, label: "Training" },
+  { href: `/employees/${params.id}/employment-checks`, label: "Employment Checks" },
+  { href: `/employees/${params.id}/settings`, label: "Settings" },
+];
 
   return (
     <div className="flex min-h-screen">

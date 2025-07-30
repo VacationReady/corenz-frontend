@@ -16,9 +16,9 @@ import { MoreVertical } from "lucide-react";
 
 // ⬇️ import your tab panels
 import OnboardingAdminTab from './[id]/onboarding/admin-tab';
-import DriverLicenses from './[id]/driver-licenses/page';
-import Training from './[id]/training/page';
-import EmploymentChecks from './[id]/employment-checks/page';
+import DriverLicenses from '@/components/employee/DriverLicenses';
+import Training from '@/components/employee/Training';
+import EmploymentChecks from '@/components/employee/EmploymentChecks';
 
 export default function EmployeesPageClient() {
   const { data: session } = useSession();

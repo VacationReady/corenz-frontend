@@ -11,14 +11,8 @@ import NewDepartmentModal from '@/components/shared/NewDepartmentModal'
 import NewJobRoleModal from '@/components/shared/NewJobRoleModal'
 import { useSession } from "next-auth/react";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
 
 export default function EmployeesPageClient() {
   const { data: session } = useSession();
@@ -103,20 +97,25 @@ export default function EmployeesPageClient() {
     }
   };
 
-  // ✅ New: Trigger onboarding manually
+  // 🟢 New: Handle start onboarding action
   const handleStartOnboarding = async (employeeId: string) => {
+    if (!employeeId) return;
     try {
       const res = await fetch(`/api/onboarding/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId }),
       });
-      if (!res.ok) throw new Error("Failed to start onboarding");
-      toast("Onboarding started for employee");
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to start onboarding");
+        return;
+      }
+      alert("Onboarding started!");
+      // Optionally refresh data if you show onboarding status per employee
       fetchData();
-    } catch (error) {
-      toast("Failed to start onboarding");
-      console.error(error);
+    } catch {
+      alert("Network error while starting onboarding");
     }
   };
 
@@ -129,77 +128,4 @@ export default function EmployeesPageClient() {
             <thead className="bg-neutral-100 border-b">
               <tr>
                 <th className="text-left p-3">Name</th>
-                <th className="text-left p-3">Phone</th>
-                <th className="text-left p-3">Department</th>
-                <th className="text-left p-3">Job Role</th>
-                <th className="text-left p-3">Email</th>
-                <th className="text-left p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((emp) => (
-                <tr key={emp.id} className="border-b hover:bg-neutral-50">
-                  <td className="p-3">
-                    <Link
-                      href={`/employees/${emp.id}/overview`}
-                      className="text-indigo-600 hover:underline"
-                    >
-                      {emp.firstName} {emp.lastName}
-                    </Link>
-                  </td>
-                  <td className="p-3">{emp.phone || "-"}</td>
-                  <td className="p-3">{emp.departmentName || "-"}</td>
-                  <td className="p-3">{emp.jobRoleName || "-"}</td>
-                  <td className="p-3">{emp.email || "-"}</td>
-                  <td className="p-3">
-                    {/* Kebab menu for actions */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={async () => {
-                            if (!confirm("Are you sure you want to delete this employee?")) return;
-                            try {
-                              const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
-                              if (!res.ok) throw new Error("Delete failed");
-                              fetchData();
-                            } catch (err) {
-                              alert("Error deleting employee.");
-                              console.error(err);
-                            }
-                          }}
-                          className="text-red-600"
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleStartOnboarding(emp.id)}
-                        >
-                          Start Onboarding
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* ✅ Correctly placed modal usage below */}
-      <AddEmployeeModal
-        open={isModalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={fetchData}
-      />
-
-      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
-      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
-    </PageShell>
-  );
-}
+                <th className

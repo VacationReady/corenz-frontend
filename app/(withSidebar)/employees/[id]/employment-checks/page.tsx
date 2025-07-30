@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import EmploymentChecks from '@/components/employee/EmploymentChecks'; // Adjust import path if needed
+import EmploymentChecks from '@/components/employees/EmploymentChecks'; // Adjust import path if needed
 
 export default function EmploymentChecksPage() {
   const params = useParams();

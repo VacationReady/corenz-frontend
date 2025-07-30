@@ -157,7 +157,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
             {/* --- 👇 Onboarding toggle here --- */}
             <div className="flex items-center gap-2">
-              <Switch checked={startOnboarding} onCheckedChange={setStartOnboarding} />
+              <Switch checked={startOnboarding} onChange={checked => setStartOnboarding(checked)} />
               <Label className="text-sm">Start onboarding immediately after adding employee</Label>
             </div>
 

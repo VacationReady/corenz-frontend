@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         employeeId,
         templateId: template.id,
         status: 'active',
-        onboardingStepInstances: {
+        steps: { // <-- this matches your Prisma model
           create: steps.map((step, idx) => ({
             stepId: step.id,
             type: step.type,
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
           }))
         }
       },
-      include: { onboardingStepInstances: true }
+      include: { steps: true }
     });
 
     return NextResponse.json(onboardingInstance, { status: 201 });

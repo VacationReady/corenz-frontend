@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
@@ -39,7 +39,7 @@ function createStep(type: string) {
   };
 }
 
-const StepEditor = ({
+const StepEditor = memo(({
   step, idx, updateStep, removeStep
 }: { 
   step: any; 
@@ -119,7 +119,9 @@ const StepEditor = ({
       </div>
     </div>
   );
-};
+});
+
+StepEditor.displayName = 'StepEditor';
 
 export default function OnboardingTemplateEditor({
   template,
@@ -196,10 +198,10 @@ export default function OnboardingTemplateEditor({
     });
   }, []);
 
-  // --- Remove a step
-  const removeStep = (idx: number) => {
+  // --- Remove a step (memoized)
+  const removeStep = useCallback((idx: number) => {
     setSteps((prev) => prev.filter((_, i) => i !== idx));
-  };
+  }, []);
 
   // --- Save/publish
   const handleSave = async (publish = false) => {

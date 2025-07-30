@@ -519,19 +519,28 @@ model OnboardingInstance {
   template    OnboardingTemplate       @relation(fields: [templateId], references: [id])
   startedAt   DateTime                 @default(now())
   completedAt DateTime?
-status String @default("active")
+  status      String                   @default("active")
   steps       OnboardingStepInstance[]
 }
 
 model OnboardingStepInstance {
-  id                   String             @id @default(cuid())
+  id                   String                   @id @default(cuid())
   onboardingInstanceId String
-  onboardingInstance   OnboardingInstance @relation(fields: [onboardingInstanceId], references: [id])
+  onboardingInstance   OnboardingInstance       @relation(fields: [onboardingInstanceId], references: [id])
   stepId               String
-  step                 OnboardingStep     @relation(fields: [stepId], references: [id])
+  step                 OnboardingStep           @relation(fields: [stepId], references: [id])
   status               String // "pending", "completed"
   completedAt          DateTime?
-order Int @default(0)
+  order                Int                      @default(0)
+  responses            OnboardingStepResponse[]
+}
+
+model OnboardingStepResponse {
+  id                       String                 @id @default(cuid())
+  onboardingStepInstanceId String
+  onboardingStepInstance   OnboardingStepInstance @relation(fields: [onboardingStepInstanceId], references: [id])
+  response                 Json
+  createdAt                DateTime               @default(now())
 }
 
 enum Role {

@@ -334,19 +334,27 @@ export default function OnboardingTemplateEditor({
         <h3 className="text-lg font-semibold mb-1">Steps</h3>
         <p className="text-gray-500 mb-2">Drag and drop to reorder. Each step can require a document to be acknowledged, uploaded, or a custom form.</p>
         <StepTypePicker />
-        <Reorder.Group axis="y" values={steps} onReorder={moveStep} className="space-y-2">
-          {steps.map((step, idx) => (
-            <Reorder.Item
-              as="div"
-              key={getStepKey(step)}
-              value={step}
-              initial={false}
-              className="cursor-move"
-            >
-              <StepEditor step={step} idx={idx} />
-            </Reorder.Item>
-          ))}
-        </Reorder.Group>
+        <Reorder.Group
+  axis="y"
+  values={steps.map(s => s.key)}
+  onReorder={newKeys => {
+    // reorder steps based on newKeys array
+    setSteps(newKeys.map(key => steps.find(s => s.key === key)!));
+  }}
+  className="space-y-2"
+>
+  {steps.map((step, idx) => (
+    <Reorder.Item
+      as="div"
+      key={step.key}
+      value={step.key}
+      initial={false}
+      className="cursor-move"
+    >
+      <StepEditor step={step} idx={idx} />
+    </Reorder.Item>
+  ))}
+</Reorder.Group>
       </div>
 
       {steps.length > 0 && <PreviewBlock />}

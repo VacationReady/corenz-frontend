@@ -10,32 +10,31 @@ import { authOptions } from "@/lib/auth-options";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ GET: Return employees with their user data for listing
-
 export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
-  include: {
-    user: {
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        jobRole: {
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            jobRole: {
+              select: { id: true, name: true },
+            },
+          },
+        },
+        department: {
           select: { id: true, name: true },
         },
       },
-    },
-    department: {
-      select: { id: true, name: true },
-    },
-  },
-  orderBy: { id: 'desc' },
-});
+      orderBy: { id: "desc" },
+    });
 
-    const flattened = employees.map(emp => ({
+    const flattened = employees.map((emp) => ({
       id: emp.id,
       userId: emp.user.id,
       firstName: emp.user.firstName,
@@ -46,13 +45,13 @@ export async function GET() {
       departmentId: emp.department?.id ?? null,
       departmentName: emp.department?.name ?? null,
       jobRoleId: emp.user.jobRole?.id ?? null,
-jobRoleName: emp.user.jobRole?.name ?? null,
+      jobRoleName: emp.user.jobRole?.name ?? null,
     }));
 
     return NextResponse.json(flattened);
   } catch (error) {
-    console.error('Failed to load employees:', error);
-    return new NextResponse('Error loading employees', { status: 500 });
+    console.error("Failed to load employees:", error);
+    return new NextResponse("Error loading employees", { status: 500 });
   }
 }
 
@@ -80,6 +79,7 @@ export async function POST(req: Request) {
       jobRoleId,
       departmentId,
       managerId,
+      startOnboarding, // ✅ NEW!
     } = await req.json();
 
     if (!firstName || !lastName || !email || !startDate || !role) {
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       },
     });
 
-    await prisma.employee.create({
+    const employee = await prisma.employee.create({
       data: {
         user: { connect: { id: user.id } },
         isActive: true,
@@ -165,6 +165,21 @@ export async function POST(req: Request) {
         <p><a href="${activationLink}">Activate Your Account</a></p>
       `,
     });
+
+    // ✅ Optional: Start onboarding if requested
+    if (startOnboarding) {
+      // TODO: Trigger onboarding instance creation here!
+      // e.g.
+      // await prisma.onboardingInstance.create({
+      //   data: {
+      //     employeeId: employee.id,
+      //     // ...template selection logic
+      //   }
+      // });
+      console.log(`🚀 Onboarding triggered for employee ${employee.id} (${email})`);
+    } else {
+      console.log(`🕒 Onboarding NOT triggered for employee ${employee.id} (${email})`);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

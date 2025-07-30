@@ -85,6 +85,7 @@ model Employee {
   onboardingTemplateId      String? // Link to template assigned
   onboardingTemplate        OnboardingTemplate?                @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
   onboardingStatus          Json? // Track step completion/status per employee (future proof)
+  onboardingInstances       OnboardingInstance[]
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -489,23 +490,46 @@ model OnboardingTemplate {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  employees   Employee[]   @relation("OnboardingTemplateEmployees")
-  departments Department[] @relation("OnboardingTemplateDepartments")
-  jobRoles    JobRole[]    @relation("OnboardingTemplateJobRoles")
+  employees           Employee[]           @relation("OnboardingTemplateEmployees")
+  departments         Department[]         @relation("OnboardingTemplateDepartments")
+  jobRoles            JobRole[]            @relation("OnboardingTemplateJobRoles")
+  onboardingInstances OnboardingInstance[]
 }
 
 model OnboardingStep {
-  id          String                @id @default(cuid())
-  type        OnboardingStepType
-  label       String // e.g. 'Acknowledge H&S Policy', 'Upload Right to Work', etc.
-  order       Int // Drag/drop step order
-  templateId  String
-  template    OnboardingTemplate    @relation(fields: [templateId], references: [id])
+  id                      String                   @id @default(cuid())
+  type                    OnboardingStepType
+  label                   String // e.g. 'Acknowledge H&S Policy', 'Upload Right to Work', etc.
+  order                   Int // Drag/drop step order
+  templateId              String
+  template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
   // --- Step-specific fields (one used per type) ---
-  documentId  String? // For acknowledge-document step
-  document    Document?             @relation(fields: [documentId], references: [id])
-  uploadType  OnboardingUploadType? // For upload steps (e.g. passport, right to work)
-  instruction String? // For simple instruction/checklist steps
+  documentId              String? // For acknowledge-document step
+  document                Document?                @relation(fields: [documentId], references: [id])
+  uploadType              OnboardingUploadType? // For upload steps (e.g. passport, right to work)
+  instruction             String? // For simple instruction/checklist steps
+  onboardingStepInstances OnboardingStepInstance[]
+}
+
+model OnboardingInstance {
+  id          String                   @id @default(cuid())
+  employeeId  String
+  employee    Employee                 @relation(fields: [employeeId], references: [id])
+  templateId  String
+  template    OnboardingTemplate       @relation(fields: [templateId], references: [id])
+  startedAt   DateTime                 @default(now())
+  completedAt DateTime?
+  steps       OnboardingStepInstance[]
+}
+
+model OnboardingStepInstance {
+  id                   String             @id @default(cuid())
+  onboardingInstanceId String
+  onboardingInstance   OnboardingInstance @relation(fields: [onboardingInstanceId], references: [id])
+  stepId               String
+  step                 OnboardingStep     @relation(fields: [stepId], references: [id])
+  status               String // "pending", "completed"
+  completedAt          DateTime?
 }
 
 enum Role {

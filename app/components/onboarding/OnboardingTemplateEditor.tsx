@@ -41,6 +41,68 @@ function createStep(type: string) {
   };
 }
 
+// --- Document dropdown (API)
+function DocumentDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const [docs, setDocs] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("/api/documents/list")
+      .then((r) => r.json())
+      .then((data) => setDocs(Array.isArray(data) ? data : []));
+  }, []);
+  return (
+    <select className="w-full border rounded-md p-2" value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">Select a document…</option>
+      {docs.map((d) => (
+        <option key={d.id} value={d.id}>{d.name} ({d.category})</option>
+      ))}
+    </select>
+  );
+}
+
+// --- Custom FormFields Editor
+function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fields: any[]) => void }) {
+  const [editFields, setEditFields] = useState<any[]>(fields || []);
+  useEffect(() => { onChange(editFields); }, [editFields]);
+  return (
+    <div>
+      <div className="space-y-2 mb-3">
+        {editFields.map((f, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input className="w-1/3" placeholder="Field label" value={f.label} onChange={e => {
+              const arr = [...editFields]; arr[i].label = e.target.value; setEditFields(arr);
+            }} />
+            <select
+              className="w-1/4 border rounded-md p-2"
+              value={f.type}
+              onChange={e => {
+                const arr = [...editFields]; arr[i].type = e.target.value; setEditFields(arr);
+              }}
+            >
+              <option value="text">Text</option>
+              <option value="date">Date</option>
+              <option value="file">File Upload</option>
+              <option value="number">Number</option>
+              <option value="select">Dropdown</option>
+            </select>
+            <Button
+              type="button"
+              size="md"
+              variant="ghost"
+              onClick={() => setEditFields(editFields.filter((_, idx) => idx !== i))}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button type="button" variant="ghost" onClick={() =>
+        setEditFields([...editFields, { label: "", type: "text" }])}>
+        + Add Field
+      </Button>
+    </div>
+  );
+}
+
 // --- StepEditor (memoized)
 const StepEditor = React.memo(function StepEditor({
   step, idx, updateStep, removeStep
@@ -251,68 +313,6 @@ export default function OnboardingTemplateEditor({
       </ol>
     </div>
   );
-
-  // --- Document dropdown (API)
-  function DocumentDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-    const [docs, setDocs] = useState<any[]>([]);
-    useEffect(() => {
-      fetch("/api/documents/list")
-        .then((r) => r.json())
-        .then((data) => setDocs(Array.isArray(data) ? data : []));
-    }, []);
-    return (
-      <select className="w-full border rounded-md p-2" value={value} onChange={e => onChange(e.target.value)}>
-        <option value="">Select a document…</option>
-        {docs.map((d) => (
-          <option key={d.id} value={d.id}>{d.name} ({d.category})</option>
-        ))}
-      </select>
-    );
-  }
-
-  // --- Custom FormFields Editor
-  function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fields: any[]) => void }) {
-    const [editFields, setEditFields] = useState<any[]>(fields || []);
-    useEffect(() => { onChange(editFields); }, [editFields]);
-    return (
-      <div>
-        <div className="space-y-2 mb-3">
-          {editFields.map((f, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input className="w-1/3" placeholder="Field label" value={f.label} onChange={e => {
-                const arr = [...editFields]; arr[i].label = e.target.value; setEditFields(arr);
-              }} />
-              <select
-                className="w-1/4 border rounded-md p-2"
-                value={f.type}
-                onChange={e => {
-                  const arr = [...editFields]; arr[i].type = e.target.value; setEditFields(arr);
-                }}
-              >
-                <option value="text">Text</option>
-                <option value="date">Date</option>
-                <option value="file">File Upload</option>
-                <option value="number">Number</option>
-                <option value="select">Dropdown</option>
-              </select>
-              <Button
-                type="button"
-                size="md"
-                variant="ghost"
-                onClick={() => setEditFields(editFields.filter((_, idx) => idx !== i))}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-        <Button type="button" variant="ghost" onClick={() =>
-          setEditFields([...editFields, { label: "", type: "text" }])}>
-          + Add Field
-        </Button>
-      </div>
-    );
-  }
 
   // --- Main render
   return (

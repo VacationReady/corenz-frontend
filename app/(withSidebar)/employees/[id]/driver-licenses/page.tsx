@@ -19,10 +19,12 @@ interface DriverLicence {
   } | null;
 }
 
-export default function DriverLicencesPage() {
+export default function DriverLicensesPage({ employeeId: propEmployeeId }: { employeeId?: string }) {
   const params = useParams();
   const router = useRouter();
-  const employeeId = params?.id ?? '';
+  // Use prop if given, else fallback to params.id
+  const employeeIdRaw = propEmployeeId ?? params?.id ?? '';
+  const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
 
   const [licences, setLicences] = useState<DriverLicence[]>([]);
   const [loading, setLoading] = useState(true);

@@ -30,9 +30,11 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-export default function EmploymentChecksPage() {
+export default function EmploymentChecksPage({ employeeId: propEmployeeId }: { employeeId?: string }) {
   const params = useParams();
-  const employeeId = typeof params?.id === 'string' ? params.id : '';
+  // Use prop if given, else fallback to params.id
+  const employeeIdRaw = propEmployeeId ?? params?.id ?? '';
+  const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
 
   const [checks, setChecks] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
@@ -95,9 +97,9 @@ export default function EmploymentChecksPage() {
       const method = editMode ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
-  method,
-  body: formData,
-});
+        method,
+        body: formData,
+      });
 
       if (res.ok) {
         const updatedCheck = await res.json();

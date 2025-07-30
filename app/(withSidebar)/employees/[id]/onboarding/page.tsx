@@ -91,7 +91,7 @@ export default function EmployeeOnboardingPage({ params }: { params: { id: strin
               </div>
               <Button
                 disabled={step.status === 'completed'}
-                variant={step.status === 'completed' ? 'ghost' : 'default'}
+                variant={step.status === 'completed' ? 'ghost' : 'primary'}
                 // onClick={() => handleCompleteStep(step.id)} // implement later
               >
                 {step.status === 'completed' ? 'Completed' : 'Mark as Complete'}

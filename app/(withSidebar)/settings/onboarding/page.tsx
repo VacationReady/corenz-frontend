@@ -89,13 +89,13 @@ export default function OnboardingSettingsPage() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Button size="icon" variant="ghost" onClick={() => handleEdit(t)}>
+                  <Button size="md" variant="ghost" onClick={() => handleEdit(t)}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => handleDuplicate(t)}>
+                  <Button size="md" variant="ghost" onClick={() => handleDuplicate(t)}>
                     <Copy className="w-4 h-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => handleDelete(t)}>
+                  <Button size="md" variant="ghost" onClick={() => handleDelete(t)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>

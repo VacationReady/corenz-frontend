@@ -67,7 +67,7 @@ export default function OnboardingAdminTab({ employeeId }: { employeeId: string 
                 )}
               </div>
             </div>
-            <Badge variant={instance.status === 'completed' ? 'primary' : instance.status === 'cancelled' ? 'destructive' : 'outline'}>
+            <Badge variant={instance.status === 'completed' ? 'default' : instance.status === 'cancelled' ? 'destructive' : 'outline'}>
               {instance.status.charAt(0).toUpperCase() + instance.status.slice(1)}
             </Badge>
           </div>

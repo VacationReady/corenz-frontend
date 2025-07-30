@@ -81,8 +81,8 @@ await prisma.document.create({
     type: body.fileType || "other",
     employeeId: employee.id,
     uploaderId: user.id,
-    companyId: user.companyId, // <-- now correct!
-    // Add more fields as needed
+    companyId: user.companyId ?? undefined,
+    // ...other fields
   },
 });
     }

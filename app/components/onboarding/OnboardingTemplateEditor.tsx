@@ -27,13 +27,12 @@ function getStepKey(step: any) {
 }
 
 function createStep(type: string) {
-  // Always generate a UUID string as the key for new steps
   const uuid = typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
   return {
-    key: uuid,
+    id: uuid,
     type,
     title: "",
     description: "",
@@ -67,7 +66,7 @@ export default function OnboardingTemplateEditor({
   template?.steps?.length
     ? template.steps.map((step: any) => ({
         ...step,
-        key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+        id: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
       }))
     : []
 );
@@ -336,10 +335,10 @@ export default function OnboardingTemplateEditor({
         <StepTypePicker />
         <div className="space-y-2">
   {steps.map((step, idx) => (
-    <div key={step.key}>
-      <StepEditor step={step} idx={idx} updateStep={updateStep} />
-    </div>
-  ))}
+  <div key={step.id}>
+    <StepEditor step={step} idx={idx} updateStep={updateStep} />
+  </div>
+))}
 </div>
       </div>
 

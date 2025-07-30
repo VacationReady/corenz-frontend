@@ -14,12 +14,6 @@ import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 
-// ⬇️ import your tab panels
-import OnboardingAdminTab from './[id]/onboarding/admin-tab';
-import DriverLicenses from '@/components/employees/DriverLicenses';
-import Training from '@/components/employees/Training';
-import EmploymentChecks from '@/components/employees/EmploymentChecks';
-
 export default function EmployeesPageClient() {
   const { data: session } = useSession();
   const [employees, setEmployees] = useState<any[]>([]);
@@ -29,8 +23,6 @@ export default function EmployeesPageClient() {
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
   const [error, setError] = useState("");
-  const [activeEmployeeId, setActiveEmployeeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "onboarding" | "driverLicenses" | "training" | "employmentChecks">("overview");
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -120,83 +112,10 @@ export default function EmployeesPageClient() {
         return;
       }
       alert("Onboarding started!");
-      // Optionally refresh data if you show onboarding status per employee
       fetchData();
     } catch {
       alert("Network error while starting onboarding");
     }
-  };
-
-  // ⬇️ Render a modal/tab panel for selected employee
-  const renderEmployeeTabs = () => {
-    if (!activeEmployeeId) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6">
-          <div className="mb-6 flex gap-3 border-b pb-2">
-            <button
-              className={`px-4 py-2 rounded-t font-semibold ${activeTab === "overview" ? "bg-indigo-100 text-indigo-700" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("overview")}
-            >
-              Overview
-            </button>
-            <button
-              className={`px-4 py-2 rounded-t font-semibold ${activeTab === "onboarding" ? "bg-indigo-100 text-indigo-700" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("onboarding")}
-            >
-              Onboarding History
-            </button>
-            <button
-              className={`px-4 py-2 rounded-t font-semibold ${activeTab === "driverLicenses" ? "bg-indigo-100 text-indigo-700" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("driverLicenses")}
-            >
-              Driver Licenses
-            </button>
-            <button
-              className={`px-4 py-2 rounded-t font-semibold ${activeTab === "training" ? "bg-indigo-100 text-indigo-700" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("training")}
-            >
-              Training
-            </button>
-            <button
-              className={`px-4 py-2 rounded-t font-semibold ${activeTab === "employmentChecks" ? "bg-indigo-100 text-indigo-700" : "hover:bg-gray-100"}`}
-              onClick={() => setActiveTab("employmentChecks")}
-            >
-              Employment Checks
-            </button>
-            <button
-              className="ml-auto px-2 text-red-500 font-bold"
-              onClick={() => setActiveEmployeeId(null)}
-              title="Close"
-            >
-              ✕
-            </button>
-          </div>
-          <div>
-            {activeTab === "overview" && (
-              <div>
-                <h2 className="font-semibold text-lg mb-2">Employee Overview</h2>
-                {/* You can add more fields/details here */}
-                <p>Coming soon: Overview content...</p>
-              </div>
-            )}
-            {activeTab === "onboarding" && (
-              <OnboardingAdminTab employeeId={activeEmployeeId} />
-            )}
-            {activeTab === "driverLicenses" && (
-              <DriverLicenses employeeId={activeEmployeeId} />
-            )}
-            {activeTab === "training" && (
-              <Training employeeId={activeEmployeeId} />
-            )}
-            {activeTab === "employmentChecks" && (
-              <EmploymentChecks employeeId={activeEmployeeId} />
-            )}
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -219,15 +138,12 @@ export default function EmployeesPageClient() {
               {employees.map((emp) => (
                 <tr key={emp.id} className="border-b hover:bg-neutral-50">
                   <td className="p-3">
-                    <button
+                    <Link
+                      href={`/employees/${emp.id}/overview`}
                       className="text-indigo-600 hover:underline"
-                      onClick={() => {
-                        setActiveEmployeeId(emp.id);
-                        setActiveTab("overview");
-                      }}
                     >
                       {emp.firstName} {emp.lastName}
-                    </button>
+                    </Link>
                   </td>
                   <td className="p-3">{emp.phone || "-"}</td>
                   <td className="p-3">{emp.departmentName || "-"}</td>
@@ -279,7 +195,6 @@ export default function EmployeesPageClient() {
 
       {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
       {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
-      {renderEmployeeTabs()}
     </PageShell>
   );
 }

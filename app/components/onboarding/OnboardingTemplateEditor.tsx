@@ -5,14 +5,12 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/Card";
 import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { X, GripVertical, FileText, UploadCloud, FileEdit, Info } from "lucide-react";
 import { toast } from "sonner";
 import { DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { motion, Reorder } from "framer-motion";
 
 const STEP_TYPES = [
   { value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
@@ -21,7 +19,6 @@ const STEP_TYPES = [
   { value: "instructions", label: "Welcome/Instructions", icon: Info },
 ];
 
-// Utility for a stable, unique key (never changes once set)
 function getStepKey(step: any) {
   return step.id || step.key;
 }
@@ -32,7 +29,7 @@ function createStep(type: string) {
     : Math.random().toString(36).slice(2);
 
   return {
-    id: uuid,
+    key: uuid,
     type,
     title: "",
     description: "",
@@ -62,14 +59,14 @@ export default function OnboardingTemplateEditor({
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
 
   // --- Steps (drag/drop)
-  const [steps, setSteps] = useState<any[]>(() => 
-  template?.steps?.length
-    ? template.steps.map((step: any) => ({
+  const [steps, setSteps] = useState<any[]>(() =>
+    template?.steps?.length
+      ? template.steps.map((step: any) => ({
         ...step,
-        id: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+        key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
       }))
-    : []
-);
+      : []
+  );
 
   // --- State
   const [saving, setSaving] = useState(false);
@@ -113,9 +110,6 @@ export default function OnboardingTemplateEditor({
   const removeStep = (idx: number) => {
     setSteps((prev) => prev.filter((_, i) => i !== idx));
   };
-
-  // --- Drag/drop handler
-  const moveStep = (newSteps: any[]) => setSteps(newSteps);
 
   // --- Save/publish
   const handleSave = async (publish = false) => {
@@ -169,15 +163,21 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 
-  // --- Step Editor
-  const StepEditor = ({ step, idx, updateStep }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => (
+  // --- Step Editor with DIV not Card!
+  const StepEditor = ({
+    step, idx, updateStep
+  }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => (
     <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex gap-2 items-center">
           <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
-          <span className="uppercase text-xs font-semibold text-gray-500">{STEP_TYPES.find((t) => t.value === step.type)?.label}</span>
+          <span className="uppercase text-xs font-semibold text-gray-500">
+            {STEP_TYPES.find((t) => t.value === step.type)?.label}
+          </span>
         </div>
-        <Button size="md" variant="ghost" onClick={() => removeStep(idx)}><X className="w-4 h-4" /></Button>
+        <Button size="md" variant="ghost" onClick={() => removeStep(idx)}>
+          <X className="w-4 h-4" />
+        </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
@@ -228,7 +228,7 @@ export default function OnboardingTemplateEditor({
           </div>
         )}
       </div>
-    </Card>
+    </div>
   );
 
   // --- Preview block
@@ -334,12 +334,12 @@ export default function OnboardingTemplateEditor({
         <p className="text-gray-500 mb-2">Drag and drop to reorder. Each step can require a document to be acknowledged, uploaded, or a custom form.</p>
         <StepTypePicker />
         <div className="space-y-2">
-  {steps.map((step, idx) => (
-  <div key={step.id}>
-    <StepEditor step={step} idx={idx} updateStep={updateStep} />
-  </div>
-))}
-</div>
+          {steps.map((step, idx) => (
+            <div key={step.key}>
+              <StepEditor step={step} idx={idx} updateStep={updateStep} />
+            </div>
+          ))}
+        </div>
       </div>
 
       {steps.length > 0 && <PreviewBlock />}

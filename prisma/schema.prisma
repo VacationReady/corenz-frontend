@@ -82,9 +82,9 @@ model Employee {
   driverLicences            DriverLicence[]
   trainingRecords           TrainingRecord[]
   DocumentAcknowledgement   DocumentAcknowledgement[]
-onboardingTemplateId  String?      // Link to template assigned
-  onboardingTemplate    OnboardingTemplate? @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
-  onboardingStatus      Json?        // Track step completion/status per employee (future proof)
+  onboardingTemplateId      String? // Link to template assigned
+  onboardingTemplate        OnboardingTemplate?                @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
+  onboardingStatus          Json? // Track step completion/status per employee (future proof)
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -189,8 +189,9 @@ model Department {
   // 🔥 Updated M:N for document restrictions
   documents Document[] @relation("DocumentDepartments")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  onboardingTemplates OnboardingTemplate[] @relation("OnboardingTemplateDepartments")
 
   @@unique([companyId, name])
 }
@@ -211,10 +212,10 @@ model Company {
   departments Department[]
   jobRoles    JobRole[] // ✅ Added for multi-tenant job role relation
 
-  SavedReport SavedReport[]
-  documents   Document[]
+  SavedReport         SavedReport[]
+  documents           Document[]
   onboardingTemplates OnboardingTemplate[]
-  users User[]
+  users               User[]
 }
 
 model JobRole {
@@ -235,8 +236,9 @@ model JobRole {
   // 🔥 Added M:N relation for document restrictions
   documents Document[] @relation("DocumentJobRoles")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  onboardingTemplates OnboardingTemplate[] @relation("OnboardingTemplateJobRoles")
 
   @@unique([companyId, name])
 }
@@ -363,10 +365,10 @@ model Document {
   acknowledgements DocumentAcknowledgement[] // ✅ NEW RELATION
 
   // Other Relations
-  driverLicences  DriverLicence[]
-  trainingRecords TrainingRecord[]
-requireAckFromNewStarters Boolean @default(false)
-  onboardingSteps OnboardingStep[]
+  driverLicences            DriverLicence[]
+  trainingRecords           TrainingRecord[]
+  requireAckFromNewStarters Boolean          @default(false)
+  onboardingSteps           OnboardingStep[]
 }
 
 model DocumentAcknowledgement {
@@ -477,31 +479,33 @@ model Location {
 }
 
 model OnboardingTemplate {
-  id           String                @id @default(cuid())
-  name         String
-  description  String?
-  isDefault    Boolean               @default(false)
-  steps        OnboardingStep[]
-  companyId    String
-  company      Company               @relation(fields: [companyId], references: [id])
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean          @default(false)
+  steps       OnboardingStep[]
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  employees    Employee[]            @relation("OnboardingTemplateEmployees")
+  employees   Employee[]   @relation("OnboardingTemplateEmployees")
+  departments Department[] @relation("OnboardingTemplateDepartments")
+  jobRoles    JobRole[]    @relation("OnboardingTemplateJobRoles")
 }
 
 model OnboardingStep {
-  id             String     @id @default(cuid())
-  type           OnboardingStepType
-  label          String                 // e.g. 'Acknowledge H&S Policy', 'Upload Right to Work', etc.
-  order          Int                    // Drag/drop step order
-  templateId     String
-  template       OnboardingTemplate     @relation(fields: [templateId], references: [id])
+  id          String                @id @default(cuid())
+  type        OnboardingStepType
+  label       String // e.g. 'Acknowledge H&S Policy', 'Upload Right to Work', etc.
+  order       Int // Drag/drop step order
+  templateId  String
+  template    OnboardingTemplate    @relation(fields: [templateId], references: [id])
   // --- Step-specific fields (one used per type) ---
-  documentId     String?                // For acknowledge-document step
-  document       Document?              @relation(fields: [documentId], references: [id])
-  uploadType     OnboardingUploadType?  // For upload steps (e.g. passport, right to work)
-  instruction    String?                // For simple instruction/checklist steps
+  documentId  String? // For acknowledge-document step
+  document    Document?             @relation(fields: [documentId], references: [id])
+  uploadType  OnboardingUploadType? // For upload steps (e.g. passport, right to work)
+  instruction String? // For simple instruction/checklist steps
 }
 
 enum Role {
@@ -540,9 +544,9 @@ enum LeaveType {
 }
 
 enum OnboardingStepType {
-  ACKNOWLEDGE_DOCUMENT    // Read & acknowledge a document (docId required)
-  UPLOAD_DOCUMENT         // Upload a document (type required, e.g. "Right to Work")
-  INSTRUCTION             // Custom instruction/checklist
+  ACKNOWLEDGE_DOCUMENT // Read & acknowledge a document (docId required)
+  UPLOAD_DOCUMENT // Upload a document (type required, e.g. "Right to Work")
+  INSTRUCTION // Custom instruction/checklist
 }
 
 enum OnboardingUploadType {

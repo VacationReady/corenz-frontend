@@ -10,7 +10,15 @@ import { PageShell } from "@/components/ui/PageShell";
 import NewDepartmentModal from '@/components/shared/NewDepartmentModal'
 import NewJobRoleModal from '@/components/shared/NewJobRoleModal'
 import { useSession } from "next-auth/react";
-import AddEmployeeModal from "@/components/employees/AddEmployeeModal"
+import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
+import { MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 export default function EmployeesPageClient() {
   const { data: session } = useSession();
@@ -41,7 +49,6 @@ export default function EmployeesPageClient() {
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
       ]);
-console.log("🔍 Flattened employee API response:", empRes);
       setEmployees(empRes);
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
@@ -96,6 +103,23 @@ console.log("🔍 Flattened employee API response:", empRes);
     }
   };
 
+  // ✅ New: Trigger onboarding manually
+  const handleStartOnboarding = async (employeeId: string) => {
+    try {
+      const res = await fetch(`/api/onboarding/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId }),
+      });
+      if (!res.ok) throw new Error("Failed to start onboarding");
+      toast("Onboarding started for employee");
+      fetchData();
+    } catch (error) {
+      toast("Failed to start onboarding");
+      console.error(error);
+    }
+  };
+
   return (
     <PageShell title="Employees" action={<Button onClick={() => setModalOpen(true)}>Add Employee</Button>}>
       {error && <p className="text-red-600 mb-4">{error}</p>}
@@ -113,41 +137,55 @@ console.log("🔍 Flattened employee API response:", empRes);
               </tr>
             </thead>
             <tbody>
-{employees.map((emp) => (
-  <tr key={emp.id} className="border-b hover:bg-neutral-50">
-    <td className="p-3">
-      <Link
-        href={`/employees/${emp.id}/overview`}
-        className="text-indigo-600 hover:underline"
-      >
-        {emp.firstName} {emp.lastName}
-      </Link>
-    </td>
-    <td className="p-3">{emp.phone || "-"}</td>
-    <td className="p-3">{emp.departmentName || "-"}</td>
-    <td className="p-3">{emp.jobRoleName || "-"}</td>
-    <td className="p-3">{emp.email || "-"}</td>
-    <td className="p-3">
-      <Button
-        variant="danger"
-        size="sm"
-        onClick={async () => {
-          if (!confirm("Are you sure you want to delete this employee?")) return;
-          try {
-            const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
-            if (!res.ok) throw new Error("Delete failed");
-            fetchData();
-          } catch (err) {
-            alert("Error deleting employee.");
-            console.error(err);
-          }
-        }}
-      >
-        Delete
-      </Button>
-    </td>
-  </tr>
-))}
+              {employees.map((emp) => (
+                <tr key={emp.id} className="border-b hover:bg-neutral-50">
+                  <td className="p-3">
+                    <Link
+                      href={`/employees/${emp.id}/overview`}
+                      className="text-indigo-600 hover:underline"
+                    >
+                      {emp.firstName} {emp.lastName}
+                    </Link>
+                  </td>
+                  <td className="p-3">{emp.phone || "-"}</td>
+                  <td className="p-3">{emp.departmentName || "-"}</td>
+                  <td className="p-3">{emp.jobRoleName || "-"}</td>
+                  <td className="p-3">{emp.email || "-"}</td>
+                  <td className="p-3">
+                    {/* Kebab menu for actions */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-5 h-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            if (!confirm("Are you sure you want to delete this employee?")) return;
+                            try {
+                              const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
+                              if (!res.ok) throw new Error("Delete failed");
+                              fetchData();
+                            } catch (err) {
+                              alert("Error deleting employee.");
+                              console.error(err);
+                            }
+                          }}
+                          className="text-red-600"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleStartOnboarding(emp.id)}
+                        >
+                          Start Onboarding
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

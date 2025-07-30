@@ -7,6 +7,10 @@ import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import { useSession } from "next-auth/react";
 
+// 👇 ADD: Checkbox
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
 interface AddEmployeeModalProps {
   open: boolean;
   onClose: () => void;
@@ -33,6 +37,9 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     jobRoleId: "",
     managerId: "",
   });
+
+  // 👇 NEW: Onboarding toggle
+  const [startOnboarding, setStartOnboarding] = useState(true);
 
   const fetchData = async () => {
     try {
@@ -63,6 +70,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       const payload = {
         ...formData,
         companyId: session?.user?.companyId,
+        startOnboarding, // 👈 Pass to backend!
       };
 
       const res = await fetch("/api/employees", {
@@ -90,6 +98,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         jobRoleId: "",
         managerId: "",
       });
+      setStartOnboarding(true); // reset toggle
 
       onClose();
       if (onSuccess) onSuccess();
@@ -145,6 +154,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 )
               ))}
             </select>
+
+            {/* --- 👇 Onboarding toggle here --- */}
+            <div className="flex items-center gap-2">
+              <Switch checked={startOnboarding} onCheckedChange={setStartOnboarding} />
+              <Label className="text-sm">Start onboarding immediately after adding employee</Label>
+            </div>
+
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
               <Button type="submit">Save</Button>

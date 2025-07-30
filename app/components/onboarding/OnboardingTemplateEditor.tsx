@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
@@ -11,7 +11,6 @@ import { X, GripVertical, FileText, UploadCloud, FileEdit, Info } from "lucide-r
 import { toast } from "sonner";
 import { DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 const STEP_TYPES = [
   { value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
@@ -20,8 +19,11 @@ const STEP_TYPES = [
   { value: "instructions", label: "Welcome/Instructions", icon: Info },
 ];
 
-// Always generate key ONCE
-function makeStep(type: string) {
+function getStepKey(step: any) {
+  return step.id || step.key;
+}
+
+function createStep(type: string) {
   const uuid = typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
@@ -46,32 +48,40 @@ export default function OnboardingTemplateEditor({
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  // General
+  console.log("OnboardingTemplateEditor mounted at", Date.now());
+
+  // --- General
   const [name, setName] = useState(template?.name || "");
   const [description, setDescription] = useState(template?.description || "");
   const [departments, setDepartments] = useState<string[]>(template?.departments?.map((d: any) => d.id) || []);
   const [jobRoles, setJobRoles] = useState<string[]>(template?.jobRoles?.map((j: any) => j.id) || []);
 
-  // Dropdown sources
+  // --- Dropdown sources
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
 
-  // Steps (drag/drop)
+  // --- Steps (drag/drop)
   const [steps, setSteps] = useState<any[]>(() =>
-  template?.steps?.length
-    ? template.steps.map((step: any) => ({
+    template?.steps?.length
+      ? template.steps.map((step: any) => ({
         ...step,
-        key: step.key || step.id,  // Do NOT generate a random key here
+        key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
       }))
-    : []
-);
+      : []
+  );
 
-  // State
+  // Log current step keys and steps after every render
+  useEffect(() => {
+    console.log("Current steps:", steps.map(s => s.key));
+    console.log("Current steps full:", steps);
+  });
+
+  // --- State
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [preview, setPreview] = useState(false);
 
-  // Dropdown data
+  // --- Fetch dropdown data
   useEffect(() => {
     const fetchDropdownData = async () => {
       const [deptRes, roleRes] = await Promise.all([
@@ -87,38 +97,29 @@ export default function OnboardingTemplateEditor({
     fetchDropdownData();
   }, []);
 
-  // Add new step
+  // --- Add new step
   const addStep = (type: string) => {
-    setSteps(prev => [...prev, makeStep(type)]);
+    setSteps((prev) => [
+      ...prev,
+      createStep(type),
+    ]);
   };
 
-  // Update a step, preserve key!
+  // --- Update a step
   const updateStep = (idx: number, data: any) => {
-  setSteps((prev) => {
-    const arr = [...prev];
-    Object.assign(arr[idx], data);  // <-- The critical change!
-    return arr;
-  });
-};
-
-  // Remove a step
-  const removeStep = (idx: number) => {
-    setSteps(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  // Drag/drop handler
-  const onDragEnd = useCallback((result: DropResult) => {
-    if (!result.destination) return;
-    if (result.source.index === result.destination.index) return;
-    setSteps(prev => {
-      const arr = Array.from(prev);
-      const [removed] = arr.splice(result.source.index, 1);
-      arr.splice(result.destination!.index, 0, removed);
+    setSteps((prev) => {
+      const arr = [...prev];
+      arr[idx] = { ...arr[idx], ...data };
       return arr;
     });
-  }, []);
+  };
 
-  // Save/publish
+  // --- Remove a step
+  const removeStep = (idx: number) => {
+    setSteps((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // --- Save/publish
   const handleSave = async (publish = false) => {
     if (!name.trim()) {
       toast.error("Template name required");
@@ -159,7 +160,7 @@ export default function OnboardingTemplateEditor({
     }
   };
 
-  // Step type selector
+  // --- Step type selector
   const StepTypePicker = () => (
     <div className="flex flex-wrap gap-2 mt-3 mb-6">
       {STEP_TYPES.map((t) => (
@@ -170,80 +171,91 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 
-  // Step Editor (no Card, no hover, no unmount)
+  // --- Step Editor with diagnostics
   const StepEditor = ({
     step, idx, updateStep
-  }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => (
-    <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border flex flex-col">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex gap-2 items-center">
-          <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
-          <span className="uppercase text-xs font-semibold text-gray-500">
-            {STEP_TYPES.find((t) => t.value === step.type)?.label}
-          </span>
+  }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => {
+    console.log("StepEditor mounted for key:", step.key, "idx:", idx);
+    return (
+      <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex gap-2 items-center">
+            <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
+            <span className="uppercase text-xs font-semibold text-gray-500">
+              {STEP_TYPES.find((t) => t.value === step.type)?.label}
+            </span>
+          </div>
+          <Button size="md" variant="ghost" onClick={() => removeStep(idx)}>
+            <X className="w-4 h-4" />
+          </Button>
         </div>
-        <Button size="md" variant="ghost" onClick={() => removeStep(idx)}>
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <Label>Step Title</Label>
-          <Input value={step.title} onChange={e => updateStep(idx, { title: e.target.value })} maxLength={80} />
-        </div>
-        <div>
-          <Label>Description</Label>
-          <Input value={step.description} onChange={e => updateStep(idx, { description: e.target.value })} maxLength={200} />
-        </div>
-        <div>
-          <Label>Required?</Label>
-          <Switch checked={!!step.required} onChange={val => updateStep(idx, { required: val })} />
-        </div>
-        {step.type === "acknowledge-document" && (
-          <div className="col-span-2">
-            <Label>Document to Acknowledge</Label>
-            <DocumentDropdown
-              value={step.documentId}
-              onChange={docId => updateStep(idx, { documentId: docId })}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Label>Step Title</Label>
+            <Input
+              value={step.title}
+              onChange={e => {
+                console.log("Step title onChange for idx", idx, "value", e.target.value);
+                updateStep(idx, { title: e.target.value });
+              }}
+              maxLength={80}
             />
           </div>
-        )}
-        {step.type === "upload-document" && (
-          <div className="col-span-2">
-            <Label>Type of Document to Upload</Label>
-            <select
-              className="w-full border rounded-md p-2"
-              value={step.uploadType || ""}
-              onChange={e => updateStep(idx, { uploadType: e.target.value })}
-            >
-              <option value="">Select type…</option>
-              <option value="passport">Passport</option>
-              <option value="right-to-work">Right to Work</option>
-              <option value="driver-licence">Driver Licence</option>
-              <option value="training-certificate">Training Certificate</option>
-              <option value="other">Other/Custom</option>
-            </select>
+          <div>
+            <Label>Description</Label>
+            <Input value={step.description} onChange={e => updateStep(idx, { description: e.target.value })} maxLength={200} />
           </div>
-        )}
-        {step.type === "fill-form" && (
-          <div className="col-span-2">
-            <FormFieldsEditor
-              fields={step.formFields || []}
-              onChange={fields => updateStep(idx, { formFields: fields })}
-            />
+          <div>
+            <Label>Required?</Label>
+            <Switch checked={!!step.required} onChange={val => updateStep(idx, { required: val })} />
           </div>
-        )}
+          {/* --- Type-specific fields --- */}
+          {step.type === "acknowledge-document" && (
+            <div className="col-span-2">
+              <Label>Document to Acknowledge</Label>
+              <DocumentDropdown
+                value={step.documentId}
+                onChange={docId => updateStep(idx, { documentId: docId })}
+              />
+            </div>
+          )}
+          {step.type === "upload-document" && (
+            <div className="col-span-2">
+              <Label>Type of Document to Upload</Label>
+              <select
+                className="w-full border rounded-md p-2"
+                value={step.uploadType || ""}
+                onChange={e => updateStep(idx, { uploadType: e.target.value })}
+              >
+                <option value="">Select type…</option>
+                <option value="passport">Passport</option>
+                <option value="right-to-work">Right to Work</option>
+                <option value="driver-licence">Driver Licence</option>
+                <option value="training-certificate">Training Certificate</option>
+                <option value="other">Other/Custom</option>
+              </select>
+            </div>
+          )}
+          {step.type === "fill-form" && (
+            <div className="col-span-2">
+              <FormFieldsEditor
+                fields={step.formFields || []}
+                onChange={fields => updateStep(idx, { formFields: fields })}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  // Preview block
+  // --- Preview block
   const PreviewBlock = () => (
     <div className="bg-muted border p-6 rounded-xl mt-6 mb-4">
       <h3 className="font-semibold mb-2">Onboarding preview (as new starter):</h3>
       <ol className="list-decimal ml-5 space-y-2">
         {steps.map((s, idx) => (
-          <li key={s.key}>
+          <li key={getStepKey(s)}>
             <span className="font-bold">{s.title || STEP_TYPES.find(t => t.value === s.type)?.label}</span>{" "}
             <span className="text-xs text-gray-500">{s.description}</span>
           </li>
@@ -252,7 +264,7 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 
-  // Document dropdown (API)
+  // --- Document dropdown (API)
   function DocumentDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
     const [docs, setDocs] = useState<any[]>([]);
     useEffect(() => {
@@ -270,7 +282,7 @@ export default function OnboardingTemplateEditor({
     );
   }
 
-  // FormFields Editor
+  // --- Custom FormFields Editor
   function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fields: any[]) => void }) {
     const [editFields, setEditFields] = useState<any[]>(fields || []);
     useEffect(() => { onChange(editFields); }, [editFields]);
@@ -315,8 +327,6 @@ export default function OnboardingTemplateEditor({
   }
 
   // --- Main render
-console.log('Current steps:', steps.map(s => s.key)); 
-
   return (
     <div className="p-6">
       <div className="mb-4">
@@ -341,34 +351,13 @@ console.log('Current steps:', steps.map(s => s.key));
         <h3 className="text-lg font-semibold mb-1">Steps</h3>
         <p className="text-gray-500 mb-2">Drag and drop to reorder. Each step can require a document to be acknowledged, uploaded, or a custom form.</p>
         <StepTypePicker />
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="steps-droppable">
-            {(provided) => (
-              <div className="space-y-2"
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-              >
-                {steps.map((step, idx) => (
-                  <Draggable key={step.key} draggableId={step.key} index={idx}>
-                    {(provided) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        // Only the icon is the drag handle:
-                        className="flex"
-                      >
-                        <div {...provided.dragHandleProps} className="flex-1">
-                          <StepEditor step={step} idx={idx} updateStep={updateStep} />
-                        </div>
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+        <div className="space-y-2">
+          {steps.map((step, idx) => (
+            <div key={step.key}>
+              <StepEditor step={step} idx={idx} updateStep={updateStep} />
+            </div>
+          ))}
+        </div>
       </div>
 
       {steps.length > 0 && <PreviewBlock />}

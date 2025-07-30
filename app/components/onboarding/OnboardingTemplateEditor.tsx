@@ -21,6 +21,28 @@ const STEP_TYPES = [
   { value: "instructions", label: "Welcome/Instructions", icon: Info },
 ];
 
+// Utility for a stable, unique key (never changes once set)
+function getStepKey(step: any) {
+  return step.id || step.key;
+}
+
+function createStep(type: string) {
+  // Always generate a UUID string as the key for new steps
+  const uuid = typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+  return {
+    key: uuid,
+    type,
+    title: "",
+    description: "",
+    required: true,
+    documentId: "",
+    formFields: [],
+  };
+}
+
 export default function OnboardingTemplateEditor({
   template,
   onSaved,
@@ -41,9 +63,14 @@ export default function OnboardingTemplateEditor({
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
 
   // --- Steps (drag/drop)
-  const [steps, setSteps] = useState<any[]>(template?.steps?.length
-    ? template.steps.map((step: any) => ({ ...step, key: step.id || Math.random().toString() }))
-    : []);
+  const [steps, setSteps] = useState<any[]>(
+    template?.steps?.length
+      ? template.steps.map((step: any) => ({
+          ...step,
+          key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+        }))
+      : []
+  );
 
   // --- State
   const [saving, setSaving] = useState(false);
@@ -68,17 +95,9 @@ export default function OnboardingTemplateEditor({
 
   // --- Add new step
   const addStep = (type: string) => {
-    setSteps([
-      ...steps,
-      {
-        key: Math.random().toString(),
-        type,
-        title: "",
-        description: "",
-        required: true,
-        documentId: "",
-        formFields: [],
-      },
+    setSteps((prev) => [
+      ...prev,
+      createStep(type),
     ]);
   };
 
@@ -219,7 +238,7 @@ export default function OnboardingTemplateEditor({
       <h3 className="font-semibold mb-2">Onboarding preview (as new starter):</h3>
       <ol className="list-decimal ml-5 space-y-2">
         {steps.map((s, idx) => (
-          <li key={s.key}>
+          <li key={getStepKey(s)}>
             <span className="font-bold">{s.title || STEP_TYPES.find(t => t.value === s.type)?.label}</span>{" "}
             <span className="text-xs text-gray-500">{s.description}</span>
           </li>
@@ -319,7 +338,7 @@ export default function OnboardingTemplateEditor({
           {steps.map((step, idx) => (
             <Reorder.Item
               as="div"
-              key={step.key}
+              key={getStepKey(step)}
               value={step}
               initial={false}
               className="cursor-move"

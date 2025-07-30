@@ -172,7 +172,7 @@ export default function OnboardingTemplateEditor({
 
   // --- Step Editor
   const StepEditor = ({ step, idx, updateStep }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => (
-    <Card className="mb-3 relative">
+    <Card className="mb-3 relative transition-none hover:scale-100 shadow-sm" />
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex gap-2 items-center">
           <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />

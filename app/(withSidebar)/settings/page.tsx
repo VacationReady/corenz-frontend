@@ -49,6 +49,15 @@ const holidaySettings = [
   }
 ]
 
+// 👇 NEW Onboarding Settings Section
+const onboardingSettings = [
+  {
+    title: 'Onboarding Templates',
+    href: '/settings/onboarding',
+    icon: <ClipboardList className="h-5 w-5 text-muted-foreground" />
+  }
+]
+
 const documentSettings = [
   {
     title: 'Document Types',
@@ -113,6 +122,8 @@ export default function SettingsIndexPage() {
     <PageShell title="Settings" description="Manage your system configurations">
       <Accordion type="multiple" className="space-y-6">
         <SettingSection id="holidays" label="Holidays & Absence" items={holidaySettings} />
+        {/* 👇 INSERTED Onboarding section here */}
+        <SettingSection id="onboarding" label="Onboarding" items={onboardingSettings} />
         <SettingSection id="documents" label="Documents" items={documentSettings} />
         <SettingSection id="workflows" label="Workflows" items={workflowSettings} />
         <SettingSection id="system" label="System" items={systemSettings} />

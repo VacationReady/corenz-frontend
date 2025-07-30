@@ -1,7 +1,7 @@
 // /pages/api/onboarding/step/[stepId]/complete.ts
 
 import { NextApiRequest, NextApiResponse } from "next";
-import prisma from "@/lib/prisma"; // Update path if needed
+import { prisma } from "@/lib/prisma"; // Update path if needed
 // import supabase if you want to handle file uploads here
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

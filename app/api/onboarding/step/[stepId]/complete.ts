@@ -1,72 +1,89 @@
-// /pages/api/onboarding/step/[stepId]/complete.ts
+// app/api/onboarding/step/[stepId]/complete/route.ts
 
-import { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma"; // Update path if needed
-// import supabase if you want to handle file uploads here
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
+// Util: Parse JSON body (works for Next.js App Router POST)
+async function parseBody(request: NextRequest) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
 
-  const { stepId } = req.query;
-  const { ack, formResponse, fileUrl } = req.body || {};
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { stepId: string } }
+) {
+  const { stepId } = params;
+  const body = await parseBody(request);
+
+  // Optionally: validate user/company context here (auth/session)
+  // const session = await getServerSession(...)
 
   try {
-    // Find the step instance
+    // 1. Find step instance (and onboardingInstance, employee, company for security)
     const stepInstance = await prisma.onboardingStepInstance.findUnique({
-      where: { id: String(stepId) },
-      include: { onboardingInstance: true },
+      where: { id: stepId },
+      include: {
+        onboardingInstance: {
+          include: {
+            employee: { include: { company: true } },
+          },
+        },
+        step: true,
+      },
     });
 
-    if (!stepInstance) return res.status(404).json({ error: "Step not found." });
+    if (!stepInstance) {
+      return NextResponse.json({ error: "Step not found." }, { status: 404 });
+    }
 
-    // Optionally: add company/user checks here for security
+    // Optionally: Ensure only assigned employee can complete this step!
+    // e.g. check session.user.id === stepInstance.onboardingInstance.employee.userId
 
-    // 1. Mark step as completed
+    // 2. Mark step as completed
     await prisma.onboardingStepInstance.update({
-      where: { id: String(stepId) },
+      where: { id: stepId },
       data: {
         status: "completed",
         completedAt: new Date(),
       },
     });
 
-    // 2. Store any responses (ack, form, file)
-    // You can create a separate table e.g. onboardingStepResponse for form data
-    if (formResponse) {
+    // 3. Save step response (form data, if present)
+    if (body.formResponse) {
       await prisma.onboardingStepResponse.create({
         data: {
-          onboardingStepInstanceId: String(stepId),
-          response: formResponse, // Assuming JSON
+          onboardingStepInstanceId: stepId,
+          response: body.formResponse, // must be JSON-serializable
         },
       });
     }
 
-    // 3. Log document acknowledgement if needed
-    if (ack) {
-      await prisma.onboardingStepAck.create({
+    // 4. (Optional) Handle uploaded file - link to Document table if you have fileUrl
+    if (body.fileUrl) {
+      // You already have Document model; insert a new document and associate it to this step
+      await prisma.document.create({
         data: {
-          onboardingStepInstanceId: String(stepId),
-          acknowledged: !!ack,
-          acknowledgedAt: new Date(),
+          name: body.fileName || "Uploaded Document",
+          url: body.fileUrl,
+          type: body.fileType || "other",
+          employeeId: stepInstance.onboardingInstance.employeeId,
+          uploaderId: stepInstance.onboardingInstance.employee.userId,
+          companyId: stepInstance.onboardingInstance.employee.companyId,
+          // link to step if you have a relation
+          // onboardingStepInstances: { connect: { id: stepId } }, // only if this exists!
         },
       });
     }
 
-    // 4. Link file if uploaded (for upload steps)
-    if (fileUrl) {
-      await prisma.onboardingDocument.create({
-        data: {
-          onboardingStepInstanceId: String(stepId),
-          url: fileUrl,
-        },
-      });
-    }
+    // 5. (Optional) Log to audit table here
 
-    // 5. Optionally: Log action to audit table
-
-    return res.status(200).json({ ok: true });
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
+    console.error("Error completing onboarding step:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

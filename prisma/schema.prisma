@@ -82,6 +82,9 @@ model Employee {
   driverLicences            DriverLicence[]
   trainingRecords           TrainingRecord[]
   DocumentAcknowledgement   DocumentAcknowledgement[]
+onboardingTemplateId  String?      // Link to template assigned
+  onboardingTemplate    OnboardingTemplate? @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
+  onboardingStatus      Json?        // Track step completion/status per employee (future proof)
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -207,9 +210,11 @@ model Company {
 
   departments Department[]
   jobRoles    JobRole[] // ✅ Added for multi-tenant job role relation
-  users       User[]
+
   SavedReport SavedReport[]
   documents   Document[]
+  onboardingTemplates OnboardingTemplate[]
+  users User[]
 }
 
 model JobRole {
@@ -361,6 +366,7 @@ model Document {
   driverLicences  DriverLicence[]
   trainingRecords TrainingRecord[]
 requireAckFromNewStarters Boolean @default(false)
+  onboardingSteps OnboardingStep[]
 }
 
 model DocumentAcknowledgement {
@@ -470,6 +476,34 @@ model Location {
   name String @unique
 }
 
+model OnboardingTemplate {
+  id           String                @id @default(cuid())
+  name         String
+  description  String?
+  isDefault    Boolean               @default(false)
+  steps        OnboardingStep[]
+  companyId    String
+  company      Company               @relation(fields: [companyId], references: [id])
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  employees    Employee[]            @relation("OnboardingTemplateEmployees")
+}
+
+model OnboardingStep {
+  id             String     @id @default(cuid())
+  type           OnboardingStepType
+  label          String                 // e.g. 'Acknowledge H&S Policy', 'Upload Right to Work', etc.
+  order          Int                    // Drag/drop step order
+  templateId     String
+  template       OnboardingTemplate     @relation(fields: [templateId], references: [id])
+  // --- Step-specific fields (one used per type) ---
+  documentId     String?                // For acknowledge-document step
+  document       Document?              @relation(fields: [documentId], references: [id])
+  uploadType     OnboardingUploadType?  // For upload steps (e.g. passport, right to work)
+  instruction    String?                // For simple instruction/checklist steps
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -503,4 +537,18 @@ enum LeaveType {
   ANNUAL
   SICK
   BEREAVEMENT
+}
+
+enum OnboardingStepType {
+  ACKNOWLEDGE_DOCUMENT    // Read & acknowledge a document (docId required)
+  UPLOAD_DOCUMENT         // Upload a document (type required, e.g. "Right to Work")
+  INSTRUCTION             // Custom instruction/checklist
+}
+
+enum OnboardingUploadType {
+  PASSPORT
+  RIGHT_TO_WORK
+  DRIVER_LICENSE
+  TRAINING_CERTIFICATE
+  OTHER
 }

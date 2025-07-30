@@ -316,6 +316,8 @@ export default function OnboardingTemplateEditor({
   }
 
   // --- Main render
+console.log('Current steps:', steps.map(s => s.key)); 
+
   return (
     <div className="p-6">
       <div className="mb-4">

@@ -39,6 +39,83 @@ function createStep(type: string) {
   };
 }
 
+const StepEditor = ({
+  step, idx, updateStep
+}: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => {
+  console.log("StepEditor mounted for key:", step.key, "idx:", idx);
+  return (
+    <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex gap-2 items-center">
+          <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
+          <span className="uppercase text-xs font-semibold text-gray-500">
+            {STEP_TYPES.find((t) => t.value === step.type)?.label}
+          </span>
+        </div>
+        <Button size="md" variant="ghost" onClick={() => removeStep(idx)}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <Label>Step Title</Label>
+          <Input
+            value={step.title}
+            onChange={e => {
+              console.log("Step title onChange for idx", idx, "value", e.target.value);
+              updateStep(idx, { title: e.target.value });
+            }}
+            maxLength={80}
+          />
+        </div>
+        <div>
+          <Label>Description</Label>
+          <Input value={step.description} onChange={e => updateStep(idx, { description: e.target.value })} maxLength={200} />
+        </div>
+        <div>
+          <Label>Required?</Label>
+          <Switch checked={!!step.required} onChange={val => updateStep(idx, { required: val })} />
+        </div>
+        {/* --- Type-specific fields --- */}
+        {step.type === "acknowledge-document" && (
+          <div className="col-span-2">
+            <Label>Document to Acknowledge</Label>
+            <DocumentDropdown
+              value={step.documentId}
+              onChange={docId => updateStep(idx, { documentId: docId })}
+            />
+          </div>
+        )}
+        {step.type === "upload-document" && (
+          <div className="col-span-2">
+            <Label>Type of Document to Upload</Label>
+            <select
+              className="w-full border rounded-md p-2"
+              value={step.uploadType || ""}
+              onChange={e => updateStep(idx, { uploadType: e.target.value })}
+            >
+              <option value="">Select type…</option>
+              <option value="passport">Passport</option>
+              <option value="right-to-work">Right to Work</option>
+              <option value="driver-licence">Driver Licence</option>
+              <option value="training-certificate">Training Certificate</option>
+              <option value="other">Other/Custom</option>
+            </select>
+          </div>
+        )}
+        {step.type === "fill-form" && (
+          <div className="col-span-2">
+            <FormFieldsEditor
+              fields={step.formFields || []}
+              onChange={fields => updateStep(idx, { formFields: fields })}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function OnboardingTemplateEditor({
   template,
   onSaved,
@@ -172,82 +249,7 @@ export default function OnboardingTemplateEditor({
   );
 
   // --- Step Editor with diagnostics
-  const StepEditor = ({
-    step, idx, updateStep
-  }: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => {
-    console.log("StepEditor mounted for key:", step.key, "idx:", idx);
-    return (
-      <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex gap-2 items-center">
-            <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
-            <span className="uppercase text-xs font-semibold text-gray-500">
-              {STEP_TYPES.find((t) => t.value === step.type)?.label}
-            </span>
-          </div>
-          <Button size="md" variant="ghost" onClick={() => removeStep(idx)}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <Label>Step Title</Label>
-            <Input
-              value={step.title}
-              onChange={e => {
-                console.log("Step title onChange for idx", idx, "value", e.target.value);
-                updateStep(idx, { title: e.target.value });
-              }}
-              maxLength={80}
-            />
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Input value={step.description} onChange={e => updateStep(idx, { description: e.target.value })} maxLength={200} />
-          </div>
-          <div>
-            <Label>Required?</Label>
-            <Switch checked={!!step.required} onChange={val => updateStep(idx, { required: val })} />
-          </div>
-          {/* --- Type-specific fields --- */}
-          {step.type === "acknowledge-document" && (
-            <div className="col-span-2">
-              <Label>Document to Acknowledge</Label>
-              <DocumentDropdown
-                value={step.documentId}
-                onChange={docId => updateStep(idx, { documentId: docId })}
-              />
-            </div>
-          )}
-          {step.type === "upload-document" && (
-            <div className="col-span-2">
-              <Label>Type of Document to Upload</Label>
-              <select
-                className="w-full border rounded-md p-2"
-                value={step.uploadType || ""}
-                onChange={e => updateStep(idx, { uploadType: e.target.value })}
-              >
-                <option value="">Select type…</option>
-                <option value="passport">Passport</option>
-                <option value="right-to-work">Right to Work</option>
-                <option value="driver-licence">Driver Licence</option>
-                <option value="training-certificate">Training Certificate</option>
-                <option value="other">Other/Custom</option>
-              </select>
-            </div>
-          )}
-          {step.type === "fill-form" && (
-            <div className="col-span-2">
-              <FormFieldsEditor
-                fields={step.formFields || []}
-                onChange={fields => updateStep(idx, { formFields: fields })}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  // StepEditor moved outside the main component
 
   // --- Preview block
   const PreviewBlock = () => (

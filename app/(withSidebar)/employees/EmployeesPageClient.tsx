@@ -116,6 +116,8 @@ export default function EmployeesPageClient() {
       fetchData();
     } catch {
       alert("Network error while starting onboarding");
+    }
+  };
 
   return (
     <PageShell title="Employees" action={<Button onClick={() => setModalOpen(true)}>Add Employee</Button>}>
@@ -126,4 +128,74 @@ export default function EmployeesPageClient() {
             <thead className="bg-neutral-100 border-b">
               <tr>
                 <th className="text-left p-3">Name</th>
-                <th className
+                <th className="text-left p-3">Phone</th>
+                <th className="text-left p-3">Department</th>
+                <th className="text-left p-3">Job Role</th>
+                <th className="text-left p-3">Email</th>
+                <th className="text-left p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map((emp) => (
+                <tr key={emp.id} className="border-b hover:bg-neutral-50">
+                  <td className="p-3">
+                    <Link
+                      href={`/employees/${emp.id}/overview`}
+                      className="text-indigo-600 hover:underline"
+                    >
+                      {emp.firstName} {emp.lastName}
+                    </Link>
+                  </td>
+                  <td className="p-3">{emp.phone || "-"}</td>
+                  <td className="p-3">{emp.departmentName || "-"}</td>
+                  <td className="p-3">{emp.jobRoleName || "-"}</td>
+                  <td className="p-3">{emp.email || "-"}</td>
+                  <td className="p-3">
+                    <DropdownMenu
+                      trigger={
+                        <Button size="sm" variant="ghost">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      }
+                    >
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          if (!confirm("Are you sure you want to delete this employee?")) return;
+                          try {
+                            const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
+                            if (!res.ok) throw new Error("Delete failed");
+                            fetchData();
+                          } catch (err) {
+                            alert("Error deleting employee.");
+                            console.error(err);
+                          }
+                        }}
+                        className="text-red-600"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleStartOnboarding(emp.id)}
+                      >
+                        Start Onboarding
+                      </DropdownMenuItem>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <AddEmployeeModal
+        open={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={fetchData}
+      />
+
+      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
+      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
+    </PageShell>
+  );
+}

@@ -40,8 +40,13 @@ function createStep(type: string) {
 }
 
 const StepEditor = ({
-  step, idx, updateStep
-}: { step: any; idx: number; updateStep: (idx: number, data: any) => void }) => {
+  step, idx, updateStep, removeStep
+}: { 
+  step: any; 
+  idx: number; 
+  updateStep: (idx: number, data: any) => void;
+  removeStep: (idx: number) => void;
+}) => {
   console.log("StepEditor mounted for key:", step.key, "idx:", idx);
   return (
     <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
@@ -356,7 +361,7 @@ export default function OnboardingTemplateEditor({
         <div className="space-y-2">
           {steps.map((step, idx) => (
             <div key={step.key}>
-              <StepEditor step={step} idx={idx} updateStep={updateStep} />
+              <StepEditor step={step} idx={idx} updateStep={updateStep} removeStep={removeStep} />
             </div>
           ))}
         </div>

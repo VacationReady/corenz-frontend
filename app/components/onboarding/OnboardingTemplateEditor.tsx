@@ -114,7 +114,7 @@ export default function OnboardingTemplateEditor({
     setSteps(prev => {
       const arr = Array.from(prev);
       const [removed] = arr.splice(result.source.index, 1);
-      arr.splice(result.destination.index, 0, removed);
+      arr.splice(result.destination!.index, 0, removed);
       return arr;
     });
   }, []);

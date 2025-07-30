@@ -109,14 +109,12 @@ export default function OnboardingSettingsPage() {
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
   <DialogContent className="max-w-3xl p-0">
     {isEditorOpen && (
-      <OnboardingTemplateEditor
-        // Add a key so state resets *only* when opening a new editor
-        key={editingTemplate?.id || "new"}
-        template={editingTemplate}
-        onSaved={() => { setIsEditorOpen(false); fetchTemplates(); }}
-        onCancel={() => setIsEditorOpen(false)}
-      />
-    )}
+  <OnboardingTemplateEditor
+    template={editingTemplate}
+    onSaved={() => { setIsEditorOpen(false); fetchTemplates(); }}
+    onCancel={() => setIsEditorOpen(false)}
+  />
+)}
   </DialogContent>
 </Dialog>
     </div>

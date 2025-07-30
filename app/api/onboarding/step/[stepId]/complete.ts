@@ -29,8 +29,12 @@ export async function POST(
   include: {
     onboardingInstance: {
       include: {
-        employee: true, // simple, safe, works for all Prisma versions
-      },
+        employee: {
+          include: {
+            user: true, // This gets you employee.user.companyId
+          }
+        }
+      }
     },
     step: true,
   },

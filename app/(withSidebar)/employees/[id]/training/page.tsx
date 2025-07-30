@@ -24,10 +24,11 @@ interface TrainingRecord {
   } | null;
 }
 
-export default function TrainingPage() {
+export default function TrainingPage({ employeeId: propEmployeeId }: { employeeId?: string }) {
   const params = useParams();
   const router = useRouter();
-  const employeeIdRaw = params?.id ?? '';
+  // Use prop if given, else fallback to params.id
+  const employeeIdRaw = propEmployeeId ?? params?.id ?? '';
   const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
 
   const [records, setRecords] = useState<TrainingRecord[]>([]);

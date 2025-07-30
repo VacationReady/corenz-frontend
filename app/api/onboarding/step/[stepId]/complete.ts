@@ -25,16 +25,16 @@ export async function POST(
   try {
     // 1. Find step instance (and onboardingInstance, employee, company for security)
     const stepInstance = await prisma.onboardingStepInstance.findUnique({
-      where: { id: stepId },
+  where: { id: stepId },
+  include: {
+    onboardingInstance: {
       include: {
-        onboardingInstance: {
-          include: {
-            employee: { include: {}, company: true },
-          },
-        },
-        step: true,
+        employee: true, // simple, safe, works for all Prisma versions
       },
-    });
+    },
+    step: true,
+  },
+});
 
     if (!stepInstance) {
       return NextResponse.json({ error: "Step not found." }, { status: 404 });

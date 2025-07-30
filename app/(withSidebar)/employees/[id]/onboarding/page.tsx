@@ -6,12 +6,16 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Progress } from '@/components/ui/progress';
+import OnboardingStepRenderer from '@/components/onboarding/OnboardingStepRenderer';
 
 type Step = {
   id: string;
   type: string;
   status: string;
   order: number;
+  title?: string;
+  description?: string;
+  formFields?: any[];
   // Add fields as needed
 };
 
@@ -27,25 +31,28 @@ export default function EmployeeOnboardingPage({ params }: { params: { id: strin
   const [instance, setInstance] = useState<OnboardingInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchOnboarding() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/onboarding/instances/${employeeId}`);
-        if (!res.ok) {
-          setError((await res.json()).error || 'Failed to load onboarding.');
-          setInstance(null);
-        } else {
-          setInstance(await res.json());
-        }
-      } catch {
-        setError('Network error.');
+  // --- Fetch onboarding data
+  const fetchOnboarding = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/onboarding/instances/${employeeId}`);
+      if (!res.ok) {
+        setError((await res.json()).error || 'Failed to load onboarding.');
         setInstance(null);
+      } else {
+        setInstance(await res.json());
       }
-      setLoading(false);
+    } catch {
+      setError('Network error.');
+      setInstance(null);
     }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchOnboarding();
+    // eslint-disable-next-line
   }, [employeeId]);
 
   if (loading) {
@@ -62,6 +69,10 @@ export default function EmployeeOnboardingPage({ params }: { params: { id: strin
   const completeCount = steps.filter(s => s.status === 'completed').length;
   const percent = Math.round((completeCount / steps.length) * 100);
 
+  // Find the first step that is not completed
+  const activeStep = steps.find(s => s.status !== 'completed');
+  const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : steps.length;
+
   return (
     <div className="max-w-2xl mx-auto py-10">
       <Card className="p-6 mb-8">
@@ -73,33 +84,32 @@ export default function EmployeeOnboardingPage({ params }: { params: { id: strin
         <Progress value={percent} className="h-2 mb-3" />
         <div className="text-sm text-muted-foreground mb-2">{percent}% complete</div>
       </Card>
-      <ul className="space-y-4">
-        {steps.map((step, idx) => (
-          <li key={step.id}>
-            <Card className="flex items-center justify-between p-4">
-              <div>
-                <div className="font-medium">Step {idx + 1}</div>
-                <div className="text-base">
-                  {step.type === 'ack' && 'Acknowledge Document'}
-                  {step.type === 'form' && 'Complete Form'}
-                  {step.type === 'upload' && 'Upload File'}
-                  {/* Add more types as needed */}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Status: <span className={step.status === 'completed' ? 'text-green-600' : 'text-yellow-700'}>{step.status}</span>
-                </div>
-              </div>
-              <Button
-                disabled={step.status === 'completed'}
-                variant={step.status === 'completed' ? 'ghost' : 'primary'}
-                // onClick={() => handleCompleteStep(step.id)} // implement later
-              >
-                {step.status === 'completed' ? 'Completed' : 'Mark as Complete'}
-              </Button>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      <Card className="mb-8">
+        {activeStep ? (
+          <OnboardingStepRenderer
+            step={activeStep}
+            onComplete={async (data: any) => {
+              // Call API to complete the step
+              await fetch(`/api/onboarding/step/${activeStep.id}/complete`, {
+                method: "POST",
+                body: JSON.stringify(data || {}),
+                headers: { "Content-Type": "application/json" },
+              });
+              // Refresh onboarding data
+              await fetchOnboarding();
+            }}
+          />
+        ) : (
+          <div className="p-6 text-center text-lg font-bold text-green-700">
+            🎉 Onboarding Complete!
+          </div>
+        )}
+      </Card>
+      <div className="text-sm text-center text-muted-foreground mb-2">
+        {activeStep ? `${currentIdx + 1} / ${steps.length} steps` : `${steps.length} / ${steps.length} steps`}
+      </div>
+      {/* Optionally: Add a "Refresh" button for troubleshooting */}
+      {/* <Button variant="ghost" onClick={fetchOnboarding}>Refresh</Button> */}
     </div>
   );
 }

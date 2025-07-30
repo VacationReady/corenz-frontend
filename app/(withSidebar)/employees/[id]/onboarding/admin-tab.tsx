@@ -77,7 +77,7 @@ export default function OnboardingAdminTab({ employeeId }: { employeeId: string 
                 <div className="font-medium">
                   Step {idx + 1}: {step.type === 'ack' && 'Acknowledge'}{step.type === 'form' && 'Form'}{step.type === 'upload' && 'Upload'}
                 </div>
-                <Badge variant={step.status === 'completed' ? 'success' : 'outline'}>
+                <Badge variant={step.status === 'completed' ? 'default' : 'outline'}>
                   {step.status.charAt(0).toUpperCase() + step.status.slice(1)}
                 </Badge>
                 {step.completedAt && (

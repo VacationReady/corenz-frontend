@@ -63,14 +63,14 @@ export default function OnboardingTemplateEditor({
   const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
 
   // --- Steps (drag/drop)
-  const [steps, setSteps] = useState<any[]>(
-    template?.steps?.length
-      ? template.steps.map((step: any) => ({
-          ...step,
-          key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
-        }))
-      : []
-  );
+  const [steps, setSteps] = useState<any[]>(() => 
+  template?.steps?.length
+    ? template.steps.map((step: any) => ({
+        ...step,
+        key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+      }))
+    : []
+);
 
   // --- State
   const [saving, setSaving] = useState(false);

@@ -8,7 +8,8 @@ import OnboardingStepRenderer from '@/components/onboarding/OnboardingStepRender
 import { OnboardingStep } from '@prisma/client';
 
 type Step = {
-  id: string;
+  id: string;               // template step ID
+  instanceStepId?: string;  // ✅ added: onboardingStepInstance ID
   type: string;
   status: string;
   order: number;

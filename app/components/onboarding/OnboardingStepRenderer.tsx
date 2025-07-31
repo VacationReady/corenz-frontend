@@ -5,7 +5,15 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 
-export default function OnboardingStepRenderer({ step, onComplete }: { step: any, onComplete: (data?: any) => void }) {
+export default function OnboardingStepRenderer({
+  step,
+  onComplete,
+  readOnly = false, // <-- new prop, default is false
+}: {
+  step: any,
+  onComplete: (data?: any) => void,
+  readOnly?: boolean,           // <-- add to type signature!
+}) {
   const [loading, setLoading] = useState(false);
   const [ack, setAck] = useState(false);
   const [file, setFile] = useState<File | null>(null);

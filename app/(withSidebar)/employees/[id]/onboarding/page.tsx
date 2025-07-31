@@ -2,5 +2,5 @@ import EmployeeOnboardingPage from '@/components/onboarding/EmployeeOnboardingPa
 
 export default function Page({ params }: { params: { id: string } }) {
   // Admins/managers should NOT be able to complete for the employee, so canComplete = false
-  return <EmployeeOnboardingPage userId={params.id} canComplete={false} />;
+  return <EmployeeOnboardingPage employeeId={params.id} canComplete={false} />;
 }

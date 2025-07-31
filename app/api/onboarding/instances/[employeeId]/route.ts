@@ -25,11 +25,11 @@ export async function GET(
       where: { employeeId, status: { in: ['active', 'in_progress'] } },
       orderBy: { startedAt: 'desc' },
       include: {
-        steps: true, // instance (status only)
+        steps: true, // OnboardingStepInstance records (instance-specific status)
         template: {
           include: {
             steps: {
-              include: { document: true }, // ✅ include linked document
+              include: { document: true }, // include linked document for ACK steps
             },
           },
         },
@@ -40,21 +40,24 @@ export async function GET(
       return NextResponse.json({ error: 'No active onboarding found' }, { status: 404 });
     }
 
-    // ✅ Merge template steps with instance status, normalize nulls
+    // ✅ Merge template steps with instance step info
     const mergedSteps = instance.template.steps.map(tStep => {
       const instStep = instance.steps.find(i => i.stepId === tStep.id);
       return {
-        id: tStep.id,
+        id: tStep.id,                          // template step ID
+        instanceStepId: instStep?.id || null,  // ✅ onboardingStepInstance ID
         type: mapStepType(tStep.type),
         label: tStep.label,
         instruction: tStep.instruction ?? undefined,
         uploadType: tStep.uploadType ?? undefined,
         documentId: tStep.documentId ?? undefined,
-        document: tStep.document ? {
-          id: tStep.document.id,
-          name: tStep.document.name,
-          url: tStep.document.url,
-        } : undefined, // ✅ pass document to renderer
+        document: tStep.document
+          ? {
+              id: tStep.document.id,
+              name: tStep.document.name,
+              url: tStep.document.url,
+            }
+          : undefined,
         order: tStep.order,
         status: instStep?.status || 'pending',
       };
@@ -63,7 +66,7 @@ export async function GET(
     const normalized = {
       id: instance.id,
       template: { name: instance.template.name },
-      steps: mergedSteps, // ✅ fully merged + normalized
+      steps: mergedSteps,
     };
 
     return NextResponse.json(normalized, { status: 200 });

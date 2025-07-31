@@ -109,7 +109,7 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
           <OnboardingStepRenderer
             step={activeStep}
             readOnly={!canComplete}
-            onComplete={canComplete ? (data: any) => handleComplete(activeStep.id, data) : () => {}}
+            onComplete={canComplete ? (data: any) => handleComplete(activeStep.instanceStepId || activeStep.id, data) : () => {}}
           />
         ) : (
           <div className="p-6 text-center text-lg font-bold text-green-700">

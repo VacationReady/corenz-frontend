@@ -26,7 +26,7 @@ export async function GET(
       where: { employeeId, status: { in: ['active', 'in_progress'] } },
       orderBy: { startedAt: 'desc' },
       include: {
-        steps: true, // Instance steps (status only, linked to stepId)
+        steps: true, // Instance-specific steps (status only)
         template: { include: { steps: true } }, // Template steps (definitions)
       },
     });
@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'No active onboarding found' }, { status: 404 });
     }
 
-    // ✅ Normalize only template steps (where type exists)
+    // ✅ Normalize template steps for frontend
     const normalized = {
       ...instance,
       template: {
@@ -43,6 +43,9 @@ export async function GET(
         steps: instance.template.steps.map(s => ({
           ...s,
           type: mapStepType(s.type),
+          instruction: s.instruction ?? undefined,
+          uploadType: s.uploadType ?? undefined,
+          documentId: s.documentId ?? undefined,
         })),
       },
     };

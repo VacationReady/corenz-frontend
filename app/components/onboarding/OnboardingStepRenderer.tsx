@@ -3,7 +3,7 @@ import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
-import supabase from "@/lib/supabase";
+import { uploadToSupabase } from "@/lib/supabase"; // ✅ use helper
 import { useSession } from "next-auth/react";
 
 type OnboardingStepProps = {
@@ -34,7 +34,7 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
   const title = step.title || step.label || "Untitled Step";
   const desc = step.description || step.instruction || "";
 
-  // ✅ Document Acknowledge
+  // ✅ Acknowledge Document
   if (step.type === "acknowledge-document") {
     return (
       <Card className="p-4">
@@ -75,10 +75,10 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                 onClick={async () => {
                   if (!file || !session?.user) return;
                   setLoading(true);
-                  // Upload file to Supabase
-                  const { data, error } = await supabase.storage.from("employee-documents").upload(`${employeeId}/${file.name}`, file);
-                  if (error) return console.error(error);
-                  const { data: pub } = supabase.storage.from("employee-documents").getPublicUrl(data.path);
+
+                  // ✅ Use helper for upload
+                  const { url, path } = await uploadToSupabase(file);
+
                   // Insert Document record
                   const doc = await fetch("/api/documents", {
                     method: "POST",
@@ -87,15 +87,16 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                       name: file.name,
                       category: step.category || "Onboarding",
                       description: `Onboarding upload for ${title}`,
-                      path: data.path,
+                      path,
                       size: file.size,
                       type: file.type,
-                      url: pub.publicUrl,
+                      url,
                       employeeId,
                       companyId,
                       uploaderId: session.user.id
                     }),
                   }).then(r => r.json());
+
                   // Complete step with documentId
                   onComplete({ documentId: doc.id });
                 }}

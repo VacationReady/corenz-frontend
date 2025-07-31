@@ -68,16 +68,12 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
   }
 
   // ✅ Merge template steps with instance step statuses
-  const templateSteps = instance.template.steps || [];
-  const mergedSteps = templateSteps.map(tStep => ({
-    ...tStep,
-    status: instance.steps.find(iStep => iStep.id === tStep.id)?.status || 'pending',
-  })).sort((a, b) => a.order - b.order);
+  const steps = instance.steps.sort((a, b) => a.order - b.order);
 
-  const completeCount = mergedSteps.filter(s => s.status === 'completed').length;
-  const percent = Math.round((completeCount / mergedSteps.length) * 100);
-  const activeStep = mergedSteps.find(s => s.status !== 'completed');
-  const currentIdx = activeStep ? mergedSteps.findIndex(s => s.id === activeStep.id) : mergedSteps.length;
+const completeCount = steps.filter(s => s.status === 'completed').length;
+const percent = Math.round((completeCount / steps.length) * 100);
+const activeStep = steps.find(s => s.status !== 'completed');
+const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : steps.length;
 
   return (
     <div className="max-w-2xl mx-auto py-10">

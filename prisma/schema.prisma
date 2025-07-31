@@ -53,6 +53,7 @@ model User {
 
   // ✅ News/posts authored
   newsPosts NewsPost[]
+onboardingAssignments   OnboardingAssignment[]
 }
 
 model ActivationToken {
@@ -494,6 +495,7 @@ model OnboardingTemplate {
   departments         Department[]         @relation("OnboardingTemplateDepartments")
   jobRoles            JobRole[]            @relation("OnboardingTemplateJobRoles")
   onboardingInstances OnboardingInstance[]
+onboardingAssignments   OnboardingAssignment[]
 }
 
 model OnboardingStep {
@@ -541,6 +543,18 @@ model OnboardingStepResponse {
   onboardingStepInstance   OnboardingStepInstance @relation(fields: [onboardingStepInstanceId], references: [id])
   response                 Json
   createdAt                DateTime               @default(now())
+}
+
+model OnboardingAssignment {
+  id             String   @id @default(uuid())
+  userId         String
+  templateId     String
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  progress       Json?    // [{stepId: string, completed: boolean, completedAt: DateTime?}]
+  // relations
+  user           User     @relation(fields: [userId], references: [id])
+  template       OnboardingTemplate @relation(fields: [templateId], references: [id])
 }
 
 enum Role {

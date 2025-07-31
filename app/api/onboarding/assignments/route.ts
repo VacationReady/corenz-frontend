@@ -40,40 +40,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
   }
 
-  // ✅ Create onboarding assignment
-  const assignment = await prisma.onboardingAssignment.create({
-    data: {
-      userId,
-      templateId,
-      progress: [],
-    },
-  });
-
-  // ✅ Create onboarding instance and seed step instances
-  const onboardingInstance = await prisma.onboardingInstance.create({
-    data: {
-      employeeId,
-      templateId,
-      status: "active",
-      startedAt: new Date(),
-      steps: {
-        create: template.steps.map(step => ({
-          stepId: step.id,
-          status: "pending",
-          order: step.order,
-        })),
+  // ✅ Transaction: Create assignment, instance, and seed steps atomically
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Create onboarding assignment
+    const assignment = await tx.onboardingAssignment.create({
+      data: {
+        userId,
+        templateId,
+        progress: [],
       },
-    },
-    include: {
-      steps: true,
-      template: { include: { steps: true } },
-    },
+    });
+
+    // 2. Create onboarding instance
+    const onboardingInstance = await tx.onboardingInstance.create({
+      data: {
+        employeeId,
+        templateId,
+        status: "active",
+        startedAt: new Date(),
+      },
+    });
+
+    // 3. Seed step instances for this onboarding instance
+    await tx.onboardingStepInstance.createMany({
+      data: template.steps.map((step) => ({
+        onboardingInstanceId: onboardingInstance.id,
+        stepId: step.id,
+        status: "pending",
+        order: step.order,
+      })),
+    });
+
+    return { assignment, onboardingInstance };
   });
 
-  return NextResponse.json({ assignment, onboardingInstance });
+  return NextResponse.json(result);
 }
 
-// ✅ PATCH: Mark assignment complete if all steps are finished
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -97,7 +100,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Onboarding instance not found" }, { status: 404 });
   }
 
-  const allCompleted = instance.steps.every(step => step.status === "completed");
+  const allCompleted = instance.steps.every((step) => step.status === "completed");
 
   if (allCompleted) {
     await prisma.onboardingAssignment.updateMany({

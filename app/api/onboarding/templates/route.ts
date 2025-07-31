@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { OnboardingStepType, OnboardingUploadType } from "@prisma/client"; // <--- Add this
+import type { OnboardingStepType, OnboardingUploadType, OnboardingStepCreateInput } from "@prisma/client";
 
 function isStep(
   step: any
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
         // Ignore any not matching
         return undefined;
       })
-      .filter(isStep)
+      .filter(isStep) as OnboardingStepCreateInput[]
   : [];
 
     const template = await prisma.onboardingTemplate.create({

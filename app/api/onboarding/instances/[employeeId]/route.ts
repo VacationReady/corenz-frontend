@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'; 
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
@@ -17,8 +17,9 @@ export async function GET(
       where: { employeeId, status: { in: ['active', 'in_progress'] } },
       orderBy: { startedAt: 'desc' },
       include: {
+        steps: true, // ✅ instance steps (for status)
         template: {
-          include: { steps: true }, // ✅ include steps under template
+          include: { steps: true }, // ✅ template steps (definition)
         },
       },
     });

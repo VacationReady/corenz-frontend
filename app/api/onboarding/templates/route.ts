@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import type { OnboardingStepType, OnboardingUploadType, OnboardingStepCreateInput } from "@prisma/client";
+import { Prisma, OnboardingStepType, OnboardingUploadType } from "@prisma/client";
 
 function isStep(
   step: any
@@ -65,41 +65,27 @@ export async function POST(req: Request) {
 
     // Filter steps to only allow types that exist in your enum mapping
     const filteredSteps = Array.isArray(steps)
-  ? steps
+  ? (steps
       .map((step: any, i: number) => {
         const mappedType = typeMap[step.type];
         if (!mappedType) return undefined;
-
-        // Common fields
         const base = {
           type: mappedType,
           label: step.label || step.title || "",
           order: i + 1,
         };
-
-        // Type-specific fields
         if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
-          return {
-            ...base,
-            documentId: step.documentId || null,
-          };
+          return { ...base, documentId: step.documentId || null };
         }
         if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
-          return {
-            ...base,
-            uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
-          };
+          return { ...base, uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null };
         }
         if (mappedType === OnboardingStepType.INSTRUCTION) {
-          return {
-            ...base,
-            instruction: step.description || "", // or step.instruction if your UI uses that
-          };
+          return { ...base, instruction: step.description || "" };
         }
-        // Ignore any not matching
         return undefined;
       })
-      .filter(isStep) as OnboardingStepCreateInput[]
+      .filter(isStep)) as Prisma.OnboardingStepCreateInput[]
   : [];
 
     const template = await prisma.onboardingTemplate.create({

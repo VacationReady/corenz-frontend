@@ -54,25 +54,25 @@ export async function POST(req: Request) {
 
     // Filter steps to only allow types that exist in your enum mapping
     const filteredSteps = Array.isArray(steps)
-      ? steps
-          .map((step: any, i: number) => {
-            // Only allow step types that map to enum
-            const mappedType = typeMap[step.type];
-            if (!mappedType) return null;
-            return {
-              type: mappedType,
-              title: step.title,
-              description: step.description,
-              order: i + 1,
-              required: !!step.required,
-              documentId: step.documentId || null,
-              formFields: step.formFields || [],
-              uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
-              label: step.label || step.title || "",
-            };
-          })
-          .filter(Boolean)
-      : [];
+  ? steps
+      .map((step: any, i: number) => {
+        // Only allow step types that map to enum
+        const mappedType = typeMap[step.type];
+        if (!mappedType) return undefined; // <-- changed to undefined for filter(Boolean) to work perfectly
+        return {
+          type: mappedType,
+          title: step.title,
+          description: step.description,
+          order: i + 1,
+          required: !!step.required,
+          documentId: step.documentId || null,
+          formFields: step.formFields || [],
+          uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
+          label: step.label || step.title || "",
+        };
+      })
+      .filter(Boolean) // <-- filter out null/undefined
+  : [];
 
     const template = await prisma.onboardingTemplate.create({
       data: {

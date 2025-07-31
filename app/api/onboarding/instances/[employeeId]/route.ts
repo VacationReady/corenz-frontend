@@ -7,7 +7,7 @@ const mapStepType = (type: string) => {
     case 'ACKNOWLEDGE_DOCUMENT': return 'acknowledge-document';
     case 'UPLOAD_DOCUMENT': return 'upload-document';
     case 'INSTRUCTION': return 'instructions';
-    default: return type.toLowerCase(); // fallback (safe guard)
+    default: return type.toLowerCase();
   }
 };
 
@@ -22,12 +22,11 @@ export async function GET(
   }
 
   try {
-    // ✅ Fetch latest active onboarding instance for employee
     const instance = await prisma.onboardingInstance.findFirst({
       where: { employeeId, status: { in: ['active', 'in_progress'] } },
       orderBy: { startedAt: 'desc' },
       include: {
-        steps: true, // Instance steps (includes status)
+        steps: true, // Instance steps (status only, linked to stepId)
         template: { include: { steps: true } }, // Template steps (definitions)
       },
     });
@@ -36,13 +35,15 @@ export async function GET(
       return NextResponse.json({ error: 'No active onboarding found' }, { status: 404 });
     }
 
-    // ✅ Normalize step types for frontend
+    // ✅ Normalize only template steps (where type exists)
     const normalized = {
       ...instance,
-      steps: instance.steps.map(s => ({ ...s, type: mapStepType(s.type) })),
       template: {
         ...instance.template,
-        steps: instance.template.steps.map(s => ({ ...s, type: mapStepType(s.type) })),
+        steps: instance.template.steps.map(s => ({
+          ...s,
+          type: mapStepType(s.type),
+        })),
       },
     };
 

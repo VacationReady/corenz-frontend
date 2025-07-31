@@ -35,26 +35,40 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // body should have: name, description, departments (array of ids), jobRoles (array of ids)
-    const { name, description, departments, jobRoles } = body;
+    const { name, description, departments, jobRoles, steps } = body;
 
     const template = await prisma.onboardingTemplate.create({
-      data: {
-        name,
-        description: description || "",
-        companyId: session.user.companyId,
-        departments: departments && departments.length > 0
-          ? { connect: departments.map((id: string) => ({ id })) }
-          : undefined,
-        jobRoles: jobRoles && jobRoles.length > 0
-          ? { connect: jobRoles.map((id: string) => ({ id })) }
-          : undefined,
-      },
-      include: {
-        departments: { select: { id: true, name: true } },
-        jobRoles: { select: { id: true, name: true } },
-        steps: true
-      }
-    });
+  data: {
+    name,
+    description: description || "",
+    companyId: session.user.companyId,
+    departments: departments && departments.length > 0
+      ? { connect: departments.map((id: string) => ({ id })) }
+      : undefined,
+    jobRoles: jobRoles && jobRoles.length > 0
+      ? { connect: jobRoles.map((id: string) => ({ id })) }
+      : undefined,
+    steps: steps && steps.length > 0
+      ? {
+          create: steps.map((step: any, i: number) => ({
+            type: step.type,
+            title: step.title,
+            description: step.description,
+            order: i + 1,
+            required: !!step.required,
+            documentId: step.documentId || null,
+            formFields: step.formFields || [],
+            uploadType: step.uploadType || null,
+          })),
+        }
+      : undefined,
+  },
+  include: {
+    departments: { select: { id: true, name: true } },
+    jobRoles: { select: { id: true, name: true } },
+    steps: true,
+  }
+});
 
     return NextResponse.json(template);
   } catch (err) {

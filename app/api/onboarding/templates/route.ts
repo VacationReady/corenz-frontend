@@ -2,39 +2,36 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { OnboardingStepType, OnboardingUploadType } from "@prisma/client"; // <--- Add this
 
-// --- Type guard for filteredSteps ---
 function isStep(
   step: any
 ): step is {
-  type: string;
+  type: OnboardingStepType;
   title: any;
   description: any;
   order: number;
   required: boolean;
   documentId: any;
   formFields: any;
-  uploadType: string | null;
+  uploadType: OnboardingUploadType | null;
   label: any;
 } {
   return !!step;
 }
 
-// Mapping from UI step type to Prisma enum
-const typeMap: Record<string, string> = {
-  "acknowledge-document": "ACKNOWLEDGE_DOCUMENT",
-  "upload-document": "UPLOAD_DOCUMENT",
-  "instructions": "INSTRUCTION",
-  // Don't include 'fill-form' or anything not in your enum
+const typeMap: Record<string, OnboardingStepType> = {
+  "acknowledge-document": OnboardingStepType.ACKNOWLEDGE_DOCUMENT,
+  "upload-document": OnboardingStepType.UPLOAD_DOCUMENT,
+  "instructions": OnboardingStepType.INSTRUCTION,
 };
 
-// Mapping from UI uploadType to Prisma enum
-const uploadTypeMap: Record<string, string> = {
-  "passport": "PASSPORT",
-  "right-to-work": "RIGHT_TO_WORK",
-  "driver-licence": "DRIVER_LICENSE",
-  "training-certificate": "TRAINING_CERTIFICATE",
-  "other": "OTHER",
+const uploadTypeMap: Record<string, OnboardingUploadType> = {
+  "passport": OnboardingUploadType.PASSPORT,
+  "right-to-work": OnboardingUploadType.RIGHT_TO_WORK,
+  "driver-licence": OnboardingUploadType.DRIVER_LICENSE,
+  "training-certificate": OnboardingUploadType.TRAINING_CERTIFICATE,
+  "other": OnboardingUploadType.OTHER,
 };
 
 export async function GET(req: Request) {

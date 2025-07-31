@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Progress } from '@/components/ui/progress';
 import OnboardingStepRenderer from '@/components/onboarding/OnboardingStepRenderer';
+import { OnboardingStep } from '@prisma/client';
 
 type Step = {
   id: string;

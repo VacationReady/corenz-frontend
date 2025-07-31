@@ -26,7 +26,13 @@ export async function GET(
       orderBy: { startedAt: 'desc' },
       include: {
         steps: true, // instance (status only)
-        template: { include: { steps: true } }, // template (definitions)
+        template: {
+          include: {
+            steps: {
+              include: { document: true }, // ✅ include linked document
+            },
+          },
+        },
       },
     });
 
@@ -44,6 +50,11 @@ export async function GET(
         instruction: tStep.instruction ?? undefined,
         uploadType: tStep.uploadType ?? undefined,
         documentId: tStep.documentId ?? undefined,
+        document: tStep.document ? {
+          id: tStep.document.id,
+          name: tStep.document.name,
+          url: tStep.document.url,
+        } : undefined, // ✅ pass document to renderer
         order: tStep.order,
         status: instStep?.status || 'pending',
       };

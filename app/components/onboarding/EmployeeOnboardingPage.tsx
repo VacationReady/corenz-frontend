@@ -19,16 +19,16 @@ type Step = {
 
 type OnboardingInstance = {
   id: string;
-  template: { name: string };
-  steps: Step[];
+  template: { name: string; steps?: OnboardingStep[] }; // added steps optional for typing
+  steps: Step[]; // instance-specific steps (with status)
 };
 
 type Props = {
-  employeeId: string; // CHANGED: was userId
-  canComplete?: boolean; // allow step completion if self/onboarding, not if just admin reviewing
+  employeeId: string; 
+  canComplete?: boolean;
 };
 
-export default function EmployeeOnboardingPage({ employeeId, canComplete = true }: Props) { // CHANGED: param
+export default function EmployeeOnboardingPage({ employeeId, canComplete = true }: Props) {
   const [loading, setLoading] = useState(true);
   const [instance, setInstance] = useState<OnboardingInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,6 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
     setLoading(true);
     setError(null);
     try {
-      // CHANGED: fetch by employeeId instead of userId
       const res = await fetch(`/api/onboarding/instances/${employeeId}`);
       if (!res.ok) {
         setError((await res.json()).error || 'Failed to load onboarding.');
@@ -56,7 +55,7 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
   useEffect(() => {
     fetchOnboarding();
     // eslint-disable-next-line
-  }, [employeeId]); // CHANGED: use employeeId
+  }, [employeeId]);
 
   if (loading) {
     return <div className="p-8 text-lg">Loading onboarding…</div>;
@@ -68,14 +67,17 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
     return <div className="p-8">No onboarding found.</div>;
   }
 
-  type TemplateWithSteps = typeof instance.template & { steps: OnboardingStep[] };
-const steps = (instance.template as TemplateWithSteps).steps.sort(
-  (a, b) => a.order - b.order
-);
-const completeCount = steps.filter(s => s.status === 'completed').length;
-const percent = Math.round((completeCount / steps.length) * 100);
-const activeStep = steps.find(s => s.status !== 'completed');
-  const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : steps.length;
+  // ✅ Merge template steps with instance step statuses
+  const templateSteps = instance.template.steps || [];
+  const mergedSteps = templateSteps.map(tStep => ({
+    ...tStep,
+    status: instance.steps.find(iStep => iStep.id === tStep.id)?.status || 'pending',
+  })).sort((a, b) => a.order - b.order);
+
+  const completeCount = mergedSteps.filter(s => s.status === 'completed').length;
+  const percent = Math.round((completeCount / mergedSteps.length) * 100);
+  const activeStep = mergedSteps.find(s => s.status !== 'completed');
+  const currentIdx = activeStep ? mergedSteps.findIndex(s => s.id === activeStep.id) : mergedSteps.length;
 
   return (
     <div className="max-w-2xl mx-auto py-10">
@@ -111,10 +113,8 @@ const activeStep = steps.find(s => s.status !== 'completed');
         )}
       </Card>
       <div className="text-sm text-center text-muted-foreground mb-2">
-        {activeStep ? `${currentIdx + 1} / ${steps.length} steps` : `${steps.length} / ${steps.length} steps`}
+        {activeStep ? `${currentIdx + 1} / ${mergedSteps.length} steps` : `${mergedSteps.length} / ${mergedSteps.length} steps`}
       </div>
-      {/* Optional Refresh button for debugging */}
-      {/* <Button variant="ghost" onClick={fetchOnboarding}>Refresh</Button> */}
     </div>
   );
 }

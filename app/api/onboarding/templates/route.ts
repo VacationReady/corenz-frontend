@@ -8,14 +8,11 @@ function isStep(
   step: any
 ): step is {
   type: OnboardingStepType;
-  title: any;
-  description: any;
+  label: string;
   order: number;
-  required: boolean;
-  documentId: any;
-  formFields: any;
-  uploadType: OnboardingUploadType | null;
-  label: any;
+  documentId?: string | null;
+  uploadType?: OnboardingUploadType | null;
+  instruction?: string | null;
 } {
   return !!step;
 }
@@ -68,24 +65,42 @@ export async function POST(req: Request) {
 
     // Filter steps to only allow types that exist in your enum mapping
     const filteredSteps = Array.isArray(steps)
-      ? steps
-          .map((step: any, i: number) => {
-            const mappedType = typeMap[step.type];
-            if (!mappedType) return undefined;
-            return {
-              type: mappedType,
-              title: step.title,
-              description: step.description,
-              order: i + 1,
-              required: !!step.required,
-              documentId: step.documentId || null,
-              formFields: step.formFields || [],
-              uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
-              label: step.label || step.title || "",
-            };
-          })
-          .filter(isStep)
-      : [];
+  ? steps
+      .map((step: any, i: number) => {
+        const mappedType = typeMap[step.type];
+        if (!mappedType) return undefined;
+
+        // Common fields
+        const base = {
+          type: mappedType,
+          label: step.label || step.title || "",
+          order: i + 1,
+        };
+
+        // Type-specific fields
+        if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
+          return {
+            ...base,
+            documentId: step.documentId || null,
+          };
+        }
+        if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
+          return {
+            ...base,
+            uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
+          };
+        }
+        if (mappedType === OnboardingStepType.INSTRUCTION) {
+          return {
+            ...base,
+            instruction: step.description || "", // or step.instruction if your UI uses that
+          };
+        }
+        // Ignore any not matching
+        return undefined;
+      })
+      .filter(isStep)
+  : [];
 
     const template = await prisma.onboardingTemplate.create({
       data: {

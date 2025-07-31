@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import { Progress } from '@/components/ui/progress';
 import OnboardingStepRenderer from '@/components/onboarding/OnboardingStepRenderer';
 import { OnboardingStep } from '@prisma/client';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 
 type Step = {
   id: string;

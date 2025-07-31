@@ -49,19 +49,20 @@ export async function POST(req: Request) {
       ? { connect: jobRoles.map((id: string) => ({ id })) }
       : undefined,
     steps: steps && steps.length > 0
-      ? {
-          create: steps.map((step: any, i: number) => ({
-            type: step.type,
-            title: step.title,
-            description: step.description,
-            order: i + 1,
-            required: !!step.required,
-            documentId: step.documentId || null,
-            formFields: step.formFields || [],
-            uploadType: step.uploadType || null,
-          })),
-        }
-      : undefined,
+  ? {
+      create: steps.map((step: any, i: number) => ({
+        type: step.type,
+        title: step.title,
+        description: step.description,
+        order: i + 1,
+        required: !!step.required,
+        documentId: step.documentId || null,
+        formFields: step.formFields || [],
+        uploadType: step.uploadType || null,
+        label: step.label || step.title || "", // <-- Add this!
+      })),
+    }
+  : undefined,
   },
   include: {
     departments: { select: { id: true, name: true } },

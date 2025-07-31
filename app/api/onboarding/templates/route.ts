@@ -3,6 +3,23 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
+// --- Type guard for filteredSteps ---
+function isStep(
+  step: any
+): step is {
+  type: string;
+  title: any;
+  description: any;
+  order: number;
+  required: boolean;
+  documentId: any;
+  formFields: any;
+  uploadType: string | null;
+  label: any;
+} {
+  return !!step;
+}
+
 // Mapping from UI step type to Prisma enum
 const typeMap: Record<string, string> = {
   "acknowledge-document": "ACKNOWLEDGE_DOCUMENT",
@@ -51,42 +68,27 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { name, description, departments, jobRoles, steps } = body;
-function isStep(
-  step: any
-): step is {
-  type: string;
-  title: any;
-  description: any;
-  order: number;
-  required: boolean;
-  documentId: any;
-  formFields: any;
-  uploadType: string | null;
-  label: any;
-} {
-  return !!step;
-}
+
     // Filter steps to only allow types that exist in your enum mapping
     const filteredSteps = Array.isArray(steps)
-  ? steps
-      .map((step: any, i: number) => {
-        // Only allow step types that map to enum
-        const mappedType = typeMap[step.type];
-        if (!mappedType) return undefined; // <-- changed to undefined for filter(Boolean) to work perfectly
-        return {
-          type: mappedType,
-          title: step.title,
-          description: step.description,
-          order: i + 1,
-          required: !!step.required,
-          documentId: step.documentId || null,
-          formFields: step.formFields || [],
-          uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
-          label: step.label || step.title || "",
-        };
-      })
-      .filter(Boolean) // <-- filter out null/undefined
-  : [];
+      ? steps
+          .map((step: any, i: number) => {
+            const mappedType = typeMap[step.type];
+            if (!mappedType) return undefined;
+            return {
+              type: mappedType,
+              title: step.title,
+              description: step.description,
+              order: i + 1,
+              required: !!step.required,
+              documentId: step.documentId || null,
+              formFields: step.formFields || [],
+              uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null,
+              label: step.label || step.title || "",
+            };
+          })
+          .filter(isStep)
+      : [];
 
     const template = await prisma.onboardingTemplate.create({
       data: {
@@ -144,7 +146,7 @@ export async function PUT(req: Request) {
             ? jobRoles.map((id: string) => ({ id }))
             : [],
         },
-        // You can add similar logic for updating steps here later!
+        // Add step updating logic here if you want later
       },
       include: {
         departments: { select: { id: true, name: true } },

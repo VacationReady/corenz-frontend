@@ -51,7 +51,21 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { name, description, departments, jobRoles, steps } = body;
-
+function isStep(
+  step: any
+): step is {
+  type: string;
+  title: any;
+  description: any;
+  order: number;
+  required: boolean;
+  documentId: any;
+  formFields: any;
+  uploadType: string | null;
+  label: any;
+} {
+  return !!step;
+}
     // Filter steps to only allow types that exist in your enum mapping
     const filteredSteps = Array.isArray(steps)
   ? steps

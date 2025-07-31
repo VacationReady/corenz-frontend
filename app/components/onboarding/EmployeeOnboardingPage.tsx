@@ -68,10 +68,12 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
   }
 
   type TemplateWithSteps = typeof instance.template & { steps: OnboardingStep[] };
-const steps = (instance.template as TemplateWithSteps).steps.sort(...);
-  const completeCount = steps.filter(s => s.status === 'completed').length;
-  const percent = Math.round((completeCount / steps.length) * 100);
-  const activeStep = steps.find(s => s.status !== 'completed');
+const steps = (instance.template as TemplateWithSteps).steps.sort(
+  (a, b) => a.order - b.order
+);
+const completeCount = steps.filter(s => s.status === 'completed').length;
+const percent = Math.round((completeCount / steps.length) * 100);
+const activeStep = steps.find(s => s.status !== 'completed');
   const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : steps.length;
 
   return (

@@ -1,5 +1,4 @@
-// /app/api/onboarding/instances/[employeeId]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; 
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
@@ -13,16 +12,13 @@ export async function GET(
   }
 
   try {
-    // Find latest active onboarding instance for employee (could also filter for status === "active" only)
+    // Find latest active onboarding instance for employee
     const instance = await prisma.onboardingInstance.findFirst({
       where: { employeeId, status: { in: ['active', 'in_progress'] } },
       orderBy: { startedAt: 'desc' },
       include: {
-        steps: {
-          orderBy: { order: 'asc' },
-        },
         template: {
-          select: { name: true },
+          include: { steps: true }, // ✅ include steps under template
         },
       },
     });

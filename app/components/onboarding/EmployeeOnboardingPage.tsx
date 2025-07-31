@@ -67,7 +67,7 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
     return <div className="p-8">No onboarding found.</div>;
   }
 
-  const steps = instance.steps.sort((a, b) => a.order - b.order);
+  const steps = instance.template.steps.sort((a, b) => a.order - b.order);
   const completeCount = steps.filter(s => s.status === 'completed').length;
   const percent = Math.round((completeCount / steps.length) * 100);
   const activeStep = steps.find(s => s.status !== 'completed');

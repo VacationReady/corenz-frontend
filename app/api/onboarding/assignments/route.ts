@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       userId: session.user.id,
       completedAt: null,
     },
-    include: { template: { include: { steps: true } } }
+    include: { template: { include: { steps: true } } },
   });
 
   return NextResponse.json({ assignment });
@@ -24,16 +24,96 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { templateId, userId } = await req.json();
+  const { templateId, userId, employeeId } = await req.json();
 
-  // Create assignment
+  if (!templateId || !userId || !employeeId) {
+    return NextResponse.json({ error: "templateId, userId, and employeeId are required" }, { status: 400 });
+  }
+
+  // ✅ Fetch template with steps
+  const template = await prisma.onboardingTemplate.findUnique({
+    where: { id: templateId },
+    include: { steps: true },
+  });
+
+  if (!template) {
+    return NextResponse.json({ error: "Template not found" }, { status: 404 });
+  }
+
+  // ✅ Create onboarding assignment
   const assignment = await prisma.onboardingAssignment.create({
     data: {
       userId,
       templateId,
       progress: [],
-    }
+    },
   });
 
-  return NextResponse.json({ assignment });
+  // ✅ Create onboarding instance and seed step instances
+  const onboardingInstance = await prisma.onboardingInstance.create({
+    data: {
+      employeeId,
+      templateId,
+      status: "active",
+      startedAt: new Date(),
+      steps: {
+        create: template.steps.map(step => ({
+          stepId: step.id,
+          status: "pending",
+          order: step.order,
+        })),
+      },
+    },
+    include: {
+      steps: true,
+      template: { include: { steps: true } },
+    },
+  });
+
+  return NextResponse.json({ assignment, onboardingInstance });
+}
+
+// ✅ PATCH: Mark assignment complete if all steps are finished
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  const { onboardingInstanceId } = await req.json();
+
+  if (!onboardingInstanceId) {
+    return NextResponse.json({ error: "onboardingInstanceId is required" }, { status: 400 });
+  }
+
+  // Fetch instance with steps and related assignment
+  const instance = await prisma.onboardingInstance.findUnique({
+    where: { id: onboardingInstanceId },
+    include: {
+      steps: true,
+      employee: { include: { user: true } },
+    },
+  });
+
+  if (!instance) {
+    return NextResponse.json({ error: "Onboarding instance not found" }, { status: 404 });
+  }
+
+  const allCompleted = instance.steps.every(step => step.status === "completed");
+
+  if (allCompleted) {
+    await prisma.onboardingAssignment.updateMany({
+      where: {
+        userId: instance.employee.userId,
+        templateId: instance.templateId,
+        completedAt: null,
+      },
+      data: { completedAt: new Date() },
+    });
+
+    await prisma.onboardingInstance.update({
+      where: { id: instance.id },
+      data: { status: "completed" },
+    });
+  }
+
+  return NextResponse.json({ success: true, completed: allCompleted });
 }

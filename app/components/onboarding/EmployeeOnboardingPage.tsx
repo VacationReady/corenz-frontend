@@ -109,7 +109,7 @@ const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : s
         )}
       </Card>
       <div className="text-sm text-center text-muted-foreground mb-2">
-        {activeStep ? `${currentIdx + 1} / ${mergedSteps.length} steps` : `${mergedSteps.length} / ${mergedSteps.length} steps`}
+        {activeStep ? `${currentIdx + 1} / ${steps.length} steps` : `${steps.length} / ${steps.length} steps`}
       </div>
     </div>
   );

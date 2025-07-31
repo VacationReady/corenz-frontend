@@ -29,44 +29,48 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
   const desc = step.description || step.instruction || "";
 
   // ✅ Document Acknowledge
-  if (step.type === "acknowledge-document") {
-    return (
-      <Card className="p-4">
-        <div className="mb-2 font-semibold">{title}</div>
-        <div className="mb-3 text-sm">{desc}</div>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={ack}
-            disabled={readOnly}
-            onChange={e => setAck(e.target.checked)}
-          />
-          I have read and acknowledge this document
-        </label>
-        {!readOnly && (
-          <Button disabled={!ack || loading} onClick={() => { setLoading(true); onComplete(); }}>
-            Mark Complete
-          </Button>
-        )}
-      </Card>
-    );
-  }
+if (step.type === "acknowledge-document") {
+  return (
+    <Card className="p-4">
+      <div className="mb-2 font-semibold">{title}</div>
+      <div className="mb-3 text-sm">{desc}</div>
 
-  // ✅ Upload Document
-  if (step.type === "upload-document") {
-    return (
-      <Card className="p-4">
-        <div className="mb-2 font-semibold">{title}</div>
-        <div className="mb-3 text-sm">{desc}</div>
-        {!readOnly && <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)} />}
-        {!readOnly && (
-          <Button disabled={!file || loading} onClick={() => { setLoading(true); onComplete({ file }); }}>
-            Upload & Complete
-          </Button>
-        )}
-      </Card>
-    );
-  }
+      {/* ✅ Document link (if attached) */}
+      {step.document && (
+        <a
+          href={step.document.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline block mb-3"
+        >
+          View {step.document.name}
+        </a>
+      )}
+
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={ack}
+          disabled={readOnly}
+          onChange={e => setAck(e.target.checked)}
+        />
+        I have read and acknowledge this document
+      </label>
+
+      {!readOnly && (
+        <Button
+          disabled={!ack || loading}
+          onClick={() => {
+            setLoading(true);
+            onComplete();
+          }}
+        >
+          Mark Complete
+        </Button>
+      )}
+    </Card>
+  );
+}
 
   // ✅ Fill Form
   if (step.type === "fill-form" && step.formFields) {

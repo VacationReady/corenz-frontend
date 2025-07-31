@@ -42,15 +42,14 @@ if (step.type === "acknowledge-document") {
 
       {/* ✅ Document link (if attached) */}
       {step.document && (
-        <a
-          href={step.document.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 underline block mb-3"
-        >
-          View {step.document.name}
-        </a>
-      )}
+  <div className="mb-4 border rounded">
+    <iframe
+      src={step.document.url}
+      className="w-full h-96 border-none"
+      title={step.document.name}
+    />
+  </div>
+)}
 
       <label className="flex items-center gap-2">
         <input

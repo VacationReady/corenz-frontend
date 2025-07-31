@@ -70,10 +70,28 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
   // ✅ Merge template steps with instance step statuses
   const steps = instance.steps.sort((a, b) => a.order - b.order);
 
-const completeCount = steps.filter(s => s.status === 'completed').length;
-const percent = Math.round((completeCount / steps.length) * 100);
-const activeStep = steps.find(s => s.status !== 'completed');
-const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : steps.length;
+  const completeCount = steps.filter(s => s.status === 'completed').length;
+  const percent = Math.round((completeCount / steps.length) * 100);
+  const activeStep = steps.find(s => s.status !== 'completed');
+  const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : steps.length;
+
+  // ✅ Robust onComplete handler
+  const handleComplete = async (stepId: string, data?: any) => {
+    try {
+      const res = await fetch(`/api/onboarding/step/${stepId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data || {}),
+      });
+
+      if (!res.ok) {
+        console.error(`Failed to complete step ${stepId}:`, await res.text());
+      }
+      await fetchOnboarding();
+    } catch (err) {
+      console.error("Error completing onboarding step:", err);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto py-10">
@@ -91,16 +109,7 @@ const currentIdx = activeStep ? steps.findIndex(s => s.id === activeStep.id) : s
           <OnboardingStepRenderer
             step={activeStep}
             readOnly={!canComplete}
-            onComplete={canComplete
-              ? async (data: any) => {
-                  await fetch(`/api/onboarding/step/${activeStep.id}/complete`, {
-                    method: "POST",
-                    body: JSON.stringify(data || {}),
-                    headers: { "Content-Type": "application/json" },
-                  });
-                  await fetchOnboarding();
-                }
-              : () => {}}
+            onComplete={canComplete ? (data: any) => handleComplete(activeStep.id, data) : () => {}}
           />
         ) : (
           <div className="p-6 text-center text-lg font-bold text-green-700">

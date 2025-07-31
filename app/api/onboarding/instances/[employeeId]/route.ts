@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Map Prisma enum values -> UI-friendly step types
 const mapStepType = (type: string) => {
   switch (type) {
     case 'ACKNOWLEDGE_DOCUMENT': return 'acknowledge-document';
@@ -26,8 +25,8 @@ export async function GET(
       where: { employeeId, status: { in: ['active', 'in_progress'] } },
       orderBy: { startedAt: 'desc' },
       include: {
-        steps: true, // Instance-specific steps (status only)
-        template: { include: { steps: true } }, // Template steps (definitions)
+        steps: true, // instance (status only)
+        template: { include: { steps: true } }, // template (definitions)
       },
     });
 
@@ -35,19 +34,25 @@ export async function GET(
       return NextResponse.json({ error: 'No active onboarding found' }, { status: 404 });
     }
 
-    // ✅ Normalize template steps for frontend
+    // ✅ Merge template steps with instance status, normalize nulls
+    const mergedSteps = instance.template.steps.map(tStep => {
+      const instStep = instance.steps.find(i => i.stepId === tStep.id);
+      return {
+        id: tStep.id,
+        type: mapStepType(tStep.type),
+        label: tStep.label,
+        instruction: tStep.instruction ?? undefined,
+        uploadType: tStep.uploadType ?? undefined,
+        documentId: tStep.documentId ?? undefined,
+        order: tStep.order,
+        status: instStep?.status || 'pending',
+      };
+    });
+
     const normalized = {
-      ...instance,
-      template: {
-        ...instance.template,
-        steps: instance.template.steps.map(s => ({
-          ...s,
-          type: mapStepType(s.type),
-          instruction: s.instruction ?? undefined,
-          uploadType: s.uploadType ?? undefined,
-          documentId: s.documentId ?? undefined,
-        })),
-      },
+      id: instance.id,
+      template: { name: instance.template.name },
+      steps: mergedSteps, // ✅ fully merged + normalized
     };
 
     return NextResponse.json(normalized, { status: 200 });

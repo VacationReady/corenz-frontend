@@ -88,14 +88,16 @@ export default function EmployeeOnboardingPage({ userId, canComplete = true }: P
           <OnboardingStepRenderer
             step={activeStep}
             readOnly={!canComplete}
-            onComplete={canComplete ? async (data: any) => {
-              await fetch(`/api/onboarding/step/${activeStep.id}/complete`, {
-                method: "POST",
-                body: JSON.stringify(data || {}),
-                headers: { "Content-Type": "application/json" },
-              });
-              await fetchOnboarding();
-            } : undefined}
+            onComplete={canComplete
+  ? async (data: any) => {
+      await fetch(`/api/onboarding/step/${activeStep.id}/complete`, {
+        method: "POST",
+        body: JSON.stringify(data || {}),
+        headers: { "Content-Type": "application/json" },
+      });
+      await fetchOnboarding();
+    }
+  : () => {}}
           />
         ) : (
           <div className="p-6 text-center text-lg font-bold text-green-700">

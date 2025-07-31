@@ -23,21 +23,22 @@ type OnboardingInstance = {
 };
 
 type Props = {
-  userId: string;
+  employeeId: string; // CHANGED: was userId
   canComplete?: boolean; // allow step completion if self/onboarding, not if just admin reviewing
 };
 
-export default function EmployeeOnboardingPage({ userId, canComplete = true }: Props) {
+export default function EmployeeOnboardingPage({ employeeId, canComplete = true }: Props) { // CHANGED: param
   const [loading, setLoading] = useState(true);
   const [instance, setInstance] = useState<OnboardingInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch onboarding data for this user
+  // Fetch onboarding data for this employee
   const fetchOnboarding = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/onboarding/instances/${userId}`);
+      // CHANGED: fetch by employeeId instead of userId
+      const res = await fetch(`/api/onboarding/instances/${employeeId}`);
       if (!res.ok) {
         setError((await res.json()).error || 'Failed to load onboarding.');
         setInstance(null);
@@ -54,7 +55,7 @@ export default function EmployeeOnboardingPage({ userId, canComplete = true }: P
   useEffect(() => {
     fetchOnboarding();
     // eslint-disable-next-line
-  }, [userId]);
+  }, [employeeId]); // CHANGED: use employeeId
 
   if (loading) {
     return <div className="p-8 text-lg">Loading onboarding…</div>;
@@ -89,15 +90,15 @@ export default function EmployeeOnboardingPage({ userId, canComplete = true }: P
             step={activeStep}
             readOnly={!canComplete}
             onComplete={canComplete
-  ? async (data: any) => {
-      await fetch(`/api/onboarding/step/${activeStep.id}/complete`, {
-        method: "POST",
-        body: JSON.stringify(data || {}),
-        headers: { "Content-Type": "application/json" },
-      });
-      await fetchOnboarding();
-    }
-  : () => {}}
+              ? async (data: any) => {
+                  await fetch(`/api/onboarding/step/${activeStep.id}/complete`, {
+                    method: "POST",
+                    body: JSON.stringify(data || {}),
+                    headers: { "Content-Type": "application/json" },
+                  });
+                  await fetchOnboarding();
+                }
+              : () => {}}
           />
         ) : (
           <div className="p-6 text-center text-lg font-bold text-green-700">

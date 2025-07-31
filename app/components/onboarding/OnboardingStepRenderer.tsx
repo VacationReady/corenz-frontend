@@ -3,7 +3,6 @@ import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
-import { uploadToSupabase } from "@/lib/supabase"; // ✅ use helper
 import { useSession } from "next-auth/react";
 
 type OnboardingStepProps = {
@@ -76,29 +75,25 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                   if (!file || !session?.user) return;
                   setLoading(true);
 
-                  // ✅ Use helper for upload
-                  const { url, path } = await uploadToSupabase(file);
+                  // ✅ Build FormData for upload-employee API
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("name", file.name);
+                  formData.append("category", step.category || "Onboarding");
+                  formData.append("employeeId", employeeId || "");
+                  formData.append("canViewAdmin", "true");
+                  formData.append("canViewManager", "false");
+                  formData.append("canViewEmployee", "true");
+                  formData.append("requiresAck", "false");
 
-                  // Insert Document record
-                  const doc = await fetch("/api/documents", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      name: file.name,
-                      category: step.category || "Onboarding",
-                      description: `Onboarding upload for ${title}`,
-                      path,
-                      size: file.size,
-                      type: file.type,
-                      url,
-                      employeeId,
-                      companyId,
-                      uploaderId: session.user.id
-                    }),
-                  }).then(r => r.json());
+                  const res = await fetch("/api/documents/upload-employee", { method: "POST", body: formData });
+                  if (!res.ok) {
+                    console.error("Upload failed");
+                    setLoading(false);
+                    return;
+                  }
 
-                  // Complete step with documentId
-                  onComplete({ documentId: doc.id });
+                  onComplete(); // mark step complete
                 }}
               >
                 Upload & Complete
@@ -116,9 +111,7 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
         <div className="mb-3 text-sm">{desc}</div>
-        <form
-          onSubmit={e => { e.preventDefault(); setLoading(true); onComplete(formValues); }}
-        >
+        <form onSubmit={e => { e.preventDefault(); setLoading(true); onComplete(formValues); }}>
           {step.formFields.map((f, idx) => (
             <div key={idx} className="mb-2">
               <label>{f.label}</label>

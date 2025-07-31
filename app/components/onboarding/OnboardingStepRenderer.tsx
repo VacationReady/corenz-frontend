@@ -7,12 +7,17 @@ import { Textarea } from "@/components/ui/textarea";
 type OnboardingStepProps = {
   step: {
     id: string;
-    type: string;            // e.g. 'acknowledge-document', 'upload-document', 'fill-form', 'instructions'
-    label?: string;          // mapped from DB (Prisma: label)
-    title?: string;          // UI alias (fallback to label)
-    description?: string;    // UI alias (fallback to instruction)
-    instruction?: string;    // DB field (Prisma)
+    type: string;            // e.g. 'acknowledge-document', 'upload-document', etc.
+    label?: string;
+    title?: string;
+    description?: string;
+    instruction?: string;
     formFields?: { label: string; type: string }[];
+    document?: {             // ✅ ADD THIS
+      id: string;
+      name: string;
+      url: string;
+    };
   };
   onComplete: (data?: any) => void;
   readOnly?: boolean;

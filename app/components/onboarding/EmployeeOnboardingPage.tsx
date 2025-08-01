@@ -166,14 +166,15 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
       <Card className="mb-8">
         {activeStep ? (
           <OnboardingStepRenderer
-            step={activeStep}
-            readOnly={!canComplete}
-            onComplete={
-              canComplete
-                ? (data: any) => handleComplete(activeStep.instanceStepId || activeStep.id, data)
-                : () => {}
-            }
-          />
+  step={activeStep}
+  readOnly={!canComplete}
+  employeeId={employeeId}   // ✅ Add this
+  onComplete={
+    canComplete
+      ? (data: any) => handleComplete(activeStep.instanceStepId || activeStep.id, data)
+      : () => {}
+  }
+/>
         ) : (
           <div className="p-6 text-center text-lg font-bold text-green-700">
             🎉 Onboarding Complete!

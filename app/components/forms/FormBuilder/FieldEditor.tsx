@@ -29,9 +29,13 @@ export function FieldEditor({
       </div>
       <div className="flex items-center gap-2">
         <Checkbox
-          checked={field.required}
-          onCheckedChange={(v) => onChange({ ...field, required: Boolean(v) })}
-        />
+  id={`required-${field.id}`}
+  checked={field.required}
+  onCheckedChange={(v) => onChange({ ...field, required: Boolean(v) })}
+/>
+<label htmlFor={`required-${field.id}`} className="text-sm">
+  Required
+</label>
         <span>Required</span>
       </div>
       {['select', 'radio'].includes(field.type) && (

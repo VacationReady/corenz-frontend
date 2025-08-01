@@ -46,11 +46,22 @@ export default function FormBuilder({ onSave }: FormBuilderProps) {
       description: 'Generated from FormBuilder',
       schema: fields,
     });
+    toast.success('Form saved successfully');
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <DndContext onDragEnd={handleDragEnd} onDragStart={(e) => setActiveDragField({ id: 'temp', type: String(e.active.id), label: e.active.id, required: false })}>
+      <DndContext
+        onDragEnd={handleDragEnd}
+        onDragStart={(e) =>
+          setActiveDragField({
+            id: 'temp',
+            type: String(e.active.id),
+            label: String(e.active.id), // ✅ FIXED TYPE ERROR (explicit cast)
+            required: false,
+          })
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Field Palette */}
           <FieldPalette />
@@ -85,7 +96,7 @@ export default function FormBuilder({ onSave }: FormBuilderProps) {
         {/* Drag Overlay Preview */}
         <DragOverlay>
           {activeDragField ? (
-            <div className="p-2 px-3 bg-white border rounded shadow text-sm font-medium">
+            <div className="p-2 px-3 bg-white border rounded shadow text-sm font-medium shadow-lg">
               {activeDragField.label}
             </div>
           ) : null}
@@ -93,7 +104,11 @@ export default function FormBuilder({ onSave }: FormBuilderProps) {
       </DndContext>
 
       {/* Save Button */}
-      <Button onClick={saveForm} className="self-end mt-4">
+      <Button
+        onClick={saveForm}
+        className="self-end mt-4"
+        disabled={!fields.length} // UX: Disable until at least one field added
+      >
         Save Form
       </Button>
     </div>

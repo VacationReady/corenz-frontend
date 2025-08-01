@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -6,20 +7,15 @@ async function main() {
   const company = await prisma.company.upsert({
     where: { name: 'CoreNZ' },
     update: {},
-    create: {
-      name: 'CoreNZ',
-    },
+    create: { name: 'CoreNZ' },
   });
   console.log(`✅ Company created: ${company.name} (${company.id})`);
 
   // ✅ 2. Create Department linked to Company
   const department = await prisma.department.upsert({
-    where: { name: 'Sales' },
-    update: { companyId: company.id },
-    create: {
-      name: 'Sales',
-      companyId: company.id,
-    },
+    where: { companyId_name: { companyId: company.id, name: 'Sales' } },
+    update: {},
+    create: { name: 'Sales', companyId: company.id },
   });
   console.log(`✅ Department created: ${department.name} (${department.id})`);
 
@@ -44,7 +40,6 @@ async function main() {
   ];
 
   for (const category of systemCategories) {
-    console.log(`⏳ Attempting to upsert category: ${category.name}`);
     const result = await prisma.eventCategory.upsert({
       where: { name: category.name },
       update: {
@@ -58,18 +53,12 @@ async function main() {
     });
     console.log(`✅ Category upserted: ${result.name} (${result.id})`);
 
-    // ✅ 4. Create EventRule tied to the category and company
-    const eventRule = await prisma.eventRule.upsert({
+    // ✅ EventRule tied to category and company
+    await prisma.eventRule.upsert({
       where: {
-        companyId_eventCategoryId: {
-          companyId: company.id,
-          eventCategoryId: result.id,
-        },
+        companyId_eventCategoryId: { companyId: company.id, eventCategoryId: result.id },
       },
-      update: {
-        maxCarryoverDays: 5,
-        carryoverExpiryMonths: 3,
-      },
+      update: { maxCarryoverDays: 5, carryoverExpiryMonths: 3 },
       create: {
         companyId: company.id,
         eventCategoryId: result.id,
@@ -77,105 +66,147 @@ async function main() {
         carryoverExpiryMonths: 3,
       },
     });
-    console.log(`✅ EventRule created for ${category.name} (${eventRule.id})`);
   }
 
-  // ✅ 5. Seed FieldMetadata for dynamic report builder
+  // ✅ 4. FieldMetadata (dynamic reporting)
   await prisma.fieldMetadata.createMany({
     data: [
-      // User fields
       { model: "user", field: "email", label: "Email", fieldType: "string" },
       { model: "user", field: "role", label: "Role", fieldType: "string" },
       { model: "user", field: "firstName", label: "First Name", fieldType: "string" },
       { model: "user", field: "lastName", label: "Last Name", fieldType: "string" },
       { model: "user", field: "phone", label: "Phone", fieldType: "string" },
-      // Employee fields
       { model: "employee", field: "isActive", label: "Is Active", fieldType: "boolean" },
       { model: "employee", field: "departmentId", label: "Department ID", fieldType: "string" },
-      { model: "employee", field: "workingPatternId", label: "Working Pattern ID", fieldType: "string" },
-      // Department fields
       { model: "department", field: "name", label: "Department Name", fieldType: "string" },
-      { model: "department", field: "companyId", label: "Company ID", fieldType: "string" },
-      // JobRole fields
       { model: "jobrole", field: "name", label: "Job Role Name", fieldType: "string" },
-      { model: "jobrole", field: "description", label: "Job Role Description", fieldType: "string" },
-      // Leave Request fields
       { model: "leaverequest", field: "startDate", label: "Start Date", fieldType: "date" },
       { model: "leaverequest", field: "endDate", label: "End Date", fieldType: "date" },
-      { model: "leaverequest", field: "status", label: "Status", fieldType: "string" },
-      { model: "leaverequest", field: "daysRequested", label: "Days Requested", fieldType: "int" },
-      // Leave Entitlement fields
+      { model: "leaverequest", field: "approvalStatus", label: "Approval Status", fieldType: "string" },
       { model: "leaveentitlement", field: "totalDays", label: "Total Days", fieldType: "int" },
-      { model: "leaveentitlement", field: "usedDays", label: "Used Days", fieldType: "int" },
-      { model: "leaveentitlement", field: "carryoverDays", label: "Carryover Days", fieldType: "int" },
-      { model: "leaveentitlement", field: "carryoverExpiry", label: "Carryover Expiry", fieldType: "date" },
     ],
     skipDuplicates: true,
   });
-  console.log("✅ FieldMetadata seeded for dynamic report builder.");
 
-  // ✅ 6. Seed ExpiryRules for expiry alerts
+  // ✅ 5. Expiry Rules
   const expiryRules = [
-    { category: "Employment Checks", daysBefore: 28, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
-    { category: "Driver Licence", daysBefore: 30, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
-    { category: "Training", daysBefore: 45, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Employment Checks", daysBefore: 28 },
+    { category: "Driver Licence", daysBefore: 30 },
+    { category: "Training", daysBefore: 45 },
   ];
-
   for (const rule of expiryRules) {
-    const result = await prisma.expiryRule.upsert({
+    await prisma.expiryRule.upsert({
       where: { category: rule.category },
-      update: {
-        daysBefore: rule.daysBefore,
-        notifyAdmin: rule.notifyAdmin,
-        notifyManager: rule.notifyManager,
-        notifyEmployee: rule.notifyEmployee,
-      },
-      create: rule,
+      update: { daysBefore: rule.daysBefore },
+      create: { ...rule, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
     });
-    console.log(`✅ ExpiryRule created: ${result.category} (${result.id})`);
   }
 
-  // ✅ 7. Seed Additional Departments
-  const additionalDepartments = ['HR', 'Finance', 'Engineering']
+  // ✅ 6. Departments (compound unique)
+  const additionalDepartments = ['HR', 'Finance', 'Engineering'];
   for (const deptName of additionalDepartments) {
-    const dept = await prisma.department.upsert({
-      where: { name: deptName },
-      update: { companyId: company.id },
-      create: {
-        name: deptName,
-        companyId: company.id,
-      },
-    })
-    console.log(`✅ Department created: ${dept.name} (${dept.id})`)
-  }
-
-  // ✅ 8. Seed Job Roles
-  const jobRoles = ['Manager', 'Employee', 'Admin']
-  for (const roleName of jobRoles) {
-    const role = await prisma.jobRole.upsert({
-      where: { name: roleName },
+    await prisma.department.upsert({
+      where: { companyId_name: { companyId: company.id, name: deptName } },
       update: {},
-      create: {
-        name: roleName,
-      },
-    })
-    console.log(`✅ JobRole created: ${role.name} (${role.id})`)
+      create: { name: deptName, companyId: company.id },
+    });
   }
 
-  // ✅ 9. Seed Locations
-  const locations = ['Auckland', 'Wellington', 'Christchurch']
+  // ✅ 7. Job Roles (compound unique)
+  const jobRoles = ['Manager', 'Employee', 'Admin'];
+  for (const roleName of jobRoles) {
+    await prisma.jobRole.upsert({
+      where: { companyId_name: { companyId: company.id, name: roleName } },
+      update: {},
+      create: { name: roleName, companyId: company.id },
+    });
+  }
+
+  // ✅ 8. Locations (global unique)
+  const locations = ['Auckland', 'Wellington', 'Christchurch', 'London', 'Manchester'];
   for (const locName of locations) {
-    const loc = await prisma.location.upsert({
+    await prisma.location.upsert({
       where: { name: locName },
       update: {},
-      create: {
-        name: locName,
-      },
-    })
-    console.log(`✅ Location created: ${loc.name} (${loc.id})`)
+      create: { name: locName },
+    });
   }
 
-  console.log('✅ Seeding process completed.');
+  // ✅ 9. Onboarding Template + Steps
+  const onboardingTemplate = await prisma.onboardingTemplate.upsert({
+  where: { companyId_name: { companyId: company.id, name: 'Default Onboarding' } },
+  update: { isDefault: true, isActive: true },
+  create: {
+    name: 'Default Onboarding',
+    isDefault: true,
+    isActive: true,
+    companyId: company.id,
+  },
+});
+
+  const onboardingSteps = [
+    { label: 'Upload Passport/Right-to-Work', type: 'UPLOAD_DOCUMENT', uploadType: 'RIGHT_TO_WORK', order: 1 },
+    { label: 'Acknowledge Health & Safety Policy', type: 'ACKNOWLEDGE_DOCUMENT', order: 2 },
+    { label: 'Complete Bank Details Form', type: 'INSTRUCTION', instruction: 'Submit your bank account details.', order: 3 },
+  ];
+  for (const step of onboardingSteps) {
+    await prisma.onboardingStep.upsert({
+      where: { templateId_label: { templateId: onboardingTemplate.id, label: step.label } },
+      update: {},
+      create: { ...step, templateId: onboardingTemplate.id },
+    });
+  }
+
+  // ✅ 11. Admin User & Employees
+  const hashedPassword = await bcrypt.hash('Admin123!', 10);
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@corenz.com' },
+    update: {},
+    create: {
+      email: 'admin@corenz.com',
+      firstName: 'System',
+      lastName: 'Admin',
+      role: 'ADMIN',
+      password: hashedPassword,
+      companyId: company.id,
+      departmentId: department.id,
+    },
+  });
+  await prisma.employee.upsert({
+  where: { userId: adminUser.id },
+  update: {},
+  create: {
+    userId: adminUser.id,
+    departmentId: department.id,
+    isActive: true,
+  },
+});
+
+  const sampleEmployees = [
+    { email: 'john.doe@corenz.com', firstName: 'John', lastName: 'Doe' },
+    { email: 'jane.smith@corenz.com', firstName: 'Jane', lastName: 'Smith' },
+  ];
+  for (const emp of sampleEmployees) {
+    const user = await prisma.user.upsert({
+      where: { email: emp.email },
+      update: {},
+      create: {
+        email: emp.email,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        role: 'EMPLOYEE',
+        password: hashedPassword,
+        departmentId: department.id,
+      },
+    });
+    await prisma.employee.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id, departmentId: department.id, isActive: true },
+    });
+  }
+
+  console.log('🎉 Full CoreNZ seed completed successfully.');
 }
 
 main()

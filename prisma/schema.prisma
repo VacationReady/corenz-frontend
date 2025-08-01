@@ -54,6 +54,7 @@ model User {
   // ✅ News/posts authored
   newsPosts             NewsPost[]
   onboardingAssignments OnboardingAssignment[]
+  assignedForms         FormAssignment[]       @relation("AssignedForms")
 }
 
 model ActivationToken {
@@ -87,6 +88,8 @@ model Employee {
   onboardingTemplate        OnboardingTemplate?                @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
   onboardingStatus          Json? // Track step completion/status per employee (future proof)
   onboardingInstances       OnboardingInstance[]
+  formAssignments           FormAssignment[]
+  formSubmissions           FormSubmission[]
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -218,6 +221,7 @@ model Company {
   documents           Document[]
   onboardingTemplates OnboardingTemplate[]
   users               User[]
+  forms               Form[]
 }
 
 model JobRole {
@@ -484,7 +488,7 @@ model OnboardingTemplate {
   id          String           @id @default(cuid())
   name        String
   description String?
-  isActive    Boolean      @default(false)
+  isActive    Boolean          @default(false)
   isDefault   Boolean          @default(false)
   steps       OnboardingStep[]
   companyId   String
@@ -497,6 +501,8 @@ model OnboardingTemplate {
   jobRoles              JobRole[]              @relation("OnboardingTemplateJobRoles")
   onboardingInstances   OnboardingInstance[]
   onboardingAssignments OnboardingAssignment[]
+
+  @@unique([companyId, name])
 }
 
 model OnboardingStep {
@@ -512,6 +518,8 @@ model OnboardingStep {
   uploadType              OnboardingUploadType? // For upload steps (e.g. passport, right to work)
   instruction             String? // For simple instruction/checklist steps
   onboardingStepInstances OnboardingStepInstance[]
+
+  @@unique([templateId, label])
 }
 
 model OnboardingInstance {
@@ -556,6 +564,45 @@ model OnboardingAssignment {
   // relations
   user        User               @relation(fields: [userId], references: [id])
   template    OnboardingTemplate @relation(fields: [templateId], references: [id])
+}
+
+model Form {
+  id          String   @id @default(cuid())
+  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String
+  name        String
+  description String?
+  schema      Json // Field definitions
+  version     Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments FormAssignment[]
+  submissions FormSubmission[]
+}
+
+model FormAssignment {
+  id           String    @id @default(cuid())
+  form         Form      @relation(fields: [formId], references: [id])
+  formId       String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  employeeId   String
+  assignedBy   User      @relation("AssignedForms", fields: [assignedById], references: [id])
+  assignedById String
+  dueDate      DateTime?
+  status       String    @default("pending")
+  completedAt  DateTime?
+}
+
+model FormSubmission {
+  id          String   @id @default(cuid())
+  form        Form     @relation(fields: [formId], references: [id])
+  formId      String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  data        Json
+  submittedAt DateTime @default(now())
 }
 
 enum Role {

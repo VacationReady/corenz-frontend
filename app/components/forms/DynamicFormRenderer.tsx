@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/textarea';
-import Checkbox from '@/components/ui/heckbox';
+import Checkbox from '@/components/ui/Checkbox';
 import { toast } from 'sonner';
 
 interface DynamicFormRendererProps {

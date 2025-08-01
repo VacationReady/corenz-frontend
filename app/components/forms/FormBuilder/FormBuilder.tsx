@@ -11,40 +11,34 @@ import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
 import { FormField } from './types';
 
-export default function FormBuilder() {
-  const [fields, setFields] = useState<FormField[]>([]);
-  const [selectedField, setSelectedField] = useState<FormField | null>(null);
-
 interface FormBuilderProps {
-  onSave: (data: { name: string; description?: string; schema: any }) => void;
+  onSave: (data: { name: string; description?: string; schema: FormField[] }) => void;
 }
 
 export default function FormBuilder({ onSave }: FormBuilderProps) {
+  const [fields, setFields] = useState<FormField[]>([]);
+  const [selectedField, setSelectedField] = useState<FormField | null>(null);
 
-  // Drag field from palette to canvas
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.over?.id === 'canvas') {
       const newField: FormField = {
-  id: uuidv4(),
-  type: String(event.active.id), // ✅ convert to string
-  label: 'Untitled Field',
-  required: false,
-};
+        id: uuidv4(),
+        type: String(event.active.id),
+        label: 'Untitled Field',
+        required: false,
+      };
       setFields((prev) => [...prev, newField]);
     }
   };
 
-  // Save form to API
-  const saveForm = async () => {
-    const res = await fetch('/api/forms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'New Form',
-        description: 'Generated from FormBuilder',
-        schema: fields,
-      }),
+  const saveForm = () => {
+    if (!fields.length) return toast.error('Add at least one field');
+    onSave({
+      name: 'New Form',
+      description: 'Generated from FormBuilder',
+      schema: fields,
     });
+  };
 
     if (res.ok) toast.success('Form saved successfully!');
     else toast.error('Error saving form');

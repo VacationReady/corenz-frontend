@@ -126,6 +126,7 @@ export default function SettingsIndexPage() {
         <SettingSection id="onboarding" label="Onboarding" items={onboardingSettings} />
         <SettingSection id="documents" label="Documents" items={documentSettings} />
         <SettingSection id="workflows" label="Workflows" items={workflowSettings} />
+<SettingSection id="forms" label="Forms & Surveys" items={formSettings} />
         <SettingSection id="system" label="System" items={systemSettings} />
       </Accordion>
     </PageShell>

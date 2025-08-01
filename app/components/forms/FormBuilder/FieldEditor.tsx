@@ -3,7 +3,7 @@
 import { FormField } from './types';
 import { Input } from '@/components/ui/Input';
 import Checkbox from '@/components/ui/Checkbox';
-import { Textarea } from '@/components/ui/Textarea'; // ✅ Optional enhancement
+import { Textarea } from '@/components/ui/textarea'; // ✅ Optional enhancement
 import { AlertCircle } from 'lucide-react'; // ✅ Icon for validation
 
 export function FieldEditor({

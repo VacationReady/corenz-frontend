@@ -3,12 +3,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { FormField } from './types';
 import { PlusCircle, GripVertical, Pencil } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 export function FormCanvas({
   fields,

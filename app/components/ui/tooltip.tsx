@@ -1,40 +1,32 @@
-"use client";
+"use client"
 
-import { ReactNode, Fragment } from "react";
-import { Popover, Transition } from "@headlessui/react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
-interface TooltipProps {
-  children: ReactNode;
-  content: ReactNode;
-  className?: string;
-}
+import { cn } from "@/lib/utils"
 
-export default function Tooltip({ children, content, className }: TooltipProps) {
-  return (
-    <Popover className="relative">
-      {({ open }) => (
-        <>
-          <Popover.Button className={cn("outline-none", className)}>
-            {children}
-          </Popover.Button>
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-150"
-            enterFrom="opacity-0 translate-y-1"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition ease-in duration-100"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-1"
-          >
-            <Popover.Panel
-              className="absolute z-50 mt-2 w-max max-w-xs rounded bg-black text-white text-xs p-2 shadow-lg"
-            >
-              {content}
-            </Popover.Panel>
-          </Transition>
-        </>
+const TooltipProvider = TooltipPrimitive.Provider
+
+const Tooltip = TooltipPrimitive.Root
+
+const TooltipTrigger = TooltipPrimitive.Trigger
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-tooltip-content-transform-origin]",
+        className
       )}
-    </Popover>
-  );
-}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+))
+TooltipContent.displayName = TooltipPrimitive.Content.displayName
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

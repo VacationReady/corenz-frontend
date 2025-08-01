@@ -37,6 +37,7 @@ const holidaySettings = [
     href: '/settings/event-rules',
     icon: <ClipboardList className="h-5 w-5 text-muted-foreground" />
   },
+
   {
     title: 'Event Manager',
     href: '/settings/event-manager',
@@ -48,6 +49,14 @@ const holidaySettings = [
     icon: <FileText className="h-5 w-5 text-muted-foreground" />
   }
 ]
+
+const formSettings = [
+  {
+    title: 'Forms & Surveys',
+    href: '/settings/forms',
+    icon: <ClipboardList className="h-5 w-5 text-muted-foreground" />
+  }
+];
 
 // 👇 NEW Onboarding Settings Section
 const onboardingSettings = [

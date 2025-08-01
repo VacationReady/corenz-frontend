@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/textarea';
 import Checkbox from '@/components/ui/Checkbox';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface DynamicFormRendererProps {
   formId: string;
-  employeeId?: string; // Optional if session context handles this
+  employeeId?: string;
   onSubmitSuccess?: () => void;
 }
 
@@ -32,44 +33,45 @@ export function DynamicFormRenderer({ formId, onSubmitSuccess }: DynamicFormRend
   // Fetch form schema
   useEffect(() => {
     const fetchForm = async () => {
-      const res = await fetch(`/api/forms/${formId}`);
-      if (!res.ok) {
+      try {
+        const res = await fetch(`/api/forms/${formId}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setFields(data.schema || []);
+      } catch {
         toast.error('Failed to load form');
-        return;
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json();
-      setFields(data.schema || []);
-      setLoading(false);
     };
     fetchForm();
   }, [formId]);
 
-  // Build Zod schema dynamically based on form fields
+  // Build Zod schema dynamically
   const buildValidationSchema = () => {
     const shape: Record<string, any> = {};
     fields.forEach((f) => {
-      if (f.required) {
-        shape[f.id] = z.string().min(1, `${f.label} is required`);
-      } else {
-        shape[f.id] = z.string().optional();
-      }
+      shape[f.id] = f.required
+        ? z.string().min(1, `${f.label} is required`)
+        : z.string().optional();
     });
     return z.object(shape);
   };
 
   const formSchema = buildValidationSchema();
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(formSchema),
-  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({ resolver: zodResolver(formSchema) });
 
-  // Handle submission
+  // Submit handler
   const submitForm = async (data: Record<string, any>) => {
     const res = await fetch(`/api/forms/${formId}/submissions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data }),
     });
-
     if (res.ok) {
       toast.success('Form submitted successfully');
       onSubmitSuccess?.();
@@ -78,27 +80,48 @@ export function DynamicFormRenderer({ formId, onSubmitSuccess }: DynamicFormRend
     }
   };
 
-  if (loading) return <p>Loading form...</p>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-500">
+        <Loader2 className="h-6 w-6 mr-2 animate-spin" /> Loading form...
+      </div>
+    );
 
   return (
-    <form onSubmit={handleSubmit(submitForm)} className="space-y-6">
+    <form onSubmit={handleSubmit(submitForm)} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
       {fields.map((field) => (
         <div key={field.id} className="flex flex-col gap-2">
-          <label className="font-medium">
-            {field.label} {field.required && <span className="text-red-500">*</span>}
+          <label className="font-medium text-sm text-gray-700">
+            {field.label || 'Untitled Field'}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           {renderField(field, register)}
           {errors[field.id] && (
-            <p className="text-red-500 text-sm">{errors[field.id]?.message as string}</p>
+            <p className="text-red-500 text-xs mt-1">{errors[field.id]?.message as string}</p>
           )}
         </div>
       ))}
-      <Button type="submit" className="w-full">Submit</Button>
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...
+          </>
+        ) : (
+          'Submit'
+        )}
+      </Button>
     </form>
   );
 }
 
 function renderField(field: FormField, register: any) {
+  const baseInput =
+    'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
+
   switch (field.type) {
     case 'text':
     case 'email':
@@ -106,22 +129,27 @@ function renderField(field: FormField, register: any) {
     case 'date':
       return <Input type={field.type} placeholder={field.placeholder} {...register(field.id)} />;
     case 'textarea':
-      return <Textarea placeholder={field.placeholder} {...register(field.id)} />;
+      return <Textarea placeholder={field.placeholder} className="min-h-[80px]" {...register(field.id)} />;
     case 'select':
       return (
-        <select className="border rounded p-2" {...register(field.id)}>
-          <option value="">Select an option</option>
+        <select className={baseInput} defaultValue="" {...register(field.id)}>
+          <option value="" disabled>
+            {field.placeholder || 'Select an option'}
+          </option>
           {field.options?.map((opt, i) => (
-            <option key={i} value={opt}>{opt}</option>
+            <option key={i} value={opt}>
+              {opt}
+            </option>
           ))}
         </select>
       );
     case 'radio':
       return (
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           {field.options?.map((opt, i) => (
-            <label key={i} className="flex items-center gap-1">
-              <input type="radio" value={opt} {...register(field.id)} /> {opt}
+            <label key={i} className="flex items-center gap-2 cursor-pointer text-sm">
+              <input type="radio" value={opt} {...register(field.id)} className="accent-blue-500 focus:ring-blue-400" />
+              {opt}
             </label>
           ))}
         </div>
@@ -130,7 +158,7 @@ function renderField(field: FormField, register: any) {
       return (
         <div className="flex flex-col gap-2">
           {field.options?.map((opt, i) => (
-            <label key={i} className="flex items-center gap-1">
+            <label key={i} className="flex items-center gap-2 cursor-pointer text-sm">
               <Checkbox id={`${field.id}-${i}`} {...register(field.id)} /> {opt}
             </label>
           ))}

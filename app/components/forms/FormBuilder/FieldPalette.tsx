@@ -1,6 +1,7 @@
 'use client';
 
 import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 
 const FIELD_TYPES = [
   { type: 'text', label: 'Text' },
@@ -27,13 +28,21 @@ export function FieldPalette() {
 }
 
 function DraggableField({ id, label }: { id: string; label: string }) {
-  const { attributes, listeners, setNodeRef } = useDraggable({ id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+  };
+
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="cursor-grab border rounded p-2 hover:bg-gray-50"
+      style={style}
+      className="border rounded p-2 hover:bg-gray-50 select-none"
     >
       {label}
     </div>

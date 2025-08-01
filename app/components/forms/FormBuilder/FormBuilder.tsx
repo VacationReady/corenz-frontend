@@ -45,24 +45,31 @@ export default function FormBuilder({ onSave }: FormBuilderProps) {
   };
 
   return (
+  <div className="flex flex-col gap-4">
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-4 gap-4 h-[80vh]">
-        {/* Palette */}
-        <div className="col-span-1 border p-4 rounded-lg">
-          <FieldPalette />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <FieldPalette />
+        <FormCanvas fields={fields} setFields={setFields} setSelectedField={setSelectedField} />
+        <div>
+          {selectedField ? (
+            <FieldEditor
+              field={selectedField}
+              onChange={(updated) =>
+                setFields((prev) =>
+                  prev.map((f) => (f.id === updated.id ? updated : f))
+                )
+              }
+            />
+          ) : (
+            <p className="text-gray-500">Select a field to edit</p>
+          )}
         </div>
-
-        {/* Canvas */}
-        <div className="col-span-2 border p-4 rounded-lg" id="canvas">
-          <FormCanvas
-            fields={fields}
-            onSelectField={setSelectedField}
-            setFields={setFields}
-          />
-          <Button className="mt-4 w-full" onClick={saveForm}>
-            Save Form
-          </Button>
-        </div>
+        <FormPreview fields={fields} />
+      </div>
+    </DndContext>
+    <Button onClick={saveForm} className="self-end">Save Form</Button>
+  </div>
+);
 
         {/* Field Editor */}
         <div className="col-span-1 border p-4 rounded-lg">

@@ -15,6 +15,12 @@ export default function FormBuilder() {
   const [fields, setFields] = useState<FormField[]>([]);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
 
+interface FormBuilderProps {
+  onSave: (data: { name: string; description?: string; schema: any }) => void;
+}
+
+export default function FormBuilder({ onSave }: FormBuilderProps) {
+
   // Drag field from palette to canvas
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.over?.id === 'canvas') {

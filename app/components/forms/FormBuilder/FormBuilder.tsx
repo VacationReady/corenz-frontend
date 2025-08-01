@@ -19,11 +19,11 @@ export default function FormBuilder() {
   const handleDragEnd = (event: DragEndEvent) => {
     if (event.over?.id === 'canvas') {
       const newField: FormField = {
-        id: uuidv4(),
-        type: event.active.id,
-        label: 'Untitled Field',
-        required: false,
-      };
+  id: uuidv4(),
+  type: String(event.active.id), // ✅ convert to string
+  label: 'Untitled Field',
+  required: false,
+};
       setFields((prev) => [...prev, newField]);
     }
   };

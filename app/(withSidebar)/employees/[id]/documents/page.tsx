@@ -97,6 +97,17 @@ export default function EmployeeDocumentsPage() {
     }
   }, [employeeId]);
 
+useEffect(() => {
+  const handler = (e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    if (detail?.employeeId === employeeId) {
+      fetchDocuments();
+    }
+  };
+  window.addEventListener("employee-documents-updated", handler);
+  return () => window.removeEventListener("employee-documents-updated", handler);
+}, [employeeId]);
+
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file || !name || !category) {

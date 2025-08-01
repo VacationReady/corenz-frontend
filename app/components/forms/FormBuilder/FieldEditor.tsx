@@ -2,7 +2,7 @@
 
 import { FormField } from './types';
 import { Input } from '@/components/ui/Input';
-import { Checkbox } from '@/components/ui/Checkbox';
+import Checkbox from '@/components/ui/Checkbox';
 
 export function FieldEditor({
   field,

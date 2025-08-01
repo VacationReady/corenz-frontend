@@ -164,23 +164,28 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
         <div className="text-sm text-muted-foreground mb-2">{percent}% complete</div>
       </Card>
       <Card className="mb-8">
-        {activeStep ? (
-          <OnboardingStepRenderer
-  step={activeStep}
-  readOnly={!canComplete}
-  employeeId={employeeId}   // ✅ Add this
-  onComplete={
-    canComplete
-      ? (data: any) => handleComplete(activeStep.instanceStepId || activeStep.id, data)
-      : () => {}
-  }
-/>
-        ) : (
-          <div className="p-6 text-center text-lg font-bold text-green-700">
-            🎉 Onboarding Complete!
-          </div>
-        )}
-      </Card>
+  {activeStep ? (
+    <OnboardingStepRenderer
+      step={activeStep}
+      readOnly={!canComplete}
+      employeeId={employeeId}
+      onComplete={
+        canComplete
+          ? (data: any) => handleComplete(activeStep.instanceStepId || activeStep.id, data)
+          : () => {}
+      }
+    />
+  ) : (
+    <div className="p-6 text-center">
+      <div className="text-lg font-bold text-green-700 mb-4">
+        🎉 Onboarding Complete!
+      </div>
+      <Button onClick={() => window.location.href = "/dashboard"}>
+        Go to Dashboard
+      </Button>
+    </div>
+  )}
+</Card>
       <div className="text-sm text-center text-muted-foreground mb-2">
         {activeStep ? `${currentIdx + 1} / ${steps.length} steps` : `${steps.length} / ${steps.length} steps`}
       </div>

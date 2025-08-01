@@ -484,6 +484,7 @@ model OnboardingTemplate {
   id          String           @id @default(cuid())
   name        String
   description String?
+  isActive    Boolean      @default(false)
   isDefault   Boolean          @default(false)
   steps       OnboardingStep[]
   companyId   String

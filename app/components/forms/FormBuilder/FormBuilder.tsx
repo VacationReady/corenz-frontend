@@ -9,6 +9,7 @@ import { FieldEditor } from './FieldEditor';
 import { FormPreview } from './FormPreview';
 import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
+import { FormField } from './types';
 
 export default function FormBuilder() {
   const [fields, setFields] = useState<FormField[]>([]);

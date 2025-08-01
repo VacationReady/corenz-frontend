@@ -1,17 +1,6 @@
-<<<<<<<
-import React from "react";
-
-=======
 import React from "react";
 
 import clsx from "clsx";
-
->>>>>>>
-
-
-<<<<<<<
-
-
 
 
 export function PageShell({
@@ -141,8 +130,6 @@ export function PageShell({
   );
 
 
-
-=======
 export function PageShell({
 
   title,
@@ -225,5 +212,4 @@ export function PageShell({
 
   );
 
->>>>>>>
 }

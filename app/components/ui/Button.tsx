@@ -1,15 +1,7 @@
 "use client"
 
-
-
-
-
-
-
-<<<<<<<
 import React from "react";
 
-=======
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
   variant?: "primary" | "secondary" | "ghost" | "danger" | "outline";
@@ -22,13 +14,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 }
 
->>>>>>>
 
-
-<<<<<<<
 import clsx from "clsx";
 
-=======
 export default function Button({
 
   children,
@@ -69,13 +57,9 @@ export default function Button({
 
   }[variant];
 
->>>>>>>
 
-
-<<<<<<<
 import { Slot } from "@radix-ui/react-slot";
 
-=======
   const sizeClasses = {
 
     sm: "h-8 px-3 text-sm",
@@ -85,9 +69,6 @@ import { Slot } from "@radix-ui/react-slot";
     lg: "h-12 px-6 text-base",
 
   }[size];
-
->>>>>>>
-
 
 
 
@@ -114,8 +95,6 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 
 }
-
-
 
 
 

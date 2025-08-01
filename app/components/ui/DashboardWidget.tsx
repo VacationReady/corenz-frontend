@@ -9,8 +9,6 @@
 import { Card } from "./Card";
 
 
-
-<<<<<<<
 import { LucideIcon } from "lucide-react";
 
 
@@ -122,8 +120,6 @@ export function DashboardWidget({
 }
 
 
-
-=======
 export function DashboardWidget({
 
   title,
@@ -159,5 +155,3 @@ export function DashboardWidget({
   );
 
 }
-
->>>>>>>

@@ -1,11 +1,8 @@
 import React from "react";
 
 
-
-<<<<<<<
 import clsx from "clsx";
 
-=======
 export function Card({
 
   title,
@@ -84,13 +81,7 @@ export function Card({
 
 }
 
->>>>>>>
 
-
-<<<<<<<
-
-
-=======
 export function CardContent({
 
   children,
@@ -109,13 +100,9 @@ export function CardContent({
 
 }
 
->>>>>>>
 
-
-<<<<<<<
 export function Card({
 
-=======
 export function CardHeader({
 
   children,
@@ -142,10 +129,6 @@ export function CardHeader({
 
 }
 
->>>>>>>
-
-
-<<<<<<<
   title,
 
 
@@ -353,8 +336,6 @@ export function CardTitle({ children }: { children: React.ReactNode }) {
 }
 
 
-
-=======
 export function CardTitle({
 
   children,
@@ -408,5 +389,3 @@ export function CardFooter({
   );
 
 }
-
->>>>>>>

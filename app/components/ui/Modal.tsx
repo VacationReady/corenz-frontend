@@ -8,12 +8,8 @@
 
 import { Fragment } from "react";
 
-
-
-<<<<<<<
 import { Dialog, Transition } from "@headlessui/react";
 
-=======
 export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
 
   return (
@@ -44,10 +40,6 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
         </Transition.Child>
 
->>>>>>>
-
-
-<<<<<<<
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 
@@ -263,8 +255,6 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 }
 
 
-
-=======
         <div className="fixed inset-0 flex items-center justify-center p-4">
 
           <Transition.Child
@@ -332,5 +322,3 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   );
 
 }
-
->>>>>>>

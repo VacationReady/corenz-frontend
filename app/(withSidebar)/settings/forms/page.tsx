@@ -29,7 +29,7 @@ export default function FormsPage() {
               <h2 className="font-semibold text-lg">{f.name}</h2>
               <p className="text-sm text-muted-foreground">{f.description || 'No description'}</p>
               <div className="flex gap-2">
-                <Button asChild size="sm" variant="outline"><Link href={`/settings/forms/${f.id}/edit`}>Edit</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href={`/settings/forms/${f.id}/edit`}>Edit</Link></Button>
                 <Button asChild size="sm" variant="ghost"><Link href={`/settings/forms/${f.id}/analytics`}>Analytics</Link></Button>
               </div>
             </CardContent>

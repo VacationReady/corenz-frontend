@@ -137,7 +137,7 @@ export default function OnboardingSettingsPage() {
                   </span>
                 </TableCell>
                 <TableCell className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleToggleStatus(t)}>
+                  <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(t)}>
                     {t.isActive ? "Unpublish" : "Publish"}
                   </Button>
                   <Button size="md" variant="ghost" onClick={() => handleEdit(t)}>

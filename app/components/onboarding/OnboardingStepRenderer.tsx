@@ -92,6 +92,9 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                     setLoading(false);
                     return;
                   }
+// ✅ Auto-refresh onboarding UI and employee docs
+await onComplete();
+window.dispatchEvent(new CustomEvent("employee-documents-updated", { detail: { employeeId } }));
 
                   onComplete(); // mark step complete
                 }}

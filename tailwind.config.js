@@ -8,16 +8,24 @@ module.exports = {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+  		},
   		colors: {
   			primary: {
   				DEFAULT: 'hsl(var(--primary))',
-  				dark: '#4f46e5',
-  				light: '#818cf8',
   				foreground: 'hsl(var(--primary-foreground))'
   			},
-  			surface: '#f9fafb',
+  			// Enterprise layered background system
+  			'app-background': 'hsl(var(--background))', // #e2e8f0
+  			'content-panel': 'hsl(var(--content-panel))', // #cbd5e1
+  			'section-background': 'hsl(var(--section-background))', // #f8fafc
+  			'card-header': 'hsl(var(--card-header))', // #f9fafb
+
+  			// Legacy support (will be phased out)
+  			surface: '#f8fafc',
   			'surface-dark': '#1f2937',
-  			dark: '#0f0f0f',
+
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

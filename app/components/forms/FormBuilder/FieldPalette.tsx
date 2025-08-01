@@ -2,7 +2,7 @@
 
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Tooltip } from '@/components/ui/Tooltip'; // ✅ UX: Tooltip for guidance
+import { Tooltip } from '@/components/ui/tooltip'; // ✅ UX: Tooltip for guidance
 
 const FIELD_TYPES = [
   { type: 'text', label: 'Text', hint: 'Single-line text input' },

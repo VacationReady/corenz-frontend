@@ -45,21 +45,25 @@ export default function FormBuilder({ onSave }: FormBuilderProps) {
       <DndContext onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <FieldPalette />
-          <FormCanvas fields={fields} setFields={setFields} setSelectedField={setSelectedField} />
-          <div>
-            {selectedField ? (
-              <FieldEditor
-                field={selectedField}
-                onChange={(updated) =>
-                  setFields((prev) =>
-                    prev.map((f) => (f.id === updated.id ? updated : f))
-                  )
-                }
-              />
-            ) : (
-              <p className="text-gray-500">Select a field to edit</p>
-            )}
-          </div>
+          <FormCanvas 
+  fields={fields} 
+  setFields={setFields} 
+  onSelectField={setSelectedField} 
+/>
+<div>
+  {selectedField ? (
+    <FieldEditor
+      field={selectedField}
+      onChange={(updated) =>
+        setFields((prev) =>
+          prev.map((f) => (f.id === updated.id ? updated : f))
+        )
+      }
+    />
+  ) : (
+    <p className="text-gray-500">Select a field to edit</p>
+  )}
+</div>
           <FormPreview fields={fields} />
         </div>
       </DndContext>

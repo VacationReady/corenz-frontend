@@ -266,7 +266,7 @@ export default function OnboardingTemplateEditor({
         order: i + 1,
         formFields: s.formFields || [],
       })),
-      status: publish ? "ACTIVE" : "DRAFT",
+      isActive: publish,
     };
 
     const res = await fetch(

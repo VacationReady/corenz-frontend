@@ -3,21 +3,37 @@
 
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
-import { Plus, Edit, Copy, Trash2 } from "lucide-react";
+import { Plus, Edit, Copy, Trash2, UploadCloud } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import OnboardingTemplateEditor from "@/components/onboarding/OnboardingTemplateEditor";
 
+type Template = {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  departments: { id: string; name: string }[];
+  jobRoles: { id: string; name: string }[];
+  steps: any[];
+};
+
 export default function OnboardingSettingsPage() {
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
   const fetchTemplates = async () => {
     setLoading(true);
     const res = await fetch('/api/onboarding/templates');
+    if (!res.ok) {
+      toast("Failed to fetch templates");
+      setLoading(false);
+      return;
+    }
     const data = await res.json();
     setTemplates(Array.isArray(data) ? data : []);
     setLoading(false);
@@ -27,24 +43,56 @@ export default function OnboardingSettingsPage() {
     fetchTemplates();
   }, []);
 
-  const handleEdit = (template: any) => {
+  const handleEdit = (template: Template) => {
     setEditingTemplate(template);
     setIsEditorOpen(true);
   };
 
-  const handleDuplicate = async (template: any) => {
+  const handleDuplicate = async (template: Template) => {
     const res = await fetch('/api/onboarding/templates/duplicate', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: template.id })
     });
-    if (res.ok) fetchTemplates();
+    if (res.ok) {
+      toast("Template duplicated");
+      fetchTemplates();
+    } else {
+      toast("Failed to duplicate template");
+    }
   };
 
-  const handleDelete = async (template: any) => {
+  const handleDelete = async (template: Template) => {
     if (!confirm("Delete this onboarding template?")) return;
     const res = await fetch(`/api/onboarding/templates/${template.id}`, { method: "DELETE" });
-    if (res.ok) fetchTemplates();
+    if (res.ok) {
+      toast("Template deleted");
+      fetchTemplates();
+    } else {
+      toast("Failed to delete template");
+    }
+  };
+
+  const handleToggleStatus = async (template: Template) => {
+    const res = await fetch('/api/onboarding/templates', {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        departments: template.departments.map((d) => d.id),
+        jobRoles: template.jobRoles.map((j) => j.id),
+        isActive: !template.isActive, // ✅ Toggle status
+      }),
+    });
+
+    if (res.ok) {
+      toast(template.isActive ? "Template unpublished" : "Template published");
+      fetchTemplates();
+    } else {
+      toast("Failed to update template status");
+    }
   };
 
   return (
@@ -77,18 +125,21 @@ export default function OnboardingSettingsPage() {
                 <TableCell className="font-semibold">{t.name}</TableCell>
                 <TableCell>
                   {t.departments?.length
-                    ? t.departments.map((d: any) => d.name).join(", ")
+                    ? t.departments.map((d) => d.name).join(", ")
                     : t.jobRoles?.length
-                    ? t.jobRoles.map((j: any) => j.name).join(", ")
+                    ? t.jobRoles.map((j) => j.name).join(", ")
                     : "All"}
                 </TableCell>
                 <TableCell>{t.steps?.length || 0}</TableCell>
                 <TableCell>
-                  <span className={t.status === "ACTIVE" ? "text-green-600" : "text-gray-400"}>
-                    {t.status === "ACTIVE" ? "Active" : "Draft"}
+                  <span className={t.isActive ? "text-green-600 font-medium" : "text-gray-400"}>
+                    {t.isActive ? "Active" : "Draft"}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleToggleStatus(t)}>
+                    {t.isActive ? "Unpublish" : "Publish"}
+                  </Button>
                   <Button size="md" variant="ghost" onClick={() => handleEdit(t)}>
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -105,16 +156,15 @@ export default function OnboardingSettingsPage() {
         </Table>
       )}
 
-      {/* Modal for create/edit */}
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-  <DialogContent className="max-w-3xl p-0">
-    <OnboardingTemplateEditor
-      template={editingTemplate}
-      onSaved={() => { setIsEditorOpen(false); fetchTemplates(); }}
-      onCancel={() => setIsEditorOpen(false)}
-    />
-  </DialogContent>
-</Dialog>
+        <DialogContent className="max-w-3xl p-0">
+          <OnboardingTemplateEditor
+            template={editingTemplate}
+            onSaved={() => { setIsEditorOpen(false); fetchTemplates(); }}
+            onCancel={() => setIsEditorOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

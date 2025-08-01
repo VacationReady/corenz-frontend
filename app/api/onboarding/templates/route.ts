@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { Prisma, OnboardingStepType, OnboardingUploadType } from "@prisma/client";
 
+// Type guard to validate onboarding steps
 function isStep(
   step: any
 ): step is {
@@ -31,6 +32,7 @@ const uploadTypeMap: Record<string, OnboardingUploadType> = {
   "other": OnboardingUploadType.OTHER,
 };
 
+// ✅ GET - Fetch Templates
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
@@ -39,13 +41,17 @@ export async function GET(req: Request) {
 
   const templates = await prisma.onboardingTemplate.findMany({
     where: { companyId: session.user.companyId },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isActive: true, // ✅ Boolean field replaces status
       departments: { select: { id: true, name: true } },
       jobRoles: { select: { id: true, name: true } },
       steps: {
         orderBy: { order: "asc" },
-        include: { document: { select: { id: true, name: true } } }
-      }
+        include: { document: { select: { id: true, name: true } } },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -53,6 +59,7 @@ export async function GET(req: Request) {
   return NextResponse.json(templates);
 }
 
+// ✅ POST - Create Template
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
@@ -61,53 +68,44 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, description, departments, jobRoles, steps } = body;
+    const { name, description, departments = [], jobRoles = [], steps = [], isActive = false } = body;
 
-    // Filter steps to only allow types that exist in your enum mapping
+    // Filter steps to only allow valid enums
     const filteredSteps = Array.isArray(steps)
-  ? (steps
-      .map((step: any, i: number) => {
-        const mappedType = typeMap[step.type];
-        if (!mappedType) return undefined;
-        const base = {
-          type: mappedType,
-          label: step.label || step.title || "",
-          order: i + 1,
-        };
-        if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
-          return { ...base, documentId: step.documentId || null };
-        }
-        if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
-          return { ...base, uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null };
-        }
-        if (mappedType === OnboardingStepType.INSTRUCTION) {
-          return { ...base, instruction: step.description || "" };
-        }
-        return undefined;
-      })
-      .filter(isStep)) as Prisma.OnboardingStepCreateInput[]
-  : [];
+      ? (steps
+          .map((step: any, i: number) => {
+            const mappedType = typeMap[step.type];
+            if (!mappedType) return undefined;
+            const base = { type: mappedType, label: step.label || step.title || "", order: i + 1 };
+            if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
+              return { ...base, documentId: step.documentId || null };
+            }
+            if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
+              return { ...base, uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null };
+            }
+            if (mappedType === OnboardingStepType.INSTRUCTION) {
+              return { ...base, instruction: step.description || "" };
+            }
+            return undefined;
+          })
+          .filter(isStep)) as Prisma.OnboardingStepCreateInput[]
+      : [];
 
     const template = await prisma.onboardingTemplate.create({
       data: {
         name,
         description: description || "",
         companyId: session.user.companyId,
-        departments: departments && departments.length > 0
-          ? { connect: departments.map((id: string) => ({ id })) }
-          : undefined,
-        jobRoles: jobRoles && jobRoles.length > 0
-          ? { connect: jobRoles.map((id: string) => ({ id })) }
-          : undefined,
-        steps: filteredSteps.length > 0
-          ? { create: filteredSteps }
-          : undefined,
+        isActive: Boolean(isActive), // ✅ Safe boolean
+        departments: departments.length > 0 ? { connect: departments.map((id: string) => ({ id })) } : undefined,
+        jobRoles: jobRoles.length > 0 ? { connect: jobRoles.map((id: string) => ({ id })) } : undefined,
+        steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
       },
       include: {
         departments: { select: { id: true, name: true } },
         jobRoles: { select: { id: true, name: true } },
         steps: true,
-      }
+      },
     });
 
     return NextResponse.json(template);
@@ -117,6 +115,7 @@ export async function POST(req: Request) {
   }
 }
 
+// ✅ PUT - Update Template (Includes Publish/Unpublish)
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
@@ -125,32 +124,28 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, name, description, departments, jobRoles } = body;
+    const { id, name, description, departments = [], jobRoles = [], isActive } = body;
 
     const template = await prisma.onboardingTemplate.update({
       where: { id },
       data: {
         name,
         description: description || "",
+        isActive: Boolean(isActive), // ✅ Handles toggle
         departments: {
           set: [],
-          connect: departments && departments.length > 0
-            ? departments.map((id: string) => ({ id }))
-            : [],
+          connect: departments.length > 0 ? departments.map((id: string) => ({ id })) : [],
         },
         jobRoles: {
           set: [],
-          connect: jobRoles && jobRoles.length > 0
-            ? jobRoles.map((id: string) => ({ id }))
-            : [],
+          connect: jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
         },
-        // Add step updating logic here if you want later
       },
       include: {
         departments: { select: { id: true, name: true } },
         jobRoles: { select: { id: true, name: true } },
-        steps: true
-      }
+        steps: true,
+      },
     });
 
     return NextResponse.json(template);
@@ -160,6 +155,7 @@ export async function PUT(req: Request) {
   }
 }
 
+// ✅ DELETE - Delete Template (Steps cascade manually)
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
@@ -170,7 +166,7 @@ export async function DELETE(req: Request) {
     const body = await req.json();
     const { id } = body;
 
-    // Delete all steps first (to avoid constraint issues), then the template itself
+    // First delete steps, then template (avoids FK constraints)
     await prisma.onboardingStep.deleteMany({ where: { templateId: id } });
     await prisma.onboardingTemplate.delete({ where: { id } });
 

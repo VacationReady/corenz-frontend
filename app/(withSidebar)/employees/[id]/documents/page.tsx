@@ -11,7 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EditAccessModal from "@/components/documents/EditAccessModal";
-import Tooltip from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 
@@ -97,16 +97,16 @@ export default function EmployeeDocumentsPage() {
     }
   }, [employeeId]);
 
-useEffect(() => {
-  const handler = (e: Event) => {
-    const detail = (e as CustomEvent).detail;
-    if (detail?.employeeId === employeeId) {
-      fetchDocuments();
-    }
-  };
-  window.addEventListener("employee-documents-updated", handler);
-  return () => window.removeEventListener("employee-documents-updated", handler);
-}, [employeeId]);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.employeeId === employeeId) {
+        fetchDocuments();
+      }
+    };
+    window.addEventListener("employee-documents-updated", handler);
+    return () => window.removeEventListener("employee-documents-updated", handler);
+  }, [employeeId]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -121,7 +121,7 @@ useEffect(() => {
     formData.append("name", name);
     formData.append("category", category);
     formData.append("employeeId", employeeId);
-    formData.append("type", "employee"); // <-- REQUIRED FIX ADDED HERE
+    formData.append("type", "employee");
     formData.append("canViewAdmin", String(canViewAdmin));
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));
@@ -184,185 +184,192 @@ useEffect(() => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Employee Documents</h1>
-        {userRole === "ADMIN" && (
-          <Button onClick={() => setIsUploadModalOpen(true)}>Add Document</Button>
-        )}
-      </div>
+    <TooltipProvider>
+      <div className="max-w-4xl mx-auto p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Employee Documents</h1>
+          {userRole === "ADMIN" && (
+            <Button onClick={() => setIsUploadModalOpen(true)}>Add Document</Button>
+          )}
+        </div>
 
-      {loading ? (
-        <p>Loading documents...</p>
-      ) : documents.length === 0 ? (
-        <p>No documents for this employee yet.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Access</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Size</TableHead>
-              {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map((doc) => {
-              const accessBadges = [
-                doc.canViewAdmin && <span key="admin" className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Admin</span>,
-                doc.canViewManager && <span key="manager" className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Manager</span>,
-                doc.canViewEmployee && <span key="employee" className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Employee</span>,
-              ].filter(Boolean);
+        {loading ? (
+          <p>Loading documents...</p>
+        ) : documents.length === 0 ? (
+          <p>No documents for this employee yet.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Access</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Size</TableHead>
+                {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => {
+                const accessBadges = [
+                  doc.canViewAdmin && <span key="admin" className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Admin</span>,
+                  doc.canViewManager && <span key="manager" className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Manager</span>,
+                  doc.canViewEmployee && <span key="employee" className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Employee</span>,
+                ].filter(Boolean);
 
-              return (
-                <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
-                  <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
-                  <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
-                  <TableCell>
-                    <Tooltip content={<div className="text-xs">{accessBadges}</div>}>
-                      <div className="flex gap-1">{accessBadges}</div>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{formatFileSize(doc.size)}</TableCell>
-                  {userRole === "ADMIN" && (
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
-                        <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>Edit Access</DropdownMenuItem>
-                        {doc.requiresAck && (
-                          <DropdownMenuItem onClick={() => { setSelectedDoc(doc); setIsViewAckOpen(true); }}>
-                            View Acknowledgements
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenu>
+                return (
+                  <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
+                    <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                    <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex gap-1">{accessBadges}</div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-xs space-y-1">{accessBadges}</div>
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
+                    <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatFileSize(doc.size)}</TableCell>
+                    {userRole === "ADMIN" && (
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
+                          <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>Edit Access</DropdownMenuItem>
+                          {doc.requiresAck && (
+                            <DropdownMenuItem onClick={() => { setSelectedDoc(doc); setIsViewAckOpen(true); }}>
+                              View Acknowledgements
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
 
-      {/* Upload Modal */}
-      {userRole === "ADMIN" && (
-        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        {/* Upload Modal */}
+        {userRole === "ADMIN" && (
+          <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Document</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div>
+                  <Label>Document Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <div>
+                  <Label>Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                      <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                      <SelectItem value="Training">Training</SelectItem>
+                      <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                      <SelectItem value="General HR">General HR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Requires Acknowledgement</Label>
+                  <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+                </div>
+                <div>
+                  <Label>File</Label>
+                  <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Admin Access</Label>
+                    <Switch checked={canViewAdmin} onCheckedChange={setCanViewAdmin} />
+                  </div>
+                  <div>
+                    <Label>Manager Access</Label>
+                    <Switch checked={canViewManager} onCheckedChange={setCanViewManager} />
+                  </div>
+                  <div>
+                    <Label>Employee Access</Label>
+                    <Switch checked={canViewEmployee} onCheckedChange={setCanViewEmployee} />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? "Uploading..." : "Upload Document"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Preview Modal */}
+        <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload Document</DialogTitle>
+              <DialogTitle>{selectedDoc?.name}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <Label>Document Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <div>
-                <Label>Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-                    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
-                    <SelectItem value="Training">Training</SelectItem>
-                    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
-                    <SelectItem value="General HR">General HR</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Requires Acknowledgement</Label>
-                <Switch checked={requiresAck} onChange={(checked) => setRequiresAck(checked)} />
-              </div>
-              <div>
-                <Label>File</Label>
-                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
-              </div>
+            {selectedDoc && (
+              <div className="space-y-4">
+                <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+                <a
+                  href={selectedDoc.url}
+                  download={selectedDoc.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline block"
+                >
+                  Download
+                </a>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>Admin Access</Label>
-                  <Switch checked={canViewAdmin} onChange={(checked) => setCanViewAdmin(checked)} />
-                </div>
-                <div>
-                  <Label>Manager Access</Label>
-                  <Switch checked={canViewManager} onChange={(checked) => setCanViewManager(checked)} />
-                </div>
-                <div>
-                  <Label>Employee Access</Label>
-                  <Switch checked={canViewEmployee} onChange={(checked) => setCanViewEmployee(checked)} />
-                </div>
+                {selectedDoc.requiresAck && !acknowledged && (
+                  <Button onClick={handleAcknowledge} className="w-full mt-2">
+                    Acknowledge Document
+                  </Button>
+                )}
+                {selectedDoc.requiresAck && acknowledged && (
+                  <p className="text-green-600 text-sm">
+                    ✅ Acknowledged on {ackDate?.toLocaleDateString()}
+                  </p>
+                )}
               </div>
-
-              <DialogFooter>
-                <Button type="submit" disabled={uploading}>
-                  {uploading ? "Uploading..." : "Upload Document"}
-                </Button>
-              </DialogFooter>
-            </form>
+            )}
           </DialogContent>
         </Dialog>
-      )}
 
-      {/* Preview Modal */}
-      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedDoc?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedDoc && (
-            <div className="space-y-4">
-              <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
-              <a
-                href={selectedDoc.url}
-                download={selectedDoc.name}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline block"
-              >
-                Download
-              </a>
+        {userRole === "ADMIN" && (
+          <EditAccessModal
+            isOpen={isEditAccessOpen}
+            onClose={() => setIsEditAccessOpen(false)}
+            document={editingDoc}
+            onSaved={fetchDocuments}
+            isEmployeeDocument
+          />
+        )}
 
-              {selectedDoc.requiresAck && !acknowledged && (
-                <Button onClick={handleAcknowledge} className="w-full mt-2">
-                  Acknowledge Document
-                </Button>
-              )}
-              {selectedDoc.requiresAck && acknowledged && (
-                <p className="text-green-600 text-sm">
-                  ✅ Acknowledged on {ackDate?.toLocaleDateString()}
-                </p>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {userRole === "ADMIN" && (
-        <EditAccessModal
-          isOpen={isEditAccessOpen}
-          onClose={() => setIsEditAccessOpen(false)}
-          document={editingDoc}
-          onSaved={fetchDocuments}
-          isEmployeeDocument
-        />
-      )}
-
-      {userRole === "ADMIN" && (
-        <ViewAcknowledgementsModal
-          isOpen={isViewAckOpen}
-          onClose={() => setIsViewAckOpen(false)}
-          documentId={selectedDoc?.id || null}
-          documentName={selectedDoc?.name || null}
-          isEmployeeDocument
-        />
-      )}
-    </div>
+        {userRole === "ADMIN" && (
+          <ViewAcknowledgementsModal
+            isOpen={isViewAckOpen}
+            onClose={() => setIsViewAckOpen(false)}
+            documentId={selectedDoc?.id || null}
+            documentName={selectedDoc?.name || null}
+            isEmployeeDocument
+          />
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

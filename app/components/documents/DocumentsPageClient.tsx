@@ -10,7 +10,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
-import Tooltip from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
@@ -42,9 +42,7 @@ export default function DocumentsPageClient() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [requiresAck, setRequiresAck] = useState(false);
-  // --- ADD: requireAckFromNewStarters state ---
   const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
-  // ----------------------------------------------------
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -63,7 +61,6 @@ export default function DocumentsPageClient() {
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
   const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
 
-  // ✅ Acknowledgement state for preview
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
 
@@ -107,7 +104,6 @@ export default function DocumentsPageClient() {
     }
   };
 
-  // ✅ Check acknowledgement status when previewing
   useEffect(() => {
     if (selectedDoc?.id && selectedDoc.requiresAck) {
       fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
@@ -148,9 +144,7 @@ export default function DocumentsPageClient() {
     formData.append("departments", JSON.stringify(selectedDepartments));
     formData.append("jobRoles", JSON.stringify(selectedJobRoles));
     formData.append("requiresAck", JSON.stringify(requiresAck));
-    // --- ADD: new starters toggle to upload payload ---
     formData.append("requireAckFromNewStarters", JSON.stringify(requireAckFromNewStarters));
-    // ---------------------------------------------------
 
     try {
       const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
@@ -161,7 +155,7 @@ export default function DocumentsPageClient() {
         setName("");
         setCategory("");
         setRequiresAck(false);
-        setRequireAckFromNewStarters(false); // clear on success
+        setRequireAckFromNewStarters(false);
         setUploadDepartments(["all"]);
         setUploadJobRoles(["all"]);
         fetchDocuments();
@@ -208,236 +202,227 @@ export default function DocumentsPageClient() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Document Management</h1>
-        {userRole === "ADMIN" && (
-          <Button onClick={() => setIsUploadModalOpen(true)}>
-            <UploadCloud className="w-4 h-4 mr-2" /> Add Document
-          </Button>
-        )}
-      </div>
+    <TooltipProvider>
+      <div className="max-w-6xl mx-auto p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Document Management</h1>
+          {userRole === "ADMIN" && (
+            <Button onClick={() => setIsUploadModalOpen(true)}>
+              <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+            </Button>
+          )}
+        </div>
 
-      {loading ? (
-        <p>Loading documents...</p>
-      ) : documents.length === 0 ? (
-        <p>No documents found.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Job Role</TableHead>
-              <TableHead>Access</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Size</TableHead>
-              {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documents.map((doc) => {
-              const accessList = [
-                doc.canViewAdmin ? "Admin" : null,
-                doc.canViewManager ? "Manager" : null,
-                doc.canViewEmployee ? "Employee" : null,
-                ...doc.departments.map((d) => d.name),
-                ...doc.jobRoles.map((jr) => jr.name),
-              ].filter(Boolean);
+        {loading ? (
+          <p>Loading documents...</p>
+        ) : documents.length === 0 ? (
+          <p>No documents found.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Job Role</TableHead>
+                <TableHead>Access</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Size</TableHead>
+                {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => {
+                const accessList = [
+                  doc.canViewAdmin ? "Admin" : null,
+                  doc.canViewManager ? "Manager" : null,
+                  doc.canViewEmployee ? "Employee" : null,
+                  ...doc.departments.map((d) => d.name),
+                  ...doc.jobRoles.map((jr) => jr.name),
+                ].filter(Boolean);
 
-              return (
-                <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
-                  <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
-                  <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
-                  <TableCell>{doc.departments.length > 0 ? doc.departments.map((d) => d.name).join(", ") : "All Departments"}</TableCell>
-                  <TableCell>{doc.jobRoles.length > 0 ? doc.jobRoles.map((jr) => jr.name).join(", ") : "All Job Roles"}</TableCell>
-                  <TableCell>
-                    <Tooltip
-                      content={
-                        <div className="text-xs">
+                return (
+                  <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
+                    <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                    <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+                    <TableCell>{doc.departments.length > 0 ? doc.departments.map((d) => d.name).join(", ") : "All Departments"}</TableCell>
+                    <TableCell>{doc.jobRoles.length > 0 ? doc.jobRoles.map((jr) => jr.name).join(", ") : "All Job Roles"}</TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="underline cursor-pointer">
+                            {doc.departments.length === 0 && doc.jobRoles.length === 0 ? "All" : accessList.join(", ")}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs max-w-xs">
                           {doc.departments.length === 0 && doc.jobRoles.length === 0
                             ? "All (Unrestricted)"
                             : accessList.map((item, idx) => <div key={idx}>{item}</div>)}
-                        </div>
-                      }
-                    >
-                      <span className="underline cursor-pointer">
-                        {doc.departments.length === 0 && doc.jobRoles.length === 0 ? "All" : accessList.join(", ")}
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{formatFileSize(doc.size)}</TableCell>
-                  {userRole === "ADMIN" && (
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingDoc(doc);
-                            setIsEditAccessOpen(true);
-                          }}
-                        >
-                          Edit Access
-                        </DropdownMenuItem>
-                        {doc.requiresAck && (
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatFileSize(doc.size)}</TableCell>
+                    {userRole === "ADMIN" && (
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
                           <DropdownMenuItem
                             onClick={() => {
-                              setAckDocId(doc.id);
-                              setAckDocName(doc.name);
-                              setIsViewAckOpen(true);
+                              setEditingDoc(doc);
+                              setIsEditAccessOpen(true);
                             }}
                           >
-                            View Acknowledgements
+                            Edit Access
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={() => confirmDelete(doc.id)}
-                          className="text-red-600"
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenu>
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      )}
+                          {doc.requiresAck && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setAckDocId(doc.id);
+                                setAckDocName(doc.name);
+                                setIsViewAckOpen(true);
+                              }}
+                            >
+                              View Acknowledgements
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => confirmDelete(doc.id)}
+                            className="text-red-600"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
 
-      {/* Upload Modal */}
-      {userRole === "ADMIN" && (
-        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        {/* Upload Modal */}
+        {userRole === "ADMIN" && (
+          <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload Document</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleUpload} className="space-y-4">
+                <div>
+                  <Label>Document Name</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <div>
+                  <Label>Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                      <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                      <SelectItem value="Training">Training</SelectItem>
+                      <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                      <SelectItem value="General HR">General HR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Requires Acknowledgement</Label>
+                  <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+                </div>
+                <div>
+                  <Label>Require new starters to acknowledge?</Label>
+                  <Switch checked={requireAckFromNewStarters} onCheckedChange={setRequireAckFromNewStarters} />
+                </div>
+                <div>
+                  <Label>Restrict by Department</Label>
+                  <MultiSelect
+                    options={departmentsList}
+                    selected={uploadDepartments}
+                    onChange={(values) => {
+                      if (values.includes("all")) setUploadDepartments(["all"]);
+                      else setUploadDepartments(values);
+                    }}
+                    placeholder="Select department(s)"
+                  />
+                </div>
+                <div>
+                  <Label>Restrict by Job Role</Label>
+                  <MultiSelect
+                    options={jobRolesList}
+                    selected={uploadJobRoles}
+                    onChange={(values) => {
+                      if (values.includes("all")) setUploadJobRoles(["all"]);
+                      else setUploadJobRoles(values);
+                    }}
+                    placeholder="Select job role(s)"
+                  />
+                </div>
+                <div>
+                  <Label>File</Label>
+                  <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? "Uploading..." : "Upload Document"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Preview Modal */}
+        <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload Document</DialogTitle>
+              <DialogTitle>{selectedDoc?.name}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <Label>Document Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            {selectedDoc && (
+              <div className="space-y-4">
+                <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+                <a
+                  href={selectedDoc.url}
+                  download={selectedDoc.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline block"
+                >
+                  Download
+                </a>
+                {selectedDoc.requiresAck && !acknowledged && (
+                  <Button onClick={handleAcknowledge} className="w-full mt-2">
+                    Acknowledge Document
+                  </Button>
+                )}
+                {selectedDoc.requiresAck && acknowledged && (
+                  <p className="text-green-600 text-sm">
+                    ✅ Acknowledged on {ackDate?.toLocaleDateString()}
+                  </p>
+                )}
               </div>
-              <div>
-                <Label>Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-                    <SelectItem value="Driver Licence">Driver Licence</SelectItem>
-                    <SelectItem value="Training">Training</SelectItem>
-                    <SelectItem value="Visa Documents">Visa Documents</SelectItem>
-                    <SelectItem value="General HR">General HR</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Requires Acknowledgement</Label>
-                <Switch 
-                  checked={requiresAck} 
-                  onChange={(checked: boolean) => setRequiresAck(checked)} 
-                />
-              </div>
-              {/* --- ADDITION: Require Ack from New Starters toggle --- */}
-              <div>
-                <Label>Require new starters to acknowledge?</Label>
-                <Switch 
-                  checked={requireAckFromNewStarters} 
-                  onChange={(checked: boolean) => setRequireAckFromNewStarters(checked)} 
-                />
-              </div>
-              {/* ---------------------------------------------------- */}
-              <div>
-                <Label>Restrict by Department</Label>
-                <MultiSelect
-                  options={departmentsList}
-                  selected={uploadDepartments}
-                  onChange={(values) => {
-                    if (values.includes("all")) setUploadDepartments(["all"]);
-                    else setUploadDepartments(values);
-                  }}
-                  placeholder="Select department(s)"
-                />
-              </div>
-              <div>
-                <Label>Restrict by Job Role</Label>
-                <MultiSelect
-                  options={jobRolesList}
-                  selected={uploadJobRoles}
-                  onChange={(values) => {
-                    if (values.includes("all")) setUploadJobRoles(["all"]);
-                    else setUploadJobRoles(values);
-                  }}
-                  placeholder="Select job role(s)"
-                />
-              </div>
-              <div>
-                <Label>File</Label>
-                <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={uploading}>
-                  {uploading ? "Uploading..." : "Upload Document"}
-                </Button>
-              </DialogFooter>
-            </form>
+            )}
           </DialogContent>
         </Dialog>
-      )}
 
-      {/* Preview Modal */}
-      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedDoc?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedDoc && (
-            <div className="space-y-4">
-              <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
-              <a
-                href={selectedDoc.url}
-                download={selectedDoc.name}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline block"
-              >
-                Download
-              </a>
+        {/* Edit Access Modal */}
+        <EditAccessModal
+          isOpen={isEditAccessOpen}
+          onClose={() => setIsEditAccessOpen(false)}
+          document={editingDoc}
+          onSaved={fetchDocuments}
+        />
 
-              {/* ✅ Acknowledgement UI */}
-              {selectedDoc.requiresAck && !acknowledged && (
-                <Button onClick={handleAcknowledge} className="w-full mt-2">
-                  Acknowledge Document
-                </Button>
-              )}
-              {selectedDoc.requiresAck && acknowledged && (
-                <p className="text-green-600 text-sm">
-                  ✅ Acknowledged on {ackDate?.toLocaleDateString()}
-                </p>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Access Modal */}
-      <EditAccessModal
-        isOpen={isEditAccessOpen}
-        onClose={() => setIsEditAccessOpen(false)}
-        document={editingDoc}
-        onSaved={fetchDocuments}
-      />
-
-      {/* View Acknowledgements Modal */}
-      <ViewAcknowledgementsModal
-        isOpen={isViewAckOpen}
-        onClose={() => setIsViewAckOpen(false)}
-        documentId={ackDocId}
-        documentName={ackDocName}
-      />
-    </div>
+        {/* View Acknowledgements Modal */}
+        <ViewAcknowledgementsModal
+          isOpen={isViewAckOpen}
+          onClose={() => setIsViewAckOpen(false)}
+          documentId={ackDocId}
+          documentName={ackDocName}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

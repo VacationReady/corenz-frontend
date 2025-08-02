@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
-import Tooltip from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 interface AddLeaveRequestDialogProps {
   employeeId: string;
@@ -188,112 +188,120 @@ export default function AddLeaveRequestDialog({
   const selectedCategory = categories.find((cat) => cat.id === type);
 
   return (
-    <>
-      {!isControlled && (
-        <Button variant="ghost" onClick={() => handleSetOpen(true)}>
-          Book Leave
-        </Button>
-      )}
-      <Modal isOpen={modalOpen} onClose={() => handleSetOpen(false)} title="Book Leave">
-        <div className="space-y-4">
-          {/* Form fields remain exactly as before */}
-          <div>
-            <label className="block text-sm font-medium">Leave Type</label>
-            <select
-              className="w-full border rounded p-2 mt-1"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              <option value="">Select Leave Type</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {selectedCategory && selectedCategory.subcategories.length > 0 && (
+    <TooltipProvider>
+      <>
+        {!isControlled && (
+          <Button variant="ghost" onClick={() => handleSetOpen(true)}>
+            Book Leave
+          </Button>
+        )}
+        <Modal isOpen={modalOpen} onClose={() => handleSetOpen(false)} title="Book Leave">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium">Subcategory (optional)</label>
+              <label className="block text-sm font-medium">Leave Type</label>
               <select
                 className="w-full border rounded p-2 mt-1"
-                value={subcategory}
-                onChange={(e) => setSubcategory(e.target.value)}
+                value={type}
+                onChange={(e) => setType(e.target.value)}
               >
-                <option value="">Select Subcategory</option>
-                {selectedCategory.subcategories.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
+                <option value="">Select Leave Type</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
                   </option>
                 ))}
               </select>
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium">Start Date</label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <label className="block text-sm font-medium">End Date</label>
-              <Tooltip content="If returning to work on Monday, select Sunday as your end date.">
-                <Info className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-pointer" />
-              </Tooltip>
-            </div>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            <p className="text-xs text-gray-500 mt-1">
-              Select the last day you will be <em>away</em>. Do not include your return-to-work day.
-            </p>
-          </div>
-
-          <p className="text-sm text-gray-700">Total Days Requested: {totalDays}</p>
-          {deduction !== null && (
-            <p className="text-sm font-medium text-green-700">
-              ✅ Total Days Deducted (per working pattern): {totalDeducted}
-            </p>
-          )}
-
-          {selectedCategory && selectedCategory.name.toLowerCase().includes("sick") && (
-            <>
+            {selectedCategory && selectedCategory.subcategories.length > 0 && (
               <div>
-                <label className="block text-sm font-medium">Reason for Sickness</label>
-                <Input
-                  value={sickReason}
-                  onChange={(e) => setSickReason(e.target.value)}
-                  placeholder="E.g. Flu, injury, etc."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Paid or Unpaid</label>
+                <label className="block text-sm font-medium">Subcategory (optional)</label>
                 <select
                   className="w-full border rounded p-2 mt-1"
-                  value={paidStatus}
-                  onChange={(e) => setPaidStatus(e.target.value)}
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
                 >
-                  <option value="PAID">Paid</option>
-                  <option value="UNPAID">Unpaid</option>
+                  <option value="">Select Subcategory</option>
+                  {selectedCategory.subcategories.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </option>
+                  ))}
                 </select>
               </div>
-            </>
-          )}
+            )}
 
-          <div>
-            <label className="block text-sm font-medium">General Reason (optional)</label>
-            <Input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Optional reason for this leave"
-            />
+            <div>
+              <label className="block text-sm font-medium">Start Date</label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium">End Date</label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs max-w-[200px]">
+                      If returning to work on Monday, select Sunday as your end date.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <p className="text-xs text-gray-500 mt-1">
+                Select the last day you will be <em>away</em>. Do not include your return-to-work day.
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-700">Total Days Requested: {totalDays}</p>
+            {deduction !== null && (
+              <p className="text-sm font-medium text-green-700">
+                ✅ Total Days Deducted (per working pattern): {totalDeducted}
+              </p>
+            )}
+
+            {selectedCategory && selectedCategory.name.toLowerCase().includes("sick") && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium">Reason for Sickness</label>
+                  <Input
+                    value={sickReason}
+                    onChange={(e) => setSickReason(e.target.value)}
+                    placeholder="E.g. Flu, injury, etc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Paid or Unpaid</label>
+                  <select
+                    className="w-full border rounded p-2 mt-1"
+                    value={paidStatus}
+                    onChange={(e) => setPaidStatus(e.target.value)}
+                  >
+                    <option value="PAID">Paid</option>
+                    <option value="UNPAID">Unpaid</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium">General Reason (optional)</label>
+              <Input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Optional reason for this leave"
+              />
+            </div>
+
+            <Button variant="ghost" onClick={handleSubmit} disabled={loading}>
+              {loading ? "Submitting..." : "Submit Request"}
+            </Button>
           </div>
-
-          <Button variant="ghost" onClick={handleSubmit} disabled={loading}>
-            {loading ? "Submitting..." : "Submit Request"}
-          </Button>
-        </div>
-      </Modal>
-    </>
+        </Modal>
+      </>
+    </TooltipProvider>
   );
 }

@@ -2,7 +2,7 @@ import { getAllNewsPosts } from '@/lib/news/getAllNewsPosts';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import NewsPageClient from '@/components/news/NewsPageClient';
+import NewsPageClient, { NewsPageClientProps } from '@/components/news/NewsPageClient';
 
 export default async function NewsPage() {
   // Fetch all posts server-side
@@ -22,6 +22,22 @@ export default async function NewsPage() {
     }
   }
 
-  // Render the refactored client-side NewsPage with server-fetched props
-  return <NewsPageClient posts={posts} canPost={canPost} />;
+  // ✅ Transform posts to match NewsPageClient expected type
+  const transformedPosts: NewsPageClientProps['posts'] = posts.map(post => ({
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    authorId: post.authorId,
+    author: {
+      firstName: post.author?.name?.split(' ')[0] || '',
+      lastName: post.author?.name?.split(' ')[1] || '',
+    },
+    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+    pinned: post.pinned,
+    tags: post.tags || [],
+    createdAt: post.createdAt.toISOString(),
+  }));
+
+  return <NewsPageClient posts={transformedPosts} canPost={canPost} />;
 }

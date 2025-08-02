@@ -1,27 +1,13 @@
 import { getAllNewsPosts } from '@/lib/news/getAllNewsPosts'
-
-
-
 import Link from 'next/link'
-
-
-
 import { format } from 'date-fns'
-
-
-
 import { getServerSession } from 'next-auth'
-
-
-
-<<<<<<<
 import { authOptions } from '@/lib/auth-options'
 
 
 
 import { prisma } from '@/lib/prisma'
 
-=======
   return (
 
     <div className="min-h-screen bg-content-panel">
@@ -62,10 +48,6 @@ import { prisma } from '@/lib/prisma'
 
       </div>
 
->>>>>>>
-
-
-<<<<<<<
 import Button from '@/components/ui/Button'
 
 
@@ -288,9 +270,6 @@ export default async function NewsPage() {
 
 }
 
-
-
-=======
       {/* Content Area */}
 
       <div className="px-8 py-6">
@@ -364,5 +343,3 @@ export default async function NewsPage() {
   )
 
 }
-
->>>>>>>

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { useSession } from 'next-auth/react';
 import Button from '@/components/ui/Button';
 import { PageShell } from '@/components/ui/PageShell';
 import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
@@ -28,59 +27,24 @@ interface NewsPost {
   createdAt: string;
 }
 
-function NewsContent() {
-  const { data: session } = useSession();
-  const [posts, setPosts] = useState<NewsPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [canPost, setCanPost] = useState(false);
+export interface NewsPageClientProps {
+  posts: NewsPost[];
+  canPost: boolean;
+}
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch('/api/news');
-        const data = await response.json();
-        setPosts(data);
-      } catch (error) {
-        console.error('Failed to fetch news posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const checkPermissions = async () => {
-      if (session?.user?.email) {
-        try {
-          const response = await fetch('/api/auth/session');
-          const sessionData = await response.json();
-          const userRole = sessionData?.user?.role;
-          setCanPost(userRole === 'ADMIN' || userRole === 'MANAGER');
-        } catch (error) {
-          console.error('Failed to check permissions:', error);
-        }
-      }
-    };
-
-    fetchPosts();
-    checkPermissions();
-  }, [session]);
+function NewsContent({ posts, canPost }: NewsPageClientProps) {
+  const { filters } = useFilters();
+  const breadcrumbs = useBreadcrumbs();
 
   // Filter options
-  const { filters } = useFilters();
-
   const authorOptions: FilterOption[] = useMemo(() => {
     const authors = [...new Set(posts.map(post => `${post.author.firstName} ${post.author.lastName}`))];
-    return [
-      { label: "All Authors", value: "all" },
-      ...authors.map(author => ({ label: author, value: author }))
-    ];
+    return [{ label: "All Authors", value: "all" }, ...authors.map(author => ({ label: author, value: author }))];
   }, [posts]);
 
   const tagOptions: FilterOption[] = useMemo(() => {
     const allTags = [...new Set(posts.flatMap(post => post.tags))];
-    return [
-      { label: "All Tags", value: "all" },
-      ...allTags.map(tag => ({ label: tag, value: tag }))
-    ];
+    return [{ label: "All Tags", value: "all" }, ...allTags.map(tag => ({ label: tag, value: tag }))];
   }, [posts]);
 
   const sortOptions: FilterOption[] = [
@@ -89,69 +53,49 @@ function NewsContent() {
     { label: "Author", value: "author" }
   ];
 
-  // Filtered and sorted posts
+  // Filtered posts
   const filteredPosts = useMemo(() => {
     let filtered = [...posts];
 
-    // Apply search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(post => 
+      filtered = filtered.filter(post =>
         post.title.toLowerCase().includes(searchLower) ||
         `${post.author.firstName} ${post.author.lastName}`.toLowerCase().includes(searchLower) ||
         post.tags.some(tag => tag.toLowerCase().includes(searchLower))
       );
     }
 
-    // Apply author filter
     if (filters.authors.length > 0 && !filters.authors.includes("all")) {
-      filtered = filtered.filter(post => 
-        filters.authors.includes(`${post.author.firstName} ${post.author.lastName}`)
-      );
+      filtered = filtered.filter(post => filters.authors.includes(`${post.author.firstName} ${post.author.lastName}`));
     }
 
-    // Apply tag filter (using categories for tags)
     if (filters.categories.length > 0 && !filters.categories.includes("all")) {
-      filtered = filtered.filter(post => 
-        post.tags.some(tag => filters.categories.includes(tag))
-      );
+      filtered = filtered.filter(post => post.tags.some(tag => filters.categories.includes(tag)));
     }
 
-    // Apply sorting
     if (filters.sortBy) {
       filtered.sort((a, b) => {
-        let aValue = "";
-        let bValue = "";
-
+        let aValue = "", bValue = "";
         switch (filters.sortBy) {
           case "title":
-            aValue = a.title;
-            bValue = b.title;
-            break;
+            aValue = a.title; bValue = b.title; break;
           case "author":
             aValue = `${a.author.firstName} ${a.author.lastName}`;
-            bValue = `${b.author.firstName} ${b.author.lastName}`;
-            break;
+            bValue = `${b.author.firstName} ${b.author.lastName}`; break;
           case "date":
             aValue = a.publishedAt || a.createdAt;
-            bValue = b.publishedAt || b.createdAt;
-            break;
+            bValue = b.publishedAt || b.createdAt; break;
         }
-
         const comparison = aValue.localeCompare(bValue);
         return filters.sortOrder === "desc" ? -comparison : comparison;
       });
     }
 
-    // Always show pinned posts first
-    return filtered.sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      return 0;
-    });
+    return filtered.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
   }, [posts, filters]);
 
-  // Export functionality
+  // Export
   const handleExport = () => {
     const csvContent = [
       ["Title", "Author", "Published Date", "Tags", "Pinned"],
@@ -175,28 +119,12 @@ function NewsContent() {
     URL.revokeObjectURL(url);
   };
 
-  // Get breadcrumbs
-  const breadcrumbs = useBreadcrumbs();
-
-  if (loading) {
-    return (
-      <PageShell
-        title="Company News"
-        description="Stay updated with the latest company announcements"
-        icon={<Megaphone className="w-6 h-6" />}
-        breadcrumbs={breadcrumbs}
-      >
-        <div className="text-center py-8">Loading news posts...</div>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell
       title="Company News"
       description="Stay updated with the latest company announcements"
       icon={<Megaphone className="w-6 h-6" />}
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={breadcrumbs || undefined}
       action={
         canPost ? (
           <Link href="/news/create">
@@ -211,7 +139,7 @@ function NewsContent() {
           config={{
             searchPlaceholder: "Search news by title, author, tags...",
             showAuthorFilter: true,
-            showCategoryFilter: true, // Using categories for tags
+            showCategoryFilter: true,
           }}
           authorOptions={authorOptions}
           categoryOptions={tagOptions}
@@ -220,7 +148,7 @@ function NewsContent() {
         />
       </div>
 
-      {/* News Posts */}
+      {/* News List */}
       <div className="max-w-4xl mx-auto space-y-6">
         {filteredPosts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -249,15 +177,12 @@ function NewsContent() {
                     </span>
                   )}
                 </div>
-                
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>By {post.author.firstName} {post.author.lastName}</span>
                   {post.tags.length > 0 && (
                     <div className="flex gap-2">
                       {post.tags.slice(0, 3).map((tag, index) => (
-                        <span key={index} className="bg-muted px-2 py-1 rounded text-xs">
-                          {tag}
-                        </span>
+                        <span key={index} className="bg-muted px-2 py-1 rounded text-xs">{tag}</span>
                       ))}
                       {post.tags.length > 3 && (
                         <span className="text-xs">+{post.tags.length - 3} more</span>
@@ -274,11 +199,10 @@ function NewsContent() {
   );
 }
 
-// Main component with FilterProvider wrapper
-export default function NewsPageClient() {
+export default function NewsPageClientWrapper(props: NewsPageClientProps) {
   return (
     <FilterProvider>
-      <NewsContent />
+      <NewsContent {...props} />
     </FilterProvider>
   );
 }

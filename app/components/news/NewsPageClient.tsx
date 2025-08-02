@@ -18,8 +18,8 @@ interface NewsPost {
   content: any;
   authorId: string;
   author: {
-    firstName: string;
-    lastName: string;
+    name: string | null;
+    email: string;
   };
   publishedAt: string | null;
   pinned: boolean;
@@ -36,9 +36,12 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
   const { filters } = useFilters();
   const breadcrumbs = useBreadcrumbs();
 
+  // Format author display name
+  const getAuthorName = (author: { name: string | null; email: string }) => author.name || author.email;
+
   // Filter options
   const authorOptions: FilterOption[] = useMemo(() => {
-    const authors = [...new Set(posts.map(post => `${post.author.firstName} ${post.author.lastName}`))];
+    const authors = [...new Set(posts.map(post => getAuthorName(post.author)))];
     return [{ label: "All Authors", value: "all" }, ...authors.map(author => ({ label: author, value: author }))];
   }, [posts]);
 
@@ -61,13 +64,13 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(post =>
         post.title.toLowerCase().includes(searchLower) ||
-        `${post.author.firstName} ${post.author.lastName}`.toLowerCase().includes(searchLower) ||
+        getAuthorName(post.author).toLowerCase().includes(searchLower) ||
         post.tags.some(tag => tag.toLowerCase().includes(searchLower))
       );
     }
 
     if (filters.authors.length > 0 && !filters.authors.includes("all")) {
-      filtered = filtered.filter(post => filters.authors.includes(`${post.author.firstName} ${post.author.lastName}`));
+      filtered = filtered.filter(post => filters.authors.includes(getAuthorName(post.author)));
     }
 
     if (filters.categories.length > 0 && !filters.categories.includes("all")) {
@@ -81,8 +84,8 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
           case "title":
             aValue = a.title; bValue = b.title; break;
           case "author":
-            aValue = `${a.author.firstName} ${a.author.lastName}`;
-            bValue = `${b.author.firstName} ${b.author.lastName}`; break;
+            aValue = getAuthorName(a.author);
+            bValue = getAuthorName(b.author); break;
           case "date":
             aValue = a.publishedAt || a.createdAt;
             bValue = b.publishedAt || b.createdAt; break;
@@ -101,7 +104,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       ["Title", "Author", "Published Date", "Tags", "Pinned"],
       ...filteredPosts.map(post => [
         post.title,
-        `${post.author.firstName} ${post.author.lastName}`,
+        getAuthorName(post.author),
         post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Draft",
         post.tags.join("; "),
         post.pinned ? "Yes" : "No"
@@ -178,7 +181,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                   )}
                 </div>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>By {post.author.firstName} {post.author.lastName}</span>
+                  <span>By {getAuthorName(post.author)}</span>
                   {post.tags.length > 0 && (
                     <div className="flex gap-2">
                       {post.tags.slice(0, 3).map((tag, index) => (

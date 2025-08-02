@@ -1,427 +1,2236 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+
+
+<<<<<<<
+
+
+=======
+import React, { useEffect, useState, useMemo } from "react";
+
 import Button from "@/components/ui/Button";
+
 import { Input } from "@/components/ui/Input";
+
 import { Label } from "@/components/ui/label";
+
 import { toast } from "sonner";
-import { UploadCloud } from "lucide-react";
+
+import { UploadCloud, FileText } from "lucide-react";
+
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+
 import { MultiSelect } from "@/components/ui/MultiSelect";
+
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
 import EditAccessModal from "@/components/documents/EditAccessModal";
+
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+
 import { Switch } from "@/components/ui/switch";
 
-type Department = { id: string; name: string };
-type JobRole = { id: string; name: string };
+import { PageShell } from "@/components/ui/PageShell";
 
-type Document = {
-  id: string;
-  name: string;
-  category: string | null;
-  path: string;
-  size: number;
-  type: string;
-  createdAt: string;
-  url: string;
-  canViewAdmin: boolean;
-  canViewManager: boolean;
-  canViewEmployee: boolean;
-  departments: Department[];
-  jobRoles: JobRole[];
-  requiresAck: boolean;
-};
+import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 
-export default function DocumentsPageClient() {
+import { FilterBar } from "@/components/ui/FilterBar";
+
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+
+import { FilterOption } from "@/types/filter";
+
+>>>>>>>
+
+
+import React, { useEffect, useState } from "react";
+
+
+
+import Button from "@/components/ui/Button";
+
+
+
+<<<<<<<
+import { Input } from "@/components/ui/Input";
+
+=======
+function DocumentsContent() {
+
   const [documents, setDocuments] = useState<Document[]>([]);
+
   const [file, setFile] = useState<File | null>(null);
+
   const [name, setName] = useState("");
+
   const [category, setCategory] = useState("");
+
   const [requiresAck, setRequiresAck] = useState(false);
+
   const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
+
   const [loading, setLoading] = useState(true);
+
   const [uploading, setUploading] = useState(false);
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
+
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+
   const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
 
-  const [isViewAckOpen, setIsViewAckOpen] = useState(false);
-  const [ackDocId, setAckDocId] = useState<string | null>(null);
-  const [ackDocName, setAckDocName] = useState<string | null>(null);
+>>>>>>>
 
-  const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
-  const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
-  const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
-  const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
 
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [ackDate, setAckDate] = useState<Date | null>(null);
+import { Label } from "@/components/ui/label";
 
-  const fetchDocuments = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/documents/list`);
-    const data = await res.json();
-    setDocuments(data);
-    setLoading(false);
+
+
+import { toast } from "sonner";
+
+
+
+import { UploadCloud } from "lucide-react";
+
+
+
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+
+
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+
+
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+
+
+
+import { MultiSelect } from "@/components/ui/MultiSelect";
+
+
+
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
+
+
+import EditAccessModal from "@/components/documents/EditAccessModal";
+
+
+
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+
+
+import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+
+
+
+<<<<<<<
+import { Switch } from "@/components/ui/switch";
+
+=======
+  // Filter options for the FilterBar
+
+  const { filters } = useFilters();
+
+
+
+  const documentTypeOptions: FilterOption[] = useMemo(() => {
+
+    const types = [...new Set(documents.map(doc => doc.type).filter(Boolean))];
+
+    return [
+
+      { label: "All Types", value: "all" },
+
+      ...types.map(type => ({ label: type, value: type }))
+
+    ];
+
+  }, [documents]);
+
+
+
+  const categoryOptions: FilterOption[] = useMemo(() => {
+
+    const categories = [...new Set(documents.map(doc => doc.category).filter(Boolean))];
+
+    return [
+
+      { label: "All Categories", value: "all" },
+
+      ...categories.map(category => ({ label: category!, value: category! }))
+
+    ];
+
+  }, [documents]);
+
+
+
+  const departmentOptions: FilterOption[] = useMemo(() => [
+
+    { label: "All Departments", value: "all" },
+
+    ...departments.map(dept => ({ label: dept.name, value: dept.id }))
+
+  ], [departments]);
+
+
+
+  const sortOptions: FilterOption[] = [
+
+    { label: "Name", value: "name" },
+
+    { label: "Date", value: "date" },
+
+    { label: "Size", value: "size" },
+
+    { label: "Type", value: "type" },
+
+    { label: "Category", value: "category" }
+
+  ];
+
+
+
+  // Filtered and sorted documents
+
+  const filteredDocuments = useMemo(() => {
+
+    let filtered = [...documents];
+
+
+
+    // Apply search filter
+
+    if (filters.search) {
+
+      const searchLower = filters.search.toLowerCase();
+
+      filtered = filtered.filter(doc =>
+
+        doc.name.toLowerCase().includes(searchLower) ||
+
+        doc.category?.toLowerCase().includes(searchLower) ||
+
+        doc.type.toLowerCase().includes(searchLower)
+
+      );
+
+    }
+
+
+
+    // Apply document type filter
+
+    if (filters.documentTypes.length > 0 && !filters.documentTypes.includes("all")) {
+
+      filtered = filtered.filter(doc =>
+
+        filters.documentTypes.includes(doc.type)
+
+      );
+
+    }
+
+
+
+    // Apply category filter
+
+    if (filters.categories.length > 0 && !filters.categories.includes("all")) {
+
+      filtered = filtered.filter(doc =>
+
+        doc.category && filters.categories.includes(doc.category)
+
+      );
+
+    }
+
+
+
+    // Apply department filter
+
+    if (filters.departments.length > 0 && !filters.departments.includes("all")) {
+
+      filtered = filtered.filter(doc =>
+
+        doc.departments.some(dept => filters.departments.includes(dept.id))
+
+      );
+
+    }
+
+
+
+    // Apply sorting
+
+    if (filters.sortBy) {
+
+      filtered.sort((a, b) => {
+
+        let aValue = "";
+
+        let bValue = "";
+
+
+
+        switch (filters.sortBy) {
+
+          case "name":
+
+            aValue = a.name;
+
+            bValue = b.name;
+
+            break;
+
+          case "date":
+
+            aValue = a.createdAt;
+
+            bValue = b.createdAt;
+
+            break;
+
+          case "size":
+
+            return filters.sortOrder === "desc" ? b.size - a.size : a.size - b.size;
+
+          case "type":
+
+            aValue = a.type;
+
+            bValue = b.type;
+
+            break;
+
+          case "category":
+
+            aValue = a.category || "";
+
+            bValue = b.category || "";
+
+            break;
+
+        }
+
+
+
+        const comparison = aValue.localeCompare(bValue);
+
+        return filters.sortOrder === "desc" ? -comparison : comparison;
+
+      });
+
+    }
+
+
+
+    return filtered;
+
+  }, [documents, filters]);
+
+
+
+  // Export functionality
+
+  const handleExport = () => {
+
+    const csvContent = [
+
+      ["Name", "Category", "Type", "Size", "Date", "Departments", "Job Roles"],
+
+      ...filteredDocuments.map(doc => [
+
+        doc.name,
+
+        doc.category || "",
+
+        doc.type,
+
+        `${(doc.size / 1024).toFixed(2)} KB`,
+
+        new Date(doc.createdAt).toLocaleDateString(),
+
+        doc.departments.map(d => d.name).join("; "),
+
+        doc.jobRoles.map(jr => jr.name).join("; ")
+
+      ])
+
+    ].map(row => row.map(field => `"${field}"`).join(",")).join("\n");
+
+
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download = `documents-${new Date().toISOString().split('T')[0]}.csv`;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
   };
 
-  const fetchDropdownData = async () => {
-    try {
-      const [deptRes, roleRes] = await Promise.all([
-        fetch("/api/departments/active"),
-        fetch("/api/job-roles/active"),
-      ]);
-      const deptData = await deptRes.json();
-      const roleData = await roleRes.json();
 
-      const deptOptions = [{ label: "All Departments", value: "all" }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))];
-      const roleOptions = [{ label: "All Job Roles", value: "all" }, ...roleData.map((r: any) => ({ label: r.name, value: r.id }))];
-
-      setDepartmentsList(deptOptions);
-      setJobRolesList(roleOptions);
-
-      if (!uploadDepartments.length) setUploadDepartments(["all"]);
-      if (!uploadJobRoles.length) setUploadJobRoles(["all"]);
-    } catch (err) {
-      console.error("Failed to load dropdown data", err);
-    }
-  };
-
-  const fetchUserRole = async () => {
-    try {
-      const res = await fetch("/api/auth/session");
-      const session = await res.json();
-      setUserRole(session?.user?.role || null);
-    } catch (err) {
-      console.error("Failed to fetch user role", err);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedDoc?.id && selectedDoc.requiresAck) {
-      fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.acknowledged) {
-            setAcknowledged(true);
-            setAckDate(new Date(data.acknowledgedAt));
-          } else {
-            setAcknowledged(false);
-            setAckDate(null);
-          }
-        });
-    }
-  }, [selectedDoc]);
-
-  useEffect(() => {
-    fetchDocuments();
-    fetchDropdownData();
-    fetchUserRole();
-  }, []);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+
     e.preventDefault();
+
     if (!file || !name || !category) {
+
       toast("Please fill in all fields and select a file.");
+
       return;
+
     }
+
     setUploading(true);
 
-    const selectedDepartments = uploadDepartments.includes("all") ? [] : uploadDepartments;
-    const selectedJobRoles = uploadJobRoles.includes("all") ? [] : uploadJobRoles;
+>>>>>>>
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("name", name);
-    formData.append("category", category);
-    formData.append("departments", JSON.stringify(selectedDepartments));
-    formData.append("jobRoles", JSON.stringify(selectedJobRoles));
-    formData.append("requiresAck", JSON.stringify(requiresAck));
-    formData.append("requireAckFromNewStarters", JSON.stringify(requireAckFromNewStarters));
 
-    try {
-      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
-      if (res.ok) {
-        toast("Upload successful", { description: `${name} has been uploaded.` });
-        setIsUploadModalOpen(false);
-        setFile(null);
-        setName("");
-        setCategory("");
-        setRequiresAck(false);
-        setRequireAckFromNewStarters(false);
-        setUploadDepartments(["all"]);
-        setUploadJobRoles(["all"]);
-        fetchDocuments();
-      } else {
-        toast("Upload failed", { description: "Please try again or check your connection." });
-      }
-    } catch (error) {
-      console.error(error);
-      toast("Upload failed", { description: "An error occurred." });
-    } finally {
-      setUploading(false);
-    }
-  };
 
-  const handleAcknowledge = async () => {
-    if (!selectedDoc?.id) return;
-    await fetch("/api/documents/acknowledge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: selectedDoc.id }),
-    });
-    setAcknowledged(true);
-    setAckDate(new Date());
-    toast("Document acknowledged");
-    fetchDocuments();
-  };
 
-  const confirmDelete = async (id: string) => {
-    if (!confirm("Delete this document?")) return;
-    await fetch("/api/documents/delete", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: id }),
-    });
-    fetchDocuments();
-  };
 
-  const formatFileSize = (size: number) =>
-    size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
-  const handleRowClick = (doc: Document) => {
-    setSelectedDoc(doc);
-    setIsPreviewModalOpen(true);
-  };
+type Department = { id: string; name: string };
+
+
+
+type JobRole = { id: string; name: string };
+
+
+
+
+
+
+
+type Document = {
+
+
+
+  id: string;
+
+
+
+  name: string;
+
+
+
+<<<<<<<
+  category: string | null;
+
+=======
+  // Get breadcrumbs
+
+  const breadcrumbs = useBreadcrumbs();
+
+
 
   return (
-    <TooltipProvider>
-      <div className="max-w-6xl mx-auto p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Document Management</h1>
-          {userRole === "ADMIN" && (
-            <Button onClick={() => setIsUploadModalOpen(true)}>
-              <UploadCloud className="w-4 h-4 mr-2" /> Add Document
-            </Button>
-          )}
+
+    <PageShell
+
+      title="Documents"
+
+      description="Manage and organize your company documents"
+
+      icon={<FileText className="w-6 h-6" />}
+
+      breadcrumbs={breadcrumbs}
+
+      action={
+
+        userRole === "ADMIN" ? (
+
+          <Button onClick={() => setIsUploadModalOpen(true)}>
+
+            <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+
+          </Button>
+
+        ) : undefined
+
+      }
+
+    >
+
+      <TooltipProvider>
+
+        {/* Filter Bar */}
+
+        <div className="mb-6">
+
+          <FilterBar
+
+            config={{
+
+              searchPlaceholder: "Search documents by name, category, type...",
+
+              showDocumentTypeFilter: true,
+
+              showCategoryFilter: true,
+
+              showDepartmentFilter: true,
+
+            }}
+
+            documentTypeOptions={documentTypeOptions}
+
+            categoryOptions={categoryOptions}
+
+            departmentOptions={departmentOptions}
+
+            sortOptions={sortOptions}
+
+            onExport={handleExport}
+
+          />
+
         </div>
 
+>>>>>>>
+
+
+<<<<<<<
+  path: string;
+
+=======
         {loading ? (
+
           <p>Loading documents...</p>
-        ) : documents.length === 0 ? (
-          <p>No documents found.</p>
+
+        ) : filteredDocuments.length === 0 ? (
+
+          <div className="text-center py-8 text-muted-foreground">
+
+            {filters.search || filters.documentTypes.length > 0 || filters.categories.length > 0 || filters.departments.length > 0
+
+              ? "No documents match your current filters."
+
+              : "No documents found."}
+
+          </div>
+
         ) : (
+
           <Table>
+
             <TableHeader>
+
               <TableRow>
+
                 <TableHead>Name</TableHead>
+
                 <TableHead>Category</TableHead>
+
                 <TableHead>Department</TableHead>
+
                 <TableHead>Job Role</TableHead>
+
                 <TableHead>Access</TableHead>
+
                 <TableHead>Date</TableHead>
+
                 <TableHead>Size</TableHead>
+
                 {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+
               </TableRow>
+
             </TableHeader>
+
             <TableBody>
-              {documents.map((doc) => {
+
+              {filteredDocuments.map((doc) => {
+
                 const accessList = [
+
                   doc.canViewAdmin ? "Admin" : null,
+
                   doc.canViewManager ? "Manager" : null,
+
                   doc.canViewEmployee ? "Employee" : null,
+
                   ...doc.departments.map((d) => d.name),
+
                   ...doc.jobRoles.map((jr) => jr.name),
+
                 ].filter(Boolean);
 
+>>>>>>>
+
+
+  size: number;
+
+
+
+  type: string;
+
+
+
+  createdAt: string;
+
+
+
+  url: string;
+
+
+
+<<<<<<<
+  canViewAdmin: boolean;
+
+
+
+  canViewManager: boolean;
+
+
+
+  canViewEmployee: boolean;
+
+
+
+  departments: Department[];
+
+
+
+  jobRoles: JobRole[];
+
+
+
+  requiresAck: boolean;
+
+
+
+};
+
+
+
+
+
+
+
+export default function DocumentsPageClient() {
+
+
+
+  const [documents, setDocuments] = useState<Document[]>([]);
+
+
+
+  const [file, setFile] = useState<File | null>(null);
+
+
+
+  const [name, setName] = useState("");
+
+
+
+  const [category, setCategory] = useState("");
+
+
+
+  const [requiresAck, setRequiresAck] = useState(false);
+
+
+
+  const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
+
+
+
+  const [loading, setLoading] = useState(true);
+
+
+
+  const [uploading, setUploading] = useState(false);
+
+
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+
+
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+
+
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+
+
+
+  const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
+
+
+
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+
+
+
+  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
+
+
+
+
+
+
+
+  const [isViewAckOpen, setIsViewAckOpen] = useState(false);
+
+
+
+  const [ackDocId, setAckDocId] = useState<string | null>(null);
+
+
+
+  const [ackDocName, setAckDocName] = useState<string | null>(null);
+
+
+
+
+
+
+
+  const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
+
+
+
+  const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
+
+
+
+  const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
+
+
+
+  const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
+
+
+
+
+
+
+
+  const [acknowledged, setAcknowledged] = useState(false);
+
+
+
+  const [ackDate, setAckDate] = useState<Date | null>(null);
+
+
+
+
+
+
+
+  const fetchDocuments = async () => {
+
+
+
+    setLoading(true);
+
+
+
+    const res = await fetch(`/api/documents/list`);
+
+
+
+    const data = await res.json();
+
+
+
+    setDocuments(data);
+
+
+
+    setLoading(false);
+
+
+
+  };
+
+
+
+
+
+
+
+  const fetchDropdownData = async () => {
+
+
+
+    try {
+
+
+
+      const [deptRes, roleRes] = await Promise.all([
+
+
+
+        fetch("/api/departments/active"),
+
+
+
+        fetch("/api/job-roles/active"),
+
+
+
+      ]);
+
+
+
+      const deptData = await deptRes.json();
+
+
+
+      const roleData = await roleRes.json();
+
+
+
+
+
+
+
+      const deptOptions = [{ label: "All Departments", value: "all" }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))];
+
+
+
+      const roleOptions = [{ label: "All Job Roles", value: "all" }, ...roleData.map((r: any) => ({ label: r.name, value: r.id }))];
+
+
+
+
+
+
+
+      setDepartmentsList(deptOptions);
+
+
+
+      setJobRolesList(roleOptions);
+
+
+
+
+
+
+
+      if (!uploadDepartments.length) setUploadDepartments(["all"]);
+
+
+
+      if (!uploadJobRoles.length) setUploadJobRoles(["all"]);
+
+
+
+    } catch (err) {
+
+
+
+      console.error("Failed to load dropdown data", err);
+
+
+
+    }
+
+
+
+  };
+
+
+
+
+
+
+
+  const fetchUserRole = async () => {
+
+
+
+    try {
+
+
+
+      const res = await fetch("/api/auth/session");
+
+
+
+      const session = await res.json();
+
+
+
+      setUserRole(session?.user?.role || null);
+
+
+
+    } catch (err) {
+
+
+
+      console.error("Failed to fetch user role", err);
+
+
+
+    }
+
+
+
+  };
+
+
+
+
+
+
+
+  useEffect(() => {
+
+
+
+    if (selectedDoc?.id && selectedDoc.requiresAck) {
+
+
+
+      fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
+
+
+
+        .then((res) => res.json())
+
+
+
+        .then((data) => {
+
+
+
+          if (data.acknowledged) {
+
+
+
+            setAcknowledged(true);
+
+
+
+            setAckDate(new Date(data.acknowledgedAt));
+
+
+
+          } else {
+
+
+
+            setAcknowledged(false);
+
+
+
+            setAckDate(null);
+
+
+
+          }
+
+
+
+        });
+
+
+
+    }
+
+
+
+  }, [selectedDoc]);
+
+
+
+
+
+
+
+  useEffect(() => {
+
+
+
+    fetchDocuments();
+
+
+
+    fetchDropdownData();
+
+
+
+    fetchUserRole();
+
+
+
+  }, []);
+
+
+
+
+
+
+
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+
+
+
+    e.preventDefault();
+
+
+
+    if (!file || !name || !category) {
+
+
+
+      toast("Please fill in all fields and select a file.");
+
+
+
+      return;
+
+
+
+    }
+
+
+
+    setUploading(true);
+
+
+
+
+
+
+
+    const selectedDepartments = uploadDepartments.includes("all") ? [] : uploadDepartments;
+
+
+
+    const selectedJobRoles = uploadJobRoles.includes("all") ? [] : uploadJobRoles;
+
+
+
+
+
+
+
+    const formData = new FormData();
+
+
+
+    formData.append("file", file);
+
+
+
+    formData.append("name", name);
+
+
+
+    formData.append("category", category);
+
+
+
+    formData.append("departments", JSON.stringify(selectedDepartments));
+
+
+
+    formData.append("jobRoles", JSON.stringify(selectedJobRoles));
+
+
+
+    formData.append("requiresAck", JSON.stringify(requiresAck));
+
+
+
+    formData.append("requireAckFromNewStarters", JSON.stringify(requireAckFromNewStarters));
+
+
+
+
+
+
+
+    try {
+
+
+
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+
+
+
+      if (res.ok) {
+
+
+
+        toast("Upload successful", { description: `${name} has been uploaded.` });
+
+
+
+        setIsUploadModalOpen(false);
+
+
+
+        setFile(null);
+
+
+
+        setName("");
+
+
+
+        setCategory("");
+
+
+
+        setRequiresAck(false);
+
+
+
+        setRequireAckFromNewStarters(false);
+
+
+
+        setUploadDepartments(["all"]);
+
+
+
+        setUploadJobRoles(["all"]);
+
+
+
+        fetchDocuments();
+
+
+
+      } else {
+
+
+
+        toast("Upload failed", { description: "Please try again or check your connection." });
+
+
+
+      }
+
+
+
+    } catch (error) {
+
+
+
+      console.error(error);
+
+
+
+      toast("Upload failed", { description: "An error occurred." });
+
+
+
+    } finally {
+
+
+
+      setUploading(false);
+
+
+
+    }
+
+
+
+  };
+
+
+
+
+
+
+
+  const handleAcknowledge = async () => {
+
+
+
+    if (!selectedDoc?.id) return;
+
+
+
+    await fetch("/api/documents/acknowledge", {
+
+
+
+      method: "POST",
+
+
+
+      headers: { "Content-Type": "application/json" },
+
+
+
+      body: JSON.stringify({ documentId: selectedDoc.id }),
+
+
+
+    });
+
+
+
+    setAcknowledged(true);
+
+
+
+    setAckDate(new Date());
+
+
+
+    toast("Document acknowledged");
+
+
+
+    fetchDocuments();
+
+
+
+  };
+
+
+
+
+
+
+
+  const confirmDelete = async (id: string) => {
+
+
+
+    if (!confirm("Delete this document?")) return;
+
+
+
+    await fetch("/api/documents/delete", {
+
+
+
+      method: "DELETE",
+
+
+
+      headers: { "Content-Type": "application/json" },
+
+
+
+      body: JSON.stringify({ documentId: id }),
+
+
+
+    });
+
+
+
+    fetchDocuments();
+
+
+
+  };
+
+
+
+
+
+
+
+  const formatFileSize = (size: number) =>
+
+
+
+    size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
+
+
+
+
+
+
+
+  const handleRowClick = (doc: Document) => {
+
+
+
+    setSelectedDoc(doc);
+
+
+
+    setIsPreviewModalOpen(true);
+
+
+
+  };
+
+
+
+
+
+
+
+  return (
+
+
+
+    <TooltipProvider>
+
+
+
+      <div className="max-w-6xl mx-auto p-4 space-y-4">
+
+
+
+        <div className="flex items-center justify-between">
+
+
+
+          <h1 className="text-2xl font-bold">Document Management</h1>
+
+
+
+          {userRole === "ADMIN" && (
+
+
+
+            <Button onClick={() => setIsUploadModalOpen(true)}>
+
+
+
+              <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+
+
+
+            </Button>
+
+
+
+          )}
+
+
+
+        </div>
+
+
+
+
+
+
+
+        {loading ? (
+
+
+
+          <p>Loading documents...</p>
+
+
+
+        ) : documents.length === 0 ? (
+
+
+
+          <p>No documents found.</p>
+
+
+
+        ) : (
+
+
+
+          <Table>
+
+
+
+            <TableHeader>
+
+
+
+              <TableRow>
+
+
+
+                <TableHead>Name</TableHead>
+
+
+
+                <TableHead>Category</TableHead>
+
+
+
+                <TableHead>Department</TableHead>
+
+
+
+                <TableHead>Job Role</TableHead>
+
+
+
+                <TableHead>Access</TableHead>
+
+
+
+                <TableHead>Date</TableHead>
+
+
+
+                <TableHead>Size</TableHead>
+
+
+
+                {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+
+
+
+              </TableRow>
+
+
+
+            </TableHeader>
+
+
+
+            <TableBody>
+
+
+
+              {documents.map((doc) => {
+
+
+
+                const accessList = [
+
+
+
+                  doc.canViewAdmin ? "Admin" : null,
+
+
+
+                  doc.canViewManager ? "Manager" : null,
+
+
+
+                  doc.canViewEmployee ? "Employee" : null,
+
+
+
+                  ...doc.departments.map((d) => d.name),
+
+
+
+                  ...doc.jobRoles.map((jr) => jr.name),
+
+
+
+                ].filter(Boolean);
+
+
+
+
+
+
+
                 return (
+
+
+
                   <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
+
+
+
                     <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+
+
+
                     <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
+
+
+
                     <TableCell>{doc.departments.length > 0 ? doc.departments.map((d) => d.name).join(", ") : "All Departments"}</TableCell>
+
+
+
                     <TableCell>{doc.jobRoles.length > 0 ? doc.jobRoles.map((jr) => jr.name).join(", ") : "All Job Roles"}</TableCell>
+
+
+
                     <TableCell>
+
+
+
                       <Tooltip>
+
+
+
                         <TooltipTrigger asChild>
+
+
+
                           <span className="underline cursor-pointer">
+
+
+
                             {doc.departments.length === 0 && doc.jobRoles.length === 0 ? "All" : accessList.join(", ")}
+
+
+
                           </span>
+
+
+
                         </TooltipTrigger>
+
+
+
                         <TooltipContent className="text-xs max-w-xs">
+
+
+
                           {doc.departments.length === 0 && doc.jobRoles.length === 0
+
+
+
                             ? "All (Unrestricted)"
+
+
+
                             : accessList.map((item, idx) => <div key={idx}>{item}</div>)}
+
+
+
                         </TooltipContent>
+
+
+
                       </Tooltip>
+
+
+
                     </TableCell>
+
+
+
                     <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+
+
+
                     <TableCell>{formatFileSize(doc.size)}</TableCell>
+
+
+
                     {userRole === "ADMIN" && (
+
+
+
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+
+
+
                         <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
+
+
+
                           <DropdownMenuItem
+
+
+
                             onClick={() => {
+
+
+
                               setEditingDoc(doc);
+
+
+
                               setIsEditAccessOpen(true);
+
+
+
                             }}
+
+
+
                           >
+
+
+
                             Edit Access
+
+
+
                           </DropdownMenuItem>
+
+
+
                           {doc.requiresAck && (
+
+
+
                             <DropdownMenuItem
+
+
+
                               onClick={() => {
+
+
+
                                 setAckDocId(doc.id);
+
+
+
                                 setAckDocName(doc.name);
+
+
+
                                 setIsViewAckOpen(true);
+
+
+
                               }}
+
+
+
                             >
+
+
+
                               View Acknowledgements
+
+
+
                             </DropdownMenuItem>
+
+
+
                           )}
+
+
+
                           <DropdownMenuItem
+
+
+
                             onClick={() => confirmDelete(doc.id)}
+
+
+
                             className="text-red-600"
+
+
+
                           >
+
+
+
                             Delete
+
+
+
                           </DropdownMenuItem>
+
+
+
                         </DropdownMenu>
+
+
+
                       </TableCell>
+
+
+
                     )}
+
+
+
                   </TableRow>
+
+
+
                 );
+
+
+
               })}
+
+
+
             </TableBody>
+
+
+
           </Table>
+
+
+
         )}
+
+
+
+
+
+
 
         {/* Upload Modal */}
+
+
+
         {userRole === "ADMIN" && (
+
+
+
           <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+
+
+
             <DialogContent>
+
+
+
               <DialogHeader>
+
+
+
                 <DialogTitle>Upload Document</DialogTitle>
+
+
+
               </DialogHeader>
+
+
+
               <form onSubmit={handleUpload} className="space-y-4">
+
+
+
                 <div>
+
+
+
                   <Label>Document Name</Label>
+
+
+
                   <Input value={name} onChange={(e) => setName(e.target.value)} required />
+
+
+
                 </div>
+
+
+
                 <div>
+
+
+
                   <Label>Category</Label>
+
+
+
                   <Select value={category} onValueChange={setCategory}>
+
+
+
                     <SelectTrigger>
+
+
+
                       <SelectValue placeholder="Select a category" />
+
+
+
                     </SelectTrigger>
+
+
+
                     <SelectContent>
+
+
+
                       <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+
+
+
                       <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+
+
+
                       <SelectItem value="Training">Training</SelectItem>
+
+
+
                       <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+
+
+
                       <SelectItem value="General HR">General HR</SelectItem>
+
+
+
                     </SelectContent>
+
+
+
                   </Select>
+
+
+
                 </div>
+
+
+
                 <div>
+
+
+
                   <Label>Requires Acknowledgement</Label><Switch checked={requiresAck} onChange={setRequiresAck} />
+
+
+
 </div>
+
+
+
 <div>
+
+
+
   <Label>Require new starters to acknowledge?</Label>
+
+
+
   <Switch checked={requiresAck} onChange={setRequiresAck} />
+
+
+
                 </div>
+
+
+
                 <div>
+
+
+
                   <Label>Restrict by Department</Label>
+
+
+
                   <MultiSelect
+
+
+
                     options={departmentsList}
+
+
+
                     selected={uploadDepartments}
+
+
+
                     onChange={(values) => {
+
+
+
                       if (values.includes("all")) setUploadDepartments(["all"]);
+
+
+
                       else setUploadDepartments(values);
+
+
+
                     }}
+
+
+
                     placeholder="Select department(s)"
+
+
+
                   />
+
+
+
                 </div>
+
+
+
                 <div>
+
+
+
                   <Label>Restrict by Job Role</Label>
+
+
+
                   <MultiSelect
+
+
+
                     options={jobRolesList}
+
+
+
                     selected={uploadJobRoles}
+
+
+
                     onChange={(values) => {
+
+
+
                       if (values.includes("all")) setUploadJobRoles(["all"]);
+
+
+
                       else setUploadJobRoles(values);
+
+
+
                     }}
+
+
+
                     placeholder="Select job role(s)"
+
+
+
                   />
+
+
+
                 </div>
+
+
+
                 <div>
+
+
+
                   <Label>File</Label>
+
+
+
                   <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+
+
+
                 </div>
+
+
+
                 <DialogFooter>
+
+
+
                   <Button type="submit" disabled={uploading}>
+
+
+
                     {uploading ? "Uploading..." : "Upload Document"}
+
+
+
                   </Button>
+
+
+
                 </DialogFooter>
+
+
+
               </form>
+
+
+
             </DialogContent>
+
+
+
           </Dialog>
+
+
+
         )}
 
+
+
+
+
+
+
         {/* Preview Modal */}
+
+
+
         <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+
+
+
           <DialogContent>
+
+
+
             <DialogHeader>
+
+
+
               <DialogTitle>{selectedDoc?.name}</DialogTitle>
+
+
+
             </DialogHeader>
+
+
+
             {selectedDoc && (
+
+
+
               <div className="space-y-4">
+
+
+
                 <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+
+
+
                 <a
+
+
+
                   href={selectedDoc.url}
+
+
+
                   download={selectedDoc.name}
+
+
+
                   target="_blank"
+
+
+
                   rel="noopener noreferrer"
+
+
+
                   className="text-blue-600 underline block"
+
+
+
                 >
+
+
+
                   Download
+
+
+
                 </a>
+
+
+
                 {selectedDoc.requiresAck && !acknowledged && (
+
+
+
                   <Button onClick={handleAcknowledge} className="w-full mt-2">
+
+
+
                     Acknowledge Document
+
+
+
                   </Button>
+
+
+
                 )}
+
+
+
                 {selectedDoc.requiresAck && acknowledged && (
+
+
+
                   <p className="text-green-600 text-sm">
+
+
+
                     ✅ Acknowledged on {ackDate?.toLocaleDateString()}
+
+
+
                   </p>
+
+
+
                 )}
+
+
+
               </div>
+
+
+
             )}
+
+
+
           </DialogContent>
+
+
+
         </Dialog>
 
+
+
+
+
+
+
         {/* Edit Access Modal */}
+
+
+
         <EditAccessModal
+
+
+
           isOpen={isEditAccessOpen}
+
+
+
           onClose={() => setIsEditAccessOpen(false)}
+
+
+
           document={editingDoc}
+
+
+
           onSaved={fetchDocuments}
+
+
+
         />
 
+
+
+
+
+
+
         {/* View Acknowledgements Modal */}
+
+
+
         <ViewAcknowledgementsModal
+
+
+
           isOpen={isViewAckOpen}
+
+
+
           onClose={() => setIsViewAckOpen(false)}
+
+
+
           documentId={ackDocId}
+
+
+
           documentName={ackDocName}
+
+
+
         />
+
+
+
       </div>
+
+
+
     </TooltipProvider>
+
+
+
   );
+
+
+
 }
+
+
+
+=======
+        {/* View Acknowledgements Modal */}
+
+        <ViewAcknowledgementsModal
+
+          isOpen={isViewAckOpen}
+
+          onClose={() => setIsViewAckOpen(false)}
+
+          documentId={ackDocId}
+
+          documentName={ackDocName}
+
+        />
+
+      </TooltipProvider>
+
+    </PageShell>
+
+  );
+
+}
+
+
+
+// Main component with FilterProvider wrapper
+
+export default function DocumentsPageClient() {
+
+  return (
+
+    <FilterProvider>
+
+      <DocumentsContent />
+
+    </FilterProvider>
+
+  );
+
+}
+
+>>>>>>>

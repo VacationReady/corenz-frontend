@@ -329,15 +329,11 @@ export default function DocumentsPageClient() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Requires Acknowledgement</Label>
-                  <Switch checked={requiresAck} onChange={setRequiresAck} />
-                </div>
-                <div>
-                  <Label>Require new starters to acknowledge?</Label>
-                  <Switch
-  checked={requiresAck}
-  onChange={(e) => setRequiresAck(e.target.checked)}
-/>
+                  <Label>Requires Acknowledgement</Label><Switch checked={requiresAck} onChange={setRequiresAck} />
+</div>
+<div>
+  <Label>Require new starters to acknowledge?</Label>
+  <Switch checked={requiresAck} onChange={setRequiresAck} />
                 </div>
                 <div>
                   <Label>Restrict by Department</Label>

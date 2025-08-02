@@ -1,27 +1,12 @@
 "use client";
 
 
-
-
-
-
-
 import { useState } from "react";
-
-
-
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-
-
-
 import {
 
-
-
-<<<<<<<
   Megaphone,
 
-=======
   return (
 
     <>
@@ -62,13 +47,8 @@ import {
 
       </DashboardWidget>
 
->>>>>>>
-
-
-<<<<<<<
   FileText,
 
-=======
       {/* People Metrics */}
 
       <DashboardWidget title="People Metrics" icon={Users} className="h-full">
@@ -103,13 +83,8 @@ import {
 
       </DashboardWidget>
 
->>>>>>>
-
-
-<<<<<<<
   Mail,
 
-=======
       {/* Pending Approvals */}
 
       <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="h-full">
@@ -134,13 +109,8 @@ import {
 
       </DashboardWidget>
 
->>>>>>>
-
-
-<<<<<<<
   Users,
 
-=======
       {/* Who's Off */}
 
       <DashboardWidget title="Who's Off" icon={CalendarCheck2} className="h-full">
@@ -161,7 +131,6 @@ import {
 
       </DashboardWidget>
 
->>>>>>>
 
 
   ClipboardList,

@@ -7,25 +7,10 @@
 
 
 import { getServerSession } from "next-auth";
-
-
-
 import { authOptions } from "@/lib/auth-options";
-
-
-
 import { prisma } from "@/lib/prisma";
-
-
-
 import { redirect } from "next/navigation";
 
-
-
-<<<<<<<
-
-
-=======
   return (
 
     <div className="flex flex-col flex-1 w-full min-h-screen bg-content-panel">
@@ -78,13 +63,8 @@ import { redirect } from "next/navigation";
 
       </div>
 
->>>>>>>
-
-
-<<<<<<<
 import dynamic from "next/dynamic";
 
-=======
       {/* Content Area */}
 
       <main className="flex-1 px-8 py-6">
@@ -95,10 +75,7 @@ import dynamic from "next/dynamic";
 
           <LeaveSummaryCard employeeId={user.employee.id} />
 
->>>>>>>
 
-
-<<<<<<<
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 
 
@@ -287,7 +264,6 @@ export default async function AdminDashboardPage() {
 
 
 
-=======
           {/* Client-only Admin Dashboard widgets */}
 
           <AdminDashboardClient
@@ -305,6 +281,4 @@ export default async function AdminDashboardPage() {
     </div>
 
   );
-
->>>>>>>
 }

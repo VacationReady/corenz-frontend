@@ -11,17 +11,8 @@ import React, { ReactNode } from "react";
 
 
 import { getServerSession } from "next-auth";
-
-
-
-<<<<<<<
 import { authOptions } from "@/lib/auth-options";
-
-
-
 import AdminSidebar from "@/components/sidebars/AdminSidebar";
-
-
 
 import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 
@@ -113,9 +104,6 @@ export default async function WithSidebarLayout({ children }: { children: ReactN
 
 }
 
-
-
-=======
   return (
 
     <div className="flex min-h-screen bg-app-background">
@@ -129,5 +117,3 @@ export default async function WithSidebarLayout({ children }: { children: ReactN
   );
 
 }
-
->>>>>>>

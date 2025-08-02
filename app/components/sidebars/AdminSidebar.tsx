@@ -7,13 +7,8 @@
 
 
 import Link from "next/link";
-
-
-
-<<<<<<<
 import { usePathname } from "next/navigation";
 
-=======
   return (
 
     <div className={clsx(
@@ -72,13 +67,9 @@ import { usePathname } from "next/navigation";
 
       </div>
 
->>>>>>>
 
-
-<<<<<<<
 import { useState } from "react";
 
-=======
       {/* Navigation */}
 
       <nav className="flex-1 py-6">
@@ -171,13 +162,9 @@ import { useState } from "react";
 
       </nav>
 
->>>>>>>
 
-
-<<<<<<<
 import {
 
-=======
       {/* Settings & Logout */}
 
       <div className="border-t border-enhanced bg-card-header px-4 py-4">
@@ -204,13 +191,9 @@ import {
 
 }
 
->>>>>>>
 
-
-<<<<<<<
   LayoutDashboard,
 
-=======
 function SidebarLink({
 
   href,
@@ -291,10 +274,7 @@ function SidebarLink({
 
 }
 
->>>>>>>
 
-
-<<<<<<<
   ClipboardCheck,
 
 
@@ -722,8 +702,6 @@ const sidebarLinks = [
 ];
 
 
-
-=======
 const coreLinks = [
 
   { href: "/dashboard/admin", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
@@ -751,5 +729,3 @@ const hrToolsLinks = [
   { href: "/settings", icon: <Settings size={18} />, label: "Settings" },
 
 ];
-
->>>>>>>

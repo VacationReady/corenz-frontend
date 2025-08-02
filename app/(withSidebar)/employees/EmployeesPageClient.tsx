@@ -266,12 +266,12 @@ function EmployeesContent() {
 
   return (
     <PageShell
-      title="Employees"
-      description="Manage your team members and their information"
-      icon={<Users className="w-6 h-6" />}
-      breadcrumbs={breadcrumbs}
-      action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
-    >
+  title="Employees"
+  description="Manage your team members and their information"
+  icon={<Users className="w-6 h-6" />}
+  breadcrumbs={breadcrumbs || undefined} // ✅ Convert null to undefined
+  action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
+/>
       {error && (
         <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
           <p className="text-destructive font-medium">{error}</p>

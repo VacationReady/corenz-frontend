@@ -49,8 +49,18 @@ export function FormCanvas({
                     </span>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
-                    <Pencil className="h-4 w-4 text-gray-400" title="Edit Field" />
-                    <GripVertical className="h-4 w-4 text-gray-400" title="Reorder" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Pencil className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>Edit Field</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <GripVertical className="h-4 w-4 text-gray-400 cursor-pointer" />
+                      </TooltipTrigger>
+                      <TooltipContent>Reorder</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </TooltipTrigger>

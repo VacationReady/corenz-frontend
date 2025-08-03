@@ -1,6 +1,191 @@
 <<<<<<<
+
+
+
 "use client";
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+=======
+  if (loading) {
+
+    return (
+
+      <PageShell
+
+        title="Company News"
+
+        description="Stay updated with the latest company announcements"
+
+        icon={<Megaphone className="w-6 h-6" />}
+
+        breadcrumbs={breadcrumbs || undefined}
+
+      >
+
+        <div className="text-center py-8">Loading news posts...</div>
+
+      </PageShell>
+
+    );
+
+  }
+
+>>>>>>>
+
+
+<<<<<<<
+
+
+=======
+  return (
+
+    <PageShell
+
+      title="Company News"
+
+      description="Stay updated with the latest company announcements"
+
+      icon={<Megaphone className="w-6 h-6" />}
+
+      breadcrumbs={breadcrumbs || undefined}
+
+      action={
+
+        canPost ? (
+
+          <Link href="/news/create">
+
+            <Button variant="primary">Create News</Button>
+
+          </Link>
+
+        ) : undefined
+
+      }
+
+    >
+
+      {/* Filter Bar */}
+
+      <div className="mb-6">
+
+        <FilterBar
+
+          config={{
+
+            searchPlaceholder: "Search news by title, author, tags...",
+
+            showAuthorFilter: true,
+
+            showCategoryFilter: true, // Using categories for tags
+
+          }}
+
+          authorOptions={authorOptions}
+
+          categoryOptions={tagOptions}
+
+          sortOptions={sortOptions}
+
+          onExport={handleExport}
+
+        />
+
+      </div>
+
+>>>>>>>
 
 
 
@@ -47,7 +232,103 @@ import { useMemo } from 'react';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import Link from 'next/link';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -79,7 +360,103 @@ import { format } from 'date-fns';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import Button from '@/components/ui/Button';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -111,6 +488,54 @@ import { PageShell } from '@/components/ui/PageShell';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
 
 
@@ -127,7 +552,67 @@ import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <<<<<<<
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -139,11 +624,71 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 =======
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const authorOptions: FilterOption[] = useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -159,6 +704,30 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const authors = Array.from(authorSet);
 
 
@@ -167,7 +736,55 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     return [
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -183,7 +800,55 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       ...authors.map(author => ({ label: author, value: author }))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -199,6 +864,30 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }, [posts]);
 
 
@@ -207,7 +896,67 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 >>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -223,7 +972,43 @@ import { FilterBar } from '@/components/ui/FilterBar';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -235,7 +1020,43 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const tagOptions: FilterOption[] = useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -251,7 +1072,55 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const allTags = Array.from(tagSet);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -267,7 +1136,55 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       { label: "All Tags", value: "all" },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -283,6 +1200,30 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     ];
 
 
@@ -291,7 +1232,55 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }, [posts]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -311,7 +1300,91 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { Megaphone } from 'lucide-react';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -359,7 +1432,151 @@ import { FilterOption } from '@/types/filter';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 interface NewsPost {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -391,7 +1608,103 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   title: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -423,7 +1736,103 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   content: any;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -455,7 +1864,103 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   author: {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -487,7 +1992,103 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     email: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -519,7 +2120,103 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   publishedAt: string | null;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -551,7 +2248,103 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   tags: string[];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -583,7 +2376,151 @@ interface NewsPost {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -631,7 +2568,103 @@ export interface NewsPageClientProps {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   posts: NewsPost[];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -663,7 +2696,151 @@ export interface NewsPageClientProps {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -711,6 +2888,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const { filters } = useFilters();
 
 
@@ -727,7 +2952,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const breadcrumbs = useBreadcrumbs();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -775,7 +3144,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const getAuthorName = (author: { name: string | null; email: string }) =>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -823,7 +3288,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Filter options
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -855,7 +3464,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const authors = [...new Set(posts.map(post => getAuthorName(post.author)))];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -887,7 +3592,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }, [posts]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -935,6 +3784,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const allTags = [...new Set(posts.flatMap(post => post.tags))];
 
 
@@ -951,7 +3848,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     return [{ label: "All Tags", value: "all" }, ...allTags.map(tag => ({ label: tag, value: tag }))];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -999,7 +3992,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const sortOptions: FilterOption[] = [
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1031,7 +4168,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Title", value: "title" },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1063,7 +4296,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1111,7 +4488,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const filteredPosts = useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1159,7 +4632,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if (filters.search) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1191,7 +4808,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter(post =>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1223,7 +4936,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         getAuthorName(post.author).toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1255,6 +5064,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       );
 
 
@@ -1271,7 +5128,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1319,6 +5320,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter(post => filters.authors.includes(getAuthorName(post.author)));
 
 
@@ -1335,7 +5384,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1383,6 +5576,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter(post => post.tags.some(tag => filters.categories.includes(tag)));
 
 
@@ -1399,7 +5640,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1447,7 +5832,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       filtered.sort((a, b) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1479,7 +5960,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         switch (filters.sortBy) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1511,7 +6088,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.title;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1543,7 +6216,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1575,7 +6344,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = getAuthorName(a.author);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1607,7 +6472,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1639,7 +6600,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.publishedAt || a.createdAt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1671,7 +6728,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1703,7 +6856,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         const comparison = aValue.localeCompare(bValue);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1735,6 +6984,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       });
 
 
@@ -1751,7 +7048,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1799,7 +7240,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }, [posts, filters]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1847,7 +7432,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const handleExport = () => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1879,7 +7560,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       ["Title", "Author", "Published Date", "Tags", "Pinned"],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1911,7 +7688,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         post.title,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1943,7 +7816,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Draft",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1975,6 +7944,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         post.pinned ? "Yes" : "No"
 
 
@@ -1991,7 +8008,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       ])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2039,7 +8152,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const blob = new Blob([csvContent], { type: "text/csv" });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2071,7 +8328,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const a = document.createElement("a");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2103,7 +8456,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     a.download = `news-posts-${new Date().toISOString().split('T')[0]}.csv`;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2135,7 +8584,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     a.click();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2167,7 +8712,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     URL.revokeObjectURL(url);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2215,7 +8856,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2247,7 +9032,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       title="Company News"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2279,7 +9160,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       icon={<Megaphone className="w-6 h-6" />}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2311,7 +9288,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       action={
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2343,7 +9416,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <Link href="/news/create">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2375,7 +9544,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </Link>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2407,7 +9672,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2439,7 +9800,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       {/* Filter Bar */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2471,7 +9928,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         <FilterBar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2503,7 +10056,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             searchPlaceholder: "Search news by title, author, tags...",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2535,7 +10184,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             showCategoryFilter: true,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2567,7 +10312,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           authorOptions={authorOptions}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2599,7 +10440,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           sortOptions={sortOptions}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2631,6 +10568,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         />
 
 
@@ -2647,7 +10632,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2695,7 +10824,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div className="max-w-4xl mx-auto space-y-6">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2727,7 +10952,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           <div className="text-center py-8 text-muted-foreground">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2759,7 +11080,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               ? "No news posts match your current filters."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2791,7 +11208,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2823,7 +11336,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           filteredPosts.map((post) => (
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2855,7 +11464,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               <div className="bg-card rounded-xl shadow-lg border border-enhanced p-6 hover:shadow-enterprise transition-smooth hover-lift">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2887,7 +11592,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   <div className="flex items-center gap-3">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2919,7 +11720,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                       {post.title}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2951,7 +11848,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     {post.pinned && (
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2983,7 +11976,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                         Pinned
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3015,7 +12104,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3047,7 +12232,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   {post.publishedAt && (
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3079,7 +12360,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                       {format(new Date(post.publishedAt), 'dd MMM yyyy')}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3111,6 +12488,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   )}
 
 
@@ -3127,7 +12552,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3159,7 +12680,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   <span>By {getAuthorName(post.author)}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3191,7 +12808,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     <div className="flex gap-2">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3223,7 +12936,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                         <span key={index} className="bg-muted px-2 py-1 rounded text-xs">{tag}</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3255,7 +13064,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                       {post.tags.length > 3 && (
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3287,7 +13192,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                       )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3319,7 +13320,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3351,7 +13448,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3383,7 +13576,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           ))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3415,7 +13704,103 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3447,6 +13832,54 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   );
 
 
@@ -3463,7 +13896,151 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3511,6 +14088,54 @@ export default function NewsPageClientWrapper(props: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
 
 
@@ -3527,7 +14152,103 @@ export default function NewsPageClientWrapper(props: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     <FilterProvider>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3559,7 +14280,103 @@ export default function NewsPageClientWrapper(props: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </FilterProvider>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3591,7 +14408,103 @@ export default function NewsPageClientWrapper(props: NewsPageClientProps) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3608,584 +14521,2330 @@ export default function NewsPageClientWrapper(props: NewsPageClientProps) {
 
 
 =======
+
+
+
 "use client";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 import { useState, useEffect, useMemo } from 'react';
 
+
+
+
+
+
+
 import Link from 'next/link';
+
+
+
+
+
+
 
 import { format } from 'date-fns';
 
+
+
+
+
+
+
 import { useSession } from 'next-auth/react';
+
+
+
+
+
+
 
 import Button from '@/components/ui/Button';
 
+
+
+
+
+
+
 import { PageShell } from '@/components/ui/PageShell';
+
+
+
+
+
+
 
 import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
 
+
+
+
+
+
+
 import { FilterBar } from '@/components/ui/FilterBar';
+
+
+
+
+
+
 
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 
+
+
+
+
+
+
 import { Megaphone } from 'lucide-react';
+
+
+
+
+
+
 
 import { FilterOption } from '@/types/filter';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 interface NewsPost {
+
+
+
+
+
+
 
   id: string;
 
+
+
+
+
+
+
   title: string;
+
+
+
+
+
+
 
   slug: string;
 
+
+
+
+
+
+
   content: any;
+
+
+
+
+
+
 
   authorId: string;
 
+
+
+
+
+
+
   author: {
+
+
+
+
+
+
 
     firstName: string;
 
+
+
+
+
+
+
     lastName: string;
+
+
+
+
+
+
 
   };
 
+
+
+
+
+
+
   publishedAt: string | null;
+
+
+
+
+
+
 
   pinned: boolean;
 
+
+
+
+
+
+
   tags: string[];
+
+
+
+
+
+
 
   createdAt: string;
 
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 function NewsContent() {
 
+
+
+
+
+
+
   const { data: session } = useSession();
+
+
+
+
+
+
 
   const [posts, setPosts] = useState<NewsPost[]>([]);
 
+
+
+
+
+
+
   const [loading, setLoading] = useState(true);
+
+
+
+
+
+
 
   const [canPost, setCanPost] = useState(false);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   useEffect(() => {
+
+
+
+
+
+
 
     const fetchPosts = async () => {
 
+
+
+
+
+
+
       try {
+
+
+
+
+
+
 
         const response = await fetch('/api/news');
 
+
+
+
+
+
+
         const data = await response.json();
+
+
+
+
+
+
 
         setPosts(data);
 
+
+
+
+
+
+
       } catch (error) {
+
+
+
+
+
+
 
         console.error('Failed to fetch news posts:', error);
 
+
+
+
+
+
+
       } finally {
+
+
+
+
+
+
 
         setLoading(false);
 
+
+
+
+
+
+
       }
 
+
+
+
+
+
+
     };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     const checkPermissions = async () => {
 
+
+
+
+
+
+
       if (session?.user?.email) {
+
+
+
+
+
+
 
         try {
 
+
+
+
+
+
+
           const response = await fetch('/api/auth/session');
+
+
+
+
+
+
 
           const sessionData = await response.json();
 
+
+
+
+
+
+
           const userRole = sessionData?.user?.role;
+
+
+
+
+
+
 
           setCanPost(userRole === 'ADMIN' || userRole === 'MANAGER');
 
+
+
+
+
+
+
         } catch (error) {
+
+
+
+
+
+
 
           console.error('Failed to check permissions:', error);
 
+
+
+
+
+
+
         }
 
+
+
+
+
+
+
       }
+
+
+
+
+
+
 
     };
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     fetchPosts();
 
+
+
+
+
+
+
     checkPermissions();
+
+
+
+
+
+
 
   }, [session]);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   // Filter options
+
+
+
+
+
+
 
   const { filters } = useFilters();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const authorOptions: FilterOption[] = useMemo(() => {
+
+
+
+
+
+
 
     const uniqueAuthors = posts
 
+
+
+
+
+
+
       .map(post => `${post.author.firstName} ${post.author.lastName}`)
+
+
+
+
+
+
 
       .filter((author, index, array) => array.indexOf(author) === index);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     return [
+
+
+
+
+
+
 
       { label: "All Authors", value: "all" },
 
+
+
+
+
+
+
       ...uniqueAuthors.map(author => ({ label: author, value: author }))
+
+
+
+
+
+
 
     ];
 
+
+
+
+
+
+
   }, [posts]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
   const tagOptions: FilterOption[] = useMemo(() => {
 
+
+
+
+
+
+
     const allTags = posts
 
+
+
+
+
+
+
       .flatMap(post => post.tags)
+
+
+
+
+
+
 
       .filter((tag, index, array) => array.indexOf(tag) === index);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     return [
+
+
+
+
+
+
 
       { label: "All Tags", value: "all" },
 
+
+
+
+
+
+
       ...allTags.map(tag => ({ label: tag, value: tag }))
 
+
+
+
+
+
+
     ];
+
+
+
+
+
+
 
   }, [posts]);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const sortOptions: FilterOption[] = [
+
+
+
+
+
+
 
     { label: "Date", value: "date" },
 
+
+
+
+
+
+
     { label: "Title", value: "title" },
 
+
+
+
+
+
+
     { label: "Author", value: "author" }
+
+
+
+
+
+
 
   ];
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   // Filtered and sorted posts
 
+
+
+
+
+
+
   const filteredPosts = useMemo(() => {
+
+
+
+
+
+
 
     let filtered = [...posts];
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     // Apply search filter
+
+
+
+
+
+
 
     if (filters.search) {
 
+
+
+
+
+
+
       const searchLower = filters.search.toLowerCase();
+
+
+
+
+
+
 
       filtered = filtered.filter(post => 
 
+
+
+
+
+
+
         post.title.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
 
         `${post.author.firstName} ${post.author.lastName}`.toLowerCase().includes(searchLower) ||
 
+
+
+
+
+
+
         post.tags.some(tag => tag.toLowerCase().includes(searchLower))
+
+
+
+
+
+
 
       );
 
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     // Apply author filter
 
+
+
+
+
+
+
     if (filters.authors.length > 0 && !filters.authors.includes("all")) {
+
+
+
+
+
+
 
       filtered = filtered.filter(post => 
 
+
+
+
+
+
+
         filters.authors.includes(`${post.author.firstName} ${post.author.lastName}`)
+
+
+
+
+
+
 
       );
 
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     // Apply tag filter (using categories for tags)
 
+
+
+
+
+
+
     if (filters.categories.length > 0 && !filters.categories.includes("all")) {
+
+
+
+
+
+
 
       filtered = filtered.filter(post => 
 
+
+
+
+
+
+
         post.tags.some(tag => filters.categories.includes(tag))
+
+
+
+
+
+
 
       );
 
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     // Apply sorting
 
+
+
+
+
+
+
     if (filters.sortBy) {
+
+
+
+
+
+
 
       filtered.sort((a, b) => {
 
+
+
+
+
+
+
         let aValue = "";
+
+
+
+
+
+
 
         let bValue = "";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         switch (filters.sortBy) {
+
+
+
+
+
+
 
           case "title":
 
+
+
+
+
+
+
             aValue = a.title;
+
+
+
+
+
+
 
             bValue = b.title;
 
+
+
+
+
+
+
             break;
+
+
+
+
+
+
 
           case "author":
 
+
+
+
+
+
+
             aValue = `${a.author.firstName} ${a.author.lastName}`;
+
+
+
+
+
+
 
             bValue = `${b.author.firstName} ${b.author.lastName}`;
 
+
+
+
+
+
+
             break;
+
+
+
+
+
+
 
           case "date":
 
+
+
+
+
+
+
             aValue = a.publishedAt || a.createdAt;
+
+
+
+
+
+
 
             bValue = b.publishedAt || b.createdAt;
 
+
+
+
+
+
+
             break;
+
+
+
+
+
+
 
         }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         const comparison = aValue.localeCompare(bValue);
+
+
+
+
+
+
 
         return filters.sortOrder === "desc" ? -comparison : comparison;
 
+
+
+
+
+
+
       });
+
+
+
+
+
+
 
     }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     // Always show pinned posts first
+
+
+
+
+
+
 
     return filtered.sort((a, b) => {
 
+
+
+
+
+
+
       if (a.pinned && !b.pinned) return -1;
+
+
+
+
+
+
 
       if (!a.pinned && b.pinned) return 1;
 
+
+
+
+
+
+
       return 0;
 
+
+
+
+
+
+
     });
+
+
+
+
+
+
 
   }, [posts, filters]);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   // Export functionality
+
+
+
+
+
+
 
   const handleExport = () => {
 
+
+
+
+
+
+
     const csvContent = [
+
+
+
+
+
+
 
       ["Title", "Author", "Published Date", "Tags", "Pinned"],
 
+
+
+
+
+
+
       ...filteredPosts.map(post => [
+
+
+
+
+
+
 
         post.title,
 
+
+
+
+
+
+
         `${post.author.firstName} ${post.author.lastName}`,
+
+
+
+
+
+
 
         post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Draft",
 
+
+
+
+
+
+
         post.tags.join("; "),
+
+
+
+
+
+
 
         post.pinned ? "Yes" : "No"
 
+
+
+
+
+
+
       ])
+
+
+
+
+
+
 
     ].map(row => row.map(field => `"${field}"`).join(",")).join("\n");
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     const blob = new Blob([csvContent], { type: "text/csv" });
+
+
+
+
+
+
 
     const url = URL.createObjectURL(blob);
 
+
+
+
+
+
+
     const a = document.createElement("a");
+
+
+
+
+
+
 
     a.href = url;
 
+
+
+
+
+
+
     a.download = `news-posts-${new Date().toISOString().split('T')[0]}.csv`;
+
+
+
+
+
+
 
     document.body.appendChild(a);
 
+
+
+
+
+
+
     a.click();
+
+
+
+
+
+
 
     document.body.removeChild(a);
 
+
+
+
+
+
+
     URL.revokeObjectURL(url);
+
+
+
+
+
+
 
   };
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   // Get breadcrumbs
+
+
+
+
+
+
 
   const breadcrumbs = useBreadcrumbs();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   if (loading) {
+
+
+
+
+
+
 
     return (
 
+
+
+
+
+
+
       <PageShell
+
+
+
+
+
+
 
         title="Company News"
 
+
+
+
+
+
+
         description="Stay updated with the latest company announcements"
+
+
+
+
+
+
 
         icon={<Megaphone className="w-6 h-6" />}
 
+
+
+
+
+
+
         breadcrumbs={breadcrumbs}
+
+
+
+
+
+
 
       >
 
+
+
+
+
+
+
         <div className="text-center py-8">Loading news posts...</div>
+
+
+
+
+
+
 
       </PageShell>
 
+
+
+
+
+
+
     );
+
+
+
+
+
+
 
   }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   return (
+
+
+
+
+
+
 
     <PageShell
 
+
+
+
+
+
+
       title="Company News"
+
+
+
+
+
+
 
       description="Stay updated with the latest company announcements"
 
+
+
+
+
+
+
       icon={<Megaphone className="w-6 h-6" />}
+
+
+
+
+
+
 
       breadcrumbs={breadcrumbs}
 
+
+
+
+
+
+
       action={
+
+
+
+
+
+
 
         canPost ? (
 
+
+
+
+
+
+
           <Link href="/news/create">
+
+
+
+
+
+
 
             <Button variant="primary">Create News</Button>
 
+
+
+
+
+
+
           </Link>
+
+
+
+
+
+
 
         ) : undefined
 
+
+
+
+
+
+
       }
+
+
+
+
+
+
 
     >
 
+
+
+
+
+
+
       {/* Filter Bar */}
+
+
+
+
+
+
 
       <div className="mb-6">
 
+
+
+
+
+
+
         <FilterBar
+
+
+
+
+
+
 
           config={{
 
+
+
+
+
+
+
             searchPlaceholder: "Search news by title, author, tags...",
+
+
+
+
+
+
 
             showAuthorFilter: true,
 
+
+
+
+
+
+
             showCategoryFilter: true, // Using categories for tags
+
+
+
+
+
+
 
           }}
 
+
+
+
+
+
+
           authorOptions={authorOptions}
+
+
+
+
+
+
 
           categoryOptions={tagOptions}
 
+
+
+
+
+
+
           sortOptions={sortOptions}
+
+
+
+
+
+
 
           onExport={handleExport}
 
+
+
+
+
+
+
         />
 
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
       {/* News Posts */}
 
+
+
+
+
+
+
       <div className="max-w-4xl mx-auto space-y-6">
+
+
+
+
+
+
 
         {filteredPosts.length === 0 ? (
 
+
+
+
+
+
+
           <div className="text-center py-8 text-muted-foreground">
+
+
+
+
+
+
 
             {filters.search || filters.authors.length > 0 || filters.categories.length > 0
 
+
+
+
+
+
+
               ? "No news posts match your current filters."
+
+
+
+
+
+
 
               : "No news posts found."}
 
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
 
         ) : (
 
+
+
+
+
+
+
           filteredPosts.map((post) => (
+
+
+
+
+
+
 
             <Link key={post.id} href={`/news/${post.slug}`}>
 
+
+
+
+
+
+
               <div className="bg-card rounded-xl shadow-lg border border-enhanced p-6 hover:shadow-enterprise transition-smooth hover-lift">
+
+
+
+
+
+
 
                 <div className="flex justify-between items-start mb-4">
 
+
+
+
+
+
+
                   <div className="flex items-center gap-3">
+
+
+
+
+
+
 
                     <h2 className="text-xl font-bold text-foreground hover:text-primary transition-smooth">
 
+
+
+
+
+
+
                       {post.title}
+
+
+
+
+
+
 
                     </h2>
 
+
+
+
+
+
+
                     {post.pinned && (
+
+
+
+
+
+
 
                       <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
 
+
+
+
+
+
+
                         Pinned
+
+
+
+
+
+
 
                       </span>
 
+
+
+
+
+
+
                     )}
+
+
+
+
+
+
 
                   </div>
 
+
+
+
+
+
+
                   {post.publishedAt && (
+
+
+
+
+
+
 
                     <span className="text-sm text-muted-foreground bg-section-background px-3 py-1 rounded-full">
 
+
+
+
+
+
+
                       {format(new Date(post.publishedAt), 'dd MMM yyyy')}
+
+
+
+
+
+
 
                     </span>
 
+
+
+
+
+
+
                   )}
 
+
+
+
+
+
+
                 </div>
+
+
+
+
+
+
 
                 
 
+
+
+
+
+
+
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
+
+
+
+
+
+
 
                   <span>By {post.author.firstName} {post.author.lastName}</span>
 
+
+
+
+
+
+
                   {post.tags.length > 0 && (
+
+
+
+
+
+
 
                     <div className="flex gap-2">
 
+
+
+
+
+
+
                       {post.tags.slice(0, 3).map((tag, index) => (
+
+
+
+
+
+
 
                         <span key={index} className="bg-muted px-2 py-1 rounded text-xs">
 
+
+
+
+
+
+
                           {tag}
+
+
+
+
+
+
 
                         </span>
 
+
+
+
+
+
+
                       ))}
+
+
+
+
+
+
 
                       {post.tags.length > 3 && (
 
+
+
+
+
+
+
                         <span className="text-xs">+{post.tags.length - 3} more</span>
+
+
+
+
+
+
 
                       )}
 
+
+
+
+
+
+
                     </div>
+
+
+
+
+
+
 
                   )}
 
+
+
+
+
+
+
                 </div>
+
+
+
+
+
+
 
               </div>
 
+
+
+
+
+
+
             </Link>
+
+
+
+
+
+
 
           ))
 
+
+
+
+
+
+
         )}
+
+
+
+
+
+
 
       </div>
 
+
+
+
+
+
+
     </PageShell>
+
+
+
+
+
+
 
   );
 
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 // Main component with FilterProvider wrapper
 
+
+
+
+
+
+
 export default function NewsPageClient() {
+
+
+
+
+
+
 
   return (
 
+
+
+
+
+
+
     <FilterProvider>
+
+
+
+
+
+
 
       <NewsContent />
 
+
+
+
+
+
+
     </FilterProvider>
+
+
+
+
+
+
 
   );
 
+
+
+
+
+
+
 }
 
+
+
+
+
+
+
 >>>>>>>
+
+
+

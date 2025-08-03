@@ -8,6 +8,23 @@ export default async function NewsPage() {
   // Fetch all posts server-side
   const posts = await getAllNewsPosts();
 
+  // ✅ Transform posts to match NewsPageClient expected type
+  const transformedPosts: NewsPageClientProps['posts'] = posts.map(post => ({
+    id: post.id,
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    authorId: post.authorId,
+    author: {
+      name: `${post.author.firstName} ${post.author.lastName}`.trim(),
+      email: `${post.author.firstName}.${post.author.lastName}@example.com`.toLowerCase(), // fallback email or derive properly if available
+    },
+    publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
+    pinned: post.pinned,
+    tags: post.tags,
+    createdAt: new Date(post.createdAt).toISOString(),
+  }));
+
   // Fetch session and determine permissions
   const session = await getServerSession(authOptions);
   let canPost = false;
@@ -22,22 +39,6 @@ export default async function NewsPage() {
     }
   }
 
-  // ✅ Transform posts to match NewsPageClient expected type
-  const transformedPosts: NewsPageClientProps['posts'] = posts.map(post => ({
-    id: post.id,
-    title: post.title,
-    slug: post.slug,
-    content: post.content,
-    authorId: post.authorId,
-    author: {
-      firstName: post.author?.name?.split(' ')[0] || '',
-      lastName: post.author?.name?.split(' ')[1] || '',
-    },
-    publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
-    pinned: post.pinned,
-    tags: post.tags || [],
-    createdAt: post.createdAt.toISOString(),
-  }));
-
+  // Render the refactored client-side NewsPage with server-fetched props
   return <NewsPageClient posts={transformedPosts} canPost={canPost} />;
 }

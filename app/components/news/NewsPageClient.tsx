@@ -36,8 +36,9 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
   const { filters } = useFilters();
   const breadcrumbs = useBreadcrumbs();
 
-  // Format author display name
-  const getAuthorName = (author: { name: string | null; email: string }) => author.name || author.email;
+  // ✅ Unified author name formatting
+  const getAuthorName = (author: { name: string | null; email: string }) =>
+    author?.name || author?.email || 'Unknown Author';
 
   // Filter options
   const authorOptions: FilterOption[] = useMemo(() => {
@@ -82,13 +83,17 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
         let aValue = "", bValue = "";
         switch (filters.sortBy) {
           case "title":
-            aValue = a.title; bValue = b.title; break;
+            aValue = a.title;
+            bValue = b.title;
+            break;
           case "author":
             aValue = getAuthorName(a.author);
-            bValue = getAuthorName(b.author); break;
+            bValue = getAuthorName(b.author);
+            break;
           case "date":
             aValue = a.publishedAt || a.createdAt;
-            bValue = b.publishedAt || b.createdAt; break;
+            bValue = b.publishedAt || b.createdAt;
+            break;
         }
         const comparison = aValue.localeCompare(bValue);
         return filters.sortOrder === "desc" ? -comparison : comparison;

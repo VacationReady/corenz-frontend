@@ -8,7 +8,7 @@ export default async function NewsPage() {
   // Fetch all posts server-side
   const posts = await getAllNewsPosts();
 
-  // ✅ Transform posts to match NewsPageClient expected type
+  // ✅ Transform posts minimally to ensure correct types
   const transformedPosts: NewsPageClientProps['posts'] = posts.map(post => ({
     id: post.id,
     title: post.title,
@@ -16,8 +16,8 @@ export default async function NewsPage() {
     content: post.content,
     authorId: post.authorId,
     author: {
-      name: `${post.author.firstName} ${post.author.lastName}`.trim(),
-      email: `${post.author.firstName}.${post.author.lastName}@example.com`.toLowerCase(), // fallback email or derive properly if available
+      name: post.author.name,   // ✅ Already correct
+      email: post.author.email, // ✅ Already correct
     },
     publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
     pinned: post.pinned,

@@ -6,105 +6,52 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <<<<<<<
+
+
+
 export const dynamic = "force-dynamic";
 
+
+
+
+
+
+
 =======
+
+
+
 import { useState, useEffect, ChangeEvent, FormEvent, useMemo } from "react";
 
-import Link from "next/link";
-
-import { Input } from "@/components/ui/Input";
-
-import Button from "@/components/ui/Button";
-
-import { Card } from "@/components/ui/Card";
-
-import { PageShell } from "@/components/ui/PageShell";
-
-import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
-
-import { FilterBar } from "@/components/ui/FilterBar";
-
-import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
-
-import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
-
-import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
-
-import { useSession } from "next-auth/react";
-
-import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
-
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-
-import { MoreVertical, Users } from "lucide-react";
-
-import { FilterOption } from "@/types/filter";
-
->>>>>>>
-
-
-<<<<<<<
-
-
-=======
-// Enhanced Employee interface
-
-interface Employee {
-
-  id: string;
-
-  userId: string;
-
-  firstName: string;
-
-  lastName: string;
-
-  email: string;
-
-  phone?: string;
-
-  role: string;
-
-  departmentId?: string;
-
-  departmentName?: string;
-
-  jobRoleId?: string;
-
-  jobRoleName?: string;
-
-}
 
 
 
-function EmployeesContent() {
 
-  const { data: session } = useSession();
-
->>>>>>>
-
-
-<<<<<<<
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo } from "react";
-
-=======
-  const [employees, setEmployees] = useState<Employee[]>([]);
-
-  const [departments, setDepartments] = useState<any[]>([]);
-
-  const [jobRoles, setJobRoles] = useState<any[]>([]);
-
-  const [isModalOpen, setModalOpen] = useState(false);
-
-  const [isDeptModalOpen, setDeptModalOpen] = useState(false);
-
-  const [isRoleModalOpen, setRoleModalOpen] = useState(false);
-
-  const [error, setError] = useState("");
-
->>>>>>>
 
 
 import Link from "next/link";
@@ -119,280 +66,31 @@ import { Input } from "@/components/ui/Input";
 
 
 
+
+
+
+
 import Button from "@/components/ui/Button";
 
 
 
-<<<<<<<
+
+
+
+
 import { Card } from "@/components/ui/Card";
 
-=======
-  // Filter options for the FilterBar
 
-  const departmentOptions: FilterOption[] = useMemo(() => [
 
-    { label: "All Departments", value: "all" },
 
-    ...departments.map(dept => ({ label: dept.name, value: dept.id }))
 
-  ], [departments]);
-
-
-
-  const jobRoleOptions: FilterOption[] = useMemo(() => [
-
-    { label: "All Job Roles", value: "all" },
-
-    ...jobRoles.map(role => ({ label: role.name, value: role.id }))
-
-  ], [jobRoles]);
-
-
-
-  const statusOptions: FilterOption[] = [
-
-    { label: "All Status", value: "all" },
-
-    { label: "Admin", value: "ADMIN" },
-
-    { label: "Manager", value: "MANAGER" },
-
-    { label: "Employee", value: "EMPLOYEE" }
-
-  ];
-
-
-
-  const sortOptions: FilterOption[] = [
-
-    { label: "Name", value: "name" },
-
-    { label: "Email", value: "email" },
-
-    { label: "Department", value: "department" },
-
-    { label: "Job Role", value: "jobRole" },
-
-    { label: "Role", value: "role" }
-
-  ];
-
-
-
-  // Import useFilters hook
-
-  const { filters } = useFilters();
-
-
-
-  // Filtered and sorted employees
-
-  const filteredEmployees = useMemo(() => {
-
-    let filtered = [...employees];
-
-
-
-    // Apply search filter
-
-    if (filters.search) {
-
-      const searchLower = filters.search.toLowerCase();
-
-      filtered = filtered.filter(emp =>
-
-        `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchLower) ||
-
-        emp.email?.toLowerCase().includes(searchLower) ||
-
-        emp.phone?.toLowerCase().includes(searchLower) ||
-
-        emp.departmentName?.toLowerCase().includes(searchLower) ||
-
-        emp.jobRoleName?.toLowerCase().includes(searchLower)
-
-      );
-
-    }
-
-
-
-    // Apply department filter
-
-    if (filters.departments.length > 0 && !filters.departments.includes("all")) {
-
-      filtered = filtered.filter(emp =>
-
-        emp.departmentId && filters.departments.includes(emp.departmentId)
-
-      );
-
-    }
-
-
-
-    // Apply job role filter
-
-    if (filters.jobRoles.length > 0 && !filters.jobRoles.includes("all")) {
-
-      filtered = filtered.filter(emp =>
-
-        emp.jobRoleId && filters.jobRoles.includes(emp.jobRoleId)
-
-      );
-
-    }
-
-
-
-    // Apply status filter
-
-    if (filters.status.length > 0 && !filters.status.includes("all")) {
-
-      filtered = filtered.filter(emp =>
-
-        filters.status.includes(emp.role)
-
-      );
-
-    }
-
-
-
-    // Apply sorting
-
-    if (filters.sortBy) {
-
-      filtered.sort((a, b) => {
-
-        let aValue = "";
-
-        let bValue = "";
-
-
-
-        switch (filters.sortBy) {
-
-          case "name":
-
-            aValue = `${a.firstName} ${a.lastName}`;
-
-            bValue = `${b.firstName} ${b.lastName}`;
-
-            break;
-
-          case "email":
-
-            aValue = a.email || "";
-
-            bValue = b.email || "";
-
-            break;
-
-          case "department":
-
-            aValue = a.departmentName || "";
-
-            bValue = b.departmentName || "";
-
-            break;
-
-          case "jobRole":
-
-            aValue = a.jobRoleName || "";
-
-            bValue = b.jobRoleName || "";
-
-            break;
-
-          case "role":
-
-            aValue = a.role || "";
-
-            bValue = b.role || "";
-
-            break;
-
-        }
-
-
-
-        const comparison = aValue.localeCompare(bValue);
-
-        return filters.sortOrder === "desc" ? -comparison : comparison;
-
-      });
-
-    }
-
-
-
-    return filtered;
-
-  }, [employees, filters]);
-
-
-
-  // Export functionality
-
-  const handleExport = () => {
-
-    const csvContent = [
-
-      ["Name", "Email", "Phone", "Department", "Job Role", "Role"],
-
-      ...filteredEmployees.map(emp => [
-
-        `${emp.firstName} ${emp.lastName}`,
-
-        emp.email || "",
-
-        emp.phone || "",
-
-        emp.departmentName || "",
-
-        emp.jobRoleName || "",
-
-        emp.role || ""
-
-      ])
-
-    ].map(row => row.map(field => `"${field}"`).join(",")).join("\n");
-
-
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-
-    a.href = url;
-
-    a.download = `employees-${new Date().toISOString().split('T')[0]}.csv`;
-
-    document.body.appendChild(a);
-
-    a.click();
-
-    document.body.removeChild(a);
-
-    URL.revokeObjectURL(url);
-
-  };
-
-
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  };
-
->>>>>>>
 
 
 import { PageShell } from "@/components/ui/PageShell";
+
+
+
+
 
 
 
@@ -400,7 +98,15 @@ import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 
 
 
+
+
+
+
 import { FilterBar } from "@/components/ui/FilterBar";
+
+
+
+
 
 
 
@@ -408,7 +114,15 @@ import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 
 
 
+
+
+
+
 import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
+
+
+
+
 
 
 
@@ -416,16 +130,14 @@ import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 
 
 
+
+
+
+
 <<<<<<<
 import { useSession } from "next-auth/react";
 
 =======
-  // Get breadcrumbs
-
-  const breadcrumbs = useBreadcrumbs();
-
-
-
   return (
 
     <PageShell
@@ -436,7 +148,7 @@ import { useSession } from "next-auth/react";
 
       icon={<Users className="w-6 h-6" />}
 
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={breadcrumbs || undefined}
 
       action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
 
@@ -455,199 +167,31 @@ import { useSession } from "next-auth/react";
 >>>>>>>
 
 
-<<<<<<<
+
+
+
+
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 
-=======
-      {/* Filter Bar */}
 
-      <div className="mb-6">
 
-        <FilterBar
 
-          config={{
 
-            searchPlaceholder: "Search employees by name, email, phone...",
 
-            showDepartmentFilter: true,
 
-            showJobRoleFilter: true,
-
-            showStatusFilter: true,
-
-          }}
-
-          departmentOptions={departmentOptions}
-
-          jobRoleOptions={jobRoleOptions}
-
-          statusOptions={statusOptions}
-
-          sortOptions={sortOptions}
-
-          onExport={handleExport}
-
-        />
-
-      </div>
-
-
-
-      <div className="bg-card rounded-xl shadow-lg border border-enhanced overflow-hidden">
-
-        <div className="overflow-x-auto">
-
-          <table className="min-w-full">
-
-            <thead className="bg-card-header sticky top-0 z-10">
-
-              <tr className="border-b border-enhanced">
-
-                <th className="text-left p-4 font-semibold text-foreground">Name</th>
-
-                <th className="text-left p-4 font-semibold text-foreground">Phone</th>
-
-                <th className="text-left p-4 font-semibold text-foreground">Department</th>
-
-                <th className="text-left p-4 font-semibold text-foreground">Job Role</th>
-
-                <th className="text-left p-4 font-semibold text-foreground">Email</th>
-
-                <th className="text-left p-4 font-semibold text-foreground">Actions</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody className="divide-y divide-enhanced">
-
-              {filteredEmployees.length === 0 ? (
-
-                <tr>
-
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
-
-                    {filters.search || filters.departments.length > 0 || filters.jobRoles.length > 0 || filters.status.length > 0
-
-                      ? "No employees match your current filters."
-
-                      : "No employees found."}
-
-                  </td>
-
-                </tr>
-
-              ) : (
-
-                filteredEmployees.map((emp) => (
-
-                <tr key={emp.id} className="hover:bg-section-background transition-smooth">
-
-                  <td className="p-4">
-
-                    <Link
-
-                      href={`/employees/${emp.id}/overview`}
-
-                      className="text-primary hover:text-primary/80 font-medium transition-smooth"
-
-                    >
-
-                      {emp.firstName} {emp.lastName}
-
-                    </Link>
-
-                  </td>
-
-                  <td className="p-4 text-foreground">{emp.phone || "-"}</td>
-
-                  <td className="p-4 text-foreground">{emp.departmentName || "-"}</td>
-
-                  <td className="p-4 text-foreground">{emp.jobRoleName || "-"}</td>
-
-                  <td className="p-4 text-foreground">{emp.email || "-"}</td>
-
-                  <td className="p-4">
-
-                    <DropdownMenu
-
-                      trigger={
-
-                        <Button size="sm" variant="ghost">
-
-                          <MoreVertical className="w-4 h-4" />
-
-                        </Button>
-
-                      }
-
-                    >
-
-                      <DropdownMenuItem
-
-                        onClick={async () => {
-
-                          if (!confirm("Are you sure you want to delete this employee?")) return;
-
-                          try {
-
-                            const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
-
-                            if (!res.ok) throw new Error("Delete failed");
-
-                            fetchData();
-
-                          } catch (err) {
-
-                            alert("Error deleting employee.");
-
-                            console.error(err);
-
-                          }
-
-                        }}
-
-                        className="text-destructive"
-
-                      >
-
-                        Delete
-
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem onClick={() => handleStartOnboarding(emp.id)}>
-
-                        Start Onboarding
-
-                      </DropdownMenuItem>
-
-                    </DropdownMenu>
-
-                  </td>
-
-                </tr>
-
-                ))
-
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
->>>>>>>
-
-
-<<<<<<<
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 
 
+
+
+
+
 import { MoreVertical, Users } from "lucide-react";
+
+
+
+
 
 
 
@@ -659,7 +203,39 @@ import { FilterOption } from "@/types/filter";
 
 
 
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+
+
+
+
+
+
+
+
+
+=======
+
+
+
 // Enhanced Employee interface
+
+
+
+
 
 
 
@@ -667,7 +243,15 @@ interface Employee {
 
 
 
+
+
+
+
   id: string;
+
+
+
+
 
 
 
@@ -675,7 +259,15 @@ interface Employee {
 
 
 
+
+
+
+
   firstName: string;
+
+
+
+
 
 
 
@@ -683,7 +275,15 @@ interface Employee {
 
 
 
+
+
+
+
   email: string;
+
+
+
+
 
 
 
@@ -691,7 +291,15 @@ interface Employee {
 
 
 
+
+
+
+
   role: string;
+
+
+
+
 
 
 
@@ -699,7 +307,15 @@ interface Employee {
 
 
 
+
+
+
+
   departmentName?: string;
+
+
+
+
 
 
 
@@ -707,7 +323,15 @@ interface Employee {
 
 
 
+
+
+
+
   jobRoleName?: string;
+
+
+
+
 
 
 
@@ -719,7 +343,19 @@ interface Employee {
 
 
 
+
+
+
+
+
+
+
+
 function EmployeesContent() {
+
+
+
+
 
 
 
@@ -727,7 +363,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo } from "react";
+
+
+
+
+
+
+
+=======
+
+
+
   const [employees, setEmployees] = useState<Employee[]>([]);
+
+
+
+
 
 
 
@@ -735,7 +407,15 @@ function EmployeesContent() {
 
 
 
+
+
+
+
   const [jobRoles, setJobRoles] = useState<any[]>([]);
+
+
+
+
 
 
 
@@ -743,7 +423,15 @@ function EmployeesContent() {
 
 
 
+
+
+
+
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
+
+
+
+
 
 
 
@@ -751,7 +439,2631 @@ function EmployeesContent() {
 
 
 
+
+
+
+
   const [error, setError] = useState("");
+
+
+
+
+
+
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+import Link from "next/link";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { Input } from "@/components/ui/Input";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import Button from "@/components/ui/Button";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+
+import { Card } from "@/components/ui/Card";
+
+
+
+
+
+
+
+=======
+
+
+
+  // Filter options for the FilterBar
+
+
+
+
+
+
+
+  const departmentOptions: FilterOption[] = useMemo(() => [
+
+
+
+
+
+
+
+    { label: "All Departments", value: "all" },
+
+
+
+
+
+
+
+    ...departments.map(dept => ({ label: dept.name, value: dept.id }))
+
+
+
+
+
+
+
+  ], [departments]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const jobRoleOptions: FilterOption[] = useMemo(() => [
+
+
+
+
+
+
+
+    { label: "All Job Roles", value: "all" },
+
+
+
+
+
+
+
+    ...jobRoles.map(role => ({ label: role.name, value: role.id }))
+
+
+
+
+
+
+
+  ], [jobRoles]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const statusOptions: FilterOption[] = [
+
+
+
+
+
+
+
+    { label: "All Status", value: "all" },
+
+
+
+
+
+
+
+    { label: "Admin", value: "ADMIN" },
+
+
+
+
+
+
+
+    { label: "Manager", value: "MANAGER" },
+
+
+
+
+
+
+
+    { label: "Employee", value: "EMPLOYEE" }
+
+
+
+
+
+
+
+  ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const sortOptions: FilterOption[] = [
+
+
+
+
+
+
+
+    { label: "Name", value: "name" },
+
+
+
+
+
+
+
+    { label: "Email", value: "email" },
+
+
+
+
+
+
+
+    { label: "Department", value: "department" },
+
+
+
+
+
+
+
+    { label: "Job Role", value: "jobRole" },
+
+
+
+
+
+
+
+    { label: "Role", value: "role" }
+
+
+
+
+
+
+
+  ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Import useFilters hook
+
+
+
+
+
+
+
+  const { filters } = useFilters();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Filtered and sorted employees
+
+
+
+
+
+
+
+  const filteredEmployees = useMemo(() => {
+
+
+
+
+
+
+
+    let filtered = [...employees];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Apply search filter
+
+
+
+
+
+
+
+    if (filters.search) {
+
+
+
+
+
+
+
+      const searchLower = filters.search.toLowerCase();
+
+
+
+
+
+
+
+      filtered = filtered.filter(emp =>
+
+
+
+
+
+
+
+        `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+        emp.email?.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+        emp.phone?.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+        emp.departmentName?.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+        emp.jobRoleName?.toLowerCase().includes(searchLower)
+
+
+
+
+
+
+
+      );
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Apply department filter
+
+
+
+
+
+
+
+    if (filters.departments.length > 0 && !filters.departments.includes("all")) {
+
+
+
+
+
+
+
+      filtered = filtered.filter(emp =>
+
+
+
+
+
+
+
+        emp.departmentId && filters.departments.includes(emp.departmentId)
+
+
+
+
+
+
+
+      );
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Apply job role filter
+
+
+
+
+
+
+
+    if (filters.jobRoles.length > 0 && !filters.jobRoles.includes("all")) {
+
+
+
+
+
+
+
+      filtered = filtered.filter(emp =>
+
+
+
+
+
+
+
+        emp.jobRoleId && filters.jobRoles.includes(emp.jobRoleId)
+
+
+
+
+
+
+
+      );
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Apply status filter
+
+
+
+
+
+
+
+    if (filters.status.length > 0 && !filters.status.includes("all")) {
+
+
+
+
+
+
+
+      filtered = filtered.filter(emp =>
+
+
+
+
+
+
+
+        filters.status.includes(emp.role)
+
+
+
+
+
+
+
+      );
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Apply sorting
+
+
+
+
+
+
+
+    if (filters.sortBy) {
+
+
+
+
+
+
+
+      filtered.sort((a, b) => {
+
+
+
+
+
+
+
+        let aValue = "";
+
+
+
+
+
+
+
+        let bValue = "";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        switch (filters.sortBy) {
+
+
+
+
+
+
+
+          case "name":
+
+
+
+
+
+
+
+            aValue = `${a.firstName} ${a.lastName}`;
+
+
+
+
+
+
+
+            bValue = `${b.firstName} ${b.lastName}`;
+
+
+
+
+
+
+
+            break;
+
+
+
+
+
+
+
+          case "email":
+
+
+
+
+
+
+
+            aValue = a.email || "";
+
+
+
+
+
+
+
+            bValue = b.email || "";
+
+
+
+
+
+
+
+            break;
+
+
+
+
+
+
+
+          case "department":
+
+
+
+
+
+
+
+            aValue = a.departmentName || "";
+
+
+
+
+
+
+
+            bValue = b.departmentName || "";
+
+
+
+
+
+
+
+            break;
+
+
+
+
+
+
+
+          case "jobRole":
+
+
+
+
+
+
+
+            aValue = a.jobRoleName || "";
+
+
+
+
+
+
+
+            bValue = b.jobRoleName || "";
+
+
+
+
+
+
+
+            break;
+
+
+
+
+
+
+
+          case "role":
+
+
+
+
+
+
+
+            aValue = a.role || "";
+
+
+
+
+
+
+
+            bValue = b.role || "";
+
+
+
+
+
+
+
+            break;
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        const comparison = aValue.localeCompare(bValue);
+
+
+
+
+
+
+
+        return filters.sortOrder === "desc" ? -comparison : comparison;
+
+
+
+
+
+
+
+      });
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return filtered;
+
+
+
+
+
+
+
+  }, [employees, filters]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Export functionality
+
+
+
+
+
+
+
+  const handleExport = () => {
+
+
+
+
+
+
+
+    const csvContent = [
+
+
+
+
+
+
+
+      ["Name", "Email", "Phone", "Department", "Job Role", "Role"],
+
+
+
+
+
+
+
+      ...filteredEmployees.map(emp => [
+
+
+
+
+
+
+
+        `${emp.firstName} ${emp.lastName}`,
+
+
+
+
+
+
+
+        emp.email || "",
+
+
+
+
+
+
+
+        emp.phone || "",
+
+
+
+
+
+
+
+        emp.departmentName || "",
+
+
+
+
+
+
+
+        emp.jobRoleName || "",
+
+
+
+
+
+
+
+        emp.role || ""
+
+
+
+
+
+
+
+      ])
+
+
+
+
+
+
+
+    ].map(row => row.map(field => `"${field}"`).join(",")).join("\n");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+
+
+
+
+
+
+
+    const url = URL.createObjectURL(blob);
+
+
+
+
+
+
+
+    const a = document.createElement("a");
+
+
+
+
+
+
+
+    a.href = url;
+
+
+
+
+
+
+
+    a.download = `employees-${new Date().toISOString().split('T')[0]}.csv`;
+
+
+
+
+
+
+
+    document.body.appendChild(a);
+
+
+
+
+
+
+
+    a.click();
+
+
+
+
+
+
+
+    document.body.removeChild(a);
+
+
+
+
+
+
+
+    URL.revokeObjectURL(url);
+
+
+
+
+
+
+
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+
+
+
+
+
+
+
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+
+
+
+
+
+
+
+  };
+
+
+
+
+
+
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+import { PageShell } from "@/components/ui/PageShell";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { FilterBar } from "@/components/ui/FilterBar";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+
+import { useSession } from "next-auth/react";
+
+
+
+
+
+
+
+=======
+
+
+
+  // Get breadcrumbs
+
+
+
+
+
+
+
+  const breadcrumbs = useBreadcrumbs();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return (
+
+
+
+
+
+
+
+    <PageShell
+
+
+
+
+
+
+
+      title="Employees"
+
+
+
+
+
+
+
+      description="Manage your team members and their information"
+
+
+
+
+
+
+
+      icon={<Users className="w-6 h-6" />}
+
+
+
+
+
+
+
+      breadcrumbs={breadcrumbs}
+
+
+
+
+
+
+
+      action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
+
+
+
+
+
+
+
+    >
+
+
+
+
+
+
+
+      {error && (
+
+
+
+
+
+
+
+        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+
+
+
+
+
+
+
+          <p className="text-destructive font-medium">{error}</p>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+      )}
+
+
+
+
+
+
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+
+import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
+
+
+
+
+
+
+
+=======
+
+
+
+      {/* Filter Bar */}
+
+
+
+
+
+
+
+      <div className="mb-6">
+
+
+
+
+
+
+
+        <FilterBar
+
+
+
+
+
+
+
+          config={{
+
+
+
+
+
+
+
+            searchPlaceholder: "Search employees by name, email, phone...",
+
+
+
+
+
+
+
+            showDepartmentFilter: true,
+
+
+
+
+
+
+
+            showJobRoleFilter: true,
+
+
+
+
+
+
+
+            showStatusFilter: true,
+
+
+
+
+
+
+
+          }}
+
+
+
+
+
+
+
+          departmentOptions={departmentOptions}
+
+
+
+
+
+
+
+          jobRoleOptions={jobRoleOptions}
+
+
+
+
+
+
+
+          statusOptions={statusOptions}
+
+
+
+
+
+
+
+          sortOptions={sortOptions}
+
+
+
+
+
+
+
+          onExport={handleExport}
+
+
+
+
+
+
+
+        />
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <div className="bg-card rounded-xl shadow-lg border border-enhanced overflow-hidden">
+
+
+
+
+
+
+
+        <div className="overflow-x-auto">
+
+
+
+
+
+
+
+          <table className="min-w-full">
+
+
+
+
+
+
+
+            <thead className="bg-card-header sticky top-0 z-10">
+
+
+
+
+
+
+
+              <tr className="border-b border-enhanced">
+
+
+
+
+
+
+
+                <th className="text-left p-4 font-semibold text-foreground">Name</th>
+
+
+
+
+
+
+
+                <th className="text-left p-4 font-semibold text-foreground">Phone</th>
+
+
+
+
+
+
+
+                <th className="text-left p-4 font-semibold text-foreground">Department</th>
+
+
+
+
+
+
+
+                <th className="text-left p-4 font-semibold text-foreground">Job Role</th>
+
+
+
+
+
+
+
+                <th className="text-left p-4 font-semibold text-foreground">Email</th>
+
+
+
+
+
+
+
+                <th className="text-left p-4 font-semibold text-foreground">Actions</th>
+
+
+
+
+
+
+
+              </tr>
+
+
+
+
+
+
+
+            </thead>
+
+
+
+
+
+
+
+            <tbody className="divide-y divide-enhanced">
+
+
+
+
+
+
+
+              {filteredEmployees.length === 0 ? (
+
+
+
+
+
+
+
+                <tr>
+
+
+
+
+
+
+
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+
+
+
+
+
+
+
+                    {filters.search || filters.departments.length > 0 || filters.jobRoles.length > 0 || filters.status.length > 0
+
+
+
+
+
+
+
+                      ? "No employees match your current filters."
+
+
+
+
+
+
+
+                      : "No employees found."}
+
+
+
+
+
+
+
+                  </td>
+
+
+
+
+
+
+
+                </tr>
+
+
+
+
+
+
+
+              ) : (
+
+
+
+
+
+
+
+                filteredEmployees.map((emp) => (
+
+
+
+
+
+
+
+                <tr key={emp.id} className="hover:bg-section-background transition-smooth">
+
+
+
+
+
+
+
+                  <td className="p-4">
+
+
+
+
+
+
+
+                    <Link
+
+
+
+
+
+
+
+                      href={`/employees/${emp.id}/overview`}
+
+
+
+
+
+
+
+                      className="text-primary hover:text-primary/80 font-medium transition-smooth"
+
+
+
+
+
+
+
+                    >
+
+
+
+
+
+
+
+                      {emp.firstName} {emp.lastName}
+
+
+
+
+
+
+
+                    </Link>
+
+
+
+
+
+
+
+                  </td>
+
+
+
+
+
+
+
+                  <td className="p-4 text-foreground">{emp.phone || "-"}</td>
+
+
+
+
+
+
+
+                  <td className="p-4 text-foreground">{emp.departmentName || "-"}</td>
+
+
+
+
+
+
+
+                  <td className="p-4 text-foreground">{emp.jobRoleName || "-"}</td>
+
+
+
+
+
+
+
+                  <td className="p-4 text-foreground">{emp.email || "-"}</td>
+
+
+
+
+
+
+
+                  <td className="p-4">
+
+
+
+
+
+
+
+                    <DropdownMenu
+
+
+
+
+
+
+
+                      trigger={
+
+
+
+
+
+
+
+                        <Button size="sm" variant="ghost">
+
+
+
+
+
+
+
+                          <MoreVertical className="w-4 h-4" />
+
+
+
+
+
+
+
+                        </Button>
+
+
+
+
+
+
+
+                      }
+
+
+
+
+
+
+
+                    >
+
+
+
+
+
+
+
+                      <DropdownMenuItem
+
+
+
+
+
+
+
+                        onClick={async () => {
+
+
+
+
+
+
+
+                          if (!confirm("Are you sure you want to delete this employee?")) return;
+
+
+
+
+
+
+
+                          try {
+
+
+
+
+
+
+
+                            const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
+
+
+
+
+
+
+
+                            if (!res.ok) throw new Error("Delete failed");
+
+
+
+
+
+
+
+                            fetchData();
+
+
+
+
+
+
+
+                          } catch (err) {
+
+
+
+
+
+
+
+                            alert("Error deleting employee.");
+
+
+
+
+
+
+
+                            console.error(err);
+
+
+
+
+
+
+
+                          }
+
+
+
+
+
+
+
+                        }}
+
+
+
+
+
+
+
+                        className="text-destructive"
+
+
+
+
+
+
+
+                      >
+
+
+
+
+
+
+
+                        Delete
+
+
+
+
+
+
+
+                      </DropdownMenuItem>
+
+
+
+
+
+
+
+                      <DropdownMenuItem onClick={() => handleStartOnboarding(emp.id)}>
+
+
+
+
+
+
+
+                        Start Onboarding
+
+
+
+
+
+
+
+                      </DropdownMenuItem>
+
+
+
+
+
+
+
+                    </DropdownMenu>
+
+
+
+
+
+
+
+                  </td>
+
+
+
+
+
+
+
+                </tr>
+
+
+
+
+
+
+
+                ))
+
+
+
+
+
+
+
+              )}
+
+
+
+
+
+
+
+            </tbody>
+
+
+
+
+
+
+
+          </table>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { MoreVertical, Users } from "lucide-react";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import { FilterOption } from "@/types/filter";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Enhanced Employee interface
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+interface Employee {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  id: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  userId: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  firstName: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  lastName: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  email: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  phone?: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  role: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  departmentId?: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  departmentName?: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  jobRoleId?: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  jobRoleName?: string;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function EmployeesContent() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const { data: session } = useSession();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [departments, setDepartments] = useState<any[]>([]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [isModalOpen, setModalOpen] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [isDeptModalOpen, setDeptModalOpen] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const [error, setError] = useState("");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -763,7 +3075,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     firstName: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -771,7 +3107,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     email: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -779,7 +3139,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     startDate: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -787,7 +3171,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     departmentId: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -795,7 +3203,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     managerId: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -807,7 +3239,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const fetchData = async () => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -815,7 +3283,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       const [empRes, deptRes, roleRes] = await Promise.all([
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -823,11 +3315,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         fetch("/api/departments").then((r) => r.json()),
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         fetch("/api/job-roles").then((r) => r.json()),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -839,7 +3367,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       setEmployees(empRes);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -847,7 +3411,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -855,7 +3443,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       setError("Failed to load data");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -863,7 +3475,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -875,7 +3523,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     fetchData();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -887,7 +3559,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -895,7 +3603,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -907,7 +3651,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     e.preventDefault();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -915,7 +3683,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       const payload = {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -923,7 +3715,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         companyId: session?.user?.companyId,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -935,7 +3751,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       const res = await fetch("/api/employees", {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -943,7 +3795,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         headers: { "Content-Type": "application/json" },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -951,7 +3827,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         credentials: "include",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -959,7 +3859,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       if (!res.ok) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -967,7 +3891,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         setError(data.error || "Failed to create employee");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -975,7 +3923,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -987,7 +3971,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       setModalOpen(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -995,7 +4003,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         firstName: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1003,7 +4035,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         email: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1011,7 +4067,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         startDate: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1019,7 +4099,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         departmentId: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1027,7 +4131,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         managerId: "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1035,7 +4163,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       fetchData();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1043,7 +4195,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       setError("Network error");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1051,7 +4227,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1063,7 +4275,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const handleStartOnboarding = async (employeeId: string) => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1071,7 +4307,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     try {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1079,7 +4339,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         method: "POST",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1087,7 +4371,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         body: JSON.stringify({ employeeId }),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1099,7 +4407,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       if (!res.ok) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1107,11 +4451,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         alert(data.error || "Failed to start onboarding");
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         return;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1123,7 +4503,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       alert("Onboarding started!");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1131,7 +4547,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     } catch {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1139,7 +4579,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1151,7 +4615,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Filter options for the FilterBar
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1159,7 +4659,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     () => [{ label: "All Departments", value: "all" }, ...departments.map((dept) => ({ label: dept.name, value: dept.id }))],
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1167,7 +4691,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1179,11 +4739,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     () => [{ label: "All Job Roles", value: "all" }, ...jobRoles.map((role) => ({ label: role.name, value: role.id }))],
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     [jobRoles]
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1195,7 +4791,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const statusOptions: FilterOption[] = [
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1203,7 +4835,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Admin", value: "ADMIN" },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1211,11 +4867,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Employee", value: "EMPLOYEE" },
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1227,7 +4931,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Name", value: "name" },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1235,7 +4963,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Department", value: "department" },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1243,11 +4995,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Role", value: "role" },
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   ];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1263,11 +5063,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Filtered and sorted employees
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const filteredEmployees = useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1279,7 +5127,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if (filters.search) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1287,7 +5171,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter(
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1295,7 +5203,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1303,7 +5235,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           emp.phone?.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1311,7 +5267,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           emp.jobRoleName?.toLowerCase().includes(searchLower)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1319,7 +5299,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1331,11 +5347,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter((emp) => emp.departmentId && filters.departments.includes(emp.departmentId));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1347,11 +5411,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter((emp) => emp.jobRoleId && filters.jobRoles.includes(emp.jobRoleId));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1363,11 +5475,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter((emp) => filters.status.includes(emp.role));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1379,11 +5539,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered.sort((a, b) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         let aValue = "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1395,7 +5591,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         switch (filters.sortBy) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1403,7 +5635,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = `${a.firstName} ${a.lastName}`;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1411,7 +5667,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1419,7 +5699,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.email || "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1427,7 +5731,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1435,7 +5763,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.departmentName || "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1443,7 +5795,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1451,7 +5827,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.jobRoleName || "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1459,7 +5859,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1467,7 +5891,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.role || "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1475,7 +5923,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1487,7 +5959,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         const comparison = aValue.localeCompare(bValue);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1495,7 +6003,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1507,7 +6039,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     return filtered;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1519,7 +6087,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Export functionality
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1527,7 +6131,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     const csvContent = [
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1535,7 +6163,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       ...filteredEmployees.map((emp) => [
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1543,7 +6195,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         emp.email || "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1551,7 +6227,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         emp.departmentName || "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1559,7 +6259,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         emp.role || "",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1567,11 +6291,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     ]
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       .map((row) => row.map((field) => `"${field}"`).join(","))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1583,7 +6343,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const blob = new Blob([csvContent], { type: "text/csv" });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1591,7 +6387,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     const a = document.createElement("a");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1599,7 +6419,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     a.download = `employees-${new Date().toISOString().split("T")[0]}.csv`;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1607,7 +6451,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     a.click();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1615,11 +6483,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     URL.revokeObjectURL(url);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1635,7 +6551,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1643,7 +6595,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       title="Employees"
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1651,7 +6627,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       icon={<Users className="w-6 h-6" />}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1659,7 +6659,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1667,7 +6691,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       {error && (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1675,11 +6723,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <p className="text-destructive font-medium">{error}</p>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1691,7 +6775,43 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       {/* Filter Bar */}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1699,7 +6819,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <FilterBar
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1707,7 +6851,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             searchPlaceholder: "Search employees by name, email, phone...",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1715,7 +6883,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             showJobRoleFilter: true,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1723,7 +6915,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           }}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1731,7 +6947,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           jobRoleOptions={jobRoleOptions}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1739,7 +6979,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           sortOptions={sortOptions}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1747,11 +7011,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         />
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1763,7 +7075,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <div className="bg-card rounded-xl shadow-lg border border-enhanced overflow-hidden">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1771,7 +7107,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <table className="min-w-full">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1779,7 +7139,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <tr className="border-b border-enhanced">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1787,7 +7171,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <th className="text-left p-4 font-semibold text-foreground">Phone</th>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1795,7 +7203,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <th className="text-left p-4 font-semibold text-foreground">Job Role</th>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1803,7 +7235,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <th className="text-left p-4 font-semibold text-foreground">Actions</th>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1811,7 +7267,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </thead>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1819,7 +7299,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               {filteredEmployees.length === 0 ? (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1827,7 +7331,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1835,7 +7363,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       ? "No employees match your current filters."
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1843,7 +7395,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   </td>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1851,7 +7427,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               ) : (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1859,11 +7459,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <tr key={emp.id} className="hover:bg-section-background transition-smooth">
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <td className="p-4">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1871,7 +7507,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                         {emp.firstName} {emp.lastName}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1879,7 +7539,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     </td>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1887,7 +7571,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <td className="p-4 text-foreground">{emp.departmentName || "-"}</td>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1895,7 +7603,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <td className="p-4 text-foreground">{emp.email || "-"}</td>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1903,7 +7635,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       <DropdownMenu
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1911,7 +7667,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           <Button size="sm" variant="ghost">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1919,7 +7699,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           </Button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1927,7 +7731,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       >
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1935,7 +7763,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           onClick={async () => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1943,7 +7795,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             try {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1951,7 +7827,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                               if (!res.ok) throw new Error("Delete failed");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1959,7 +7859,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             } catch (err) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1967,7 +7891,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                               console.error(err);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1975,7 +7923,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           }}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1983,7 +7955,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                         >
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1991,7 +7987,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                         </DropdownMenuItem>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1999,7 +8019,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       </DropdownMenu>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2007,7 +8051,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   </tr>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2015,7 +8083,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               )}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2023,11 +8115,47 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </table>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2039,11 +8167,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       {/* Modals */}
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <AddEmployeeModal open={isModalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchData} />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2051,7 +8227,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2059,11 +8259,59 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   );
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2075,7 +8323,31 @@ function EmployeesContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 export default function EmployeesPageClient() {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2083,7 +8355,31 @@ export default function EmployeesPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     <FilterProvider>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2091,7 +8387,31 @@ export default function EmployeesPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     </FilterProvider>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2099,39 +8419,159 @@ export default function EmployeesPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 =======
+
+
+
       <AddEmployeeModal open={isModalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchData} />
+
+
+
+
+
+
 
       {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
 
+
+
+
+
+
+
       {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
+
+
+
+
+
+
 
     </PageShell>
 
+
+
+
+
+
+
   );
 
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 // Main component with FilterProvider wrapper
 
+
+
+
+
+
+
 export default function EmployeesPageClient() {
+
+
+
+
+
+
 
   return (
 
+
+
+
+
+
+
     <FilterProvider>
+
+
+
+
+
+
 
       <EmployeesContent />
 
+
+
+
+
+
+
     </FilterProvider>
+
+
+
+
+
+
 
   );
 
+
+
+
+
+
+
 }
 
+
+
+
+
+
+
 >>>>>>>
+
+
+

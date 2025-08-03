@@ -1,5 +1,45 @@
 <<<<<<<
+
+
+
 import { useMemo } from 'react';
+
+
+
+
+
+
+
+<<<<<<<
+
+
+=======
+    // Handle null pathname
+
+    if (!pathname) {
+
+      return null;
+
+    }
+
+
+
+    // Generate breadcrumbs based on current path
+
+    const pathSegments = pathname.split('/').filter(Boolean);
+
+    
+
+    if (pathSegments.length === 0) {
+
+      return breadcrumbConfigs.dashboard;
+
+    }
+
+>>>>>>>
+
+
+
 
 
 
@@ -7,7 +47,31 @@ import { usePathname } from 'next/navigation';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { BreadcrumbConfig, DynamicBreadcrumbData } from '@/types/breadcrumb';
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -19,7 +83,43 @@ import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function useBreadcrumbs(
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -27,11 +127,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   customConfig?: BreadcrumbConfig
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ): BreadcrumbConfig | null {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -43,7 +179,43 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -51,7 +223,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     if (customConfig) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -59,7 +255,43 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -71,7 +303,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     const pathSegments = pathname.split('/').filter(Boolean);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -79,7 +335,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     if (pathSegments.length === 0) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -87,7 +367,43 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -103,7 +419,43 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     switch (firstSegment) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -111,11 +463,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         return breadcrumbConfigs.dashboard;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -123,7 +511,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         if (pathSegments.length === 1) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -131,11 +543,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -143,11 +591,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         const employeeName = dynamicData?.employeeName || `Employee ${employeeId}`;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -155,7 +639,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           return breadcrumbConfigs.employeeDetail(employeeName, employeeId);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -163,7 +671,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -171,7 +703,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         const sectionLabels: Record<string, string> = {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -179,11 +735,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           leave: 'Leave',
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           documents: 'Documents',
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -191,7 +783,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           onboarding: 'Onboarding History',
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -199,7 +815,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           training: 'Training',
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -207,7 +847,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           settings: 'Settings'
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -215,7 +879,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -223,7 +911,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           employeeName,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -231,7 +943,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           sectionLabels[section] || section
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -239,7 +975,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -247,11 +1007,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         return breadcrumbConfigs.documents;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -259,7 +1055,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         if (pathSegments.length === 1) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -267,11 +1087,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -279,11 +1135,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         const newsTitle = dynamicData?.newsTitle || `News Article`;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -291,7 +1183,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -299,11 +1215,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         return breadcrumbConfigs.calendar;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -311,7 +1263,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         if (pathSegments.length === 1) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -319,11 +1295,47 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -331,7 +1343,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         const settingsSectionLabels: Record<string, string> = {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -339,7 +1375,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           holidays: 'Holidays & Absence',
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -347,7 +1407,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           workflows: 'Workflows',
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -355,7 +1439,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           system: 'System'
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -363,7 +1471,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -371,7 +1503,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           settingsSectionLabels[settingsSection] || settingsSection
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -379,7 +1535,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -387,7 +1567,31 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         return null;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -395,60 +1599,243 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   }, [pathname, dynamicData, customConfig]);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 =======
+
+
+
 import { useMemo } from 'react';
+
+
+
+
+
+
 
 import { usePathname } from 'next/navigation';
 
+
+
+
+
+
+
 import { BreadcrumbConfig, DynamicBreadcrumbData } from '@/types/breadcrumb';
+
+
+
+
+
+
 
 import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 export function useBreadcrumbs(
+
+
+
+
+
+
 
   dynamicData?: DynamicBreadcrumbData,
 
+
+
+
+
+
+
   customConfig?: BreadcrumbConfig
 
+
+
+
+
+
+
 ): BreadcrumbConfig | null {
+
+
+
+
+
+
 
   const pathname = usePathname();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   return useMemo(() => {
+
+
+
+
+
+
 
     // If custom config is provided, use it
 
+
+
+
+
+
+
     if (customConfig) {
+
+
+
+
+
+
 
       return customConfig;
 
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
     // Generate breadcrumbs based on current path
 
+
+
+
+
+
+
     const pathSegments = pathname.split('/').filter(Boolean);
+
+
+
+
+
+
 
     
 
+
+
+
+
+
+
     if (pathSegments.length === 0) {
+
+
+
+
+
+
 
       return breadcrumbConfigs.dashboard;
 
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -456,154 +1843,619 @@ export function useBreadcrumbs(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     switch (firstSegment) {
+
+
+
+
+
+
 
       case 'dashboard':
 
+
+
+
+
+
+
         return breadcrumbConfigs.dashboard;
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
       case 'employees':
 
+
+
+
+
+
+
         if (pathSegments.length === 1) {
+
+
+
+
+
+
 
           return breadcrumbConfigs.employees;
 
+
+
+
+
+
+
         }
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         const employeeId = pathSegments[1];
 
+
+
+
+
+
+
         const employeeName = dynamicData?.employeeName || `Employee ${employeeId}`;
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         if (pathSegments.length === 2) {
 
+
+
+
+
+
+
           return breadcrumbConfigs.employeeDetail(employeeName, employeeId);
+
+
+
+
+
+
 
         }
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         const section = pathSegments[2];
 
+
+
+
+
+
+
         const sectionLabels: Record<string, string> = {
+
+
+
+
+
+
 
           overview: 'Overview',
 
+
+
+
+
+
+
           leave: 'Leave',
 
+
+
+
+
+
+
           documents: 'Documents',
+
+
+
+
+
+
 
           performance: 'Performance',
 
+
+
+
+
+
+
           onboarding: 'Onboarding History',
+
+
+
+
+
+
 
           'driver-licenses': 'Driver Licenses',
 
+
+
+
+
+
+
           training: 'Training',
+
+
+
+
+
+
 
           'employment-checks': 'Employment Checks',
 
+
+
+
+
+
+
           settings: 'Settings'
+
+
+
+
+
+
 
         };
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         return breadcrumbConfigs.employeeSection(
 
+
+
+
+
+
+
           employeeName,
+
+
+
+
+
+
 
           employeeId,
 
+
+
+
+
+
+
           sectionLabels[section] || section
+
+
+
+
+
+
 
         );
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
       case 'documents':
 
+
+
+
+
+
+
         return breadcrumbConfigs.documents;
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
       case 'news':
 
+
+
+
+
+
+
         if (pathSegments.length === 1) {
+
+
+
+
+
+
 
           return breadcrumbConfigs.news;
 
+
+
+
+
+
+
         }
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         const newsSlug = pathSegments[1];
 
+
+
+
+
+
+
         const newsTitle = dynamicData?.newsTitle || `News Article`;
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         return breadcrumbConfigs.newsDetail(newsTitle, newsSlug);
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
       case 'calendar':
 
+
+
+
+
+
+
         return breadcrumbConfigs.calendar;
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
       case 'settings':
 
+
+
+
+
+
+
         if (pathSegments.length === 1) {
+
+
+
+
+
+
 
           return breadcrumbConfigs.settings;
 
+
+
+
+
+
+
         }
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         const settingsSection = pathSegments[1];
 
+
+
+
+
+
+
         const settingsSectionLabels: Record<string, string> = {
+
+
+
+
+
+
 
           onboarding: 'Onboarding',
 
+
+
+
+
+
+
           holidays: 'Holidays & Absence',
+
+
+
+
+
+
 
           documents: 'Documents',
 
+
+
+
+
+
+
           workflows: 'Workflows',
+
+
+
+
+
+
 
           forms: 'Forms & Surveys',
 
+
+
+
+
+
+
           system: 'System'
+
+
+
+
+
+
 
         };
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
         return breadcrumbConfigs.settingsSection(
 
+
+
+
+
+
+
           settingsSectionLabels[settingsSection] || settingsSection
+
+
+
+
+
+
 
         );
 
+
+
+
+
+
+
         
+
+
+
+
+
+
 
       default:
 
+
+
+
+
+
+
         return null;
+
+
+
+
+
+
 
     }
 
+
+
+
+
+
+
   }, [pathname, dynamicData, customConfig]);
+
+
+
+
+
+
 
 }
 
+
+
+
+
+
+
 >>>>>>>
+
+
+

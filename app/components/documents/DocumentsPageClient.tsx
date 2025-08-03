@@ -2,6 +2,106 @@
 
 
 
+<<<<<<<
+
+
+=======
+import React, { useEffect, useState, useMemo } from "react";
+
+import Button from "@/components/ui/Button";
+
+import { Input } from "@/components/ui/Input";
+
+import { Label } from "@/components/ui/label";
+
+import { toast } from "sonner";
+
+import { UploadCloud, FileText } from "lucide-react";
+
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+
+import { MultiSelect } from "@/components/ui/MultiSelect";
+
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
+import EditAccessModal from "@/components/documents/EditAccessModal";
+
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+
+import { Switch } from "@/components/ui/switch";
+
+import { PageShell } from "@/components/ui/PageShell";
+
+import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
+
+import { FilterBar } from "@/components/ui/FilterBar";
+
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+
+import { FilterOption } from "@/types/filter";
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
+
+
+=======
+function DocumentsContent() {
+
+  const [documents, setDocuments] = useState<Document[]>([]);
+
+  const [file, setFile] = useState<File | null>(null);
+
+  const [name, setName] = useState("");
+
+  const [category, setCategory] = useState("");
+
+  const [requiresAck, setRequiresAck] = useState(false);
+
+  const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+
+  const [uploading, setUploading] = useState(false);
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+  const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+
+  const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
+
+  const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+
+  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -10,11 +110,336 @@ import React, { useEffect, useState, useMemo } from "react";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import Button from "@/components/ui/Button";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
 import { Input } from "@/components/ui/Input";
+
+=======
+  // Filter options for the FilterBar
+
+  const { filters } = useFilters();
+
+
+
+  const documentTypeOptions: FilterOption[] = useMemo(() => {
+
+    const uniqueTypes = documents
+
+      .map(doc => doc.type)
+
+      .filter(Boolean)
+
+      .filter((type, index, array) => array.indexOf(type) === index);
+
+
+
+    return [
+
+      { label: "All Types", value: "all" },
+
+      ...uniqueTypes.map(type => ({ label: type, value: type }))
+
+    ];
+
+  }, [documents]);
+
+
+
+  const categoryOptions: FilterOption[] = useMemo(() => {
+
+    const uniqueCategories = documents
+
+      .map(doc => doc.category)
+
+      .filter(Boolean)
+
+      .filter((category, index, array) => array.indexOf(category) === index);
+
+
+
+    return [
+
+      { label: "All Categories", value: "all" },
+
+      ...uniqueCategories.map(category => ({ label: category!, value: category! }))
+
+    ];
+
+  }, [documents]);
+
+
+
+  const departmentOptions: FilterOption[] = useMemo(() => [
+
+    { label: "All Departments", value: "all" },
+
+    ...departments.map(dept => ({ label: dept.name, value: dept.id }))
+
+  ], [departments]);
+
+
+
+  const sortOptions: FilterOption[] = [
+
+    { label: "Name", value: "name" },
+
+    { label: "Date", value: "date" },
+
+    { label: "Size", value: "size" },
+
+    { label: "Type", value: "type" },
+
+    { label: "Category", value: "category" }
+
+  ];
+
+
+
+  // Filtered and sorted documents
+
+  const filteredDocuments = useMemo(() => {
+
+    let filtered = [...documents];
+
+
+
+    // Apply search filter
+
+    if (filters.search) {
+
+      const searchLower = filters.search.toLowerCase();
+
+      filtered = filtered.filter(doc =>
+
+        doc.name.toLowerCase().includes(searchLower) ||
+
+        doc.category?.toLowerCase().includes(searchLower) ||
+
+        doc.type.toLowerCase().includes(searchLower)
+
+      );
+
+    }
+
+
+
+    // Apply document type filter
+
+    if (filters.documentTypes.length > 0 && !filters.documentTypes.includes("all")) {
+
+      filtered = filtered.filter(doc =>
+
+        filters.documentTypes.includes(doc.type)
+
+      );
+
+    }
+
+
+
+    // Apply category filter
+
+    if (filters.categories.length > 0 && !filters.categories.includes("all")) {
+
+      filtered = filtered.filter(doc =>
+
+        doc.category && filters.categories.includes(doc.category)
+
+      );
+
+    }
+
+
+
+    // Apply department filter
+
+    if (filters.departments.length > 0 && !filters.departments.includes("all")) {
+
+      filtered = filtered.filter(doc =>
+
+        doc.departments.some(dept => filters.departments.includes(dept.id))
+
+      );
+
+    }
+
+
+
+    // Apply sorting
+
+    if (filters.sortBy) {
+
+      filtered.sort((a, b) => {
+
+        let aValue = "";
+
+        let bValue = "";
+
+
+
+        switch (filters.sortBy) {
+
+          case "name":
+
+            aValue = a.name;
+
+            bValue = b.name;
+
+            break;
+
+          case "date":
+
+            aValue = a.createdAt;
+
+            bValue = b.createdAt;
+
+            break;
+
+          case "size":
+
+            return filters.sortOrder === "desc" ? b.size - a.size : a.size - b.size;
+
+          case "type":
+
+            aValue = a.type;
+
+            bValue = b.type;
+
+            break;
+
+          case "category":
+
+            aValue = a.category || "";
+
+            bValue = b.category || "";
+
+            break;
+
+        }
+
+
+
+        const comparison = aValue.localeCompare(bValue);
+
+        return filters.sortOrder === "desc" ? -comparison : comparison;
+
+      });
+
+    }
+
+
+
+    return filtered;
+
+  }, [documents, filters]);
+
+
+
+  // Export functionality
+
+  const handleExport = () => {
+
+    const csvContent = [
+
+      ["Name", "Category", "Type", "Size", "Date", "Departments", "Job Roles"],
+
+      ...filteredDocuments.map(doc => [
+
+        doc.name,
+
+        doc.category || "",
+
+        doc.type,
+
+        `${(doc.size / 1024).toFixed(2)} KB`,
+
+        new Date(doc.createdAt).toLocaleDateString(),
+
+        doc.departments.map(d => d.name).join("; "),
+
+        doc.jobRoles.map(jr => jr.name).join("; ")
+
+      ])
+
+    ].map(row => row.map(field => `"${field}"`).join(",")).join("\n");
+
+
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+
+    a.download = `documents-${new Date().toISOString().split('T')[0]}.csv`;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+  };
+
+
+
+  const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+
+    e.preventDefault();
+
+    if (!file || !name || !category) {
+
+      toast("Please fill in all fields and select a file.");
+
+      return;
+
+    }
+
+    setUploading(true);
+
+>>>>>>>
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -22,7 +447,167 @@ import { Label } from "@/components/ui/label";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+<<<<<<<
 import { toast } from "sonner";
+
+=======
+  // Get breadcrumbs
+
+  const breadcrumbs = useBreadcrumbs();
+
+
+
+  return (
+
+    <PageShell
+
+      title="Documents"
+
+      description="Manage and organize your company documents"
+
+      icon={<FileText className="w-6 h-6" />}
+
+      breadcrumbs={breadcrumbs}
+
+      action={
+
+        userRole === "ADMIN" ? (
+
+          <Button onClick={() => setIsUploadModalOpen(true)}>
+
+            <UploadCloud className="w-4 h-4 mr-2" /> Add Document
+
+          </Button>
+
+        ) : undefined
+
+      }
+
+    >
+
+      <TooltipProvider>
+
+        {/* Filter Bar */}
+
+        <div className="mb-6">
+
+          <FilterBar
+
+            config={{
+
+              searchPlaceholder: "Search documents by name, category, type...",
+
+              showDocumentTypeFilter: true,
+
+              showCategoryFilter: true,
+
+              showDepartmentFilter: true,
+
+            }}
+
+            documentTypeOptions={documentTypeOptions}
+
+            categoryOptions={categoryOptions}
+
+            departmentOptions={departmentOptions}
+
+            sortOptions={sortOptions}
+
+            onExport={handleExport}
+
+          />
+
+        </div>
+
+>>>>>>>
+
+
+<<<<<<<
+
+
+=======
+        {loading ? (
+
+          <p>Loading documents...</p>
+
+        ) : filteredDocuments.length === 0 ? (
+
+          <div className="text-center py-8 text-muted-foreground">
+
+            {filters.search || filters.documentTypes.length > 0 || filters.categories.length > 0 || filters.departments.length > 0
+
+              ? "No documents match your current filters."
+
+              : "No documents found."}
+
+          </div>
+
+        ) : (
+
+          <Table>
+
+            <TableHeader>
+
+              <TableRow>
+
+                <TableHead>Name</TableHead>
+
+                <TableHead>Category</TableHead>
+
+                <TableHead>Department</TableHead>
+
+                <TableHead>Job Role</TableHead>
+
+                <TableHead>Access</TableHead>
+
+                <TableHead>Date</TableHead>
+
+                <TableHead>Size</TableHead>
+
+                {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+
+              </TableRow>
+
+            </TableHeader>
+
+            <TableBody>
+
+              {filteredDocuments.map((doc) => {
+
+                const accessList = [
+
+                  doc.canViewAdmin ? "Admin" : null,
+
+                  doc.canViewManager ? "Manager" : null,
+
+                  doc.canViewEmployee ? "Employee" : null,
+
+                  ...doc.departments.map((d) => d.name),
+
+                  ...doc.jobRoles.map((jr) => jr.name),
+
+                ].filter(Boolean);
+
+>>>>>>>
+
+
+
+
+
+
+
 
 
 
@@ -30,7 +615,32 @@ import { UploadCloud, FileText } from "lucide-react";
 
 
 
+
+
+
+
+<<<<<<<
+
+
+
+
+
+
+
+
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -38,7 +648,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -46,7 +680,31 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -54,7 +712,31 @@ import EditAccessModal from "@/components/documents/EditAccessModal";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -62,61 +744,247 @@ import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgemen
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { Switch } from "@/components/ui/switch";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 <<<<<<<
+
+
+
 import { PageShell } from "@/components/ui/PageShell";
 
+
+
+
+
+
+
 =======
+
+
+
   const documentTypeOptions: FilterOption[] = useMemo(() => {
+
+
+
+
+
+
 
     const typeSet = new Set(documents.map(doc => doc.type).filter(Boolean));
 
+
+
+
+
+
+
     const types = Array.from(typeSet);
 
+
+
+
+
+
+
     return [
+
+
+
+
+
+
 
       { label: "All Types", value: "all" },
 
+
+
+
+
+
+
       ...types.map(type => ({ label: type, value: type }))
+
+
+
+
+
+
 
     ];
 
+
+
+
+
+
+
   }, [documents]);
 
+
+
+
+
+
+
 >>>>>>>
+
+
+
+
+
+
+
+
+
 
 
 <<<<<<<
+
+
+
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 
+
+
+
+
+
+
 =======
+
+
+
   const categoryOptions: FilterOption[] = useMemo(() => {
+
+
+
+
+
+
 
     const categorySet = new Set(documents.map(doc => doc.category).filter(Boolean));
 
+
+
+
+
+
+
     const categories = Array.from(categorySet);
+
+
+
+
+
+
 
     return [
 
+
+
+
+
+
+
       { label: "All Categories", value: "all" },
+
+
+
+
+
+
 
       ...categories.map(category => ({ label: category!, value: category! }))
 
+
+
+
+
+
+
     ];
+
+
+
+
+
+
 
   }, [documents]);
 
+
+
+
+
+
+
 >>>>>>>
+
+
+
+
+
+
+
+
+
 
 
 import { FilterBar } from "@/components/ui/FilterBar";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -128,7 +996,43 @@ import { FilterOption } from "@/types/filter";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type Department = { id: string; name: string };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -140,7 +1044,43 @@ type JobRole = { id: string; name: string };
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type Document = {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -148,7 +1088,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   name: string;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -156,7 +1120,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   path: string;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -164,7 +1152,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   type: string;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -172,7 +1184,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   url: string;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -180,7 +1216,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   canViewManager: boolean;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -188,7 +1248,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   departments: Department[];
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -196,7 +1280,31 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   requiresAck: boolean;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -208,7 +1316,43 @@ type Document = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function DocumentsContent() {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -216,7 +1360,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [file, setFile] = useState<File | null>(null);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -224,7 +1392,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [category, setCategory] = useState("");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -232,7 +1424,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -240,7 +1456,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [uploading, setUploading] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -248,7 +1488,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -256,11 +1520,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -272,11 +1572,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [ackDocId, setAckDocId] = useState<string | null>(null);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -288,7 +1636,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -296,7 +1680,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -308,7 +1716,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const [acknowledged, setAcknowledged] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -320,7 +1764,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const fetchDocuments = async () => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -328,7 +1808,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     const res = await fetch(`/api/documents/list`);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -336,7 +1840,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     setDocuments(data);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -344,7 +1872,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -356,7 +1920,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     try {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -364,7 +1952,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       const deptData = await deptRes.json();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -376,7 +1988,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       const deptOptions = [{ label: "All Departments", value: "all" }, ...deptData.map((d: any) => ({ label: d.name, value: d.id }))];
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -388,7 +2036,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       setDepartmentsList(deptOptions);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -400,7 +2084,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       if (!uploadDepartments.length) setUploadDepartments(["all"]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -408,7 +2128,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     } catch (err) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -416,11 +2160,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -432,7 +2224,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     try {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -440,7 +2256,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       const session = await res.json();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -448,7 +2288,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     } catch (err) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -456,7 +2320,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -468,7 +2356,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   useEffect(() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -476,7 +2400,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -484,7 +2432,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         .then((data) => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -492,7 +2464,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             setAcknowledged(true);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -500,7 +2496,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           } else {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -508,7 +2528,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             setAckDate(null);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -516,11 +2560,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         });
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -532,7 +2612,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   useEffect(() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -540,7 +2656,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     fetchDropdownData();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -548,7 +2688,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   }, []);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -564,7 +2740,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const documentTypeOptions: FilterOption[] = useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -572,11 +2784,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     return [{ label: "All Types", value: "all" }, ...types.map((type) => ({ label: type, value: type }))];
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   }, [documents]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -588,11 +2848,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     const categories = [...new Set(documents.map((doc) => doc.category).filter(Boolean))];
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     return [{ label: "All Categories", value: "all" }, ...categories.map((category) => ({ label: category!, value: category! }))];
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -604,7 +2900,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const departmentOptions: FilterOption[] = useMemo(
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -612,7 +2944,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     [departmentsList]
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -624,7 +2980,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const sortOptions: FilterOption[] = [
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -632,7 +3024,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Date", value: "date" },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -640,11 +3056,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Type", value: "type" },
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     { label: "Category", value: "category" },
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -656,7 +3108,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const filteredDocuments = useMemo(() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -668,7 +3156,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if (filters.search) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -676,7 +3200,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter(
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -684,7 +3232,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           doc.name.toLowerCase().includes(searchLower) ||
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -692,7 +3264,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           doc.type.toLowerCase().includes(searchLower)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -700,7 +3296,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -712,11 +3344,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter((doc) => filters.documentTypes.includes(doc.type));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -728,11 +3408,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter((doc) => doc.category && filters.categories.includes(doc.category));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -744,11 +3472,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered = filtered.filter((doc) => doc.departments.some((dept) => filters.departments.includes(dept.id)));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -760,11 +3536,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       filtered.sort((a, b) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         let aValue = "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -776,7 +3588,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         switch (filters.sortBy) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -784,7 +3632,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.name;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -792,7 +3664,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -800,7 +3696,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.createdAt;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -808,7 +3728,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -816,7 +3760,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             return filters.sortOrder === "desc" ? b.size - a.size : a.size - b.size;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -824,7 +3792,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.type;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -832,7 +3824,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -840,7 +3856,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             aValue = a.category || "";
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -848,7 +3888,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             break;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -860,7 +3924,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         const comparison = aValue.localeCompare(bValue);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -868,11 +3968,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       });
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -884,7 +4032,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   }, [documents, filters]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -896,7 +4080,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     e.preventDefault();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -904,7 +4112,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       toast("Please fill in all fields and select a file.");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -912,7 +4144,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -928,7 +4196,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const selectedDepartments = uploadDepartments.includes("all") ? [] : uploadDepartments;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -940,7 +4244,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     const formData = new FormData();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -948,7 +4288,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     formData.append("name", name);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -956,7 +4320,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     formData.append("departments", JSON.stringify(selectedDepartments));
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -964,7 +4352,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     formData.append("requiresAck", JSON.stringify(requiresAck));
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -976,7 +4388,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     try {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -984,7 +4432,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       if (res.ok) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -992,7 +4464,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         setIsUploadModalOpen(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1000,7 +4496,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         setName("");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1008,7 +4528,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         setRequiresAck(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1016,7 +4560,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         setUploadDepartments(["all"]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1024,7 +4592,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         fetchDocuments();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1032,7 +4624,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         toast("Upload failed", { description: "Please try again or check your connection." });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1040,7 +4656,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     } catch (error) {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1048,7 +4688,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       toast("Upload failed", { description: "An error occurred." });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1056,7 +4720,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       setUploading(false);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1064,7 +4752,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1076,7 +4800,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     if (!selectedDoc?.id) return;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1084,7 +4832,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       method: "POST",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1092,7 +4864,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       body: JSON.stringify({ documentId: selectedDoc.id }),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1100,7 +4896,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     setAcknowledged(true);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1108,7 +4928,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     toast("Document acknowledged");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1116,7 +4960,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1128,7 +5008,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     if (!confirm("Delete this document?")) return;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1136,7 +5040,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       method: "DELETE",
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1144,7 +5072,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       body: JSON.stringify({ documentId: id }),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1152,11 +5104,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     fetchDocuments();
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1172,7 +5172,55 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const breadcrumbs = useBreadcrumbs();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1184,11 +5232,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     setSelectedDoc(doc);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     setIsPreviewModalOpen(true);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1200,7 +5284,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1208,7 +5328,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       title="Documents"
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1216,7 +5360,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       icon={<FileText className="w-6 h-6" />}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1224,7 +5392,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       action={
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1232,7 +5424,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <Button onClick={() => setIsUploadModalOpen(true)}>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1240,7 +5456,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </Button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1248,7 +5488,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1256,7 +5520,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <TooltipProvider>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1264,7 +5552,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         <div className="mb-6">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1272,7 +5584,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             config={{
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1280,7 +5616,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               showDocumentTypeFilter: true,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1288,7 +5648,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               showDepartmentFilter: true,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1296,7 +5680,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             documentTypeOptions={documentTypeOptions}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1304,7 +5712,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             departmentOptions={departmentOptions}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1312,7 +5744,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             onExport={() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1320,7 +5776,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 ["Name", "Category", "Type", "Size", "Date", "Departments", "Job Roles"],
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1328,7 +5808,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   doc.name,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1336,7 +5840,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   doc.type,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1344,7 +5872,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   new Date(doc.createdAt).toLocaleDateString(),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1352,7 +5904,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   doc.jobRoles.map((jr) => jr.name).join("; "),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1360,11 +5936,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               ]
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 .map((row) => row.map((field) => `"${field}"`).join(","))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1376,7 +5988,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               const blob = new Blob([csvContent], { type: "text/csv" });
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1384,7 +6032,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               const a = document.createElement("a");
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1392,7 +6064,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               a.download = `documents-${new Date().toISOString().split("T")[0]}.csv`;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1400,7 +6096,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               a.click();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1408,7 +6128,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               URL.revokeObjectURL(url);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1416,7 +6160,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1428,7 +6196,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {/* Table */}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1436,7 +6240,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <p>Loading documents...</p>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1444,7 +6272,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <div className="text-center py-8 text-muted-foreground">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1452,7 +6304,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               ? "No documents match your current filters."
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1460,7 +6336,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1468,7 +6368,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <Table>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1476,7 +6400,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <TableRow>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1484,7 +6432,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <TableHead>Category</TableHead>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1492,7 +6464,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <TableHead>Job Role</TableHead>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1500,7 +6496,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <TableHead>Date</TableHead>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1508,7 +6528,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1516,7 +6560,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             </TableHeader>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1524,7 +6592,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               {filteredDocuments.map((doc) => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1532,7 +6624,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   doc.canViewAdmin ? "Admin" : null,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1540,7 +6656,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   doc.canViewEmployee ? "Employee" : null,
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1548,7 +6688,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   ...doc.jobRoles.map((jr) => jr.name),
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1560,7 +6724,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 return (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1568,7 +6768,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1576,7 +6800,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <TableCell>{doc.departments.length > 0 ? doc.departments.map((d) => d.name).join(", ") : "All Departments"}</TableCell>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1584,7 +6832,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <TableCell>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1592,7 +6864,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                         <TooltipTrigger asChild>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1600,7 +6896,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             {doc.departments.length === 0 && doc.jobRoles.length === 0 ? "All" : accessList.join(", ")}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1608,7 +6928,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                         </TooltipTrigger>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1616,7 +6960,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           {doc.departments.length === 0 && doc.jobRoles.length === 0
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1624,7 +6992,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             : accessList.map((item, idx) => <div key={idx}>{item}</div>)}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1632,7 +7024,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       </Tooltip>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1640,7 +7056,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1648,7 +7088,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     {userRole === "ADMIN" && (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1656,7 +7120,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                         <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1664,7 +7152,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             onClick={() => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1672,7 +7184,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                               setIsEditAccessOpen(true);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1680,7 +7216,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           >
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1688,7 +7248,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           </DropdownMenuItem>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1696,7 +7280,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             <DropdownMenuItem
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1704,7 +7312,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                                 setAckDocId(doc.id);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1712,7 +7344,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                                 setIsViewAckOpen(true);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1720,7 +7376,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             >
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1728,7 +7408,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                             </DropdownMenuItem>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1736,7 +7440,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1744,7 +7472,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                           </DropdownMenuItem>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1752,7 +7504,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       </TableCell>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1760,7 +7536,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   </TableRow>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1768,7 +7568,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               })}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1776,11 +7600,59 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </Table>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1792,7 +7664,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         {userRole === "ADMIN" && (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1800,7 +7696,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             <DialogContent>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1808,7 +7728,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <DialogTitle>Upload Document</DialogTitle>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1816,11 +7760,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <form onSubmit={handleUpload} className="space-y-4">
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1828,7 +7808,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <Input value={name} onChange={(e) => setName(e.target.value)} required />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1836,7 +7840,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1844,7 +7872,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <Select value={category} onValueChange={setCategory}>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1852,7 +7904,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       <SelectValue placeholder="Select a category" />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1860,7 +7936,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     <SelectContent>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1868,7 +7968,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1876,7 +8000,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1884,7 +8032,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     </SelectContent>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1892,11 +8064,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 </div>
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1904,7 +8112,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <Switch checked={requiresAck} onCheckedChange={setRequiresAck} />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1912,7 +8144,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1920,7 +8176,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <Switch checked={requireAckFromNewStarters} onCheckedChange={setRequireAckFromNewStarters} />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1928,7 +8208,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1936,7 +8240,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <MultiSelect
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1944,11 +8272,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     selected={uploadDepartments}
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     onChange={(values) => {
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1956,11 +8320,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       else setUploadDepartments(values);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     }}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1968,7 +8368,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1976,7 +8400,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1984,7 +8432,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <MultiSelect
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1992,7 +8464,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     selected={uploadJobRoles}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2000,7 +8496,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                       if (values.includes("all")) setUploadJobRoles(["all"]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2008,7 +8528,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     }}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2016,11 +8560,47 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   />
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2028,7 +8608,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <Label>File</Label>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2036,7 +8640,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2044,7 +8672,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <Button type="submit" disabled={uploading}>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2052,7 +8704,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   </Button>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2060,7 +8736,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               </form>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2068,7 +8768,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </Dialog>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2080,7 +8804,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {/* Preview Modal */}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2088,7 +8848,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           <DialogContent>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2096,7 +8880,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               <DialogTitle>{selectedDoc?.name}</DialogTitle>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2104,7 +8912,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
             {selectedDoc && (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2112,7 +8944,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2120,7 +8976,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   href={selectedDoc.url}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2128,7 +9008,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   target="_blank"
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2136,7 +9040,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   className="text-blue-600 underline block"
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2144,7 +9072,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   Download
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2152,7 +9104,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 {selectedDoc.requiresAck && !acknowledged && (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2160,7 +9136,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                     Acknowledge Document
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2168,7 +9168,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                 )}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2176,7 +9200,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
                   <p className="text-green-600 text-sm">✅ Acknowledged on {ackDate?.toLocaleDateString()}</p>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2184,7 +9232,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
               </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2192,7 +9264,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           </DialogContent>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2204,7 +9300,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {/* Edit Access Modal */}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2216,7 +9348,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {/* View Acknowledgements Modal */}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2224,7 +9392,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           isOpen={isViewAckOpen}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2232,7 +9424,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
           documentId={ackDocId}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2240,7 +9456,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2248,7 +9488,31 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     </PageShell>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2256,7 +9520,43 @@ function DocumentsContent() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2268,7 +9568,31 @@ export default function DocumentsPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   return (
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2276,7 +9600,31 @@ export default function DocumentsPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
       <DocumentsContent />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2284,7 +9632,31 @@ export default function DocumentsPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   );
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2292,3 +9664,57 @@ export default function DocumentsPageClient() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+=======
+        {/* View Acknowledgements Modal */}
+
+        <ViewAcknowledgementsModal
+
+          isOpen={isViewAckOpen}
+
+          onClose={() => setIsViewAckOpen(false)}
+
+          documentId={ackDocId}
+
+          documentName={ackDocName}
+
+        />
+
+      </TooltipProvider>
+
+    </PageShell>
+
+  );
+
+}
+
+
+
+// Main component with FilterProvider wrapper
+
+export default function DocumentsPageClient() {
+
+  return (
+
+    <FilterProvider>
+
+      <DocumentsContent />
+
+    </FilterProvider>
+
+  );
+
+}
+
+>>>>>>>

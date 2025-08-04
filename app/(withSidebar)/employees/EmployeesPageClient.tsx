@@ -266,7 +266,7 @@ function EmployeesContent() {
       title="Employees"
       description="Manage your team members and their information"
       icon={<Users className="w-6 h-6" />}
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={breadcrumbs || undefined}
       action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
     >
       {error && (

@@ -14,7 +14,9 @@ import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Users } from "lucide-react";
-import { FilterOption } from "@/types/filter";
+
+// ✅ Inline type definition to avoid import error
+type FilterOption = { label: string; value: string };
 
 export const dynamic = "force-dynamic";
 

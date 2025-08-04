@@ -1,3 +1,5 @@
+// /types/filter.ts
+
 export interface FilterOption {
   label: string;
   value: string;

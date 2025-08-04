@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/Table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { CheckCircle, Clock, AlertCircle, FileText, Calendar } from 'lucide-react';
-import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer';
+import { DynamicFormRenderer } from '@/components/forms/DynamicFormRenderer';
 
 interface FormAssignment {
   id: string;
@@ -40,8 +40,8 @@ interface FormSubmission {
 
 export default function EmployeeFormsPage() {
   const params = useParams();
-  const employeeId = params.id as string;
-  
+  const employeeId = params?.id ? String(params.id) : "";
+
   const [assignments, setAssignments] = useState<FormAssignment[]>([]);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,7 +268,8 @@ export default function EmployeeFormsPage() {
           {selectedForm && (
             <DynamicFormRenderer
               formId={selectedForm.form.id}
-              onSubmit={handleFormSubmit}
+              employeeId={employeeId}
+              onSubmitSuccess={handleFormSubmit}
             />
           )}
         </DialogContent>

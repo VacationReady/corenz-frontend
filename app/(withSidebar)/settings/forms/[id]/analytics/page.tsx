@@ -5,8 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { BarChart3, Users, FileText, TrendingUp } from 'lucide-react'
 
 export default function FormAnalyticsPage() {
-  const params = useParams()
-  const formId = params.id as string
+  const params = useParams();
+  const formId = params?.id ? String(params.id) : '';
+
+  if (!formId) {
+    return (
+      <PageShell title="Form Analytics" description="View submission statistics and insights">
+        <div className="flex items-center justify-center h-64 text-gray-500">
+          Invalid form ID.
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell 

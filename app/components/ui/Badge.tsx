@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "outline";
+  variant?: 'default' | 'outline' | 'secondary' | 'destructive';
 }
 
 export function Badge({ className, variant = "default", ...props }: BadgeProps) {

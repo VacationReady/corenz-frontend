@@ -516,6 +516,8 @@ model OnboardingStep {
   // --- Step-specific fields (one used per type) ---
   documentId              String? // For acknowledge-document step
   document                Document?                @relation(fields: [documentId], references: [id])
+  formId                  String? // For fill-form step using reusable forms
+  form                    Form?                    @relation(fields: [formId], references: [id])
   uploadType              OnboardingUploadType? // For upload steps (e.g. passport, right to work)
   instruction             String? // For simple instruction/checklist steps
   onboardingStepInstances OnboardingStepInstance[]
@@ -587,6 +589,7 @@ model Form {
 
   assignments FormAssignment[]
   submissions FormSubmission[]
+  onboardingSteps OnboardingStep[]
 }
 
 model FormAssignment {

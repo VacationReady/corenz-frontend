@@ -18,7 +18,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
-import { FilterOption } from "@/types/filter";
+import { FilterOption } from "../../../types/filter";
 
 type Document = {
   id: string;

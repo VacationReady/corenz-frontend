@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { useFilters } from "@/components/ui/FilterProvider";
-import { FilterConfig, FilterOption } from "@/types/filter";
+import { FilterConfig, FilterOption } from "../../../../types/filter";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 

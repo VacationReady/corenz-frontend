@@ -9,7 +9,7 @@ import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { Megaphone } from 'lucide-react';
-import { FilterOption } from '../../../types/filter';
+import { FilterOption } from '@/types/filter';
 
 // ✅ Props interface matches server-provided props
 interface NewsPost {

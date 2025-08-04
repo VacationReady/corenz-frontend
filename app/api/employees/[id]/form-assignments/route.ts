@@ -1,0 +1,72 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const employeeId = params.id;
+
+    // Verify employee belongs to the same company
+    const employee = await prisma.employee.findFirst({
+      where: { 
+        id: employeeId,
+        companyId: session.user.companyId 
+      }
+    });
+
+    if (!employee) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    // Get form assignments for this employee
+    const assignments = await prisma.formAssignment.findMany({
+      where: { employeeId },
+      include: {
+        form: {
+          select: {
+            id: true,
+            name: true,
+            description: true
+          }
+        },
+        assignedBy: {
+          select: {
+            name: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: { dueDate: 'asc' }
+    });
+
+    // Determine status based on completion and due date
+    const assignmentsWithStatus = assignments.map(assignment => {
+      let status = assignment.status;
+      
+      if (assignment.completedAt) {
+        status = 'completed';
+      } else if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
+        status = 'overdue';
+      } else {
+        status = 'pending';
+      }
+
+      return {
+        ...assignment,
+        status
+      };
+    });
+
+    return NextResponse.json(assignmentsWithStatus);
+  } catch (error) {
+    console.error('Error fetching form assignments:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

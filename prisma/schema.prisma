@@ -575,6 +575,12 @@ model Form {
   schema      Json // Field definitions
   version     Int      @default(1)
   isActive    Boolean  @default(true)
+
+  // Role-based visibility
+  visibleToRoles      Role[]   @default([ADMIN, MANAGER, EMPLOYEE])
+  visibleToDepartments String[] @default([]) // Department IDs
+  visibleToJobRoles   String[] @default([]) // JobRole IDs
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

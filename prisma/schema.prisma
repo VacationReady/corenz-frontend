@@ -68,7 +68,8 @@ model ActivationToken {
 model Employee {
   id                        String                             @id @default(cuid())
   userId                    String                             @unique
-  isActive                  Boolean                            @default(true)
+  isActive                  Boolean
+  companyId  String?           // ✅ optional for migration
   workingPatternId          String?
   departmentId              String?
   department                Department?                        @relation(fields: [departmentId], references: [id])
@@ -567,22 +568,22 @@ model OnboardingAssignment {
 }
 
 model Form {
-  id          String   @id @default(cuid())
-  company     Company  @relation(fields: [companyId], references: [id])
+  id          String  @id @default(cuid())
+  company     Company @relation(fields: [companyId], references: [id])
   companyId   String
   name        String
   description String?
   schema      Json // Field definitions
-  version     Int      @default(1)
-  isActive    Boolean  @default(true)
+  version     Int     @default(1)
+  isActive    Boolean @default(true)
 
   // Role-based visibility
-  visibleToRoles      Role[]   @default([ADMIN, MANAGER, EMPLOYEE])
+  visibleToRoles       Role[]   @default([ADMIN, MANAGER, EMPLOYEE])
   visibleToDepartments String[] @default([]) // Department IDs
-  visibleToJobRoles   String[] @default([]) // JobRole IDs
+  visibleToJobRoles    String[] @default([]) // JobRole IDs
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   assignments FormAssignment[]
   submissions FormSubmission[]

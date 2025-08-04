@@ -14,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 interface DynamicFormRendererProps {
   formId: string;
   employeeId?: string;
-  onSubmitSuccess?: () => void;
+  onSubmitSuccess?: (data: any) => void; // <-- Change here
 }
 
 interface FormField {
@@ -73,11 +73,12 @@ export function DynamicFormRenderer({ formId, onSubmitSuccess }: DynamicFormRend
       body: JSON.stringify({ data }),
     });
     if (res.ok) {
-      toast.success('Form submitted successfully');
-      onSubmitSuccess?.();
-    } else {
-      toast.error('Failed to submit form');
-    }
+  toast.success('Form submitted successfully');
+  onSubmitSuccess?.(data); // Pass the submitted data
+} 
+else {
+  toast.error('Failed to submit form');
+}
   };
 
   if (loading)

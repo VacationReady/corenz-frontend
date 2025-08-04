@@ -20,12 +20,14 @@ interface FormData {
 export default function EditFormPage() {
   const router = useRouter()
   const params = useParams()
-  const formId = params.id as string
-  
+  const formId = params?.id ? String(params.id) : ''
+
   const [formData, setFormData] = useState<FormData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!formId) return // ✅ Prevent fetch if formId is missing
+
     const fetchForm = async () => {
       try {
         const res = await fetch(`/api/forms/${formId}`)
@@ -44,9 +46,7 @@ export default function EditFormPage() {
       }
     }
 
-    if (formId) {
-      fetchForm()
-    }
+    fetchForm()
   }, [formId, router])
 
   const handleSave = async (data: {
@@ -66,7 +66,7 @@ export default function EditFormPage() {
           isActive: formData?.isActive ?? true
         })
       })
-      
+
       if (res.ok) {
         toast.success('Form updated successfully')
         router.push('/settings/forms')
@@ -76,6 +76,16 @@ export default function EditFormPage() {
     } catch (error) {
       toast.error('Failed to update form')
     }
+  }
+
+  if (!formId) {
+    return (
+      <PageShell title="Invalid Form" description="Missing or invalid form ID">
+        <div className="text-center py-8">
+          <p className="text-gray-500">The form ID is missing or invalid.</p>
+        </div>
+      </PageShell>
+    )
   }
 
   if (loading) {

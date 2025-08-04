@@ -4,7 +4,13 @@ import React from "react";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BreadcrumbItem } from "@/types/breadcrumb";
+
+// ✅ Define BreadcrumbItem inline instead of importing from a missing types file
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+  isCurrentPage?: boolean;
+}
 
 interface BreadcrumbProps {
   items: BreadcrumbItem[];
@@ -71,7 +77,7 @@ export function Breadcrumb({ items, className, showHomeIcon = true }: Breadcrumb
   );
 }
 
-// Predefined breadcrumb configurations for common pages
+// ✅ Predefined breadcrumb configurations for common pages
 export const breadcrumbConfigs = {
   dashboard: {
     items: [{ label: "Dashboard", isCurrentPage: true }]

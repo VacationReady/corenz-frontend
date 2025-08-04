@@ -23,7 +23,8 @@
     "paths": {
       "@/*": ["app/*"],
       "@/components/*": ["app/components/*"],
-      "@/lib/*": ["app/lib/*"]
+      "@/lib/*": ["app/lib/*"],
+      "@/types/*": ["types/*"]
     },
     "types": [
       "next-auth"

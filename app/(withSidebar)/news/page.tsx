@@ -8,8 +8,7 @@ export default async function NewsPage() {
   const posts = await getAllNewsPosts();
 
   // ✅ Transform posts minimally to ensure correct types
-  const transformedPosts: NewsPageClientProps['posts'] = posts.map(post => ({
-    id: post.id,
+const transformedPosts = posts.map(post => ({    id: post.id,
     title: post.title,
     slug: post.slug,
     content: post.content,

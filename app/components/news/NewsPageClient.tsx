@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { useSession } from 'next-auth/react';
 import Button from '@/components/ui/Button';
 import { PageShell } from '@/components/ui/PageShell';
 import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
@@ -12,6 +11,7 @@ import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
 import { Megaphone } from 'lucide-react';
 import { FilterOption } from '@/types/filter';
 
+// ✅ Props interface matches server-provided props
 interface NewsPost {
   id: string;
   title: string;
@@ -19,10 +19,8 @@ interface NewsPost {
   content: any;
   authorId: string;
   author: {
-    name?: string | null;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
+    name: string | null;
+    email: string;
   };
   publishedAt: string | null;
   pinned: boolean;
@@ -30,48 +28,18 @@ interface NewsPost {
   createdAt: string;
 }
 
-function NewsContent() {
-  const { data: session } = useSession();
-  const [posts, setPosts] = useState<NewsPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [canPost, setCanPost] = useState(false);
+interface NewsPageClientProps {
+  posts: NewsPost[];
+  canPost: boolean;
+}
+
+function NewsContent({ posts, canPost }: NewsPageClientProps) {
   const { filters } = useFilters();
   const breadcrumbs = useBreadcrumbs();
 
-  // ✅ Helper for unified author formatting
+  // ✅ Unified author name formatter
   const getAuthorName = (author: NewsPost["author"]) =>
-    author?.name || (author?.firstName && author?.lastName ? `${author.firstName} ${author.lastName}` : author?.email) || 'Unknown Author';
-
-  // Fetch posts & permissions
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch('/api/news');
-        const data = await response.json();
-        setPosts(data);
-      } catch (error) {
-        console.error('Failed to fetch news posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const checkPermissions = async () => {
-      if (session?.user?.email) {
-        try {
-          const response = await fetch('/api/auth/session');
-          const sessionData = await response.json();
-          const userRole = sessionData?.user?.role;
-          setCanPost(userRole === 'ADMIN' || userRole === 'MANAGER');
-        } catch (error) {
-          console.error('Failed to check permissions:', error);
-        }
-      }
-    };
-
-    fetchPosts();
-    checkPermissions();
-  }, [session]);
+    author?.name || author?.email || 'Unknown Author';
 
   // Filter options
   const authorOptions: FilterOption[] = useMemo(() => {
@@ -90,7 +58,7 @@ function NewsContent() {
     { label: "Author", value: "author" },
   ];
 
-  // Filtered & sorted posts
+  // Filter & sort posts
   const filteredPosts = useMemo(() => {
     let filtered = [...posts];
 
@@ -162,19 +130,6 @@ function NewsContent() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  if (loading) {
-    return (
-      <PageShell
-        title="Company News"
-        description="Stay updated with the latest company announcements"
-        icon={<Megaphone className="w-6 h-6" />}
-        breadcrumbs={breadcrumbs || undefined}
-      >
-        <div className="text-center py-8">Loading news posts...</div>
-      </PageShell>
-    );
-  }
 
   return (
     <PageShell
@@ -258,10 +213,11 @@ function NewsContent() {
   );
 }
 
-export default function NewsPageClient() {
+// ✅ Export the wrapper
+export default function NewsPageClient(props: NewsPageClientProps) {
   return (
     <FilterProvider>
-      <NewsContent />
+      <NewsContent {...props} />
     </FilterProvider>
   );
 }

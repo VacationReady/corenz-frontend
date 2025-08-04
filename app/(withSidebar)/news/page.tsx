@@ -2,7 +2,6 @@ import { getAllNewsPosts } from '@/lib/news/getAllNewsPosts';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import NewsPageClient, { NewsPageClientProps } from '@/components/news/NewsPageClient';
 
 export default async function NewsPage() {
   // Fetch all posts server-side

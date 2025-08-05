@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageShell } from '@/components/ui/PageShell';
-import DynamicFormRenderer from '@/components/forms/DynamicFormRenderer';
+import { DynamicFormRenderer } from '@/components/forms/DynamicFormRenderer';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';

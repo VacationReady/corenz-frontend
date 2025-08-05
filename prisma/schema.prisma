@@ -60,6 +60,9 @@ model Employee {
   jobRoleId                 String?
   onboardingStatus          Json?
   onboardingTemplateId      String?
+  companyId                 String?                           // <-- Added companyId column
+  company                   Company?                          @relation(fields: [companyId], references: [id]) // <-- Relation
+
   Document                  Document[]
   DocumentAcknowledgement   DocumentAcknowledgement[]
   driverLicences            DriverLicence[]
@@ -197,6 +200,7 @@ model Company {
   onboardingTemplates OnboardingTemplate[]
   SavedReport         SavedReport[]
   users               User[]
+  employees  Employee[]
 }
 
 model JobRole {
@@ -466,10 +470,10 @@ model OnboardingStep {
   documentId              String?
   uploadType              OnboardingUploadType?
   instruction             String?
-  formId                  String?
-  document                Document?                @relation(fields: [documentId], references: [id])
-  form                    Form?                    @relation(fields: [formId], references: [id])
-  template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
+  formId                  String?                 // <-- Already correctly defined
+  document                Document?               @relation(fields: [documentId], references: [id])
+  form                    Form?                   @relation(fields: [formId], references: [id])
+  template                OnboardingTemplate      @relation(fields: [templateId], references: [id])
   onboardingStepInstances OnboardingStepInstance[]
 
   @@unique([templateId, label])

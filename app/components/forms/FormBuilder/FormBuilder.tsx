@@ -13,7 +13,7 @@ import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { FormField } from './types'
+import { FormField } from '@/api/forms/[formId]/types'
 
 interface FormBuilderProps {
   onSave: (data: {

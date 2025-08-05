@@ -8,53 +8,39 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  role          Role
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  emailVerified DateTime?
-  name          String?
-  firstName     String?
-  lastName      String?
-  phone         String?
-  isActivated   Boolean   @default(false)
-
-  // ✅ Relational links
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id])
-
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-
-  jobRoleId String?
-  jobRole   JobRole? @relation(fields: [jobRoleId], references: [id])
-
-  managerId    String?
-  manager      User?   @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates User[]  @relation("ManagerSubordinates")
-
-  departmentHeadOf Department[] @relation("DepartmentHead") // ✅ For Department head relationship
-
-  // ✅ HR-related fields
-  employee         Employee? // Link to Employee record for HRIS core
-  activationToken  ActivationToken?
-  emailPreferences Json? // ✅ Optional: Store notification settings (flexible JSON)
-  profileImageUrl  String? // ✅ Optional: Profile image
-
-  // ✅ Leave and workflows
-  LeaveRequest_LeaveRequest_approvedByIdToUser LeaveRequest[] @relation("LeaveRequest_approvedByIdToUser")
-  leaveRequestsRequested                       LeaveRequest[] @relation("RequestingUser")
-
-  // ✅ Documents and reports
-  documents   Document[]
-  SavedReport SavedReport[]
-
-  // ✅ News/posts authored
-  newsPosts             NewsPost[]
-  onboardingAssignments OnboardingAssignment[]
-  assignedForms         FormAssignment[]       @relation("AssignedForms")
+  id                                           String                 @id @default(cuid())
+  email                                        String                 @unique
+  password                                     String
+  role                                         Role
+  createdAt                                    DateTime               @default(now())
+  updatedAt                                    DateTime               @updatedAt
+  emailVerified                                DateTime?
+  name                                         String?
+  departmentId                                 String?
+  firstName                                    String?
+  isActivated                                  Boolean                @default(false)
+  jobRoleId                                    String?
+  lastName                                     String?
+  managerId                                    String?
+  phone                                        String?
+  companyId                                    String?
+  emailPreferences                             Json?
+  profileImageUrl                              String?
+  activationToken                              ActivationToken?
+  departmentHeadOf                             Department[]           @relation("DepartmentHead")
+  documents                                    Document[]
+  employee                                     Employee?
+  assignedForms                                FormAssignment[]       @relation("AssignedForms")
+  LeaveRequest_LeaveRequest_approvedByIdToUser LeaveRequest[]         @relation("LeaveRequest_approvedByIdToUser")
+  leaveRequestsRequested                       LeaveRequest[]         @relation("RequestingUser")
+  newsPosts                                    NewsPost[]
+  onboardingAssignments                        OnboardingAssignment[]
+  SavedReport                                  SavedReport[]
+  company                                      Company?               @relation(fields: [companyId], references: [id])
+  department                                   Department?            @relation(fields: [departmentId], references: [id])
+  jobRole                                      JobRole?               @relation(fields: [jobRoleId], references: [id])
+  manager                                      User?                  @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates                                 User[]                 @relation("ManagerSubordinates")
 }
 
 model ActivationToken {
@@ -68,29 +54,28 @@ model ActivationToken {
 model Employee {
   id                        String                             @id @default(cuid())
   userId                    String                             @unique
-  isActive                  Boolean
-  companyId  String?           // ✅ optional for migration
+  isActive                  Boolean                            @default(true)
   workingPatternId          String?
   departmentId              String?
-  department                Department?                        @relation(fields: [departmentId], references: [id])
   jobRoleId                 String?
+  onboardingStatus          Json?
+  onboardingTemplateId      String?
+  Document                  Document[]
+  DocumentAcknowledgement   DocumentAcknowledgement[]
+  driverLicences            DriverLicence[]
+  department                Department?                        @relation(fields: [departmentId], references: [id])
   jobRole                   JobRole?                           @relation(fields: [jobRoleId], references: [id])
+  onboardingTemplate        OnboardingTemplate?                @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
   user                      User                               @relation(fields: [userId], references: [id])
   workingPattern            WorkingPattern?                    @relation(fields: [workingPatternId], references: [id])
   workingPatternAssignments EmployeeWorkingPatternAssignment[]
-  leaveEntitlements         LeaveEntitlement[]
-  leaveRequests             LeaveRequest[]
-  Document                  Document[]
-  employmentChecks          EmploymentCheck[] // add this
-  driverLicences            DriverLicence[]
-  trainingRecords           TrainingRecord[]
-  DocumentAcknowledgement   DocumentAcknowledgement[]
-  onboardingTemplateId      String? // Link to template assigned
-  onboardingTemplate        OnboardingTemplate?                @relation("OnboardingTemplateEmployees", fields: [onboardingTemplateId], references: [id])
-  onboardingStatus          Json? // Track step completion/status per employee (future proof)
-  onboardingInstances       OnboardingInstance[]
+  employmentChecks          EmploymentCheck[]
   formAssignments           FormAssignment[]
   formSubmissions           FormSubmission[]
+  leaveEntitlements         LeaveEntitlement[]
+  leaveRequests             LeaveRequest[]
+  onboardingInstances       OnboardingInstance[]
+  trainingRecords           TrainingRecord[]
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -116,8 +101,8 @@ model EventCategory {
   updatedAt        DateTime           @updatedAt
   categoryType     String
   color            String?
-  eventRules       EventRule[]
   systemDefined    Boolean            @default(false)
+  eventRules       EventRule[]
   subcategories    EventSubcategory[]
   LeaveEntitlement LeaveEntitlement[]
   leaveRequests    LeaveRequest[]
@@ -158,93 +143,76 @@ model LeaveRequest {
 }
 
 model LeaveEntitlement {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   employeeId      String
-  createdAt       DateTime @default(now())
+  createdAt       DateTime      @default(now())
   totalDays       Float
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime      @updatedAt
   usedDays        Float
-  daysAllocated   Float    @default(0)
+  daysAllocated   Float         @default(0)
   eventCategoryId String
-
-  carryoverDays   Float     @default(0) // ✅ NEW: stores carried over days
-  carryoverExpiry DateTime? // ✅ NEW: when carryover expires, optional
-
-  employee      Employee      @relation(fields: [employeeId], references: [id])
-  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+  carryoverDays   Float         @default(0)
+  carryoverExpiry DateTime?
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([employeeId, eventCategoryId])
 }
 
 model Department {
-  id          String  @id @default(cuid())
-  name        String
-  code        String? @unique
-  description String?
-  active      Boolean @default(true)
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  headId String?
-  head   User?   @relation("DepartmentHead", fields: [headId], references: [id])
-
-  employees Employee[]
-  users     User[]
-
-  // 🔥 Updated M:N for document restrictions
-  documents Document[] @relation("DocumentDepartments")
-
+  id                  String               @id @default(cuid())
+  name                String
+  companyId           String
+  active              Boolean              @default(true)
+  code                String?              @unique
   createdAt           DateTime             @default(now())
+  description         String?
+  headId              String?
   updatedAt           DateTime             @updatedAt
+  company             Company              @relation(fields: [companyId], references: [id])
+  head                User?                @relation("DepartmentHead", fields: [headId], references: [id])
+  employees           Employee[]
+  users               User[]
+  documents           Document[]           @relation("DocumentDepartments")
   onboardingTemplates OnboardingTemplate[] @relation("OnboardingTemplateDepartments")
 
   @@unique([companyId, name])
 }
 
 model Company {
-  id       String  @id @default(cuid())
-  name     String  @unique
-  code     String? @unique // ✅ Optional: ERP/payroll sync code
-  industry String? // ✅ Optional: Industry classification
-  size     Int? // ✅ Optional: Employee count (cached for reporting)
-  address  String? // ✅ Optional: Company HQ address
-  phone    String? // ✅ Optional: Contact number
-  website  String? // ✅ Optional: Corporate website
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  departments Department[]
-  jobRoles    JobRole[] // ✅ Added for multi-tenant job role relation
-
-  SavedReport         SavedReport[]
+  id                  String               @id @default(cuid())
+  name                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  address             String?
+  code                String?              @unique
+  industry            String?
+  phone               String?
+  size                Int?
+  website             String?
+  departments         Department[]
   documents           Document[]
-  onboardingTemplates OnboardingTemplate[]
-  users               User[]
   forms               Form[]
+  jobRoles            JobRole[]
+  onboardingTemplates OnboardingTemplate[]
+  SavedReport         SavedReport[]
+  users               User[]
 }
 
 model JobRole {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  active      Boolean @default(true)
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  payGrade String?
-  level    Int?
-
-  users     User[]
-  employees Employee[] // ✅ Added opposite relation to Employee
-
-  // 🔥 Added M:N relation for document restrictions
-  documents Document[] @relation("DocumentJobRoles")
-
+  id                  String               @id @default(cuid())
+  name                String
+  active              Boolean              @default(true)
   createdAt           DateTime             @default(now())
+  description         String?
+  level               Int?
+  payGrade            String?
   updatedAt           DateTime             @updatedAt
+  companyId           String
+  employees           Employee[]
+  company             Company              @relation(fields: [companyId], references: [id])
+  users               User[]
+  documents           Document[]           @relation("DocumentJobRoles")
   onboardingTemplates OnboardingTemplate[] @relation("OnboardingTemplateJobRoles")
 
   @@unique([companyId, name])
@@ -283,20 +251,18 @@ model WorkingPatternWeek {
 }
 
 model EventRule {
-  id                    String  @id @default(cuid())
+  id                    String        @id @default(cuid())
   companyId             String
   eventCategoryId       String
-  enforceEntitlement    Boolean @default(true)
-  noticePeriodDays      Int     @default(0)
+  enforceEntitlement    Boolean       @default(true)
+  noticePeriodDays      Int           @default(0)
   maxConcurrent         Int?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
   maxBookingLength      Int?
-  maxCarryoverDays      Int? // ✅ max days to carry over; null disables carryover
-  carryoverExpiryMonths Int? // ✅ null disables expiry; if set, carryover expires X months after leave year end
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+  maxCarryoverDays      Int?
+  carryoverExpiryMonths Int?
+  eventCategory         EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([companyId, eventCategoryId])
 }
@@ -306,137 +272,123 @@ model BlackoutDay {
   date             DateTime
   companyId        String
   allEvents        Boolean  @default(false)
-  eventCategoryIds String[] // stores IDs of categories this blackout applies to (empty if allEvents=true)
+  eventCategoryIds String[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
 
 model FieldMetadata {
   id           String   @id @default(cuid())
-  model        String // e.g., "user", "employee"
-  field        String // e.g., "email", "isActive"
-  label        String // e.g., "Email", "Is Active"
-  fieldType    String // e.g., "string", "boolean", "date"
+  model        String
+  field        String
+  label        String
+  fieldType    String
   isReportable Boolean  @default(true)
   createdAt    DateTime @default(now())
 }
 
 model SavedReport {
-  id          Int      @id @default(autoincrement())
   name        String
-  description String?
-  category    String
-  fields      String[] // ✅ clean native array
-  filters     Json?
-  sort        Json?
-  pagination  Json?
-  createdBy   String
-  user        User     @relation(fields: [createdBy], references: [id])
   companyId   String?
-  Company     Company? @relation(fields: [companyId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  category    String
+  createdBy   String
+  id          Int      @id @default(autoincrement())
+  description String?
+  filters     Json?
+  pagination  Json?
+  sort        Json?
+  fields      String[]
+  Company     Company? @relation(fields: [companyId], references: [id])
+  user        User     @relation(fields: [createdBy], references: [id])
 }
 
 model Document {
-  id          String    @id @default(cuid())
-  name        String
-  category    String?
-  description String?
-  path        String
-  size        Int
-  type        String
-  url         String
-  createdAt   DateTime  @default(now())
-  deletedAt   DateTime?
-
-  // Relations
-  uploader   User      @relation(fields: [uploaderId], references: [id])
-  uploaderId String
-  company    Company   @relation(fields: [companyId], references: [id])
-  companyId  String
-  employee   Employee? @relation(fields: [employeeId], references: [id])
-  employeeId String?
-
-  // 🔥 M:N Visibility Restrictions
-  departments Department[] @relation("DocumentDepartments")
-  jobRoles    JobRole[]    @relation("DocumentJobRoles")
-
-  // Access Control Flags
-  canViewAdmin    Boolean @default(true)
-  canViewManager  Boolean @default(false)
-  canViewEmployee Boolean @default(true)
-
-  // Acknowledgement
-  requiresAck      Boolean                   @default(false) // ✅ NEW
-  acknowledgements DocumentAcknowledgement[] // ✅ NEW RELATION
-
-  // Other Relations
+  id                        String                    @id @default(cuid())
+  name                      String
+  category                  String?
+  path                      String
+  size                      Int
+  type                      String
+  uploaderId                String
+  companyId                 String
+  createdAt                 DateTime                  @default(now())
+  deletedAt                 DateTime?
+  url                       String
+  employeeId                String?
+  description               String?
+  canViewAdmin              Boolean                   @default(true)
+  canViewEmployee           Boolean                   @default(true)
+  canViewManager            Boolean                   @default(false)
+  requiresAck               Boolean                   @default(false)
+  requireAckFromNewStarters Boolean                   @default(false)
+  company                   Company                   @relation(fields: [companyId], references: [id])
+  employee                  Employee?                 @relation(fields: [employeeId], references: [id])
+  uploader                  User                      @relation(fields: [uploaderId], references: [id])
+  acknowledgements          DocumentAcknowledgement[]
   driverLicences            DriverLicence[]
-  trainingRecords           TrainingRecord[]
-  requireAckFromNewStarters Boolean          @default(false)
   onboardingSteps           OnboardingStep[]
+  trainingRecords           TrainingRecord[]
+  departments               Department[]              @relation("DocumentDepartments")
+  jobRoles                  JobRole[]                 @relation("DocumentJobRoles")
 }
 
 model DocumentAcknowledgement {
   id                String           @id @default(cuid())
-  document          Document         @relation(fields: [documentId], references: [id])
   documentId        String
-  employee          Employee         @relation(fields: [employeeId], references: [id])
   employeeId        String
   acknowledgedAt    DateTime         @default(now())
-  EmploymentCheck   EmploymentCheck? @relation(fields: [employmentCheckId], references: [id])
   employmentCheckId String?
+  document          Document         @relation(fields: [documentId], references: [id])
+  employee          Employee         @relation(fields: [employeeId], references: [id])
+  EmploymentCheck   EmploymentCheck? @relation(fields: [employmentCheckId], references: [id])
 
-  @@unique([documentId, employeeId]) // ✅ Prevent duplicates
+  @@unique([documentId, employeeId])
 }
 
 model EmploymentCheck {
-  id             String   @id @default(cuid())
-  employeeId     String
-  typeOfCheck    String
-  documentNumber String
-  dateOfIssue    DateTime
-  expiryDate     DateTime
-  documentUrl    String? // optional link to uploaded document
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  id                       String                    @id @default(cuid())
+  employeeId               String
+  typeOfCheck              String
+  documentNumber           String
+  dateOfIssue              DateTime
+  expiryDate               DateTime
+  documentUrl              String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  documentAcknowledgements DocumentAcknowledgement[]
   employee                 Employee                  @relation(fields: [employeeId], references: [id])
-  documentAcknowledgements DocumentAcknowledgement[] // ✅ NEW back-reference
 }
 
 model DriverLicence {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   employeeId    String
   type          String
   licenceNumber String
   issueDate     DateTime
   expiryDate    DateTime
   documentId    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  employee Employee  @relation(fields: [employeeId], references: [id])
-  document Document? @relation(fields: [documentId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  document      Document? @relation(fields: [documentId], references: [id])
+  employee      Employee  @relation(fields: [employeeId], references: [id])
 }
 
 model TrainingRecord {
-  id            String    @id @default(cuid())
+  id            String           @id @default(cuid())
   employeeId    String
-  courseId      String
-  providerId    String
   dateCompleted DateTime
   expiryDate    DateTime?
   documentId    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  employee Employee         @relation(fields: [employeeId], references: [id])
-  document Document?        @relation(fields: [documentId], references: [id])
-  course   Course           @relation(fields: [courseId], references: [id])
-  provider TrainingProvider @relation(fields: [providerId], references: [id])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  courseId      String
+  providerId    String
+  course        Course           @relation(fields: [courseId], references: [id])
+  document      Document?        @relation(fields: [documentId], references: [id])
+  employee      Employee         @relation(fields: [employeeId], references: [id])
+  provider      TrainingProvider @relation(fields: [providerId], references: [id])
 }
 
 model ExpiryRule {
@@ -454,18 +406,18 @@ model NewsPost {
   id            String    @id @default(uuid())
   title         String
   slug          String    @unique
-  content       Json // Rich text (e.g. from Editor.js or Tiptap)
+  content       Json
   authorId      String
-  author        User      @relation(fields: [authorId], references: [id])
   publishedAt   DateTime?
   pinned        Boolean   @default(false)
-  tags          String[] // e.g. ["Policy", "Wellbeing"]
-  audience      Json // Flexible: store dept/location/role filters here
-  attachments   String[] // Supabase file URLs
-  videoEmbedUrl String? // Optional video URL
+  tags          String[]
+  audience      Json
+  attachments   String[]
+  videoEmbedUrl String?
   sendEmail     Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  author        User      @relation(fields: [authorId], references: [id])
 }
 
 model Course {
@@ -486,22 +438,21 @@ model Location {
 }
 
 model OnboardingTemplate {
-  id          String           @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean          @default(false)
-  isDefault   Boolean          @default(false)
-  steps       OnboardingStep[]
-  companyId   String
-  company     Company          @relation(fields: [companyId], references: [id])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
+  id                    String                 @id @default(cuid())
+  name                  String
+  description           String?
+  isDefault             Boolean                @default(false)
+  companyId             String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  isActive              Boolean                @default(false)
   employees             Employee[]             @relation("OnboardingTemplateEmployees")
+  onboardingAssignments OnboardingAssignment[]
+  onboardingInstances   OnboardingInstance[]
+  steps                 OnboardingStep[]
+  company               Company                @relation(fields: [companyId], references: [id])
   departments           Department[]           @relation("OnboardingTemplateDepartments")
   jobRoles              JobRole[]              @relation("OnboardingTemplateJobRoles")
-  onboardingInstances   OnboardingInstance[]
-  onboardingAssignments OnboardingAssignment[]
 
   @@unique([companyId, name])
 }
@@ -509,17 +460,16 @@ model OnboardingTemplate {
 model OnboardingStep {
   id                      String                   @id @default(cuid())
   type                    OnboardingStepType
-  label                   String // e.g. 'Acknowledge H&S Policy', 'Upload Right to Work', etc.
-  order                   Int // Drag/drop step order
+  label                   String
+  order                   Int
   templateId              String
-  template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
-  // --- Step-specific fields (one used per type) ---
-  documentId              String? // For acknowledge-document step
+  documentId              String?
+  uploadType              OnboardingUploadType?
+  instruction             String?
+  formId                  String?
   document                Document?                @relation(fields: [documentId], references: [id])
-  formId                  String? // For fill-form step using reusable forms
   form                    Form?                    @relation(fields: [formId], references: [id])
-  uploadType              OnboardingUploadType? // For upload steps (e.g. passport, right to work)
-  instruction             String? // For simple instruction/checklist steps
+  template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
   onboardingStepInstances OnboardingStepInstance[]
 
   @@unique([templateId, label])
@@ -528,33 +478,33 @@ model OnboardingStep {
 model OnboardingInstance {
   id          String                   @id @default(cuid())
   employeeId  String
-  employee    Employee                 @relation(fields: [employeeId], references: [id])
   templateId  String
-  template    OnboardingTemplate       @relation(fields: [templateId], references: [id])
   startedAt   DateTime                 @default(now())
   completedAt DateTime?
   status      String                   @default("active")
+  employee    Employee                 @relation(fields: [employeeId], references: [id])
+  template    OnboardingTemplate       @relation(fields: [templateId], references: [id])
   steps       OnboardingStepInstance[]
 }
 
 model OnboardingStepInstance {
   id                   String                   @id @default(cuid())
   onboardingInstanceId String
-  onboardingInstance   OnboardingInstance       @relation(fields: [onboardingInstanceId], references: [id])
   stepId               String
-  step                 OnboardingStep           @relation(fields: [stepId], references: [id])
-  status               String // "pending", "completed"
+  status               String
   completedAt          DateTime?
   order                Int                      @default(0)
+  onboardingInstance   OnboardingInstance       @relation(fields: [onboardingInstanceId], references: [id])
+  step                 OnboardingStep           @relation(fields: [stepId], references: [id])
   responses            OnboardingStepResponse[]
 }
 
 model OnboardingStepResponse {
   id                       String                 @id @default(cuid())
   onboardingStepInstanceId String
-  onboardingStepInstance   OnboardingStepInstance @relation(fields: [onboardingStepInstanceId], references: [id])
   response                 Json
   createdAt                DateTime               @default(now())
+  onboardingStepInstance   OnboardingStepInstance @relation(fields: [onboardingStepInstanceId], references: [id])
 }
 
 model OnboardingAssignment {
@@ -563,56 +513,51 @@ model OnboardingAssignment {
   templateId  String
   startedAt   DateTime           @default(now())
   completedAt DateTime?
-  progress    Json? // [{stepId: string, completed: boolean, completedAt: DateTime?}]
-  // relations
-  user        User               @relation(fields: [userId], references: [id])
+  progress    Json?
   template    OnboardingTemplate @relation(fields: [templateId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
 }
 
 model Form {
-  id          String  @id @default(cuid())
-  company     Company @relation(fields: [companyId], references: [id])
-  companyId   String
-  name        String
-  description String?
-  schema      Json // Field definitions
-  version     Int     @default(1)
-  isActive    Boolean @default(true)
-
-  // Role-based visibility
-  visibleToRoles       Role[]   @default([ADMIN, MANAGER, EMPLOYEE])
-  visibleToDepartments String[] @default([]) // Department IDs
-  visibleToJobRoles    String[] @default([]) // JobRole IDs
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  assignments FormAssignment[]
-  submissions FormSubmission[]
-  onboardingSteps OnboardingStep[]
+  id                   String           @id @default(cuid())
+  companyId            String
+  name                 String
+  description          String?
+  schema               Json
+  version              Int              @default(1)
+  isActive             Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  visibleToDepartments String[]         @default([])
+  visibleToJobRoles    String[]         @default([])
+  visibleToRoles       Role[]           @default([ADMIN, MANAGER, EMPLOYEE])
+  company              Company          @relation(fields: [companyId], references: [id])
+  assignments          FormAssignment[]
+  submissions          FormSubmission[]
+  onboardingSteps      OnboardingStep[]
 }
 
 model FormAssignment {
   id           String    @id @default(cuid())
-  form         Form      @relation(fields: [formId], references: [id])
   formId       String
-  employee     Employee  @relation(fields: [employeeId], references: [id])
   employeeId   String
-  assignedBy   User      @relation("AssignedForms", fields: [assignedById], references: [id])
   assignedById String
   dueDate      DateTime?
   status       String    @default("pending")
   completedAt  DateTime?
+  assignedBy   User      @relation("AssignedForms", fields: [assignedById], references: [id])
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  form         Form      @relation(fields: [formId], references: [id])
 }
 
 model FormSubmission {
   id          String   @id @default(cuid())
-  form        Form     @relation(fields: [formId], references: [id])
   formId      String
-  employee    Employee @relation(fields: [employeeId], references: [id])
   employeeId  String
   data        Json
   submittedAt DateTime @default(now())
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  form        Form     @relation(fields: [formId], references: [id])
 }
 
 enum Role {
@@ -651,9 +596,9 @@ enum LeaveType {
 }
 
 enum OnboardingStepType {
-  ACKNOWLEDGE_DOCUMENT // Read & acknowledge a document (docId required)
-  UPLOAD_DOCUMENT // Upload a document (type required, e.g. "Right to Work")
-  INSTRUCTION // Custom instruction/checklist
+  ACKNOWLEDGE_DOCUMENT
+  UPLOAD_DOCUMENT
+  INSTRUCTION
 }
 
 enum OnboardingUploadType {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FormField } from './types'
+import { FormField } from 'api/forms/[formId]/types'
 import { Input } from '@/components/ui/Input'
 import Checkbox from '@/components/ui/Checkbox'
 import { Textarea } from '@/components/ui/textarea'

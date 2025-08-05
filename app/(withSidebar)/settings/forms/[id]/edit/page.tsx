@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { PageShell } from '@/components/ui/PageShell'
 import FormBuilder from '@/components/forms/FormBuilder/FormBuilder'
 import { toast } from 'sonner'
-import { FormField } from '@/components/forms/FormBuilder/types'
+import { FormField } from '@/api/forms/[formId]/types'
 
 interface FormData {
   id: string

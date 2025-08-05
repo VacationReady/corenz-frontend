@@ -31,17 +31,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Name and schema are required" }, { status: 400 });
   }
 
-  const form = await prisma.form.create({
-    data: {
-      name,
-      description,
-      schema,
-      companyId: session.user.companyId,
-      visibleToRoles: visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
-      visibleToDepartments: visibleToDepartments || [],
-      visibleToJobRoles: visibleToJobRoles || [],
-    },
-  });
+  const slug = name.toLowerCase().replace(/\s+/g, '-');
+
+const form = await prisma.form.create({
+  data: {
+    name,
+    description,
+    schema,
+    companyId: session.user.companyId,
+    visibleToRoles: visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
+    visibleToDepartments: visibleToDepartments || [],
+    visibleToJobRoles: visibleToJobRoles || [],
+    slug, // ✅ required
+  },
+});
 
   return NextResponse.json(form, { status: 201 });
 }

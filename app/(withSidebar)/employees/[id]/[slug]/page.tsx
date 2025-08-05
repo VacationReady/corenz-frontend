@@ -23,8 +23,8 @@ export default function EmployeeFormPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const employeeId = params.id as string;
-  const slug = params.slug as string;
+const employeeId = params!.id as string;
+const slug = params!.slug as string;
 
   useEffect(() => {
     const fetchForm = async () => {

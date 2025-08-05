@@ -526,6 +526,7 @@ model Form {
   id                   String           @id @default(cuid())
   companyId            String
   name                 String
+  slug                 String
   description          String?
   schema               Json
   version              Int              @default(1)
@@ -539,6 +540,9 @@ model Form {
   assignments          FormAssignment[]
   submissions          FormSubmission[]
   onboardingSteps      OnboardingStep[]
+
+  @@unique([companyId, slug])
+  @@unique([companyId, name])
 }
 
 model FormAssignment {

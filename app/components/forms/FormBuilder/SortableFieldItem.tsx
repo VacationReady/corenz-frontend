@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { FormField } from './types';
+import { FormField } from '@/api/forms/[formId]/types'
 
 interface SortableFieldItemProps {
   field: FormField;

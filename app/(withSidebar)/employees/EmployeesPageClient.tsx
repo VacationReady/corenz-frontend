@@ -13,7 +13,10 @@ import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import OffboardingModal from "@/components/employees/OffboardingModal";
+import { MoreVertical, Users, UserX, Archive } from "lucide-react";
 
 // ✅ Inline type definition to avoid import error
 type FilterOption = { label: string; value: string };
@@ -32,6 +35,16 @@ interface Employee {
   departmentName?: string;
   jobRoleId?: string;
   jobRoleName?: string;
+  isActive: boolean;
+  offboardingStatus?: string;
+  lastWorkingDate?: string;
+  offboardingRecord?: {
+    id: string;
+    status: string;
+    lastWorkingDate: string;
+    offboardingType: string;
+    completedAt?: string;
+  };
 }
 
 function EmployeesContent() {
@@ -42,6 +55,9 @@ function EmployeesContent() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+  const [isOffboardingModalOpen, setOffboardingModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [activeTab, setActiveTab] = useState("active");
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
@@ -55,10 +71,10 @@ function EmployeesContent() {
     managerId: "",
   });
 
-  const fetchData = async () => {
+  const fetchData = async (status = "all") => {
     try {
       const [empRes, deptRes, roleRes] = await Promise.all([
-        fetch("/api/employees").then((r) => r.json()),
+        fetch(`/api/employees?status=${status}`).then((r) => r.json()),
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
       ]);
@@ -72,8 +88,8 @@ function EmployeesContent() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(activeTab);
+  }, [activeTab]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -139,6 +155,17 @@ function EmployeesContent() {
     } catch {
       alert("Network error while starting onboarding");
     }
+  };
+
+  // 🟠 Handle offboarding
+  const handleStartOffboarding = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setOffboardingModalOpen(true);
+  };
+
+  const handleOffboardingSuccess = () => {
+    fetchData(activeTab);
+    setSelectedEmployee(null);
   };
 
   // Filters
@@ -292,6 +319,23 @@ function EmployeesContent() {
         />
       </div>
 
+      {/* Employee Status Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Active ({employees.filter(emp => emp.isActive).length})
+          </TabsTrigger>
+          <TabsTrigger value="archived" className="flex items-center gap-2">
+            <Archive className="w-4 h-4" />
+            Archived ({employees.filter(emp => !emp.isActive).length})
+          </TabsTrigger>
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            All ({employees.length})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Employee Table */}
       <div className="bg-card rounded-xl shadow-lg border border-enhanced overflow-hidden">
         <div className="overflow-x-auto">
@@ -303,13 +347,14 @@ function EmployeesContent() {
                 <th className="text-left p-4 font-semibold text-foreground">Department</th>
                 <th className="text-left p-4 font-semibold text-foreground">Job Role</th>
                 <th className="text-left p-4 font-semibold text-foreground">Email</th>
+                <th className="text-left p-4 font-semibold text-foreground">Status</th>
                 <th className="text-left p-4 font-semibold text-foreground">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-enhanced">
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
                     {filters.search || filters.departments.length > 0 || filters.jobRoles.length > 0 || filters.status.length > 0
                       ? "No employees match your current filters."
                       : "No employees found."}
@@ -327,6 +372,24 @@ function EmployeesContent() {
                     <td className="p-4 text-foreground">{emp.departmentName || "-"}</td>
                     <td className="p-4 text-foreground">{emp.jobRoleName || "-"}</td>
                     <td className="p-4 text-foreground">{emp.email || "-"}</td>
+                    <td className="p-4">
+                      {emp.isActive ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          Active
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                            Archived
+                          </Badge>
+                          {emp.offboardingRecord && (
+                            <Badge variant="outline" className="text-xs">
+                              {emp.offboardingRecord.offboardingType.replace('_', ' ')}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-4">
                       <DropdownMenu
                         trigger={
@@ -354,6 +417,15 @@ function EmployeesContent() {
                         <DropdownMenuItem onClick={() => handleStartOnboarding(emp.id)}>
                           Start Onboarding
                         </DropdownMenuItem>
+                        {emp.isActive && !emp.offboardingRecord && (
+                          <DropdownMenuItem 
+                            onClick={() => handleStartOffboarding(emp)}
+                            className="text-orange-600"
+                          >
+                            <UserX className="w-4 h-4 mr-2" />
+                            Start Offboarding
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenu>
                     </td>
                   </tr>
@@ -365,9 +437,18 @@ function EmployeesContent() {
       </div>
 
       {/* Modals */}
-      <AddEmployeeModal open={isModalOpen} onClose={() => setModalOpen(false)} onSuccess={fetchData} />
-      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
-      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
+      <AddEmployeeModal open={isModalOpen} onClose={() => setModalOpen(false)} onSuccess={() => fetchData(activeTab)} />
+      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(activeTab); }} />}
+      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(activeTab); }} />}
+      <OffboardingModal 
+        open={isOffboardingModalOpen} 
+        onClose={() => {
+          setOffboardingModalOpen(false);
+          setSelectedEmployee(null);
+        }} 
+        employee={selectedEmployee}
+        onSuccess={handleOffboardingSuccess}
+      />
     </PageShell>
   );
 }

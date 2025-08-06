@@ -10,9 +10,22 @@ import { authOptions } from "@/lib/auth-options";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ GET: Return employees with their user data for listing
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status") || "active"; // active, archived, all
+    
+    const whereCondition: any = {};
+    
+    if (status === "active") {
+      whereCondition.isActive = true;
+    } else if (status === "archived") {
+      whereCondition.isActive = false;
+    }
+    // If status is "all", no filter is applied
+
     const employees = await prisma.employee.findMany({
+      where: whereCondition,
       include: {
         user: {
           select: {
@@ -30,6 +43,15 @@ export async function GET() {
         department: {
           select: { id: true, name: true },
         },
+        offboardingRecord: {
+          select: {
+            id: true,
+            status: true,
+            lastWorkingDate: true,
+            offboardingType: true,
+            completedAt: true,
+          },
+        },
       },
       orderBy: { id: "desc" },
     });
@@ -46,6 +68,10 @@ export async function GET() {
       departmentName: emp.department?.name ?? null,
       jobRoleId: emp.user.jobRole?.id ?? null,
       jobRoleName: emp.user.jobRole?.name ?? null,
+      isActive: emp.isActive,
+      offboardingStatus: emp.offboardingStatus,
+      lastWorkingDate: emp.lastWorkingDate,
+      offboardingRecord: emp.offboardingRecord,
     }));
 
     return NextResponse.json(flattened);

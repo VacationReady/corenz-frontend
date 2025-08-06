@@ -36,6 +36,16 @@ model User {
   newsPosts                                    NewsPost[]
   onboardingAssignments                        OnboardingAssignment[]
   SavedReport                                  SavedReport[]
+  
+  // Offboarding relations
+  offboardingInitiated                         EmployeeOffboarding[]  @relation("OffboardingInitiatedBy")
+  offboardingAccessRemoved                     EmployeeOffboarding[]  @relation("OffboardingAccessRemovedBy")
+  offboardingHandoverAssigned                  EmployeeOffboarding[]  @relation("OffboardingHandoverAssignedTo")
+  offboardingHRReviewCompleted                 EmployeeOffboarding[]  @relation("OffboardingHRReviewCompletedBy")
+  offboardingAssetsReturnedTo                  EmployeeOffboarding[]  @relation("OffboardingAssetsReturnedTo")
+  tasksAssigned                                OffboardingTask[]      @relation("TaskAssignedTo")
+  tasksCompleted                               OffboardingTask[]      @relation("TaskCompletedBy")
+  
   company                                      Company?               @relation(fields: [companyId], references: [id])
   department                                   Department?            @relation(fields: [departmentId], references: [id])
   jobRole                                      JobRole?               @relation(fields: [jobRoleId], references: [id])
@@ -61,6 +71,15 @@ model Employee {
   onboardingStatus          Json?
   onboardingTemplateId      String?
   companyId                 String?                           // <-- Added companyId column
+  
+  // Offboarding fields
+  offboardingStatus         String?
+  offboardingDate           DateTime?
+  lastWorkingDate           DateTime?
+  noticePeriodDays          Int?
+  offboardingReason         String?
+  offboardingNotes          String?
+  
   company                   Company?                          @relation(fields: [companyId], references: [id]) // <-- Relation
 
   Document                  Document[]
@@ -80,6 +99,7 @@ model Employee {
   leaveRequests             LeaveRequest[]
   onboardingInstances       OnboardingInstance[]
   trainingRecords           TrainingRecord[]
+  offboardingRecord         EmployeeOffboarding?
 }
 
 model EmployeeWorkingPatternAssignment {
@@ -635,5 +655,136 @@ enum OnboardingUploadType {
   RIGHT_TO_WORK
   DRIVER_LICENSE
   TRAINING_CERTIFICATE
+  OTHER
+}
+
+model EmployeeOffboarding {
+  id                        String    @id @default(cuid())
+  employeeId                String    @unique
+  initiatedById             String
+  initiatedAt               DateTime  @default(now())
+  completedAt               DateTime?
+  status                    OffboardingStatus @default(IN_PROGRESS)
+  
+  // Key Dates
+  resignationDate           DateTime?
+  lastWorkingDate           DateTime
+  noticePeriodDays          Int?
+  actualLeaveDate           DateTime?
+  
+  // Reason & Classification
+  offboardingType           OffboardingType
+  offboardingReason         String?
+  isVoluntary               Boolean   @default(true)
+  
+  // Access Management
+  removeAccessImmediately   Boolean   @default(false)
+  accessRemovedAt           DateTime?
+  accessRemovedBy           String?
+  
+  // Asset Management
+  assetsToReturn            Json?
+  assetsReturned            Boolean   @default(false)
+  assetsReturnedAt          DateTime?
+  assetsReturnedTo          String?
+  
+  // Knowledge Transfer
+  handoverRequired          Boolean   @default(false)
+  handoverAssignedTo        String?
+  handoverCompleted         Boolean   @default(false)
+  handoverCompletedAt       DateTime?
+  handoverNotes             String?
+  
+  // Final Pay & Benefits
+  finalPayCalculated        Boolean   @default(false)
+  finalPayAmount            Decimal?  @db.Decimal(10,2)
+  unusedLeaveHours          Decimal?  @db.Decimal(8,2)
+  unusedLeavePayment        Decimal?  @db.Decimal(10,2)
+  benefitsEndDate           DateTime?
+  
+  // Exit Process
+  exitInterviewRequired     Boolean   @default(false)
+  exitInterviewScheduled    Boolean   @default(false)
+  exitInterviewCompletedAt  DateTime?
+  exitInterviewNotes        String?
+  
+  // Administrative
+  hrReviewRequired          Boolean   @default(true)
+  hrReviewCompleted         Boolean   @default(false)
+  hrReviewCompletedBy       String?
+  hrReviewCompletedAt       DateTime?
+  hrNotes                   String?
+  
+  // References & Documentation
+  referenceContactAllowed   Boolean   @default(true)
+  documentationArchived     Boolean   @default(false)
+  complianceCheckCompleted  Boolean   @default(false)
+  
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  // Relations
+  employee                  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  initiatedBy               User      @relation("OffboardingInitiatedBy", fields: [initiatedById], references: [id])
+  accessRemovedByUser       User?     @relation("OffboardingAccessRemovedBy", fields: [accessRemovedBy], references: [id])
+  handoverAssignedToUser    User?     @relation("OffboardingHandoverAssignedTo", fields: [handoverAssignedTo], references: [id])
+  hrReviewCompletedByUser   User?     @relation("OffboardingHRReviewCompletedBy", fields: [hrReviewCompletedBy], references: [id])
+  assetsReturnedToUser      User?     @relation("OffboardingAssetsReturnedTo", fields: [assetsReturnedTo], references: [id])
+  
+  tasks                     OffboardingTask[]
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([lastWorkingDate])
+}
+
+model OffboardingTask {
+  id            String    @id @default(cuid())
+  offboardingId String
+  title         String
+  description   String?
+  category      TaskCategory
+  isRequired    Boolean   @default(true)
+  assignedTo    String?
+  dueDate       DateTime?
+  completedAt   DateTime?
+  completedBy   String?
+  notes         String?
+  order         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  offboarding   EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  assignedToUser User?              @relation("TaskAssignedTo", fields: [assignedTo], references: [id])
+  completedByUser User?             @relation("TaskCompletedBy", fields: [completedBy], references: [id])
+
+  @@index([offboardingId])
+  @@index([category])
+  @@index([assignedTo])
+}
+
+enum OffboardingStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OffboardingType {
+  RESIGNATION
+  TERMINATION
+  RETIREMENT
+  END_OF_CONTRACT
+  REDUNDANCY
+  OTHER
+}
+
+enum TaskCategory {
+  ACCESS
+  ASSETS
+  HANDOVER
+  PAYROLL
+  HR
+  COMPLIANCE
   OTHER
 }

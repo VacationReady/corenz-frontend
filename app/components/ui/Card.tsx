@@ -80,6 +80,20 @@ export function CardTitle({
   );
 }
 
+export function CardDescription({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={clsx("text-sm text-muted-foreground", className)}>
+      {children}
+    </p>
+  );
+}
+
 export function CardFooter({
   children,
   className,

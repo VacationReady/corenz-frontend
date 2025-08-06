@@ -33,55 +33,32 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
 
   // Fetch active forms for this company that are visible to this employee
   const forms = await prisma.form.findMany({
-    where: {
-      companyId: employee.companyId || "",
-      isActive: true,
-      AND: [
-        {
-          OR: [
-            // Forms visible to all roles (empty array or null)
-            { visibleToRoles: { isEmpty: true } },
-            { visibleToRoles: { equals: null } },
-
-            // Forms visible to employee's role
-            { visibleToRoles: { has: userRole } },
-
-            // Forms visible to employee's department (only if specified on form)
-            ...(userDepartment
-              ? [
-                  {
-                    AND: [
-                      { visibleToDepartments: { not: { isEmpty: true } } },
-                      { visibleToDepartments: { has: userDepartment } },
-                    ],
-                  },
-                ]
-              : []),
-
-            // Forms visible to employee's job role (only if specified on form)
-            ...(userJobRole
-              ? [
-                  {
-                    AND: [
-                      { visibleToJobRoles: { not: { isEmpty: true } } },
-                      { visibleToJobRoles: { has: userJobRole } },
-                    ],
-                  },
-                ]
-              : []),
-          ],
-        },
-      ],
-    },
-    select: {
-      slug: true,
-      name: true,
-      formType: true,
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
+  where: {
+    companyId: employee.companyId || "",
+    isActive: true,
+    AND: [
+      {
+        OR: [
+          { visibleToRoles: { isEmpty: true } },
+          { visibleToRoles: { equals: null } },
+          { visibleToRoles: { has: userRole } },
+          ...(userDepartment
+            ? [{ visibleToDepartments: { has: userDepartment } }]
+            : []),
+          ...(userJobRole
+            ? [{ visibleToJobRoles: { has: userJobRole } }]
+            : []),
+        ],
+      },
+    ],
+  },
+  select: {
+    slug: true,
+    name: true,
+    formType: true,
+  },
+  orderBy: { name: "asc" },
+});
 
   const menu = [
     { href: `/employees/${params.id}/overview`, label: "Overview" },

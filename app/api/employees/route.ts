@@ -142,13 +142,13 @@ export async function POST(req: Request) {
 
     // ✅ Create Employee linked to User
     const employee = await prisma.employee.create({
-      data: {
-        user: { connect: { id: user.id } },
-        isActive: true,
-        department: departmentId ? { connect: { id: departmentId } } : undefined,
-        companyId: companyId, // ✅ Ensure company ID is set
-      },
-    });
+  data: {
+    user: { connect: { id: user.id } },
+    isActive: true,
+    department: departmentId ? { connect: { id: departmentId } } : undefined,
+    companyId: companyId!, // ✅ assert non-null
+  },
+});
 
     await prisma.activationToken.create({
       data: {

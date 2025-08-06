@@ -45,23 +45,65 @@ export default async function DebugFormsPage() {
     },
   });
 
+  // Also check for users without employee records
+  const usersWithoutEmployees = await prisma.user.findMany({
+    where: {
+      companyId: session.user.companyId,
+      employee: null, // Users who don't have an employee record
+    },
+    select: {
+      id: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  // Get total user count for debugging
+  const totalUsers = await prisma.user.count({
+    where: {
+      companyId: session.user.companyId,
+    },
+  });
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Forms Debug Page</h1>
       
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Sample Employee Info</h2>
-        {sampleEmployee ? (
-          <div className="bg-gray-100 p-4 rounded">
-            <p><strong>ID:</strong> {sampleEmployee.id}</p>
-            <p><strong>Name:</strong> {sampleEmployee.user?.name}</p>
-            <p><strong>Role:</strong> {sampleEmployee.user?.role}</p>
-            <p><strong>Department:</strong> {sampleEmployee.user?.department?.name || 'None'}</p>
-            <p><strong>Job Role:</strong> {sampleEmployee.user?.jobRole?.name || 'None'}</p>
+        <h2 className="text-xl font-semibold mb-4">Database Debug Info</h2>
+        <div className="space-y-4">
+          <div className="bg-blue-50 p-4 rounded">
+            <p><strong>Total Users in Company:</strong> {totalUsers}</p>
+            <p><strong>Users without Employee records:</strong> {usersWithoutEmployees.length}</p>
           </div>
-        ) : (
-          <p>No employees found</p>
-        )}
+
+          {usersWithoutEmployees.length > 0 && (
+            <div className="bg-yellow-50 p-4 rounded">
+              <h3 className="font-semibold mb-2">Users without Employee records:</h3>
+              {usersWithoutEmployees.map(user => (
+                <div key={user.id} className="text-sm">
+                  • {user.firstName} {user.lastName} ({user.email}) - Role: {user.role}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h3 className="text-lg font-semibold">Sample Employee Info</h3>
+          {sampleEmployee ? (
+            <div className="bg-gray-100 p-4 rounded">
+              <p><strong>ID:</strong> {sampleEmployee.id}</p>
+              <p><strong>Name:</strong> {sampleEmployee.user?.name}</p>
+              <p><strong>Role:</strong> {sampleEmployee.user?.role}</p>
+              <p><strong>Department:</strong> {sampleEmployee.user?.department?.name || 'None'}</p>
+              <p><strong>Job Role:</strong> {sampleEmployee.user?.jobRole?.name || 'None'}</p>
+            </div>
+          ) : (
+            <p>No employees found</p>
+          )}
+        </div>
       </div>
 
       <div>

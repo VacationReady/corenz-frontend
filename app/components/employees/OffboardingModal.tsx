@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
@@ -185,17 +185,16 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <div className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-        <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-4xl translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[90vh] overflow-y-auto">
-          <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-            <h2 className="text-lg font-semibold leading-none tracking-tight flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-500" />
-              Start Offboarding Process
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Initiate the offboarding process for {employee.firstName} {employee.lastName} ({employee.email})
-            </p>
-          </div>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-orange-500" />
+            Start Offboarding Process
+          </DialogTitle>
+          <DialogDescription>
+            Initiate the offboarding process for {employee.firstName} {employee.lastName} ({employee.email})
+          </DialogDescription>
+        </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Employee Info Summary */}
@@ -235,6 +234,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       <Button
                         variant="outline"
                         className="w-full justify-start text-left font-normal"
+                        type="button"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.lastWorkingDate ? (
@@ -244,7 +244,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 z-[200]" align="start">
                       <Calendar
                         mode="single"
                         selected={formData.lastWorkingDate || undefined}
@@ -262,6 +262,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       <Button
                         variant="outline"
                         className="w-full justify-start text-left font-normal"
+                        type="button"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.resignationDate ? (
@@ -271,7 +272,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0 z-[200]" align="start">
                       <Calendar
                         mode="single"
                         selected={formData.resignationDate || undefined}
@@ -465,8 +466,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
               </Button>
             </div>
           </form>
-        </div>
-      </div>
+      </DialogContent>
     </Dialog>
   );
 }

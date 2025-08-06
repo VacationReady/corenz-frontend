@@ -13,7 +13,7 @@ import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
 import { MoreVertical, Users, UserX, Archive } from "lucide-react";

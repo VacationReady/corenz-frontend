@@ -85,35 +85,35 @@ export async function POST(
       {
         title: "Revoke system access",
         description: "Remove access to all company systems and accounts",
-        category: TaskCategory.ACCESS,
+        category: "ACCESS" as TaskCategory,
         isRequired: true,
         order: 1,
       },
       {
         title: "Collect company assets",
         description: "Retrieve laptop, phone, keys, ID card, and other company property",
-        category: TaskCategory.ASSETS,
+        category: "ASSETS" as TaskCategory,
         isRequired: true,
         order: 2,
       },
       {
         title: "Process final payroll",
         description: "Calculate final pay including unused leave and benefits",
-        category: TaskCategory.PAYROLL,
+        category: "PAYROLL" as TaskCategory,
         isRequired: true,
         order: 3,
       },
       {
         title: "HR documentation review",
         description: "Complete HR checklist and ensure compliance",
-        category: TaskCategory.HR,
+        category: "HR" as TaskCategory,
         isRequired: true,
         order: 4,
       },
       {
         title: "Archive employee records",
         description: "Move employee documentation to archived status",
-        category: TaskCategory.COMPLIANCE,
+        category: "COMPLIANCE" as TaskCategory,
         isRequired: true,
         order: 5,
       },
@@ -124,7 +124,7 @@ export async function POST(
       defaultTasks.push({
         title: "Complete knowledge handover",
         description: "Transfer responsibilities and knowledge to assigned colleague",
-        category: TaskCategory.HANDOVER,
+        category: "HANDOVER" as TaskCategory,
         isRequired: true,
         order: 2.5,
       });
@@ -134,7 +134,7 @@ export async function POST(
       defaultTasks.push({
         title: "Conduct exit interview",
         description: "Schedule and complete exit interview",
-        category: TaskCategory.HR,
+        category: "HR" as TaskCategory,
         isRequired: false,
         order: 3.5,
       });

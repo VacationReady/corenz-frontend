@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { PageShell } from "@/components/ui/PageShell";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import Button from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserX, Clock, CheckCircle, AlertCircle, Calendar, User } from "lucide-react";
 import { format } from "date-fns";

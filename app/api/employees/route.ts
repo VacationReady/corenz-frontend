@@ -146,7 +146,7 @@ export async function POST(req: Request) {
     user: { connect: { id: user.id } },
     isActive: true,
     department: departmentId ? { connect: { id: departmentId } } : undefined,
-    companyId: companyId!, // ✅ assert non-null
+    company: { connect: { id: companyId! } }, // ✅ FIXED: use relation connect
   },
 });
 

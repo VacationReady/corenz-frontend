@@ -34,7 +34,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
       OR: [
         // Forms visible to all roles (empty array or null)
         { visibleToRoles: { isEmpty: true } },
-        { visibleToRoles: null },
+        { visibleToRoles: { equals: null } },
         // Forms visible to employee's role
         { visibleToRoles: { has: employee.user?.role || 'EMPLOYEE' } },
         // Forms visible to employee's department

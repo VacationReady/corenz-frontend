@@ -829,9 +829,13 @@ async function main() {
 
 
     departmentId: department.id,
+<<<<<<< HEAD
 
 
 
+=======
+    companyId: company.id, // ✅ FIXED: Added missing companyId
+>>>>>>> e5283084746767765111594c0293f15188a8f6d6
     isActive: true,
 
 
@@ -901,9 +905,13 @@ async function main() {
 
 
         password: hashedPassword,
+<<<<<<< HEAD
 
 
 
+=======
+        companyId: company.id, // ✅ FIXED: Added missing companyId
+>>>>>>> e5283084746767765111594c0293f15188a8f6d6
         departmentId: department.id,
 
 
@@ -925,6 +933,7 @@ async function main() {
 
 
       update: {},
+<<<<<<< HEAD
 
 
 
@@ -932,6 +941,14 @@ async function main() {
 
 
 
+=======
+      create: {
+        userId: user.id,
+        departmentId: department.id,
+        companyId: company.id, // ✅ FIXED: Added missing companyId
+        isActive: true
+      },
+>>>>>>> e5283084746767765111594c0293f15188a8f6d6
     });
 
 

@@ -75,6 +75,7 @@ model Employee {
   employmentChecks          EmploymentCheck[]
   formAssignments           FormAssignment[]
   formSubmissions           FormSubmission[]
+  formDataRecords           FormDataRecord[]                   // NEW: Persistent form data
   leaveEntitlements         LeaveEntitlement[]
   leaveRequests             LeaveRequest[]
   onboardingInstances       OnboardingInstance[]
@@ -529,6 +530,7 @@ model Form {
   slug                 String
   description          String?
   schema               Json
+  formType             FormType         @default(SUBMISSION) // NEW: Form type
   version              Int              @default(1)
   isActive             Boolean          @default(true)
   createdAt            DateTime         @default(now())
@@ -539,6 +541,7 @@ model Form {
   company              Company          @relation(fields: [companyId], references: [id])
   assignments          FormAssignment[]
   submissions          FormSubmission[]
+  dataRecords          FormDataRecord[] // NEW: Persistent data records
   onboardingSteps      OnboardingStep[]
 
   @@unique([companyId, slug])
@@ -568,10 +571,28 @@ model FormSubmission {
   form        Form     @relation(fields: [formId], references: [id])
 }
 
+model FormDataRecord {
+  id          String   @id @default(cuid())
+  formId      String
+  employeeId  String
+  data        Json     // Persistent data that can be updated
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  form        Form     @relation(fields: [formId], references: [id])
+
+  @@unique([formId, employeeId]) // One data record per employee per form
+}
+
 enum Role {
   ADMIN
   MANAGER
   EMPLOYEE
+}
+
+enum FormType {
+  SUBMISSION  // One-time submission forms (current behavior)
+  DATA_SCREEN // Persistent data screens (new behavior)
 }
 
 enum ApprovalStatus {

@@ -178,6 +178,7 @@ async function main() {
   create: {
     userId: adminUser.id,
     departmentId: department.id,
+    companyId: company.id, // ✅ FIXED: Added missing companyId
     isActive: true,
   },
 });
@@ -196,13 +197,19 @@ async function main() {
         lastName: emp.lastName,
         role: 'EMPLOYEE',
         password: hashedPassword,
+        companyId: company.id, // ✅ FIXED: Added missing companyId
         departmentId: department.id,
       },
     });
     await prisma.employee.upsert({
       where: { userId: user.id },
       update: {},
-      create: { userId: user.id, departmentId: department.id, isActive: true },
+      create: {
+        userId: user.id,
+        departmentId: department.id,
+        companyId: company.id, // ✅ FIXED: Added missing companyId
+        isActive: true
+      },
     });
   }
 

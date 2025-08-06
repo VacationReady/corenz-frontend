@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-
   // ✅ 1. Create Company
   const company = await prisma.company.upsert({
     where: { name: 'CoreNZ' },
@@ -14,7 +13,14 @@ async function main() {
   console.log(`✅ Company created: ${company.name} (${company.id})`);
 
   // ✅ 2. Create Department linked to Company
-  // ✅ 11. Admin User & Employees
+  const department = await prisma.department.upsert({
+    where: { companyId_name: { companyId: company.id, name: 'Sales' } },
+    update: {},
+    create: { name: 'Sales', companyId: company.id },
+  });
+  console.log(`✅ Department created: ${department.name} (${department.id})`);
+
+  // ✅ 3. Admin User & Employees
   const hashedPassword = await bcrypt.hash('Admin123!', 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@corenz.com' },
@@ -73,14 +79,7 @@ async function main() {
     });
   }
 
-  const department = await prisma.department.upsert({
-    where: { companyId_name: { companyId: company.id, name: 'Sales' } },
-    update: {},
-    create: { name: 'Sales', companyId: company.id },
-  });
-  console.log(`✅ Department created: ${department.name} (${department.id})`);
-
-  // ✅ 3. Create system-defined EventCategories
+  // ✅ 4. Create system-defined EventCategories
   const systemCategories = [
     {
       name: 'Annual Leave',
@@ -129,7 +128,7 @@ async function main() {
     });
   }
 
-  // ✅ 4. FieldMetadata (dynamic reporting)
+  // ✅ 5. FieldMetadata (dynamic reporting)
   await prisma.fieldMetadata.createMany({
     data: [
       { model: "user", field: "email", label: "Email", fieldType: "string" },
@@ -149,7 +148,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // ✅ 5. Expiry Rules
+  // ✅ 6. Expiry Rules
   const expiryRules = [
     { category: "Employment Checks", daysBefore: 28 },
     { category: "Driver Licence", daysBefore: 30 },
@@ -163,7 +162,7 @@ async function main() {
     });
   }
 
-  // ✅ 6. Departments (compound unique)
+  // ✅ 7. Departments (compound unique)
   const additionalDepartments = ['HR', 'Finance', 'Engineering'];
   for (const deptName of additionalDepartments) {
     await prisma.department.upsert({
@@ -173,7 +172,7 @@ async function main() {
     });
   }
 
-  // ✅ 7. Job Roles (compound unique)
+  // ✅ 8. Job Roles (compound unique)
   const jobRoles = ['Manager', 'Employee', 'Admin'];
   for (const roleName of jobRoles) {
     await prisma.jobRole.upsert({
@@ -183,7 +182,7 @@ async function main() {
     });
   }
 
-  // ✅ 8. Locations (global unique)
+  // ✅ 9. Locations (global unique)
   const locations = ['Auckland', 'Wellington', 'Christchurch', 'London', 'Manchester'];
   for (const locName of locations) {
     await prisma.location.upsert({
@@ -193,7 +192,7 @@ async function main() {
     });
   }
 
-  // ✅ 9. Onboarding Template + Steps
+  // ✅ 10. Onboarding Template + Steps
   const onboardingTemplate = await prisma.onboardingTemplate.upsert({
     where: { companyId_name: { companyId: company.id, name: 'Default Onboarding' } },
     update: { isDefault: true, isActive: true },
@@ -219,7 +218,7 @@ async function main() {
     });
   }
 
-  // ✅ 11. Admin User & Employees
+  // ✅ 11. Admin User & Employees (Duplicate Block - retained as requested)
   const adminUser2 = await prisma.user.upsert({
     where: { email: 'admin@corenz.com' },
     update: {},

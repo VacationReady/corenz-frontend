@@ -67,8 +67,14 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     if (!over) return
 
     // Add new field from palette
-    if (over.id === 'canvas' && !fields.find((f) => f.id === active.id)) {
-      const newField: FormField = { id: uuidv4(), type: String(active.id), label: 'Untitled Field', required: false }
+    const dragged = active.data?.current as { type: string; label: string } | undefined
+    if (over.id === 'canvas' && dragged && !fields.find((f) => f.id === active.id)) {
+      const newField: FormField = {
+        id: uuidv4(),
+        type: dragged.type,
+        label: dragged.label || 'Untitled Field',
+        required: false,
+      }
       setFields((prev) => [...prev, newField])
       setSelectedField(newField)
       toast.success(`Added ${newField.type} field`)
@@ -178,9 +184,11 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
       <DndContext
         onDragEnd={handleDragEnd}
-        onDragStart={(e) =>
-          setActiveDragField({ id: 'temp', type: String(e.active.id), label: String(e.active.id), required: false })
-        }
+        onDragStart={(e) => {
+          const dragged = e.active.data?.current as { type: string; label: string } | undefined
+          if (!dragged) return
+          setActiveDragField({ id: 'temp', type: dragged.type, label: dragged.label, required: false })
+        }}
       >
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <FieldPalette />

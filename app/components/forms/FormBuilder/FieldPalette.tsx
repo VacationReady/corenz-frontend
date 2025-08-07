@@ -26,7 +26,7 @@ export function FieldPalette() {
         <h3 className="font-semibold mb-3 text-lg">Field Types</h3>
         <div className="flex flex-col gap-2">
           {FIELD_TYPES.map((field) => (
-            <DraggableField key={field.type} id={field.type} label={field.label} hint={field.hint} />
+            <DraggableField key={field.type} field={field} />
           ))}
         </div>
       </div>
@@ -34,8 +34,11 @@ export function FieldPalette() {
   );
 }
 
-function DraggableField({ id, label, hint }: { id: string; label: string; hint: string }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+function DraggableField({ field }: { field: { type: string; label: string; hint: string } }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: field.type,
+    data: field,
+  });
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -56,10 +59,10 @@ function DraggableField({ id, label, hint }: { id: string; label: string; hint: 
             isDragging ? 'ring-2 ring-blue-400' : ''
           }`}
         >
-          {label}
+          {field.label}
         </div>
       </TooltipTrigger>
-      <TooltipContent side="right">{hint}</TooltipContent>
+      <TooltipContent side="right">{field.hint}</TooltipContent>
     </Tooltip>
   );
 }

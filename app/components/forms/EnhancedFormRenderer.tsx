@@ -116,13 +116,51 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     }
   };
 
-  const onSubmit = (data: Record<string, any>) => {
-    if (formData?.form.formType === 'DATA_SCREEN') {
-      saveData(data);
-    } else {
-      submitForm(data);
+  const onSubmit = async (rawData: Record<string, any>) => {
+  const data = { ...rawData };
+
+  for (const field of formData!.form.schema) {
+    if (field.type === 'file') {
+      const file = rawData[field.id]?.[0]; // FileList
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('employeeId', employeeId);
+        formData.append('category', formData!.form.name);
+        formData.append('accessAdmin', 'true');
+        formData.append('accessManager', 'true');
+        formData.append('accessEmployee', 'true');
+        formData.append('requiresAck', 'false');
+
+        try {
+          const uploadRes = await fetch('/api/documents/upload-employee', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const uploadResult = await uploadRes.json();
+          if (uploadRes.ok && uploadResult.document) {
+            data[field.id] = uploadResult.document;
+          } else {
+            toast.error(`Failed to upload file for ${field.label}`);
+            return;
+          }
+        } catch (err) {
+          toast.error(`Upload error: ${field.label}`);
+          return;
+        }
+      } else {
+        data[field.id] = null;
+      }
     }
-  };
+  }
+
+  if (formData?.form.formType === 'DATA_SCREEN') {
+    saveData(data);
+  } else {
+    submitForm(data);
+  }
+};
 
   if (loading) {
     return (
@@ -202,6 +240,14 @@ function renderField(field: FormField, register: any, watch: any, setValue: any)
   const baseInput = 'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
 
   switch (field.type) {
+case 'file':
+  return (
+    <input
+      type="file"
+      className="border rounded px-3 py-2 w-full text-sm"
+      {...register(field.id, { required: field.required })}
+    />
+  );
     case 'text':
     case 'email':
     case 'phone':

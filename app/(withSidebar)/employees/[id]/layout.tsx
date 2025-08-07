@@ -24,12 +24,20 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     return <div>Employee not found.</div>;
   }
 
-  // Extract user details for filtering
   const userRole = employee.user?.role || "EMPLOYEE";
-  const userDepartment = employee.user?.department?.name;
+  const userDepartmentId = employee.user?.department?.id?.trim();
   const userJobRole = employee.user?.jobRole?.name;
 
-  // First, get ALL forms to debug visibility
+  // DEBUG: log user context
+  console.log("=== FORM DEBUG INFO ===");
+  console.log("Employee:", {
+    id: employee.id,
+    role: userRole,
+    departmentId: userDepartmentId,
+    jobRole: userJobRole,
+  });
+
+  // DEBUG: manually filter all forms
   const allForms = await prisma.form.findMany({
     where: {
       companyId: employee.companyId || "",
@@ -46,83 +54,51 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     },
   });
 
-  console.log("=== FORM DEBUG INFO ===");
-  console.log("Employee:", {
-    id: employee.id,
-    role: userRole,
-    department: userDepartment,
-    jobRole: userJobRole,
-  });
-  console.log("All active forms:", allForms.length);
-
   allForms.forEach((form) => {
-    console.log(`Form: ${form.name}`, {
-      type: form.formType,
-      visibleToRoles: form.visibleToRoles,
-      visibleToDepartments: form.visibleToDepartments,
-      visibleToJobRoles: form.visibleToJobRoles,
+    const roleMatch = form.visibleToRoles.includes(userRole);
+    const deptMatch =
+      form.visibleToDepartments.length === 0 ||
+      (userDepartmentId && form.visibleToDepartments.includes(userDepartmentId));
+    const jobRoleMatch =
+      form.visibleToJobRoles.length === 0 ||
+      (userJobRole && form.visibleToJobRoles.includes(userJobRole));
+
+    const shouldShow = roleMatch && deptMatch && jobRoleMatch;
+
+    console.log(`Form "${form.name}" visibility:`, {
+      roleMatch,
+      deptMatch,
+      jobRoleMatch,
+      shouldShow,
     });
   });
 
-  // Manual filtering with debug logs
-  const filteredForms = allForms
-    .filter((form) => {
-      const roleMatch = form.visibleToRoles.includes(userRole);
-      const deptMatch =
-        form.visibleToDepartments.length === 0 ||
-        (userDepartment && form.visibleToDepartments.includes(userDepartment));
-      const jobRoleMatch =
-        form.visibleToJobRoles.length === 0 ||
-        (userJobRole && form.visibleToJobRoles.includes(userJobRole));
-
-      const shouldShow = roleMatch && deptMatch && jobRoleMatch;
-
-      console.log(`Form "${form.name}" visibility:`, {
-        roleMatch,
-        deptMatch,
-        jobRoleMatch,
-        shouldShow,
-      });
-
-      return shouldShow;
-    })
-    .map((form) => ({
-      slug: form.slug,
-      name: form.name,
-      formType: form.formType,
-    }));
-
-  console.log("Final forms to show:", filteredForms.length);
-  console.log("=== END DEBUG INFO ===");
-
-  // Actual query to fetch forms visible to this employee (for production use)
+  // FINAL QUERY: fetch forms with proper filter
   const forms = await prisma.form.findMany({
     where: {
       companyId: employee.companyId || "",
       isActive: true,
       AND: [
-        // Role visibility check
         {
           OR: [
             { visibleToRoles: { isEmpty: true } },
-            { visibleToRoles: { equals: null } },
             { visibleToRoles: { has: userRole } },
           ],
         },
-        // Department visibility check
         {
           OR: [
             { visibleToDepartments: { isEmpty: true } },
-            { visibleToDepartments: { equals: null } },
-            ...(userDepartment ? [{ visibleToDepartments: { has: userDepartment } }] : []),
+            ...(userDepartmentId
+              ? [{ visibleToDepartments: { has: userDepartmentId } }]
+              : []),
           ],
         },
-        // Job role visibility check
         {
           OR: [
             { visibleToJobRoles: { isEmpty: true } },
-            { visibleToJobRoles: { equals: null } },
-            ...(userJobRole ? [{ visibleToJobRoles: { has: userJobRole } }] : []),
+            ...(userJobRole
+              ? [{ visibleToJobRoles: { has: userJobRole } }]
+              : []),
           ],
         },
       ],
@@ -135,11 +111,13 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     orderBy: { name: "asc" },
   });
 
+  console.log("Final forms to show:", forms.length);
+  console.log("=== END DEBUG INFO ===");
+
   const menu = [
     { href: `/employees/${params.id}/overview`, label: "Overview" },
     { href: `/employees/${params.id}/leave`, label: "Leave" },
     { href: `/employees/${params.id}/documents`, label: "Documents" },
-    // Dynamic form links
     ...forms.map((form) => ({
       href: `/employees/${params.id}/${form.slug}`,
       label: form.name,

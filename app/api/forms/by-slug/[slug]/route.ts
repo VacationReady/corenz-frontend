@@ -48,12 +48,32 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
       const user = employee.user;
 
       const userRole = user?.role || "EMPLOYEE";
-      const userDepartmentId = user?.department?.id; // ✅ Now using department ID
+      const userDepartmentId = user?.department?.id?.trim(); // ✅ trim for safety
       const userJobRole = user?.jobRole?.name;
 
       console.log("🔍 Role:", userRole);
       console.log("🏢 Department ID:", userDepartmentId);
       console.log("🛠 Job Role:", userJobRole);
+
+      // ✅ TEMP: manually test department match
+      const formDebug = await prisma.form.findFirst({
+        where: {
+          slug: params.slug,
+          companyId: session.user.companyId,
+          isActive: true,
+        },
+        select: {
+          visibleToDepartments: true,
+        },
+      });
+
+      console.log("🧪 Manual dept match test:");
+      console.log("  Dept ID in form:", formDebug?.visibleToDepartments);
+      console.log("  Dept ID on user:", userDepartmentId);
+      console.log(
+        "  Match result:",
+        userDepartmentId && formDebug?.visibleToDepartments?.includes(userDepartmentId)
+      );
 
       visibilityFilter = {
         AND: [

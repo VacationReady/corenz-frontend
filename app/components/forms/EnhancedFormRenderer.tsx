@@ -34,7 +34,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
 
   const { register, handleSubmit, setValue, watch, reset } = useForm();
 
-  // Load form and existing data
   useEffect(() => {
     const loadFormData = async () => {
       try {
@@ -43,7 +42,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
           const data = await res.json();
           setFormData(data);
 
-          // Populate form with existing data
           if (data.data) {
             Object.keys(data.data).forEach(key => {
               setValue(key, data.data[key]);
@@ -52,7 +50,7 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         } else {
           setError('Failed to load form data');
         }
-      } catch (error) {
+      } catch {
         setError('Failed to load form data');
       } finally {
         setLoading(false);
@@ -62,7 +60,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     loadFormData();
   }, [formId, employeeId, setValue]);
 
-  // Save data for data screen forms
   const saveData = async (data: Record<string, any>) => {
     setSaving(true);
     try {
@@ -76,7 +73,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         toast.success('Data saved successfully');
         onDataChange?.(data);
 
-        // Reload to get updated timestamp
         const updatedRes = await fetch(`/api/forms/${formId}/data?employeeId=${employeeId}`);
         if (updatedRes.ok) {
           const updatedData = await updatedRes.json();
@@ -85,13 +81,13 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
       } else {
         toast.error('Failed to save data');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to save data');
     } finally {
       setSaving(false);
     }
   };
-  // Submit data for submission forms
+
   const submitForm = async (data: Record<string, any>) => {
     setSaving(true);
     try {
@@ -103,12 +99,12 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
 
       if (res.ok) {
         toast.success('Form submitted successfully');
-        reset(); // Clear form after submission
+        reset();
         onDataChange?.(data);
       } else {
         toast.error('Failed to submit form');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to submit form');
     } finally {
       setSaving(false);
@@ -124,11 +120,12 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         if (file) {
           const uploadFormData = new FormData();
           uploadFormData.append('file', file);
+          uploadFormData.append('name', file.name);
           uploadFormData.append('employeeId', employeeId);
           uploadFormData.append('category', formData!.form.name);
-          uploadFormData.append('accessAdmin', 'true');
-          uploadFormData.append('accessManager', 'true');
-          uploadFormData.append('accessEmployee', 'true');
+          uploadFormData.append('canViewAdmin', 'true');
+          uploadFormData.append('canViewManager', 'true');
+          uploadFormData.append('canViewEmployee', 'true');
           uploadFormData.append('requiresAck', 'false');
 
           try {
@@ -144,7 +141,7 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
               toast.error(`Failed to upload file for ${field.label}`);
               return;
             }
-          } catch (err) {
+          } catch {
             toast.error(`Upload error: ${field.label}`);
             return;
           }
@@ -230,7 +227,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     </div>
   );
 }
-// Enhanced field renderer with support for new field types
 function renderField(field: FormField, register: any, watch: any, setValue: any) {
   const baseInput = 'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
 
@@ -249,13 +245,13 @@ function renderField(field: FormField, register: any, watch: any, setValue: any)
     case 'phone':
     case 'date':
       return <Input type={field.type} placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
-    
+
     case 'number':
       return <Input type="number" placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
-    
+
     case 'textarea':
       return <Textarea placeholder={field.placeholder} className="min-h-[80px]" {...register(field.id, { required: field.required })} />;
-    
+
     case 'select':
       return (
         <select className={baseInput} {...register(field.id, { required: field.required })}>
@@ -265,19 +261,18 @@ function renderField(field: FormField, register: any, watch: any, setValue: any)
           ))}
         </select>
       );
-    
+
     case 'list':
       return <ListField field={field} register={register} watch={watch} setValue={setValue} />;
-    
+
     case 'table':
       return <TableField field={field} register={register} watch={watch} setValue={setValue} />;
-    
+
     default:
       return <Input placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
   }
 }
 
-// List field component for multiple text entries
 function ListField({ field, register, watch, setValue }: any) {
   const currentValue = watch(field.id) || [];
 
@@ -331,7 +326,6 @@ function ListField({ field, register, watch, setValue }: any) {
   );
 }
 
-// Table field component for structured data
 function TableField({ field, register, watch, setValue }: any) {
   const currentValue = watch(field.id) || [];
 

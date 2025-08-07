@@ -120,12 +120,14 @@ export async function POST(req: NextRequest) {
     // --- END: Send Resend email for employee docs with requiresAck ---
 
     return NextResponse.json({
-  id: document.id,
-  url: document.url,
-  name: document.name,
-  category: document.category,
-  size: document.size,
-  type: document.type,
-  createdAt: document.createdAt, // optional
+  document: {
+    id: document.id,
+    url: document.url,
+    name: document.name,
+    category: document.category,
+    size: document.size,
+    type: document.type,
+    createdAt: document.createdAt,
+  },
 });
 }

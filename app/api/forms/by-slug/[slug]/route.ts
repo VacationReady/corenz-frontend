@@ -34,8 +34,6 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
             include: {
               jobRole: true,
               department: true,
-              // If 'role' were a relation, include it here
-              // role: true,
             },
           },
         },
@@ -49,32 +47,25 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
     if (employee) {
       const user = employee.user;
 
-      if (!user) {
-        console.warn("⚠️ Employee exists but user is null.");
-      }
-
-      const userRole = user?.role || "EMPLOYEE"; // Enum string (correct)
-      const userDepartment = user?.department?.name;
+      const userRole = user?.role || "EMPLOYEE";
+      const userDepartmentId = user?.department?.id; // ✅ Now using department ID
       const userJobRole = user?.jobRole?.name;
 
       console.log("🔍 Role:", userRole);
-      console.log("🏢 Department:", userDepartment);
+      console.log("🏢 Department ID:", userDepartmentId);
       console.log("🛠 Job Role:", userJobRole);
 
       visibilityFilter = {
         AND: [
           {
             OR: [
-              // Only include isEmpty now — no equals: null (fields are non-nullable)
               { visibleToRoles: { isEmpty: true } },
               { visibleToRoles: { has: userRole } },
 
-              ...(userDepartment
+              ...(userDepartmentId
                 ? [
                     {
-                      AND: [
-                        { visibleToDepartments: { has: userDepartment } },
-                      ],
+                      visibleToDepartments: { has: userDepartmentId },
                     },
                   ]
                 : []),
@@ -82,10 +73,7 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
               ...(userJobRole
                 ? [
                     {
-                      AND: [
-                        { visibleToJobRoles: { not: { isEmpty: true } } },
-                        { visibleToJobRoles: { has: userJobRole } },
-                      ],
+                      visibleToJobRoles: { has: userJobRole },
                     },
                   ]
                 : []),

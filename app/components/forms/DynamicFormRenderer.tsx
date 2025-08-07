@@ -77,14 +77,24 @@ export function DynamicFormRenderer({ formId, employeeId, onSubmitSuccess }: Dyn
         if (field.type === 'file' && data[field.id] && data[field.id].length > 0) {
           const file = data[field.id][0];
           try {
-            const uploadResult = await uploadToSupabase(file);
-            processedData[field.id] = {
-              url: uploadResult.url,
-              path: uploadResult.path,
-              name: file.name,
-              size: file.size,
-              type: file.type
-            };
+            const formData = new FormData();
+formData.append('file', file);
+formData.append('employeeId', employeeId || '');
+formData.append('name', field.label || file.name);
+formData.append('category', formId);
+
+const res = await fetch('/api/documents/upload-employee', {
+  method: 'POST',
+  body: formData,
+});
+
+if (!res.ok) {
+  toast.error(`Failed to upload ${field.label}`);
+  return;
+}
+
+const uploaded = await res.json();
+processedData[field.id] = uploaded;
           } catch {
             toast.error(`Failed to upload ${field.label}`);
             return;

@@ -37,8 +37,10 @@ export function DynamicFormRenderer({ formId, employeeId, onSubmitSuccess }: Dyn
         const res = await fetch(`/api/forms/${formId}`);
         if (!res.ok) throw new Error();
         const data = await res.json();
+        console.log("✅ Loaded form schema:", data.schema);
         setFields(data.schema || []);
-      } catch {
+      } catch (err) {
+        console.error("❌ Failed to load form:", err);
         toast.error('Failed to load form');
       } finally {
         setLoading(false);
@@ -47,7 +49,6 @@ export function DynamicFormRenderer({ formId, employeeId, onSubmitSuccess }: Dyn
     fetchForm();
   }, [formId]);
 
-  // Dynamic Zod schema
   const buildValidationSchema = () => {
     const shape: Record<string, any> = {};
     fields.forEach((f) => {
@@ -69,7 +70,6 @@ export function DynamicFormRenderer({ formId, employeeId, onSubmitSuccess }: Dyn
   const formSchema = buildValidationSchema();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(formSchema) });
 
-  // Submit handler
   const submitForm = async (data: Record<string, any>) => {
     try {
       const processedData = { ...data };
@@ -78,23 +78,23 @@ export function DynamicFormRenderer({ formId, employeeId, onSubmitSuccess }: Dyn
           const file = data[field.id][0];
           try {
             const formData = new FormData();
-formData.append('file', file);
-formData.append('employeeId', employeeId || '');
-formData.append('name', field.label || file.name);
-formData.append('category', formId);
+            formData.append('file', file);
+            formData.append('employeeId', employeeId || '');
+            formData.append('name', field.label || file.name);
+            formData.append('category', formId);
 
-const res = await fetch('/api/documents/upload-employee', {
-  method: 'POST',
-  body: formData,
-});
+            const res = await fetch('/api/documents/upload-employee', {
+              method: 'POST',
+              body: formData,
+            });
 
-if (!res.ok) {
-  toast.error(`Failed to upload ${field.label}`);
-  return;
-}
+            if (!res.ok) {
+              toast.error(`Failed to upload ${field.label}`);
+              return;
+            }
 
-const uploaded = await res.json();
-processedData[field.id] = uploaded;
+            const uploaded = await res.json();
+            processedData[field.id] = uploaded;
           } catch {
             toast.error(`Failed to upload ${field.label}`);
             return;
@@ -127,18 +127,21 @@ processedData[field.id] = uploaded;
 
   return (
     <form onSubmit={handleSubmit(submitForm)} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
-      {fields.map((field) => (
-        <div key={field.id} className="flex flex-col gap-2">
-          <label className="font-medium text-sm text-gray-700">
-            {field.label || 'Untitled Field'}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </label>
-          {renderField(field, register)}
-          {errors[field.id] && (
-            <p className="text-red-500 text-xs mt-1">{errors[field.id]?.message as string}</p>
-          )}
-        </div>
-      ))}
+      {fields.map((field) => {
+        console.log("📦 Rendering field:", field);
+        return (
+          <div key={field.id} className="flex flex-col gap-2">
+            <label className="font-medium text-sm text-gray-700">
+              {field.label || 'Untitled Field'}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {renderField(field, register)}
+            {errors[field.id] && (
+              <p className="text-red-500 text-xs mt-1">{errors[field.id]?.message as string}</p>
+            )}
+          </div>
+        );
+      })}
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
@@ -153,6 +156,8 @@ processedData[field.id] = uploaded;
 }
 
 function renderField(field: FormField, register: any) {
+  console.log("🧪 renderField received:", field);
+
   const baseInput =
     'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
 
@@ -199,14 +204,19 @@ function renderField(field: FormField, register: any) {
         </div>
       );
     case 'file':
+      console.log("✅ Rendering file input for field:", field.label);
       return (
-        <input
-          type="file"
-          {...register(field.id)}
-          className={`${baseInput} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
-        />
+        <>
+          <p className="text-blue-500 text-xs italic">[File input active]</p>
+          <input
+            type="file"
+            {...register(field.id)}
+            className={`${baseInput} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+          />
+        </>
       );
     default:
+      console.warn("⚠️ Unknown field type:", field.type);
       return null;
   }
 }

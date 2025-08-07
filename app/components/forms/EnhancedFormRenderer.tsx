@@ -42,7 +42,7 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         if (res.ok) {
           const data = await res.json();
           setFormData(data);
-          
+
           // Populate form with existing data
           if (data.data) {
             Object.keys(data.data).forEach(key => {
@@ -75,7 +75,7 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
       if (res.ok) {
         toast.success('Data saved successfully');
         onDataChange?.(data);
-        
+
         // Reload to get updated timestamp
         const updatedRes = await fetch(`/api/forms/${formId}/data?employeeId=${employeeId}`);
         if (updatedRes.ok) {
@@ -91,7 +91,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
       setSaving(false);
     }
   };
-
   // Submit data for submission forms
   const submitForm = async (data: Record<string, any>) => {
     setSaving(true);
@@ -117,50 +116,50 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
   };
 
   const onSubmit = async (rawData: Record<string, any>) => {
-  const data = { ...rawData };
+    const data = { ...rawData };
 
-  for (const field of formData!.form.schema) {
-    if (field.type === 'file') {
-      const file = rawData[field.id]?.[0]; // FileList
-      if (file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('employeeId', employeeId);
-        formData.append('category', formData!.form.name);
-        formData.append('accessAdmin', 'true');
-        formData.append('accessManager', 'true');
-        formData.append('accessEmployee', 'true');
-        formData.append('requiresAck', 'false');
+    for (const field of formData!.form.schema) {
+      if (field.type === 'file') {
+        const file = rawData[field.id]?.[0];
+        if (file) {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+          uploadFormData.append('employeeId', employeeId);
+          uploadFormData.append('category', formData!.form.name);
+          uploadFormData.append('accessAdmin', 'true');
+          uploadFormData.append('accessManager', 'true');
+          uploadFormData.append('accessEmployee', 'true');
+          uploadFormData.append('requiresAck', 'false');
 
-        try {
-          const uploadRes = await fetch('/api/documents/upload-employee', {
-            method: 'POST',
-            body: formData,
-          });
+          try {
+            const uploadRes = await fetch('/api/documents/upload-employee', {
+              method: 'POST',
+              body: uploadFormData,
+            });
 
-          const uploadResult = await uploadRes.json();
-          if (uploadRes.ok && uploadResult.document) {
-            data[field.id] = uploadResult.document;
-          } else {
-            toast.error(`Failed to upload file for ${field.label}`);
+            const uploadResult = await uploadRes.json();
+            if (uploadRes.ok && uploadResult.document) {
+              data[field.id] = uploadResult.document;
+            } else {
+              toast.error(`Failed to upload file for ${field.label}`);
+              return;
+            }
+          } catch (err) {
+            toast.error(`Upload error: ${field.label}`);
             return;
           }
-        } catch (err) {
-          toast.error(`Upload error: ${field.label}`);
-          return;
+        } else {
+          data[field.id] = null;
         }
-      } else {
-        data[field.id] = null;
       }
     }
-  }
 
-  if (formData?.form.formType === 'DATA_SCREEN') {
-    saveData(data);
-  } else {
-    submitForm(data);
-  }
-};
+    if (formData?.form.formType === 'DATA_SCREEN') {
+      saveData(data);
+    } else {
+      submitForm(data);
+    }
+  };
 
   if (loading) {
     return (
@@ -181,7 +180,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
 
   return (
     <div className="space-y-6">
-      {/* Form Header */}
       <div className="border-b pb-4">
         <h2 className="text-xl font-semibold">{formData.form.name}</h2>
         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
@@ -198,7 +196,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         </div>
       </div>
 
-      {/* Form Fields */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {formData.form.schema.map((field) => (
           <div key={field.id}>
@@ -210,7 +207,6 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
           </div>
         ))}
 
-        {/* Submit/Save Button */}
         <div className="flex justify-end pt-4">
           <Button 
             type="submit" 
@@ -234,20 +230,20 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     </div>
   );
 }
-
 // Enhanced field renderer with support for new field types
 function renderField(field: FormField, register: any, watch: any, setValue: any) {
   const baseInput = 'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
 
   switch (field.type) {
-case 'file':
-  return (
-    <input
-      type="file"
-      className="border rounded px-3 py-2 w-full text-sm"
-      {...register(field.id, { required: field.required })}
-    />
-  );
+    case 'file':
+      return (
+        <input
+          type="file"
+          className="border rounded px-3 py-2 w-full text-sm"
+          {...register(field.id, { required: field.required })}
+        />
+      );
+
     case 'text':
     case 'email':
     case 'phone':
@@ -284,16 +280,16 @@ case 'file':
 // List field component for multiple text entries
 function ListField({ field, register, watch, setValue }: any) {
   const currentValue = watch(field.id) || [];
-  
+
   const addEntry = () => {
     setValue(field.id, [...currentValue, '']);
   };
-  
+
   const removeEntry = (index: number) => {
     const newValue = currentValue.filter((_: any, i: number) => i !== index);
     setValue(field.id, newValue);
   };
-  
+
   const updateEntry = (index: number, value: string) => {
     const newValue = [...currentValue];
     newValue[index] = value;
@@ -338,7 +334,7 @@ function ListField({ field, register, watch, setValue }: any) {
 // Table field component for structured data
 function TableField({ field, register, watch, setValue }: any) {
   const currentValue = watch(field.id) || [];
-  
+
   const addRow = () => {
     const newRow: Record<string, any> = {};
     field.tableColumns?.forEach((col: TableColumn) => {
@@ -346,12 +342,12 @@ function TableField({ field, register, watch, setValue }: any) {
     });
     setValue(field.id, [...currentValue, newRow]);
   };
-  
+
   const removeRow = (index: number) => {
     const newValue = currentValue.filter((_: any, i: number) => i !== index);
     setValue(field.id, newValue);
   };
-  
+
   const updateCell = (rowIndex: number, columnId: string, value: any) => {
     const newValue = [...currentValue];
     newValue[rowIndex] = { ...newValue[rowIndex], [columnId]: value };
@@ -421,7 +417,7 @@ function TableField({ field, register, watch, setValue }: any) {
           </table>
         </div>
       )}
-      
+
       <Button
         type="button"
         variant="outline"

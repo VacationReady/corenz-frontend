@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Ensure uploader exists; if not, fallback to employee's userId
     const employeeForContext = await prisma.employee.findUnique({
         where: { id: employeeId },
-        select: { userId: true, companyId: true },
+        select: { userId: true, companyId: true, user: { select: { companyId: true } } },
     });
     if (!employeeForContext) {
         return NextResponse.json({ error: "Employee not found" }, { status: 404 });
@@ -54,12 +54,15 @@ export async function POST(req: NextRequest) {
     if (!uploaderId) {
         return NextResponse.json({ error: "No valid uploader user found" }, { status: 400 });
     }
-    // Ensure companyId present
-    if (!companyId) {
-        companyId = employeeForContext.companyId || undefined;
-    }
-    if (!companyId) {
-        return NextResponse.json({ error: "Missing company context" }, { status: 400 });
+    // Ensure companyId present (session -> employee -> employee.user)
+    if (!companyId) companyId = employeeForContext.companyId || undefined;
+    if (!companyId) companyId = employeeForContext.user?.companyId || undefined;
+    if (!companyId) return NextResponse.json({ error: "Missing company context" }, { status: 400 });
+
+    // Validate company exists to avoid FK violation
+    const companyExists = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!companyExists) {
+        return NextResponse.json({ error: "Invalid company context" }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();

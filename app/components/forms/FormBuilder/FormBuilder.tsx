@@ -71,11 +71,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
   const slugIsValid = useMemo(() => /^[a-z0-9-]+$/.test(formSlug), [formSlug])
 
-  // Generate slug from name
-  const generateSlug = (name: string) =>
-    name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-').trim()
-
-  const handleNameChange = (name: string) => handleNameChange(name)
+  // (slug generation handled by useSlug)
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDragField(null)

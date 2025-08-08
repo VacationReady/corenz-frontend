@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { X, GripVertical, FileText, UploadCloud, FileEdit, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -324,13 +325,20 @@ export default function OnboardingTemplateEditor({
   };
 
   const StepTypePicker = () => (
-    <div className="flex flex-wrap gap-2 mt-3 mb-6">
-      {STEP_TYPES.map((t) => (
-        <Button key={t.value} variant="ghost" onClick={() => addStep(t.value)} className="flex items-center gap-2">
-          <t.icon className="w-4 h-4" /> {t.label}
-        </Button>
-      ))}
-    </div>
+    <Accordion type="single" collapsible className="mt-3 mb-6">
+      <AccordionItem value="step-types">
+        <AccordionTrigger className="text-sm font-semibold">Add Step</AccordionTrigger>
+        <AccordionContent>
+          <div className="flex flex-wrap gap-2">
+            {STEP_TYPES.map((t) => (
+              <Button key={t.value} variant="ghost" onClick={() => addStep(t.value)} className="flex items-center gap-2">
+                <t.icon className="w-4 h-4" /> {t.label}
+              </Button>
+            ))}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 
   const PreviewBlock = () => (
@@ -382,8 +390,12 @@ export default function OnboardingTemplateEditor({
 
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="ghost" onClick={() => handleSave(false)} disabled={saving}>Save as Draft</Button>
-        <Button onClick={() => { setPublishing(true); handleSave(true); }} disabled={publishing || saving}>Publish</Button>
+        <Button variant="ghost" onClick={() => handleSave(false)} disabled={saving}>
+          {saving ? "Saving…" : "Save as Draft"}
+        </Button>
+        <Button onClick={() => { setPublishing(true); handleSave(true); }} disabled={publishing || saving}>
+          {publishing ? "Publishing…" : "Publish"}
+        </Button>
       </DialogFooter>
     </div>
   );

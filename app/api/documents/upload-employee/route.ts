@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
     const name = formData.get("name") as string;
     const category = formData.get("category") as string;
     const employeeId = formData.get("employeeId") as string;
-    const companyId = session.user.companyId;
-    const uploaderId = session.user.id;
+    let companyId = session.user.companyId as string | undefined;
+    let uploaderId = session.user.id as string | undefined;
 
     // ✅ Access control flags
     const canViewAdmin = formData.get("canViewAdmin") === "true";
@@ -33,6 +33,33 @@ export async function POST(req: NextRequest) {
 
     if (!file || !name || !category || !employeeId) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    // Ensure uploader exists; if not, fallback to employee's userId
+    const employeeForContext = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        select: { userId: true, companyId: true },
+    });
+    if (!employeeForContext) {
+        return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+    if (!uploaderId) {
+        uploaderId = employeeForContext.userId || undefined;
+    } else {
+        const uploaderExists = await prisma.user.findUnique({ where: { id: uploaderId } });
+        if (!uploaderExists) {
+            uploaderId = employeeForContext.userId || undefined;
+        }
+    }
+    if (!uploaderId) {
+        return NextResponse.json({ error: "No valid uploader user found" }, { status: 400 });
+    }
+    // Ensure companyId present
+    if (!companyId) {
+        companyId = employeeForContext.companyId || undefined;
+    }
+    if (!companyId) {
+        return NextResponse.json({ error: "Missing company context" }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
@@ -65,8 +92,8 @@ export async function POST(req: NextRequest) {
             url: fileUrl,
             size: file.size,
             type: file.type,
-            uploaderId,
-            companyId,
+            uploaderId: uploaderId,
+            companyId: companyId,
             employeeId,
             canViewAdmin,
             canViewManager,

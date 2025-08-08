@@ -15,7 +15,7 @@ interface EnhancedFormRendererProps {
   onDataChange?: (data: any) => void;
 }
 
-interface FormData {
+interface FormDataShape {
   form: {
     id: string;
     name: string;
@@ -27,7 +27,7 @@ interface FormData {
 }
 
 export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: EnhancedFormRendererProps) {
-  const [formData, setFormData] = useState<FormData | null>(null);
+  const [formData, setFormData] = useState<FormDataShape | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,31 +111,46 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     }
   };
 
+  const toFile = (v: unknown): File | undefined => {
+    if (!v) return undefined;
+    if (v instanceof File) return v;
+    if (typeof FileList !== 'undefined' && v instanceof FileList) return v.length ? v[0] : undefined;
+    const anyV = v as any;
+    if (anyV?.item) return anyV.item(0) ?? undefined;
+    return undefined;
+  };
+
   const onSubmit = async (rawData: Record<string, any>) => {
     const data = { ...rawData };
 
     for (const field of formData!.form.schema) {
       if (field.type === 'file') {
-        const file = rawData[field.id]?.[0];
+        const file = toFile(rawData[field.id]);
         if (file) {
-          const uploadFormData = new FormData();
-          uploadFormData.append('file', file);
-          uploadFormData.append('name', file.name);
-          uploadFormData.append('employeeId', employeeId);
-          uploadFormData.append('category', formData!.form.name);
-          uploadFormData.append('canViewAdmin', 'true');
-          uploadFormData.append('canViewManager', 'true');
-          uploadFormData.append('canViewEmployee', 'true');
-          uploadFormData.append('requiresAck', 'false');
+          const fd = new FormData();
+          fd.append('file', file);
+          fd.append('name', file.name);
+          fd.append('employeeId', String(employeeId));
+          fd.append('category', String(formData!.form.name || ''));
+          fd.append('canViewAdmin', 'true');
+          fd.append('canViewManager', 'true');
+          fd.append('canViewEmployee', 'true');
+          fd.append('requiresAck', 'false');
 
           try {
             const uploadRes = await fetch('/api/documents/upload-employee', {
               method: 'POST',
-              body: uploadFormData,
+              body: fd, // do not set Content-Type manually
             });
 
+            if (!uploadRes.ok) {
+              const errText = await uploadRes.text();
+              toast.error(`Failed to upload file for ${field.label}: ${errText}`);
+              return;
+            }
+
             const uploadResult = await uploadRes.json();
-            if (uploadRes.ok && uploadResult.document) {
+            if (uploadResult?.document) {
               data[field.id] = uploadResult.document;
             } else {
               toast.error(`Failed to upload file for ${field.label}`);
@@ -180,11 +195,13 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
       <div className="border-b pb-4">
         <h2 className="text-xl font-semibold">{formData.form.name}</h2>
         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-          <span className={`px-2 py-1 rounded text-xs font-medium ${
-            formData.form.formType === 'DATA_SCREEN' 
-              ? 'bg-blue-100 text-blue-800' 
-              : 'bg-green-100 text-green-800'
-          }`}>
+          <span
+            className={`px-2 py-1 rounded text-xs font-medium ${
+              formData.form.formType === 'DATA_SCREEN'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-green-100 text-green-800'
+            }`}
+          >
             {formData.form.formType === 'DATA_SCREEN' ? 'Data Screen' : 'Submission Form'}
           </span>
           {formData.lastUpdated && (
@@ -205,30 +222,27 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         ))}
 
         <div className="flex justify-end pt-4">
-          <Button 
-            type="submit" 
-            disabled={saving}
-            className="flex items-center gap-2"
-          >
+          <Button type="submit" disabled={saving} className="flex items-center gap-2">
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : formData.form.formType === 'DATA_SCREEN' ? (
               <Save className="h-4 w-4" />
             ) : null}
-            {saving 
-              ? 'Saving...' 
-              : formData.form.formType === 'DATA_SCREEN' 
-                ? 'Save Data' 
-                : 'Submit Form'
-            }
+            {saving
+              ? 'Saving...'
+              : formData.form.formType === 'DATA_SCREEN'
+              ? 'Save Data'
+              : 'Submit Form'}
           </Button>
         </div>
       </form>
     </div>
   );
 }
+
 function renderField(field: FormField, register: any, watch: any, setValue: any) {
-  const baseInput = 'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
+  const baseInput =
+    'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
 
   switch (field.type) {
     case 'file':
@@ -244,20 +258,40 @@ function renderField(field: FormField, register: any, watch: any, setValue: any)
     case 'email':
     case 'phone':
     case 'date':
-      return <Input type={field.type} placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
+      return (
+        <Input
+          type={field.type}
+          placeholder={field.placeholder}
+          {...register(field.id, { required: field.required })}
+        />
+      );
 
     case 'number':
-      return <Input type="number" placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
+      return (
+        <Input
+          type="number"
+          placeholder={field.placeholder}
+          {...register(field.id, { required: field.required })}
+        />
+      );
 
     case 'textarea':
-      return <Textarea placeholder={field.placeholder} className="min-h-[80px]" {...register(field.id, { required: field.required })} />;
+      return (
+        <Textarea
+          placeholder={field.placeholder}
+          className="min-h-[80px]"
+          {...register(field.id, { required: field.required })}
+        />
+      );
 
     case 'select':
       return (
         <select className={baseInput} {...register(field.id, { required: field.required })}>
           <option value="">{field.placeholder || 'Select an option'}</option>
           {field.options?.map((opt, i) => (
-            <option key={i} value={opt}>{opt}</option>
+            <option key={i} value={opt}>
+              {opt}
+            </option>
           ))}
         </select>
       );
@@ -269,7 +303,12 @@ function renderField(field: FormField, register: any, watch: any, setValue: any)
       return <TableField field={field} register={register} watch={watch} setValue={setValue} />;
 
     default:
-      return <Input placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
+      return (
+        <Input
+          placeholder={field.placeholder}
+          {...register(field.id, { required: field.required })}
+        />
+      );
   }
 }
 
@@ -360,7 +399,10 @@ function TableField({ field, register, watch, setValue }: any) {
             <thead className="bg-gray-50">
               <tr>
                 {field.tableColumns.map((col: TableColumn) => (
-                  <th key={col.id} className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">
+                  <th
+                    key={col.id}
+                    className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b"
+                  >
                     {col.label}
                     {col.required && <span className="text-red-500 ml-1">*</span>}
                   </th>
@@ -381,7 +423,9 @@ function TableField({ field, register, watch, setValue }: any) {
                         >
                           <option value="">Select...</option>
                           {col.options?.map((opt, i) => (
-                            <option key={i} value={opt}>{opt}</option>
+                            <option key={i} value={opt}>
+                              {opt}
+                            </option>
                           ))}
                         </select>
                       ) : (

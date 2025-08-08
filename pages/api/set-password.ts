@@ -49,11 +49,13 @@ export default async function handler(
     // 4. Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 5. Update user password and mark employee as active
+    // 5. Update user password and mark employee as active + activated
     await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
+        isActivated: true,
+        updatedAt: new Date(),
       },
     });
 

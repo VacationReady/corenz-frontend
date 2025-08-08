@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
 import { MoreVertical, Users, UserX, Archive } from "lucide-react";
+import { toast } from "sonner";
 
 // ✅ Inline type definition to avoid import error
 type FilterOption = { label: string; value: string };
@@ -135,25 +136,43 @@ function EmployeesContent() {
   };
 
   // 🟢 Handle onboarding
+  const [startingId, setStartingId] = useState<string | null>(null);
   const handleStartOnboarding = async (employeeId: string) => {
     if (!employeeId) return;
     try {
+      setStartingId(employeeId);
       const res = await fetch(`/api/onboarding/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId }),
       });
 
+      if (res.status === 401) {
+        toast.error("You are not authorized to start onboarding");
+        return;
+      }
+      if (res.status === 404) {
+        const data = await res.json();
+        toast.error(data.error || "Employee not found");
+        return;
+      }
+      if (res.status === 409) {
+        const data = await res.json();
+        toast.warning(data.error || "Onboarding already in progress");
+        return;
+      }
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Failed to start onboarding");
+        toast.error(data.error || "Failed to start onboarding");
         return;
       }
 
-      alert("Onboarding started!");
-      fetchData();
-    } catch {
-      alert("Network error while starting onboarding");
+      toast.success("Onboarding started");
+      fetchData(activeTab);
+    } catch (e) {
+      toast.error("Network error while starting onboarding");
+    } finally {
+      setStartingId(null);
     }
   };
 
@@ -414,8 +433,8 @@ function EmployeesContent() {
                         >
                           Delete
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStartOnboarding(emp.id)}>
-                          Start Onboarding
+                        <DropdownMenuItem onClick={() => startingId ? undefined : handleStartOnboarding(emp.id)} className={startingId === emp.id ? "opacity-50 cursor-not-allowed" : ""}>
+                          {startingId === emp.id ? "Starting…" : "Start Onboarding"}
                         </DropdownMenuItem>
                         {emp.isActive && !emp.offboardingRecord && (
                           <DropdownMenuItem 

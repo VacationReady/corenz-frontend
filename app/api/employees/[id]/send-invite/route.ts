@@ -27,7 +27,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       create: { userId: employee.user.id, token: activationToken },
     });
 
-    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}`;
+    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&employeeId=${employeeId}`;
 
     await resend.emails.send({
       from: "onboarding@resend.dev",

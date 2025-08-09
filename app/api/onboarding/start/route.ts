@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "";
       const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
+      const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
       await resend.emails.send({
         from: "CoreNZ Notifications <onboarding@resend.dev>",
         to: user.email,
@@ -133,10 +134,7 @@ export async function POST(req: NextRequest) {
         html: `
           <p>Hi ${user.firstName || "there"},</p>
           <p>Your onboarding has been started. Please log in and complete your onboarding steps.</p>
-          <p>
-            <a href="${baseUrl}/login">Login</a>
-            ${employee.id ? ` or once logged in you will be redirected to <a href="${onboardingLink}">your onboarding</a>.` : ''}
-          </p>
+          <p><a href="${loginWithNext}">Login to start onboarding</a></p>
           <p>Thank you,<br/>HR Team</p>
         `,
       });

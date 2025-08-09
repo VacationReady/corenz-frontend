@@ -185,7 +185,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}`;
+    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&employeeId=${employee.id}`;
 
     if (sendInviteNow) {
       await resend.emails.send({

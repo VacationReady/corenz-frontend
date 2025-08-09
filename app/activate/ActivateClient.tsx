@@ -7,6 +7,7 @@ export default function ActivateClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get('token') ?? '';
+  const employeeId = searchParams?.get('employeeId') ?? '';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,8 +41,10 @@ export default function ActivateClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Something went wrong.');
 
-      setSuccess('Password set! Redirecting to login...');
-      setTimeout(() => router.push('/login'), 2000);
+      setSuccess('Password set! Redirecting...');
+      // If employeeId provided, go straight to onboarding after activation
+      const target = employeeId ? `/${employeeId}/onboarding` : '/login';
+      setTimeout(() => router.push(target), 1500);
     } catch (err: any) {
       setError(err.message || 'Unexpected error');
     } finally {

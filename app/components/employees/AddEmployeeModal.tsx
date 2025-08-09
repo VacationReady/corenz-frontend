@@ -38,8 +38,9 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     managerId: "",
   });
 
-  // 👇 NEW: Onboarding toggle
+  // 👇 NEW: toggles
   const [startOnboarding, setStartOnboarding] = useState(true);
+  const [sendInviteNow, setSendInviteNow] = useState(true);
 
   const fetchData = async () => {
     try {
@@ -71,6 +72,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         ...formData,
         companyId: session?.user?.companyId,
         startOnboarding, // 👈 Pass to backend!
+        sendInviteNow,   // 👈 Pass to backend!
       };
 
       const res = await fetch("/api/employees", {
@@ -99,6 +101,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         managerId: "",
       });
       setStartOnboarding(true); // reset toggle
+      setSendInviteNow(true);
 
       onClose();
       if (onSuccess) onSuccess();
@@ -155,10 +158,16 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
               ))}
             </select>
 
-            {/* --- 👇 Onboarding toggle here --- */}
-            <div className="flex items-center gap-2">
-              <Switch checked={startOnboarding} onChange={checked => setStartOnboarding(checked)} />
-              <Label className="text-sm">Start onboarding immediately after adding employee</Label>
+            {/* --- 👇 Toggles --- */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Switch checked={sendInviteNow} onChange={checked => setSendInviteNow(checked)} />
+                <Label className="text-sm">Send login invite now</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={startOnboarding} onChange={checked => setStartOnboarding(checked)} />
+                <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-2">

@@ -132,8 +132,11 @@ export async function POST(req: NextRequest) {
         subject: "Welcome to CoreNZ – Your onboarding is ready",
         html: `
           <p>Hi ${user.firstName || "there"},</p>
-          <p>Your onboarding has been started. Please log in and complete your onboarding steps:</p>
-          <p><a href="${onboardingLink}">Go to your onboarding</a></p>
+          <p>Your onboarding has been started. Please log in and complete your onboarding steps.</p>
+          <p>
+            <a href="${baseUrl}/login">Login</a>
+            ${employee.id ? ` or once logged in you will be redirected to <a href="${onboardingLink}">your onboarding</a>.` : ''}
+          </p>
           <p>Thank you,<br/>HR Team</p>
         `,
       });

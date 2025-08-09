@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 
     const companyId = session.user.companyId;
 
-    const {
+  const {
       firstName,
       lastName,
       email,
@@ -108,6 +108,7 @@ export async function POST(req: Request) {
       departmentId,
       managerId,
       startOnboarding,
+      sendInviteNow,
     } = await req.json();
 
     if (!firstName || !lastName || !email || !startDate || !role) {
@@ -176,6 +177,7 @@ export async function POST(req: Request) {
   },
 });
 
+    // Create activation token now; email optionally sent now or later
     await prisma.activationToken.create({
       data: {
         token: activationToken,
@@ -184,25 +186,38 @@ export async function POST(req: Request) {
     });
 
     const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}`;
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: email,
-      subject: "Activate Your CoreNZ Account",
-      html: `
-        <p>Hi ${firstName},</p>
-        <p>Welcome to CoreNZ! Please click the link below to activate your account and set your password:</p>
-        <p><a href="${activationLink}">Activate Your Account</a></p>
-      `,
-    });
+
+    if (sendInviteNow) {
+      await resend.emails.send({
+        from: "onboarding@resend.dev",
+        to: email,
+        subject: "Activate Your CoreNZ Account",
+        html: `
+          <p>Hi ${firstName},</p>
+          <p>Welcome to CoreNZ! Please click the link below to activate your account and set your password:</p>
+          <p><a href="${activationLink}">Activate Your Account</a></p>
+        `,
+      });
+    }
 
     // ✅ Optional onboarding trigger
     if (startOnboarding) {
-      console.log(`🚀 Onboarding triggered for employee ${employee.id} (${email})`);
-    } else {
-      console.log(`🕒 Onboarding NOT triggered for employee ${employee.id} (${email})`);
+      try {
+        // Hit our start endpoint to create instance + assignment and send onboarding email
+        const startRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ employeeId: employee.id }),
+        });
+        if (!startRes.ok) {
+          console.warn("Onboarding start failed:", await startRes.text());
+        }
+      } catch (e) {
+        console.warn("Onboarding start error:", e);
+      }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, employeeId: employee.id, userId: user.id, activationLink: sendInviteNow ? undefined : activationLink });
   } catch (error) {
     console.error("Error creating employee:", error);
     return NextResponse.json(

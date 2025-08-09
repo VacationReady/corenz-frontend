@@ -433,6 +433,23 @@ function EmployeesContent() {
                         >
                           Delete
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/employees/${emp.id}/send-invite`, { method: 'POST' });
+                              if (!res.ok) {
+                                const data = await res.json().catch(() => ({}));
+                                toast.error(data.error || 'Failed to send invite');
+                                return;
+                              }
+                              toast.success('Login invite sent');
+                            } catch (e) {
+                              toast.error('Network error sending invite');
+                            }
+                          }}
+                        >
+                          Send login invite
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => startingId ? undefined : handleStartOnboarding(emp.id)} className={startingId === emp.id ? "opacity-50 cursor-not-allowed" : ""}>
                           {startingId === emp.id ? "Starting…" : "Start Onboarding"}
                         </DropdownMenuItem>

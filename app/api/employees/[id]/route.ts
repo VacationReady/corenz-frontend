@@ -56,7 +56,8 @@ export async function DELETE(
 ) {
   try {
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id }, // ✅ Using Employee.id for deletion
+      where: { id: params.id },
+      include: { user: true },
     });
 
     if (!employee) {
@@ -66,22 +67,88 @@ export async function DELETE(
       );
     }
 
-    // Delete related activation token safely
-    await prisma.activationToken.deleteMany({
-      where: { userId: employee.userId },
+    const employeeId = employee.id;
+    const userId = employee.userId;
+    const companyId = employee.companyId ?? employee.user?.companyId ?? undefined;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Onboarding instances and nested data
+      await tx.onboardingStepResponse.deleteMany({
+        where: { onboardingStepInstance: { onboardingInstance: { employeeId } } },
+      });
+      await tx.onboardingStepInstance.deleteMany({
+        where: { onboardingInstance: { employeeId } },
+      });
+      await tx.onboardingInstance.deleteMany({ where: { employeeId } });
+
+      // Form related
+      await tx.formDataRecord.deleteMany({ where: { employeeId } });
+      await tx.formSubmission.deleteMany({ where: { employeeId } });
+      await tx.formAssignment.deleteMany({ where: { employeeId } });
+
+      // Employment and compliance
+      await tx.documentAcknowledgement.deleteMany({ where: { employeeId } });
+      await tx.employmentCheck.deleteMany({ where: { employeeId } });
+      await tx.driverLicence.deleteMany({ where: { employeeId } });
+      await tx.trainingRecord.deleteMany({ where: { employeeId } });
+
+      // Leave
+      await tx.leaveEntitlement.deleteMany({ where: { employeeId } });
+      await tx.leaveRequest.deleteMany({
+        where: {
+          OR: [
+            { employeeId },
+            { requesterId: userId },
+            { approvedById: userId },
+          ],
+        },
+      });
+
+      // Offboarding (tasks cascade on offboarding delete)
+      await tx.employeeOffboarding.deleteMany({ where: { employeeId } });
+
+      // Documents: delete only those attached to this employee
+      await tx.document.deleteMany({ where: { employeeId } });
+
+      // Onboarding assignments for this user
+      await tx.onboardingAssignment.deleteMany({ where: { userId } });
+
+      // Activation token
+      await tx.activationToken.deleteMany({ where: { userId } });
+
+      // Saved reports and authored news posts
+      await tx.savedReport.deleteMany({ where: { createdBy: userId } });
+      await tx.newsPost.deleteMany({ where: { authorId: userId } });
+
+      // Reassign company-level documents uploaded by this user (if any) to another admin, else delete
+      if (companyId) {
+        const fallbackAdmin = await tx.user.findFirst({
+          where: { companyId, role: 'ADMIN', id: { not: userId } },
+          select: { id: true },
+        });
+        if (fallbackAdmin) {
+          await tx.document.updateMany({
+            where: { uploaderId: userId, employeeId: null },
+            data: { uploaderId: fallbackAdmin.id },
+          });
+        } else {
+          await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
+        }
+      } else {
+        await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
+      }
+
+      // Working pattern assignments
+      await tx.employeeWorkingPatternAssignment.deleteMany({ where: { employeeId } });
+
+      // Finally delete employee then user
+      await tx.employee.delete({ where: { id: employeeId } });
+      await tx.user.delete({ where: { id: userId } });
+
+      return { deleted: true };
     });
 
-    // Delete the employee record
-    await prisma.employee.delete({
-      where: { id: params.id },
-    });
-
-    // Delete the user record
-    await prisma.user.delete({
-      where: { id: employee.userId },
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
     console.error(
       "Error deleting employee:",

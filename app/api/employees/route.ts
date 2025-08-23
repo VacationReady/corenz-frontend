@@ -14,9 +14,9 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "active"; // active, archived, all
-    
+
     const whereCondition: any = {};
-    
+
     if (status === "active") {
       whereCondition.isActive = true;
     } else if (status === "archived") {
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 
     const companyId = session.user.companyId;
 
-  const {
+    const {
       firstName,
       lastName,
       email,
@@ -129,7 +129,11 @@ export async function POST(req: Request) {
 
     if (existingUser && !existingUser.isActivated) {
       return NextResponse.json(
-        { success: false, error: "A user with this email already exists but is not activated. Please activate this user or use a different email." },
+        {
+          success: false,
+          error:
+            "A user with this email already exists but is not activated. Please activate this user or use a different email.",
+        },
         { status: 400 }
       );
     }
@@ -148,7 +152,9 @@ export async function POST(req: Request) {
       if (managerEmployee?.userId) {
         managerConnect = { connect: { id: managerEmployee.userId } };
       } else {
-        console.warn(`Manager Employee ID ${managerId} provided, but no Employee found. Skipping manager connect.`);
+        console.warn(
+          `Manager Employee ID ${managerId} provided, but no Employee found. Skipping manager connect.`
+        );
       }
     }
 
@@ -174,7 +180,7 @@ export async function POST(req: Request) {
         user: { connect: { id: user.id } },
         isActive: true,
         department: departmentId ? { connect: { id: departmentId } } : undefined,
-        company: { connect: { id: companyId! } }, // ✅ FIXED: use relation connect
+        company: { connect: { id: companyId! } }, // ✅ use relation connect
         onboardingTemplate: onboardingTemplateId
           ? { connect: { id: onboardingTemplateId } }
           : undefined,
@@ -215,9 +221,12 @@ export async function POST(req: Request) {
             // forward auth cookies so the onboarding API can authenticate the request
             cookie: req.headers.get("cookie") ?? "",
           },
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ employeeId: employee.id, templateId: onboardingTemplateId }),
+          body: JSON.stringify({
+            employeeId: employee.id,
+            templateId: onboardingTemplateId,
+          }),
         });
+
         if (!startRes.ok) {
           console.warn("Onboarding start failed:", await startRes.text());
         }
@@ -226,7 +235,12 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, employeeId: employee.id, userId: user.id, activationLink: sendInviteNow ? undefined : activationLink });
+    return NextResponse.json({
+      success: true,
+      employeeId: employee.id,
+      userId: user.id,
+      activationLink: sendInviteNow ? undefined : activationLink,
+    });
   } catch (error) {
     console.error("Error creating employee:", error);
     return NextResponse.json(

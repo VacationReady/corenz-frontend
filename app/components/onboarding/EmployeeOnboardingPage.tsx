@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { Progress } from '@/components/ui/progress';
@@ -31,6 +32,7 @@ type Props = {
 };
 
 export default function EmployeeOnboardingPage({ employeeId, canComplete = true }: Props) {
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [instance, setInstance] = useState<OnboardingInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +60,19 @@ export default function EmployeeOnboardingPage({ employeeId, canComplete = true 
 
   const fetchTemplates = async () => {
     const res = await fetch('/api/onboarding/templates');
-    const data = await res.json();
-    setTemplates(data || []);
+    if (res.ok) {
+      const data = await res.json();
+      setTemplates(data || []);
+    }
   };
 
   useEffect(() => {
     fetchOnboarding();
-    fetchTemplates();
+    if (session?.user?.role === 'ADMIN') {
+      fetchTemplates();
+    }
     // eslint-disable-next-line
-  }, [employeeId]);
+  }, [employeeId, session?.user?.role]);
 
   const handleAssignOnboarding = async () => {
     if (!selectedTemplate) {

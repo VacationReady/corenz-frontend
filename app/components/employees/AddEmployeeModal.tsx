@@ -206,25 +206,28 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
             </select>
 
             {/* --- 👇 Toggles --- */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                {/* If this is shadcn Switch, prefer onCheckedChange; keep onChange if your wrapper expects it */}
-                <Switch onCheckedChange={(checked: boolean) => setSendInviteNow(checked)} checked={sendInviteNow} />
-                <Label className="text-sm">Send login invite now</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  onCheckedChange={(checked: boolean) => {
-                    setStartOnboarding(checked);
-                    if (!checked) {
-                      setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
-                    }
-                  }}
-                  checked={startOnboarding}
-                />
-                <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
-              </div>
-            </div>
+<div className="flex flex-col gap-3">
+  <div className="flex items-center gap-2">
+    <Switch
+      onChange={(checked: boolean) => setSendInviteNow(checked)}
+      checked={sendInviteNow}
+    />
+    <Label className="text-sm">Send login invite now</Label>
+  </div>
+
+  <div className="flex items-center gap-2">
+    <Switch
+      onChange={(checked: boolean) => {
+        setStartOnboarding(checked);
+        if (!checked) {
+          setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
+        }
+      }}
+      checked={startOnboarding}
+    />
+    <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
+  </div>
+</div>
 
             {startOnboarding && (
               <select

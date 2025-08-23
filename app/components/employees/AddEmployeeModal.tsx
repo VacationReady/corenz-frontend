@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -7,7 +7,7 @@ import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import { useSession } from "next-auth/react";
 
-// 👇 ADD: Checkbox
+// 👇 Toggles
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -46,7 +46,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     onboardingTemplateId: "",
   });
 
-  // 👇 NEW: toggles
+  // Toggles
   const [startOnboarding, setStartOnboarding] = useState(true);
   const [sendInviteNow, setSendInviteNow] = useState(true);
 
@@ -58,6 +58,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         fetch("/api/job-roles").then((r) => r.json()),
         fetch("/api/onboarding/templates").then((r) => r.json()),
       ]);
+
       setEmployees(empRes.filter((emp: any) => emp.user));
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
@@ -92,6 +93,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         companyId: session?.user?.companyId,
         startOnboarding, // 👈 Pass to backend!
         sendInviteNow, // 👈 Pass to backend!
+        startOnboarding,
+        sendInviteNow,
         onboardingTemplateId: startOnboarding ? formData.onboardingTemplateId : undefined,
       };
 
@@ -121,7 +124,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         managerId: "",
         onboardingTemplateId: "",
       });
-      setStartOnboarding(true); // reset toggle
+      setStartOnboarding(true);
       setSendInviteNow(true);
 
       onClose();
@@ -140,6 +143,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       formData.departmentId && t.departments?.some((d) => d.id === formData.departmentId);
     const matchesRole =
       formData.jobRoleId && t.jobRoles?.some((j) => j.id === formData.jobRoleId);
+  // Filter templates by chosen department/job role.
+  // If neither is selected, show all. Templates with no restrictions always show.
+  const filteredTemplates = templates.filter((t: OnboardingTemplate) => {
+    const matchesDept =
+      !!formData.departmentId && !!t.departments?.some((d) => d.id === formData.departmentId);
+    const matchesRole =
+      !!formData.jobRoleId && !!t.jobRoles?.some((j) => j.id === formData.jobRoleId);
     const unrestricted =
       (!t.departments || t.departments.length === 0) && (!t.jobRoles || t.jobRoles.length === 0);
 
@@ -147,6 +157,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       return true; // no filters selected, show all templates
     }
 
+      return true; // no filters selected, show all
+    }
     return unrestricted || matchesDept || matchesRole;
   });
 
@@ -156,17 +168,20 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         <Card className="w-full max-w-md p-6 space-y-4">
           <h2 className="text-lg font-semibold">Add Employee</h2>
           {error && <p className="text-red-600">{error}</p>}
+
           <form onSubmit={handleSubmit} className="space-y-3">
             <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
             <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
             <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
             <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
             <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
+
             <select name="role" value={formData.role} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
               {["EMPLOYEE", "MANAGER", "ADMIN"].map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
+
             <div className="flex space-x-2">
               <select name="departmentId" value={formData.departmentId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
                 <option value="">Select Department</option>
@@ -176,6 +191,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
               </select>
               <Button type="button" size="sm" onClick={() => setDeptModalOpen(true)}>+ New</Button>
             </div>
+
             <div className="flex space-x-2">
               <select name="jobRoleId" value={formData.jobRoleId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
                 <option value="">Select Job Role</option>
@@ -185,27 +201,29 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
               </select>
               <Button type="button" size="sm" onClick={() => setRoleModalOpen(true)}>+ New</Button>
             </div>
+
             <select name="managerId" value={formData.managerId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
               <option value="">Select Line Manager (Optional)</option>
-              {employees.map((emp) => (
+              {employees.map((emp) =>
                 emp.user && (
                   <option key={emp.id} value={emp.id}>
                     {emp.user.firstName} {emp.user.lastName} ({emp.role})
                   </option>
                 )
-              ))}
+              )}
             </select>
 
-            {/* --- 👇 Toggles --- */}
+            {/* Toggles */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <Switch checked={sendInviteNow} onChange={checked => setSendInviteNow(checked)} />
+                <Switch checked={sendInviteNow} onChange={(checked: boolean) => setSendInviteNow(checked)} />
                 <Label className="text-sm">Send login invite now</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={startOnboarding}
                   onChange={(checked) => {
+                  onChange={(checked: boolean) => {
                     setStartOnboarding(checked);
                     if (!checked) {
                       setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
@@ -239,8 +257,23 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         </Card>
       </div>
 
-      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(); }} />}
-      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(); }} />}
+      {isDeptModalOpen && (
+        <NewDepartmentModal
+          onClose={() => {
+            setDeptModalOpen(false);
+            fetchData();
+          }}
+        />
+      )}
+
+      {isRoleModalOpen && (
+        <NewJobRoleModal
+          onClose={() => {
+            setRoleModalOpen(false);
+            fetchData();
+          }}
+        />
+      )}
     </>
   );
 }

@@ -215,6 +215,7 @@ export async function POST(req: Request) {
             // forward auth cookies so the onboarding API can authenticate the request
             cookie: req.headers.get("cookie") ?? "",
           },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ employeeId: employee.id, templateId: onboardingTemplateId }),
         });
         if (!startRes.ok) {

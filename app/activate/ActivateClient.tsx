@@ -42,8 +42,9 @@ export default function ActivateClient() {
       if (!res.ok) throw new Error(data?.error || 'Something went wrong.');
 
       setSuccess('Password set! Redirecting...');
-      // If employeeId provided, go straight to onboarding after activation
-      const target = employeeId ? `/${employeeId}/onboarding` : '/login';
+      const target = employeeId
+        ? `/login?next=/${employeeId}/onboarding`
+        : '/login';
       setTimeout(() => router.push(target), 1500);
     } catch (err: any) {
       setError(err.message || 'Unexpected error');

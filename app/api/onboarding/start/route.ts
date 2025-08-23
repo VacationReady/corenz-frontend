@@ -35,10 +35,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { employeeId } = await req.json();
+    const { employeeId, templateId: rawTemplateId } = await req.json();
     if (!employeeId) {
       return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
     }
+
+    const templateId =
+      typeof rawTemplateId === "string" && rawTemplateId.length > 0
+        ? rawTemplateId
+        : undefined;
 
     // Fetch employee with related user, dept, role
     const employee = await prisma.employee.findUnique({
@@ -58,32 +63,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Onboarding already in progress" }, { status: 409 });
     }
 
-    // If user hasn't activated their account yet, notify HR and stop
+    // Fetch related user for email notification and template resolution
     const user = employee.user;
-    if (!user?.isActivated) {
-      const hrEmail = session.user.email;
-      if (hrEmail) {
-        try {
-          await resend.emails.send({
-            from: "CoreNZ Notifications <onboarding@resend.dev>",
-            to: hrEmail,
-            subject: "Onboarding blocked: user not activated",
-            html: `
-              <p>Onboarding could not be started for ${user?.firstName || ""} ${user?.lastName || ""} (${user?.email}).</p>
-              <p>The user has not activated their account or set a password yet.</p>
-              <p>Please resend the activation email or assist them with first-time setup.</p>
-            `,
-          });
-        } catch (e) {
-          // Log but don't fail the request solely due to email issues
-          console.error("Failed to send HR notification email:", e);
-        }
-      }
-      return NextResponse.json({ error: "User not activated. Notified HR." }, { status: 409 });
-    }
 
     // Find a template to use
-    const template = await findBestOnboardingTemplate(employee);
+    let template: any;
+    if (templateId) {
+      template = await prisma.onboardingTemplate.findFirst({
+        where: {
+          id: templateId,
+          isActive: true,
+          companyId: employee.companyId ?? undefined,
+        },
+        include: { steps: true },
+      });
+    }
+    if (!template) {
+      template = await findBestOnboardingTemplate(employee);
+    }
     if (!template) {
       return NextResponse.json({ error: "No onboarding template found" }, { status: 400 });
     }
@@ -111,7 +108,7 @@ export async function POST(req: NextRequest) {
       });
 
       await tx.onboardingStepInstance.createMany({
-        data: template.steps.map((step, index) => ({
+        data: template.steps.map((step: any, index: number) => ({
           onboardingInstanceId: onboardingInstance.id,
           stepId: step.id,
           status: "pending",

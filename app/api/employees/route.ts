@@ -210,6 +210,11 @@ export async function POST(req: Request) {
         // Hit our start endpoint to create instance + assignment and send onboarding email
         const startRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // forward auth cookies so the onboarding API can authenticate the request
+            cookie: req.headers.get("cookie") ?? "",
+          },
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ employeeId: employee.id, templateId: onboardingTemplateId }),
         });

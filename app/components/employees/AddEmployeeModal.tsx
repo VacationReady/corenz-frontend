@@ -147,6 +147,10 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       (!t.departments || t.departments.length === 0) && (!t.jobRoles || t.jobRoles.length === 0);
 
     if (!formData.departmentId && !formData.jobRoleId) {
+      return true; // no filters selected, show all templates
+    }
+
+    return unrestricted || matchesDept || matchesRole;
       // no filters selected, show all
       return true;
     }
@@ -206,6 +210,24 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
             </select>
 
             {/* --- 👇 Toggles --- */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Switch checked={sendInviteNow} onChange={checked => setSendInviteNow(checked)} />
+                <Label className="text-sm">Send login invite now</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={startOnboarding}
+                  onChange={(checked) => {
+                    setStartOnboarding(checked);
+                    if (!checked) {
+                      setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
+                    }
+                  }}
+                />
+                <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
+              </div>
+            </div>
 <div className="flex flex-col gap-3">
   <div className="flex items-center gap-2">
     <Switch
@@ -228,6 +250,21 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
   </div>
 </div>
+
+            {startOnboarding && (
+              <select
+                name="onboardingTemplateId"
+                value={formData.onboardingTemplateId}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                required
+              >
+                <option value="">Select Onboarding Template</option>
+                {filteredTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
 
             {startOnboarding && (
               <select

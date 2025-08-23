@@ -21,15 +21,17 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   const { data: session } = useSession();
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  interface OnboardingTemplate {
-    id: string;
-    name: string;
-    departments?: { id: string }[];
-    jobRoles?: { id: string }[];
-  }
-  const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
-  const [error, setError] = useState("");
+const [employees, setEmployees] = useState<any[]>([]);
+
+interface OnboardingTemplate {
+  id: string;
+  name: string;
+  departments?: { id: string }[];
+  jobRoles?: { id: string }[];
+}
+
+const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
+const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
 
@@ -66,6 +68,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
           ? (templateRes as OnboardingTemplate[])
           : ((templateRes.templates as OnboardingTemplate[]) || [])
       );
+      setTemplates(Array.isArray(templateRes) ? templateRes : templateRes.templates || []);
+main
     } catch {
       setError("Failed to load data");
     }
@@ -148,6 +152,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     }
 
     return unrestricted || matchesDept || matchesRole;
+  const filteredTemplates = templates.filter((t) => {
+    const matchesDept = formData.departmentId && t.departments?.some((d: any) => d.id === formData.departmentId);
+    const matchesRole = formData.jobRoleId && t.jobRoles?.some((j: any) => j.id === formData.jobRoleId);
+    return matchesDept || matchesRole;
+main
   });
 
   return (

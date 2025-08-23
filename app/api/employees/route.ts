@@ -109,6 +109,7 @@ export async function POST(req: Request) {
       managerId,
       startOnboarding,
       sendInviteNow,
+      onboardingTemplateId,
     } = await req.json();
 
     if (!firstName || !lastName || !email || !startDate || !role) {
@@ -169,13 +170,16 @@ export async function POST(req: Request) {
 
     // ✅ Create Employee linked to User
     const employee = await prisma.employee.create({
-  data: {
-    user: { connect: { id: user.id } },
-    isActive: true,
-    department: departmentId ? { connect: { id: departmentId } } : undefined,
-    company: { connect: { id: companyId! } }, // ✅ FIXED: use relation connect
-  },
-});
+      data: {
+        user: { connect: { id: user.id } },
+        isActive: true,
+        department: departmentId ? { connect: { id: departmentId } } : undefined,
+        company: { connect: { id: companyId! } }, // ✅ FIXED: use relation connect
+        onboardingTemplate: onboardingTemplateId
+          ? { connect: { id: onboardingTemplateId } }
+          : undefined,
+      },
+    });
 
     // Create activation token now; email optionally sent now or later
     await prisma.activationToken.create({
@@ -206,8 +210,12 @@ export async function POST(req: Request) {
         // Hit our start endpoint to create instance + assignment and send onboarding email
         const startRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ employeeId: employee.id }),
+          headers: {
+            "Content-Type": "application/json",
+            // forward auth cookies so the onboarding API can authenticate the request
+            cookie: req.headers.get("cookie") ?? "",
+          },
+          body: JSON.stringify({ employeeId: employee.id, templateId: onboardingTemplateId }),
         });
         if (!startRes.ok) {
           console.warn("Onboarding start failed:", await startRes.text());

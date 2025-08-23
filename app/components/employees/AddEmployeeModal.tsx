@@ -63,7 +63,6 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       setEmployees(empRes.filter((emp: any) => emp.user));
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-
       setTemplates(
         Array.isArray(templateRes)
           ? (templateRes as OnboardingTemplate[])
@@ -93,8 +92,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       const payload = {
         ...formData,
         companyId: session?.user?.companyId,
-        startOnboarding, // 👈 Pass to backend!
-        sendInviteNow, // 👈 Pass to backend!
+        startOnboarding,
+        sendInviteNow,
         onboardingTemplateId: startOnboarding ? formData.onboardingTemplateId : undefined,
       };
 
@@ -124,7 +123,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         managerId: "",
         onboardingTemplateId: "",
       });
-      setStartOnboarding(true); // reset toggle
+      setStartOnboarding(true);
       setSendInviteNow(true);
 
       onClose();
@@ -138,24 +137,19 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
   // Filter templates by chosen department and job role while allowing
   // templates with no restrictions to show for all employees.
-  const filteredTemplates = templates.filter((t) => {
+  const filteredTemplates = templates.filter((t: OnboardingTemplate) => {
     const matchesDept =
-      formData.departmentId && t.departments?.some((d) => d.id === formData.departmentId);
+      !!formData.departmentId && !!t.departments?.some((d) => d.id === formData.departmentId);
     const matchesRole =
-      formData.jobRoleId && t.jobRoles?.some((j) => j.id === formData.jobRoleId);
+      !!formData.jobRoleId && !!t.jobRoles?.some((j) => j.id === formData.jobRoleId);
     const unrestricted =
       (!t.departments || t.departments.length === 0) && (!t.jobRoles || t.jobRoles.length === 0);
 
     if (!formData.departmentId && !formData.jobRoleId) {
-      return true; // no filters selected, show all templates
-    }
-
-    return unrestricted || matchesDept || matchesRole;
-      // no filters selected, show all
+      // no filters selected, show all templates
       return true;
     }
-
-    return unrestricted || !!matchesDept || !!matchesRole;
+    return unrestricted || matchesDept || matchesRole;
   });
 
   return (
@@ -212,13 +206,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
             {/* --- 👇 Toggles --- */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <Switch checked={sendInviteNow} onChange={checked => setSendInviteNow(checked)} />
+                <Switch checked={sendInviteNow} onChange={(checked: boolean) => setSendInviteNow(checked)} />
                 <Label className="text-sm">Send login invite now</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={startOnboarding}
-                  onChange={(checked) => {
+                  onChange={(checked: boolean) => {
                     setStartOnboarding(checked);
                     if (!checked) {
                       setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
@@ -228,43 +222,6 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
               </div>
             </div>
-<div className="flex flex-col gap-3">
-  <div className="flex items-center gap-2">
-    <Switch
-      onChange={(checked: boolean) => setSendInviteNow(checked)}
-      checked={sendInviteNow}
-    />
-    <Label className="text-sm">Send login invite now</Label>
-  </div>
-
-  <div className="flex items-center gap-2">
-    <Switch
-      onChange={(checked: boolean) => {
-        setStartOnboarding(checked);
-        if (!checked) {
-          setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
-        }
-      }}
-      checked={startOnboarding}
-    />
-    <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
-  </div>
-</div>
-
-            {startOnboarding && (
-              <select
-                name="onboardingTemplateId"
-                value={formData.onboardingTemplateId}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                required
-              >
-                <option value="">Select Onboarding Template</option>
-                {filteredTemplates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            )}
 
             {startOnboarding && (
               <select

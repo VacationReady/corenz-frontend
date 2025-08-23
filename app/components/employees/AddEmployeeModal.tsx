@@ -22,6 +22,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  interface OnboardingTemplate {
+    id: string;
+    name: string;
+    departments?: { id: string }[];
+    jobRoles?: { id: string }[];
+  }
+  const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
@@ -36,6 +43,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     departmentId: "",
     jobRoleId: "",
     managerId: "",
+    onboardingTemplateId: "",
   });
 
   // 👇 NEW: toggles
@@ -44,14 +52,20 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, roleRes] = await Promise.all([
+      const [empRes, deptRes, roleRes, templateRes] = await Promise.all([
         fetch("/api/employees").then((r) => r.json()),
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
+        fetch("/api/onboarding/templates").then((r) => r.json()),
       ]);
       setEmployees(empRes.filter((emp: any) => emp.user));
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
+      setTemplates(
+        Array.isArray(templateRes)
+          ? (templateRes as OnboardingTemplate[])
+          : ((templateRes.templates as OnboardingTemplate[]) || [])
+      );
     } catch {
       setError("Failed to load data");
     }
@@ -68,11 +82,17 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      if (startOnboarding && !formData.onboardingTemplateId) {
+        setError("Please select an onboarding template");
+        return;
+      }
+
       const payload = {
         ...formData,
         companyId: session?.user?.companyId,
         startOnboarding, // 👈 Pass to backend!
-        sendInviteNow,   // 👈 Pass to backend!
+        sendInviteNow, // 👈 Pass to backend!
+        onboardingTemplateId: startOnboarding ? formData.onboardingTemplateId : undefined,
       };
 
       const res = await fetch("/api/employees", {
@@ -99,6 +119,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         departmentId: "",
         jobRoleId: "",
         managerId: "",
+        onboardingTemplateId: "",
       });
       setStartOnboarding(true); // reset toggle
       setSendInviteNow(true);
@@ -111,6 +132,23 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   };
 
   if (!open) return null;
+
+  // Filter templates by chosen department and job role while allowing
+  // templates with no restrictions to show for all employees.
+  const filteredTemplates = templates.filter((t) => {
+    const matchesDept =
+      formData.departmentId && t.departments?.some((d) => d.id === formData.departmentId);
+    const matchesRole =
+      formData.jobRoleId && t.jobRoles?.some((j) => j.id === formData.jobRoleId);
+    const unrestricted =
+      (!t.departments || t.departments.length === 0) && (!t.jobRoles || t.jobRoles.length === 0);
+
+    if (!formData.departmentId && !formData.jobRoleId) {
+      return true; // no filters selected, show all templates
+    }
+
+    return unrestricted || matchesDept || matchesRole;
+  });
 
   return (
     <>
@@ -165,10 +203,33 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 <Label className="text-sm">Send login invite now</Label>
               </div>
               <div className="flex items-center gap-2">
-                <Switch checked={startOnboarding} onChange={checked => setStartOnboarding(checked)} />
+                <Switch
+                  checked={startOnboarding}
+                  onChange={(checked) => {
+                    setStartOnboarding(checked);
+                    if (!checked) {
+                      setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
+                    }
+                  }}
+                />
                 <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
               </div>
             </div>
+
+            {startOnboarding && (
+              <select
+                name="onboardingTemplateId"
+                value={formData.onboardingTemplateId}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                required
+              >
+                <option value="">Select Onboarding Template</option>
+                {filteredTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            )}
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

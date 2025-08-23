@@ -63,29 +63,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Onboarding already in progress" }, { status: 409 });
     }
 
-    // If user hasn't activated their account yet, notify HR and stop
+    // Fetch related user for email notification and template resolution
     const user = employee.user;
-    if (!user?.isActivated) {
-      const hrEmail = session.user.email;
-      if (hrEmail) {
-        try {
-          await resend.emails.send({
-            from: "CoreNZ Notifications <onboarding@resend.dev>",
-            to: hrEmail,
-            subject: "Onboarding blocked: user not activated",
-            html: `
-              <p>Onboarding could not be started for ${user?.firstName || ""} ${user?.lastName || ""} (${user?.email}).</p>
-              <p>The user has not activated their account or set a password yet.</p>
-              <p>Please resend the activation email or assist them with first-time setup.</p>
-            `,
-          });
-        } catch (e) {
-          // Log but don't fail the request solely due to email issues
-          console.error("Failed to send HR notification email:", e);
-        }
-      }
-      return NextResponse.json({ error: "User not activated. Notified HR." }, { status: 409 });
-    }
 
     // Find a template to use
     let template: any;

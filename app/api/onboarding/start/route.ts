@@ -35,10 +35,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { employeeId, templateId } = await req.json();
+    const { employeeId, templateId: rawTemplateId } = await req.json();
     if (!employeeId) {
       return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
     }
+
+    const templateId =
+      typeof rawTemplateId === "string" && rawTemplateId.length > 0
+        ? rawTemplateId
+        : undefined;
 
     // Fetch employee with related user, dept, role
     const employee = await prisma.employee.findUnique({
@@ -86,7 +91,11 @@ export async function POST(req: NextRequest) {
     let template: any;
     if (templateId) {
       template = await prisma.onboardingTemplate.findFirst({
-        where: { id: templateId, isActive: true, companyId: employee.companyId },
+        where: {
+          id: templateId,
+          isActive: true,
+          companyId: employee.companyId ?? undefined,
+        },
         include: { steps: true },
       });
     }
@@ -120,7 +129,7 @@ export async function POST(req: NextRequest) {
       });
 
       await tx.onboardingStepInstance.createMany({
-        data: template.steps.map((step, index) => ({
+        data: template.steps.map((step: any, index: number) => ({
           onboardingInstanceId: onboardingInstance.id,
           stepId: step.id,
           status: "pending",

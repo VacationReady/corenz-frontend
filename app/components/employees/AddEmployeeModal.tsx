@@ -126,6 +126,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   const filteredTemplates = templates.filter((t) => {
     const matchesDept = formData.departmentId && t.departments?.some((d: any) => d.id === formData.departmentId);
     const matchesRole = formData.jobRoleId && t.jobRoles?.some((j: any) => j.id === formData.jobRoleId);
+codex/add-template-selection-for-onboarding-emails-9ktnnq
     const unrestricted = (!t.departments || t.departments.length === 0) && (!t.jobRoles || t.jobRoles.length === 0);
 
     if (!formData.departmentId && !formData.jobRoleId) {
@@ -133,6 +134,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     }
 
     return unrestricted || matchesDept || matchesRole;
+    return matchesDept || matchesRole;
+ main
   });
 
   return (

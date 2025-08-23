@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
+import { toast } from "sonner";
 
 type OnboardingStepProps = {
   step: {
@@ -88,16 +89,23 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                   formData.append("canViewEmployee", "true");
                   formData.append("requiresAck", "false");
 
-                  const res = await fetch("/api/documents/upload-employee", { method: "POST", body: formData });
-                  if (!res.ok) {
-                    console.error("Upload failed");
-                    setLoading(false);
-                    return;
-                  }
+                  try {
+                    const res = await fetch("/api/documents/upload-employee", { method: "POST", body: formData });
+                    if (!res.ok) {
+                      toast("Failed to upload document");
+                      setLoading(false);
+                      return;
+                    }
 
-                  // ✅ Auto-refresh onboarding UI and employee docs
-                  await onComplete();
-                  window.dispatchEvent(new CustomEvent("employee-documents-updated", { detail: { employeeId } }));
+                    toast("Document uploaded");
+                    // ✅ Auto-refresh onboarding UI and employee docs
+                    await onComplete();
+                    window.dispatchEvent(new CustomEvent("employee-documents-updated", { detail: { employeeId } }));
+                  } catch (err) {
+                    console.error(err);
+                    toast("Failed to upload document");
+                    setLoading(false);
+                  }
                 }}
               >
                 Upload & Complete

@@ -91,10 +91,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       const payload = {
         ...formData,
         companyId: session?.user?.companyId,
-        startOnboarding, // 👈 Pass to backend!
-        sendInviteNow, // 👈 Pass to backend!
-        startOnboarding,
-        sendInviteNow,
+        startOnboarding, // 👈 Pass to backend
+        sendInviteNow,   // 👈 Pass to backend
         onboardingTemplateId: startOnboarding ? formData.onboardingTemplateId : undefined,
       };
 
@@ -136,13 +134,6 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
   if (!open) return null;
 
-  // Filter templates by chosen department and job role while allowing
-  // templates with no restrictions to show for all employees.
-  const filteredTemplates = templates.filter((t) => {
-    const matchesDept =
-      formData.departmentId && t.departments?.some((d) => d.id === formData.departmentId);
-    const matchesRole =
-      formData.jobRoleId && t.jobRoles?.some((j) => j.id === formData.jobRoleId);
   // Filter templates by chosen department/job role.
   // If neither is selected, show all. Templates with no restrictions always show.
   const filteredTemplates = templates.filter((t: OnboardingTemplate) => {
@@ -155,9 +146,6 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
     if (!formData.departmentId && !formData.jobRoleId) {
       return true; // no filters selected, show all templates
-    }
-
-      return true; // no filters selected, show all
     }
     return unrestricted || matchesDept || matchesRole;
   });
@@ -222,7 +210,6 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
               <div className="flex items-center gap-2">
                 <Switch
                   checked={startOnboarding}
-                  onChange={(checked) => {
                   onChange={(checked: boolean) => {
                     setStartOnboarding(checked);
                     if (!checked) {

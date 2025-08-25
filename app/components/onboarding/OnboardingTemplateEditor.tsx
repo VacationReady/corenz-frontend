@@ -25,6 +25,7 @@ const dbTypeToUi: Record<string, string> = {
   ACKNOWLEDGE_DOCUMENT: "acknowledge-document",
   UPLOAD_DOCUMENT: "upload-document",
   INSTRUCTION: "instructions",
+  FORM_FILL: "fill-form",
 };
 
 const dbUploadTypeToUi: Record<string, string> = {

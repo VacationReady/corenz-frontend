@@ -126,6 +126,7 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
           <div className="mb-3 text-sm">{desc}</div>
           <DynamicFormRenderer
             formId={step.formId}
+            employeeId={employeeId}
             onSubmitSuccess={(data) => {
               setLoading(true);
               onComplete(data);

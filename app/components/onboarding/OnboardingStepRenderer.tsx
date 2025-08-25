@@ -118,7 +118,7 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
   }
 
   // ✅ Fill Form
-  if (step.type === "fill-form") {
+  if (step.type === "fill-form" || step.type === "form_fill") {
     if (step.formId) {
       return (
         <Card className="p-4">
@@ -126,6 +126,7 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
           <div className="mb-3 text-sm">{desc}</div>
           <DynamicFormRenderer
             formId={step.formId}
+            employeeId={employeeId}
             onSubmitSuccess={(data) => {
               setLoading(true);
               onComplete(data);

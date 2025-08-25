@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
-import { X, GripVertical, FileText, UploadCloud, FileEdit, Info } from "lucide-react";
+import { X, GripVertical, FileText, UploadCloud, FileEdit, Info, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -20,6 +20,20 @@ const STEP_TYPES = [
   { value: "fill-form", label: "Fill Form", icon: FileEdit },
   { value: "instructions", label: "Welcome/Instructions", icon: Info },
 ];
+
+const dbTypeToUi: Record<string, string> = {
+  ACKNOWLEDGE_DOCUMENT: "acknowledge-document",
+  UPLOAD_DOCUMENT: "upload-document",
+  INSTRUCTION: "instructions",
+};
+
+const dbUploadTypeToUi: Record<string, string> = {
+  PASSPORT: "passport",
+  RIGHT_TO_WORK: "right-to-work",
+  DRIVER_LICENSE: "driver-licence",
+  TRAINING_CERTIFICATE: "training-certificate",
+  OTHER: "other",
+};
 
 // --- Key generator utility
 function getStepKey(step: any) {
@@ -246,8 +260,21 @@ export default function OnboardingTemplateEditor({
   const [steps, setSteps] = useState<any[]>(() =>
     template?.steps?.length
       ? template.steps.map((step: any) => ({
-          ...step,
-          key: step.id || step.key || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+          key:
+            step.id ||
+            step.key ||
+            (typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : Math.random().toString(36).slice(2)),
+          id: step.id,
+          type: dbTypeToUi[step.type] || step.type,
+          title: step.label || "",
+          description: step.instruction || "",
+          required: step.required ?? true,
+          documentId: step.documentId || "",
+          uploadType: step.uploadType ? dbUploadTypeToUi[step.uploadType] : "",
+          formId: step.formId || "",
+          formFields: step.formFields || [],
         }))
       : []
   );
@@ -290,6 +317,9 @@ export default function OnboardingTemplateEditor({
       toast.error("Template name required");
       return;
     }
+    toast.info(
+      "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template"
+    );
     setSaving(true);
     const body = {
       id: template?.id,
@@ -305,14 +335,11 @@ export default function OnboardingTemplateEditor({
       })),
       isActive: publish,
     };
-    const res = await fetch(
-      template?.id ? `/api/onboarding/templates/${template.id}` : "/api/onboarding/templates",
-      {
-        method: template?.id ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      }
-    );
+    const res = await fetch("/api/onboarding/templates", {
+      method: template?.id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     setSaving(false);
     setPublishing(false);
 
@@ -359,6 +386,15 @@ export default function OnboardingTemplateEditor({
     <div className="p-6">
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-2">{template ? "Edit Onboarding Template" : "New Onboarding Template"}</h2>
+        {template?.updatedAt && (
+          <div className="flex items-center text-sm text-gray-500 gap-2 mb-2">
+            <RotateCcw className="h-4 w-4" />
+            <span>
+              Last updated {new Date(template.updatedAt).toLocaleString()} by{' '}
+              {template.updatedBy?.name || template.updatedBy?.email || 'Unknown'}
+            </span>
+          </div>
+        )}
         <Label>Template Name</Label>
         <Input className="mb-3" value={name} onChange={e => setName(e.target.value)} maxLength={60} />
         <Label>Description</Label>

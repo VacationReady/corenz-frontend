@@ -18,6 +18,8 @@ type Template = {
   departments: { id: string; name: string }[];
   jobRoles: { id: string; name: string }[];
   steps: any[];
+  updatedAt?: string;
+  updatedBy?: { id: string; name?: string; email?: string } | null;
 };
 
 export default function OnboardingSettingsPage() {
@@ -64,7 +66,11 @@ export default function OnboardingSettingsPage() {
 
   const handleDelete = async (template: Template) => {
     if (!confirm("Delete this onboarding template?")) return;
-    const res = await fetch(`/api/onboarding/templates/${template.id}`, { method: "DELETE" });
+    const res = await fetch('/api/onboarding/templates', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: template.id }),
+    });
     if (res.ok) {
       toast("Template deleted");
       fetchTemplates();

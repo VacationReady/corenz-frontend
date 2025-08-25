@@ -46,6 +46,8 @@ export async function GET(req: Request) {
       name: true,
       description: true,
       isActive: true, // ✅ Boolean field replaces status
+      updatedAt: true,
+      updatedBy: { select: { id: true, name: true, email: true } },
       departments: { select: { id: true, name: true } },
       jobRoles: { select: { id: true, name: true } },
       steps: {
@@ -97,6 +99,7 @@ export async function POST(req: Request) {
         description: description || "",
         companyId: session.user.companyId,
         isActive: Boolean(isActive), // ✅ Safe boolean
+        updatedById: session.user.id,
         departments: departments.length > 0 ? { connect: departments.map((id: string) => ({ id })) } : undefined,
         jobRoles: jobRoles.length > 0 ? { connect: jobRoles.map((id: string) => ({ id })) } : undefined,
         steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
@@ -105,6 +108,7 @@ export async function POST(req: Request) {
         departments: { select: { id: true, name: true } },
         jobRoles: { select: { id: true, name: true } },
         steps: true,
+        updatedBy: { select: { id: true, name: true, email: true } },
       },
     });
 
@@ -124,14 +128,39 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, name, description, departments = [], jobRoles = [], isActive } = body;
+    const { id, name, description, departments = [], jobRoles = [], steps = [], isActive } = body;
+
+    // Rebuild steps
+    const filteredSteps = Array.isArray(steps)
+      ? (steps
+          .map((step: any, i: number) => {
+            const mappedType = typeMap[step.type];
+            if (!mappedType) return undefined;
+            const base = { type: mappedType, label: step.label || step.title || "", order: i + 1 };
+            if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
+              return { ...base, documentId: step.documentId || null };
+            }
+            if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
+              return { ...base, uploadType: step.uploadType ? uploadTypeMap[step.uploadType] || null : null };
+            }
+            if (mappedType === OnboardingStepType.INSTRUCTION) {
+              return { ...base, instruction: step.description || "" };
+            }
+            return undefined;
+          })
+          .filter(isStep)) as Prisma.OnboardingStepCreateInput[]
+      : [];
+
+    // Replace steps to allow edits
+    await prisma.onboardingStep.deleteMany({ where: { templateId: id } });
 
     const template = await prisma.onboardingTemplate.update({
       where: { id },
       data: {
         name,
         description: description || "",
-        isActive: Boolean(isActive), // ✅ Handles toggle
+        isActive: Boolean(isActive),
+        updatedById: session.user.id,
         departments: {
           set: [],
           connect: departments.length > 0 ? departments.map((id: string) => ({ id })) : [],
@@ -140,11 +169,13 @@ export async function PUT(req: Request) {
           set: [],
           connect: jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
         },
+        steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
       },
       include: {
         departments: { select: { id: true, name: true } },
         jobRoles: { select: { id: true, name: true } },
         steps: true,
+        updatedBy: { select: { id: true, name: true, email: true } },
       },
     });
 

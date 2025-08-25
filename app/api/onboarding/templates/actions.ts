@@ -27,6 +27,7 @@ export async function createTemplate(
     },
   });
 }
+
 export async function updateTemplate(
   session: any,
   body: any,

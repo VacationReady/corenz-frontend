@@ -38,3 +38,28 @@ test('passes employeeId to DynamicFormRenderer', () => {
   );
   assert.equal(capturedProps.employeeId, 'emp123');
 });
+
+test('wraps submitted data and dispatches document update', () => {
+  const step = { id: 's1', type: 'fill-form', formId: 'f1', title: 'Form', description: '' };
+  let received: any = null;
+  const events: any[] = [];
+  // listen for custom event
+  (global as any).window = {
+    dispatchEvent: (e: any) => events.push(e.detail),
+    addEventListener: () => {},
+  } as any;
+
+  renderToString(
+    React.createElement(OnboardingStepRenderer, {
+      step,
+      onComplete: (d: any) => { received = d; },
+      employeeId: 'emp123',
+    })
+  );
+
+  // simulate form submission
+  capturedProps.onSubmitSuccess({ foo: 'bar' });
+
+  assert.deepEqual(received, { formResponse: { foo: 'bar' } });
+  assert.deepEqual(events[0], { employeeId: 'emp123' });
+});

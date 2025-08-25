@@ -36,6 +36,7 @@ model User {
   newsPosts                                    NewsPost[]
   onboardingAssignments                        OnboardingAssignment[]
   SavedReport                                  SavedReport[]
+  updatedTemplates                             OnboardingTemplate[] @relation("OnboardingTemplateUpdatedBy")
   
   // Offboarding relations
   offboardingInitiated                         EmployeeOffboarding[]  @relation("OffboardingInitiatedBy")
@@ -470,6 +471,7 @@ model OnboardingTemplate {
   companyId             String
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  updatedById           String?
   isActive              Boolean                @default(false)
   employees             Employee[]             @relation("OnboardingTemplateEmployees")
   onboardingAssignments OnboardingAssignment[]
@@ -478,6 +480,7 @@ model OnboardingTemplate {
   company               Company                @relation(fields: [companyId], references: [id])
   departments           Department[]           @relation("OnboardingTemplateDepartments")
   jobRoles              JobRole[]              @relation("OnboardingTemplateJobRoles")
+  updatedBy             User?                  @relation("OnboardingTemplateUpdatedBy", fields: [updatedById], references: [id])
 
   @@unique([companyId, name])
 }

@@ -27,7 +27,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       create: { userId: employee.user.id, token: activationToken },
     });
 
-    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&employeeId=${employeeId}`;
+    const redirectPath = employee.onboardingTemplateId
+      ? `/${employee.id}/onboarding`
+      : `/dashboard`;
+    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
 
     await resend.emails.send({
       from: "onboarding@resend.dev",
@@ -35,7 +38,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       subject: "Activate Your CoreNZ Account",
       html: `
         <p>Hi ${employee.user.firstName || ''},</p>
-        <p>Welcome to CoreNZ! Please click the link below to activate your account and set your password:</p>
+        <p>Welcome to CoreNZ! Please click the link below to activate your account and get started:</p>
         <p><a href="${activationLink}">Activate Your Account</a></p>
       `,
     });

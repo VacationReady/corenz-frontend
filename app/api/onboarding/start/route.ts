@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { employeeId, templateId: rawTemplateId } = await req.json();
+    const { employeeId, templateId: rawTemplateId, sendEmail = true } = await req.json();
     if (!employeeId) {
       return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
     }
@@ -119,25 +119,26 @@ export async function POST(req: NextRequest) {
       return { assignment, onboardingInstance };
     });
 
-    // Send onboarding invitation to employee
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "";
-      const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
-      const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
-      await resend.emails.send({
-        from: "CoreNZ Notifications <onboarding@resend.dev>",
-        to: user.email,
-        subject: "Welcome to CoreNZ – Your onboarding is ready",
-        html: `
-          <p>Hi ${user.firstName || "there"},</p>
-          <p>Your onboarding has been started. Please log in and complete your onboarding steps.</p>
-          <p><a href="${loginWithNext}">Login to start onboarding</a></p>
-          <p>Thank you,<br/>HR Team</p>
-        `,
-      });
-    } catch (e) {
-      console.error("Failed to send onboarding email:", e);
-      // continue without failing the request
+    if (sendEmail) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "";
+        const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
+        const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
+        await resend.emails.send({
+          from: "CoreNZ Notifications <onboarding@resend.dev>",
+          to: user.email,
+          subject: "Welcome to CoreNZ – Your onboarding is ready",
+          html: `
+            <p>Hi ${user.firstName || "there"},</p>
+            <p>Your onboarding has been started. Please log in and complete your onboarding steps.</p>
+            <p><a href="${loginWithNext}">Login to start onboarding</a></p>
+            <p>Thank you,<br/>HR Team</p>
+          `,
+        });
+      } catch (e) {
+        console.error("Failed to send onboarding email:", e);
+        // continue without failing the request
+      }
     }
 
     return NextResponse.json(result, { status: 201 });

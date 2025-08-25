@@ -6,6 +6,7 @@ const mapStepType = (type: string) => {
     case 'ACKNOWLEDGE_DOCUMENT': return 'acknowledge-document';
     case 'UPLOAD_DOCUMENT': return 'upload-document';
     case 'INSTRUCTION': return 'instructions';
+    case 'FORM_FILL': return 'fill-form';
     default: return type.toLowerCase();
   }
 };
@@ -29,7 +30,10 @@ export async function GET(
         template: {
           include: {
             steps: {
-              include: { document: true }, // include linked document for ACK steps
+              include: {
+                document: true,
+                form: { select: { id: true, name: true } },
+              }, // include linked document for ACK steps
             },
           },
         },
@@ -58,6 +62,7 @@ export async function GET(
               url: tStep.document.url,
             }
           : undefined,
+        formId: tStep.formId ?? undefined,
         order: tStep.order,
         status: instStep?.status || 'pending',
       };

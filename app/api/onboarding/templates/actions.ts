@@ -27,3 +27,46 @@ export async function createTemplate(
     },
   });
 }
+
+export async function updateTemplate(
+  session: any,
+  body: any,
+  prismaClient = prisma
+) {
+  const { id, name, description, departments = [], jobRoles = [], steps = [], isActive } = body;
+  const filteredSteps = mapSteps(steps);
+
+  // Remove existing step data with cascading order
+  await prismaClient.onboardingStepResponse.deleteMany({
+    where: { onboardingStepInstance: { step: { templateId: id } } },
+  });
+  await prismaClient.onboardingStepInstance.deleteMany({
+    where: { step: { templateId: id } },
+  });
+  await prismaClient.onboardingStep.deleteMany({ where: { templateId: id } });
+
+  return prismaClient.onboardingTemplate.update({
+    where: { id },
+    data: {
+      name,
+      description: description || '',
+      isActive: Boolean(isActive),
+      updatedById: session.user.id,
+      departments: {
+        set: [],
+        connect: departments.length > 0 ? departments.map((id: string) => ({ id })) : [],
+      },
+      jobRoles: {
+        set: [],
+        connect: jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
+      },
+      steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
+    },
+    include: {
+      departments: { select: { id: true, name: true } },
+      jobRoles: { select: { id: true, name: true } },
+      steps: true,
+      updatedBy: { select: { id: true, name: true, email: true } },
+    },
+  });
+}

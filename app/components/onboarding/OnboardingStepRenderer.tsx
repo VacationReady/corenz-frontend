@@ -52,7 +52,32 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
           I have read and acknowledge this document
         </label>
         {!readOnly && (
-          <Button disabled={!ack || loading} onClick={() => { setLoading(true); onComplete(); }}>
+          <Button
+            disabled={!ack || loading}
+            onClick={async () => {
+              if (!ack || loading) return;
+              try {
+                setLoading(true);
+                if (step.document?.id) {
+                  const res = await fetch('/api/documents/acknowledge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentId: step.document.id }),
+                  });
+                  if (!res.ok) throw new Error('Failed to acknowledge');
+                  window.dispatchEvent(
+                    new CustomEvent('employee-documents-updated', { detail: { employeeId } })
+                  );
+                }
+                await onComplete();
+              } catch (err) {
+                console.error(err);
+                toast('Failed to acknowledge document');
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
             Mark Complete
           </Button>
         )}

@@ -107,7 +107,6 @@ export async function POST(req: Request) {
       jobRoleId,
       departmentId,
       managerId,
-      startOnboarding,
       sendInviteNow,
       onboardingTemplateId,
     } = await req.json();
@@ -115,6 +114,13 @@ export async function POST(req: Request) {
     if (!firstName || !lastName || !email || !startDate || !role) {
       return NextResponse.json(
         { success: false, error: "Missing required fields." },
+        { status: 400 }
+      );
+    }
+
+    if (!onboardingTemplateId) {
+      return NextResponse.json(
+        { success: false, error: "Need to select onboarding template" },
         { status: 400 }
       );
     }
@@ -175,14 +181,17 @@ export async function POST(req: Request) {
     });
 
     // ✅ Create Employee linked to User
+    const normalizedTemplateId =
+      onboardingTemplateId === "none" ? undefined : onboardingTemplateId;
+
     const employee = await prisma.employee.create({
       data: {
         user: { connect: { id: user.id } },
         isActive: true,
         department: departmentId ? { connect: { id: departmentId } } : undefined,
         company: { connect: { id: companyId! } }, // ✅ use relation connect
-        onboardingTemplate: onboardingTemplateId
-          ? { connect: { id: onboardingTemplateId } }
+        onboardingTemplate: normalizedTemplateId
+          ? { connect: { id: normalizedTemplateId } }
           : undefined,
       },
     });
@@ -195,7 +204,10 @@ export async function POST(req: Request) {
       },
     });
 
-    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&employeeId=${employee.id}`;
+    const redirectPath = normalizedTemplateId
+      ? `/${employee.id}/onboarding`
+      : `/dashboard`;
+    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
 
     if (sendInviteNow) {
       await resend.emails.send({
@@ -204,26 +216,25 @@ export async function POST(req: Request) {
         subject: "Activate Your CoreNZ Account",
         html: `
           <p>Hi ${firstName},</p>
-          <p>Welcome to CoreNZ! Please click the link below to activate your account and set your password:</p>
+          <p>Welcome to CoreNZ! Please click the link below to activate your account and get started:</p>
           <p><a href="${activationLink}">Activate Your Account</a></p>
         `,
       });
     }
 
     // ✅ Optional onboarding trigger
-    if (startOnboarding) {
+    if (normalizedTemplateId) {
       try {
-        // Hit our start endpoint to create instance + assignment and send onboarding email
         const startRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // forward auth cookies so the onboarding API can authenticate the request
             cookie: req.headers.get("cookie") ?? "",
           },
           body: JSON.stringify({
             employeeId: employee.id,
-            templateId: onboardingTemplateId,
+            templateId: normalizedTemplateId,
+            sendEmail: false,
           }),
         });
 

@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/Input";
 import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
-// 👇 Toggles
+// 👇 Toggle
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -46,8 +47,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     onboardingTemplateId: "",
   });
 
-  // Toggles
-  const [startOnboarding, setStartOnboarding] = useState(true);
+  // Toggle
   const [sendInviteNow, setSendInviteNow] = useState(true);
 
   const fetchData = async () => {
@@ -83,17 +83,16 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      if (startOnboarding && !formData.onboardingTemplateId) {
-        setError("Please select an onboarding template");
+      if (!formData.onboardingTemplateId) {
+        toast.error("Need to select onboarding template");
         return;
       }
 
       const payload = {
         ...formData,
         companyId: session?.user?.companyId,
-        startOnboarding, // 👈 Pass to backend
-        sendInviteNow,   // 👈 Pass to backend
-        onboardingTemplateId: startOnboarding ? formData.onboardingTemplateId : undefined,
+        sendInviteNow, // 👈 Pass to backend
+        onboardingTemplateId: formData.onboardingTemplateId,
       };
 
       const res = await fetch("/api/employees", {
@@ -122,7 +121,6 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         managerId: "",
         onboardingTemplateId: "",
       });
-      setStartOnboarding(true);
       setSendInviteNow(true);
 
       onClose();
@@ -201,40 +199,27 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
               )}
             </select>
 
-            {/* Toggles */}
+            {/* Toggle */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Switch checked={sendInviteNow} onChange={(checked: boolean) => setSendInviteNow(checked)} />
                 <Label className="text-sm">Send login invite now</Label>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={startOnboarding}
-                  onChange={(checked: boolean) => {
-                    setStartOnboarding(checked);
-                    if (!checked) {
-                      setFormData((prev) => ({ ...prev, onboardingTemplateId: "" }));
-                    }
-                  }}
-                />
-                <Label className="text-sm">Start onboarding now (will email onboarding link)</Label>
-              </div>
             </div>
 
-            {startOnboarding && (
-              <select
-                name="onboardingTemplateId"
-                value={formData.onboardingTemplateId}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                required
-              >
-                <option value="">Select Onboarding Template</option>
-                {filteredTemplates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            )}
+            <select
+              name="onboardingTemplateId"
+              value={formData.onboardingTemplateId}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              required
+            >
+              <option value="">Select Onboarding Template</option>
+              <option value="none">None</option>
+              {filteredTemplates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

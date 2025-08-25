@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { Prisma } from "@prisma/client";
-import { mapSteps } from "./stepMapper";
-import { createTemplate } from "./actions";
+import { createTemplate, updateTemplate } from "./actions";
 
 // ✅ GET - Fetch Templates
 export async function GET(req: Request) {
@@ -65,37 +63,7 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, name, description, departments = [], jobRoles = [], steps = [], isActive } = body;
-
-    const filteredSteps = mapSteps(steps);
-
-    await prisma.onboardingStep.deleteMany({ where: { templateId: id } });
-
-    const template = await prisma.onboardingTemplate.update({
-      where: { id },
-      data: {
-        name,
-        description: description || "",
-        isActive: Boolean(isActive),
-        updatedById: session.user.id,
-        departments: {
-          set: [],
-          connect: departments.length > 0 ? departments.map((id: string) => ({ id })) : [],
-        },
-        jobRoles: {
-          set: [],
-          connect: jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
-        },
-        steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
-      },
-      include: {
-        departments: { select: { id: true, name: true } },
-        jobRoles: { select: { id: true, name: true } },
-        steps: true,
-        updatedBy: { select: { id: true, name: true, email: true } },
-      },
-    });
-
+    const template = await updateTemplate(session, body);
     return NextResponse.json(template);
   } catch (err) {
     console.error("Failed to update onboarding template", err);
@@ -114,7 +82,13 @@ export async function DELETE(req: Request) {
     const body = await req.json();
     const { id } = body;
 
-    // First delete steps, then template (avoids FK constraints)
+    // Remove step responses and instances before deleting steps
+    await prisma.onboardingStepResponse.deleteMany({
+      where: { onboardingStepInstance: { step: { templateId: id } } },
+    });
+    await prisma.onboardingStepInstance.deleteMany({
+      where: { step: { templateId: id } },
+    });
     await prisma.onboardingStep.deleteMany({ where: { templateId: id } });
     await prisma.onboardingTemplate.delete({ where: { id } });
 

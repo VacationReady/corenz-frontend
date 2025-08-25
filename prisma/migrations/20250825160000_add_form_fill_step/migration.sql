@@ -1,0 +1,1 @@
+ALTER TYPE "OnboardingStepType" ADD VALUE IF NOT EXISTS 'FORM_FILL';

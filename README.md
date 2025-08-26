@@ -20,3 +20,4 @@ This update introduces a basic exit interview workflow for employee offboarding.
 - **Assets to return** – tick any items the leaver must return. Each item is tracked as a task during offboarding.
 - **Start Offboarding Process** – submits the form, creates the offboarding record, and seeds default tasks (including any above selections).
 - **Cancel** – closes the modal without saving.
+

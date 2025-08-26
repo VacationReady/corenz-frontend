@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { createHash } from "crypto";
 
+// Accept the token from the form link and locate the offboarding record
+// based on the stored completionTokenHash. No offboardingId is required
+// from the client as it can be derived from the lookup.
 const startSchema = z.object({
-  token: z.string().min(1),
-  offboardingId: z.string().min(1),
+  token: z.string().min(1)
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { token, offboardingId } = startSchema.parse(body);
+    const { token } = startSchema.parse(body);
 
-    // Get offboarding record
-    const offboarding = await prisma.employeeOffboarding.findUnique({
-      where: { id: offboardingId },
+    // Find the offboarding record by its completion token
+    const offboarding = await prisma.employeeOffboarding.findFirst({
+      where: { completionTokenHash: token },
       include: {
         employee: {
           include: { user: true }
@@ -28,12 +29,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
     }
 
-    // Validate token
-    const expectedHash = createHash('sha256').update(token + offboardingId).digest('hex');
-    if (offboarding.completionTokenHash !== expectedHash) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
-    }
-
     // Check if already submitted
     if (offboarding.completionStatus === 'SUBMITTED') {
       return NextResponse.json({ error: "Form already submitted" }, { status: 400 });
@@ -42,7 +37,7 @@ export async function POST(req: NextRequest) {
     // Update completion status to STARTED if it's still PENDING
     if (offboarding.completionStatus === 'PENDING') {
       await prisma.employeeOffboarding.update({
-        where: { id: offboardingId },
+        where: { id: offboarding.id },
         data: {
           completionStatus: 'STARTED'
         }

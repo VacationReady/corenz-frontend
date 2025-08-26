@@ -5,6 +5,7 @@ import { formatLondon } from '@/lib/time';
 import { createHash, randomBytes } from 'crypto';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
 
 export interface EmailRecipient {
   email: string;
@@ -101,7 +102,7 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
 
     // Send email to employee
     await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      from: FROM_EMAIL,
       to: employee.user.email,
       subject,
       html: htmlContent,
@@ -114,7 +115,7 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
 
     // Send copy to interviewer
     await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      from: FROM_EMAIL,
       to: interviewer.email,
       subject: `Copy: ${subject}`,
       html: htmlContent,
@@ -188,7 +189,7 @@ export async function sendExitInterviewFormInvite(offboardingId: string): Promis
     `;
 
     await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      from: FROM_EMAIL,
       to: employee.user.email,
       subject,
       html: htmlContent
@@ -259,7 +260,7 @@ export async function sendExitInterviewCancellation(offboardingId: string): Prom
 
     // Send cancellation to employee
     await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      from: FROM_EMAIL,
       to: employee.user.email,
       subject,
       html: htmlContent,
@@ -272,8 +273,8 @@ export async function sendExitInterviewCancellation(offboardingId: string): Prom
 
     // Send cancellation to interviewer
     if (interviewer.email) {
-      await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+        await resend.emails.send({
+          from: FROM_EMAIL,
         to: interviewer.email,
         subject: `Copy: ${subject}`,
         html: htmlContent,

@@ -379,15 +379,17 @@ export default function EmployeeOffboardingPage() {
                 </div>
               )}
 
-              {/* Manual Form Invitation Button */}
-              {offboarding.exitInterview.sendForm && 
-               offboarding.exitInterview.formTiming === 'ON_DATE' && 
-               offboarding.exitInterview.completionStatus === 'PENDING' && (
+              {/* Manual Form Invitation / Resend Button */}
+              {offboarding.exitInterview.sendForm &&
+               ['ON_DATE', 'NOW'].includes(offboarding.exitInterview.formTiming || '') &&
+               offboarding.exitInterview.completionStatus !== 'SUBMITTED' && (
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Send className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium">Manual Form Invitation</span>
+                      <span className="text-sm font-medium">
+                        {offboarding.exitInterview.formTiming === 'NOW' ? 'Resend Form' : 'Manual Form Invitation'}
+                      </span>
                     </div>
                     <Button
                       onClick={handleSendFormInvite}
@@ -403,13 +405,15 @@ export default function EmployeeOffboardingPage() {
                       ) : (
                         <>
                           <Send className="mr-2 h-4 w-4" />
-                          Send Form Now
+                          {offboarding.exitInterview.formTiming === 'NOW' ? 'Resend Form' : 'Send Form Now'}
                         </>
                       )}
                     </Button>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    Manually trigger the exit interview form invitation (bypasses scheduled timing)
+                    {offboarding.exitInterview.formTiming === 'NOW'
+                      ? 'Resend the exit interview form invitation'
+                      : 'Manually trigger the exit interview form invitation (bypasses scheduled timing)'}
                   </p>
                 </div>
               )}

@@ -120,6 +120,8 @@ export async function POST(req: NextRequest) {
       employeeId,
       initiatedById: session.user.id,
       status: 'SCHEDULED' as const,
+      offboardingType: 'RESIGNATION' as const, // Default to resignation, can be made configurable later
+      lastWorkingDate: new Date(), // Default to today, can be updated later
       exitInterviewDate: exitInterviewDateUTC,
       exitInterviewEnd: exitInterviewEndUTC,
       interviewerUserId: interviewerUserIdValid,

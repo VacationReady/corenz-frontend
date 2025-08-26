@@ -67,7 +67,7 @@ interface OffboardingData {
 
 export default function EmployeeOffboardingPage() {
   const params = useParams()
-  const employeeId = params.id as string
+  const employeeId = params?.id as string
   
   const [offboarding, setOffboarding] = useState<OffboardingData | null>(null)
   const [loading, setLoading] = useState(true)

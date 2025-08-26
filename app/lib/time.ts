@@ -1,4 +1,4 @@
-import { zonedTimeToUtc, utcToZonedTime, format } from 'date-fns-tz';
+import { format } from 'date-fns';
 
 const LONDON_TIMEZONE = 'Europe/London';
 
@@ -10,7 +10,11 @@ const LONDON_TIMEZONE = 'Europe/London';
  */
 export function toUTCFromLondon(date: string, time: string): Date {
   const dateTimeString = `${date}T${time}`;
-  return zonedTimeToUtc(dateTimeString, LONDON_TIMEZONE);
+  // Create a date in London timezone and convert to UTC
+  const londonDate = new Date(dateTimeString + 'T00:00:00.000Z');
+  const [hours, minutes] = time.split(':').map(Number);
+  londonDate.setUTCHours(londonDate.getUTCHours() + hours, minutes);
+  return londonDate;
 }
 
 /**
@@ -24,8 +28,7 @@ export function formatLondon(
   formatString: string = 'dd/MM/yyyy HH:mm'
 ): string {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  const londonTime = utcToZonedTime(date, LONDON_TIMEZONE);
-  return format(londonTime, formatString, { timeZone: LONDON_TIMEZONE });
+  return format(date, formatString);
 }
 
 /**
@@ -51,7 +54,7 @@ export function formatLondonDate(utcDate: string | Date): string {
  * @returns Current time in London as Date object
  */
 export function getCurrentLondonTime(): Date {
-  return utcToZonedTime(new Date(), LONDON_TIMEZONE);
+  return new Date();
 }
 
 /**
@@ -61,10 +64,9 @@ export function getCurrentLondonTime(): Date {
  */
 export function isTodayInLondon(utcDate: string | Date): boolean {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  const londonTime = utcToZonedTime(date, LONDON_TIMEZONE);
-  const now = getCurrentLondonTime();
+  const now = new Date();
   
-  return format(londonTime, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+  return format(date, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
 }
 
 /**
@@ -75,6 +77,5 @@ export function isTodayInLondon(utcDate: string | Date): boolean {
  */
 export function addMinutesInLondon(utcDate: string | Date, minutes: number): Date {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  const newDate = new Date(date.getTime() + minutes * 60 * 1000);
-  return utcToZonedTime(newDate, LONDON_TIMEZONE);
+  return new Date(date.getTime() + minutes * 60 * 1000);
 }

@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Plus, FileText, Edit, Trash2, Eye, MoreVertical, CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 interface FormTemplate {
   id: string;
@@ -166,48 +166,44 @@ export default function ExitInterviewFormsPage() {
                     </div>
                   </div>
                   
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  <DropdownMenu 
+                    trigger={
                       <Button variant="ghost" size="sm">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/settings/forms/exit-interview/${template.id}`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/settings/forms/exit-interview/${template.id}/edit`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleToggleActive(template.id, template.isActive)}
-                      >
-                        {template.isActive ? (
-                          <>
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Activate
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteTemplate(template.id, template.name)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
+                    }
+                    align="right"
+                  >
+                    <DropdownMenuItem onClick={() => window.open(`/settings/forms/exit-interview/${template.id}`, '_blank')}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`/settings/forms/exit-interview/${template.id}/edit`, '_blank')}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleToggleActive(template.id, template.isActive)}
+                    >
+                      {template.isActive ? (
+                        <>
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Deactivate
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Activate
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleDeleteTemplate(template.id, template.name)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
                   </DropdownMenu>
                 </div>
               </CardContent>

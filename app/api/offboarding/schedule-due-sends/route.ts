@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
       // Send the form invitation (supports manual resend for NOW forms)
       const emailSent = await sendExitInterviewFormInvite(offboarding.id);
 
+      if (!emailSent) {
+        return NextResponse.json(
+          { error: "Failed to send form invitation" },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json({
         success: true,
         offboardingId: offboarding.id,

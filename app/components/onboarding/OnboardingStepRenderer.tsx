@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
+import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
 import { toast } from "sonner";
 
 type OnboardingStepProps = {
@@ -17,6 +18,7 @@ type OnboardingStepProps = {
     instruction?: string;
     formFields?: { label: string; type: string }[];
     formId?: string; // ID of reusable form schema
+    form?: { formType: "SUBMISSION" | "DATA_SCREEN" };
     document?: { id: string; name: string; url: string };
     category?: string;
   };
@@ -32,6 +34,18 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
   const [ack, setAck] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [formValues, setFormValues] = useState<{ [key: string]: string }>({});
+  const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN" | null>(step.form?.formType || null);
+
+  useEffect(() => {
+    if (!formType && step.formId) {
+      fetch(`/api/forms/${step.formId}`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.formType) setFormType(data.formType);
+        })
+        .catch(() => {});
+    }
+  }, [formType, step.formId]);
 
   const title = step.title || step.label || "Untitled Step";
   const desc = step.description || step.instruction || "";
@@ -145,23 +159,39 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
   // ✅ Fill Form
   if (step.type === "fill-form" || step.type === "form_fill") {
     if (step.formId) {
+      if (!formType) {
+        return (
+          <Card className="p-4">
+            <div className="mb-2 font-semibold">{title}</div>
+            <div className="mb-3 text-sm">{desc}</div>
+            <div>Loading form...</div>
+          </Card>
+        );
+      }
+
+      const handleComplete = (data: any) => {
+        setLoading(true);
+        onComplete({ formResponse: data });
+        window.dispatchEvent(new CustomEvent('employee-documents-updated', { detail: { employeeId } }));
+      };
+
       return (
         <Card className="p-4">
           <div className="mb-2 font-semibold">{title}</div>
           <div className="mb-3 text-sm">{desc}</div>
-          <DynamicFormRenderer
-            formId={step.formId}
-            employeeId={employeeId}
-            onSubmitSuccess={(data) => {
-              setLoading(true);
-              // Wrap the response so API can persist it
-              onComplete({ formResponse: data });
-              // Ensure any uploaded docs appear in employee documents list
-              window.dispatchEvent(
-                new CustomEvent('employee-documents-updated', { detail: { employeeId } })
-              );
-            }}
-          />
+          {formType === 'DATA_SCREEN' ? (
+            <EnhancedFormRenderer
+              formId={step.formId}
+              employeeId={employeeId || ''}
+              onDataChange={handleComplete}
+            />
+          ) : (
+            <DynamicFormRenderer
+              formId={step.formId}
+              employeeId={employeeId}
+              onSubmitSuccess={handleComplete}
+            />
+          )}
         </Card>
       );
     }

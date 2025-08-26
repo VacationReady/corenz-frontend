@@ -5,6 +5,7 @@ import { renderToString } from 'react-dom/server';
 import Module from 'module';
 
 let capturedProps: any = null;
+let capturedEnhancedProps: any = null;
 (global as any).React = React;
 
 const originalLoad = (Module as any)._load;
@@ -13,6 +14,14 @@ const originalLoad = (Module as any)._load;
     return {
       DynamicFormRenderer: (props: any) => {
         capturedProps = props;
+        return React.createElement('div');
+      },
+    };
+  }
+  if (request === '@/components/forms/EnhancedFormRenderer') {
+    return {
+      EnhancedFormRenderer: (props: any) => {
+        capturedEnhancedProps = props;
         return React.createElement('div');
       },
     };
@@ -28,7 +37,7 @@ const originalLoad = (Module as any)._load;
 const OnboardingStepRenderer = require('../app/components/onboarding/OnboardingStepRenderer').default;
 
 test('passes employeeId to DynamicFormRenderer', () => {
-  const step = { id: 's1', type: 'fill-form', formId: 'f1', title: 'Form', description: '' };
+  const step = { id: 's1', type: 'fill-form', formId: 'f1', form: { formType: 'SUBMISSION' }, title: 'Form', description: '' };
   renderToString(
     React.createElement(OnboardingStepRenderer, {
       step,
@@ -40,7 +49,7 @@ test('passes employeeId to DynamicFormRenderer', () => {
 });
 
 test('wraps submitted data and dispatches document update', () => {
-  const step = { id: 's1', type: 'fill-form', formId: 'f1', title: 'Form', description: '' };
+  const step = { id: 's1', type: 'fill-form', formId: 'f1', form: { formType: 'SUBMISSION' }, title: 'Form', description: '' };
   let received: any = null;
   const events: any[] = [];
   // listen for custom event
@@ -63,3 +72,28 @@ test('wraps submitted data and dispatches document update', () => {
   assert.deepEqual(received, { formResponse: { foo: 'bar' } });
   assert.deepEqual(events[0], { employeeId: 'emp123' });
 });
+
+test('uses EnhancedFormRenderer for data screen forms', () => {
+  const step = { id: 's1', type: 'fill-form', formId: 'f1', form: { formType: 'DATA_SCREEN' }, title: 'Form', description: '' };
+  let received: any = null;
+  const events: any[] = [];
+  (global as any).window = {
+    dispatchEvent: (e: any) => events.push(e.detail),
+    addEventListener: () => {},
+  } as any;
+
+  renderToString(
+    React.createElement(OnboardingStepRenderer, {
+      step,
+      onComplete: (d: any) => { received = d; },
+      employeeId: 'emp123',
+    })
+  );
+
+  // simulate data screen change
+  capturedEnhancedProps.onDataChange({ baz: 'qux' });
+
+  assert.deepEqual(received, { formResponse: { baz: 'qux' } });
+  assert.deepEqual(events[0], { employeeId: 'emp123' });
+});
+  

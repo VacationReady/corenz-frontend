@@ -107,10 +107,15 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
 
   const fetchFormTemplates = async () => {
     try {
+      console.log('Fetching form templates...');
       const response = await fetch('/api/exit-interview-templates?activeOnly=true');
+      console.log('Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('Form templates received:', data);
         setFormTemplates(data);
+      } else {
+        console.error('Failed to fetch form templates:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching form templates:', error);
@@ -358,24 +363,33 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
 
             {formData.sendForm && (
               <div className="space-y-4 pl-6 border-l-2 border-gray-200">
-                <div>
-                  <Label htmlFor="formTemplate">Exit Interview Form Template</Label>
-                  <Select 
-                    value={formData.formTemplateId} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, formTemplateId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select form template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formTemplates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                                 <div>
+                   <Label htmlFor="formTemplate">Exit Interview Form Template</Label>
+                   <div className="text-xs text-gray-500 mb-2">
+                     Available templates: {formTemplates.length}
+                   </div>
+                   <Select 
+                     value={formData.formTemplateId} 
+                     onValueChange={(value) => setFormData(prev => ({ ...prev, formTemplateId: value }))}
+                   >
+                     <SelectTrigger>
+                       <SelectValue placeholder="Select form template" />
+                     </SelectTrigger>
+                     <SelectContent>
+                       {formTemplates.length === 0 ? (
+                         <SelectItem value="" disabled>
+                           No templates available
+                         </SelectItem>
+                       ) : (
+                         formTemplates.map((template) => (
+                           <SelectItem key={template.id} value={template.id}>
+                             {template.name}
+                           </SelectItem>
+                         ))
+                       )}
+                     </SelectContent>
+                   </Select>
+                 </div>
 
                 <div>
                   <Label>When should the employee complete the form?</Label>

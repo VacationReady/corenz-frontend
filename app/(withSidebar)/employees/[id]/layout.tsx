@@ -17,6 +17,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
           department: true,
         },
       },
+      offboardingRecord: true,
     },
   });
 
@@ -124,6 +125,10 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     })),
     { href: `/employees/${params.id}/performance`, label: "Performance" },
     { href: `/employees/${params.id}/onboarding`, label: "Onboarding History" },
+    // Show offboarding tab for archived employees or if they have an offboarding record
+    ...(employee.offboardingRecord || !employee.isActive ? [
+      { href: `/employees/${params.id}/offboarding`, label: "Offboarding" }
+    ] : []),
     { href: `/employees/${params.id}/driver-licenses`, label: "Driver Licenses" },
     { href: `/employees/${params.id}/training`, label: "Training" },
     { href: `/employees/${params.id}/employment-checks`, label: "Employment Checks" },

@@ -1,0 +1,293 @@
+import { Resend } from 'resend';
+import { prisma } from '@/lib/prisma';
+import { buildExitInterviewConfirmationICS, buildExitInterviewCancellationICS } from '@/lib/calendar/ics';
+import { formatLondon } from '@/lib/time';
+import { createHash, randomBytes } from 'crypto';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export interface EmailRecipient {
+  email: string;
+  name: string;
+}
+
+/**
+ * Generate a secure token for exit interview form access
+ */
+export function generateCompletionToken(offboardingId: string): string {
+  const randomToken = randomBytes(32).toString('hex');
+  const hash = createHash('sha256').update(randomToken + offboardingId).digest('hex');
+  return hash;
+}
+
+/**
+ * Send exit interview confirmation email with ICS attachment
+ */
+export async function sendExitInterviewConfirmation(offboardingId: string): Promise<boolean> {
+  try {
+    const offboarding = await prisma.employeeOffboarding.findUnique({
+      where: { id: offboardingId },
+      include: {
+        employee: {
+          include: { user: true }
+        },
+        interviewerUser: true,
+        formTemplate: true
+      }
+    });
+
+    if (!offboarding || !offboarding.exitInterviewDate) {
+      throw new Error('Offboarding record not found or missing interview date');
+    }
+
+    const employee = offboarding.employee;
+    const interviewer = offboarding.interviewerUser || {
+      name: offboarding.interviewerName,
+      email: offboarding.interviewerEmail,
+      firstName: offboarding.interviewerName?.split(' ')[0] || '',
+      lastName: offboarding.interviewerName?.split(' ').slice(1).join(' ') || ''
+    };
+
+    if (!interviewer.email) {
+      throw new Error('Interviewer email is required');
+    }
+
+    // Generate ICS attachment
+    const ics = buildExitInterviewConfirmationICS(offboarding, employee, interviewer);
+
+    // Prepare email content
+    const interviewDate = formatLondon(offboarding.exitInterviewDate, 'EEEE, dd MMMM yyyy');
+    const interviewTime = formatLondon(offboarding.exitInterviewDate, 'HH:mm');
+    const location = offboarding.location || 'Online/Office';
+
+    const subject = `Exit Interview — ${employee.user.firstName} ${employee.user.lastName} on ${interviewDate} at ${interviewTime}`;
+
+    let formLink = '';
+    if (offboarding.sendForm && offboarding.formTiming === 'NOW' && offboarding.completionTokenHash) {
+      formLink = `${process.env.NEXT_PUBLIC_APP_URL}/exit-interview/${offboarding.completionTokenHash}`;
+    }
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Exit Interview Confirmation</h2>
+        
+        <p>Dear ${employee.user.firstName} ${employee.user.lastName},</p>
+        
+        <p>Your exit interview has been scheduled with the following details:</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Date:</strong> ${interviewDate}</p>
+          <p><strong>Time:</strong> ${interviewTime}</p>
+          <p><strong>Location:</strong> ${location}</p>
+          <p><strong>Interviewer:</strong> ${interviewer.name || `${interviewer.firstName} ${interviewer.lastName}`}</p>
+          ${offboarding.exitInterviewNotes ? `<p><strong>Notes:</strong> ${offboarding.exitInterviewNotes}</p>` : ''}
+        </div>
+        
+        <p>A calendar invitation has been attached to this email. Please add it to your calendar.</p>
+        
+        ${formLink ? `
+          <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Exit Interview Form</strong></p>
+            <p>Please complete your exit interview form before the interview:</p>
+            <a href="${formLink}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Complete Form</a>
+          </div>
+        ` : ''}
+        
+        <p>If you have any questions or need to reschedule, please contact HR.</p>
+        
+        <p>Best regards,<br>HR Team</p>
+      </div>
+    `;
+
+    // Send email to employee
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      to: employee.user.email,
+      subject,
+      html: htmlContent,
+      attachments: [{
+        filename: ics.filename,
+        content: Buffer.from(ics.content),
+        contentType: ics.mime
+      }]
+    });
+
+    // Send copy to interviewer
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      to: interviewer.email,
+      subject: `Copy: ${subject}`,
+      html: htmlContent,
+      attachments: [{
+        filename: ics.filename,
+        content: Buffer.from(ics.content),
+        contentType: ics.mime
+      }]
+    });
+
+    // Update offboarding record
+    await prisma.employeeOffboarding.update({
+      where: { id: offboardingId },
+      data: {
+        inviteLastSentAt: new Date(),
+        inviteIcsUid: ics.filename.replace('.ics', '').replace('exit-interview-', '')
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send exit interview confirmation:', error);
+    return false;
+  }
+}
+
+/**
+ * Send exit interview form invitation (for scheduled sends)
+ */
+export async function sendExitInterviewFormInvite(offboardingId: string): Promise<boolean> {
+  try {
+    const offboarding = await prisma.employeeOffboarding.findUnique({
+      where: { id: offboardingId },
+      include: {
+        employee: {
+          include: { user: true }
+        },
+        formTemplate: true
+      }
+    });
+
+    if (!offboarding || !offboarding.sendForm || !offboarding.completionTokenHash) {
+      throw new Error('Offboarding record not found or missing form configuration');
+    }
+
+    const employee = offboarding.employee;
+    const formLink = `${process.env.NEXT_PUBLIC_APP_URL}/exit-interview/${offboarding.completionTokenHash}`;
+    const today = formatLondon(new Date(), 'dd MMMM yyyy');
+
+    const subject = `Please complete your Exit Interview — ${today}`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Exit Interview Form</h2>
+        
+        <p>Dear ${employee.user.firstName} ${employee.user.lastName},</p>
+        
+        <p>As part of your exit process, please complete your exit interview form today.</p>
+        
+        <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin-bottom: 15px;"><strong>Exit Interview Form</strong></p>
+          <a href="${formLink}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Complete Form Now</a>
+        </div>
+        
+        <p>This form will help us understand your experience and gather feedback for improvement.</p>
+        
+        <p>If you have any issues accessing the form, please contact HR.</p>
+        
+        <p>Best regards,<br>HR Team</p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      to: employee.user.email,
+      subject,
+      html: htmlContent
+    });
+
+    // Update completion status to STARTED
+    await prisma.employeeOffboarding.update({
+      where: { id: offboardingId },
+      data: {
+        completionStatus: 'STARTED'
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send exit interview form invite:', error);
+    return false;
+  }
+}
+
+/**
+ * Send exit interview cancellation email with ICS cancellation
+ */
+export async function sendExitInterviewCancellation(offboardingId: string): Promise<boolean> {
+  try {
+    const offboarding = await prisma.employeeOffboarding.findUnique({
+      where: { id: offboardingId },
+      include: {
+        employee: {
+          include: { user: true }
+        },
+        interviewerUser: true
+      }
+    });
+
+    if (!offboarding || !offboarding.inviteIcsUid) {
+      throw new Error('Offboarding record not found or no ICS UID');
+    }
+
+    const employee = offboarding.employee;
+    const interviewer = offboarding.interviewerUser || {
+      name: offboarding.interviewerName,
+      email: offboarding.interviewerEmail,
+      firstName: offboarding.interviewerName?.split(' ')[0] || '',
+      lastName: offboarding.interviewerName?.split(' ').slice(1).join(' ') || ''
+    };
+
+    // Generate cancellation ICS
+    const ics = buildExitInterviewCancellationICS(offboarding, employee, interviewer);
+
+    const subject = `Exit Interview Cancelled — ${employee.user.firstName} ${employee.user.lastName}`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #d32f2f;">Exit Interview Cancelled</h2>
+        
+        <p>Dear ${employee.user.firstName} ${employee.user.lastName},</p>
+        
+        <p>Your scheduled exit interview has been cancelled.</p>
+        
+        <p>A cancellation notice has been attached to this email to remove the event from your calendar.</p>
+        
+        <p>If you have any questions, please contact HR.</p>
+        
+        <p>Best regards,<br>HR Team</p>
+      </div>
+    `;
+
+    // Send cancellation to employee
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+      to: employee.user.email,
+      subject,
+      html: htmlContent,
+      attachments: [{
+        filename: ics.filename,
+        content: Buffer.from(ics.content),
+        contentType: ics.mime
+      }]
+    });
+
+    // Send cancellation to interviewer
+    if (interviewer.email) {
+      await resend.emails.send({
+        from: process.env.FROM_EMAIL || 'noreply@corenz.com',
+        to: interviewer.email,
+        subject: `Copy: ${subject}`,
+        html: htmlContent,
+        attachments: [{
+          filename: ics.filename,
+          content: Buffer.from(ics.content),
+          contentType: ics.mime
+        }]
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send exit interview cancellation:', error);
+    return false;
+  }
+}

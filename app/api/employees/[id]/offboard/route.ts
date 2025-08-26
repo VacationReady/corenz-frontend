@@ -57,6 +57,24 @@ export async function POST(
       );
     }
 
+    // If a handover assignee is specified, ensure they exist and map to their user ID
+    let handoverAssigneeUserId: string | null = null;
+    if (handoverAssignedTo) {
+      const assignee = await prisma.employee.findUnique({
+        where: { id: handoverAssignedTo },
+        select: { userId: true },
+      });
+
+      if (!assignee) {
+        return NextResponse.json(
+          { error: "Handover assignee not found" },
+          { status: 400 }
+        );
+      }
+
+      handoverAssigneeUserId = assignee.userId;
+    }
+
     // Create offboarding record
     const offboardingRecord = await prisma.employeeOffboarding.create({
       data: {
@@ -70,7 +88,7 @@ export async function POST(
         resignationDate: resignationDate ? new Date(resignationDate) : null,
         removeAccessImmediately: removeAccessImmediately ?? false,
         handoverRequired: handoverRequired ?? false,
-        handoverAssignedTo: handoverAssignedTo || null,
+        handoverAssignedTo: handoverAssigneeUserId ?? undefined,
         exitInterviewRequired: exitInterviewRequired ?? false,
         assetsToReturn: assetsToReturn || null,
         hrNotes,
@@ -120,7 +138,7 @@ export async function POST(
     ];
 
     // Add conditional tasks
-    if (handoverRequired && handoverAssignedTo) {
+    if (handoverRequired && handoverAssigneeUserId) {
       defaultTasks.push({
         title: "Complete knowledge handover",
         description: "Transfer responsibilities and knowledge to assigned colleague",
@@ -149,7 +167,7 @@ export async function POST(
         category: task.category,
         isRequired: task.isRequired,
         order: Math.floor(task.order * 10), // Convert to integer
-        assignedTo: task.category === TaskCategory.HANDOVER ? handoverAssignedTo : null,
+        assignedTo: task.category === TaskCategory.HANDOVER ? handoverAssigneeUserId : null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       })),
     });

@@ -44,6 +44,7 @@ model User {
   offboardingHandoverAssigned                  EmployeeOffboarding[]  @relation("OffboardingHandoverAssignedTo")
   offboardingHRReviewCompleted                 EmployeeOffboarding[]  @relation("OffboardingHRReviewCompletedBy")
   offboardingAssetsReturnedTo                  EmployeeOffboarding[]  @relation("OffboardingAssetsReturnedTo")
+  exitInterviewConducted                       EmployeeOffboarding[]  @relation("ExitInterviewInterviewer")
   tasksAssigned                                OffboardingTask[]      @relation("TaskAssignedTo")
   tasksCompleted                               OffboardingTask[]      @relation("TaskCompletedBy")
   
@@ -706,11 +707,26 @@ model EmployeeOffboarding {
   unusedLeavePayment        Decimal?  @db.Decimal(10,2)
   benefitsEndDate           DateTime?
   
-  // Exit Process
+  // Exit Process - Enhanced with new fields
   exitInterviewRequired     Boolean   @default(false)
   exitInterviewScheduled    Boolean   @default(false)
-  exitInterviewCompletedAt  DateTime?
+  exitInterviewDate         DateTime? // store start in UTC
+  exitInterviewEnd          DateTime? // optional: derive +60m by default
+  interviewerUserId         String?
+  interviewerName           String?   // denormalize if interviewer not a user
+  interviewerEmail          String?   // for ICS/attendee
+  location                  String?   // optional
   exitInterviewNotes        String?
+  
+  // Exit Interview Form Management
+  sendForm                  Boolean   @default(false)
+  formTemplateId            String?   // ExitInterviewFormTemplate.id
+  formTiming                ExitInterviewFormTiming?
+  inviteIcsUid              String?   // UID used in ICS for updates/cancellation
+  inviteLastSentAt          DateTime?
+  scheduledSendAt           DateTime? // if ON_DATE
+  completionTokenHash       String?   // token hash for employee link (/exit-interview/[token])
+  completionStatus          ExitInterviewCompletionStatus @default(PENDING)
   
   // Administrative
   hrReviewRequired          Boolean   @default(true)
@@ -734,13 +750,18 @@ model EmployeeOffboarding {
   handoverAssignedToUser    User?     @relation("OffboardingHandoverAssignedTo", fields: [handoverAssignedTo], references: [id])
   hrReviewCompletedByUser   User?     @relation("OffboardingHRReviewCompletedBy", fields: [hrReviewCompletedBy], references: [id])
   assetsReturnedToUser      User?     @relation("OffboardingAssetsReturnedTo", fields: [assetsReturnedTo], references: [id])
+  interviewerUser           User?     @relation("ExitInterviewInterviewer", fields: [interviewerUserId], references: [id])
+  formTemplate              ExitInterviewFormTemplate? @relation(fields: [formTemplateId], references: [id])
 
   tasks                     OffboardingTask[]
   exitInterview             ExitInterview?
+  exitInterviewSubmissions  ExitInterviewSubmission[]
 
   @@index([employeeId])
   @@index([status])
   @@index([lastWorkingDate])
+  @@index([exitInterviewDate])
+  @@index([scheduledSendAt])
 }
 
 model OffboardingTask {
@@ -785,8 +806,40 @@ model ExitInterview {
   @@index([offboardingId])
 }
 
+model ExitInterviewFormTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  // schemaJson stores the screen-designer-like form definition
+  schemaJson    Json
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  offboardings  EmployeeOffboarding[]
+  submissions   ExitInterviewSubmission[]
+
+  @@index([isActive])
+}
+
+model ExitInterviewSubmission {
+  id            String   @id @default(cuid())
+  offboardingId String
+  templateId    String
+  submittedBy   String? // employeeId or email
+  submittedAt   DateTime?
+  answersJson   Json?
+
+  offboarding   EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  template      ExitInterviewFormTemplate @relation(fields: [templateId], references: [id])
+
+  @@index([offboardingId])
+  @@index([templateId])
+}
+
 enum OffboardingStatus {
   IN_PROGRESS
+  SCHEDULED
   COMPLETED
   CANCELLED
 }
@@ -808,4 +861,15 @@ enum TaskCategory {
   HR
   COMPLIANCE
   OTHER
+}
+
+enum ExitInterviewFormTiming {
+  NOW
+  ON_DATE
+}
+
+enum ExitInterviewCompletionStatus {
+  PENDING
+  STARTED
+  SUBMITTED
 }

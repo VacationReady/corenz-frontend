@@ -82,12 +82,19 @@ export default function FormsPage() {
         <div className="text-sm text-gray-600">
           {forms.length} form{forms.length !== 1 ? 's' : ''} total
         </div>
-        <Button asChild>
-          <Link href="/settings/forms/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Form
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/settings/forms/exit-interview">
+              Exit Interview Forms
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/settings/forms/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Form
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {forms.length === 0 ? (

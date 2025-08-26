@@ -210,7 +210,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       const data = await response.json();
 
       if (formData.exitInterviewRequired && data.offboardingId) {
-        await fetch(`/api/offboarding/${data.offboardingId}/exit-interview`, {
+        await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

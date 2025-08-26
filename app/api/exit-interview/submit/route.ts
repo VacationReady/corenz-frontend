@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { createHash } from "crypto";
 
+// The employee submits answers using only the token from their email link.
+// The server derives the offboarding record from this token and associates
+// the answers accordingly.
 const submitSchema = z.object({
   token: z.string().min(1),
-  offboardingId: z.string().min(1),
   answersJson: z.record(z.any()).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { token, offboardingId, answersJson } = submitSchema.parse(body);
+    const { token, answersJson } = submitSchema.parse(body);
 
-    // Get offboarding record
-    const offboarding = await prisma.employeeOffboarding.findUnique({
-      where: { id: offboardingId },
+    // Locate the offboarding record using the supplied token
+    const offboarding = await prisma.employeeOffboarding.findFirst({
+      where: { completionTokenHash: token },
       include: {
         employee: {
           include: { user: true }
@@ -27,12 +28,6 @@ export async function POST(req: NextRequest) {
 
     if (!offboarding) {
       return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
-    }
-
-    // Validate token
-    const expectedHash = createHash('sha256').update(token + offboardingId).digest('hex');
-    if (offboarding.completionTokenHash !== expectedHash) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
     }
 
     // Check if already submitted
@@ -48,7 +43,7 @@ export async function POST(req: NextRequest) {
     // Create submission record
     const submission = await prisma.exitInterviewSubmission.create({
       data: {
-        offboardingId,
+        offboardingId: offboarding.id,
         templateId: offboarding.formTemplateId,
         submittedBy: offboarding.employee.user.email,
         submittedAt: new Date(),
@@ -58,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     // Update offboarding completion status
     await prisma.employeeOffboarding.update({
-      where: { id: offboardingId },
+      where: { id: offboarding.id },
       data: {
         completionStatus: 'SUBMITTED'
       }

@@ -24,15 +24,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
       }
 
-      if (!offboarding.sendForm || offboarding.formTiming !== 'ON_DATE') {
-        return NextResponse.json({ error: "This offboarding is not configured for scheduled form invitations" }, { status: 400 });
+      if (!offboarding.sendForm) {
+        return NextResponse.json({ error: "This offboarding is not configured for form invitations" }, { status: 400 });
       }
 
-      if (offboarding.completionStatus !== 'PENDING') {
-        return NextResponse.json({ error: "Form has already been started or submitted" }, { status: 400 });
+      if (offboarding.completionStatus === 'SUBMITTED') {
+        return NextResponse.json({ error: "Form has already been submitted" }, { status: 400 });
       }
 
-      // Send the form invitation
+      if (offboarding.formTiming !== 'ON_DATE' && offboarding.formTiming !== 'NOW') {
+        return NextResponse.json({ error: "This offboarding is not configured for form invitations" }, { status: 400 });
+      }
+
+      // Send the form invitation (supports manual resend for NOW forms)
       const emailSent = await sendExitInterviewFormInvite(offboarding.id);
 
       return NextResponse.json({

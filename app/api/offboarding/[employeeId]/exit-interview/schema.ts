@@ -6,4 +6,7 @@ export const exitInterviewSchema = z.object({
   location: z.string().optional(),
   notes: z.string().optional(),
   completed: z.boolean().optional(),
+  sendForm: z.boolean().optional(),
+  formTemplateId: z.string().optional(),
+  formTiming: z.enum(['NOW', 'ON_DATE']).optional(),
 });

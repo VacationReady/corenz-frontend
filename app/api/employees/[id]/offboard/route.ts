@@ -57,6 +57,24 @@ export async function POST(
       );
     }
 
+    // If a handover assignee is specified, ensure they exist
+    let handoverAssigneeId: string | null = null;
+    if (handoverAssignedTo) {
+      const assignee = await prisma.employee.findUnique({
+        where: { id: handoverAssignedTo },
+        select: { id: true },
+      });
+
+      if (!assignee) {
+        return NextResponse.json(
+          { error: "Handover assignee not found" },
+          { status: 400 }
+        );
+      }
+
+      handoverAssigneeId = handoverAssignedTo;
+    }
+
     // Create offboarding record
     const offboardingRecord = await prisma.employeeOffboarding.create({
       data: {
@@ -70,7 +88,7 @@ export async function POST(
         resignationDate: resignationDate ? new Date(resignationDate) : null,
         removeAccessImmediately: removeAccessImmediately ?? false,
         handoverRequired: handoverRequired ?? false,
-        handoverAssignedTo: handoverAssignedTo || null,
+        handoverAssignedTo: handoverAssigneeId,
         exitInterviewRequired: exitInterviewRequired ?? false,
         assetsToReturn: assetsToReturn || null,
         hrNotes,

@@ -57,12 +57,12 @@ export async function POST(
       );
     }
 
-    // If a handover assignee is specified, ensure they exist
-    let handoverAssigneeId: string | null = null;
+    // If a handover assignee is specified, ensure they exist and map to their user ID
+    let handoverAssigneeUserId: string | null = null;
     if (handoverAssignedTo) {
       const assignee = await prisma.employee.findUnique({
         where: { id: handoverAssignedTo },
-        select: { id: true },
+        select: { userId: true },
       });
 
       if (!assignee) {
@@ -72,7 +72,7 @@ export async function POST(
         );
       }
 
-      handoverAssigneeId = handoverAssignedTo;
+      handoverAssigneeUserId = assignee.userId;
     }
 
     // Create offboarding record
@@ -88,7 +88,7 @@ export async function POST(
         resignationDate: resignationDate ? new Date(resignationDate) : null,
         removeAccessImmediately: removeAccessImmediately ?? false,
         handoverRequired: handoverRequired ?? false,
-        handoverAssignedTo: handoverAssigneeId,
+        handoverAssignedTo: handoverAssigneeUserId ?? undefined,
         exitInterviewRequired: exitInterviewRequired ?? false,
         assetsToReturn: assetsToReturn || null,
         hrNotes,
@@ -138,7 +138,7 @@ export async function POST(
     ];
 
     // Add conditional tasks
-    if (handoverRequired && handoverAssignedTo) {
+    if (handoverRequired && handoverAssigneeUserId) {
       defaultTasks.push({
         title: "Complete knowledge handover",
         description: "Transfer responsibilities and knowledge to assigned colleague",
@@ -167,7 +167,8 @@ export async function POST(
         category: task.category,
         isRequired: task.isRequired,
         order: Math.floor(task.order * 10), // Convert to integer
-        assignedTo: task.category === TaskCategory.HANDOVER ? handoverAssignedTo : null,
+        assignedTo:
+          task.category === TaskCategory.HANDOVER ? handoverAssigneeUserId : null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       })),
     });

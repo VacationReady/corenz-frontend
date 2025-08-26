@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle } from "lucide-react";
+import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle, FormInput } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +30,12 @@ interface OffboardingModalProps {
   onSuccess: () => void;
 }
 
+interface FormTemplate {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface OffboardingFormData {
   lastWorkingDate: Date | null;
   offboardingType: string;
@@ -43,6 +49,9 @@ interface OffboardingFormData {
   exitInterviewRequired: boolean;
   exitInterviewDate: Date | null;
   exitInterviewInterviewer: string;
+  sendForm: boolean;
+  formTemplateId: string;
+  formTiming: 'NOW' | 'ON_DATE';
   assetsToReturn: string[];
   hrNotes: string;
 }
@@ -72,6 +81,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
   const [formData, setFormData] = useState<OffboardingFormData>({
     lastWorkingDate: null,
     offboardingType: "",
@@ -85,6 +95,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
     exitInterviewRequired: false,
     exitInterviewDate: null,
     exitInterviewInterviewer: "",
+    sendForm: false,
+    formTemplateId: "",
+    formTiming: 'NOW',
     assetsToReturn: [],
     hrNotes: "",
   });
@@ -93,6 +106,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
     if (open) {
       // Fetch employees for handover assignment
       fetchEmployees();
+      fetchFormTemplates();
       // Reset form when modal opens
       setFormData({
         lastWorkingDate: null,
@@ -107,6 +121,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         exitInterviewRequired: false,
         exitInterviewDate: null,
         exitInterviewInterviewer: "",
+        sendForm: false,
+        formTemplateId: "",
+        formTiming: 'NOW',
         assetsToReturn: [],
         hrNotes: "",
       });
@@ -122,6 +139,23 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
+    }
+  };
+
+  const fetchFormTemplates = async () => {
+    try {
+      console.log('Fetching form templates...');
+      const response = await fetch('/api/exit-interview-templates?activeOnly=true');
+      console.log('Response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Form templates received:', data);
+        setFormTemplates(data);
+      } else {
+        console.error('Failed to fetch form templates:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching form templates:', error);
     }
   };
 
@@ -184,6 +218,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
               ? formData.exitInterviewDate.toISOString()
               : undefined,
             interviewerId: formData.exitInterviewInterviewer || undefined,
+            sendForm: formData.sendForm,
+            formTemplateId: formData.sendForm ? formData.formTemplateId : undefined,
+            formTiming: formData.sendForm ? formData.formTiming : undefined,
           }),
         });
       }
@@ -479,49 +516,179 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             </div>
 
             {formData.exitInterviewRequired && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <Label htmlFor="exitInterviewDate">Interview date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={"w-full justify-start text-left font-normal"}
-                      >
-                        {formData.exitInterviewDate
-                          ? format(formData.exitInterviewDate, "PPP")
-                          : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.exitInterviewDate || undefined}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, exitInterviewDate: date || null }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="exitInterviewDate">Interview date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={"w-full justify-start text-left font-normal"}
+                        >
+                          {formData.exitInterviewDate
+                            ? format(formData.exitInterviewDate, "PPP")
+                            : <span>Pick a date</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.exitInterviewDate || undefined}
+                          onSelect={(date) => setFormData(prev => ({ ...prev, exitInterviewDate: date || null }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label htmlFor="exitInterviewInterviewer">Interviewer</Label>
+                    <Select
+                      value={formData.exitInterviewInterviewer}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, exitInterviewInterviewer: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select interviewer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.firstName} {emp.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="exitInterviewInterviewer">Interviewer</Label>
-                  <Select
-                    value={formData.exitInterviewInterviewer}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, exitInterviewInterviewer: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select interviewer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map(emp => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.firstName} {emp.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                {/* Exit Interview Form Section */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="sendForm"
+                      checked={formData.sendForm}
+                      onCheckedChange={(checked) => {
+                        console.log('Checkbox changed:', checked);
+                        setFormData(prev => ({ ...prev, sendForm: checked as boolean }));
+                      }}
+                    />
+                    <Label htmlFor="sendForm">Send exit interview form?</Label>
+                  </div>
+                  
+                  {/* Debug info */}
+                  <div className="text-xs text-gray-500 mb-2">
+                    Debug: sendForm = {formData.sendForm ? 'true' : 'false'}, templates = {formTemplates.length}
+                  </div>
+
+                  {formData.sendForm && (
+                    <div className="space-y-4 pl-6 border-l-2 border-gray-200 bg-gray-50 p-4 rounded-lg">
+                      <div>
+                        <Label htmlFor="formTemplate" className="text-sm font-medium">Exit Interview Form Template *</Label>
+                        <div className="text-xs text-gray-500 mb-2">
+                          Available templates: {formTemplates.length}
+                          {formTemplates.length === 0 && (
+                            <div className="mt-2">
+                              <span className="text-red-500">⚠️ No templates available.</span>
+                              <Button 
+                                type="button" 
+                                size="sm" 
+                                variant="outline" 
+                                className="ml-2"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch('/api/test/create-exit-template', { method: 'POST' });
+                                    if (response.ok) {
+                                      toast({
+                                        title: "Success",
+                                        description: "Test template created!",
+                                      });
+                                      fetchFormTemplates(); // Refresh the list
+                                    } else {
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to create test template",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Error creating test template",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                Create Test Template
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <Select 
+                          value={formData.formTemplateId} 
+                          onValueChange={(value) => {
+                            console.log('Template selected:', value);
+                            setFormData(prev => ({ ...prev, formTemplateId: value }));
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select form template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formTemplates.length === 0 ? (
+                              <SelectItem value="" disabled>
+                                No templates available
+                              </SelectItem>
+                            ) : (
+                              formTemplates.map((template) => (
+                                <SelectItem key={template.id} value={template.id}>
+                                  {template.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">When should the employee complete the form?</Label>
+                        <div className="space-y-2 mt-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id="timing-now"
+                              name="formTiming"
+                              value="NOW"
+                              checked={formData.formTiming === 'NOW'}
+                              onChange={(e) => {
+                                console.log('Timing changed to:', e.target.value);
+                                setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }));
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <Label htmlFor="timing-now" className="text-sm">Now (send immediately)</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id="timing-date"
+                              name="formTiming"
+                              value="ON_DATE"
+                              checked={formData.formTiming === 'ON_DATE'}
+                              onChange={(e) => {
+                                console.log('Timing changed to:', e.target.value);
+                                setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }));
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <Label htmlFor="timing-date" className="text-sm">On the interview date</Label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -96,4 +96,3 @@ test('uses EnhancedFormRenderer for data screen forms', () => {
   assert.deepEqual(received, { formResponse: { baz: 'qux' } });
   assert.deepEqual(events[0], { employeeId: 'emp123' });
 });
-  

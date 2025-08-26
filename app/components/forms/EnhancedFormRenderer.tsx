@@ -114,7 +114,12 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
             if (!uploadResult?.document) { toast.error(`Failed to upload file for ${field.label}`); return; }
             data[field.id] = uploadResult.document;
           } catch { toast.error(`Upload error: ${field.label}`); return; }
-        } else data[field.id] = null;
+        } else if (rawData[field.id]?.url) {
+          // keep existing document if no new file selected
+          data[field.id] = rawData[field.id];
+        } else {
+          data[field.id] = null;
+        }
       }
     }
 
@@ -173,17 +178,33 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
   );
 }
 
-function renderField(field: FormField, register: any, watch: any, setValue: any) {
+export function renderField(field: FormField, register: any, watch: any, setValue: any) {
   const baseInput = 'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
 
   switch (field.type) {
     case 'file':
+      const existing = watch(field.id);
       return (
-        <input
-          type="file"
-          className="border rounded px-3 py-2 w-full text-sm"
-          {...register(field.id, { required: field.required })}
-        />
+        <div className="space-y-2">
+          {existing?.url && (
+            <div className="space-y-2">
+              <iframe src={existing.url} className="w-full h-64 rounded border" />
+              <a
+                href={existing.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline block"
+              >
+                {existing.name || 'View document'}
+              </a>
+            </div>
+          )}
+          <input
+            type="file"
+            className="border rounded px-3 py-2 w-full text-sm"
+            {...register(field.id, { required: field.required })}
+          />
+        </div>
       );
 
     case 'text':

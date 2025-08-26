@@ -734,8 +734,9 @@ model EmployeeOffboarding {
   handoverAssignedToUser    User?     @relation("OffboardingHandoverAssignedTo", fields: [handoverAssignedTo], references: [id])
   hrReviewCompletedByUser   User?     @relation("OffboardingHRReviewCompletedBy", fields: [hrReviewCompletedBy], references: [id])
   assetsReturnedToUser      User?     @relation("OffboardingAssetsReturnedTo", fields: [assetsReturnedTo], references: [id])
-  
+
   tasks                     OffboardingTask[]
+  exitInterview             ExitInterview?
 
   @@index([employeeId])
   @@index([status])
@@ -766,6 +767,22 @@ model OffboardingTask {
   @@index([offboardingId])
   @@index([category])
   @@index([assignedTo])
+}
+
+model ExitInterview {
+  id            String   @id @default(cuid())
+  offboardingId String   @unique
+  scheduledAt   DateTime?
+  interviewerId String?
+  location      String?
+  notes         String?
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  offboarding   EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+
+  @@index([offboardingId])
 }
 
 enum OffboardingStatus {

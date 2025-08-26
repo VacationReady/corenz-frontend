@@ -218,6 +218,7 @@ export async function GET(
             email: true,
           },
         },
+        exitInterview: true,
         tasks: {
           include: {
             assignedToUser: {
@@ -249,7 +250,22 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(offboardingRecord);
+    let interviewer = null;
+    if (offboardingRecord.exitInterview?.interviewerId) {
+      interviewer = await prisma.user.findUnique({
+        where: { id: offboardingRecord.exitInterview.interviewerId },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+    }
+
+    const response = {
+      ...offboardingRecord,
+      exitInterview: offboardingRecord.exitInterview
+        ? { ...offboardingRecord.exitInterview, interviewer }
+        : null,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching offboarding record:", error);
     return NextResponse.json(

@@ -41,6 +41,8 @@ interface OffboardingFormData {
   handoverRequired: boolean;
   handoverAssignedTo: string;
   exitInterviewRequired: boolean;
+  exitInterviewDate: Date | null;
+  exitInterviewInterviewer: string;
   assetsToReturn: string[];
   hrNotes: string;
 }
@@ -81,6 +83,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
     handoverRequired: false,
     handoverAssignedTo: "",
     exitInterviewRequired: false,
+    exitInterviewDate: null,
+    exitInterviewInterviewer: "",
     assetsToReturn: [],
     hrNotes: "",
   });
@@ -101,6 +105,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         handoverRequired: false,
         handoverAssignedTo: "",
         exitInterviewRequired: false,
+        exitInterviewDate: null,
+        exitInterviewInterviewer: "",
         assetsToReturn: [],
         hrNotes: "",
       });
@@ -135,9 +141,23 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
     try {
       const payload = {
-        ...formData,
-        noticePeriodDays: formData.noticePeriodDays ? parseInt(formData.noticePeriodDays) : null,
-        assetsToReturn: formData.assetsToReturn.length > 0 ? formData.assetsToReturn : null,
+        lastWorkingDate: formData.lastWorkingDate,
+        offboardingType: formData.offboardingType,
+        offboardingReason: formData.offboardingReason,
+        isVoluntary: formData.isVoluntary,
+        noticePeriodDays: formData.noticePeriodDays
+          ? parseInt(formData.noticePeriodDays)
+          : null,
+        resignationDate: formData.resignationDate,
+        removeAccessImmediately: formData.removeAccessImmediately,
+        handoverRequired: formData.handoverRequired,
+        handoverAssignedTo: formData.handoverAssignedTo,
+        exitInterviewRequired: formData.exitInterviewRequired,
+        assetsToReturn:
+          formData.assetsToReturn.length > 0
+            ? formData.assetsToReturn
+            : null,
+        hrNotes: formData.hrNotes,
       };
 
       const response = await fetch(`/api/employees/${employee.id}/offboard`, {
@@ -151,6 +171,21 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to start offboarding");
+      }
+
+      const data = await response.json();
+
+      if (formData.exitInterviewRequired && data.offboardingId) {
+        await fetch(`/api/offboarding/${data.offboardingId}/exit-interview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scheduledAt: formData.exitInterviewDate
+              ? formData.exitInterviewDate.toISOString()
+              : undefined,
+            interviewerId: formData.exitInterviewInterviewer || undefined,
+          }),
+        });
       }
 
       toast({
@@ -434,15 +469,63 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 Exit Process
               </h3>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="exitInterviewRequired"
-                  checked={formData.exitInterviewRequired}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, exitInterviewRequired: checked as boolean }))}
-                />
-                <Label htmlFor="exitInterviewRequired">Schedule exit interview</Label>
-              </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="exitInterviewRequired"
+                checked={formData.exitInterviewRequired}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, exitInterviewRequired: checked as boolean }))}
+              />
+              <Label htmlFor="exitInterviewRequired">Schedule exit interview</Label>
             </div>
+
+            {formData.exitInterviewRequired && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label htmlFor="exitInterviewDate">Interview date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={"w-full justify-start text-left font-normal"}
+                      >
+                        {formData.exitInterviewDate
+                          ? format(formData.exitInterviewDate, "PPP")
+                          : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.exitInterviewDate || undefined}
+                        onSelect={(date) => setFormData(prev => ({ ...prev, exitInterviewDate: date || null }))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label htmlFor="exitInterviewInterviewer">Interviewer</Label>
+                  <Select
+                    value={formData.exitInterviewInterviewer}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, exitInterviewInterviewer: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select interviewer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map(emp => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
 
             {/* HR Notes */}
             <div>

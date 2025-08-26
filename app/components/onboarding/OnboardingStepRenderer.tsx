@@ -154,7 +154,12 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
             employeeId={employeeId}
             onSubmitSuccess={(data) => {
               setLoading(true);
-              onComplete(data);
+              // Wrap the response so API can persist it
+              onComplete({ formResponse: data });
+              // Ensure any uploaded docs appear in employee documents list
+              window.dispatchEvent(
+                new CustomEvent('employee-documents-updated', { detail: { employeeId } })
+              );
             }}
           />
         </Card>
@@ -167,7 +172,13 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
         <Card className="p-4">
           <div className="mb-2 font-semibold">{title}</div>
           <div className="mb-3 text-sm">{desc}</div>
-          <form onSubmit={e => { e.preventDefault(); setLoading(true); onComplete(formValues); }}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              setLoading(true);
+              onComplete({ formResponse: formValues });
+            }}
+          >
             {step.formFields.map((f, idx) => (
               <div key={idx} className="mb-2">
                 <label>{f.label}</label>

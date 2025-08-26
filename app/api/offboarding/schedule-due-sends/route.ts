@@ -54,12 +54,10 @@ export async function POST(req: NextRequest) {
       where: {
         sendForm: true,
         formTiming: 'ON_DATE',
-        scheduledSendAt: {
-          not: null
-        },
         completionStatus: 'PENDING',
         // Only send if scheduled for today (in London timezone)
         scheduledSendAt: {
+          not: null,
           gte: new Date(new Date().setHours(0, 0, 0, 0)), // Start of today UTC
           lt: new Date(new Date().setHours(23, 59, 59, 999)) // End of today UTC
         }

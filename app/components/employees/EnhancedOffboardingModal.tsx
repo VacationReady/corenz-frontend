@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle, Mail, FormInput } from "lucide-react";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Employee {
   id: string;
@@ -45,7 +45,7 @@ interface OffboardingModalProps {
 
 interface OffboardingFormData {
   // Exit Interview Details
-  exitInterviewDate: Date | null;
+  exitInterviewDate: Date | undefined;
   exitInterviewTime: string;
   interviewerUserId: string;
   interviewerName: string;
@@ -69,12 +69,11 @@ const offboardingTypes = [
 ];
 
 export default function EnhancedOffboardingModal({ open, onClose, employee, onSuccess }: OffboardingModalProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
   const [formData, setFormData] = useState<OffboardingFormData>({
-    exitInterviewDate: null,
+    exitInterviewDate: undefined,
     exitInterviewTime: "09:00",
     interviewerUserId: "",
     interviewerName: "",
@@ -120,7 +119,7 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
 
   const resetForm = () => {
     setFormData({
-      exitInterviewDate: null,
+      exitInterviewDate: undefined,
       exitInterviewTime: "09:00",
       interviewerUserId: "",
       interviewerName: "",

@@ -37,7 +37,7 @@ interface Employee {
 
 export default function ExitInterviewPage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = params?.token as string;
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

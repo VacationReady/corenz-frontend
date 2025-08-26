@@ -167,7 +167,8 @@ export async function POST(
         category: task.category,
         isRequired: task.isRequired,
         order: Math.floor(task.order * 10), // Convert to integer
-        assignedTo: task.category === TaskCategory.HANDOVER ? handoverAssigneeUserId : null,
+        assignedTo:
+          task.category === TaskCategory.HANDOVER ? handoverAssigneeUserId : null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       })),
     });

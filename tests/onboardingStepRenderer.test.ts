@@ -90,8 +90,10 @@ test('uses EnhancedFormRenderer for data screen forms', () => {
     })
   );
 
+  // simulate data screen change
   capturedEnhancedProps.onDataChange({ baz: 'qux' });
 
   assert.deepEqual(received, { formResponse: { baz: 'qux' } });
   assert.deepEqual(events[0], { employeeId: 'emp123' });
 });
+  

@@ -3,11 +3,5 @@
     "env": {
       "NEXT_PRIVATE_TARGET": "server"
     }
-  },
-  "crons": [
-    {
-      "path": "/api/offboarding/schedule-due-sends",
-      "schedule": "*/15 * * * *"
-    }
-  ]
+  }
 }

@@ -72,6 +72,7 @@ export default function EmployeeOffboardingPage() {
   const [offboarding, setOffboarding] = useState<OffboardingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [sendingInvite, setSendingInvite] = useState(false)
+  const [sendingFormInvite, setSendingFormInvite] = useState(false)
 
   useEffect(() => {
     if (employeeId) {
@@ -125,6 +126,36 @@ export default function EmployeeOffboardingPage() {
       toast.error(error instanceof Error ? error.message : 'Failed to send invite')
     } finally {
       setSendingInvite(false)
+    }
+  }
+
+  const handleSendFormInvite = async () => {
+    if (!offboarding) return
+    
+    try {
+      setSendingFormInvite(true)
+      const response = await fetch('/api/offboarding/schedule-due-sends', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          offboardingId: offboarding.id
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send form invite')
+      }
+
+      toast.success('Exit interview form invitation sent successfully')
+      fetchOffboardingData() // Refresh data
+    } catch (error) {
+      console.error('Error sending form invite:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to send form invite')
+    } finally {
+      setSendingFormInvite(false)
     }
   }
 
@@ -344,6 +375,41 @@ export default function EmployeeOffboardingPage() {
                 <div className="border-t pt-4">
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">Scheduled to send form on:</span> {formatLondon(offboarding.exitInterview.scheduledSendAt)}
+                  </p>
+                </div>
+              )}
+
+              {/* Manual Form Invitation Button */}
+              {offboarding.exitInterview.sendForm && 
+               offboarding.exitInterview.formTiming === 'ON_DATE' && 
+               offboarding.exitInterview.completionStatus === 'PENDING' && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Send className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium">Manual Form Invitation</span>
+                    </div>
+                    <Button
+                      onClick={handleSendFormInvite}
+                      disabled={sendingFormInvite}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {sendingFormInvite ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Send Form Now
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Manually trigger the exit interview form invitation (bypasses scheduled timing)
                   </p>
                 </div>
               )}

@@ -5,7 +5,45 @@ import { isTodayInLondon } from "@/lib/time";
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify this is a cron job (you can add additional verification if needed)
+    const body = await req.json().catch(() => ({}));
+    const { offboardingId } = body;
+
+    // If specific offboardingId is provided, handle single case
+    if (offboardingId) {
+      const offboarding = await prisma.employeeOffboarding.findUnique({
+        where: { id: offboardingId },
+        include: {
+          employee: {
+            include: { user: true }
+          },
+          formTemplate: true
+        }
+      });
+
+      if (!offboarding) {
+        return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
+      }
+
+      if (!offboarding.sendForm || offboarding.formTiming !== 'ON_DATE') {
+        return NextResponse.json({ error: "This offboarding is not configured for scheduled form invitations" }, { status: 400 });
+      }
+
+      if (offboarding.completionStatus !== 'PENDING') {
+        return NextResponse.json({ error: "Form has already been started or submitted" }, { status: 400 });
+      }
+
+      // Send the form invitation
+      const emailSent = await sendExitInterviewFormInvite(offboarding.id);
+
+      return NextResponse.json({
+        success: true,
+        offboardingId: offboarding.id,
+        employeeName: `${offboarding.employee.user.firstName} ${offboarding.employee.user.lastName}`,
+        emailSent
+      });
+    }
+
+    // Otherwise, handle cron job case (all due offboardings)
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

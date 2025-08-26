@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { exitInterviewSchema } from "./schema";
+import { generateCompletionToken } from "@/lib/email/send";
 
 export async function POST(
   req: NextRequest,
@@ -51,6 +52,39 @@ export async function POST(
         completed: data.completed ?? false,
       },
     });
+
+    // Update form invitation settings on the offboarding record when provided
+    if (
+      typeof data.sendForm !== "undefined" ||
+      typeof data.formTemplateId !== "undefined" ||
+      typeof data.formTiming !== "undefined"
+    ) {
+      const updateData: any = {
+        sendForm: data.sendForm ?? false,
+        formTemplateId: data.sendForm ? data.formTemplateId ?? null : null,
+        formTiming: data.sendForm ? data.formTiming ?? null : null,
+      };
+
+      if (data.sendForm) {
+        if (!offboarding.completionTokenHash) {
+          updateData.completionTokenHash = generateCompletionToken(offboarding.id);
+        }
+        updateData.completionStatus = "PENDING";
+        updateData.scheduledSendAt =
+          data.formTiming === "ON_DATE" && data.scheduledAt
+            ? new Date(data.scheduledAt)
+            : null;
+      } else {
+        updateData.completionStatus = null;
+        updateData.scheduledSendAt = null;
+        updateData.completionTokenHash = null;
+      }
+
+      await prisma.employeeOffboarding.update({
+        where: { id: offboarding.id },
+        data: updateData,
+      });
+    }
 
     let interviewer = null;
     if (exitInterview.interviewerId) {

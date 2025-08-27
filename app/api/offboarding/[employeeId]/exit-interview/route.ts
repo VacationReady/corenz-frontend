@@ -59,6 +59,24 @@ export async function POST(
       typeof data.formTemplateId !== "undefined" ||
       typeof data.formTiming !== "undefined"
     ) {
+      if (data.sendForm) {
+        if (!data.formTemplateId) {
+          return NextResponse.json(
+            { error: "formTemplateId is required when sendForm is true" },
+            { status: 400 }
+          );
+        }
+        const template = await prisma.exitInterviewFormTemplate.findUnique({
+          where: { id: data.formTemplateId },
+        });
+        if (!template) {
+          return NextResponse.json(
+            { error: "Form template not found" },
+            { status: 400 }
+          );
+        }
+      }
+
       const updateData: any = {
         sendForm: data.sendForm ?? false,
         formTemplateId: data.sendForm ? data.formTemplateId ?? null : null,

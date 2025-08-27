@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Calendar, Clock, User, Mail, FileText, CheckCircle, XCircle, AlertCircle, Send, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatLondon, formatLondonDate, formatLondonTime } from '@/lib/time'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import FormSubmissionViewer from '@/components/forms/FormSubmissionViewer'
 
 interface OffboardingData {
   id: string;
@@ -47,6 +49,7 @@ interface OffboardingData {
       id: string;
       name: string;
       description?: string;
+      schemaJson?: any;
     };
     formTiming?: string;
     completionStatus: string;
@@ -59,6 +62,7 @@ interface OffboardingData {
     templateName: string;
     submittedAt?: string;
     submittedBy?: string;
+    answersJson?: Record<string, any>;
   }>;
   
   createdAt: string;
@@ -355,12 +359,27 @@ export default function EmployeeOffboardingPage() {
                   {offboarding.formSubmissions.length > 0 ? (
                     <div className="space-y-2">
                       {offboarding.formSubmissions.map((submission) => (
-                        <div key={submission.id} className="text-sm">
-                          <p><span className="font-medium">{submission.templateName}</span></p>
-                          {submission.submittedAt && (
-                            <p className="text-gray-600">
-                              Submitted: {formatLondon(submission.submittedAt)}
-                            </p>
+                        <div key={submission.id} className="flex items-center justify-between text-sm">
+                          <div>
+                            <p><span className="font-medium">{submission.templateName}</span></p>
+                            {submission.submittedAt && (
+                              <p className="text-gray-600">
+                                Submitted: {formatLondon(submission.submittedAt)}
+                              </p>
+                            )}
+                          </div>
+                          {submission.answersJson && (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button size="sm" variant="outline">View Submission</Button>
+                              </DialogTrigger>
+                              <DialogContent title="Form Submission">
+                                <FormSubmissionViewer
+                                  schema={offboarding.exitInterview.formTemplate?.schemaJson}
+                                  answers={submission.answersJson}
+                                />
+                              </DialogContent>
+                            </Dialog>
                           )}
                         </div>
                       ))}

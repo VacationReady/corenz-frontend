@@ -51,11 +51,16 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            description: true
+            description: true,
+            schemaJson: true
           }
         },
         exitInterviewSubmissions: {
-          include: {
+          select: {
+            id: true,
+            submittedAt: true,
+            submittedBy: true,
+            answersJson: true,
             template: {
               select: {
                 id: true,
@@ -149,7 +154,8 @@ export async function GET(
         id: submission.id,
         templateName: submission.template.name,
         submittedAt: submission.submittedAt,
-        submittedBy: submission.submittedBy
+        submittedBy: submission.submittedBy,
+        answersJson: submission.answersJson
       })),
       
       // Tasks

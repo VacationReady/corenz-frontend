@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     const { token } = startSchema.parse(body);
 
     // Find the offboarding record by its completion token
+    // (completionTokenHash isn't a unique field, so we use findFirst)
     const offboarding = await prisma.employeeOffboarding.findFirst({
       where: { completionTokenHash: token },
       include: {

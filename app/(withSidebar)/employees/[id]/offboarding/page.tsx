@@ -359,32 +359,66 @@ export default function EmployeeOffboardingPage() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Form Submissions</h4>
                   {offboarding.formSubmissions.length > 0 ? (
-                    <div className="space-y-2">
-                      {offboarding.formSubmissions.map((submission) => (
-                        <div key={submission.id} className="flex items-center justify-between text-sm">
-                          <div>
-                            <p><span className="font-medium">{submission.templateName}</span></p>
-                            {submission.submittedAt && (
-                              <p className="text-gray-600">
-                                Submitted: {formatLondon(submission.submittedAt)}
-                              </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          {offboarding.formSubmissions.length} submission{offboarding.formSubmissions.length !== 1 ? 's' : ''} completed
+                        </p>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="default">View Completed Submissions</Button>
+                          </DialogTrigger>
+                          <DialogContent title="Completed Form Submissions" className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <div className="space-y-6">
+                              {offboarding.formSubmissions.map((submission, index) => (
+                                <div key={submission.id} className="border rounded-lg p-4">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-medium text-lg">{submission.templateName}</h3>
+                                    {submission.submittedAt && (
+                                      <p className="text-sm text-gray-600">
+                                        Submitted: {formatLondon(submission.submittedAt)}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <FormSubmissionViewer
+                                    schema={submission.templateSchema || offboarding.exitInterview.formTemplate?.schemaJson}
+                                    answers={submission.answersJson}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
+                      {/* Individual submission list */}
+                      <div className="space-y-2">
+                        {offboarding.formSubmissions.map((submission) => (
+                          <div key={submission.id} className="flex items-center justify-between text-sm border rounded p-2">
+                            <div>
+                              <p><span className="font-medium">{submission.templateName}</span></p>
+                              {submission.submittedAt && (
+                                <p className="text-gray-600">
+                                  Submitted: {formatLondon(submission.submittedAt)}
+                                </p>
+                              )}
+                            </div>
+                            {submission.answersJson && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button size="sm" variant="outline">View Submission</Button>
+                                </DialogTrigger>
+                                <DialogContent title="Form Submission">
+                                  <FormSubmissionViewer
+                                    schema={submission.templateSchema || offboarding.exitInterview.formTemplate?.schemaJson}
+                                    answers={submission.answersJson}
+                                  />
+                                </DialogContent>
+                              </Dialog>
                             )}
                           </div>
-                          {submission.answersJson && (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="outline">View Submission</Button>
-                              </DialogTrigger>
-                              <DialogContent title="Form Submission">
-                                <FormSubmissionViewer
-                                  schema={submission.templateSchema || offboarding.exitInterview.formTemplate?.schemaJson}
-                                  answers={submission.answersJson}
-                                />
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-600">No submissions yet</p>

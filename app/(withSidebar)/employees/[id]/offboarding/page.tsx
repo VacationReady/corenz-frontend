@@ -60,6 +60,7 @@ interface OffboardingData {
   formSubmissions: Array<{
     id: string;
     templateName: string;
+    templateSchema?: any;
     submittedAt?: string;
     submittedBy?: string;
     answersJson?: Record<string, any>;
@@ -375,7 +376,7 @@ export default function EmployeeOffboardingPage() {
                               </DialogTrigger>
                               <DialogContent title="Form Submission">
                                 <FormSubmissionViewer
-                                  schema={offboarding.exitInterview.formTemplate?.schemaJson}
+                                  schema={submission.templateSchema || offboarding.exitInterview.formTemplate?.schemaJson}
                                   answers={submission.answersJson}
                                 />
                               </DialogContent>

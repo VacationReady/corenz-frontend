@@ -242,10 +242,21 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
         // Immediately send form invitation if configured to send now
         if (formData.sendForm && formData.formTiming === 'NOW') {
-          await fetch('/api/cron/send-expiry-alerts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          });
+          console.log('Sending form invitation immediately...');
+          try {
+            const formResponse = await fetch('/api/cron/send-expiry-alerts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (formResponse.ok) {
+              console.log('Form invitation sent successfully');
+            } else {
+              console.error('Failed to send form invitation');
+            }
+          } catch (error) {
+            console.error('Error sending form invitation:', error);
+          }
         }
       }
 

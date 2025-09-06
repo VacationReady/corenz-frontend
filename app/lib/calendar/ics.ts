@@ -23,6 +23,9 @@ export interface ICSOptions {
  * Escape text for ICS format (CRLF, commas, semicolons, backslashes)
  */
 function escapeICS(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
   return text
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')
@@ -135,24 +138,37 @@ export function buildExitInterviewConfirmationICS(
 
   const uid = offboarding.inviteIcsUid || `exit-interview-${offboarding.id}-${Date.now()}`;
   
-  const summary = `Exit Interview — ${employee.firstName} ${employee.lastName}`;
+  const employeeName = `${employee.firstName || 'Unknown'} ${employee.lastName || 'Employee'}`;
+  const summary = `Exit Interview — ${employeeName}`;
+
+  const interviewerName = interviewer.name ||
+    (interviewer.firstName && interviewer.lastName
+      ? `${interviewer.firstName} ${interviewer.lastName}`
+      : interviewer.firstName || interviewer.lastName || 'Unknown Interviewer'
+    );
+
   const description = [
-    `Interviewer: ${interviewer.name || interviewer.firstName + ' ' + interviewer.lastName}`,
-    `Employee: ${employee.firstName} ${employee.lastName}`,
+    `Interviewer: ${interviewerName}`,
+    `Employee: ${employeeName}`,
     offboarding.exitInterviewNotes ? `Notes: ${offboarding.exitInterviewNotes}` : ''
   ].filter(Boolean).join('\\n');
 
   const organizer = {
-    name: interviewer.name || `${interviewer.firstName} ${interviewer.lastName}`,
-    email: interviewer.email || offboarding.interviewerEmail
+    name: interviewerName,
+    email: interviewer.email || offboarding.interviewerEmail || 'unknown@example.com'
   };
 
   const attendees = [
     {
-      name: `${employee.firstName} ${employee.lastName}`,
+      name: employeeName,
       email: employee.email,
       role: 'REQ-PARTICIPANT' as const
-    }
+    },
+    ...(interviewer.email && interviewer.email !== employee.email ? [{
+      name: interviewerName,
+      email: interviewer.email,
+      role: 'REQ-PARTICIPANT' as const
+    }] : [])
   ];
 
   return buildExitInterviewICS({

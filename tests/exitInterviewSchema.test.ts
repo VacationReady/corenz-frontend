@@ -4,6 +4,7 @@ import { exitInterviewSchema } from '../app/api/offboarding/[employeeId]/exit-in
 
 const sample = {
   scheduledAt: new Date().toISOString(),
+  durationMinutes: 30,
   interviewerId: 'user123',
   location: 'Meeting room',
   notes: 'Bring laptop',

@@ -168,11 +168,11 @@ export default function EmployeeOffboardingPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
-        return <Badge variant="default">Scheduled</Badge>
+        return <Badge variant="primary">Scheduled</Badge>
       case 'IN_PROGRESS':
         return <Badge variant="secondary">In Progress</Badge>
       case 'COMPLETED':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>
+        return <Badge variant="primary" className="bg-green-100 text-green-800">Completed</Badge>
       case 'CANCELLED':
         return <Badge variant="destructive">Cancelled</Badge>
       default:

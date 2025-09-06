@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle, FormInput } from "lucide-react";
+import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toUTCFromLondon } from "@/lib/time";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,8 @@ interface FormTemplate {
   description?: string;
 }
 
+type FormTiming = "NOW" | "ON_DATE";
+
 interface OffboardingFormData {
   lastWorkingDate: Date | null;
   offboardingType: string;
@@ -55,7 +57,7 @@ interface OffboardingFormData {
   exitInterviewInterviewer: string;
   sendForm: boolean;
   formTemplateId: string;
-  formTiming: 'NOW' | 'ON_DATE';
+  formTiming: FormTiming;
   assetsToReturn: string[];
   hrNotes: string;
 }
@@ -103,14 +105,13 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
     exitInterviewInterviewer: "",
     sendForm: false,
     formTemplateId: "",
-    formTiming: 'NOW',
+    formTiming: "NOW",
     assetsToReturn: [],
     hrNotes: "",
   });
 
   useEffect(() => {
     if (open) {
-      // Fetch employees for handover assignment
       fetchEmployees();
       fetchFormTemplates();
       // Reset form when modal opens
@@ -131,7 +132,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         exitInterviewInterviewer: "",
         sendForm: false,
         formTemplateId: "",
-        formTiming: 'NOW',
+        formTiming: "NOW",
         assetsToReturn: [],
         hrNotes: "",
       });
@@ -152,21 +153,21 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
   const fetchFormTemplates = async () => {
     try {
-      const response = await fetch('/api/exit-interview-templates?activeOnly=true');
+      const response = await fetch("/api/exit-interview-templates?activeOnly=true");
       if (response.ok) {
         const data = await response.json();
         setFormTemplates(data);
       } else {
-        console.error('Failed to fetch form templates:', response.status, response.statusText);
+        console.error("Failed to fetch form templates:", response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error fetching form templates:', error);
+      console.error("Error fetching form templates:", error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!employee || !formData.lastWorkingDate || !formData.offboardingType) {
       toast({
         title: "Validation Error",
@@ -184,56 +185,36 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         offboardingType: formData.offboardingType,
         offboardingReason: formData.offboardingReason,
         isVoluntary: formData.isVoluntary,
-        noticePeriodDays: formData.noticePeriodDays
-          ? parseInt(formData.noticePeriodDays)
-          : null,
+        noticePeriodDays: formData.noticePeriodDays ? parseInt(formData.noticePeriodDays) : null,
         resignationDate: formData.resignationDate,
         removeAccessImmediately: formData.removeAccessImmediately,
         handoverRequired: formData.handoverRequired,
         handoverAssignedTo: formData.handoverAssignedTo,
         exitInterviewRequired: formData.exitInterviewRequired,
-        assetsToReturn:
-          formData.assetsToReturn.length > 0
-            ? formData.assetsToReturn
-            : null,
+        assetsToReturn: formData.assetsToReturn.length > 0 ? formData.assetsToReturn : null,
         hrNotes: formData.hrNotes,
       };
 
       const response = await fetch(`/api/employees/${employee.id}/offboard`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to start offboarding");
+        const err = await response.json();
+        throw new Error(err.error || "Failed to start offboarding");
       }
 
       const data = await response.json();
 
       if (formData.exitInterviewRequired && data.offboardingId) {
-        console.log('Setting up exit interview for employee:', employee.id);
+        // Create/schedule exit interview
         try {
           const finalFormTemplateId = formData.sendForm ? (formData.formTemplateId || formTemplates[0]?.id) : undefined;
           const scheduledAt = formData.exitInterviewDate
-            ? toUTCFromLondon(
-                format(formData.exitInterviewDate, 'yyyy-MM-dd'),
-                formData.exitInterviewTime
-              ).toISOString()
+            ? toUTCFromLondon(format(formData.exitInterviewDate, "yyyy-MM-dd"), formData.exitInterviewTime).toISOString()
             : undefined;
-
-          console.log('Sending exit interview data:', {
-            scheduledAt,
-            durationMinutes: formData.exitInterviewDuration,
-            interviewerId: formData.exitInterviewInterviewer,
-            sendForm: formData.sendForm,
-            formTemplateId: finalFormTemplateId,
-            formTiming: formData.formTiming,
-            availableTemplates: formTemplates.length
-          });
 
           const exitInterviewResponse = await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
             method: "POST",
@@ -250,74 +231,35 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
           if (!exitInterviewResponse.ok) {
             const errorData = await exitInterviewResponse.json();
-            console.error('Exit interview setup failed:', errorData);
+            console.error("Exit interview setup failed:", errorData);
             throw new Error(`Exit interview setup failed: ${errorData.error}`);
           }
 
-          const exitInterviewData = await exitInterviewResponse.json();
-          console.log('Exit interview setup successful:', exitInterviewData);
-        } catch (error) {
-          console.error('Error setting up exit interview:', error);
-          // Don't throw here, just log the error so offboarding can still complete
-        }
-
-        // Immediately send form invitation if configured to send now
-        if (formData.sendForm && formData.formTiming === 'NOW') {
-          console.log('Sending form invitation immediately...');
-          try {
-            const finalFormTemplateId = formData.sendForm ? (formData.formTemplateId || formTemplates[0]?.id) : undefined;
-            const scheduledAt = formData.exitInterviewDate
-              ? toUTCFromLondon(
-                  format(formData.exitInterviewDate, 'yyyy-MM-dd'),
-                  formData.exitInterviewTime
-                ).toISOString()
-              : undefined;
-
-            const exitInterviewResponse = await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                scheduledAt,
-                durationMinutes: formData.exitInterviewDuration,
-                interviewerId: formData.exitInterviewInterviewer || undefined,
-                sendForm: formData.sendForm,
-                formTemplateId: finalFormTemplateId,
-                formTiming: formData.sendForm ? formData.formTiming : undefined,
-              }),
-            });
-
-            if (!exitInterviewResponse.ok) {
-              const errorData = await exitInterviewResponse.json();
-              console.error('Exit interview setup failed:', errorData);
-              throw new Error(`Exit interview setup failed: ${errorData.error}`);
-            }
-
-            await exitInterviewResponse.json();
-          } catch (error) {
-            console.error('Error setting up exit interview:', error);
-            // Don't throw here, just log the error so offboarding can still complete
-          }
-
-          // Immediately send form invitation if configured to send now
-          if (formData.sendForm && formData.formTiming === 'NOW') {
+          // If sending the form immediately, trigger the sender (kept to preserve behaviour)
+          if (formData.sendForm && formData.formTiming === "NOW") {
             try {
-              const formResponse = await fetch('/api/cron/send-expiry-alerts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+              const formResponse = await fetch("/api/cron/send-expiry-alerts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
               });
-
               if (!formResponse.ok) {
-                console.error('Failed to send form invitation');
+                console.error("Failed to send form invitation");
               }
-            } catch (error) {
-              console.error('Error sending form invitation:', error);
+            } catch (err) {
+              console.error("Error sending form invitation:", err);
             }
           }
+        } catch (err) {
+          // Don’t block offboarding if exit interview setup fails
+          console.error("Error setting up exit interview:", err);
         }
+      }
 
       toast({
         title: "Offboarding Started Successfully",
-        description: `Offboarding initiated for ${employee.firstName} ${employee.lastName}. ${formData.exitInterviewRequired ? 'Calendar invite sent.' : ''} ${formData.sendForm && formData.formTiming === 'NOW' ? 'Exit interview form sent immediately.' : ''}`,
+        description: `Offboarding initiated for ${employee.firstName} ${employee.lastName}. ${
+          formData.exitInterviewRequired ? "Calendar invite sent." : ""
+        } ${formData.sendForm && formData.formTiming === "NOW" ? "Exit interview form sent immediately." : ""}`,
       });
 
       onSuccess();
@@ -335,11 +277,11 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
   };
 
   const handleAssetToggle = (asset: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       assetsToReturn: prev.assetsToReturn.includes(asset)
-        ? prev.assetsToReturn.filter(a => a !== asset)
-        : [...prev.assetsToReturn, asset]
+        ? prev.assetsToReturn.filter((a) => a !== asset)
+        : [...prev.assetsToReturn, asset],
     }));
   };
 
@@ -358,249 +300,245 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
           </DialogDescription>
         </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Employee Info Summary */}
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h3 className="font-medium mb-2 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Employee Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Name:</span> {employee.firstName} {employee.lastName}
-                </div>
-                <div>
-                  <span className="font-medium">Email:</span> {employee.email}
-                </div>
-                <div>
-                  <span className="font-medium">Department:</span> {employee.departmentName || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Job Role:</span> {employee.jobRoleName || "N/A"}
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Employee Info Summary */}
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="font-medium mb-2 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Employee Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Name:</span> {employee.firstName} {employee.lastName}
+              </div>
+              <div>
+                <span className="font-medium">Email:</span> {employee.email}
+              </div>
+              <div>
+                <span className="font-medium">Department:</span> {employee.departmentName || "N/A"}
+              </div>
+              <div>
+                <span className="font-medium">Job Role:</span> {employee.jobRoleName || "N/A"}
               </div>
             </div>
+          </div>
 
-            {/* Key Dates */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Key Dates & Timeline
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="lastWorkingDate">Last Working Date *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        type="button"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.lastWorkingDate ? (
-                          format(formData.lastWorkingDate, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-[200]" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.lastWorkingDate || undefined}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, lastWorkingDate: date || null }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+          {/* Key Dates */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Key Dates & Timeline
+            </h3>
 
-                <div>
-                  <Label htmlFor="resignationDate">Resignation Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                        type="button"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.resignationDate ? (
-                          format(formData.resignationDate, "PPP")
-                        ) : (
-                          <span>Pick a date (optional)</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-[200]" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.resignationDate || undefined}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, resignationDate: date || null }))}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <Label htmlFor="noticePeriodDays">Notice Period (days)</Label>
-                  <Input
-                    id="noticePeriodDays"
-                    type="number"
-                    value={formData.noticePeriodDays}
-                    onChange={(e) => setFormData(prev => ({ ...prev, noticePeriodDays: e.target.value }))}
-                    placeholder="e.g., 14"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Offboarding Type & Reason */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Offboarding Details
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="offboardingType">Offboarding Type *</Label>
-                  <Select value={formData.offboardingType} onValueChange={(value) => setFormData(prev => ({ ...prev, offboardingType: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {offboardingTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <div className="flex items-center gap-2">
-                            <type.icon className="w-4 h-4" />
-                            {type.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isVoluntary"
-                    checked={formData.isVoluntary}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isVoluntary: checked as boolean }))}
-                  />
-                  <Label htmlFor="isVoluntary">Voluntary departure</Label>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="lastWorkingDate">Last Working Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal" type="button">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.lastWorkingDate ? format(formData.lastWorkingDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[200]" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.lastWorkingDate || undefined}
+                      onSelect={(date) => setFormData((prev) => ({ ...prev, lastWorkingDate: date || null }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
-                <Label htmlFor="offboardingReason">Reason for Leaving</Label>
-                <Textarea
-                  id="offboardingReason"
-                  value={formData.offboardingReason}
-                  onChange={(e) => setFormData(prev => ({ ...prev, offboardingReason: e.target.value }))}
-                  placeholder="Brief description of the reason for leaving..."
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            {/* Access Management */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Access Management
-              </h3>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="removeAccessImmediately"
-                  checked={formData.removeAccessImmediately}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, removeAccessImmediately: checked as boolean }))}
-                />
-                <Label htmlFor="removeAccessImmediately">Remove access immediately</Label>
-              </div>
-              
-              {formData.removeAccessImmediately && (
-                <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
-                  <p className="text-sm text-orange-800">
-                    <AlertCircle className="w-4 h-4 inline mr-1" />
-                    System access will be revoked immediately upon starting the offboarding process.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Knowledge Transfer */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Knowledge Transfer
-              </h3>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="handoverRequired"
-                  checked={formData.handoverRequired}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, handoverRequired: checked as boolean }))}
-                />
-                <Label htmlFor="handoverRequired">Handover required</Label>
-              </div>
-
-              {formData.handoverRequired && (
-                <div>
-                  <Label htmlFor="handoverAssignedTo">Assign handover to</Label>
-                  <Select value={formData.handoverAssignedTo} onValueChange={(value) => setFormData(prev => ({ ...prev, handoverAssignedTo: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.firstName} {emp.lastName} - {emp.departmentName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            {/* Asset Return */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Assets to Return
-              </h3>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {commonAssets.map((asset) => (
-                  <div key={asset} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={asset}
-                      checked={formData.assetsToReturn.includes(asset)}
-                      onCheckedChange={() => handleAssetToggle(asset)}
+                <Label htmlFor="resignationDate">Resignation Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal" type="button">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.resignationDate ? format(formData.resignationDate, "PPP") : <span>Pick a date (optional)</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-[200]" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.resignationDate || undefined}
+                      onSelect={(date) => setFormData((prev) => ({ ...prev, resignationDate: date || null }))}
+                      initialFocus
                     />
-                    <Label htmlFor={asset} className="text-sm">{asset}</Label>
-                  </div>
-                ))}
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label htmlFor="noticePeriodDays">Notice Period (days)</Label>
+                <Input
+                  id="noticePeriodDays"
+                  type="number"
+                  value={formData.noticePeriodDays}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, noticePeriodDays: e.target.value }))}
+                  placeholder="e.g., 14"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Offboarding Type & Reason */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Offboarding Details
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="offboardingType">Offboarding Type *</Label>
+                <Select
+                  value={formData.offboardingType}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, offboardingType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offboardingTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        <div className="flex items-center gap-2">
+                          <type.icon className="w-4 h-4" />
+                          {type.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isVoluntary"
+                  checked={formData.isVoluntary}
+                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isVoluntary: checked as boolean }))}
+                />
+                <Label htmlFor="isVoluntary">Voluntary departure</Label>
               </div>
             </div>
 
-            {/* Exit Interview */}
-            <div className="space-y-4">
-              <h3 className="font-medium flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                Exit Process
-              </h3>
-              
+            <div>
+              <Label htmlFor="offboardingReason">Reason for Leaving</Label>
+              <Textarea
+                id="offboardingReason"
+                value={formData.offboardingReason}
+                onChange={(e) => setFormData((prev) => ({ ...prev, offboardingReason: e.target.value }))}
+                placeholder="Brief description of the reason for leaving..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          {/* Access Management */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Access Management
+            </h3>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="removeAccessImmediately"
+                checked={formData.removeAccessImmediately}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, removeAccessImmediately: checked as boolean }))
+                }
+              />
+              <Label htmlFor="removeAccessImmediately">Remove access immediately</Label>
+            </div>
+
+            {formData.removeAccessImmediately && (
+              <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
+                <p className="text-sm text-orange-800">
+                  <AlertCircle className="w-4 h-4 inline mr-1" />
+                  System access will be revoked immediately upon starting the offboarding process.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Knowledge Transfer */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Knowledge Transfer
+            </h3>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="handoverRequired"
+                checked={formData.handoverRequired}
+                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, handoverRequired: checked as boolean }))}
+              />
+              <Label htmlFor="handoverRequired">Handover required</Label>
+            </div>
+
+            {formData.handoverRequired && (
+              <div>
+                <Label htmlFor="handoverAssignedTo">Assign handover to</Label>
+                <Select
+                  value={formData.handoverAssignedTo}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, handoverAssignedTo: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.firstName} {emp.lastName} - {emp.departmentName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Asset Return */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Assets to Return
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {commonAssets.map((asset) => (
+                <div key={asset} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={asset}
+                    checked={formData.assetsToReturn.includes(asset)}
+                    onCheckedChange={() => handleAssetToggle(asset)}
+                  />
+                  <Label htmlFor={asset} className="text-sm">
+                    {asset}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Exit Interview */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Exit Process
+            </h3>
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="exitInterviewRequired"
                 checked={formData.exitInterviewRequired}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, exitInterviewRequired: checked as boolean }))}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, exitInterviewRequired: checked as boolean }))
+                }
               />
               <Label htmlFor="exitInterviewRequired">Schedule exit interview</Label>
             </div>
@@ -612,14 +550,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                     <Label htmlFor="exitInterviewDate">Interview date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={"w-full justify-start text-left font-normal"}
-                        >
-                          {formData.exitInterviewDate
-                            ? format(formData.exitInterviewDate, "PPP")
-                            : <span>Pick a date</span>}
+                        <Button type="button" variant="outline" className="w-full justify-start text-left font-normal">
+                          {formData.exitInterviewDate ? format(formData.exitInterviewDate, "PPP") : <span>Pick a date</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -627,34 +559,28 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                         <Calendar
                           mode="single"
                           selected={formData.exitInterviewDate || undefined}
-                          onSelect={(date) => setFormData(prev => ({ ...prev, exitInterviewDate: date || null }))}
+                          onSelect={(date) => setFormData((prev) => ({ ...prev, exitInterviewDate: date || null }))}
                           initialFocus
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
+
                   <div>
                     <Label htmlFor="exitInterviewTime">Interview time</Label>
                     <Input
                       type="time"
                       value={formData.exitInterviewTime}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          exitInterviewTime: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setFormData((prev) => ({ ...prev, exitInterviewTime: e.target.value }))}
                     />
                   </div>
+
                   <div>
                     <Label htmlFor="exitInterviewDuration">Duration</Label>
                     <Select
                       value={formData.exitInterviewDuration.toString()}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          exitInterviewDuration: parseInt(value),
-                        }))
+                        setFormData((prev) => ({ ...prev, exitInterviewDuration: parseInt(value, 10) }))
                       }
                     >
                       <SelectTrigger>
@@ -669,16 +595,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
                     <Label htmlFor="exitInterviewInterviewer">Interviewer</Label>
                     <Select
                       value={formData.exitInterviewInterviewer}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          exitInterviewInterviewer: value,
-                        }))
-                      }
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, exitInterviewInterviewer: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select interviewer" />
@@ -696,27 +618,25 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
                 {/* Exit Interview Form Section */}
                 <div className="border-t pt-4">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <Checkbox
-                        id="sendForm"
-                        checked={formData.sendForm}
-                        onCheckedChange={(checked) =>
-                          setFormData(prev => ({ ...prev, sendForm: checked as boolean }))
-                        }
-                      />
-                      <Label htmlFor="sendForm">Send exit interview form?</Label>
-                    </div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="sendForm"
+                      checked={formData.sendForm}
+                      onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, sendForm: checked as boolean }))}
+                    />
+                    <Label htmlFor="sendForm">Send exit interview form?</Label>
+                  </div>
 
                   {formData.sendForm && (
                     <div className="space-y-4 pl-6 border-l-2 border-gray-200 bg-gray-50 p-4 rounded-lg">
                       <div>
-                        <Label htmlFor="formTemplate" className="text-sm font-medium">Exit Interview Form Template *</Label>
-                          <Select
-                            value={formData.formTemplateId}
-                            onValueChange={(value) =>
-                              setFormData(prev => ({ ...prev, formTemplateId: value }))
-                            }
-                          >
+                        <Label htmlFor="formTemplate" className="text-sm font-medium">
+                          Exit Interview Form Template *
+                        </Label>
+                        <Select
+                          value={formData.formTemplateId}
+                          onValueChange={(value) => setFormData((prev) => ({ ...prev, formTemplateId: value }))}
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select form template" />
                           </SelectTrigger>
@@ -739,34 +659,38 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       <div>
                         <Label className="text-sm font-medium">When should the employee complete the form?</Label>
                         <div className="space-y-2 mt-2">
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                id="timing-now"
-                                name="formTiming"
-                                value="NOW"
-                                checked={formData.formTiming === 'NOW'}
-                                onChange={(e) =>
-                                  setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }))
-                                }
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                              />
-                              <Label htmlFor="timing-now" className="text-sm">Now (send immediately)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="radio"
-                                id="timing-date"
-                                name="formTiming"
-                                value="ON_DATE"
-                                checked={formData.formTiming === 'ON_DATE'}
-                                onChange={(e) =>
-                                  setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }))
-                                }
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                              />
-                              <Label htmlFor="timing-date" className="text-sm">On the interview date</Label>
-                            </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id="timing-now"
+                              name="formTiming"
+                              value="NOW"
+                              checked={formData.formTiming === "NOW"}
+                              onChange={(e) =>
+                                setFormData((prev) => ({ ...prev, formTiming: e.target.value as FormTiming }))
+                              }
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <Label htmlFor="timing-now" className="text-sm">
+                              Now (send immediately)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              id="timing-date"
+                              name="formTiming"
+                              value="ON_DATE"
+                              checked={formData.formTiming === "ON_DATE"}
+                              onChange={(e) =>
+                                setFormData((prev) => ({ ...prev, formTiming: e.target.value as FormTiming }))
+                              }
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <Label htmlFor="timing-date" className="text-sm">
+                              On the interview date
+                            </Label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -776,28 +700,28 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             )}
           </div>
 
-            {/* HR Notes */}
-            <div>
-              <Label htmlFor="hrNotes">HR Notes</Label>
-              <Textarea
-                id="hrNotes"
-                value={formData.hrNotes}
-                onChange={(e) => setFormData(prev => ({ ...prev, hrNotes: e.target.value }))}
-                placeholder="Internal notes for HR team..."
-                rows={3}
-              />
-            </div>
+          {/* HR Notes */}
+          <div>
+            <Label htmlFor="hrNotes">HR Notes</Label>
+            <Textarea
+              id="hrNotes"
+              value={formData.hrNotes}
+              onChange={(e) => setFormData((prev) => ({ ...prev, hrNotes: e.target.value }))}
+              placeholder="Internal notes for HR team..."
+              rows={3}
+            />
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Starting Offboarding..." : "Start Offboarding Process"}
-              </Button>
-            </div>
-          </form>
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Starting Offboarding..." : "Start Offboarding Process"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

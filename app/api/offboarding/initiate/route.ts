@@ -21,10 +21,6 @@ const initiateSchema = z.object({
       message: "Duration must be in 10-minute increments",
     })
     .optional(),
-    .optional()
-    .refine((n) => n % 10 === 0, {
-      message: "Duration must be in 10-minute increments",
-    }),
   interviewerUserId: z.string().optional(),
   interviewerName: z.string().optional(),
   interviewerEmail: z.string().email().optional(),
@@ -32,7 +28,7 @@ const initiateSchema = z.object({
   notes: z.string().optional(),
   sendForm: z.boolean().default(false),
   formTemplateId: z.string().optional(),
-  formTiming: z.enum(['NOW', 'ON_DATE']).optional(),
+  formTiming: z.enum(["NOW", "ON_DATE"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -43,8 +39,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes((session.user as any).role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -68,7 +67,7 @@ export async function POST(req: NextRequest) {
     // Check if employee exists
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      include: { user: true, offboardingRecord: true }
+      include: { user: true, offboardingRecord: true },
     });
 
     if (!employee) {
@@ -76,7 +75,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (employee.offboardingRecord) {
-      return NextResponse.json({ error: "Employee is already being offboarded" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Employee is already being offboarded" },
+        { status: 400 }
+      );
     }
 
     // Validate interviewer information
@@ -86,23 +88,32 @@ export async function POST(req: NextRequest) {
 
     if (interviewerUserId) {
       const interviewer = await prisma.user.findUnique({
-        where: { id: interviewerUserId }
+        where: { id: interviewerUserId },
       });
       if (!interviewer) {
-        return NextResponse.json({ error: "Interviewer not found" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Interviewer not found" },
+          { status: 400 }
+        );
       }
       interviewerNameValid = `${interviewer.firstName} ${interviewer.lastName}`;
       interviewerEmailValid = interviewer.email;
     } else if (!interviewerName || !interviewerEmail) {
-      return NextResponse.json({ error: "Interviewer information is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Interviewer information is required" },
+        { status: 400 }
+      );
     }
 
     // Convert date and time to UTC
-    let exitInterviewDateUTC = null;
-    let exitInterviewEndUTC = null;
+    let exitInterviewDateUTC: Date | null = null;
+    let exitInterviewEndUTC: Date | null = null;
 
     if (exitInterviewDate && exitInterviewTime) {
-      exitInterviewDateUTC = toUTCFromLondon(exitInterviewDate, exitInterviewTime);
+      exitInterviewDateUTC = toUTCFromLondon(
+        exitInterviewDate,
+        exitInterviewTime
+      );
       const duration = exitInterviewDuration ?? 60;
       exitInterviewEndUTC = new Date(
         exitInterviewDateUTC.getTime() + duration * 60 * 1000
@@ -112,22 +123,25 @@ export async function POST(req: NextRequest) {
     // Validate form template if provided
     if (sendForm && formTemplateId) {
       const template = await prisma.exitInterviewFormTemplate.findUnique({
-        where: { id: formTemplateId }
+        where: { id: formTemplateId },
       });
       if (!template || !template.isActive) {
-        return NextResponse.json({ error: "Invalid or inactive form template" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid or inactive form template" },
+          { status: 400 }
+        );
       }
     }
 
     // Generate completion token if form is enabled
-    let completionTokenHash = null;
+    let completionTokenHash: string | null = null;
     if (sendForm) {
       completionTokenHash = generateCompletionToken(employeeId);
     }
 
     // Calculate scheduled send time if ON_DATE
-    let scheduledSendAt = null;
-    if (sendForm && formTiming === 'ON_DATE' && exitInterviewDateUTC) {
+    let scheduledSendAt: Date | null = null;
+    if (sendForm && formTiming === "ON_DATE" && exitInterviewDateUTC) {
       scheduledSendAt = exitInterviewDateUTC;
     }
 
@@ -135,44 +149,44 @@ export async function POST(req: NextRequest) {
     const offboardingData = {
       employeeId,
       initiatedById: session.user.id,
-      status: 'SCHEDULED' as const,
-      offboardingType: 'RESIGNATION' as const, // Default to resignation, can be made configurable later
+      status: "SCHEDULED" as const,
+      offboardingType: "RESIGNATION" as const, // Default to resignation, can be made configurable later
       lastWorkingDate: new Date(), // Default to today, can be updated later
       exitInterviewDate: exitInterviewDateUTC,
       exitInterviewEnd: exitInterviewEndUTC,
-      interviewerUserId: interviewerUserIdValid,
-      interviewerName: interviewerNameValid,
-      interviewerEmail: interviewerEmailValid,
-      location,
-      exitInterviewNotes: notes,
+      interviewerUserId: interviewerUserIdValid ?? null,
+      interviewerName: interviewerNameValid ?? null,
+      interviewerEmail: interviewerEmailValid ?? null,
+      location: location ?? null,
+      exitInterviewNotes: notes ?? null,
       sendForm,
-      formTemplateId: sendForm ? formTemplateId : null,
-      formTiming: sendForm ? formTiming : null,
+      formTemplateId: sendForm ? formTemplateId ?? null : null,
+      formTiming: sendForm ? (formTiming ?? null) : null,
       scheduledSendAt,
       completionTokenHash,
-      completionStatus: 'PENDING' as const,
+      completionStatus: "PENDING" as const,
     };
 
     const offboarding = await prisma.employeeOffboarding.create({
       data: offboardingData,
       include: {
         employee: {
-          include: { user: true }
+          include: { user: true },
         },
         interviewerUser: true,
-        formTemplate: true
-      }
+        formTemplate: true,
+      },
     });
 
     // Archive employee
     await prisma.employee.update({
       where: { id: employeeId },
-      data: { isActive: false }
+      data: { isActive: false },
     });
 
     // Send immediate confirmation if form timing is NOW
     let emailSent = false;
-    if (sendForm && formTiming === 'NOW') {
+    if (sendForm && formTiming === "NOW") {
       emailSent = await sendExitInterviewConfirmation(offboarding.id);
     }
 
@@ -184,22 +198,27 @@ export async function POST(req: NextRequest) {
         exitInterviewDate: offboarding.exitInterviewDate,
         sendForm: offboarding.sendForm,
         formTiming: offboarding.formTiming,
-        emailSent
-      }
+        emailSent,
+      },
     });
-
   } catch (error) {
-    console.error('Error initiating offboarding:', error);
-    
+    console.error("Error initiating offboarding:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: "Validation error", 
-        details: error.errors 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          details: error.errors,
+        },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ 
-      error: "Failed to initiate offboarding" 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to initiate offboarding",
+      },
+      { status: 500 }
+    );
   }
 }

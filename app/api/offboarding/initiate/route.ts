@@ -4,8 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { toUTCFromLondon } from "@/lib/time";
-import { generateCompletionToken } from "@/lib/email/send";
-import { sendExitInterviewConfirmation } from "@/lib/email/send";
+import { generateCompletionToken, sendExitInterviewConfirmation } from "@/lib/email/send";
 
 // Validation schema
 const initiateSchema = z.object({
@@ -82,9 +81,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate interviewer information
-    let interviewerUserIdValid = interviewerUserId;
-    let interviewerNameValid = interviewerName;
-    let interviewerEmailValid = interviewerEmail;
+    let interviewerUserIdValid = interviewerUserId || null;
+    let interviewerNameValid = interviewerName || null;
+    let interviewerEmailValid = interviewerEmail || null;
 
     if (interviewerUserId) {
       const interviewer = await prisma.user.findUnique({
@@ -110,10 +109,7 @@ export async function POST(req: NextRequest) {
     let exitInterviewEndUTC: Date | null = null;
 
     if (exitInterviewDate && exitInterviewTime) {
-      exitInterviewDateUTC = toUTCFromLondon(
-        exitInterviewDate,
-        exitInterviewTime
-      );
+      exitInterviewDateUTC = toUTCFromLondon(exitInterviewDate, exitInterviewTime);
       const duration = exitInterviewDuration ?? 60;
       exitInterviewEndUTC = new Date(
         exitInterviewDateUTC.getTime() + duration * 60 * 1000
@@ -154,9 +150,9 @@ export async function POST(req: NextRequest) {
       lastWorkingDate: new Date(), // Default to today, can be updated later
       exitInterviewDate: exitInterviewDateUTC,
       exitInterviewEnd: exitInterviewEndUTC,
-      interviewerUserId: interviewerUserIdValid ?? null,
-      interviewerName: interviewerNameValid ?? null,
-      interviewerEmail: interviewerEmailValid ?? null,
+      interviewerUserId: interviewerUserIdValid,
+      interviewerName: interviewerNameValid,
+      interviewerEmail: interviewerEmailValid,
       location: location ?? null,
       exitInterviewNotes: notes ?? null,
       sendForm,

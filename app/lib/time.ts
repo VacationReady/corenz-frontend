@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 
 const LONDON_TIMEZONE = 'Europe/London';
 
@@ -9,12 +10,8 @@ const LONDON_TIMEZONE = 'Europe/London';
  * @returns UTC Date object
  */
 export function toUTCFromLondon(date: string, time: string): Date {
-  const dateTimeString = `${date}T${time}`;
-  // Create a date in London timezone and convert to UTC
-  const londonDate = new Date(dateTimeString + 'T00:00:00.000Z');
-  const [hours, minutes] = time.split(':').map(Number);
-  londonDate.setUTCHours(londonDate.getUTCHours() + hours, minutes);
-  return londonDate;
+  const dateTimeString = `${date}T${time}:00`;
+  return fromZonedTime(dateTimeString, LONDON_TIMEZONE);
 }
 
 /**

@@ -226,10 +226,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
         // Immediately send form invitation if configured to send now
         if (formData.sendForm && formData.formTiming === 'NOW') {
-          await fetch('/api/offboarding/schedule-due-sends', {
+          await fetch('/api/cron/send-expiry-alerts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ offboardingId: data.offboardingId }),
           });
         }
       }

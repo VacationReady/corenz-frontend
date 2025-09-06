@@ -7,6 +7,10 @@ export const exitInterviewSchema = z.object({
     .int()
     .min(10)
     .max(60)
+    .refine((n) => n % 10 === 0, {
+      message: "Duration must be in 10-minute increments",
+    })
+    .optional(),
     .optional()
     .refine((n) => n % 10 === 0, {
       message: "Duration must be in 10-minute increments",

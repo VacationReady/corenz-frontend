@@ -39,6 +39,28 @@ export async function GET(
             email: true
           }
         },
+        formTemplate: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            schemaJson: true
+          }
+        },
+        submissions: {
+          include: {
+            template: {
+              select: {
+                id: true,
+                name: true,
+                schemaJson: true
+              }
+            }
+          },
+          orderBy: {
+            submittedAt: 'desc'
+          }
+        }
       }
     });
 
@@ -86,15 +108,22 @@ export async function GET(
         location: offboarding.location,
         notes: offboarding.exitInterviewNotes,
         sendForm: offboarding.sendForm,
-        formTemplate: null, // Will be populated if needed
+        formTemplate: offboarding.formTemplate,
         formTiming: offboarding.formTiming,
         completionStatus: offboarding.completionStatus,
         inviteLastSentAt: offboarding.inviteLastSentAt,
         scheduledSendAt: offboarding.scheduledSendAt
       },
 
-      // Form submissions (empty for now)
-      formSubmissions: [],
+      // Form submissions
+      formSubmissions: offboarding.submissions.map(submission => ({
+        id: submission.id,
+        templateName: submission.template.name,
+        templateSchema: submission.template.schemaJson,
+        submittedAt: submission.submittedAt,
+        submittedBy: submission.submittedBy,
+        answersJson: submission.answersJson
+      })),
 
       // Tasks (empty for now)
       tasks: [],

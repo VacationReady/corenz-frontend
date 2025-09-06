@@ -12,6 +12,15 @@ const initiateSchema = z.object({
   employeeId: z.string().min(1),
   exitInterviewDate: z.string().optional(), // YYYY-MM-DD
   exitInterviewTime: z.string().optional(), // HH:mm
+  exitInterviewDuration: z
+    .number()
+    .int()
+    .min(10)
+    .max(60)
+    .optional()
+    .refine((n) => n % 10 === 0, {
+      message: "Duration must be in 10-minute increments",
+    }),
   interviewerUserId: z.string().optional(),
   interviewerName: z.string().optional(),
   interviewerEmail: z.string().email().optional(),
@@ -41,6 +50,7 @@ export async function POST(req: NextRequest) {
       employeeId,
       exitInterviewDate,
       exitInterviewTime,
+      exitInterviewDuration,
       interviewerUserId,
       interviewerName,
       interviewerEmail,
@@ -89,8 +99,10 @@ export async function POST(req: NextRequest) {
 
     if (exitInterviewDate && exitInterviewTime) {
       exitInterviewDateUTC = toUTCFromLondon(exitInterviewDate, exitInterviewTime);
-      // Default to 1 hour duration
-      exitInterviewEndUTC = new Date(exitInterviewDateUTC.getTime() + 60 * 60 * 1000);
+      const duration = exitInterviewDuration ?? 60;
+      exitInterviewEndUTC = new Date(
+        exitInterviewDateUTC.getTime() + duration * 60 * 1000
+      );
     }
 
     // Validate form template if provided

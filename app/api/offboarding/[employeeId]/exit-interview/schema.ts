@@ -2,6 +2,15 @@ import { z } from "zod";
 
 export const exitInterviewSchema = z.object({
   scheduledAt: z.string().datetime().optional(),
+  durationMinutes: z
+    .number()
+    .int()
+    .min(10)
+    .max(60)
+    .optional()
+    .refine((n) => n % 10 === 0, {
+      message: "Duration must be in 10-minute increments",
+    }),
   interviewerId: z.string().optional(),
   location: z.string().optional(),
   notes: z.string().optional(),

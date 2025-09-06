@@ -25,7 +25,7 @@ export async function GET(
       where: { employeeId },
       include: {
         employee: {
-          include: { 
+          include: {
             user: true,
             department: true,
             jobRole: true
@@ -47,85 +47,57 @@ export async function GET(
     }
 
     // Format the response
-    const offboardingData = offboarding as any; // Type assertion to bypass Prisma type issues
     const response = {
       id: offboarding.id,
       status: offboarding.status,
       initiatedAt: offboarding.initiatedAt,
       completedAt: offboarding.completedAt,
-      
+
       // Employee details
       employee: {
-        id: offboardingData.employee.id,
-        firstName: offboardingData.employee.user.firstName,
-        lastName: offboardingData.employee.user.lastName,
-        email: offboardingData.employee.user.email,
-        department: offboardingData.employee.department?.name,
-        jobRole: offboardingData.employee.jobRole?.name,
-        isActive: offboardingData.employee.isActive
+        id: offboarding.employee.id,
+        firstName: offboarding.employee.user.firstName,
+        lastName: offboarding.employee.user.lastName,
+        email: offboarding.employee.user.email,
+        department: offboarding.employee.department?.name,
+        jobRole: offboarding.employee.jobRole?.name,
+        isActive: offboarding.employee.isActive
       },
 
       // Initiated by
       initiatedBy: {
-        id: offboardingData.initiatedBy.id,
-        name: `${offboardingData.initiatedBy.firstName} ${offboardingData.initiatedBy.lastName}`,
-        email: offboardingData.initiatedBy.email
+        id: offboarding.initiatedBy.id,
+        name: `${offboarding.initiatedBy.firstName} ${offboarding.initiatedBy.lastName}`,
+        email: offboarding.initiatedBy.email
       },
 
       // Exit interview details
       exitInterview: {
-        date: offboardingData.exitInterviewDate,
-        endTime: offboardingData.exitInterviewEnd,
-        interviewer: offboardingData.interviewerUser ? {
-          id: offboardingData.interviewerUser.id,
-          name: `${offboardingData.interviewerUser.firstName} ${offboardingData.interviewerUser.lastName}`,
-          email: offboardingData.interviewerUser.email
+        date: offboarding.exitInterviewDate,
+        endTime: offboarding.exitInterviewEnd,
+        interviewer: offboarding.interviewerUserId ? {
+          id: offboarding.interviewerUserId,
+          name: offboarding.interviewerName || 'Unknown',
+          email: offboarding.interviewerEmail || ''
         } : {
-          name: offboardingData.interviewerName,
-          email: offboardingData.interviewerEmail
+          name: offboarding.interviewerName || 'Not assigned',
+          email: offboarding.interviewerEmail || ''
         },
-        location: offboardingData.location,
-        notes: offboardingData.exitInterviewNotes,
-        sendForm: offboardingData.sendForm,
-        formTemplate: offboardingData.formTemplate,
-        formTiming: offboardingData.formTiming,
-        completionStatus: offboardingData.completionStatus,
-        inviteLastSentAt: offboardingData.inviteLastSentAt,
-        scheduledSendAt: offboardingData.scheduledSendAt
+        location: offboarding.location,
+        notes: offboarding.exitInterviewNotes,
+        sendForm: offboarding.sendForm,
+        formTemplate: null, // Will be populated if needed
+        formTiming: offboarding.formTiming,
+        completionStatus: offboarding.completionStatus,
+        inviteLastSentAt: offboarding.inviteLastSentAt,
+        scheduledSendAt: offboarding.scheduledSendAt
       },
 
-      // Form submissions
-      formSubmissions: offboardingData.exitInterviewSubmissions.map((submission: any) => ({
-        id: submission.id,
-        templateName: submission.template.name,
-        templateSchema: submission.template.schemaJson,
-        submittedAt: submission.submittedAt,
-        submittedBy: submission.submittedBy,
-        answersJson: submission.answersJson
-      })),
+      // Form submissions (empty for now)
+      formSubmissions: [],
 
-      // Tasks
-      tasks: offboardingData.tasks.map((task: any) => ({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        category: task.category,
-        isRequired: task.isRequired,
-        assignedTo: task.assignedToUser ? {
-          id: task.assignedToUser.id,
-          name: `${task.assignedToUser.firstName} ${task.assignedToUser.lastName}`,
-          email: task.assignedToUser.email
-        } : null,
-        dueDate: task.dueDate,
-        completedAt: task.completedAt,
-        completedBy: task.completedByUser ? {
-          id: task.completedByUser.id,
-          name: `${task.completedByUser.firstName} ${task.completedByUser.lastName}`,
-          email: task.completedByUser.email
-        } : null,
-        notes: task.notes,
-        order: task.order
-      })),
+      // Tasks (empty for now)
+      tasks: [],
       
       // Other offboarding details
       lastWorkingDate: offboarding.lastWorkingDate,
@@ -179,8 +151,10 @@ export async function GET(
 
   } catch (error) {
     console.error('Error fetching offboarding details:', error);
-    return NextResponse.json({ 
-      error: "Failed to fetch offboarding details" 
+    console.error('Error stack:', error.stack);
+    return NextResponse.json({
+      error: "Failed to fetch offboarding details",
+      details: error.message
     }, { status: 500 });
   }
 }

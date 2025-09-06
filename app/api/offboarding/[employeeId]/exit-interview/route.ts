@@ -37,12 +37,30 @@ export async function POST(
     const scheduledDate = data.scheduledAt ? new Date(data.scheduledAt) : null;
     const exitInterviewEnd = scheduledDate ? new Date(scheduledDate.getTime() + 60 * 60 * 1000) : null;
 
+    // Validate interviewer exists if provided
+    let validInterviewerId = null;
+    if (data.interviewerId) {
+      try {
+        const interviewer = await prisma.user.findUnique({
+          where: { id: data.interviewerId },
+          select: { id: true }
+        });
+        if (interviewer) {
+          validInterviewerId = data.interviewerId;
+        } else {
+          console.warn(`Interviewer with ID ${data.interviewerId} not found, setting to null`);
+        }
+      } catch (error) {
+        console.warn(`Error validating interviewer ID ${data.interviewerId}:`, error);
+      }
+    }
+
     await prisma.employeeOffboarding.update({
       where: { id: offboarding.id },
       data: {
         exitInterviewDate: scheduledDate,
         exitInterviewEnd: exitInterviewEnd,
-        interviewerUserId: data.interviewerId ?? null,
+        interviewerUserId: validInterviewerId,
         location: data.location ?? null,
         exitInterviewNotes: data.notes ?? null,
       },
@@ -120,9 +138,9 @@ export async function POST(
     }
 
     let interviewer = null;
-    if (exitInterview.interviewerId) {
+    if (validInterviewerId) {
       interviewer = await prisma.user.findUnique({
-        where: { id: exitInterview.interviewerId },
+        where: { id: validInterviewerId },
         select: { id: true, firstName: true, lastName: true, email: true },
       });
     }

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Employee {
   id: string;
+  userId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -135,7 +136,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       const response = await fetch("/api/employees?status=active");
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data.filter((emp: Employee) => emp.id !== employee?.id));
+        setEmployees(data.filter((emp: Employee) => emp.userId !== employee?.userId));
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
@@ -562,7 +563,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       </SelectTrigger>
                       <SelectContent>
                         {employees.map(emp => (
-                          <SelectItem key={emp.id} value={emp.id}>
+                          <SelectItem key={emp.id} value={emp.userId}>
                             {emp.firstName} {emp.lastName}
                           </SelectItem>
                         ))}

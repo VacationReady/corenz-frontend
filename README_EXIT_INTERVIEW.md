@@ -166,7 +166,8 @@ Authorization: Bearer your_cron_secret
 
 ### 5. Email Templates
 
-The system uses Resend for email delivery. Ensure your Resend account is configured and the API key is set.
+The system uses Resend for email delivery. Ensure your Re
+send account is configured and the API key is set.
 
 ## Usage Guide
 

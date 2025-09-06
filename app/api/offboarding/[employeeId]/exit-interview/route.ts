@@ -125,7 +125,7 @@ export async function POST(
           data.formTiming === "ON_DATE" && data.scheduledAt
             ? new Date(data.scheduledAt)
             : data.formTiming === "NOW"
-            ? new Date() // Set to now so expiry alerts will pick it up immediately
+            ? new Date(Date.now() - 60000) // Set to 1 minute ago so it's definitely within today's range
             : null;
       } else {
         updateData.completionStatus = null;
@@ -151,7 +151,9 @@ export async function POST(
     let calendarInviteSent = false;
     if (scheduledDate) {
       try {
+        console.log('Sending calendar invite for exit interview...');
         calendarInviteSent = await sendExitInterviewConfirmation(offboarding.id);
+        console.log('Calendar invite sent:', calendarInviteSent);
       } catch (error) {
         console.error('Failed to send calendar invite:', error);
       }

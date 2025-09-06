@@ -47,6 +47,7 @@ interface OffboardingFormData {
   // Exit Interview Details
   exitInterviewDate: Date | undefined;
   exitInterviewTime: string;
+  exitInterviewDuration: number;
   interviewerUserId: string;
   interviewerName: string;
   interviewerEmail: string;
@@ -75,6 +76,7 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
   const [formData, setFormData] = useState<OffboardingFormData>({
     exitInterviewDate: undefined,
     exitInterviewTime: "09:00",
+    exitInterviewDuration: 60,
     interviewerUserId: "",
     interviewerName: "",
     interviewerEmail: "",
@@ -126,6 +128,7 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
     setFormData({
       exitInterviewDate: undefined,
       exitInterviewTime: "09:00",
+      exitInterviewDuration: 60,
       interviewerUserId: "",
       interviewerName: "",
       interviewerEmail: "",
@@ -191,6 +194,7 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
           employeeId: employee.id,
           exitInterviewDate: formData.exitInterviewDate ? format(formData.exitInterviewDate, 'yyyy-MM-dd') : null,
           exitInterviewTime: formData.exitInterviewTime,
+          exitInterviewDuration: formData.exitInterviewDuration,
           interviewerUserId: formData.interviewerUserId || null,
           interviewerName: formData.interviewerName || null,
           interviewerEmail: formData.interviewerEmail || null,
@@ -247,7 +251,7 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
               Exit Interview Details
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="exitInterviewDate">Interview Date</Label>
                 <Popover>
@@ -283,6 +287,30 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
                   onChange={(e) => setFormData(prev => ({ ...prev, exitInterviewTime: e.target.value }))}
                   required
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="exitInterviewDuration">Duration</Label>
+                <Select
+                  value={formData.exitInterviewDuration.toString()}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      exitInterviewDuration: parseInt(value),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 30, 40, 50, 60].map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {m} minutes
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

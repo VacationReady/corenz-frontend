@@ -210,7 +210,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       const data = await response.json();
 
       if (formData.exitInterviewRequired && data.offboardingId) {
-        await fetch(`/api/offboarding/${data.offboardingId}/exit-interview`, {
+        await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -223,6 +223,15 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             formTiming: formData.sendForm ? formData.formTiming : undefined,
           }),
         });
+
+        // Immediately send form invitation if configured to send now
+        if (formData.sendForm && formData.formTiming === 'NOW') {
+          await fetch('/api/offboarding/schedule-due-sends', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ offboardingId: data.offboardingId }),
+          });
+        }
       }
 
       toast({

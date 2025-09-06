@@ -46,7 +46,6 @@ export default function ExitInterviewPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [offboardingId, setOffboardingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -65,10 +64,7 @@ export default function ExitInterviewPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          token,
-          offboardingId: 'temp' // We'll get the real ID from the response
-        }),
+        body: JSON.stringify({ token }),
       });
 
       if (!response.ok) {
@@ -79,7 +75,6 @@ export default function ExitInterviewPage() {
       const data = await response.json();
       setTemplate(data.formTemplate);
       setEmployee(data.employee);
-      setOffboardingId(data.offboardingId);
 
       // Initialize form data
       const initialData: Record<string, any> = {};
@@ -152,11 +147,6 @@ export default function ExitInterviewPage() {
       return;
     }
 
-    if (!offboardingId) {
-      toast.error('Form not properly loaded');
-      return;
-    }
-
     try {
       setSubmitting(true);
 
@@ -167,7 +157,6 @@ export default function ExitInterviewPage() {
         },
         body: JSON.stringify({
           token,
-          offboardingId,
           answersJson: formData
         }),
       });

@@ -12,6 +12,7 @@ test('POST /api/offboarding/[employeeId]/exit-interview validates formTemplateId
         prisma: {
           employeeOffboarding: {
             findUnique: async () => ({ id: 'o1', completionTokenHash: null }),
+            update: async () => ({}),
           },
           exitInterview: {
             upsert: async () => ({ interviewerId: null }),

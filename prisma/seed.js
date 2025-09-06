@@ -153,6 +153,7 @@ async function main() {
     { category: "Employment Checks", daysBefore: 28 },
     { category: "Driver Licence", daysBefore: 30 },
     { category: "Training", daysBefore: 45 },
+    { category: "Exit Interview Forms", daysBefore: 0 }, // 0 days before = same day
   ];
   for (const rule of expiryRules) {
     await prisma.expiryRule.upsert({

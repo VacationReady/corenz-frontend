@@ -136,10 +136,11 @@ export default function EmployeeOffboardingPage() {
 
   const handleSendFormInvite = async () => {
     if (!offboarding) return
-    
+
     try {
       setSendingFormInvite(true)
-      const response = await fetch('/api/offboarding/schedule-due-sends', {
+      // Use the expiry alerts endpoint for manual form invitations (includes exit interview forms)
+      const response = await fetch('/api/cron/send-expiry-alerts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

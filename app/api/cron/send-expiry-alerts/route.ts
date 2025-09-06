@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend"; // assumes Resend configured
+import { sendExitInterviewFormInvite } from "@/lib/email/send";
+import { isTodayInLondon } from "@/lib/time";
 
 export async function POST() {
   try {
@@ -124,7 +126,57 @@ export async function POST() {
       }
     }
 
-    return NextResponse.json({ message: "Expiry alerts sent successfully." });
+    // Handle Exit Interview Form scheduling
+    const exitInterviewRule = expiryRules.find(rule => rule.category === "Exit Interview Forms");
+    if (exitInterviewRule) {
+      console.log("Processing Exit Interview Form scheduling...");
+
+      // Find offboarding records that need form invitations sent today
+      const dueOffboardings = await prisma.employeeOffboarding.findMany({
+        where: {
+          sendForm: true,
+          formTiming: 'ON_DATE',
+          completionStatus: 'PENDING',
+          // Only send if scheduled for today (in London timezone)
+          scheduledSendAt: {
+            not: null,
+            gte: new Date(new Date().setHours(0, 0, 0, 0)), // Start of today UTC
+            lt: new Date(new Date().setHours(23, 59, 59, 999)) // End of today UTC
+          }
+        },
+        include: {
+          employee: {
+            include: { user: true }
+          },
+          formTemplate: true
+        }
+      });
+
+      console.log(`Found ${dueOffboardings.length} offboarding records due for form invitations today`);
+
+      for (const offboarding of dueOffboardings) {
+        try {
+          // Double-check it's today in London timezone
+          if (!isTodayInLondon(offboarding.scheduledSendAt!)) {
+            continue;
+          }
+
+          // Send the form invitation
+          const emailSent = await sendExitInterviewFormInvite(offboarding.id);
+
+          if (emailSent) {
+            console.log(`✅ Sent form invitation for offboarding ${offboarding.id} to ${offboarding.employee.user.email}`);
+          } else {
+            console.log(`❌ Failed to send form invitation for offboarding ${offboarding.id}`);
+          }
+
+        } catch (error) {
+          console.error(`Failed to send form invitation for offboarding ${offboarding.id}:`, error);
+        }
+      }
+    }
+
+    return NextResponse.json({ message: "Expiry alerts and form invitations sent successfully." });
   } catch (error) {
     console.error("Error sending expiry alerts:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -9,19 +9,26 @@ interface Field {
 }
 
 interface FormSubmissionViewerProps {
-  schema?: Field[]
+  schema?: Field[] | { fields?: Field[] }
   answers?: Record<string, any>
 }
 
 export default function FormSubmissionViewer({ schema = [], answers = {} }: FormSubmissionViewerProps) {
+  // Handle both direct array format and nested fields format
+  const fields = Array.isArray(schema) ? schema : (schema?.fields || [])
+
   return (
     <div className="space-y-4">
-      {schema.map((field) => (
-        <div key={field.id} className="space-y-1">
-          <p className="text-sm font-medium text-gray-700">{field.label}</p>
-          <p className="text-sm text-gray-900">{formatAnswer(answers[field.id])}</p>
-        </div>
-      ))}
+      {fields.length > 0 ? (
+        fields.map((field) => (
+          <div key={field.id} className="space-y-1">
+            <p className="text-sm font-medium text-gray-700">{field.label || 'Unnamed field'}</p>
+            <p className="text-sm text-gray-900">{formatAnswer(answers?.[field.id])}</p>
+          </div>
+        ))
+      ) : (
+        <p className="text-sm text-gray-500">No form fields available</p>
+      )}
     </div>
   )
 }

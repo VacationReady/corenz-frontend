@@ -124,6 +124,8 @@ export async function POST(
         updateData.scheduledSendAt =
           data.formTiming === "ON_DATE" && data.scheduledAt
             ? new Date(data.scheduledAt)
+            : data.formTiming === "NOW"
+            ? new Date() // Set to now so expiry alerts will pick it up immediately
             : null;
       } else {
         updateData.completionStatus = null;

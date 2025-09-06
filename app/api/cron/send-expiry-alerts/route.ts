@@ -158,8 +158,11 @@ export async function POST() {
         try {
           // Double-check it's today in London timezone
           if (!isTodayInLondon(offboarding.scheduledSendAt!)) {
+            console.log(`Skipping offboarding ${offboarding.id} - not scheduled for today`);
             continue;
           }
+
+          console.log(`Processing form invitation for offboarding ${offboarding.id}, scheduled for: ${offboarding.scheduledSendAt}`);
 
           // Send the form invitation
           const emailSent = await sendExitInterviewFormInvite(offboarding.id);

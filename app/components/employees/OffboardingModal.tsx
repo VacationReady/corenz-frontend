@@ -211,19 +211,34 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       const data = await response.json();
 
       if (formData.exitInterviewRequired && data.offboardingId) {
-        await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            scheduledAt: formData.exitInterviewDate
-              ? formData.exitInterviewDate.toISOString()
-              : undefined,
-            interviewerId: formData.exitInterviewInterviewer || undefined,
-            sendForm: formData.sendForm,
-            formTemplateId: formData.sendForm ? formData.formTemplateId : undefined,
-            formTiming: formData.sendForm ? formData.formTiming : undefined,
-          }),
-        });
+        console.log('Setting up exit interview for employee:', employee.id);
+        try {
+          const exitInterviewResponse = await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scheduledAt: formData.exitInterviewDate
+                ? formData.exitInterviewDate.toISOString()
+                : undefined,
+              interviewerId: formData.exitInterviewInterviewer || undefined,
+              sendForm: formData.sendForm,
+              formTemplateId: formData.sendForm ? formData.formTemplateId : undefined,
+              formTiming: formData.sendForm ? formData.formTiming : undefined,
+            }),
+          });
+
+          if (!exitInterviewResponse.ok) {
+            const errorData = await exitInterviewResponse.json();
+            console.error('Exit interview setup failed:', errorData);
+            throw new Error(`Exit interview setup failed: ${errorData.error}`);
+          }
+
+          const exitInterviewData = await exitInterviewResponse.json();
+          console.log('Exit interview setup successful:', exitInterviewData);
+        } catch (error) {
+          console.error('Error setting up exit interview:', error);
+          // Don't throw here, just log the error so offboarding can still complete
+        }
 
         // Immediately send form invitation if configured to send now
         if (formData.sendForm && formData.formTiming === 'NOW') {

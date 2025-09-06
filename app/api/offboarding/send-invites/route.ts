@@ -43,12 +43,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Exit interview date not set" }, { status: 400 });
     }
 
+    console.log('About to send exit interview confirmation email for offboarding:', offboardingId);
+
     // Send confirmation email
     const emailSent = await sendExitInterviewConfirmation(offboardingId);
 
+    console.log('Email sending result:', emailSent);
+
     if (!emailSent) {
+      console.error('Email sending failed for offboarding:', offboardingId);
       return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
     }
+
+    console.log('Email sent successfully for offboarding:', offboardingId);
 
     return NextResponse.json({
       success: true,

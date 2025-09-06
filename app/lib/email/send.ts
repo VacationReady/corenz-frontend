@@ -26,6 +26,8 @@ export function generateCompletionToken(offboardingId: string): string {
  */
 export async function sendExitInterviewConfirmation(offboardingId: string): Promise<boolean> {
   try {
+    console.log('Sending exit interview confirmation for:', offboardingId);
+
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
       include: {
@@ -37,9 +39,19 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
       }
     });
 
-    if (!offboarding || !offboarding.exitInterviewDate) {
-      throw new Error('Offboarding record not found or missing interview date');
+    if (!offboarding) {
+      throw new Error('Offboarding record not found');
     }
+
+    if (!offboarding.exitInterviewDate) {
+      throw new Error('Exit interview date not set');
+    }
+
+    console.log('Offboarding found:', {
+      id: offboarding.id,
+      exitInterviewDate: offboarding.exitInterviewDate,
+      employeeEmail: offboarding.employee.user.email
+    });
 
     const employee = offboarding.employee;
     const interviewer = offboarding.interviewerUser || {
@@ -48,6 +60,12 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
       firstName: offboarding.interviewerName?.split(' ')[0] || '',
       lastName: offboarding.interviewerName?.split(' ').slice(1).join(' ') || ''
     };
+
+    console.log('Interviewer data:', {
+      hasInterviewerUser: !!offboarding.interviewerUser,
+      interviewerName: interviewer.name,
+      interviewerEmail: interviewer.email
+    });
 
     if (!interviewer.email) {
       throw new Error('Interviewer email is required');
@@ -100,6 +118,13 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
       </div>
     `;
 
+    console.log('Sending email to employee:', {
+      from: FROM_EMAIL,
+      to: employee.user.email,
+      subject: subject.substring(0, 50) + '...',
+      hasAttachments: true
+    });
+
     // Send email to employee
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -112,6 +137,8 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
         contentType: ics.mime
       }]
     });
+
+    console.log('Employee email sent successfully');
 
     // Send copy to interviewer
     await resend.emails.send({
@@ -138,6 +165,12 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
     return true;
   } catch (error) {
     console.error('Failed to send exit interview confirmation:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: errorStack
+    });
     return false;
   }
 }
@@ -147,6 +180,8 @@ export async function sendExitInterviewConfirmation(offboardingId: string): Prom
  */
 export async function sendExitInterviewFormInvite(offboardingId: string): Promise<boolean> {
   try {
+    console.log('Sending form invitation for offboarding:', offboardingId);
+
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
       include: {
@@ -157,9 +192,23 @@ export async function sendExitInterviewFormInvite(offboardingId: string): Promis
       }
     });
 
-    if (!offboarding || !offboarding.sendForm || !offboarding.completionTokenHash) {
-      throw new Error('Offboarding record not found or missing form configuration');
+    if (!offboarding) {
+      throw new Error('Offboarding record not found');
     }
+
+    if (!offboarding.sendForm) {
+      throw new Error('Form sending not enabled for this offboarding');
+    }
+
+    if (!offboarding.completionTokenHash) {
+      throw new Error('Completion token not found - form may not be properly configured');
+    }
+
+    console.log('Form invitation setup:', {
+      employeeEmail: offboarding.employee.user.email,
+      hasToken: !!offboarding.completionTokenHash,
+      formTiming: offboarding.formTiming
+    });
 
     const employee = offboarding.employee;
     const formLink = `${process.env.NEXT_PUBLIC_APP_URL}/exit-interview/${offboarding.completionTokenHash}`;

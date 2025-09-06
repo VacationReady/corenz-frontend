@@ -11,15 +11,11 @@ export const exitInterviewSchema = z.object({
       message: "Duration must be in 10-minute increments",
     })
     .optional(),
-    .optional()
-    .refine((n) => n % 10 === 0, {
-      message: "Duration must be in 10-minute increments",
-    }),
   interviewerId: z.string().optional(),
   location: z.string().optional(),
   notes: z.string().optional(),
   completed: z.boolean().optional(),
   sendForm: z.boolean().optional(),
   formTemplateId: z.string().optional(),
-  formTiming: z.enum(['NOW', 'ON_DATE']).optional(),
+  formTiming: z.enum(["NOW", "ON_DATE"]).optional(),
 });

@@ -47,7 +47,7 @@ export async function GET(
             schemaJson: true
           }
         },
-        submissions: {
+        exitInterviewSubmissions: {
           include: {
             template: {
               select: {
@@ -116,7 +116,7 @@ export async function GET(
       },
 
       // Form submissions
-      formSubmissions: offboarding.submissions.map(submission => ({
+      formSubmissions: offboarding.exitInterviewSubmissions.map(submission => ({
         id: submission.id,
         templateName: submission.template.name,
         templateSchema: submission.template.schemaJson,

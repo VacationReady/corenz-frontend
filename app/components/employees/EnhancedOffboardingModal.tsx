@@ -109,12 +109,9 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
 
   const fetchFormTemplates = async () => {
     try {
-      console.log('Fetching form templates...');
       const response = await fetch('/api/exit-interview-templates?activeOnly=true');
-      console.log('Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('Form templates received:', data);
         setFormTemplates(data);
       } else {
         console.error('Failed to fetch form templates:', response.status, response.statusText);
@@ -380,68 +377,32 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
               Exit Interview Form
             </h3>
             
-                         <div className="flex items-center space-x-2">
-               <Checkbox
-                 id="sendForm"
-                 checked={formData.sendForm}
-                 onCheckedChange={(checked) => {
-                   console.log('Checkbox changed:', checked);
-                   setFormData(prev => ({ ...prev, sendForm: checked as boolean }));
-                 }}
-               />
-               <Label htmlFor="sendForm">Send exit interview form?</Label>
-             </div>
-             
-             {/* Debug info */}
-             <div className="text-xs text-gray-500">
-               Debug: sendForm = {formData.sendForm ? 'true' : 'false'}, templates = {formTemplates.length}
-             </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="sendForm"
+                  checked={formData.sendForm}
+                  onCheckedChange={(checked) =>
+                    setFormData(prev => ({ ...prev, sendForm: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="sendForm">Send exit interview form?</Label>
+              </div>
 
                          {formData.sendForm && (
                <div className="space-y-4 pl-6 border-l-2 border-gray-200 bg-gray-50 p-4 rounded-lg">
-                 <div>
-                   <Label htmlFor="formTemplate" className="text-sm font-medium">Exit Interview Form Template *</Label>
-                   <div className="text-xs text-gray-500 mb-2">
-                     Available templates: {formTemplates.length}
-                     {formTemplates.length === 0 && (
-                       <div className="mt-2">
-                         <span className="text-red-500">⚠️ No templates available.</span>
-                         <Button 
-                           type="button" 
-                           size="sm" 
-                           variant="outline" 
-                           className="ml-2"
-                           onClick={async () => {
-                             try {
-                               const response = await fetch('/api/test/create-exit-template', { method: 'POST' });
-                               if (response.ok) {
-                                 toast.success('Test template created!');
-                                 fetchFormTemplates(); // Refresh the list
-                               } else {
-                                 toast.error('Failed to create test template');
-                               }
-                             } catch (error) {
-                               toast.error('Error creating test template');
-                             }
-                           }}
-                         >
-                           Create Test Template
-                         </Button>
-                       </div>
-                     )}
-                   </div>
-                   <Select 
-                     value={formData.formTemplateId} 
-                     onValueChange={(value) => {
-                       console.log('Template selected:', value);
-                       setFormData(prev => ({ ...prev, formTemplateId: value }));
-                     }}
-                   >
-                     <SelectTrigger className="w-full">
-                       <SelectValue placeholder="Select form template" />
-                     </SelectTrigger>
-                     <SelectContent>
-                       {formTemplates.length === 0 ? (
+                  <div>
+                    <Label htmlFor="formTemplate" className="text-sm font-medium">Exit Interview Form Template *</Label>
+                    <Select
+                      value={formData.formTemplateId}
+                      onValueChange={(value) =>
+                        setFormData(prev => ({ ...prev, formTemplateId: value }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select form template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formTemplates.length === 0 ? (
                          <SelectItem value="" disabled>
                            No templates available
                          </SelectItem>
@@ -457,39 +418,37 @@ export default function EnhancedOffboardingModal({ open, onClose, employee, onSu
                  </div>
 
                                  <div>
-                   <Label className="text-sm font-medium">When should the employee complete the form?</Label>
-                   <div className="space-y-2 mt-2">
-                     <div className="flex items-center space-x-2">
-                       <input
-                         type="radio"
-                         id="timing-now"
-                         name="formTiming"
-                         value="NOW"
-                         checked={formData.formTiming === 'NOW'}
-                         onChange={(e) => {
-                           console.log('Timing changed to:', e.target.value);
-                           setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }));
-                         }}
-                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                       />
-                       <Label htmlFor="timing-now" className="text-sm">Now (send immediately)</Label>
-                     </div>
-                     <div className="flex items-center space-x-2">
-                       <input
-                         type="radio"
-                         id="timing-date"
-                         name="formTiming"
-                         value="ON_DATE"
-                         checked={formData.formTiming === 'ON_DATE'}
-                         onChange={(e) => {
-                           console.log('Timing changed to:', e.target.value);
-                           setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }));
-                         }}
-                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                       />
-                       <Label htmlFor="timing-date" className="text-sm">On the interview date</Label>
-                     </div>
-                   </div>
+                    <Label className="text-sm font-medium">When should the employee complete the form?</Label>
+                    <div className="space-y-2 mt-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="timing-now"
+                          name="formTiming"
+                          value="NOW"
+                          checked={formData.formTiming === 'NOW'}
+                          onChange={(e) =>
+                            setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }))
+                          }
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <Label htmlFor="timing-now" className="text-sm">Now (send immediately)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id="timing-date"
+                          name="formTiming"
+                          value="ON_DATE"
+                          checked={formData.formTiming === 'ON_DATE'}
+                          onChange={(e) =>
+                            setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }))
+                          }
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <Label htmlFor="timing-date" className="text-sm">On the interview date</Label>
+                      </div>
+                    </div>
                  </div>
               </div>
             )}

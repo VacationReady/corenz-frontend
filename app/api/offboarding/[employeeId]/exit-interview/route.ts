@@ -154,9 +154,7 @@ export async function POST(
     let calendarInviteSent = false;
     if (scheduledDate) {
       try {
-        console.log('Sending calendar invite for exit interview...');
         calendarInviteSent = await sendExitInterviewConfirmation(offboarding.id);
-        console.log('Calendar invite sent:', calendarInviteSent);
       } catch (error) {
         console.error('Failed to send calendar invite:', error);
       }

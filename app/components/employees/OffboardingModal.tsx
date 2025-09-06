@@ -152,12 +152,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
   const fetchFormTemplates = async () => {
     try {
-      console.log('Fetching form templates...');
       const response = await fetch('/api/exit-interview-templates?activeOnly=true');
-      console.log('Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('Form templates received:', data);
         setFormTemplates(data);
       } else {
         console.error('Failed to fetch form templates:', response.status, response.statusText);
@@ -268,21 +265,55 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         if (formData.sendForm && formData.formTiming === 'NOW') {
           console.log('Sending form invitation immediately...');
           try {
-            const formResponse = await fetch('/api/cron/send-expiry-alerts', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            const finalFormTemplateId = formData.sendForm ? (formData.formTemplateId || formTemplates[0]?.id) : undefined;
+            const scheduledAt = formData.exitInterviewDate
+              ? toUTCFromLondon(
+                  format(formData.exitInterviewDate, 'yyyy-MM-dd'),
+                  formData.exitInterviewTime
+                ).toISOString()
+              : undefined;
+
+            const exitInterviewResponse = await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                scheduledAt,
+                durationMinutes: formData.exitInterviewDuration,
+                interviewerId: formData.exitInterviewInterviewer || undefined,
+                sendForm: formData.sendForm,
+                formTemplateId: finalFormTemplateId,
+                formTiming: formData.sendForm ? formData.formTiming : undefined,
+              }),
             });
 
-            if (formResponse.ok) {
-              console.log('Form invitation sent successfully');
-            } else {
-              console.error('Failed to send form invitation');
+            if (!exitInterviewResponse.ok) {
+              const errorData = await exitInterviewResponse.json();
+              console.error('Exit interview setup failed:', errorData);
+              throw new Error(`Exit interview setup failed: ${errorData.error}`);
             }
+
+            await exitInterviewResponse.json();
           } catch (error) {
-            console.error('Error sending form invitation:', error);
+            console.error('Error setting up exit interview:', error);
+            // Don't throw here, just log the error so offboarding can still complete
+          }
+
+          // Immediately send form invitation if configured to send now
+          if (formData.sendForm && formData.formTiming === 'NOW') {
+            try {
+              const formResponse = await fetch('/api/cron/send-expiry-alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+              });
+
+              if (!formResponse.ok) {
+                console.error('Failed to send form invitation');
+              }
+            } catch (error) {
+              console.error('Error sending form invitation:', error);
+            }
           }
         }
-      }
 
       toast({
         title: "Offboarding Started Successfully",
@@ -665,74 +696,27 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
                 {/* Exit Interview Form Section */}
                 <div className="border-t pt-4">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Checkbox
-                      id="sendForm"
-                      checked={formData.sendForm}
-                      onCheckedChange={(checked) => {
-                        console.log('Checkbox changed:', checked);
-                        setFormData(prev => ({ ...prev, sendForm: checked as boolean }));
-                      }}
-                    />
-                    <Label htmlFor="sendForm">Send exit interview form?</Label>
-                  </div>
-                  
-                  {/* Debug info */}
-                  <div className="text-xs text-gray-500 mb-2">
-                    Debug: sendForm = {formData.sendForm ? 'true' : 'false'}, templates = {formTemplates.length}
-                  </div>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="sendForm"
+                        checked={formData.sendForm}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({ ...prev, sendForm: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="sendForm">Send exit interview form?</Label>
+                    </div>
 
                   {formData.sendForm && (
                     <div className="space-y-4 pl-6 border-l-2 border-gray-200 bg-gray-50 p-4 rounded-lg">
                       <div>
                         <Label htmlFor="formTemplate" className="text-sm font-medium">Exit Interview Form Template *</Label>
-                        <div className="text-xs text-gray-500 mb-2">
-                          Available templates: {formTemplates.length}
-                          {formTemplates.length === 0 && (
-                            <div className="mt-2">
-                              <span className="text-red-500">⚠️ No templates available.</span>
-                              <Button 
-                                type="button" 
-                                size="sm" 
-                                variant="outline" 
-                                className="ml-2"
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch('/api/test/create-exit-template', { method: 'POST' });
-                                    if (response.ok) {
-                                      toast({
-                                        title: "Success",
-                                        description: "Test template created!",
-                                      });
-                                      fetchFormTemplates(); // Refresh the list
-                                    } else {
-                                      toast({
-                                        title: "Error",
-                                        description: "Failed to create test template",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  } catch (error) {
-                                    toast({
-                                      title: "Error",
-                                      description: "Error creating test template",
-                                      variant: "destructive",
-                                    });
-                                  }
-                                }}
-                              >
-                                Create Test Template
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                        <Select 
-                          value={formData.formTemplateId} 
-                          onValueChange={(value) => {
-                            console.log('Template selected:', value);
-                            setFormData(prev => ({ ...prev, formTemplateId: value }));
-                          }}
-                        >
+                          <Select
+                            value={formData.formTemplateId}
+                            onValueChange={(value) =>
+                              setFormData(prev => ({ ...prev, formTemplateId: value }))
+                            }
+                          >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select form template" />
                           </SelectTrigger>
@@ -755,36 +739,34 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       <div>
                         <Label className="text-sm font-medium">When should the employee complete the form?</Label>
                         <div className="space-y-2 mt-2">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="timing-now"
-                              name="formTiming"
-                              value="NOW"
-                              checked={formData.formTiming === 'NOW'}
-                              onChange={(e) => {
-                                console.log('Timing changed to:', e.target.value);
-                                setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }));
-                              }}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                            />
-                            <Label htmlFor="timing-now" className="text-sm">Now (send immediately)</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id="timing-date"
-                              name="formTiming"
-                              value="ON_DATE"
-                              checked={formData.formTiming === 'ON_DATE'}
-                              onChange={(e) => {
-                                console.log('Timing changed to:', e.target.value);
-                                setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }));
-                              }}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                            />
-                            <Label htmlFor="timing-date" className="text-sm">On the interview date</Label>
-                          </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="timing-now"
+                                name="formTiming"
+                                value="NOW"
+                                checked={formData.formTiming === 'NOW'}
+                                onChange={(e) =>
+                                  setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }))
+                                }
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                              />
+                              <Label htmlFor="timing-now" className="text-sm">Now (send immediately)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="timing-date"
+                                name="formTiming"
+                                value="ON_DATE"
+                                checked={formData.formTiming === 'ON_DATE'}
+                                onChange={(e) =>
+                                  setFormData(prev => ({ ...prev, formTiming: e.target.value as 'NOW' | 'ON_DATE' }))
+                                }
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                              />
+                              <Label htmlFor="timing-date" className="text-sm">On the interview date</Label>
+                            </div>
                         </div>
                       </div>
                     </div>

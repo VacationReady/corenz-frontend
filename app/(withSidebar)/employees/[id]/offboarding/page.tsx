@@ -185,9 +185,9 @@ export default function EmployeeOffboardingPage() {
       case 'PENDING':
         return <Badge variant="secondary">Pending</Badge>
       case 'STARTED':
-        return <Badge variant="default" className="bg-blue-100 text-blue-800">Started</Badge>
+        return <Badge variant="primary" className="bg-blue-100 text-blue-800">Started</Badge>
       case 'SUBMITTED':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Submitted</Badge>
+        return <Badge variant="primary" className="bg-green-100 text-green-800">Submitted</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }

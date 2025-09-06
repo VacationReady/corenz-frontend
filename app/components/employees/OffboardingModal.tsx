@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle, FormInput } from "lucide-react";
 import { format } from "date-fns";
+import { toUTCFromLondon } from "@/lib/time";
 import { useToast } from "@/hooks/use-toast";
 
 interface Employee {
@@ -49,6 +50,8 @@ interface OffboardingFormData {
   handoverAssignedTo: string;
   exitInterviewRequired: boolean;
   exitInterviewDate: Date | null;
+  exitInterviewTime: string;
+  exitInterviewDuration: number;
   exitInterviewInterviewer: string;
   sendForm: boolean;
   formTemplateId: string;
@@ -95,6 +98,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
     handoverAssignedTo: "",
     exitInterviewRequired: false,
     exitInterviewDate: null,
+    exitInterviewTime: "09:00",
+    exitInterviewDuration: 60,
     exitInterviewInterviewer: "",
     sendForm: false,
     formTemplateId: "",
@@ -121,6 +126,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         handoverAssignedTo: "",
         exitInterviewRequired: false,
         exitInterviewDate: null,
+        exitInterviewTime: "09:00",
+        exitInterviewDuration: 60,
         exitInterviewInterviewer: "",
         sendForm: false,
         formTemplateId: "",
@@ -214,8 +221,16 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         console.log('Setting up exit interview for employee:', employee.id);
         try {
           const finalFormTemplateId = formData.sendForm ? (formData.formTemplateId || formTemplates[0]?.id) : undefined;
+          const scheduledAt = formData.exitInterviewDate
+            ? toUTCFromLondon(
+                format(formData.exitInterviewDate, 'yyyy-MM-dd'),
+                formData.exitInterviewTime
+              ).toISOString()
+            : undefined;
+
           console.log('Sending exit interview data:', {
-            scheduledAt: formData.exitInterviewDate?.toISOString(),
+            scheduledAt,
+            durationMinutes: formData.exitInterviewDuration,
             interviewerId: formData.exitInterviewInterviewer,
             sendForm: formData.sendForm,
             formTemplateId: finalFormTemplateId,
@@ -227,9 +242,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              scheduledAt: formData.exitInterviewDate
-                ? formData.exitInterviewDate.toISOString()
-                : undefined,
+              scheduledAt,
+              durationMinutes: formData.exitInterviewDuration,
               interviewerId: formData.exitInterviewInterviewer || undefined,
               sendForm: formData.sendForm,
               formTemplateId: finalFormTemplateId,
@@ -589,16 +603,57 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                     </Popover>
                   </div>
                   <div>
+                    <Label htmlFor="exitInterviewTime">Interview time</Label>
+                    <Input
+                      type="time"
+                      value={formData.exitInterviewTime}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          exitInterviewTime: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="exitInterviewDuration">Duration</Label>
+                    <Select
+                      value={formData.exitInterviewDuration.toString()}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          exitInterviewDuration: parseInt(value),
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[10, 20, 30, 40, 50, 60].map((m) => (
+                          <SelectItem key={m} value={m.toString()}>
+                            {m} minutes
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label htmlFor="exitInterviewInterviewer">Interviewer</Label>
                     <Select
                       value={formData.exitInterviewInterviewer}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, exitInterviewInterviewer: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          exitInterviewInterviewer: value,
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select interviewer" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employees.map(emp => (
+                        {employees.map((emp) => (
                           <SelectItem key={emp.id} value={emp.userId}>
                             {emp.firstName} {emp.lastName}
                           </SelectItem>

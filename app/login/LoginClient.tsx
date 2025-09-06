@@ -12,35 +12,45 @@ export default function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
+    setLoading(true);
+    setError("");
 
-    if (res?.ok) {
-      const sessionRes = await fetch("/api/auth/session");
-      const session = await sessionRes.json();
-      const role = session?.user?.role;
-      const next = search?.get("next");
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
 
-      if (next) {
-        router.push(next);
-        return;
-      }
+      if (res?.ok) {
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        const role = session?.user?.role;
+        const next = search?.get("next");
 
-      if (role === "ADMIN") {
-        router.push("/dashboard/admin");
-      } else if (role === "MANAGER") {
-        router.push("/dashboard/manager");
+        if (next) {
+          router.push(next);
+          return;
+        }
+
+        if (role === "ADMIN") {
+          router.push("/dashboard/admin");
+        } else if (role === "MANAGER") {
+          router.push("/dashboard/manager");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
-        router.push("/dashboard");
+        setError("Invalid email or password");
       }
-    } else {
-      setError("Invalid email or password");
+    } catch (error) {
+      setError("An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,6 +70,7 @@ export default function LoginClient() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
+              disabled={loading}
             />
           </div>
           <div>
@@ -70,10 +81,11 @@ export default function LoginClient() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              disabled={loading}
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full" loading={loading}>
             Sign In
           </Button>
         </form>

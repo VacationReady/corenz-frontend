@@ -4,14 +4,19 @@ import "./globals.css";
 import { ReactNode } from "react";
 import { Toaster } from "sonner";
 import { SessionProvider } from "next-auth/react";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ChunkErrorHandler from "./components/ChunkErrorHandler";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="bg-app-background min-h-screen font-sans text-foreground antialiased">
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <ErrorBoundary>
+          <ChunkErrorHandler />
+          <SessionProvider>
+            {children}
+          </SessionProvider>
+        </ErrorBoundary>
 
         <Toaster
           position="bottom-right"

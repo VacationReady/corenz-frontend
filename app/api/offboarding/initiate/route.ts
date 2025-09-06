@@ -21,6 +21,10 @@ const initiateSchema = z.object({
       message: "Duration must be in 10-minute increments",
     })
     .optional(),
+    .optional()
+    .refine((n) => n % 10 === 0, {
+      message: "Duration must be in 10-minute increments",
+    }),
   interviewerUserId: z.string().optional(),
   interviewerName: z.string().optional(),
   interviewerEmail: z.string().email().optional(),

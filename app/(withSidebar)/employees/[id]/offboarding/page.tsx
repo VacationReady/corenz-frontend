@@ -366,7 +366,7 @@ export default function EmployeeOffboardingPage() {
                         </p>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="default">View Completed Submissions</Button>
+                            <Button size="sm" variant="primary">View Completed Submissions</Button>
                           </DialogTrigger>
                           <DialogContent title="Completed Form Submissions" className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <div className="space-y-6">

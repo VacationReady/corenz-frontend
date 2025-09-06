@@ -151,10 +151,12 @@ export async function GET(
 
   } catch (error) {
     console.error('Error fetching offboarding details:', error);
-    console.error('Error stack:', error.stack);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Error stack:', errorStack);
     return NextResponse.json({
       error: "Failed to fetch offboarding details",
-      details: error.message
+      details: errorMessage
     }, { status: 500 });
   }
 }

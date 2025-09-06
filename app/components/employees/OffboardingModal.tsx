@@ -213,6 +213,16 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       if (formData.exitInterviewRequired && data.offboardingId) {
         console.log('Setting up exit interview for employee:', employee.id);
         try {
+          const finalFormTemplateId = formData.sendForm ? (formData.formTemplateId || formTemplates[0]?.id) : undefined;
+          console.log('Sending exit interview data:', {
+            scheduledAt: formData.exitInterviewDate?.toISOString(),
+            interviewerId: formData.exitInterviewInterviewer,
+            sendForm: formData.sendForm,
+            formTemplateId: finalFormTemplateId,
+            formTiming: formData.formTiming,
+            availableTemplates: formTemplates.length
+          });
+
           const exitInterviewResponse = await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -222,7 +232,7 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 : undefined,
               interviewerId: formData.exitInterviewInterviewer || undefined,
               sendForm: formData.sendForm,
-              formTemplateId: formData.sendForm ? formData.formTemplateId : undefined,
+              formTemplateId: finalFormTemplateId,
               formTiming: formData.sendForm ? formData.formTiming : undefined,
             }),
           });

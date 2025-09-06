@@ -271,8 +271,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       }
 
       toast({
-        title: "Offboarding Started",
-        description: `Offboarding process has been initiated for ${employee.firstName} ${employee.lastName}`,
+        title: "Offboarding Started Successfully",
+        description: `Offboarding initiated for ${employee.firstName} ${employee.lastName}. ${formData.exitInterviewRequired ? 'Calendar invite sent.' : ''} ${formData.sendForm && formData.formTiming === 'NOW' ? 'Exit interview form sent immediately.' : ''}`,
       });
 
       onSuccess();

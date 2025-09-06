@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { exitInterviewSchema } from "./schema";
-import { generateCompletionToken } from "@/lib/email/send";
+import { generateCompletionToken, sendExitInterviewConfirmation } from "@/lib/email/send";
 
 export async function POST(
   req: NextRequest,
@@ -33,10 +33,25 @@ export async function POST(
       return NextResponse.json({ error: "Offboarding not found" }, { status: 404 });
     }
 
+    // Update the main offboarding record with exit interview details
+    const scheduledDate = data.scheduledAt ? new Date(data.scheduledAt) : null;
+    const exitInterviewEnd = scheduledDate ? new Date(scheduledDate.getTime() + 60 * 60 * 1000) : null;
+
+    await prisma.employeeOffboarding.update({
+      where: { id: offboarding.id },
+      data: {
+        exitInterviewDate: scheduledDate,
+        exitInterviewEnd: exitInterviewEnd,
+        interviewerUserId: data.interviewerId ?? null,
+        location: data.location ?? null,
+        exitInterviewNotes: data.notes ?? null,
+      },
+    });
+
     const exitInterview = await prisma.exitInterview.upsert({
       where: { offboardingId: offboarding.id },
       update: {
-        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        scheduledAt: scheduledDate,
         interviewerId: data.interviewerId ?? null,
         location: data.location ?? null,
         notes: data.notes ?? null,
@@ -45,7 +60,7 @@ export async function POST(
       },
       create: {
         offboardingId: offboarding.id,
-        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        scheduledAt: scheduledDate,
         interviewerId: data.interviewerId ?? null,
         location: data.location ?? null,
         notes: data.notes ?? null,
@@ -112,7 +127,20 @@ export async function POST(
       });
     }
 
-    return NextResponse.json({ exitInterview: { ...exitInterview, interviewer } });
+    // Send calendar invite if interview is scheduled
+    let calendarInviteSent = false;
+    if (scheduledDate) {
+      try {
+        calendarInviteSent = await sendExitInterviewConfirmation(offboarding.id);
+      } catch (error) {
+        console.error('Failed to send calendar invite:', error);
+      }
+    }
+
+    return NextResponse.json({
+      exitInterview: { ...exitInterview, interviewer },
+      calendarInviteSent
+    });
   } catch (error) {
     console.error("Error saving exit interview:", error);
     return NextResponse.json(

@@ -109,6 +109,9 @@ export async function POST(req: Request) {
       managerId,
       sendInviteNow,
       onboardingTemplateId,
+      holidayYear,
+      workingPatternId,
+      entitlementDays,
     } = await req.json();
 
     if (!firstName || !lastName || !email || !startDate || !role) {
@@ -243,6 +246,48 @@ export async function POST(req: Request) {
         }
       } catch (e) {
         console.warn("Onboarding start error:", e);
+      }
+    }
+
+    // Assign working pattern if provided
+    if (workingPatternId) {
+      try {
+        await prisma.employeeWorkingPatternAssignment.create({
+          data: {
+            employeeId: employee.id,
+            workingPatternId,
+            effectiveDate: new Date(startDate),
+          },
+        });
+      } catch (e) {
+        console.warn("Working pattern assignment failed:", e);
+      }
+    }
+
+    // Create leave entitlement if provided
+    if (entitlementDays && holidayYear) {
+      try {
+        // Find the standard holiday event category
+        const holidayCategory = await prisma.eventCategory.findFirst({
+          where: {
+            name: "Holiday",
+            categoryType: "TIME_OFF",
+            isActive: true,
+          },
+        });
+
+        if (holidayCategory) {
+          await prisma.leaveEntitlement.create({
+            data: {
+              employeeId: employee.id,
+              eventCategoryId: holidayCategory.id,
+              totalDays: entitlementDays,
+              usedDays: 0,
+            },
+          });
+        }
+      } catch (e) {
+        console.warn("Leave entitlement creation failed:", e);
       }
     }
 

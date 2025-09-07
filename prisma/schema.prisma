@@ -23,6 +23,7 @@ model User {
   lastName                                     String?
   managerId                                    String?
   phone                                        String?
+  dateOfBirth                                  DateTime?
   companyId                                    String?
   emailPreferences                             Json?
   profileImageUrl                              String?

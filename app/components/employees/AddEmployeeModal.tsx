@@ -16,6 +16,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 
+// 👇 Tooltip component
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
+
 interface AddEmployeeModalProps {
   open: boolean;
   onClose: () => void;
@@ -48,6 +52,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     lastName: "",
     email: "",
     phone: "",
+    dateOfBirth: "",
     startDate: "",
     role: "EMPLOYEE",
     departmentId: undefined as string | undefined,
@@ -119,39 +124,49 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       return;
     }
 
-    // Calculate employee weekly hours from pattern
-    let employeeWeeklyHours = 0;
+    // Calculate employee days worked per week from pattern
+    let employeeDaysPerWeek = 0;
     selectedPattern.weeks.forEach((week: any) => {
       week.days.forEach((day: any) => {
         if (day.type === "FULL_DAY") {
-          employeeWeeklyHours += 8; // Assuming 8 hours per full day
+          employeeDaysPerWeek += 1;
         } else if (day.type.includes("HALF_DAY")) {
-          employeeWeeklyHours += 4; // Assuming 4 hours per half day
+          employeeDaysPerWeek += 0.5;
         }
       });
     });
 
-    // Calculate prorated entitlement
-    const partTime = fullTimeEntitlementNum * (employeeWeeklyHours / fullTimeHoursNum);
+    // Full-time entitlement is 28 days per holiday year (5.6 weeks)
+    const FULL_TIME_ENTITLEMENT = 28;
 
-    // Calculate days remaining in holiday year
+    // Calculate annual entitlement based on days worked per week
+    const annualEntitlement = (employeeDaysPerWeek / 5) * FULL_TIME_ENTITLEMENT;
+
+    // Calculate holiday year dates
     const [startMonth, endMonth] = holidayYear.split('-').map(m => parseInt(m) - 1);
     const currentYear = startDate.getFullYear();
-    const holidayYearStart = new Date(currentYear, startMonth, 1);
-    const holidayYearEnd = new Date(currentYear, endMonth, 31);
+    let holidayYearStart = new Date(currentYear, startMonth, 1);
+    let holidayYearEnd = new Date(currentYear, endMonth + 1, 0); // Last day of end month
 
+    // If start date is before holiday year start, use previous year's holiday year
     if (startDate < holidayYearStart) {
       holidayYearStart.setFullYear(currentYear - 1);
       holidayYearEnd.setFullYear(currentYear - 1);
     }
 
-    const totalDaysInYear = Math.ceil((holidayYearEnd.getTime() - holidayYearStart.getTime()) / (1000 * 60 * 60 * 24));
-    const daysRemaining = Math.ceil((holidayYearEnd.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Calculate total days in holiday year
+    const totalDaysInHolidayYear = Math.ceil((holidayYearEnd.getTime() - holidayYearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const prorated = partTime * (daysRemaining / totalDaysInYear);
-    const finalEntitlement = Math.round(prorated * 100) / 100; // Round to 2 decimal places
+    // Calculate days remaining from start date to end of holiday year
+    const daysRemaining = Math.ceil((holidayYearEnd.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    setCalculatedEntitlement(finalEntitlement);
+    // Calculate pro-rated entitlement
+    const proratedEntitlement = annualEntitlement * (daysRemaining / totalDaysInHolidayYear);
+
+    // Round to nearest half day
+    const roundedEntitlement = Math.round(proratedEntitlement * 2) / 2;
+
+    setCalculatedEntitlement(roundedEntitlement);
   };
 
   const applyCalculatedEntitlement = () => {
@@ -219,6 +234,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         lastName: "",
         email: "",
         phone: "",
+        dateOfBirth: "",
         startDate: "",
         role: "EMPLOYEE",
         departmentId: undefined,
@@ -293,7 +309,16 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 </div>
                 <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
                 <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
-                <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                    <Input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                    <Input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
+                  </div>
+                </div>
 
                 <Select value={formData.role || undefined} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                   <SelectTrigger className="w-full">
@@ -441,10 +466,36 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
       {/* Calculate Entitlement Modal */}
       <Dialog open={isCalculateModalOpen} onOpenChange={setIsCalculateModalOpen}>
-        <DialogContent title="Calculate Prorated Entitlement">
+        <DialogContent title="Calculate Holiday Entitlement">
           <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">Holiday Entitlement Calculator</h3>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="w-5 h-5 text-gray-500 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Full-time entitlement:</strong> 28 days per holiday year</p>
+                      <p><strong>Part-time calculation:</strong> Days worked per week × 5.6</p>
+                      <p><strong>Pro-rata formula:</strong> Annual entitlement × (Days remaining in holiday year ÷ Total days in holiday year)</p>
+                      <p><strong>Rounding:</strong> To nearest half day</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-md border-l-4 border-blue-400">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Full-time employees are entitled to 28 days of holiday per year (equivalent to 5.6 weeks).
+                Part-time employees receive pro-rata entitlement based on their working pattern.
+              </p>
+            </div>
+
             <div>
-              <Label className="text-sm font-medium">Standard Full-Time Weekly Hours</Label>
+              <Label className="text-sm font-medium">Standard Full-Time Weekly Hours (for reference)</Label>
               <Input
                 type="number"
                 value={fullTimeHours}
@@ -452,22 +503,20 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 placeholder="40"
                 className="mt-1"
               />
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Standard Full-Time Entitlement (Days)</Label>
-              <Input
-                type="number"
-                value={fullTimeEntitlement}
-                onChange={(e) => setFullTimeEntitlement(e.target.value)}
-                placeholder="25"
-                className="mt-1"
-              />
+              <p className="text-xs text-gray-500 mt-1">Used to validate working pattern calculations</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-md">
-              <p className="text-sm text-gray-600">Calculated Entitlement:</p>
-              <p className="text-lg font-semibold">{calculatedEntitlement.toFixed(2)} days</p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Calculated Holiday Entitlement:</p>
+                <p className="text-2xl font-bold text-green-600">{calculatedEntitlement} days</p>
+                {calculatedEntitlement > 0 && (
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p>Based on working pattern and start date</p>
+                    <p>Rounded to nearest half day</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <DialogFooter>
@@ -477,8 +526,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
               <Button onClick={calculateEntitlement} className="mr-2">
                 Calculate
               </Button>
-              <Button onClick={applyCalculatedEntitlement}>
-                Apply
+              <Button onClick={applyCalculatedEntitlement} disabled={calculatedEntitlement === 0}>
+                Apply ({calculatedEntitlement} days)
               </Button>
             </DialogFooter>
           </div>

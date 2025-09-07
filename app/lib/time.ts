@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 const LONDON_TIMEZONE = 'Europe/London';
 
@@ -21,11 +21,11 @@ export function toUTCFromLondon(date: string, time: string): Date {
  * @returns Formatted string in London timezone
  */
 export function formatLondon(
-  utcDate: string | Date, 
+  utcDate: string | Date,
   formatString: string = 'dd/MM/yyyy HH:mm'
 ): string {
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  return format(date, formatString);
+  return formatInTimeZone(date, LONDON_TIMEZONE, formatString);
 }
 
 /**

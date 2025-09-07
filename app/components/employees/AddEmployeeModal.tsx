@@ -50,13 +50,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     phone: "",
     startDate: "",
     role: "EMPLOYEE",
-    departmentId: "",
-    jobRoleId: "",
-    managerId: "",
-    onboardingTemplateId: "",
+    departmentId: undefined as string | undefined,
+    jobRoleId: undefined as string | undefined,
+    managerId: undefined as string | undefined,
+    onboardingTemplateId: undefined as string | undefined,
     // Step 2 fields
-    holidayYear: "",
-    workingPatternId: "",
+    holidayYear: undefined as string | undefined,
+    workingPatternId: undefined as string | undefined,
     entitlementDays: "",
   });
 
@@ -161,7 +161,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
   const nextStep = () => {
     // Validate step 1 fields
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.startDate || !formData.onboardingTemplateId) {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.startDate || !formData.onboardingTemplateId || formData.onboardingTemplateId === "") {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -181,7 +181,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       }
 
       // Validate step 2 fields
-      if (!formData.holidayYear || !formData.workingPatternId || !formData.entitlementDays) {
+      if (!formData.holidayYear || formData.holidayYear === "" || !formData.workingPatternId || formData.workingPatternId === "" || !formData.entitlementDays || formData.entitlementDays === "") {
         toast.error("Please fill in all holiday settings");
         return;
       }
@@ -190,10 +190,13 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         ...formData,
         companyId: session?.user?.companyId,
         sendInviteNow,
-        onboardingTemplateId: formData.onboardingTemplateId,
-        holidayYear: formData.holidayYear,
-        workingPatternId: formData.workingPatternId,
         entitlementDays: parseFloat(formData.entitlementDays),
+        // Convert undefined values to empty strings for backend
+        departmentId: formData.departmentId || "",
+        jobRoleId: formData.jobRoleId || "",
+        managerId: formData.managerId || "",
+        holidayYear: formData.holidayYear || "",
+        workingPatternId: formData.workingPatternId || "",
       };
 
       const res = await fetch("/api/employees", {
@@ -218,12 +221,12 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         phone: "",
         startDate: "",
         role: "EMPLOYEE",
-        departmentId: "",
-        jobRoleId: "",
-        managerId: "",
-        onboardingTemplateId: "",
-        holidayYear: "",
-        workingPatternId: "",
+        departmentId: undefined,
+        jobRoleId: undefined,
+        managerId: undefined,
+        onboardingTemplateId: undefined,
+        holidayYear: undefined,
+        workingPatternId: undefined,
         entitlementDays: "",
       });
       setSendInviteNow(true);
@@ -292,7 +295,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
                 <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
 
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <Select value={formData.role || undefined} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Role" />
                   </SelectTrigger>
@@ -304,12 +307,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 </Select>
 
                 <div className="flex space-x-2">
-                  <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
+                  <Select value={formData.departmentId || undefined} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="Select Department" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Select Department</SelectItem>
                       {departments.map((d) => (
                         <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                       ))}
@@ -319,12 +321,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 </div>
 
                 <div className="flex space-x-2">
-                  <Select value={formData.jobRoleId} onValueChange={(value) => setFormData({ ...formData, jobRoleId: value })}>
+                  <Select value={formData.jobRoleId || undefined} onValueChange={(value) => setFormData({ ...formData, jobRoleId: value })}>
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="Select Job Role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Select Job Role</SelectItem>
                       {jobRoles.map((j) => (
                         <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
                       ))}
@@ -333,12 +334,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                   <Button type="button" size="sm" onClick={() => setRoleModalOpen(true)}>+ New</Button>
                 </div>
 
-                <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
+                <Select value={formData.managerId || undefined} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Line Manager (Optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select Line Manager (Optional)</SelectItem>
                     {employees.map((emp) =>
                       emp.user && (
                         <SelectItem key={emp.id} value={emp.id}>
@@ -354,12 +354,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                   <Label className="text-sm">Send login invite now</Label>
                 </div>
 
-                <Select value={formData.onboardingTemplateId} onValueChange={(value) => setFormData({ ...formData, onboardingTemplateId: value })}>
+                <Select value={formData.onboardingTemplateId || undefined} onValueChange={(value) => setFormData({ ...formData, onboardingTemplateId: value })}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Onboarding Template" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select Onboarding Template</SelectItem>
                     <SelectItem value="none">None</SelectItem>
                     {filteredTemplates.map((t) => (
                       <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
@@ -380,7 +379,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium">Holiday Year</Label>
-                    <Select value={formData.holidayYear} onValueChange={(value) => setFormData({ ...formData, holidayYear: value })}>
+                    <Select value={formData.holidayYear || undefined} onValueChange={(value) => setFormData({ ...formData, holidayYear: value })}>
                       <SelectTrigger className="w-full mt-1">
                         <SelectValue placeholder="Select holiday year period" />
                       </SelectTrigger>
@@ -396,7 +395,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
                   <div>
                     <Label className="text-sm font-medium">Working Pattern</Label>
-                    <Select value={formData.workingPatternId} onValueChange={(value) => setFormData({ ...formData, workingPatternId: value })}>
+                    <Select value={formData.workingPatternId || undefined} onValueChange={(value) => setFormData({ ...formData, workingPatternId: value })}>
                       <SelectTrigger className="w-full mt-1">
                         <SelectValue placeholder="Select working pattern" />
                       </SelectTrigger>

@@ -381,10 +381,13 @@ function EmployeesContent() {
                             if (!confirm("Are you sure you want to delete this employee?")) return;
                             try {
                               const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
-                              if (!res.ok) throw new Error("Delete failed");
-                              fetchData();
+                              if (!res.ok) {
+                                const errorData = await res.json().catch(() => ({}));
+                                throw new Error(errorData.error || "Delete failed");
+                              }
+                              fetchData(activeTab);
                             } catch (err) {
-                              alert("Error deleting employee.");
+                              alert("Error deleting employee: " + (err as Error).message);
                               console.error(err);
                             }
                           }}
@@ -402,6 +405,7 @@ function EmployeesContent() {
                                 return;
                               }
                               toast.success('Login invite sent');
+                              fetchData(activeTab); // Refresh to update any status changes
                             } catch (e) {
                               toast.error('Network error sending invite');
                             }

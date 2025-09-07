@@ -6,11 +6,12 @@ import { PageShell } from '@/components/ui/PageShell'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
-import { Calendar, Clock, User, Mail, FileText, CheckCircle, XCircle, AlertCircle, Send, RefreshCw } from 'lucide-react'
+import { Calendar, Clock, User, Mail, FileText, CheckCircle, XCircle, AlertCircle, Send, RefreshCw, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatLondon, formatLondonDate, formatLondonTime } from '@/lib/time'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import FormSubmissionViewer from '@/components/forms/FormSubmissionViewer'
+import { Checkbox } from '@/components/ui/Checkbox'
 
 interface OffboardingData {
   id: string;
@@ -65,9 +66,13 @@ interface OffboardingData {
     submittedBy?: string;
     answersJson?: Record<string, any>;
   }>;
-  
+
   createdAt: string;
   updatedAt: string;
+
+  assetsToReturn?: { name: string; returned: boolean }[];
+  assetsReturned?: boolean;
+  assetsReturnedAt?: string;
 }
 
 export default function EmployeeOffboardingPage() {
@@ -95,12 +100,38 @@ export default function EmployeeOffboardingPage() {
       }
       
       const data = await response.json()
+      if (Array.isArray(data.assetsToReturn)) {
+        data.assetsToReturn = data.assetsToReturn.map((a: any) =>
+          typeof a === 'string' ? { name: a, returned: false } : a
+        )
+      }
       setOffboarding(data)
     } catch (error) {
       console.error('Error fetching offboarding data:', error)
       toast.error('Failed to load offboarding information')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAssetToggle = async (index: number) => {
+    if (!offboarding) return
+
+    const updatedAssets = (offboarding.assetsToReturn || []).map((asset, i) =>
+      i === index ? { ...asset, returned: !asset.returned } : asset
+    )
+
+    setOffboarding({ ...offboarding, assetsToReturn: updatedAssets })
+
+    try {
+      await fetch(`/api/offboarding/${employeeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetsToReturn: updatedAssets })
+      })
+    } catch (error) {
+      console.error('Error updating assets:', error)
+      toast.error('Failed to update assets')
     }
   }
 
@@ -256,6 +287,36 @@ export default function EmployeeOffboardingPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Assets to Return */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Assets to Return
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {offboarding.assetsToReturn && offboarding.assetsToReturn.length > 0 ? (
+              <div className="space-y-2">
+                {offboarding.assetsToReturn.map((asset, idx) => (
+                  <div key={asset.name} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`asset-${idx}`}
+                      checked={asset.returned}
+                      onCheckedChange={() => handleAssetToggle(idx)}
+                    />
+                    <label htmlFor={`asset-${idx}`} className="text-sm">
+                      {asset.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">No assets listed</p>
+            )}
           </CardContent>
         </Card>
 

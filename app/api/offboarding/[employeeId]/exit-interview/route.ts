@@ -35,7 +35,10 @@ export async function POST(
 
     // Update the main offboarding record with exit interview details
     const scheduledDate = data.scheduledAt ? new Date(data.scheduledAt) : null;
-    const exitInterviewEnd = scheduledDate ? new Date(scheduledDate.getTime() + 60 * 60 * 1000) : null;
+    const duration = data.durationMinutes ?? 60;
+    const exitInterviewEnd = scheduledDate
+      ? new Date(scheduledDate.getTime() + duration * 60 * 1000)
+      : null;
 
     // Validate interviewer exists if provided
     let validInterviewerId = null;
@@ -151,9 +154,7 @@ export async function POST(
     let calendarInviteSent = false;
     if (scheduledDate) {
       try {
-        console.log('Sending calendar invite for exit interview...');
         calendarInviteSent = await sendExitInterviewConfirmation(offboarding.id);
-        console.log('Calendar invite sent:', calendarInviteSent);
       } catch (error) {
         console.error('Failed to send calendar invite:', error);
       }

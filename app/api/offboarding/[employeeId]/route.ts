@@ -189,3 +189,40 @@ export async function GET(
     }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { employeeId: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
+    const { assetsToReturn } = await req.json();
+    if (!Array.isArray(assetsToReturn)) {
+      return NextResponse.json({ error: "Invalid assets" }, { status: 400 });
+    }
+
+    const allReturned = assetsToReturn.every((a: any) => a.returned);
+
+    await prisma.employeeOffboarding.update({
+      where: { employeeId: params.employeeId },
+      data: {
+        assetsToReturn,
+        assetsReturned: allReturned,
+        assetsReturnedAt: allReturned ? new Date() : null,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating assets:', error);
+    return NextResponse.json({ error: 'Failed to update assets' }, { status: 500 });
+  }
+}

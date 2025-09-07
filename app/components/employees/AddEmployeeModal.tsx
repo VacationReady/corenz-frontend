@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+// 👇 Wizard components
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+
 interface AddEmployeeModalProps {
   open: boolean;
   onClose: () => void;
@@ -30,9 +34,14 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     jobRoles?: { id: string }[];
   }
   const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
+  const [workingPatterns, setWorkingPatterns] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+
+  // Wizard state
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isCalculateModalOpen, setIsCalculateModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -45,18 +54,28 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     jobRoleId: "",
     managerId: "",
     onboardingTemplateId: "",
+    // Step 2 fields
+    holidayYear: "",
+    workingPatternId: "",
+    entitlementDays: "",
   });
 
   // Toggle
   const [sendInviteNow, setSendInviteNow] = useState(true);
 
+  // Calculate entitlement modal state
+  const [fullTimeHours, setFullTimeHours] = useState("40");
+  const [fullTimeEntitlement, setFullTimeEntitlement] = useState("25");
+  const [calculatedEntitlement, setCalculatedEntitlement] = useState(0);
+
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, roleRes, templateRes] = await Promise.all([
+      const [empRes, deptRes, roleRes, templateRes, patternsRes] = await Promise.all([
         fetch("/api/employees").then((r) => r.json()),
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
         fetch("/api/onboarding/templates").then((r) => r.json()),
+        fetch("/api/working-patterns").then((r) => r.json()),
       ]);
 
       setEmployees(empRes.filter((emp: any) => emp.user));
@@ -67,6 +86,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
           ? (templateRes as OnboardingTemplate[])
           : ((templateRes.templates as OnboardingTemplate[]) || [])
       );
+      setWorkingPatterns(patternsRes);
     } catch {
       setError("Failed to load data");
     }
@@ -80,6 +100,78 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Calculate prorated entitlement
+  const calculateEntitlement = () => {
+    const fullTimeHoursNum = parseFloat(fullTimeHours);
+    const fullTimeEntitlementNum = parseFloat(fullTimeEntitlement);
+    const startDate = new Date(formData.startDate);
+    const holidayYear = formData.holidayYear;
+
+    if (!fullTimeHoursNum || !fullTimeEntitlementNum || !startDate || !holidayYear || !formData.workingPatternId) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Find selected working pattern
+    const selectedPattern = workingPatterns.find(p => p.id === formData.workingPatternId);
+    if (!selectedPattern) {
+      toast.error("Selected working pattern not found");
+      return;
+    }
+
+    // Calculate employee weekly hours from pattern
+    let employeeWeeklyHours = 0;
+    selectedPattern.weeks.forEach((week: any) => {
+      week.days.forEach((day: any) => {
+        if (day.type === "FULL_DAY") {
+          employeeWeeklyHours += 8; // Assuming 8 hours per full day
+        } else if (day.type.includes("HALF_DAY")) {
+          employeeWeeklyHours += 4; // Assuming 4 hours per half day
+        }
+      });
+    });
+
+    // Calculate prorated entitlement
+    const partTime = fullTimeEntitlementNum * (employeeWeeklyHours / fullTimeHoursNum);
+
+    // Calculate days remaining in holiday year
+    const [startMonth, endMonth] = holidayYear.split('-').map(m => parseInt(m) - 1);
+    const currentYear = startDate.getFullYear();
+    const holidayYearStart = new Date(currentYear, startMonth, 1);
+    const holidayYearEnd = new Date(currentYear, endMonth, 31);
+
+    if (startDate < holidayYearStart) {
+      holidayYearStart.setFullYear(currentYear - 1);
+      holidayYearEnd.setFullYear(currentYear - 1);
+    }
+
+    const totalDaysInYear = Math.ceil((holidayYearEnd.getTime() - holidayYearStart.getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.ceil((holidayYearEnd.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    const prorated = partTime * (daysRemaining / totalDaysInYear);
+    const finalEntitlement = Math.round(prorated * 100) / 100; // Round to 2 decimal places
+
+    setCalculatedEntitlement(finalEntitlement);
+  };
+
+  const applyCalculatedEntitlement = () => {
+    setFormData({ ...formData, entitlementDays: calculatedEntitlement.toString() });
+    setIsCalculateModalOpen(false);
+  };
+
+  const nextStep = () => {
+    // Validate step 1 fields
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.startDate || !formData.onboardingTemplateId) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    setCurrentStep(2);
+  };
+
+  const prevStep = () => {
+    setCurrentStep(1);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
@@ -88,11 +180,20 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         return;
       }
 
+      // Validate step 2 fields
+      if (!formData.holidayYear || !formData.workingPatternId || !formData.entitlementDays) {
+        toast.error("Please fill in all holiday settings");
+        return;
+      }
+
       const payload = {
         ...formData,
         companyId: session?.user?.companyId,
-        sendInviteNow, // 👈 Pass to backend
+        sendInviteNow,
         onboardingTemplateId: formData.onboardingTemplateId,
+        holidayYear: formData.holidayYear,
+        workingPatternId: formData.workingPatternId,
+        entitlementDays: parseFloat(formData.entitlementDays),
       };
 
       const res = await fetch("/api/employees", {
@@ -109,6 +210,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       }
 
       setError("");
+      // Reset form
       setFormData({
         firstName: "",
         lastName: "",
@@ -120,8 +222,12 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         jobRoleId: "",
         managerId: "",
         onboardingTemplateId: "",
+        holidayYear: "",
+        workingPatternId: "",
+        entitlementDays: "",
       });
       setSendInviteNow(true);
+      setCurrentStep(1);
 
       onClose();
       if (onSuccess) onSuccess();
@@ -148,86 +254,237 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     return unrestricted || matchesDept || matchesRole;
   });
 
+  // Holiday year options
+  const holidayYearOptions = [
+    { value: "1-12", label: "Jan-Dec" },
+    { value: "4-3", label: "Apr-Mar" },
+    { value: "7-6", label: "Jul-Jun" },
+    { value: "10-9", label: "Oct-Sep" },
+  ];
+
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-        <Card className="w-full max-w-md p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Add Employee</h2>
+        <Card className="w-full max-w-2xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Add Employee</h2>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <span className={`px-2 py-1 rounded ${currentStep === 1 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}>
+                Step 1: Basic Details
+              </span>
+              <span className="text-gray-400">→</span>
+              <span className={`px-2 py-1 rounded ${currentStep === 2 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}>
+                Step 2: Holiday Settings
+              </span>
+            </div>
+          </div>
           {error && <p className="text-red-600">{error}</p>}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
-            <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
-            <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-            <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
-            <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <h3 className="text-md font-medium">Basic Employee Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} required />
+                  <Input name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} required />
+                </div>
+                <Input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+                <Input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} />
+                <Input type="date" name="startDate" placeholder="Start Date" value={formData.startDate} onChange={handleChange} required />
 
-            <select name="role" value={formData.role} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-              {["EMPLOYEE", "MANAGER", "ADMIN"].map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
+                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
 
-            <div className="flex space-x-2">
-              <select name="departmentId" value={formData.departmentId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                <option value="">Select Department</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-              <Button type="button" size="sm" onClick={() => setDeptModalOpen(true)}>+ New</Button>
-            </div>
+                <div className="flex space-x-2">
+                  <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select Department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Select Department</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" size="sm" onClick={() => setDeptModalOpen(true)}>+ New</Button>
+                </div>
 
-            <div className="flex space-x-2">
-              <select name="jobRoleId" value={formData.jobRoleId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-                <option value="">Select Job Role</option>
-                {jobRoles.map((j) => (
-                  <option key={j.id} value={j.id}>{j.name}</option>
-                ))}
-              </select>
-              <Button type="button" size="sm" onClick={() => setRoleModalOpen(true)}>+ New</Button>
-            </div>
+                <div className="flex space-x-2">
+                  <Select value={formData.jobRoleId} onValueChange={(value) => setFormData({ ...formData, jobRoleId: value })}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select Job Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Select Job Role</SelectItem>
+                      {jobRoles.map((j) => (
+                        <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="button" size="sm" onClick={() => setRoleModalOpen(true)}>+ New</Button>
+                </div>
 
-            <select name="managerId" value={formData.managerId} onChange={handleChange} className="w-full border border-gray-300 rounded-md px-3 py-2">
-              <option value="">Select Line Manager (Optional)</option>
-              {employees.map((emp) =>
-                emp.user && (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.user.firstName} {emp.user.lastName} ({emp.role})
-                  </option>
-                )
-              )}
-            </select>
+                <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Line Manager (Optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Select Line Manager (Optional)</SelectItem>
+                    {employees.map((emp) =>
+                      emp.user && (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.user.firstName} {emp.user.lastName} ({emp.role})
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
 
-            {/* Toggle */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <Switch checked={sendInviteNow} onChange={(checked: boolean) => setSendInviteNow(checked)} />
-                <Label className="text-sm">Send login invite now</Label>
+                <div className="flex items-center gap-2">
+                  <Switch checked={sendInviteNow} onChange={(checked: boolean) => setSendInviteNow(checked)} />
+                  <Label className="text-sm">Send login invite now</Label>
+                </div>
+
+                <Select value={formData.onboardingTemplateId} onValueChange={(value) => setFormData({ ...formData, onboardingTemplateId: value })}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Onboarding Template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Select Onboarding Template</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
+                    {filteredTemplates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex justify-end">
+                  <Button type="button" onClick={nextStep}>Next</Button>
+                </div>
               </div>
-            </div>
+            )}
 
-            <select
-              name="onboardingTemplateId"
-              value={formData.onboardingTemplateId}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              required
-            >
-              <option value="">Select Onboarding Template</option>
-              <option value="none">None</option>
-              {filteredTemplates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <h3 className="text-md font-medium">Holiday & Working Pattern Settings</h3>
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button type="submit">Save</Button>
-            </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Holiday Year</Label>
+                    <Select value={formData.holidayYear} onValueChange={(value) => setFormData({ ...formData, holidayYear: value })}>
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue placeholder="Select holiday year period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {holidayYearOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Working Pattern</Label>
+                    <Select value={formData.workingPatternId} onValueChange={(value) => setFormData({ ...formData, workingPatternId: value })}>
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue placeholder="Select working pattern" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {workingPatterns.map((pattern) => (
+                          <SelectItem key={pattern.id} value={pattern.id}>
+                            {pattern.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Holiday Entitlement (Days)</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        name="entitlementDays"
+                        placeholder="25"
+                        value={formData.entitlementDays}
+                        onChange={handleChange}
+                        className="flex-1"
+                        required
+                      />
+                      <Button type="button" variant="outline" onClick={() => setIsCalculateModalOpen(true)}>
+                        Calculate
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="ghost" onClick={prevStep}>Back</Button>
+                  <Button type="submit">Add Employee</Button>
+                </div>
+              </div>
+            )}
           </form>
         </Card>
       </div>
+
+      {/* Calculate Entitlement Modal */}
+      <Dialog open={isCalculateModalOpen} onOpenChange={setIsCalculateModalOpen}>
+        <DialogContent title="Calculate Prorated Entitlement">
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Standard Full-Time Weekly Hours</Label>
+              <Input
+                type="number"
+                value={fullTimeHours}
+                onChange={(e) => setFullTimeHours(e.target.value)}
+                placeholder="40"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">Standard Full-Time Entitlement (Days)</Label>
+              <Input
+                type="number"
+                value={fullTimeEntitlement}
+                onChange={(e) => setFullTimeEntitlement(e.target.value)}
+                placeholder="25"
+                className="mt-1"
+              />
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-md">
+              <p className="text-sm text-gray-600">Calculated Entitlement:</p>
+              <p className="text-lg font-semibold">{calculatedEntitlement.toFixed(2)} days</p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCalculateModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={calculateEntitlement} className="mr-2">
+                Calculate
+              </Button>
+              <Button onClick={applyCalculatedEntitlement}>
+                Apply
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isDeptModalOpen && (
         <NewDepartmentModal

@@ -31,6 +31,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [permissionProfiles, setPermissionProfiles] = useState<any[]>([]);
   interface OnboardingTemplate {
     id: string;
     name: string;
@@ -54,7 +55,8 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
     phone: "",
     dateOfBirth: "",
     startDate: "",
-    role: "EMPLOYEE",
+    role: "EMPLOYEE", // Keep for backward compatibility
+    permissionProfileId: undefined as string | undefined,
     departmentId: undefined as string | undefined,
     jobRoleId: undefined as string | undefined,
     managerId: undefined as string | undefined,
@@ -75,10 +77,11 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, roleRes, templateRes, patternsRes] = await Promise.all([
+      const [empRes, deptRes, roleRes, profilesRes, templateRes, patternsRes] = await Promise.all([
         fetch("/api/employees").then((r) => r.json()),
         fetch("/api/departments").then((r) => r.json()),
         fetch("/api/job-roles").then((r) => r.json()),
+        fetch("/api/permissions").then((r) => r.json()),
         fetch("/api/onboarding/templates").then((r) => r.json()),
         fetch("/api/working-patterns").then((r) => r.json()),
       ]);
@@ -86,6 +89,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       setEmployees(empRes.filter((emp: any) => emp.user));
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
+      setPermissionProfiles(Array.isArray(profilesRes) ? profilesRes : []);
       setTemplates(
         Array.isArray(templateRes)
           ? (templateRes as OnboardingTemplate[])
@@ -210,6 +214,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         departmentId: formData.departmentId || "",
         jobRoleId: formData.jobRoleId || "",
         managerId: formData.managerId || "",
+        permissionProfileId: formData.permissionProfileId || "",
         holidayYear: formData.holidayYear || "",
         workingPatternId: formData.workingPatternId || "",
       };
@@ -237,6 +242,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
         dateOfBirth: "",
         startDate: "",
         role: "EMPLOYEE",
+        permissionProfileId: undefined,
         departmentId: undefined,
         jobRoleId: undefined,
         managerId: undefined,
@@ -321,15 +327,36 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Access Level *</label>
-                  <Select value={formData.role || undefined} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Permission Profile *</label>
+                  <Select
+                    value={formData.permissionProfileId || undefined}
+                    onValueChange={(value) => {
+                      const profile = permissionProfiles.find(p => p.id === value);
+                      const role = profile?.name === 'Admin' ? 'ADMIN' :
+                                   profile?.name === 'Manager' ? 'MANAGER' : 'EMPLOYEE';
+                      setFormData({
+                        ...formData,
+                        permissionProfileId: value,
+                        role: role
+                      });
+                    }}
+                  >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Access Level" />
+                      <SelectValue placeholder="Select Permission Profile" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="EMPLOYEE">Employee - Standard access</SelectItem>
-                      <SelectItem value="MANAGER">Manager - Team management access</SelectItem>
-                      <SelectItem value="ADMIN">Admin - Full system access</SelectItem>
+                      {permissionProfiles
+                        .sort((a, b) => {
+                          // Sort built-in profiles first
+                          if (a.builtIn && !b.builtIn) return -1;
+                          if (!a.builtIn && b.builtIn) return 1;
+                          return a.name.localeCompare(b.name);
+                        })
+                        .map((profile) => (
+                          <SelectItem key={profile.id} value={profile.id}>
+                            {profile.name} {profile.builtIn ? '(Built-in)' : ''} - {profile.description || 'No description'}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

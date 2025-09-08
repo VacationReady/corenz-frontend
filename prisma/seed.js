@@ -277,6 +277,109 @@ async function main() {
     });
   }
 
+  // ✅ 5. Create Default Permission Profiles
+  console.log('🔐 Creating default permission profiles...');
+
+  const defaultPermissions = {
+    ADMIN: {
+      dashboard: ['read'],
+      approvals: ['read', 'edit'],
+      employees: ['read', 'edit', 'delete'],
+      calendar: ['read', 'edit', 'delete'],
+      documents: ['read', 'edit', 'delete'],
+      reports: ['read', 'edit', 'delete'],
+      'org-chart': ['read'],
+      news: ['read', 'edit', 'delete'],
+      settings: ['read', 'edit', 'delete'],
+      onboarding: ['read', 'edit', 'delete'],
+      offboarding: ['read', 'edit', 'delete'],
+      forms: ['read', 'edit', 'delete'],
+      'leave-requests': ['read', 'edit', 'delete'],
+      'working-patterns': ['read', 'edit', 'delete'],
+      departments: ['read', 'edit', 'delete'],
+      'job-roles': ['read', 'edit', 'delete'],
+      permissions: ['read', 'edit', 'delete'],
+    },
+    MANAGER: {
+      dashboard: ['read'],
+      employees: ['read', 'edit'],
+      calendar: ['read', 'edit'],
+      documents: ['read', 'edit'],
+      reports: ['read'],
+      'org-chart': ['read'],
+      news: ['read'],
+      'leave-requests': ['read', 'edit'],
+      'working-patterns': ['read'],
+      onboarding: ['read'],
+      offboarding: ['read'],
+    },
+    EMPLOYEE: {
+      dashboard: ['read'],
+      calendar: ['read'],
+      documents: ['read'],
+      news: ['read'],
+      'leave-requests': ['read', 'edit'],
+      onboarding: ['read'],
+    },
+  };
+
+  // Create Admin profile
+  const adminProfile = await prisma.permissionProfile.upsert({
+    where: {
+      companyId_name: {
+        companyId: company.id,
+        name: 'Admin',
+      },
+    },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Admin',
+      description: 'Full system access with all permissions',
+      permissions: JSON.stringify(defaultPermissions.ADMIN),
+      builtIn: true,
+    },
+  });
+  console.log(`✅ Admin profile created: ${adminProfile.name} (${adminProfile.id})`);
+
+  // Create Manager profile
+  const managerProfile = await prisma.permissionProfile.upsert({
+    where: {
+      companyId_name: {
+        companyId: company.id,
+        name: 'Manager',
+      },
+    },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Manager',
+      description: 'Team management access with limited administrative permissions',
+      permissions: JSON.stringify(defaultPermissions.MANAGER),
+      builtIn: true,
+    },
+  });
+  console.log(`✅ Manager profile created: ${managerProfile.name} (${managerProfile.id})`);
+
+  // Create Employee profile
+  const employeeProfile = await prisma.permissionProfile.upsert({
+    where: {
+      companyId_name: {
+        companyId: company.id,
+        name: 'Employee',
+      },
+    },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Employee',
+      description: 'Standard employee access for daily operations',
+      permissions: JSON.stringify(defaultPermissions.EMPLOYEE),
+      builtIn: true,
+    },
+  });
+  console.log(`✅ Employee profile created: ${employeeProfile.name} (${employeeProfile.id})`);
+
   console.log('🎉 Full CoreNZ seed completed successfully.');
 }
 

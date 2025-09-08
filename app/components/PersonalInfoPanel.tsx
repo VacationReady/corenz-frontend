@@ -14,6 +14,7 @@ interface PersonalInfoPanelProps {
     manager?: { firstName: string; lastName: string };
     employmentStatus?: string;
     accessLevel?: string;
+    permissionProfile?: any;
   };
 }
 
@@ -25,7 +26,13 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
       )
     : "N/A";
 
-  const formatAccessLevel = (role: string | undefined) => {
+  const formatAccessLevel = (role: string | undefined, permissionProfile?: any) => {
+    // If user has a custom permission profile, show that
+    if (permissionProfile) {
+      return `${permissionProfile.name} - ${permissionProfile.description || 'Custom permissions'}`;
+    }
+
+    // Fall back to role-based display
     if (!role) return "N/A";
     switch (role.toUpperCase()) {
       case "ADMIN":
@@ -39,7 +46,13 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
     }
   };
 
-  const getAccessLevelBadgeVariant = (role: string | undefined) => {
+  const getAccessLevelBadgeVariant = (role: string | undefined, permissionProfile?: any) => {
+    // If user has a custom permission profile, use outline style
+    if (permissionProfile) {
+      return "outline";
+    }
+
+    // Fall back to role-based styling
     if (!role) return "secondary";
     switch (role.toUpperCase()) {
       case "ADMIN":
@@ -75,8 +88,8 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
       </p>
       <p>
         <strong>Access Level:</strong>{" "}
-        <Badge variant={getAccessLevelBadgeVariant(employee.accessLevel)}>
-          {formatAccessLevel(employee.accessLevel)}
+        <Badge variant={getAccessLevelBadgeVariant(employee.accessLevel, employee.permissionProfile)}>
+          {formatAccessLevel(employee.accessLevel, employee.permissionProfile)}
         </Badge>
       </p>
       <p>

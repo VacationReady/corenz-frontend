@@ -18,9 +18,9 @@ import {
   Workflow,
   FileStack,
   Cog,
+  Shield,
   Clock,
   AlertTriangle,
-  Shield,
   Users,
 } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -51,6 +51,7 @@ const workflowSettings = [
 
 const systemSettings = [
   { title: 'Platform Settings', href: '/settings/system', icon: <Cog className="h-5 w-5 text-primary" /> },
+  { title: 'Permissions', href: '/settings/permissions', icon: <Shield className="h-5 w-5 text-primary" /> },
 ]
 
 function SettingSection({

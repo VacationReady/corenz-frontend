@@ -3,12 +3,26 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createTemplate, updateTemplate } from "./actions";
+import { hasPermission } from "@/lib/permissions";
 
 // ✅ GET - Fetch Templates
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
+  if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Fetch user with permission profile
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      role: true,
+      permissionProfile: true,
+    },
+  });
+
+  if (!user || !hasPermission(user as any, 'onboarding', 'read')) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   const templates = await prisma.onboardingTemplate.findMany({
@@ -39,8 +53,21 @@ export async function GET(req: Request) {
 // ✅ POST - Create Template
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
+  if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Fetch user with permission profile
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      role: true,
+      permissionProfile: true,
+    },
+  });
+
+  if (!user || !hasPermission(user as any, 'onboarding', 'edit')) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   try {
@@ -57,8 +84,21 @@ export async function POST(req: Request) {
 // ✅ PUT - Update Template (Includes Publish/Unpublish)
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
+  if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Fetch user with permission profile
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      role: true,
+      permissionProfile: true,
+    },
+  });
+
+  if (!user || !hasPermission(user as any, 'onboarding', 'edit')) {
+    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
 
   try {

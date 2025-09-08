@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
+import { PermissionProfileManagement } from "@/components/employees/PermissionProfileManagement";
 
 interface EmployeeSettingsPageProps {
   params: { id: string };
@@ -71,6 +72,14 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
             <p className="text-sm text-gray-600">No upcoming working pattern assigned.</p>
           )}
         </div>
+      </div>
+
+      {/* Permission Profile Management */}
+      <div className="border rounded p-4 bg-white shadow">
+        <h2 className="text-lg font-semibold mb-4">Permission Profile</h2>
+        <Suspense fallback={<div className="text-sm text-gray-600">Loading permissions...</div>}>
+          <PermissionProfileManagement employeeId={params.id} />
+        </Suspense>
       </div>
     </div>
   );

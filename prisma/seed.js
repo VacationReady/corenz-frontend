@@ -1,9 +1,12 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const { execSync } = require('child_process');
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // Ensure the database schema is up to date before seeding
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });
   // ✅ 1. Create Company
   const company = await prisma.company.upsert({
     where: { name: 'CoreNZ' },
@@ -20,7 +23,20 @@ async function main() {
   });
   console.log(`✅ Department created: ${department.name} (${department.id})`);
 
-  // ✅ 3. Admin User & Employees
+  // ✅ 3. Default Permission Profile
+  const defaultProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: 'Default' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Default',
+      description: 'Default permission profile',
+      permissions: {},
+      builtIn: true,
+    },
+  });
+
+  // ✅ 4. Admin User & Employees
   const hashedPassword = await bcrypt.hash('Admin123!', 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@corenz.com' },
@@ -33,6 +49,7 @@ async function main() {
       password: hashedPassword,
       companyId: company.id,
       departmentId: department.id,
+      permissionProfileId: defaultProfile.id,
     },
   });
 
@@ -64,6 +81,7 @@ async function main() {
         password: hashedPassword,
         companyId: company.id, // ✅ FIXED: Added missing companyId
         departmentId: department.id,
+        permissionProfileId: defaultProfile.id,
       },
     });
 

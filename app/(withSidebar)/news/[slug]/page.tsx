@@ -6,6 +6,8 @@ import Link from 'next/link'
 import NewsContentRenderer from '@/components/news/NewsContentRenderer'
 import DeleteNewsButton from '@/components/news/DeleteNewsButton'
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: { slug: string }
 }

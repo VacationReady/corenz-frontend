@@ -34,6 +34,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           email: true,
           phone: true,
           createdAt: true,
+          role: true,
           jobRole: { select: { name: true } },
           department: { select: { name: true } },
           manager: {

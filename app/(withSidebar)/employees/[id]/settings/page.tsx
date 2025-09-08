@@ -16,6 +16,16 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Get the employee with user information
+  const employee = await prisma.employee.findUnique({
+    where: { id: params.id },
+    include: { user: true },
+  });
+
+  if (!employee || !employee.user) {
+    return <div>Employee not found</div>;
+  }
+
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
     where: { employeeId: params.id },
     include: { workingPattern: true },
@@ -78,7 +88,7 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
       <div className="border rounded p-4 bg-white shadow">
         <h2 className="text-lg font-semibold mb-4">Permission Profile</h2>
         <Suspense fallback={<div className="text-sm text-gray-600">Loading permissions...</div>}>
-          <PermissionProfileManagement employeeId={params.id} />
+          <PermissionProfileManagement employeeId={employee.user.id} />
         </Suspense>
       </div>
     </div>

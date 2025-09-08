@@ -152,8 +152,8 @@ export async function PATCH(
         changedById: session.user.id,
         oldProfileId: user.permissionProfileId,
         newProfileId: permissionProfileId,
-        oldPermissions: oldPermissions ? JSON.stringify(oldPermissions) as any : null,
-        newPermissions: newPermissions ? JSON.stringify(newPermissions) as any : null,
+        oldPermissions: oldPermissions ? JSON.parse(JSON.stringify(oldPermissions)) : undefined,
+        newPermissions: newPermissions ? JSON.parse(JSON.stringify(newPermissions)) : undefined,
         note: note?.trim(),
       },
     });

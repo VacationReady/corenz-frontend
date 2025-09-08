@@ -639,16 +639,16 @@ model PermissionAudit {
   employeeId       String
   changedById      String
   oldProfileId     String?
-  newProfileId     String
+  newProfileId     String?
   oldPermissions   Json?    // Snapshot of old profile permissions
-  newPermissions   Json     // Snapshot of new profile permissions
+  newPermissions   Json?    // Snapshot of new profile permissions
   note             String?
   changedAt        DateTime @default(now())
 
   employee         User     @relation("PermissionAuditEmployee", fields: [employeeId], references: [id])
   changedBy        User     @relation("PermissionAuditChangedBy", fields: [changedById], references: [id])
   oldProfile       PermissionProfile? @relation("PermissionAuditOldProfile", fields: [oldProfileId], references: [id])
-  newProfile       PermissionProfile @relation("PermissionAuditNewProfile", fields: [newProfileId], references: [id])
+  newProfile       PermissionProfile? @relation("PermissionAuditNewProfile", fields: [newProfileId], references: [id])
 
   @@index([employeeId])
   @@index([changedAt])

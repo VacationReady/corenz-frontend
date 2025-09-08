@@ -71,6 +71,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                 department: employee.user.department?.name ?? undefined,
                 startDate: employee.user.createdAt,
                 employmentStatus: employee.isActive ? "Active" : "Inactive",
+                accessLevel: employee.user.role ?? undefined,
                 manager: employee.user.manager
                   ? {
                       firstName: employee.user.manager.firstName ?? "",

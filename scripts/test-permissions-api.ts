@@ -23,9 +23,9 @@ async function testPermissionsAPI() {
     const search = '';
     const page = 1;
     const limit = 10;
-    const filterType = 'all';
-    const sortBy = 'name';
-    const sortOrder = 'asc';
+    const filterType = 'all' as 'all' | 'builtin' | 'custom';
+    const sortBy = 'name' as 'name' | 'createdAt' | 'users';
+    const sortOrder = 'asc' as 'asc' | 'desc';
     const offset = (page - 1) * limit;
 
     // Build where clause (same as API)

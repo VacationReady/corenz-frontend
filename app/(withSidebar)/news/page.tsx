@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import NewsPageClient from '@/components/news/NewsPageClient'; // ✅ Missing import added
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewsPage() {
   // Fetch all posts server-side
   const posts = await getAllNewsPosts();

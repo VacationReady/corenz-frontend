@@ -14,8 +14,13 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "active"; // active, archived, all
+    const userId = searchParams.get("userId");
 
     const whereCondition: any = {};
+
+    if (userId) {
+      whereCondition.userId = userId;
+    }
 
     if (status === "active") {
       whereCondition.isActive = true;
@@ -258,7 +263,7 @@ export async function POST(req: Request) {
           data: {
             employeeId: employee.id,
             workingPatternId,
-            effectiveDate: new Date(startDate),
+            effectiveDate: new Date(), // Use current date, not start date
           },
         });
       } catch (e) {
@@ -269,14 +274,28 @@ export async function POST(req: Request) {
     // Create leave entitlement if provided
     if (entitlementDays && holidayYear) {
       try {
-        // Find the standard holiday event category
-        const holidayCategory = await prisma.eventCategory.findFirst({
+        // Find or create the standard holiday event category
+        let holidayCategory = await prisma.eventCategory.findFirst({
           where: {
             name: "Holiday",
             categoryType: "TIME_OFF",
             isActive: true,
           },
         });
+
+        // If Holiday category doesn't exist, create it
+        if (!holidayCategory) {
+          holidayCategory = await prisma.eventCategory.create({
+            data: {
+              name: "Holiday",
+              categoryType: "TIME_OFF",
+              requiresApproval: true,
+              adminOnly: false,
+              color: "#10B981", // Green color
+              isActive: true,
+            },
+          });
+        }
 
         if (holidayCategory) {
           await prisma.leaveEntitlement.create({

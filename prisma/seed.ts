@@ -1,29 +1,104 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { execSync } from 'child_process';
+
 const prisma = new PrismaClient();
 
 async function main() {
+  // Ensure the database schema is up to date before seeding
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+
   // ✅ 1. Create Company
   const company = await prisma.company.upsert({
     where: { name: 'CoreNZ' },
     update: {},
-    create: {
-      name: 'CoreNZ',
-    },
+    create: { name: 'CoreNZ' },
   });
   console.log(`✅ Company created: ${company.name} (${company.id})`);
 
   // ✅ 2. Create Department linked to Company
   const department = await prisma.department.upsert({
-    where: { name: 'Sales' },
-    update: { companyId: company.id },
-    create: {
-      name: 'Sales',
-      companyId: company.id,
-    },
+    where: { companyId_name: { companyId: company.id, name: 'Sales' } },
+    update: {},
+    create: { name: 'Sales', companyId: company.id },
   });
   console.log(`✅ Department created: ${department.name} (${department.id})`);
 
-  // ✅ 3. Create system-defined EventCategories
+  // ✅ 3. Default Permission Profile
+  const defaultProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: 'Default' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Default',
+      description: 'Default permission profile',
+      permissions: {},
+      builtIn: true,
+    },
+  });
+
+  // ✅ 4. Admin User & Employees
+  const hashedPassword = await bcrypt.hash('Admin123!', 10);
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@corenz.com' },
+    update: {},
+    create: {
+      email: 'admin@corenz.com',
+      firstName: 'System',
+      lastName: 'Admin',
+      role: 'ADMIN',
+      password: hashedPassword,
+      companyId: company.id,
+      departmentId: department.id,
+      permissionProfileId: defaultProfile.id,
+    },
+  });
+
+  await prisma.employee.upsert({
+    where: { userId: adminUser.id },
+    update: {},
+    create: {
+      userId: adminUser.id,
+      departmentId: department.id,
+      companyId: company.id,
+      isActive: true,
+    },
+  });
+
+  const sampleEmployees = [
+    { email: 'john.doe@corenz.com', firstName: 'John', lastName: 'Doe' },
+    { email: 'jane.smith@corenz.com', firstName: 'Jane', lastName: 'Smith' },
+  ];
+
+  for (const emp of sampleEmployees) {
+    const user = await prisma.user.upsert({
+      where: { email: emp.email },
+      update: {},
+      create: {
+        email: emp.email,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        role: 'EMPLOYEE',
+        password: hashedPassword,
+        companyId: company.id,
+        departmentId: department.id,
+        permissionProfileId: defaultProfile.id,
+      },
+    });
+
+    await prisma.employee.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: {
+        userId: user.id,
+        departmentId: department.id,
+        companyId: company.id,
+        isActive: true,
+      },
+    });
+  }
+
+  // ✅ 5. Create system-defined EventCategories
   const systemCategories = [
     {
       name: 'Annual Leave',

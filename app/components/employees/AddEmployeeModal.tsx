@@ -320,16 +320,19 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
                   </div>
                 </div>
 
-                <Select value={formData.role || undefined} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                    <SelectItem value="MANAGER">Manager</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Access Level *</label>
+                  <Select value={formData.role || undefined} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Access Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EMPLOYEE">Employee - Standard access</SelectItem>
+                      <SelectItem value="MANAGER">Manager - Team management access</SelectItem>
+                      <SelectItem value="ADMIN">Admin - Full system access</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="flex space-x-2">
                   <Select value={formData.departmentId || undefined} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>

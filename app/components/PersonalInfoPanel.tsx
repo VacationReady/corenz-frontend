@@ -13,6 +13,7 @@ interface PersonalInfoPanelProps {
     startDate?: Date;
     manager?: { firstName: string; lastName: string };
     employmentStatus?: string;
+    accessLevel?: string;
   };
 }
 
@@ -23,6 +24,34 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
           (1000 * 60 * 60 * 24 * 365)
       )
     : "N/A";
+
+  const formatAccessLevel = (role: string | undefined) => {
+    if (!role) return "N/A";
+    switch (role.toUpperCase()) {
+      case "ADMIN":
+        return "Admin - Full system access";
+      case "MANAGER":
+        return "Manager - Team management access";
+      case "EMPLOYEE":
+        return "Employee - Standard access";
+      default:
+        return role;
+    }
+  };
+
+  const getAccessLevelBadgeVariant = (role: string | undefined) => {
+    if (!role) return "secondary";
+    switch (role.toUpperCase()) {
+      case "ADMIN":
+        return "destructive"; // Red for admin
+      case "MANAGER":
+        return "default"; // Blue for manager
+      case "EMPLOYEE":
+        return "secondary"; // Gray for employee
+      default:
+        return "secondary";
+    }
+  };
 
   return (
     <div className="space-y-2 text-sm">
@@ -43,6 +72,12 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
         {employee.manager
           ? `${employee.manager.firstName} ${employee.manager.lastName}`
           : "N/A"}
+      </p>
+      <p>
+        <strong>Access Level:</strong>{" "}
+        <Badge variant={getAccessLevelBadgeVariant(employee.accessLevel)}>
+          {formatAccessLevel(employee.accessLevel)}
+        </Badge>
       </p>
       <p>
         <strong>Employment Status:</strong>{" "}

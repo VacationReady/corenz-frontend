@@ -33,11 +33,20 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           lastName: true,
           email: true,
           phone: true,
+          role: true,
           createdAt: true,
           jobRole: { select: { name: true } },
           department: { select: { name: true } },
           manager: {
             select: { firstName: true, lastName: true },
+          },
+          permissionProfile: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              builtIn: true,
+            },
           },
         },
       },
@@ -72,6 +81,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                 startDate: employee.user.createdAt,
                 employmentStatus: employee.isActive ? "Active" : "Inactive",
                 accessLevel: employee.user.role ?? undefined,
+                permissionProfile: employee.user.permissionProfile ?? undefined,
                 manager: employee.user.manager
                   ? {
                       firstName: employee.user.manager.firstName ?? "",

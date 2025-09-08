@@ -11,7 +11,8 @@ model User {
   id                                           String                 @id @default(cuid())
   email                                        String                 @unique
   password                                     String
-  role                                         Role
+  role                                         Role                   @default(EMPLOYEE)
+  permissionProfileId                          String?
   createdAt                                    DateTime               @default(now())
   updatedAt                                    DateTime               @updatedAt
   emailVerified                                DateTime?
@@ -38,7 +39,7 @@ model User {
   onboardingAssignments                        OnboardingAssignment[]
   SavedReport                                  SavedReport[]
   updatedTemplates                             OnboardingTemplate[] @relation("OnboardingTemplateUpdatedBy")
-  
+
   // Offboarding relations
   offboardingInitiated                         EmployeeOffboarding[]  @relation("OffboardingInitiatedBy")
   offboardingAccessRemoved                     EmployeeOffboarding[]  @relation("OffboardingAccessRemovedBy")
@@ -48,12 +49,17 @@ model User {
   exitInterviewConducted                       EmployeeOffboarding[]  @relation("ExitInterviewInterviewer")
   tasksAssigned                                OffboardingTask[]      @relation("TaskAssignedTo")
   tasksCompleted                               OffboardingTask[]      @relation("TaskCompletedBy")
-  
+
+  // Permission relations
+  permissionAuditChanges                       PermissionAudit[]      @relation("PermissionAuditChangedBy")
+  permissionAuditEmployees                     PermissionAudit[]      @relation("PermissionAuditEmployee")
+
   company                                      Company?               @relation(fields: [companyId], references: [id])
   department                                   Department?            @relation(fields: [departmentId], references: [id])
   jobRole                                      JobRole?               @relation(fields: [jobRoleId], references: [id])
   manager                                      User?                  @relation("ManagerSubordinates", fields: [managerId], references: [id])
   subordinates                                 User[]                 @relation("ManagerSubordinates")
+  permissionProfile                            PermissionProfile?     @relation(fields: [permissionProfileId], references: [id])
 }
 
 model ActivationToken {
@@ -224,7 +230,8 @@ model Company {
   onboardingTemplates OnboardingTemplate[]
   SavedReport         SavedReport[]
   users               User[]
-  employees  Employee[]
+  employees           Employee[]
+  permissionProfiles  PermissionProfile[]
 }
 
 model JobRole {
@@ -562,7 +569,7 @@ model Form {
   updatedAt            DateTime         @updatedAt
   visibleToDepartments String[]         @default([])
   visibleToJobRoles    String[]         @default([])
-  visibleToRoles       Role[]           @default([ADMIN, MANAGER, EMPLOYEE])
+  visibleToRoles       String[]         @default([])
   company              Company          @relation(fields: [companyId], references: [id])
   assignments          FormAssignment[]
   submissions          FormSubmission[]
@@ -609,10 +616,42 @@ model FormDataRecord {
   @@unique([formId, employeeId]) // One data record per employee per form
 }
 
-enum Role {
-  ADMIN
-  MANAGER
-  EMPLOYEE
+model PermissionProfile {
+  id          String        @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  permissions Json          // JSON object mapping screens to permission actions
+  builtIn     Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  company     Company       @relation(fields: [companyId], references: [id])
+  users       User[]
+  oldAuditLogs PermissionAudit[] @relation("PermissionAuditOldProfile")
+  newAuditLogs PermissionAudit[] @relation("PermissionAuditNewProfile")
+
+  @@unique([companyId, name])
+}
+
+model PermissionAudit {
+  id               String   @id @default(cuid())
+  employeeId       String
+  changedById      String
+  oldProfileId     String?
+  newProfileId     String
+  oldPermissions   Json?    // Snapshot of old profile permissions
+  newPermissions   Json     // Snapshot of new profile permissions
+  note             String?
+  changedAt        DateTime @default(now())
+
+  employee         User     @relation("PermissionAuditEmployee", fields: [employeeId], references: [id])
+  changedBy        User     @relation("PermissionAuditChangedBy", fields: [changedById], references: [id])
+  oldProfile       PermissionProfile? @relation("PermissionAuditOldProfile", fields: [oldProfileId], references: [id])
+  newProfile       PermissionProfile @relation("PermissionAuditNewProfile", fields: [newProfileId], references: [id])
+
+  @@index([employeeId])
+  @@index([changedAt])
 }
 
 enum FormType {
@@ -641,6 +680,12 @@ enum EventType {
 enum PaidStatus {
   PAID
   UNPAID
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
 }
 
 enum LeaveType {

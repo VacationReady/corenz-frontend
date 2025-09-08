@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { Prisma } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -12,13 +13,21 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
-  const userRole = session.user.role;
 
-  // ✅ Fetch user's department & job role
+  // ✅ Fetch user with permission profile, department & job role
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { departmentId: true, jobRoleId: true },
+    select: {
+      role: true,
+      departmentId: true,
+      jobRoleId: true,
+      permissionProfile: true,
+    },
   });
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
   // ✅ Base filter
   const baseFilter = {
@@ -26,8 +35,12 @@ export async function GET(req: Request) {
     ...(employeeId ? { employeeId } : { employeeId: null }),
   };
 
-  // ✅ Admin bypass
-  if (userRole === "ADMIN") {
+  // ✅ Check if user has admin permissions for documents
+  const hasAdminAccess = hasPermission(user as any, 'documents', 'read');
+  const hasEditAccess = hasPermission(user as any, 'documents', 'edit');
+
+  // ✅ Admin bypass - if user has read access to documents
+  if (hasAdminAccess) {
     const adminDocs = await prisma.document.findMany({
       where: baseFilter,
       include: {
@@ -47,11 +60,10 @@ export async function GET(req: Request) {
     );
   }
 
-  // ✅ Role flag
-  const roleFlag =
-    userRole === "MANAGER"
-      ? { canViewManager: true }
-      : { canViewEmployee: true };
+  // ✅ Role flag - fallback to basic access if no admin permissions
+  const roleFlag = hasEditAccess
+    ? { canViewManager: true }
+    : { canViewEmployee: true };
 
   // ✅ Build OR conditions safely
   const orConditions: Prisma.DocumentWhereInput[] = [

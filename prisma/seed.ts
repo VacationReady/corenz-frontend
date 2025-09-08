@@ -32,12 +32,86 @@ async function main() {
       companyId: company.id,
       name: 'Default',
       description: 'Default permission profile',
-      permissions: {},
+      permissions: JSON.stringify({}),
       builtIn: true,
     },
   });
 
-  // ✅ 4. Admin User & Employees
+  // ✅ 4. Built-in Permission Profiles
+  const adminProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: 'Admin' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Admin',
+      description: 'Full system access with administrative privileges',
+      permissions: JSON.stringify({
+        'dashboard': ['read'],
+        'approvals': ['read', 'edit'],
+        'employees': ['read', 'edit', 'delete'],
+        'calendar': ['read', 'edit', 'delete'],
+        'documents': ['read', 'edit', 'delete'],
+        'reports': ['read', 'edit', 'delete'],
+        'org-chart': ['read'],
+        'news': ['read', 'edit', 'delete'],
+        'settings': ['read', 'edit', 'delete'],
+        'onboarding': ['read', 'edit', 'delete'],
+        'offboarding': ['read', 'edit', 'delete'],
+        'forms': ['read', 'edit', 'delete'],
+        'leave-requests': ['read', 'edit', 'delete'],
+        'working-patterns': ['read', 'edit', 'delete'],
+        'departments': ['read', 'edit', 'delete'],
+        'job-roles': ['read', 'edit', 'delete'],
+        'permissions': ['read', 'edit', 'delete'],
+      }),
+      builtIn: true,
+    },
+  });
+
+  const managerProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: 'Manager' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Manager',
+      description: 'Management access with employee oversight capabilities',
+      permissions: JSON.stringify({
+        'dashboard': ['read'],
+        'employees': ['read', 'edit'],
+        'calendar': ['read', 'edit'],
+        'documents': ['read', 'edit'],
+        'reports': ['read'],
+        'org-chart': ['read'],
+        'news': ['read'],
+        'leave-requests': ['read', 'edit'],
+        'working-patterns': ['read'],
+        'onboarding': ['read'],
+        'offboarding': ['read'],
+      }),
+      builtIn: true,
+    },
+  });
+
+  const employeeProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: 'Employee' } },
+    update: {},
+    create: {
+      companyId: company.id,
+      name: 'Employee',
+      description: 'Standard employee access to essential features',
+      permissions: JSON.stringify({
+        'dashboard': ['read'],
+        'calendar': ['read'],
+        'documents': ['read'],
+        'news': ['read'],
+        'leave-requests': ['read', 'edit'],
+        'onboarding': ['read'],
+      }),
+      builtIn: true,
+    },
+  });
+
+  // ✅ 5. Admin User & Employees
   const hashedPassword = await bcrypt.hash('Admin123!', 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@corenz.com' },
@@ -133,7 +207,7 @@ async function main() {
     });
     console.log(`✅ Category upserted: ${result.name} (${result.id})`);
 
-    // ✅ 4. Create EventRule tied to the category and company
+    // ✅ 6. Create EventRule tied to the category and company
     const eventRule = await prisma.eventRule.upsert({
       where: {
         companyId_eventCategoryId: {
@@ -155,7 +229,7 @@ async function main() {
     console.log(`✅ EventRule created for ${category.name} (${eventRule.id})`);
   }
 
-  // ✅ 5. Seed FieldMetadata for dynamic report builder
+  // ✅ 7. Seed FieldMetadata for dynamic report builder
   await prisma.fieldMetadata.createMany({
     data: [
       // User fields
@@ -189,7 +263,7 @@ async function main() {
   });
   console.log("✅ FieldMetadata seeded for dynamic report builder.");
 
-  // ✅ 6. Seed ExpiryRules for expiry alerts
+  // ✅ 8. Seed ExpiryRules for expiry alerts
   const expiryRules = [
     { category: "Employment Checks", daysBefore: 28, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
     { category: "Driver Licence", daysBefore: 30, notifyAdmin: true, notifyManager: true, notifyEmployee: true },

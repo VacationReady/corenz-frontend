@@ -67,18 +67,57 @@ export default async function AdminDashboardPage() {
       {/* Dashboard Grid - Fit to remaining height */}
       <main className="flex-1 px-4 pb-4 overflow-auto">
         <div className="space-y-4 max-w-7xl mx-auto h-full">
-          {/* Top Row - 5 cards including compact Holiday Balance */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* Compact Holiday Balance Card */}
+          {/* Top Row - 5 cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-32">
+            {/* Holiday Balance Card - Compact */}
             <div className="h-32">
               <LeaveSummaryCard employeeId={user.employee.id} />
             </div>
 
-            {/* Client-only Admin Dashboard widgets - spans 4 columns */}
-            <div className="lg:col-span-4">
+            {/* Quick Actions */}
+            <AdminDashboardClient
+              employeeId={user.employee.id}
+              firstName={user.firstName ?? ""}
+              section="quick-actions"
+            />
+
+            {/* Calendar */}
+            <AdminDashboardClient
+              employeeId={user.employee.id}
+              firstName={user.firstName ?? ""}
+              section="calendar"
+            />
+
+            {/* Recent Activity */}
+            <AdminDashboardClient
+              employeeId={user.employee.id}
+              firstName={user.firstName ?? ""}
+              section="recent-activity"
+            />
+
+            {/* People Metrics */}
+            <AdminDashboardClient
+              employeeId={user.employee.id}
+              firstName={user.firstName ?? ""}
+              section="people-metrics"
+            />
+          </div>
+
+          {/* Bottom Row - 2 cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1">
+            {/* News Widget */}
+            <AdminDashboardClient
+              employeeId={user.employee.id}
+              firstName={user.firstName ?? ""}
+              section="news"
+            />
+
+            {/* Action Items - spans 3 columns */}
+            <div className="lg:col-span-3">
               <AdminDashboardClient
                 employeeId={user.employee.id}
                 firstName={user.firstName ?? ""}
+                section="action-items"
               />
             </div>
           </div>

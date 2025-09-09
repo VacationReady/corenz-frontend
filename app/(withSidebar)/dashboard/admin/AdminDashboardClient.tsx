@@ -418,7 +418,7 @@ export default function AdminDashboardClient({
       </div>
 
       {/* Modals */}
-      <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false) />
+      <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
       <AddDocumentModal open={addDocumentOpen} onClose={() => setAddDocumentOpen(false)} />
     </div>
   );

@@ -24,18 +24,37 @@ async function main() {
   });
   console.log(`✅ Department created: ${department.name} (${department.id})`);
 
-  // ✅ 3. Default Permission Profile
-  const defaultProfile = await prisma.permissionProfile.upsert({
-    where: { companyId_name: { companyId: company.id, name: 'Default' } },
-    update: {},
-    create: {
-      companyId: company.id,
-      name: 'Default',
-      description: 'Default permission profile',
-      permissions: JSON.stringify({}),
-      builtIn: true,
-    },
+  // ✅ 3. Standard Working Pattern (Monday-Friday, 9am-5pm)
+  let standardWorkingPattern = await prisma.workingPattern.findFirst({
+    where: { name: 'Standard (Mon-Fri, 9am-5pm)' },
   });
+
+  if (!standardWorkingPattern) {
+    standardWorkingPattern = await prisma.workingPattern.create({
+      data: {
+        name: 'Standard (Mon-Fri, 9am-5pm)',
+        description: 'Standard Monday to Friday working pattern from 9am to 5pm',
+        WorkingPatternWeek: {
+          create: [
+            {
+              weekNumber: 1,
+              WorkingPatternDay: {
+                create: [
+                  { day: 'Monday', type: 'FULL_DAY' },
+                  { day: 'Tuesday', type: 'FULL_DAY' },
+                  { day: 'Wednesday', type: 'FULL_DAY' },
+                  { day: 'Thursday', type: 'FULL_DAY' },
+                  { day: 'Friday', type: 'FULL_DAY' },
+                  { day: 'Saturday', type: 'FULL_DAY' },
+                  { day: 'Sunday', type: 'FULL_DAY' },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+  }
 
   // ✅ 4. Built-in Permission Profiles
   const adminProfile = await prisma.permissionProfile.upsert({
@@ -63,6 +82,18 @@ async function main() {
         'departments': ['read', 'edit', 'delete'],
         'job-roles': ['read', 'edit', 'delete'],
         'permissions': ['read', 'edit', 'delete'],
+        // Employee detail screens
+        'employee-overview': ['read', 'edit'],
+        'employee-documents': ['read', 'edit', 'delete'],
+        'employee-driver-licenses': ['read', 'edit', 'delete'],
+        'employee-employment-checks': ['read', 'edit', 'delete'],
+        'employee-forms': ['read', 'edit', 'delete'],
+        'employee-leave': ['read', 'edit'],
+        'employee-offboarding': ['read', 'edit'],
+        'employee-onboarding': ['read', 'edit', 'delete'],
+        'employee-performance': ['read', 'edit'],
+        'employee-settings': ['read', 'edit'],
+        'employee-training': ['read', 'edit', 'delete'],
       }),
       builtIn: true,
     },
@@ -87,6 +118,18 @@ async function main() {
         'working-patterns': ['read'],
         'onboarding': ['read'],
         'offboarding': ['read'],
+        // Employee detail screens - Managers can view and edit most employee details
+        'employee-overview': ['read', 'edit'],
+        'employee-documents': ['read', 'edit'],
+        'employee-driver-licenses': ['read', 'edit'],
+        'employee-employment-checks': ['read', 'edit'],
+        'employee-forms': ['read', 'edit'],
+        'employee-leave': ['read', 'edit'],
+        'employee-offboarding': ['read'],
+        'employee-onboarding': ['read', 'edit'],
+        'employee-performance': ['read', 'edit'],
+        'employee-settings': ['read'],
+        'employee-training': ['read', 'edit'],
       }),
       builtIn: true,
     },
@@ -106,6 +149,12 @@ async function main() {
         'news': ['read'],
         'leave-requests': ['read', 'edit'],
         'onboarding': ['read'],
+        // Employee detail screens - Employees can only view their own details
+        'employee-overview': ['read'],
+        'employee-documents': ['read'],
+        'employee-forms': ['read'],
+        'employee-leave': ['read', 'edit'],
+        'employee-training': ['read'],
       }),
       builtIn: true,
     },
@@ -124,7 +173,7 @@ async function main() {
       password: hashedPassword,
       companyId: company.id,
       departmentId: department.id,
-      permissionProfileId: defaultProfile.id,
+      permissionProfileId: adminProfile.id,
     },
   });
 
@@ -140,8 +189,8 @@ async function main() {
   });
 
   const sampleEmployees = [
-    { email: 'john.doe@corenz.com', firstName: 'John', lastName: 'Doe' },
-    { email: 'jane.smith@corenz.com', firstName: 'Jane', lastName: 'Smith' },
+    { email: 'john.doe@corenz.com', firstName: 'John', lastName: 'Doe', role: 'MANAGER' },
+    { email: 'jane.smith@corenz.com', firstName: 'Jane', lastName: 'Smith', role: 'EMPLOYEE' },
   ];
 
   for (const emp of sampleEmployees) {
@@ -152,11 +201,11 @@ async function main() {
         email: emp.email,
         firstName: emp.firstName,
         lastName: emp.lastName,
-        role: 'EMPLOYEE',
+        role: emp.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
         password: hashedPassword,
         companyId: company.id,
         departmentId: department.id,
-        permissionProfileId: defaultProfile.id,
+        permissionProfileId: emp.role === 'MANAGER' ? managerProfile.id : employeeProfile.id,
       },
     });
 

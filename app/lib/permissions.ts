@@ -116,6 +116,18 @@ export function getAvailableScreens(): string[] {
     'departments',
     'job-roles',
     'permissions',
+    // Employee detail screens
+    'employee-overview',
+    'employee-documents',
+    'employee-driver-licenses',
+    'employee-employment-checks',
+    'employee-forms',
+    'employee-leave',
+    'employee-offboarding',
+    'employee-onboarding',
+    'employee-performance',
+    'employee-settings',
+    'employee-training',
   ];
 }
 
@@ -175,6 +187,18 @@ export function getScreenDisplayName(screen: string): string {
     'departments': 'Departments',
     'job-roles': 'Job Roles',
     'permissions': 'Permissions',
+    // Employee detail screens
+    'employee-overview': 'Employee Overview',
+    'employee-documents': 'Employee Documents',
+    'employee-driver-licenses': 'Employee Driver Licenses',
+    'employee-employment-checks': 'Employee Employment Checks',
+    'employee-forms': 'Employee Forms',
+    'employee-leave': 'Employee Leave',
+    'employee-offboarding': 'Employee Offboarding',
+    'employee-onboarding': 'Employee Onboarding',
+    'employee-performance': 'Employee Performance',
+    'employee-settings': 'Employee Settings',
+    'employee-training': 'Employee Training',
   };
 
   return screenNames[screen] || screen;

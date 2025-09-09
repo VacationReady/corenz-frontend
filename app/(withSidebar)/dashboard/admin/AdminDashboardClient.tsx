@@ -367,72 +367,80 @@ export default function AdminDashboardClient({
 
   // News Section
   if (section === "news") {
-    return <NewsWidget />;
+    return (
+      <div className="h-full flex flex-col">
+        <NewsWidget />
+      </div>
+    );
   }
 
   // Action Items Section
   if (section === "action-items") {
     return (
-      <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
-        <div className="flex items-center gap-2 text-xs">
-          <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
-          <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
-          <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
-        </div>
-      ) : undefined}>
-        <div className="space-y-3">
-          {loadingMetrics || !metrics ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
-                  <p className="text-xs text-muted-foreground">pending approvals</p>
-                </div>
-                <div className="flex gap-2">
-                  <Link href="/dashboard/approvals">
-                    <Button size="sm" variant="outline">View All</Button>
-                  </Link>
-                  <Button
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const qs = new URLSearchParams({ status: "PENDING" });
-                        if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
-                        if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                        qs.set("limit", "5");
-                        const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
-                        const data = await res.json();
-                        if (!data?.success) return;
-                        const first = data.data?.[0];
-                        if (!first) return;
-                        await fetch(`/api/leave-request/${first.id}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ action: "approve" }),
-                        });
-                        const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
-                        if (metricsRes.ok) setMetrics(await metricsRes.json());
-                      } catch {}
-                    }}
-                  >
-                    Quick Approve
-                  </Button>
-                </div>
+      <div className="h-full flex flex-col">
+        <DashboardWidget title="Action items" icon={ClipboardList} className="h-full flex flex-col" action={metrics?.canViewAllApprovals ? (
+          <div className="flex items-center gap-2 text-xs">
+            <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
+            <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
+            <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
+          </div>
+        ) : undefined}>
+          <div className="flex-1 flex flex-col space-y-3 min-h-0">
+            {loadingMetrics || !metrics ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
-              <CompactApprovalsList 
-                scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
-                departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
-              />
-            </>
-          )}
-        </div>
-      </DashboardWidget>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
+                    <p className="text-xs text-muted-foreground">pending approvals</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href="/dashboard/approvals">
+                      <Button size="sm" variant="outline">View All</Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const qs = new URLSearchParams({ status: "PENDING" });
+                          if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
+                          if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                          qs.set("limit", "5");
+                          const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
+                          const data = await res.json();
+                          if (!data?.success) return;
+                          const first = data.data?.[0];
+                          if (!first) return;
+                          await fetch(`/api/leave-request/${first.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "approve" }),
+                          });
+                          const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
+                          if (metricsRes.ok) setMetrics(await metricsRes.json());
+                        } catch {}
+                      }}
+                    >
+                      Quick Approve
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <CompactApprovalsList 
+                    scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
+                    departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </DashboardWidget>
+      </div>
     );
   }
 

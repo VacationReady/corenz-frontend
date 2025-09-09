@@ -33,25 +33,32 @@ export function NewsWidget() {
   }, []);
 
   return (
-  <DashboardWidget title="Latest News" icon={Megaphone}>
-    {latestNews ? (
-      <div>
-        <Link
-  href={`/news/${latestNews.slug}`}
-  className="hover:underline"
-  title={latestNews.preview ?? ""}
->
-  <h3 className="font-semibold text-base text-indigo-600">
-    {latestNews.title}
-  </h3>
-</Link>
-        <p className="text-xs text-gray-500">
-          {new Date(latestNews.createdAt).toLocaleDateString()}
-        </p>
-      </div>
-    ) : (
-      <p className="text-sm text-gray-500">No news available</p>
-    )}
+  <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">
+    <div className="h-full flex flex-col justify-center">
+      {latestNews ? (
+        <div className="space-y-3">
+          <Link
+            href={`/news/${latestNews.slug}`}
+            className="hover:underline block"
+            title={latestNews.preview ?? ""}
+          >
+            <h3 className="font-semibold text-base text-primary line-clamp-3">
+              {latestNews.title}
+            </h3>
+          </Link>
+          <p className="text-sm text-muted-foreground">
+            {new Date(latestNews.createdAt).toLocaleDateString()}
+          </p>
+          {latestNews.preview && (
+            <p className="text-sm text-muted-foreground line-clamp-4">
+              {latestNews.preview}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-center text-muted-foreground">No news available</p>
+      )}
+    </div>
   </DashboardWidget>
 );
 }

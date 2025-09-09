@@ -6,14 +6,14 @@ import { authOptions } from "@/lib/auth-options";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
     }
 
     const { name, fields, category } = await req.json();
-if (!fields || !Array.isArray(fields) || fields.length === 0) {
-  return NextResponse.json({ error: "No fields selected." }, { status: 400 });
-}
+    if (!fields || !Array.isArray(fields) || fields.length === 0) {
+      return NextResponse.json({ error: "No fields selected." }, { status: 400 });
+    }
 
     const newReport = await prisma.savedReport.create({
       data: {
@@ -21,7 +21,7 @@ if (!fields || !Array.isArray(fields) || fields.length === 0) {
         category: category || "Uncategorised",
         fields, // ✅ native array, no stringify
         createdBy: session.user.id,
-        companyId: session.user.companyId ?? null,
+        companyId: session.user.companyId,
       },
     });
 

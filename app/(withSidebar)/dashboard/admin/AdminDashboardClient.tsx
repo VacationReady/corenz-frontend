@@ -211,7 +211,7 @@ export default function AdminDashboardClient({
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
       {/* Quick Actions Widget - spans 1 column */}
       <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
         <div className="grid grid-cols-2 gap-2">
@@ -233,11 +233,11 @@ export default function AdminDashboardClient({
 
       {/* Calendar Widget - spans 1 column */}
       <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-full">
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-foreground">Upcoming</h3>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {loadingWhosOff ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-5/6" />
@@ -245,15 +245,15 @@ export default function AdminDashboardClient({
                 <Skeleton className="h-4 w-2/3" />
               </div>
             ) : whosOff.length === 0 ? (
-              <p className="text-muted-foreground text-center">No upcoming events</p>
+              <p className="text-muted-foreground text-center text-sm">No upcoming events</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {whosOff
                   .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-                  .slice(0, 5)
+                  .slice(0, 4)
                   .map((ev) => (
                     <li key={ev.id} className="flex items-center gap-3">
-                      <Avatar size={32} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
+                      <Avatar size={28} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
                         <p className="text-xs text-muted-foreground truncate">
@@ -268,12 +268,48 @@ export default function AdminDashboardClient({
         </div>
       </DashboardWidget>
 
+      {/* Recent Hires/Departures - Critical HR Admin Info */}
+      <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-full">
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-2 glass-subtle rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium">New Hires</span>
+              </div>
+              <span className="text-lg font-bold text-green-600">{metrics?.newStartersThisMonth || 0}</span>
+            </div>
+            <div className="flex items-center justify-between p-2 glass-subtle rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span className="text-sm font-medium">Pending Reviews</span>
+              </div>
+              <span className="text-lg font-bold text-amber-600">2</span>
+            </div>
+            <div className="flex items-center justify-between p-2 glass-subtle rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span className="text-sm font-medium">Expiring Docs</span>
+              </div>
+              <span className="text-lg font-bold text-red-600">3</span>
+            </div>
+            <div className="flex items-center justify-between p-2 glass-subtle rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium">Training Due</span>
+              </div>
+              <span className="text-lg font-bold text-blue-600">5</span>
+            </div>
+          </div>
+        </div>
+      </DashboardWidget>
+
       {/* People Metrics Widget - spans 1 column */}
       <DashboardWidget title="People Metrics" icon={Users} className="h-full" action={(
-        <div className="w-48">
+        <div className="w-40">
           <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger className="h-8">
-              <SelectValue placeholder="Filter by department" />
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="All departments" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All departments</SelectItem>
@@ -284,33 +320,33 @@ export default function AdminDashboardClient({
           </Select>
         </div>
       )}>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {loadingMetrics || !metrics ? (
-            <div className="space-y-3">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-6 w-56" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-5 w-5/6" />
             </div>
           ) : (
             <>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Active Employees</span>
-                <span className="text-2xl font-bold text-foreground">{metrics.headcount}</span>
+                <span className="text-sm text-muted-foreground">Active Employees</span>
+                <span className="text-xl font-bold text-foreground">{metrics.headcount}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Managers</span>
-                <span className="text-2xl font-bold text-foreground">{metrics.managers}</span>
+                <span className="text-sm text-muted-foreground">Managers</span>
+                <span className="text-xl font-bold text-foreground">{metrics.managers}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">New Starters This Month</span>
-                <span className="text-2xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
+                <span className="text-sm text-muted-foreground">New Starters</span>
+                <span className="text-xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
               </div>
             </>
           )}
         </div>
       </DashboardWidget>
 
-      {/* Action Items - spans 2 columns with full approval functionality */}
+      {/* Action Items - spans 2 columns, positioned next to People Metrics */}
       <div className="lg:col-span-2">
         <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
           <div className="flex items-center gap-2 text-xs">
@@ -319,19 +355,19 @@ export default function AdminDashboardClient({
             <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
           </div>
         ) : undefined}>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {loadingMetrics || !metrics ? (
               <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-primary mb-1">{approvalsCount}</p>
-                    <p className="text-sm text-muted-foreground">pending approvals</p>
+                    <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
+                    <p className="text-xs text-muted-foreground">pending approvals</p>
                   </div>
                   <div className="flex gap-2">
                     <Link href="/dashboard/approvals">

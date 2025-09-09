@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
+import dynamic from "next/dynamic";
+const ProfileAvatarUploader = dynamic(() => import("@/components/employees/ProfileAvatarUploader"), { ssr: false });
 
 interface PageProps {
   params: { id: string };
@@ -35,6 +37,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           phone: true,
           role: true,
           createdAt: true,
+          profileImageUrl: true,
           jobRole: { select: { name: true } },
           department: { select: { name: true } },
           manager: {
@@ -59,9 +62,16 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
 
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold">
-        {employee.user.firstName ?? ""} {employee.user.lastName ?? ""} - Overview
-      </h1>
+      <div className="flex flex-col items-center gap-3">
+        <ProfileAvatarUploader
+          userId={employee.userId}
+          name={`${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim()}
+          initialUrl={employee.user.profileImageUrl}
+        />
+        <h1 className="text-2xl font-semibold text-center">
+          {employee.user.firstName ?? ""} {employee.user.lastName ?? ""} - Overview
+        </h1>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Personal Info Panel */}

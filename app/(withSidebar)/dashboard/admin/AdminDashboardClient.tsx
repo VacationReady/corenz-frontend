@@ -215,9 +215,9 @@ export default function AdminDashboardClient({
   // Quick Actions Section
   if (section === "quick-actions") {
     return (
-      <div className="h-32">
-        <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-32">
-          <div className="grid grid-cols-2 gap-2">
+      <>
+        <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
+          <div className="grid grid-cols-2 gap-3">
             {actions.map(({ label, icon: Icon }) => (
               <button
                 key={label}
@@ -225,148 +225,143 @@ export default function AdminDashboardClient({
                   if (label === "Add Employee") setModalOpen(true);
                   if (label === "Add Document") setAddDocumentOpen(true);
                 }}
-                className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-2 hover-glass transition-glass hover-lift group"
+                className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-4 hover-glass transition-glass hover-lift group"
               >
-                <Icon className="w-4 h-4 text-primary mb-1 group-hover:scale-110 transition-smooth" />
-                <span className="text-xs font-medium text-foreground text-center">{label}</span>
+                <Icon className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-smooth" />
+                <span className="text-sm font-medium text-foreground text-center">{label}</span>
               </button>
             ))}
           </div>
         </DashboardWidget>
         <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
         <AddDocumentModal open={addDocumentOpen} onClose={() => setAddDocumentOpen(false)} />
-      </div>
+      </>
     );
   }
 
   // Calendar Section
   if (section === "calendar") {
     return (
-      <div className="h-32">
-        <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-32">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">Upcoming</h3>
-            </div>
-            <div className="space-y-1">
-              {loadingWhosOff ? (
-                <div className="space-y-1">
-                  <Skeleton className="h-3 w-5/6" />
-                  <Skeleton className="h-3 w-3/4" />
-                </div>
-              ) : whosOff.length === 0 ? (
-                <p className="text-muted-foreground text-center text-xs">No upcoming events</p>
-              ) : (
-                <ul className="space-y-1">
-                  {whosOff
-                    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-                    .slice(0, 2)
-                    .map((ev) => (
-                      <li key={ev.id} className="flex items-center gap-2">
-                        <Avatar size={20} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {new Date(ev.start).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                </ul>
-              )}
-            </div>
+      <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-full">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Upcoming</h3>
           </div>
-        </DashboardWidget>
-      </div>
+          <div className="space-y-2">
+            {loadingWhosOff ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : whosOff.length === 0 ? (
+              <p className="text-muted-foreground text-center text-sm">No upcoming events</p>
+            ) : (
+              <ul className="space-y-2">
+                {whosOff
+                  .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+                  .slice(0, 4)
+                  .map((ev) => (
+                    <li key={ev.id} className="flex items-center gap-3">
+                      <Avatar size={32} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {new Date(ev.start).toLocaleDateString()} • {ev.reason || ev.title}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </DashboardWidget>
     );
   }
 
   // Recent Activity Section
   if (section === "recent-activity") {
     return (
-      <div className="h-32">
-        <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-32">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between p-1 glass-subtle rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                <span className="text-xs font-medium">New Hires</span>
-              </div>
-              <span className="text-sm font-bold text-green-600">{metrics?.newStartersThisMonth || 0}</span>
+      <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-full">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm font-medium">New Hires</span>
             </div>
-            <div className="flex items-center justify-between p-1 glass-subtle rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
-                <span className="text-xs font-medium">Reviews</span>
-              </div>
-              <span className="text-sm font-bold text-amber-600">2</span>
-            </div>
-            <div className="flex items-center justify-between p-1 glass-subtle rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                <span className="text-xs font-medium">Expiring</span>
-              </div>
-              <span className="text-sm font-bold text-red-600">3</span>
-            </div>
-            <div className="flex items-center justify-between p-1 glass-subtle rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                <span className="text-xs font-medium">Training</span>
-              </div>
-              <span className="text-sm font-bold text-blue-600">5</span>
-            </div>
+            <span className="text-xl font-bold text-green-600">{metrics?.newStartersThisMonth || 0}</span>
           </div>
-        </DashboardWidget>
-      </div>
+          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+              <span className="text-sm font-medium">Pending Reviews</span>
+            </div>
+            <span className="text-xl font-bold text-amber-600">2</span>
+          </div>
+          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <span className="text-sm font-medium">Expiring Docs</span>
+            </div>
+            <span className="text-xl font-bold text-red-600">3</span>
+          </div>
+          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span className="text-sm font-medium">Training Due</span>
+            </div>
+            <span className="text-xl font-bold text-blue-600">5</span>
+          </div>
+        </div>
+      </DashboardWidget>
     );
   }
 
   // People Metrics Section
   if (section === "people-metrics") {
     return (
-      <div className="h-32">
-        <DashboardWidget title="People Metrics" icon={Users} className="h-32">
-          <div className="space-y-2">
-            {/* Compact Department Filter */}
-            <div className="mb-2">
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="h-6 text-xs w-full">
-                  <SelectValue placeholder="All depts" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All departments</SelectItem>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {loadingMetrics || !metrics ? (
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Active</span>
-                  <span className="text-lg font-bold text-foreground">{metrics.headcount}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Managers</span>
-                  <span className="text-lg font-bold text-foreground">{metrics.managers}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">New</span>
-                  <span className="text-lg font-bold text-primary">{metrics.newStartersThisMonth}</span>
-                </div>
-              </>
-            )}
+      <DashboardWidget title="People Metrics" icon={Users} className="h-full">
+        <div className="space-y-4">
+          {/* Department Filter */}
+          <div className="mb-4">
+            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <SelectTrigger className="h-9 text-sm w-full">
+                <SelectValue placeholder="All departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All departments</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </DashboardWidget>
-      </div>
+
+          {loadingMetrics || !metrics ? (
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-6 w-5/6" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Active Employees</span>
+                <span className="text-2xl font-bold text-foreground">{metrics.headcount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Managers</span>
+                <span className="text-2xl font-bold text-foreground">{metrics.managers}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">New Starters</span>
+                <span className="text-2xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </DashboardWidget>
     );
   }
 

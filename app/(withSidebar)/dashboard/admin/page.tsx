@@ -64,15 +64,13 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Dashboard Grid - Fit to remaining height */}
-      <main className="flex-1 px-4 pb-4 overflow-auto">
-        <div className="space-y-4 max-w-7xl mx-auto h-full">
-          {/* Top Row - 5 cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-32">
+      {/* Dashboard Grid - Full screen layout */}
+      <main className="flex-1 p-4 overflow-hidden">
+        <div className="h-full flex flex-col gap-4">
+          {/* Top Row - 5 cards with proper heights */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-48">
             {/* Holiday Balance Card - Compact */}
-            <div className="h-32">
-              <LeaveSummaryCard employeeId={user.employee.id} />
-            </div>
+            <LeaveSummaryCard employeeId={user.employee.id} />
 
             {/* Quick Actions */}
             <AdminDashboardClient
@@ -103,8 +101,8 @@ export default async function AdminDashboardPage() {
             />
           </div>
 
-          {/* Bottom Row - 2 cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1">
+          {/* Bottom Row - 2 cards filling remaining space */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
             {/* News Widget */}
             <AdminDashboardClient
               employeeId={user.employee.id}

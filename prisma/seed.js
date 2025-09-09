@@ -39,7 +39,9 @@ async function main() {
   // ✅ 4. Admin User & Employees
   const hashedPassword = await bcrypt.hash('Admin123!', 10);
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@corenz.com' },
+    where: {
+      email_companyId: { email: 'admin@corenz.com', companyId: company.id },
+    },
     update: {},
     create: {
       email: 'admin@corenz.com',
@@ -71,7 +73,9 @@ async function main() {
 
   for (const emp of sampleEmployees) {
     const user = await prisma.user.upsert({
-      where: { email: emp.email },
+      where: {
+        email_companyId: { email: emp.email, companyId: company.id },
+      },
       update: {},
       create: {
         email: emp.email,
@@ -239,7 +243,9 @@ async function main() {
 
   // ✅ 11. Admin User & Employees (Duplicate Block - retained as requested)
   const adminUser2 = await prisma.user.upsert({
-    where: { email: 'admin@corenz.com' },
+    where: {
+      email_companyId: { email: 'admin@corenz.com', companyId: company.id },
+    },
     update: {},
     create: {
       email: 'admin@corenz.com',
@@ -270,7 +276,9 @@ async function main() {
 
   for (const emp of sampleEmployees2) {
     const user = await prisma.user.upsert({
-      where: { email: emp.email },
+      where: {
+        email_companyId: { email: emp.email, companyId: company.id },
+      },
       update: {},
       create: {
         email: emp.email,

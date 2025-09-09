@@ -24,28 +24,28 @@ export default async function AdminDashboardPage() {
   if (!user?.employee) redirect("/dashboard/employee");
 
   return (
-    <div className="flex flex-col flex-1 w-full min-h-screen">
-      {/* Hero Profile Card */}
-      <div className="p-6">
-        <div className="glass rounded-3xl shadow-glass p-8 mb-6">
+    <div className="flex flex-col w-full h-screen overflow-hidden">
+      {/* Hero Profile Card - Compact */}
+      <div className="p-4">
+        <div className="glass rounded-3xl shadow-glass p-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               {/* Avatar */}
-              <div className="w-20 h-20 bg-gradient-to-br from-sunset-1 to-sunset-2 rounded-3xl flex items-center justify-center shadow-warm">
-                <span className="text-2xl font-bold text-white">
+              <div className="w-16 h-16 bg-gradient-to-br from-sunset-1 to-sunset-2 rounded-2xl flex items-center justify-center shadow-warm">
+                <span className="text-xl font-bold text-white">
                   {user.firstName?.charAt(0) || "U"}
                 </span>
               </div>
               {/* Profile Info */}
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-1">
+                <h1 className="text-2xl font-bold text-foreground mb-1">
                   {user.firstName || "User"}
                 </h1>
-                <p className="text-lg text-muted-foreground mb-2">Co-Founder</p>
-                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-1">Co-Founder</p>
+                <div className="flex items-center space-x-3 text-xs text-muted-foreground">
                   <span>📍 London</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                     <span className="text-green-600 font-medium">Up to date</span>
                   </div>
                 </div>
@@ -53,20 +53,20 @@ export default async function AdminDashboardPage() {
             </div>
             
             {/* Search */}
-            <div className="relative max-w-md">
+            <div className="relative max-w-sm">
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full glass-subtle rounded-2xl border-glass px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-glass"
+                className="w-full glass-subtle rounded-2xl border-glass px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-glass"
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Dashboard Grid */}
-      <main className="flex-1 px-6 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+      {/* Dashboard Grid - Fit to remaining height */}
+      <main className="flex-1 px-4 pb-4 overflow-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto h-full">
           {/* Leave Summary Card - spans 1 column */}
           <div className="lg:col-span-1">
             <LeaveSummaryCard employeeId={user.employee.id} />

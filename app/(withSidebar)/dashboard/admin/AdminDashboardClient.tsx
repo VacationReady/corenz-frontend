@@ -211,10 +211,10 @@ export default function AdminDashboardClient({
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
       {/* Quick Actions Widget - spans 1 column */}
       <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           {actions.map(({ label, icon: Icon }) => (
             <button
               key={label}
@@ -222,10 +222,10 @@ export default function AdminDashboardClient({
                 if (label === "Add Employee") setModalOpen(true);
                 if (label === "Add Document") setAddDocumentOpen(true);
               }}
-              className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-4 hover-glass transition-glass hover-lift group"
+              className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-3 hover-glass transition-glass hover-lift group"
             >
-              <Icon className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-smooth" />
-              <span className="text-sm font-medium text-foreground">{label}</span>
+              <Icon className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-smooth" />
+              <span className="text-xs font-medium text-foreground text-center">{label}</span>
             </button>
           ))}
         </div>
@@ -310,28 +310,16 @@ export default function AdminDashboardClient({
         </div>
       </DashboardWidget>
 
-      {/* Time Planner Widget - spans 1 column */}
-      <DashboardWidget title="Time planner" icon={ClipboardList} className="h-full">
-        <div className="flex flex-col items-center justify-center h-32">
-          {loadingMetrics || !metrics ? (
-            <div className="space-y-3 text-center">
-              <Skeleton className="h-10 w-24 mx-auto" />
-              <Skeleton className="h-4 w-32 mx-auto" />
-            </div>
-          ) : (
-            <>
-              <div className="text-6xl font-light text-primary mb-2">{approvalsCount}</div>
-              <div className="text-sm text-muted-foreground">days</div>
-              <div className="text-sm font-medium text-foreground">Paid Time Off</div>
-            </>
-          )}
-        </div>
-      </DashboardWidget>
-
-      {/* Action Items - spans 2 columns */}
+      {/* Action Items - spans 2 columns with full approval functionality */}
       <div className="lg:col-span-2">
-        <DashboardWidget title="Action items" icon={ClipboardList} className="h-full">
-          <div className="space-y-3">
+        <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
+          <div className="flex items-center gap-2 text-xs">
+            <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
+            <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
+            <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
+          </div>
+        ) : undefined}>
+          <div className="space-y-4">
             {loadingMetrics || !metrics ? (
               <div className="space-y-2">
                 <Skeleton className="h-12 w-full" />
@@ -340,45 +328,48 @@ export default function AdminDashboardClient({
               </div>
             ) : (
               <>
-                <div className="text-center mb-4">
-                  <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
-                  <p className="text-sm text-muted-foreground">pending approvals</p>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-primary mb-1">{approvalsCount}</p>
+                    <p className="text-sm text-muted-foreground">pending approvals</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href="/dashboard/approvals">
+                      <Button size="sm" variant="outline">View All</Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const qs = new URLSearchParams({ status: "PENDING" });
+                          if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
+                          if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                          qs.set("limit", "5");
+                          const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
+                          const data = await res.json();
+                          if (!data?.success) return;
+                          const first = data.data?.[0];
+                          if (!first) return;
+                          await fetch(`/api/leave-request/${first.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "approve" }),
+                          });
+                          const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
+                          if (metricsRes.ok) setMetrics(await metricsRes.json());
+                        } catch {}
+                      }}
+                    >
+                      Quick Approve
+                    </Button>
+                  </div>
                 </div>
                 <CompactApprovalsList 
                   scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
                   departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
                 />
-                <div className="pt-3 text-center">
-                  <Link href="/dashboard/approvals" className="text-sm text-primary hover:text-primary/80 font-medium transition-smooth">
-                    2 more items
-                  </Link>
-                </div>
               </>
             )}
-          </div>
-        </DashboardWidget>
-      </div>
-
-      {/* Attendance Widget - spans 2 columns */}
-      <div className="lg:col-span-2">
-        <DashboardWidget title="Attendance" icon={Users} className="h-full">
-          <div className="space-y-4">
-            <div className="grid grid-cols-7 gap-4 text-center">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-                <div key={day} className="space-y-2">
-                  <div className="text-xs text-muted-foreground">{day}</div>
-                  <div className={`text-lg font-semibold ${index === 1 ? 'text-primary bg-primary/10 rounded-lg py-1' : 'text-foreground'}`}>
-                    {index === 0 ? 8 : index === 1 ? 9 : index === 2 ? 10 : index === 3 ? 11 : index === 4 ? 12 : index === 5 ? 13 : 14}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {index < 5 ? '09:00' : 'Not'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {index < 5 ? 'Start' : index === 5 ? 'Not' : 'Not'}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </DashboardWidget>
       </div>

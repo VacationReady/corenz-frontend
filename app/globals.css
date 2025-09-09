@@ -1448,47 +1448,47 @@ video {
 
 @layer base {
   :root {
-    /* Modern Warm Palette - Inspired by Natural Landscapes */
-    --background: 35 25% 92%; /* #f3f1ec - Warm cream base */
-    --foreground: 20 14% 14%; /* #232018 - Rich dark brown text */
+    /* Beautiful Vibrant Palette - Modern Professional */
+    --background: 220 25% 95%; /* #f1f3f7 - Cool light base */
+    --foreground: 220 15% 15%; /* #1f2937 - Deep slate text */
 
     /* Card System - Glass Morphism */
     --card: 0 0% 100%; /* Pure white for glass effect base */
-    --card-foreground: 20 14% 14%;
-    --card-header: 35 30% 96%; /* #faf9f7 - Subtle warm header */
+    --card-foreground: 220 15% 15%;
+    --card-header: 220 30% 98%; /* #fafbfc - Cool header */
 
-    /* Content Panels - Layered Warm Tones */
-    --content-panel: 30 20% 88%; /* #e8e4dd - Medium warm tone */
-    --section-background: 35 30% 95%; /* #f7f5f2 - Light warm section */
+    /* Content Panels - Layered Cool Tones */
+    --content-panel: 220 20% 90%; /* #e2e8f0 - Medium cool tone */
+    --section-background: 220 25% 96%; /* #f8fafc - Light section */
 
     /* Interactive Elements */
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14% 14%;
-    --primary: 25 95% 53%; /* #f59e0b - Warm amber primary */
+    --popover-foreground: 220 15% 15%;
+    --primary: 217 91% 60%; /* #3b82f6 - Beautiful blue primary */
     --primary-foreground: 0 0% 100%;
-    --secondary: 35 20% 90%;
-    --secondary-foreground: 20 14% 14%;
-    --muted: 35 20% 90%;
-    --muted-foreground: 25 10% 45%;
-    --accent: 30 25% 85%;
-    --accent-foreground: 20 14% 14%;
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 220 15% 15%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 220 20% 88%;
+    --accent-foreground: 220 15% 15%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
     /* Glassmorphism Borders & Effects */
-    --border: 30 15% 85%; /* Subtle warm border */
-    --input: 35 25% 92%;
-    --ring: 25 95% 53%;
+    --border: 220 15% 88%; /* Subtle cool border */
+    --input: 220 20% 94%;
+    --ring: 217 91% 60%;
 
-    /* Gradient Colors for Background */
-    --gradient-start: 35 40% 95%; /* #f9f6f1 */
-    --gradient-mid: 25 30% 90%; /* #f0ebe2 */
-    --gradient-end: 30 25% 85%; /* #e6ddd4 */
+    /* Beautiful Gradient Colors for Background */
+    --gradient-start: 260 100% 98%; /* #f8faff - Soft purple */
+    --gradient-mid: 220 100% 96%; /* #f0f9ff - Sky blue */
+    --gradient-end: 190 100% 95%; /* #f0fdfa - Mint green */
 
-    /* Sunset Gradient Accents */
-    --sunset-1: 25 95% 65%; /* Light amber */
-    --sunset-2: 15 85% 60%; /* Warm orange */
-    --sunset-3: 5 75% 55%; /* Soft coral */
+    /* Vibrant Accent Colors */
+    --sunset-1: 217 91% 60%; /* Beautiful blue */
+    --sunset-2: 267 84% 65%; /* Purple accent */
+    --sunset-3: 142 76% 55%; /* Emerald accent */
 
     /* Charts - Warm Palette */
     --chart-1: 25 95% 53%;
@@ -1592,10 +1592,11 @@ video {
   }
 
   .bg-gradient-landscape {
-    background: linear-gradient(180deg, 
-      hsl(var(--sunset-1) / 0.1) 0%, 
-      hsl(var(--sunset-2) / 0.05) 30%, 
-      hsl(var(--background)) 60%);
+    background: linear-gradient(135deg, 
+      hsl(var(--gradient-start)) 0%, 
+      hsl(var(--gradient-mid)) 35%, 
+      hsl(var(--gradient-end)) 70%, 
+      hsl(var(--background)) 100%);
   }
 
   /* Glassmorphism Effects */

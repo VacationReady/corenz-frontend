@@ -277,7 +277,7 @@ export default function AdminDashboardClient({
       <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
         <div className="flex items-center gap-2 text-xs">
           <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
-          <Switch checked={approvalsScopeMy} onCheckedChange={setApprovalsScopeMy} />
+          <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
           <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
         </div>
       ) : undefined}>

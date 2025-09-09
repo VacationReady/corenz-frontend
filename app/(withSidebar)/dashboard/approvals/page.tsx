@@ -128,7 +128,7 @@ export default function ApprovalsPage() {
           {canViewAll && (
             <div className="flex items-center gap-2 text-sm">
               <span className={!scopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
-              <Switch checked={scopeMy} onCheckedChange={setScopeMy} />
+              <Switch checked={scopeMy} onChange={setScopeMy} />
               <span className={scopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
             </div>
           )}

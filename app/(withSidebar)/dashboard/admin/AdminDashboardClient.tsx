@@ -212,6 +212,25 @@ export default function AdminDashboardClient({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Quick Actions Widget - spans 1 column */}
+      <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
+        <div className="grid grid-cols-2 gap-3">
+          {actions.map(({ label, icon: Icon }) => (
+            <button
+              key={label}
+              onClick={() => {
+                if (label === "Add Employee") setModalOpen(true);
+                if (label === "Add Document") setAddDocumentOpen(true);
+              }}
+              className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-4 hover-glass transition-glass hover-lift group"
+            >
+              <Icon className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-smooth" />
+              <span className="text-sm font-medium text-foreground">{label}</span>
+            </button>
+          ))}
+        </div>
+      </DashboardWidget>
+
       {/* Calendar Widget - spans 1 column */}
       <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-full">
         <div className="space-y-4">
@@ -246,6 +265,48 @@ export default function AdminDashboardClient({
               </ul>
             )}
           </div>
+        </div>
+      </DashboardWidget>
+
+      {/* People Metrics Widget - spans 1 column */}
+      <DashboardWidget title="People Metrics" icon={Users} className="h-full" action={(
+        <div className="w-48">
+          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <SelectTrigger className="h-8">
+              <SelectValue placeholder="Filter by department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All departments</SelectItem>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}>
+        <div className="space-y-4">
+          {loadingMetrics || !metrics ? (
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-6 w-56" />
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Active Employees</span>
+                <span className="text-2xl font-bold text-foreground">{metrics.headcount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Managers</span>
+                <span className="text-2xl font-bold text-foreground">{metrics.managers}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">New Starters This Month</span>
+                <span className="text-2xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
+              </div>
+            </>
+          )}
         </div>
       </DashboardWidget>
 

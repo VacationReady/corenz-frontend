@@ -30,6 +30,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       "email",
       "phone",
       "dateOfBirth",
+      "addressStreet",
+      "addressCity",
+      "addressPostcode",
+      "addressCountry",
+      "emergencyContactName",
+      "emergencyContactRelationship",
+      "emergencyContactPhone",
+      "nationalId",
+      "pronouns",
+      "genderOptionId",
     ] as const;
 
     const updates: Record<string, any> = {};

@@ -28,6 +28,17 @@ model User {
   companyId                                    String?
   emailPreferences                             Json?
   profileImageUrl                              String?
+  // Personal info (extended)
+  addressStreet                                 String?
+  addressCity                                   String?
+  addressPostcode                               String?
+  addressCountry                                String?
+  emergencyContactName                          String?
+  emergencyContactRelationship                  String?
+  emergencyContactPhone                         String?
+  nationalId                                    String?
+  pronouns                                      String?
+  genderOptionId                                String?
   activationToken                              ActivationToken?
   departmentHeadOf                             Department[]           @relation("DepartmentHead")
   documents                                    Document[]
@@ -57,6 +68,9 @@ model User {
   // Personal info audit relations
   personalInfoAuditsAsSubject                  PersonalInfoAudit[]    @relation("PersonalInfoAuditSubjectUser")
   personalInfoAuditsChangedBy                  PersonalInfoAudit[]    @relation("PersonalInfoAuditChangedBy")
+
+  // Gender option relation
+  genderOption                                  GenderOption?          @relation(fields: [genderOptionId], references: [id])
 
   company                                      Company?               @relation(fields: [companyId], references: [id])
   department                                   Department?            @relation(fields: [departmentId], references: [id])
@@ -236,6 +250,7 @@ model Company {
   users               User[]
   employees           Employee[]
   permissionProfiles  PermissionProfile[]
+  genderOptions       GenderOption[]
 }
 
 model JobRole {
@@ -673,6 +688,23 @@ model PersonalInfoAudit {
   changedBy   User     @relation("PersonalInfoAuditChangedBy", fields: [changedById], references: [id])
 
   @@index([companyId, subjectUserId, changedAt])
+}
+
+model GenderOption {
+  id         String   @id @default(cuid())
+  companyId  String
+  key        String
+  label      String
+  order      Int       @default(0)
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  company    Company   @relation(fields: [companyId], references: [id])
+  users      User[]
+
+  @@unique([companyId, key])
+  @@index([companyId, active])
 }
 
 enum FormType {

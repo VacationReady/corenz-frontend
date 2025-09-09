@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import ManageGenderOptionsModal from "@/components/shared/ManageGenderOptionsModal";
+import ManageGenderInline from "@/components/shared/ManageGenderInline";
 
 interface PageProps {
   params: { id: string };
@@ -166,28 +166,10 @@ export default async function PersonalInformationPage({ params }: PageProps) {
       </Card>
 
       {canEdit && <PersonalInfoSaveButton employeeId={params.id} />}
-      {canEdit && <ManageGenderModalPortal />}
+      {/* Portal handled in client-only ManageGenderInline */}
     </div>
   );
 }
-
-// Client-only portal for managing gender options
-"use client";
-import { useState } from "react";
-
-function ManageGenderInline() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-2 text-right">
-      <button className="text-xs text-primary hover:underline" type="button" onClick={() => setOpen(true)}>
-        Manage options
-      </button>
-      {open && <ManageGenderOptionsModal onClose={() => setOpen(false)} />}
-    </div>
-  );
-}
-
-function ManageGenderModalPortal() { return null; }
 
 
 

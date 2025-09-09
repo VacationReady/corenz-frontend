@@ -5,8 +5,10 @@ async function main() {
   const managerEmail = 'manager@test.com';     // ✅ Replace with your actual manager email
   const employeeEmail = 'employee@test.com';    // ✅ Replace with your actual employee email
 
-  const manager = await prisma.user.findUnique({ where: { email: managerEmail } });
-  const employee = await prisma.user.findUnique({ where: { email: employeeEmail } });
+  const manager = await prisma.user.findFirst({ where: { email: managerEmail } });
+  const employee = await prisma.user.findFirst({
+    where: { email: employeeEmail, companyId: manager?.companyId },
+  });
 
   if (!manager || !employee) {
     console.error('❌ Manager or employee not found. Check the emails.');

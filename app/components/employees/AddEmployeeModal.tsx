@@ -89,7 +89,7 @@ export default function AddEmployeeModal({ open, onClose, onSuccess }: AddEmploy
       setEmployees(empRes.filter((emp: any) => emp.user));
       setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-      setPermissionProfiles(Array.isArray(profilesRes) ? profilesRes : []);
+      setPermissionProfiles(Array.isArray(profilesRes.profiles) ? profilesRes.profiles : []);
       setTemplates(
         Array.isArray(templateRes)
           ? (templateRes as OnboardingTemplate[])

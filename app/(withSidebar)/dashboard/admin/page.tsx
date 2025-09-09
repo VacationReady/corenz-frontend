@@ -66,18 +66,21 @@ export default async function AdminDashboardPage() {
 
       {/* Dashboard Grid - Fit to remaining height */}
       <main className="flex-1 px-4 pb-4 overflow-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl mx-auto h-full">
-          {/* Leave Summary Card - spans 1 column */}
-          <div className="lg:col-span-1">
-            <LeaveSummaryCard employeeId={user.employee.id} />
-          </div>
+        <div className="space-y-4 max-w-7xl mx-auto h-full">
+          {/* Top Row - 5 cards including compact Holiday Balance */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Compact Holiday Balance Card */}
+            <div className="h-32">
+              <LeaveSummaryCard employeeId={user.employee.id} />
+            </div>
 
-          {/* Client-only Admin Dashboard widgets - spans 2 columns */}
-          <div className="lg:col-span-2">
-            <AdminDashboardClient
-              employeeId={user.employee.id}
-              firstName={user.firstName ?? ""}
-            />
+            {/* Client-only Admin Dashboard widgets - spans 4 columns */}
+            <div className="lg:col-span-4">
+              <AdminDashboardClient
+                employeeId={user.employee.id}
+                firstName={user.firstName ?? ""}
+              />
+            </div>
           </div>
         </div>
       </main>

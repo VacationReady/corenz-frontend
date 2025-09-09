@@ -9,6 +9,10 @@ export default async function handler(
 ) {
   try {
     const hashedPassword = await bcrypt.hash("password123", 10);
+    const company = await prisma.company.findFirst();
+    if (!company) {
+      throw new Error("No company found. Seed companies before creating users.");
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -16,6 +20,7 @@ export default async function handler(
         password: hashedPassword,
         name: "Test User",
         role: "ADMIN",
+        company: { connect: { id: company.id } },
       },
     });
 

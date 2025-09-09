@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 // ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
@@ -7,9 +9,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const employee = await prisma.employee.findUnique({
       where: {
         id: params.id, // ✅ Use Employee.id for matching
+        companyId: session.user.companyId,
       },
       include: {
         user: {
@@ -36,6 +47,13 @@ export async function GET(
       );
     }
 
+    if (employee.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(employee);
   } catch (error) {
     console.error(
@@ -55,8 +73,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id: params.id, companyId: session.user.companyId },
       include: { user: true },
     });
 
@@ -67,9 +93,17 @@ export async function DELETE(
       );
     }
 
+    if (employee.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const employeeId = employee.id;
     const userId = employee.userId;
-    const companyId = employee.companyId ?? employee.user?.companyId ?? undefined;
+    const companyId =
+      employee.companyId ?? employee.user?.companyId ?? undefined;
 
     const result = await prisma.$transaction(async (tx) => {
       // Onboarding instances and nested data

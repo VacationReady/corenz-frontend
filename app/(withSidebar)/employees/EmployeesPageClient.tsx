@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
 import { MoreVertical, Users, UserX, Archive } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
 
 // ✅ Inline type definition to avoid import error
@@ -342,9 +343,12 @@ function EmployeesContent() {
                 filteredEmployees.map((emp) => (
                   <tr key={emp.id} className="hover:bg-section-background transition-smooth">
                     <td className="p-4">
-                      <Link href={`/employees/${emp.id}/overview`} className="text-primary hover:text-primary/80 font-medium transition-smooth">
-                        {emp.firstName} {emp.lastName}
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Avatar size={28} name={`${emp.firstName} ${emp.lastName}`} src={(emp as any).profileImageUrl} />
+                        <Link href={`/employees/${emp.id}/overview`} className="text-primary hover:text-primary/80 font-medium transition-smooth">
+                          {emp.firstName} {emp.lastName}
+                        </Link>
+                      </div>
                     </td>
                     <td className="p-4 text-foreground">{emp.phone || "-"}</td>
                     <td className="p-4 text-foreground">{emp.departmentName || "-"}</td>

@@ -39,20 +39,26 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get("status") as "PENDING" | "APPROVED" | "DECLINED" | "CANCELLED" | null;
     const status = statusParam || "PENDING";
+    const scope = searchParams.get("scope"); // "my" or "all" (admins only)
+    const departmentId = searchParams.get("departmentId") || undefined;
+    const limitParam = searchParams.get("limit");
+    const take = limitParam ? Math.max(1, Math.min(50, parseInt(limitParam, 10) || 0)) : undefined;
 
     console.log("Fetching leave requests with status:", status);
+
+    const isAdminEditor = hasPermission(user as any, 'leave-requests', 'edit');
+
+    const employeeFilter: any = {
+      ...(departmentId ? { departmentId } : {}),
+      ...((!isAdminEditor || (isAdminEditor && scope === 'my'))
+        ? { user: { managerId: session.user.id } }
+        : {}),
+    };
 
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
         approvalStatus: status,
-        // If user doesn't have admin permissions, only show requests from their direct reports
-        ...(!hasPermission(user as any, 'leave-requests', 'edit') && {
-          employee: {
-            user: {
-              managerId: session.user.id,
-            },
-          },
-        }),
+        employee: Object.keys(employeeFilter).length > 0 ? employeeFilter : undefined,
       },
       select: {
         id: true,
@@ -60,6 +66,7 @@ export async function GET(req: Request) {
         endDate: true,
         dayType: true,
         approvalStatus: true,
+        reason: true,
         eventCategory: {
           select: {
             id: true,
@@ -82,6 +89,7 @@ export async function GET(req: Request) {
         },
       },
       orderBy: { startDate: "asc" },
+      take,
     });
 
     console.log("✅ Leave requests found:", JSON.stringify(leaveRequests, null, 2));

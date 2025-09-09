@@ -13,7 +13,7 @@ export function Card({ title, icon, action, children, className }: CardProps) {
   return (
     <div
       className={clsx(
-        "bg-card rounded-xl shadow-lg border border-enhanced h-full transition-smooth hover-lift",
+        "glass rounded-3xl shadow-glass h-full transition-glass hover-glass hover-lift",
         className
       )}
     >
@@ -21,7 +21,7 @@ export function Card({ title, icon, action, children, className }: CardProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center text-primary">
-              {icon && <div className="w-5 h-5 mr-3">{icon}</div>}
+              {icon && <div className="w-6 h-6 mr-3">{icon}</div>}
               <CardTitle>{title}</CardTitle>
             </div>
             {action && <div>{action}</div>}
@@ -43,7 +43,7 @@ export function CardHeader({
   return (
     <div
       className={clsx(
-        "bg-card-header border-b border-enhanced px-6 py-4 rounded-t-xl",
+        "glass-subtle border-b border-glass px-6 py-5 rounded-t-3xl",
         className
       )}
     >
@@ -104,7 +104,7 @@ export function CardFooter({
   return (
     <div
       className={clsx(
-        "border-t border-enhanced px-6 py-4 bg-card-header rounded-b-xl",
+        "border-t border-glass px-6 py-5 glass-subtle rounded-b-3xl",
         className
       )}
     >

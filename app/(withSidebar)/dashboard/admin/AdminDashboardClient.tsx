@@ -211,171 +211,120 @@ export default function AdminDashboardClient({
   ];
 
   return (
-    <>
-      {/* Quick Actions */}
-      <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
-        <div className="grid grid-cols-2 gap-3">
-          {actions.map(({ label, icon: Icon }) => (
-            <button
-              key={label}
-              onClick={() => {
-                if (label === "Add Employee") setModalOpen(true);
-                if (label === "Add Document") setAddDocumentOpen(true);
-              }}
-              className="flex flex-col items-center justify-center bg-section-background border border-enhanced rounded-lg p-4 hover:bg-accent hover:shadow-sm transition-smooth hover-lift group"
-            >
-              <Icon className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-smooth" />
-              <span className="text-sm font-medium text-foreground">{label}</span>
-            </button>
-          ))}
-        </div>
-      </DashboardWidget>
-
-      {/* People Metrics */}
-      <DashboardWidget title="People Metrics" icon={Users} className="h-full" action={(
-        <div className="w-48">
-          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger className="h-8">
-              <SelectValue placeholder="Filter by department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All departments</SelectItem>
-              {departments.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Calendar Widget - spans 1 column */}
+      <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-full">
         <div className="space-y-4">
-          {loadingMetrics || !metrics ? (
-            <div className="space-y-3">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-6 w-56" />
-            </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Active Employees</span>
-                <span className="text-2xl font-bold text-foreground">{metrics.headcount}</span>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">Upcoming</h3>
+          </div>
+          <div className="space-y-3">
+            {loadingWhosOff ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Managers</span>
-                <span className="text-2xl font-bold text-foreground">{metrics.managers}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">New Starters This Month</span>
-                <span className="text-2xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
-              </div>
-            </>
-          )}
-        </div>
-      </DashboardWidget>
-
-      {/* Pending Approvals */}
-      <DashboardWidget title="Pending Approvals" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
-        <div className="flex items-center gap-2 text-xs">
-          <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
-          <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
-          <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
-        </div>
-      ) : undefined}>
-        <div className="text-center">
-          {loadingMetrics || !metrics ? (
-            <div className="space-y-3">
-              <Skeleton className="h-10 w-24 mx-auto" />
-              <Skeleton className="h-4 w-40 mx-auto" />
-            </div>
-          ) : (
-            <>
-              <p className="text-5xl font-bold text-primary mb-2">{approvalsCount}</p>
-              <p className="text-muted-foreground">Awaiting your approval</p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link href="/dashboard/approvals">
-                  <Button size="sm" className="w-full">Open Approvals</Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      const qs = new URLSearchParams({ status: "PENDING" });
-                      if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
-                      if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                      qs.set("limit", "5");
-                      const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
-                      const data = await res.json();
-                      if (!data?.success) return;
-                      const first = data.data?.[0];
-                      if (!first) return;
-                      await fetch(`/api/leave-request/${first.id}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "approve" }),
-                      });
-                      const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
-                      if (metricsRes.ok) setMetrics(await metricsRes.json());
-                    } catch {}
-                  }}
-                >
-                  Quick Approve 1
-                </Button>
-              </div>
-              <div className="mt-4 text-left">
-                <CompactApprovalsList scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} />
-              </div>
-            </>
-          )}
-          <div className="mt-4 pt-4 border-t border-enhanced">
-            <Link href="/dashboard/approvals" className="text-sm text-primary hover:text-primary/80 font-medium transition-smooth">
-              View All →
-            </Link>
+            ) : whosOff.length === 0 ? (
+              <p className="text-muted-foreground text-center">No upcoming events</p>
+            ) : (
+              <ul className="space-y-3">
+                {whosOff
+                  .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+                  .slice(0, 5)
+                  .map((ev) => (
+                    <li key={ev.id} className="flex items-center gap-3">
+                      <Avatar size={32} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {new Date(ev.start).toLocaleDateString()} • {ev.reason || ev.title}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            )}
           </div>
         </div>
       </DashboardWidget>
 
-      {/* Who's Off */}
-      <DashboardWidget title="Who's Off" icon={CalendarCheck2} className="h-full">
-        <div className="py-2">
-          {loadingWhosOff ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-2/3" />
+      {/* Time Planner Widget - spans 1 column */}
+      <DashboardWidget title="Time planner" icon={ClipboardList} className="h-full">
+        <div className="flex flex-col items-center justify-center h-32">
+          {loadingMetrics || !metrics ? (
+            <div className="space-y-3 text-center">
+              <Skeleton className="h-10 w-24 mx-auto" />
+              <Skeleton className="h-4 w-32 mx-auto" />
             </div>
-          ) : whosOff.length === 0 ? (
-            <p className="text-muted-foreground text-center">No upcoming absences</p>
           ) : (
-            <ul className="space-y-2">
-              {whosOff
-                .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
-                .slice(0, 8)
-                .map((ev) => (
-                  <li key={ev.id} className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <Avatar size={28} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {new Date(ev.start).toLocaleDateString()} → {new Date(ev.end).toLocaleDateString()} • {ev.reason || ev.title}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded bg-accent text-foreground whitespace-nowrap">{ev.employee?.department || ""}</span>
-                  </li>
-                ))}
-            </ul>
+            <>
+              <div className="text-6xl font-light text-primary mb-2">{approvalsCount}</div>
+              <div className="text-sm text-muted-foreground">days</div>
+              <div className="text-sm font-medium text-foreground">Paid Time Off</div>
+            </>
           )}
         </div>
       </DashboardWidget>
 
-      {/* News Widget */}
-      <NewsWidget />
+      {/* Action Items - spans 2 columns */}
+      <div className="lg:col-span-2">
+        <DashboardWidget title="Action items" icon={ClipboardList} className="h-full">
+          <div className="space-y-3">
+            {loadingMetrics || !metrics ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-4">
+                  <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
+                  <p className="text-sm text-muted-foreground">pending approvals</p>
+                </div>
+                <CompactApprovalsList 
+                  scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
+                  departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
+                />
+                <div className="pt-3 text-center">
+                  <Link href="/dashboard/approvals" className="text-sm text-primary hover:text-primary/80 font-medium transition-smooth">
+                    2 more items
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </DashboardWidget>
+      </div>
+
+      {/* Attendance Widget - spans 2 columns */}
+      <div className="lg:col-span-2">
+        <DashboardWidget title="Attendance" icon={Users} className="h-full">
+          <div className="space-y-4">
+            <div className="grid grid-cols-7 gap-4 text-center">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+                <div key={day} className="space-y-2">
+                  <div className="text-xs text-muted-foreground">{day}</div>
+                  <div className={`text-lg font-semibold ${index === 1 ? 'text-primary bg-primary/10 rounded-lg py-1' : 'text-foreground'}`}>
+                    {index === 0 ? 8 : index === 1 ? 9 : index === 2 ? 10 : index === 3 ? 11 : index === 4 ? 12 : index === 5 ? 13 : 14}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {index < 5 ? '09:00' : 'Not'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {index < 5 ? 'Start' : index === 5 ? 'Not' : 'Not'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DashboardWidget>
+      </div>
 
       {/* Modals */}
       <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
       <AddDocumentModal open={addDocumentOpen} onClose={() => setAddDocumentOpen(false)} />
-    </>
+    </div>
   );
 }

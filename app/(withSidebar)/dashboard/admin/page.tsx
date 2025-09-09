@@ -24,38 +24,62 @@ export default async function AdminDashboardPage() {
   if (!user?.employee) redirect("/dashboard/employee");
 
   return (
-    <div className="flex flex-col flex-1 w-full min-h-screen bg-content-panel">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-content-panel border-b border-enhanced backdrop-blur-sm">
-        <div className="px-8 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Hi, {user.firstName ?? ""} 👋
-            </h1>
-            <p className="text-muted-foreground text-base">
-              Welcome back to your admin dashboard
-            </p>
-          </div>
-          <div className="relative max-w-md">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full rounded-md border border-enhanced bg-card px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-smooth"
-            />
+    <div className="flex flex-col flex-1 w-full min-h-screen">
+      {/* Hero Profile Card */}
+      <div className="p-6">
+        <div className="glass rounded-3xl shadow-glass p-8 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              {/* Avatar */}
+              <div className="w-20 h-20 bg-gradient-to-br from-sunset-1 to-sunset-2 rounded-3xl flex items-center justify-center shadow-warm">
+                <span className="text-2xl font-bold text-white">
+                  {user.firstName?.charAt(0) || "U"}
+                </span>
+              </div>
+              {/* Profile Info */}
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-1">
+                  {user.firstName || "User"}
+                </h1>
+                <p className="text-lg text-muted-foreground mb-2">Co-Founder</p>
+                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                  <span>📍 London</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600 font-medium">Up to date</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Search */}
+            <div className="relative max-w-md">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full glass-subtle rounded-2xl border-glass px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-glass"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Unified Grid */}
-      <main className="flex-1 px-8 py-6 w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* Leave Summary Card */}
-        <LeaveSummaryCard employeeId={user.employee.id} />
+      {/* Dashboard Grid */}
+      <main className="flex-1 px-6 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          {/* Leave Summary Card - spans 1 column */}
+          <div className="lg:col-span-1">
+            <LeaveSummaryCard employeeId={user.employee.id} />
+          </div>
 
-        {/* Client-only Admin Dashboard widgets */}
-        <AdminDashboardClient
-          employeeId={user.employee.id}
-          firstName={user.firstName ?? ""}
-        />
+          {/* Client-only Admin Dashboard widgets - spans 2 columns */}
+          <div className="lg:col-span-2">
+            <AdminDashboardClient
+              employeeId={user.employee.id}
+              firstName={user.firstName ?? ""}
+            />
+          </div>
+        </div>
       </main>
     </div>
   );

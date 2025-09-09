@@ -23,19 +23,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const body = await req.json();
-    const allowed: Array<keyof typeof body> = [
+    const body = (await req.json()) as Record<string, any>;
+    const allowed = [
       "firstName",
       "lastName",
       "email",
       "phone",
       "dateOfBirth",
-    ];
+    ] as const;
 
     const updates: Record<string, any> = {};
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
-        updates[key] = body[key];
+        updates[key] = body[key as string];
       }
     }
 

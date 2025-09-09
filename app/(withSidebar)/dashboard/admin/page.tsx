@@ -102,16 +102,18 @@ export default async function AdminDashboardPage() {
           </div>
 
           {/* Bottom Row - 2 cards filling remaining space */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
-            {/* News Widget */}
-            <AdminDashboardClient
-              employeeId={user.employee.id}
-              firstName={user.firstName ?? ""}
-              section="news"
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0 overflow-hidden">
+            {/* News Widget - Fixed height container */}
+            <div className="flex flex-col min-h-0">
+              <AdminDashboardClient
+                employeeId={user.employee.id}
+                firstName={user.firstName ?? ""}
+                section="news"
+              />
+            </div>
 
-            {/* Action Items - spans 3 columns */}
-            <div className="lg:col-span-3">
+            {/* Action Items - spans 3 columns with fixed height container */}
+            <div className="lg:col-span-3 flex flex-col min-h-0">
               <AdminDashboardClient
                 employeeId={user.employee.id}
                 firstName={user.firstName ?? ""}

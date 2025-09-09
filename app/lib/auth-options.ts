@@ -31,6 +31,15 @@ export const authOptions: AuthOptions = {
           const emailInput = credentials.email.trim();
           const user = await prisma.user.findFirst({
             where: { email: { equals: emailInput, mode: "insensitive" } as any },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              role: true,
+              companyId: true,
+              firstName: true,
+              lastName: true,
+            },
           });
 
           if (!user) {
@@ -50,13 +59,13 @@ export const authOptions: AuthOptions = {
           }
 
           return {
-  id: user.id,
-  email: user.email,
-  firstName: user.firstName,
-  lastName: user.lastName,
-  role: user.role,
-  companyId: user.companyId ?? "", // ✅ ensures it is a string
-};
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            companyId: user.companyId ?? "",
+          };
         } catch (e) {
           console.error("[auth] authorize error", e);
           return null;

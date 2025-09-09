@@ -23,7 +23,6 @@ export default async function PersonalInformationPage({ params }: PageProps) {
           email: true,
           phone: true,
           dateOfBirth: true,
-          address: true,
           profileImageUrl: true,
           companyId: true,
         },
@@ -69,10 +68,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
               <label className="block text-sm font-medium mb-1">Date of birth</label>
               <Input name="dateOfBirth" type="date" defaultValue={user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().substring(0, 10) : ""} readOnly={!canEdit} />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Address</label>
-              <Input name="address" defaultValue={user.address ?? ""} readOnly={!canEdit} />
-            </div>
+            {/* Address field is not present on the User model. Add later if needed. */}
           </form>
         </div>
       </Card>

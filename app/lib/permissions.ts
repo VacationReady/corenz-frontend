@@ -57,8 +57,10 @@ export function resolvePermissions(user: UserWithProfile): ScreenPermissions {
   // If user has a custom permission profile, use it
   if (user.permissionProfile) {
     try {
-      const profilePermissions = JSON.parse(user.permissionProfile.permissions as string) as ScreenPermissions;
-      return profilePermissions;
+      const raw = user.permissionProfile.permissions as unknown;
+      const profilePermissions =
+        typeof raw === 'string' ? (JSON.parse(raw) as ScreenPermissions) : (raw as ScreenPermissions);
+      return profilePermissions || {};
     } catch (error) {
       console.error('Error parsing permission profile:', error);
       // Fall back to role-based permissions

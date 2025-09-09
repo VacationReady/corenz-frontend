@@ -19,7 +19,7 @@ export async function GET(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const profile = await prisma.permissionProfile.findFirst({
+    const dbProfile = await prisma.permissionProfile.findFirst({
       where: {
         id: params.id,
         companyId: session.user.companyId,
@@ -31,9 +31,17 @@ export async function GET(
       },
     });
 
-    if (!profile) {
+    if (!dbProfile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
+
+    const profile = {
+      ...dbProfile,
+      permissions:
+        typeof dbProfile.permissions === 'string'
+          ? JSON.parse(dbProfile.permissions as unknown as string)
+          : dbProfile.permissions,
+    };
 
     return NextResponse.json(profile);
   } catch (error) {
@@ -104,7 +112,7 @@ export async function PUT(
       data: {
         name: name.trim(),
         description: description?.trim(),
-        permissions: JSON.stringify(permissions),
+        permissions,
       },
     });
 

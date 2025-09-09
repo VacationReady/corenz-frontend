@@ -137,7 +137,7 @@ export default function NewPermissionProfilePage() {
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
             <CardDescription>
-              Basic details for the permission profile
+              Basic details for the permission profile. Profiles apply company-wide and can be assigned to any user. Managers’ permissions here govern what they can do across the system; reporting-line scoping is handled by feature logic (e.g., managers see only their team in Employees/Leave).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -169,7 +169,7 @@ export default function NewPermissionProfilePage() {
           <CardHeader>
             <CardTitle>Permissions</CardTitle>
             <CardDescription>
-              Select the screens and actions this profile can access
+              Select the screens and actions this profile can access. “View” is required for “Edit/Delete.” Admin profiles typically have all permissions; Manager profiles usually include Employees, Leave, and Documents with edit, limited to their team by scope; Employee profiles should only have self-service features.
             </CardDescription>
           </CardHeader>
           <CardContent>

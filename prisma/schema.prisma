@@ -54,6 +54,10 @@ model User {
   permissionAuditChanges                       PermissionAudit[]      @relation("PermissionAuditChangedBy")
   permissionAuditEmployees                     PermissionAudit[]      @relation("PermissionAuditEmployee")
 
+  // Personal info audit relations
+  personalInfoAuditsAsSubject                  PersonalInfoAudit[]    @relation("PersonalInfoAuditSubjectUser")
+  personalInfoAuditsChangedBy                  PersonalInfoAudit[]    @relation("PersonalInfoAuditChangedBy")
+
   company                                      Company?               @relation(fields: [companyId], references: [id])
   department                                   Department?            @relation(fields: [departmentId], references: [id])
   jobRole                                      JobRole?               @relation(fields: [jobRoleId], references: [id])

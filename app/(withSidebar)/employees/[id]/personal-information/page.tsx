@@ -41,9 +41,9 @@ export default async function PersonalInformationPage({ params }: PageProps) {
       },
     },
   });
-  const genderOptions = employee.user.companyId
+  const genderOptions = employee?.user?.companyId
     ? await prisma.genderOption.findMany({
-        where: { companyId: employee.user.companyId, active: true },
+        where: { companyId: employee.user.companyId as string, active: true },
         orderBy: { order: "asc" },
         select: { id: true, label: true },
       })

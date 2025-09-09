@@ -22,25 +22,34 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.warn("[auth] Missing email/password");
+            return null;
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+          const emailInput = credentials.email.trim();
+          const user = await prisma.user.findFirst({
+            where: { email: { equals: emailInput, mode: "insensitive" } as any },
+          });
 
-        if (!user?.password) {
-          return null;
-        }
+          if (!user) {
+            console.warn("[auth] User not found for email", emailInput);
+            return null;
+          }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!user.password) {
+            console.warn("[auth] User has no password set", emailInput);
+            return null;
+          }
 
-        if (!isValid) {
-          return null;
-        }
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isValid) {
+            console.warn("[auth] Invalid password for", emailInput);
+            return null;
+          }
 
-        return {
+          return {
   id: user.id,
   email: user.email,
   firstName: user.firstName,
@@ -48,6 +57,10 @@ export const authOptions: AuthOptions = {
   role: user.role,
   companyId: user.companyId ?? "", // ✅ ensures it is a string
 };
+        } catch (e) {
+          console.error("[auth] authorize error", e);
+          return null;
+        }
       },
     }),
   ],

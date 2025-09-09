@@ -235,7 +235,7 @@ export default function EditPermissionProfilePage() {
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
             <CardDescription>
-              Basic details for the permission profile
+              Profiles are company-wide templates that can be assigned to users. Manager permissions here define capabilities; team-scoping is applied by the app (e.g., Managers see their reports in Employees/Leave).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -269,7 +269,7 @@ export default function EditPermissionProfilePage() {
           <CardHeader>
             <CardTitle>Permissions</CardTitle>
             <CardDescription>
-              Select the screens and actions this profile can access
+              Choose View/Edit/Delete for each screen. Edit/Delete require View. Recommended defaults: Admin = all; Manager = Employees, Documents, Leave (edit) and Reports (view); Employee = self-service only.
             </CardDescription>
           </CardHeader>
           <CardContent>

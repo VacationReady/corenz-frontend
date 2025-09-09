@@ -126,7 +126,9 @@ export async function PATCH(
 
     // Get old permissions for audit
     const oldPermissions = user.permissionProfile
-      ? JSON.parse(user.permissionProfile.permissions as string)
+      ? typeof user.permissionProfile.permissions === 'string'
+        ? JSON.parse(user.permissionProfile.permissions as unknown as string)
+        : (user.permissionProfile.permissions as any)
       : null;
 
     // Update user's permission profile
@@ -142,7 +144,9 @@ export async function PATCH(
 
     // Get new permissions for audit
     const newPermissions = updatedUser.permissionProfile
-      ? JSON.parse(updatedUser.permissionProfile.permissions as string)
+      ? typeof updatedUser.permissionProfile.permissions === 'string'
+        ? JSON.parse(updatedUser.permissionProfile.permissions as unknown as string)
+        : (updatedUser.permissionProfile.permissions as any)
       : null;
 
     // Create audit log entry

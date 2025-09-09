@@ -1,17 +1,25 @@
 // app/dashboard/page.tsx
 
-"use client";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth-options";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
 
-export default function DashboardPage() {
-  const router = useRouter();
+  if (!session?.user) {
+    redirect("/login");
+  }
 
-  useEffect(() => {
-    // Redirect everyone to /dashboard/admin for debugging
-    router.replace("/dashboard/admin");
-  }, [router]);
+  const role = session.user.role;
 
-  return null;
+  if (role === "ADMIN") {
+    redirect("/dashboard/admin");
+  }
+
+  if (role === "MANAGER") {
+    redirect("/dashboard/Manager");
+  }
+
+  redirect("/dashboard/employee");
 }

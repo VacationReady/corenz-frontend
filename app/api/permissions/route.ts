@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get profiles for the user's company
-    const profiles = await prisma.permissionProfile.findMany({
+    const dbProfiles = await prisma.permissionProfile.findMany({
       where: whereClause,
       include: {
         _count: {
@@ -71,6 +71,12 @@ export async function GET(request: NextRequest) {
       skip: offset,
       take: limit,
     });
+
+    const profiles = dbProfiles.map((p) => ({
+      ...p,
+      permissions:
+        typeof p.permissions === 'string' ? JSON.parse(p.permissions as unknown as string) : p.permissions,
+    }));
 
     const total = await prisma.permissionProfile.count({
       where: whereClause,
@@ -132,7 +138,7 @@ export async function POST(request: NextRequest) {
         companyId: session.user.companyId,
         name: name.trim(),
         description: description?.trim(),
-        permissions: JSON.stringify(permissions),
+        permissions,
         builtIn: false,
       },
     });

@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Button } from "@/components/ui/Button";
+import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";

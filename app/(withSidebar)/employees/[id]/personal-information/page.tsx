@@ -41,11 +41,13 @@ export default async function PersonalInformationPage({ params }: PageProps) {
       },
     },
   });
-  const genderOptions = await prisma.genderOption.findMany({
-    where: { companyId: employee.user.companyId, active: true },
-    orderBy: { order: "asc" },
-    select: { id: true, label: true },
-  });
+  const genderOptions = employee.user.companyId
+    ? await prisma.genderOption.findMany({
+        where: { companyId: employee.user.companyId, active: true },
+        orderBy: { order: "asc" },
+        select: { id: true, label: true },
+      })
+    : [];
 
   if (!employee?.user) {
     return <div className="p-6">Employee not found.</div>;

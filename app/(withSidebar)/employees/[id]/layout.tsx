@@ -117,6 +117,7 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
 
   const menu = [
     { href: `/employees/${params.id}/overview`, label: "Overview" },
+    { href: `/employees/${params.id}/personal-information`, label: "Personal information" },
     { href: `/employees/${params.id}/leave`, label: "Leave" },
     { href: `/employees/${params.id}/documents`, label: "Documents" },
     ...forms.map((form) => ({

@@ -30,9 +30,14 @@ const transformedPosts = posts.map(post => ({    id: post.id,
   const session = await getServerSession(authOptions);
   let canPost = false;
 
-  if (session?.user?.email) {
+  if (session?.user?.email && session?.user?.companyId) {
     const dbUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: {
+        email_companyId: {
+          email: session.user.email,
+          companyId: session.user.companyId,
+        },
+      },
     });
 
     if (dbUser?.role === 'ADMIN' || dbUser?.role === 'MANAGER') {

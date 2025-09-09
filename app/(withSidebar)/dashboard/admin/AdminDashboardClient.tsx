@@ -280,44 +280,6 @@ export default function AdminDashboardClient({
     );
   }
 
-  // Recent Activity Section
-  if (section === "recent-activity") {
-    return (
-      <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-full">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium">New Hires</span>
-            </div>
-            <span className="text-xl font-bold text-green-600">{metrics?.newStartersThisMonth || 0}</span>
-          </div>
-          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-              <span className="text-sm font-medium">Pending Reviews</span>
-            </div>
-            <span className="text-xl font-bold text-amber-600">2</span>
-          </div>
-          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span className="text-sm font-medium">Expiring Docs</span>
-            </div>
-            <span className="text-xl font-bold text-red-600">3</span>
-          </div>
-          <div className="flex items-center justify-between p-3 glass-subtle rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium">Training Due</span>
-            </div>
-            <span className="text-xl font-bold text-blue-600">5</span>
-          </div>
-        </div>
-      </DashboardWidget>
-    );
-  }
-
   // People Metrics Section
   if (section === "people-metrics") {
     return (

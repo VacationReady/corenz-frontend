@@ -4,8 +4,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const reports = await prisma.savedReport.findMany({
+      where: { companyId: session.user.companyId },
       include: {
         user: { select: { email: true } },
       },
@@ -13,15 +19,15 @@ export async function GET() {
     });
 
     return NextResponse.json(
-  reports.map((report) => ({
-    id: report.id,
-    name: report.name,
-    category: report.category,
-    createdAt: report.createdAt,
-    createdBy: { email: report.user?.email || "Unknown" },
-    fields: report.fields, // ✅ ADD THIS LINE
-  }))
-);
+      reports.map((report) => ({
+        id: report.id,
+        name: report.name,
+        category: report.category,
+        createdAt: report.createdAt,
+        createdBy: { email: report.user?.email || "Unknown" },
+        fields: report.fields, // ✅ ADD THIS LINE
+      }))
+    );
   } catch (error) {
     console.error("Error fetching reports:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

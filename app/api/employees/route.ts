@@ -139,7 +139,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({
+      where: { email_companyId: { email, companyId } },
+    });
     if (existingUser && existingUser.isActivated) {
       return NextResponse.json(
         { success: false, error: "A user with this email already exists and is activated." },

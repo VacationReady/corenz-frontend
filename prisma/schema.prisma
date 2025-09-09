@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id                                           String                 @id @default(cuid())
-  email                                        String                 @unique
+  email                                        String
   password                                     String
   role                                         Role                   @default(EMPLOYEE)
   permissionProfileId                          String?
@@ -25,7 +25,7 @@ model User {
   managerId                                    String?
   phone                                        String?
   dateOfBirth                                  DateTime?
-  companyId                                    String?
+  companyId                                    String
   emailPreferences                             Json?
   profileImageUrl                              String?
   // Personal info (extended)
@@ -72,12 +72,14 @@ model User {
   // Gender option relation
   genderOption                                  GenderOption?          @relation(fields: [genderOptionId], references: [id])
 
-  company                                      Company?               @relation(fields: [companyId], references: [id])
+  company                                      Company                @relation(fields: [companyId], references: [id])
   department                                   Department?            @relation(fields: [departmentId], references: [id])
   jobRole                                      JobRole?               @relation(fields: [jobRoleId], references: [id])
   manager                                      User?                  @relation("ManagerSubordinates", fields: [managerId], references: [id])
   subordinates                                 User[]                 @relation("ManagerSubordinates")
   permissionProfile                            PermissionProfile?     @relation(fields: [permissionProfileId], references: [id])
+
+  @@unique([email, companyId])
 }
 
 model ActivationToken {
@@ -97,7 +99,7 @@ model Employee {
   jobRoleId                 String?
   onboardingStatus          Json?
   onboardingTemplateId      String?
-  companyId                 String?                           // <-- Added companyId column
+  companyId                 String                           // <-- Added companyId column
   
   // Offboarding fields
   offboardingStatus         String?
@@ -107,7 +109,7 @@ model Employee {
   offboardingReason         String?
   offboardingNotes          String?
   
-  company                   Company?                          @relation(fields: [companyId], references: [id]) // <-- Relation
+  company                   Company                           @relation(fields: [companyId], references: [id]) // <-- Relation
 
   Document                  Document[]
   DocumentAcknowledgement   DocumentAcknowledgement[]
@@ -343,7 +345,7 @@ model FieldMetadata {
 
 model SavedReport {
   name        String
-  companyId   String?
+  companyId   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   category    String
@@ -354,8 +356,10 @@ model SavedReport {
   pagination  Json?
   sort        Json?
   fields      String[]
-  Company     Company? @relation(fields: [companyId], references: [id])
+  Company     Company @relation(fields: [companyId], references: [id])
   user        User     @relation(fields: [createdBy], references: [id])
+
+  @@unique([name, companyId])
 }
 
 model Document {

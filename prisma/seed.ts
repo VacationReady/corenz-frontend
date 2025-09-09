@@ -26,7 +26,7 @@ async function main() {
 
   // ✅ 3. Standard Working Pattern (Monday-Friday, 9am-5pm)
   let standardWorkingPattern = await prisma.workingPattern.findFirst({
-    where: { name: 'Standard (Mon-Fri, 9am-5pm)' },
+    where: { name: 'Standard (Mon-Fri, 9am-5pm)', companyId: company.id },
   });
 
   if (!standardWorkingPattern) {
@@ -34,6 +34,7 @@ async function main() {
       data: {
         name: 'Standard (Mon-Fri, 9am-5pm)',
         description: 'Standard Monday to Friday working pattern from 9am to 5pm',
+        companyId: company.id,
         WorkingPatternWeek: {
           create: [
             {

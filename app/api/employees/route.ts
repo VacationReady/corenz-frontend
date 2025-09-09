@@ -12,11 +12,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ✅ GET: Return employees with their user data for listing
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "active"; // active, archived, all
     const userId = searchParams.get("userId");
 
-    const whereCondition: any = {};
+    const whereCondition: any = { companyId: session.user.companyId };
 
     if (userId) {
       whereCondition.userId = userId;

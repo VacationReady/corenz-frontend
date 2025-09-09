@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 // Zod schema for creating a new pattern
 const WorkingPatternCreateSchema = z.object({
@@ -21,8 +23,13 @@ const WorkingPatternCreateSchema = z.object({
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const patterns = await prisma.workingPattern.findMany({
-      where: { active: true },
+      where: { companyId: session.user.companyId, active: true },
       orderBy: { name: "asc" },
       include: {
         WorkingPatternWeek: {
@@ -60,6 +67,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { name, description, weeks } = WorkingPatternCreateSchema.parse(body);
 
@@ -67,6 +79,7 @@ export async function POST(req: Request) {
       data: {
         name,
         description,
+        companyId: session.user.companyId,
         WorkingPatternWeek: {
           create: weeks.map((week) => ({
             weekNumber: week.weekNumber,

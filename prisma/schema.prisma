@@ -253,6 +253,7 @@ model Company {
   employees           Employee[]
   permissionProfiles  PermissionProfile[]
   genderOptions       GenderOption[]
+  workingPatterns     WorkingPattern[]
 }
 
 model JobRole {
@@ -281,6 +282,8 @@ model WorkingPattern {
   createdAt          DateTime                           @default(now())
   updatedAt          DateTime                           @updatedAt
   description        String?
+  companyId          String
+  company            Company                           @relation(fields: [companyId], references: [id])
   employees          Employee[]
   assignments        EmployeeWorkingPatternAssignment[]
   WorkingPatternWeek WorkingPatternWeek[]

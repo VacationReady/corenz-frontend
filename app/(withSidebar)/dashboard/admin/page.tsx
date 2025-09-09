@@ -67,8 +67,8 @@ export default async function AdminDashboardPage() {
       {/* Dashboard Grid - Full screen layout */}
       <main className="flex-1 p-4 overflow-hidden">
         <div className="h-full flex flex-col gap-4">
-          {/* Top Row - 5 cards with proper heights */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-48">
+          {/* Top Row - 5 cards with flexible height */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-[18rem]">
             {/* Holiday Balance Card - Compact */}
             <LeaveSummaryCard employeeId={user.employee.id} />
 
@@ -103,21 +103,21 @@ export default async function AdminDashboardPage() {
 
           {/* Bottom Row - 2 cards filling remaining space */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0 overflow-hidden">
-            {/* News Widget - Fixed height container */}
+            {/* Action Items - Fixed height container */}
             <div className="flex flex-col min-h-0">
               <AdminDashboardClient
                 employeeId={user.employee.id}
                 firstName={user.firstName ?? ""}
-                section="news"
+                section="action-items"
               />
             </div>
 
-            {/* Action Items - spans 3 columns with fixed height container */}
+            {/* News Widget - spans 3 columns with fixed height container */}
             <div className="lg:col-span-3 flex flex-col min-h-0">
               <AdminDashboardClient
                 employeeId={user.employee.id}
                 firstName={user.firstName ?? ""}
-                section="action-items"
+                section="news"
               />
             </div>
           </div>

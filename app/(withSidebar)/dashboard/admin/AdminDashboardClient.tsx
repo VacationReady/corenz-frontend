@@ -25,11 +25,13 @@ import AddDocumentModal from "@/components/documents/AddDocumentModal";
 interface AdminDashboardClientProps {
   employeeId: string;
   firstName: string;
+  section?: string;
 }
 
 export default function AdminDashboardClient({
   employeeId,
   firstName,
+  section,
 }: AdminDashboardClientProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
@@ -210,11 +212,10 @@ export default function AdminDashboardClient({
     { label: "Email Employee", icon: Mail },
   ];
 
-  return (
-    <div className="space-y-4 h-32">
-      {/* Single Row - 4 Cards to fit with Holiday Balance (5 total) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-32">
-        {/* Quick Actions Widget */}
+  // Quick Actions Section
+  if (section === "quick-actions") {
+    return (
+      <div className="h-32">
         <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-32">
           <div className="grid grid-cols-2 gap-2">
             {actions.map(({ label, icon: Icon }) => (
@@ -232,8 +233,16 @@ export default function AdminDashboardClient({
             ))}
           </div>
         </DashboardWidget>
+        <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
+        <AddDocumentModal open={addDocumentOpen} onClose={() => setAddDocumentOpen(false)} />
+      </div>
+    );
+  }
 
-        {/* Calendar Widget */}
+  // Calendar Section
+  if (section === "calendar") {
+    return (
+      <div className="h-32">
         <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-32">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -268,8 +277,14 @@ export default function AdminDashboardClient({
             </div>
           </div>
         </DashboardWidget>
+      </div>
+    );
+  }
 
-        {/* Recent Activity */}
+  // Recent Activity Section
+  if (section === "recent-activity") {
+    return (
+      <div className="h-32">
         <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-32">
           <div className="space-y-1">
             <div className="flex items-center justify-between p-1 glass-subtle rounded-lg">
@@ -302,8 +317,14 @@ export default function AdminDashboardClient({
             </div>
           </div>
         </DashboardWidget>
+      </div>
+    );
+  }
 
-        {/* People Metrics Widget */}
+  // People Metrics Section
+  if (section === "people-metrics") {
+    return (
+      <div className="h-32">
         <DashboardWidget title="People Metrics" icon={Users} className="h-32">
           <div className="space-y-2">
             {/* Compact Department Filter */}
@@ -346,80 +367,80 @@ export default function AdminDashboardClient({
           </div>
         </DashboardWidget>
       </div>
+    );
+  }
 
-      {/* Bottom Row - 2 Cards (News far left, Action Items spans rest) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1">
-        {/* News Widget - Far left */}
-        <NewsWidget />
+  // News Section
+  if (section === "news") {
+    return <NewsWidget />;
+  }
 
-        {/* Action Items - spans 3 columns */}
-        <div className="lg:col-span-3">
-          <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
-            <div className="flex items-center gap-2 text-xs">
-              <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
-              <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
-              <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
-            </div>
-          ) : undefined}>
-            <div className="space-y-3">
-              {loadingMetrics || !metrics ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
-                      <p className="text-xs text-muted-foreground">pending approvals</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Link href="/dashboard/approvals">
-                        <Button size="sm" variant="outline">View All</Button>
-                      </Link>
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const qs = new URLSearchParams({ status: "PENDING" });
-                            if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
-                            if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                            qs.set("limit", "5");
-                            const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
-                            const data = await res.json();
-                            if (!data?.success) return;
-                            const first = data.data?.[0];
-                            if (!first) return;
-                            await fetch(`/api/leave-request/${first.id}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ action: "approve" }),
-                            });
-                            const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
-                            if (metricsRes.ok) setMetrics(await metricsRes.json());
-                          } catch {}
-                        }}
-                      >
-                        Quick Approve
-                      </Button>
-                    </div>
-                  </div>
-                  <CompactApprovalsList 
-                    scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
-                    departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
-                  />
-                </>
-              )}
-            </div>
-          </DashboardWidget>
+  // Action Items Section
+  if (section === "action-items") {
+    return (
+      <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
+        <div className="flex items-center gap-2 text-xs">
+          <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
+          <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
+          <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
         </div>
-      </div>
+      ) : undefined}>
+        <div className="space-y-3">
+          {loadingMetrics || !metrics ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
+                  <p className="text-xs text-muted-foreground">pending approvals</p>
+                </div>
+                <div className="flex gap-2">
+                  <Link href="/dashboard/approvals">
+                    <Button size="sm" variant="outline">View All</Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const qs = new URLSearchParams({ status: "PENDING" });
+                        if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
+                        if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                        qs.set("limit", "5");
+                        const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
+                        const data = await res.json();
+                        if (!data?.success) return;
+                        const first = data.data?.[0];
+                        if (!first) return;
+                        await fetch(`/api/leave-request/${first.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ action: "approve" }),
+                        });
+                        const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
+                        if (metricsRes.ok) setMetrics(await metricsRes.json());
+                      } catch {}
+                    }}
+                  >
+                    Quick Approve
+                  </Button>
+                </div>
+              </div>
+              <CompactApprovalsList 
+                scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
+                departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
+              />
+            </>
+          )}
+        </div>
+      </DashboardWidget>
+    );
+  }
 
-      {/* Modals */}
-      <AddEmployeeModal open={modalOpen} onClose={() => setModalOpen(false)} />
-      <AddDocumentModal open={addDocumentOpen} onClose={() => setAddDocumentOpen(false)} />
-    </div>
-  );
+  // Default fallback - should not happen
+  return null;
 }

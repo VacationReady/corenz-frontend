@@ -21,7 +21,6 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import AddDocumentModal from "@/components/documents/AddDocumentModal";
-import CompactApprovalsList from "@/components/dashboard/CompactApprovalsList";
 
 interface AdminDashboardClientProps {
   employeeId: string;

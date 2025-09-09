@@ -211,66 +211,67 @@ export default function AdminDashboardClient({
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full">
-      {/* Quick Actions Widget - spans 1 column */}
-      <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
-        <div className="grid grid-cols-2 gap-2">
-          {actions.map(({ label, icon: Icon }) => (
-            <button
-              key={label}
-              onClick={() => {
-                if (label === "Add Employee") setModalOpen(true);
-                if (label === "Add Document") setAddDocumentOpen(true);
-              }}
-              className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-3 hover-glass transition-glass hover-lift group"
-            >
-              <Icon className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-smooth" />
-              <span className="text-xs font-medium text-foreground text-center">{label}</span>
-            </button>
-          ))}
-        </div>
-      </DashboardWidget>
-
-      {/* Calendar Widget - spans 1 column */}
-      <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-full">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Upcoming</h3>
+    <div className="space-y-4 h-full">
+      {/* Top Row - 4 Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Quick Actions Widget */}
+        <DashboardWidget title="Quick Actions" icon={Megaphone} className="h-full">
+          <div className="grid grid-cols-2 gap-2">
+            {actions.map(({ label, icon: Icon }) => (
+              <button
+                key={label}
+                onClick={() => {
+                  if (label === "Add Employee") setModalOpen(true);
+                  if (label === "Add Document") setAddDocumentOpen(true);
+                }}
+                className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-3 hover-glass transition-glass hover-lift group"
+              >
+                <Icon className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-smooth" />
+                <span className="text-xs font-medium text-foreground text-center">{label}</span>
+              </button>
+            ))}
           </div>
-          <div className="space-y-2">
-            {loadingWhosOff ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            ) : whosOff.length === 0 ? (
-              <p className="text-muted-foreground text-center text-sm">No upcoming events</p>
-            ) : (
-              <ul className="space-y-2">
-                {whosOff
-                  .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-                  .slice(0, 4)
-                  .map((ev) => (
-                    <li key={ev.id} className="flex items-center gap-3">
-                      <Avatar size={28} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {new Date(ev.start).toLocaleDateString()} • {ev.reason || ev.title}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </DashboardWidget>
+        </DashboardWidget>
 
-      {/* Recent Hires/Departures - Critical HR Admin Info */}
-      <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-full">
-        <div className="space-y-3">
+        {/* Calendar Widget */}
+        <DashboardWidget title="Calendar" icon={CalendarCheck2} className="h-full">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">Upcoming</h3>
+            </div>
+            <div className="space-y-2">
+              {loadingWhosOff ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              ) : whosOff.length === 0 ? (
+                <p className="text-muted-foreground text-center text-sm">No upcoming events</p>
+              ) : (
+                <ul className="space-y-2">
+                  {whosOff
+                    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+                    .slice(0, 4)
+                    .map((ev) => (
+                      <li key={ev.id} className="flex items-center gap-3">
+                        <Avatar size={28} name={ev.employee?.name} src={ev.employee?.profileImageUrl} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{ev.employee?.name ?? ev.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {new Date(ev.start).toLocaleDateString()} • {ev.reason || ev.title}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </DashboardWidget>
+
+        {/* Recent Activity */}
+        <DashboardWidget title="Recent Activity" icon={UserPlus} className="h-full">
           <div className="space-y-2">
             <div className="flex items-center justify-between p-2 glass-subtle rounded-lg">
               <div className="flex items-center gap-2">
@@ -301,113 +302,120 @@ export default function AdminDashboardClient({
               <span className="text-lg font-bold text-blue-600">5</span>
             </div>
           </div>
-        </div>
-      </DashboardWidget>
+        </DashboardWidget>
 
-      {/* People Metrics Widget - spans 1 column */}
-      <DashboardWidget title="People Metrics" icon={Users} className="h-full" action={(
-        <div className="w-40">
-          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="All departments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All departments</SelectItem>
-              {departments.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}>
-        <div className="space-y-3">
-          {loadingMetrics || !metrics ? (
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="h-5 w-5/6" />
-            </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Active Employees</span>
-                <span className="text-xl font-bold text-foreground">{metrics.headcount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Managers</span>
-                <span className="text-xl font-bold text-foreground">{metrics.managers}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">New Starters</span>
-                <span className="text-xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
-              </div>
-            </>
-          )}
-        </div>
-      </DashboardWidget>
-
-      {/* Action Items - spans 2 columns, positioned next to People Metrics */}
-      <div className="lg:col-span-2">
-        <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
-          <div className="flex items-center gap-2 text-xs">
-            <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
-            <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
-            <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
-          </div>
-        ) : undefined}>
+        {/* People Metrics Widget */}
+        <DashboardWidget title="People Metrics" icon={Users} className="h-full">
           <div className="space-y-3">
+            {/* Compact Department Filter */}
+            <div className="mb-3">
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue placeholder="All depts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All departments</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {loadingMetrics || !metrics ? (
               <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-5 w-5/6" />
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
-                    <p className="text-xs text-muted-foreground">pending approvals</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Link href="/dashboard/approvals">
-                      <Button size="sm" variant="outline">View All</Button>
-                    </Link>
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          const qs = new URLSearchParams({ status: "PENDING" });
-                          if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
-                          if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                          qs.set("limit", "5");
-                          const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
-                          const data = await res.json();
-                          if (!data?.success) return;
-                          const first = data.data?.[0];
-                          if (!first) return;
-                          await fetch(`/api/leave-request/${first.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ action: "approve" }),
-                          });
-                          const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
-                          if (metricsRes.ok) setMetrics(await metricsRes.json());
-                        } catch {}
-                      }}
-                    >
-                      Quick Approve
-                    </Button>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Active Employees</span>
+                  <span className="text-xl font-bold text-foreground">{metrics.headcount}</span>
                 </div>
-                <CompactApprovalsList 
-                  scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
-                  departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
-                />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Managers</span>
+                  <span className="text-xl font-bold text-foreground">{metrics.managers}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">New Starters</span>
+                  <span className="text-xl font-bold text-primary">{metrics.newStartersThisMonth}</span>
+                </div>
               </>
             )}
           </div>
         </DashboardWidget>
+      </div>
+
+      {/* Bottom Row - 3 Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+        {/* News Widget - Restored to bottom left */}
+        <NewsWidget />
+
+        {/* Action Items - spans 2 columns */}
+        <div className="lg:col-span-2">
+          <DashboardWidget title="Action items" icon={ClipboardList} className="h-full" action={metrics?.canViewAllApprovals ? (
+            <div className="flex items-center gap-2 text-xs">
+              <span className={!approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
+              <Switch checked={approvalsScopeMy} onChange={setApprovalsScopeMy} />
+              <span className={approvalsScopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
+            </div>
+          ) : undefined}>
+            <div className="space-y-3">
+              {loadingMetrics || !metrics ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-primary mb-1">{approvalsCount}</p>
+                      <p className="text-xs text-muted-foreground">pending approvals</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href="/dashboard/approvals">
+                        <Button size="sm" variant="outline">View All</Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const qs = new URLSearchParams({ status: "PENDING" });
+                            if (metrics?.canViewAllApprovals) qs.set("scope", approvalsScopeMy ? "my" : "all");
+                            if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                            qs.set("limit", "5");
+                            const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
+                            const data = await res.json();
+                            if (!data?.success) return;
+                            const first = data.data?.[0];
+                            if (!first) return;
+                            await fetch(`/api/leave-request/${first.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ action: "approve" }),
+                            });
+                            const metricsRes = await fetch(`/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`, { cache: "no-store" });
+                            if (metricsRes.ok) setMetrics(await metricsRes.json());
+                          } catch {}
+                        }}
+                      >
+                        Quick Approve
+                      </Button>
+                    </div>
+                  </div>
+                  <CompactApprovalsList 
+                    scope={metrics?.canViewAllApprovals ? (approvalsScopeMy ? "my" : "all") : undefined} 
+                    departmentId={selectedDepartment !== "all" ? selectedDepartment : undefined} 
+                  />
+                </>
+              )}
+            </div>
+          </DashboardWidget>
+        </div>
       </div>
 
       {/* Modals */}

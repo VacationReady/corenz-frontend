@@ -665,8 +665,8 @@ model PersonalInfoAudit {
   newValue    String?
   changedAt   DateTime @default(now())
 
-  subjectUser User     @relation(fields: [subjectUserId], references: [id])
-  changedBy   User     @relation(fields: [changedById], references: [id])
+  subjectUser User     @relation("PersonalInfoAuditSubjectUser", fields: [subjectUserId], references: [id])
+  changedBy   User     @relation("PersonalInfoAuditChangedBy", fields: [changedById], references: [id])
 
   @@index([companyId, subjectUserId, changedAt])
 }

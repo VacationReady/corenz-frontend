@@ -33,7 +33,8 @@ export default function ProfileAvatarUploader({ userId, name, initialUrl }: Prop
       const res = await fetch(`/api/users/${userId}/profile-image`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: uploaded.url }),
+        credentials: "include",
+        body: JSON.stringify({ url: uploaded.url, path: uploaded.path }),
       });
       if (!res.ok) throw new Error(await res.text());
       setUrl(uploaded.url);

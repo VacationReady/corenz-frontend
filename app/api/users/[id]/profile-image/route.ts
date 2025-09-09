@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import supabase from "@/lib/supabase-admin";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -11,9 +12,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     const userId = params.id;
-    const { url } = await req.json();
-    if (!url || typeof url !== "string") {
-      return NextResponse.json({ error: "Invalid url" }, { status: 400 });
+    const body = await req.json();
+    let url: string | undefined = typeof body?.url === "string" ? body.url : undefined;
+    const path: string | undefined = typeof body?.path === "string" ? body.path : undefined;
+
+    if (!url && path) {
+      const { data } = supabase.storage.from("documents").getPublicUrl(path);
+      url = data?.publicUrl;
+    }
+
+    if (!url) {
+      return NextResponse.json({ error: "Invalid url or path" }, { status: 400 });
     }
 
     // Allow self-update or admin

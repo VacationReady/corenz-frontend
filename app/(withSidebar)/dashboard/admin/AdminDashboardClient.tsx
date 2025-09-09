@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";

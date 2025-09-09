@@ -29,15 +29,16 @@ export default function ProfileAvatarUploader({ userId, name, initialUrl }: Prop
     }
     setIsUploading(true);
     try {
-      const uploaded = await uploadToSupabase(file);
-      const res = await fetch(`/api/users/${userId}/profile-image`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/users/${userId}/profile-image/upload`, {
+        method: "POST",
+        body: formData,
         credentials: "include",
-        body: JSON.stringify({ url: uploaded.url, path: uploaded.path }),
       });
       if (!res.ok) throw new Error(await res.text());
-      setUrl(uploaded.url);
+      const json = await res.json();
+      setUrl(json.url);
       toast.success("Profile photo updated");
     } catch (err) {
       toast.error("Failed to upload profile photo");

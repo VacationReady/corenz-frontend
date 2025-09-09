@@ -14,11 +14,11 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={`w-full h-2 bg-gray-200 rounded ${className || ""}`}
+      className={`w-full h-2 glass-subtle rounded-2xl ${className || ""}`}
       {...props}
     >
       <div
-        className="h-full bg-blue-600 rounded transition-all"
+        className="h-full bg-primary rounded-2xl transition-all"
         style={{
           width: `${Math.min(100, Math.max(0, value))}%`,
         }}

@@ -18,51 +18,59 @@ export default function ManagerSidebar() {
   ];
 
   return (
-    <aside className="w-72 min-h-screen bg-content-panel shadow-enterprise border-r border-enhanced flex flex-col">
-      {/* Logo Section */}
-      <div className="bg-card-header border-b border-enhanced px-6 py-6">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
-            <span className="text-primary-foreground font-bold text-sm">C</span>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">CoreNZ</h2>
-            <p className="text-sm text-muted-foreground">Manager Panel</p>
+    <div className="min-h-screen transition-all duration-300 flex flex-col m-4 ml-6 w-80">
+      {/* Glassmorphism Container */}
+      <div className="glass rounded-3xl shadow-glass h-full flex flex-col overflow-hidden">
+        {/* Logo Section */}
+        <div className="px-8 py-8 border-b border-glass">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
+              <span className="text-primary-foreground font-bold text-lg">C</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">CoreNZ</h2>
+              <p className="text-sm text-muted-foreground">Manager Panel</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-6 px-4">
-        <div className="space-y-2">
-          {navItems.map(({ label, href }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center px-3 py-2.5 rounded-md transition-smooth font-medium text-sm',
-                'hover:bg-accent hover:text-accent-foreground',
-                pathname === href
-                  ? 'bg-primary text-primary-foreground shadow-sm border-l-4 border-primary-foreground/20'
-                  : 'text-foreground'
-              )}
-            >
-              {label}
-            </Link>
-          ))}
+        {/* Quick Actions Header */}
+        <div className="px-8 py-6">
+          <h2 className="text-lg font-bold text-foreground mb-2">Quick actions</h2>
+          <p className="text-sm text-muted-foreground">Navigate your workspace</p>
         </div>
-      </nav>
 
-      {/* Settings & Logout */}
-      <div className="border-t border-enhanced bg-card-header px-4 py-4">
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md transition-smooth"
-        >
-          <LogOut size={18} />
-          <span className="font-medium">Logout</span>
-        </button>
+        {/* Navigation */}
+        <nav className="flex-1 px-6 pb-6">
+          <div className="space-y-2">
+            {navItems.map(({ label, href }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass hover-glass',
+                  pathname === href
+                    ? 'bg-primary text-primary-foreground shadow-warm'
+                    : 'text-foreground'
+                )}
+              >
+                <span className="truncate font-medium text-base">{label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+
+        {/* Settings & Logout */}
+        <div className="border-t border-glass px-6 py-6">
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover-glass rounded-2xl transition-glass"
+          >
+            <LogOut size={20} />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }

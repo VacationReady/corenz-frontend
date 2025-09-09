@@ -6,29 +6,43 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const department = searchParams.get("department");
+  const departmentId = searchParams.get("departmentId");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
 
   try {
     const leaveRequests = await prisma.leaveRequest.findMany({
-  where: {
-    approvalStatus: "APPROVED",
-    employee: {
-      department: department ? { name: department } : undefined,
-    },
-  },
-  include: {
-    employee: {
+      where: {
+        approvalStatus: "APPROVED",
+        employee: {
+          ...(department ? { department: { name: department } } : {}),
+          ...(departmentId ? { departmentId } : {}),
+        },
+        ...(from || to
+          ? {
+              // overlap where (start <= to) AND (end >= from)
+              AND: [
+                to ? { startDate: { lte: new Date(to) } } : {},
+                from ? { endDate: { gte: new Date(from) } } : {},
+              ],
+            }
+          : {}),
+      },
       include: {
-        user: true,
-        department: true,
+        employee: {
+          include: {
+            user: true,
+            department: true,
+          },
+        },
+        eventCategory: {
+          select: {
+            name: true,
+          },
+        },
       },
-    },
-    eventCategory: {
-      select: {
-        name: true,
-      },
-    },
-  },
-});
+      orderBy: { startDate: "desc" },
+    });
 
     const events = leaveRequests.map((req) => {
       const user = req.employee.user;
@@ -43,6 +57,13 @@ export async function GET(req: Request) {
         start: req.startDate,
         end: req.endDate,
         allDay: true,
+        reason: req.reason ?? null,
+        employee: {
+          id: req.employee.id,
+          name: displayName,
+          department: req.employee.department?.name ?? null,
+          profileImageUrl: user.profileImageUrl ?? null,
+        },
       };
     });
 

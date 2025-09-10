@@ -5,11 +5,11 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 
-async function findBestOnboardingTemplate(employee: any) {
+async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 1. By Job Role
   if (employee.jobRoleId) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
-      where: { jobRoles: { some: { id: employee.jobRoleId } }, isActive: true },
+      where: { jobRoles: { some: { id: employee.jobRoleId } }, isActive: true, companyId },
       include: { steps: true },
     });
     if (byJobRole) return byJobRole;
@@ -18,19 +18,19 @@ async function findBestOnboardingTemplate(employee: any) {
   // 2. By Department
   if (employee.departmentId) {
     const byDept = await prisma.onboardingTemplate.findFirst({
-      where: { departments: { some: { id: employee.departmentId } }, isActive: true },
+      where: { departments: { some: { id: employee.departmentId } }, isActive: true, companyId },
       include: { steps: true },
     });
     if (byDept) return byDept;
   }
 
   // 3. Default (fallback)
-  return prisma.onboardingTemplate.findFirst({ where: { isDefault: true, isActive: true }, include: { steps: true } });
+  return prisma.onboardingTemplate.findFirst({ where: { isDefault: true, isActive: true, companyId }, include: { steps: true } });
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
         ? rawTemplateId
         : undefined;
 
-    // Fetch employee with related user, dept, role
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+    // Fetch employee with related user, dept, role scoped to company
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, companyId: session.user.companyId },
       include: { user: true, department: true, jobRole: true },
     });
 
@@ -73,13 +73,13 @@ export async function POST(req: NextRequest) {
         where: {
           id: templateId,
           isActive: true,
-          companyId: employee.companyId ?? undefined,
+          companyId: session.user.companyId,
         },
         include: { steps: true },
       });
     }
     if (!template) {
-      template = await findBestOnboardingTemplate(employee);
+      template = await findBestOnboardingTemplate(employee, session.user.companyId);
     }
     if (!template) {
       return NextResponse.json({ error: "No onboarding template found" }, { status: 400 });

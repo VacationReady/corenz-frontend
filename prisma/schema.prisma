@@ -29,16 +29,16 @@ model User {
   emailPreferences                             Json?
   profileImageUrl                              String?
   // Personal info (extended)
-  addressStreet                                 String?
-  addressCity                                   String?
-  addressPostcode                               String?
-  addressCountry                                String?
-  emergencyContactName                          String?
-  emergencyContactRelationship                  String?
-  emergencyContactPhone                         String?
-  nationalId                                    String?
-  pronouns                                      String?
-  genderOptionId                                String?
+  addressStreet                                String?
+  addressCity                                  String?
+  addressPostcode                              String?
+  addressCountry                               String?
+  emergencyContactName                         String?
+  emergencyContactRelationship                 String?
+  emergencyContactPhone                        String?
+  nationalId                                   String?
+  pronouns                                     String?
+  genderOptionId                               String?
   activationToken                              ActivationToken?
   departmentHeadOf                             Department[]           @relation("DepartmentHead")
   documents                                    Document[]
@@ -49,35 +49,35 @@ model User {
   newsPosts                                    NewsPost[]
   onboardingAssignments                        OnboardingAssignment[]
   SavedReport                                  SavedReport[]
-  updatedTemplates                             OnboardingTemplate[] @relation("OnboardingTemplateUpdatedBy")
+  updatedTemplates                             OnboardingTemplate[]   @relation("OnboardingTemplateUpdatedBy")
 
   // Offboarding relations
-  offboardingInitiated                         EmployeeOffboarding[]  @relation("OffboardingInitiatedBy")
-  offboardingAccessRemoved                     EmployeeOffboarding[]  @relation("OffboardingAccessRemovedBy")
-  offboardingHandoverAssigned                  EmployeeOffboarding[]  @relation("OffboardingHandoverAssignedTo")
-  offboardingHRReviewCompleted                 EmployeeOffboarding[]  @relation("OffboardingHRReviewCompletedBy")
-  offboardingAssetsReturnedTo                  EmployeeOffboarding[]  @relation("OffboardingAssetsReturnedTo")
-  exitInterviewConducted                       EmployeeOffboarding[]  @relation("ExitInterviewInterviewer")
-  tasksAssigned                                OffboardingTask[]      @relation("TaskAssignedTo")
-  tasksCompleted                               OffboardingTask[]      @relation("TaskCompletedBy")
+  offboardingInitiated         EmployeeOffboarding[] @relation("OffboardingInitiatedBy")
+  offboardingAccessRemoved     EmployeeOffboarding[] @relation("OffboardingAccessRemovedBy")
+  offboardingHandoverAssigned  EmployeeOffboarding[] @relation("OffboardingHandoverAssignedTo")
+  offboardingHRReviewCompleted EmployeeOffboarding[] @relation("OffboardingHRReviewCompletedBy")
+  offboardingAssetsReturnedTo  EmployeeOffboarding[] @relation("OffboardingAssetsReturnedTo")
+  exitInterviewConducted       EmployeeOffboarding[] @relation("ExitInterviewInterviewer")
+  tasksAssigned                OffboardingTask[]     @relation("TaskAssignedTo")
+  tasksCompleted               OffboardingTask[]     @relation("TaskCompletedBy")
 
   // Permission relations
-  permissionAuditChanges                       PermissionAudit[]      @relation("PermissionAuditChangedBy")
-  permissionAuditEmployees                     PermissionAudit[]      @relation("PermissionAuditEmployee")
+  permissionAuditChanges   PermissionAudit[] @relation("PermissionAuditChangedBy")
+  permissionAuditEmployees PermissionAudit[] @relation("PermissionAuditEmployee")
 
   // Personal info audit relations
-  personalInfoAuditsAsSubject                  PersonalInfoAudit[]    @relation("PersonalInfoAuditSubjectUser")
-  personalInfoAuditsChangedBy                  PersonalInfoAudit[]    @relation("PersonalInfoAuditChangedBy")
+  personalInfoAuditsAsSubject PersonalInfoAudit[] @relation("PersonalInfoAuditSubjectUser")
+  personalInfoAuditsChangedBy PersonalInfoAudit[] @relation("PersonalInfoAuditChangedBy")
 
   // Gender option relation
-  genderOption                                  GenderOption?          @relation(fields: [genderOptionId], references: [id])
+  genderOption GenderOption? @relation(fields: [genderOptionId], references: [id])
 
-  company                                      Company                @relation(fields: [companyId], references: [id])
-  department                                   Department?            @relation(fields: [departmentId], references: [id])
-  jobRole                                      JobRole?               @relation(fields: [jobRoleId], references: [id])
-  manager                                      User?                  @relation("ManagerSubordinates", fields: [managerId], references: [id])
-  subordinates                                 User[]                 @relation("ManagerSubordinates")
-  permissionProfile                            PermissionProfile?     @relation(fields: [permissionProfileId], references: [id])
+  company           Company            @relation(fields: [companyId], references: [id])
+  department        Department?        @relation(fields: [departmentId], references: [id])
+  jobRole           JobRole?           @relation(fields: [jobRoleId], references: [id])
+  manager           User?              @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates      User[]             @relation("ManagerSubordinates")
+  permissionProfile PermissionProfile? @relation(fields: [permissionProfileId], references: [id])
 
   @@unique([email, companyId])
 }
@@ -91,25 +91,25 @@ model ActivationToken {
 }
 
 model Employee {
-  id                        String                             @id @default(cuid())
-  userId                    String                             @unique
-  isActive                  Boolean                            @default(true)
-  workingPatternId          String?
-  departmentId              String?
-  jobRoleId                 String?
-  onboardingStatus          Json?
-  onboardingTemplateId      String?
-  companyId                 String                           // <-- Added companyId column
-  
+  id                   String  @id @default(cuid())
+  userId               String  @unique
+  isActive             Boolean @default(true)
+  workingPatternId     String?
+  departmentId         String?
+  jobRoleId            String?
+  onboardingStatus     Json?
+  onboardingTemplateId String?
+  companyId            String // <-- Added companyId column
+
   // Offboarding fields
-  offboardingStatus         String?
-  offboardingDate           DateTime?
-  lastWorkingDate           DateTime?
-  noticePeriodDays          Int?
-  offboardingReason         String?
-  offboardingNotes          String?
-  
-  company                   Company                           @relation(fields: [companyId], references: [id]) // <-- Relation
+  offboardingStatus String?
+  offboardingDate   DateTime?
+  lastWorkingDate   DateTime?
+  noticePeriodDays  Int?
+  offboardingReason String?
+  offboardingNotes  String?
+
+  company Company @relation(fields: [companyId], references: [id]) // <-- Relation
 
   Document                  Document[]
   DocumentAcknowledgement   DocumentAcknowledgement[]
@@ -123,7 +123,7 @@ model Employee {
   employmentChecks          EmploymentCheck[]
   formAssignments           FormAssignment[]
   formSubmissions           FormSubmission[]
-  formDataRecords           FormDataRecord[]                   // NEW: Persistent form data
+  formDataRecords           FormDataRecord[] // NEW: Persistent form data
   leaveEntitlements         LeaveEntitlement[]
   leaveRequests             LeaveRequest[]
   onboardingInstances       OnboardingInstance[]
@@ -146,7 +146,7 @@ model EmployeeWorkingPatternAssignment {
 
 model EventCategory {
   id               String             @id @default(cuid())
-  name             String             @unique
+  name             String
   requiresApproval Boolean
   adminOnly        Boolean
   isActive         Boolean            @default(true)
@@ -155,22 +155,30 @@ model EventCategory {
   categoryType     String
   color            String?
   systemDefined    Boolean            @default(false)
+  companyId        String
+  company          Company            @relation(fields: [companyId], references: [id])
   eventRules       EventRule[]
   subcategories    EventSubcategory[]
   LeaveEntitlement LeaveEntitlement[]
   leaveRequests    LeaveRequest[]
+
+  @@unique([companyId, name])
 }
 
 model EventSubcategory {
   id                String         @id @default(cuid())
   name              String
   eventCategoryId   String
+  companyId         String
   defaultPaidStatus PaidStatus     @default(PAID)
   isActive          Boolean        @default(true)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   eventCategory     EventCategory  @relation(fields: [eventCategoryId], references: [id])
+  company           Company        @relation(fields: [companyId], references: [id])
   LeaveRequest      LeaveRequest[]
+
+  @@unique([companyId, name])
 }
 
 model LeaveRequest {
@@ -188,11 +196,13 @@ model LeaveRequest {
   dayType          DayType
   eventCategoryId  String
   requesterId      String
+  companyId        String
   approvedBy       User?             @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
   employee         Employee          @relation(fields: [employeeId], references: [id])
   eventCategory    EventCategory     @relation(fields: [eventCategoryId], references: [id])
   requester        User              @relation("RequestingUser", fields: [requesterId], references: [id])
   EventSubcategory EventSubcategory? @relation(fields: [sickReasonId], references: [id])
+  company          Company           @relation(fields: [companyId], references: [id])
 }
 
 model LeaveEntitlement {
@@ -206,8 +216,10 @@ model LeaveEntitlement {
   eventCategoryId String
   carryoverDays   Float         @default(0)
   carryoverExpiry DateTime?
+  companyId       String
   employee        Employee      @relation(fields: [employeeId], references: [id])
   eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
+  company         Company       @relation(fields: [companyId], references: [id])
 
   @@unique([employeeId, eventCategoryId])
 }
@@ -254,6 +266,10 @@ model Company {
   permissionProfiles  PermissionProfile[]
   genderOptions       GenderOption[]
   workingPatterns     WorkingPattern[]
+  eventCategories     EventCategory[]
+  eventSubcategories  EventSubcategory[]
+  leaveRequests       LeaveRequest[]
+  leaveEntitlements   LeaveEntitlement[]
 }
 
 model JobRole {
@@ -283,7 +299,7 @@ model WorkingPattern {
   updatedAt          DateTime                           @updatedAt
   description        String?
   companyId          String
-  company            Company                           @relation(fields: [companyId], references: [id])
+  company            Company                            @relation(fields: [companyId], references: [id])
   employees          Employee[]
   assignments        EmployeeWorkingPatternAssignment[]
   WorkingPatternWeek WorkingPatternWeek[]
@@ -359,7 +375,7 @@ model SavedReport {
   pagination  Json?
   sort        Json?
   fields      String[]
-  Company     Company @relation(fields: [companyId], references: [id])
+  Company     Company  @relation(fields: [companyId], references: [id])
   user        User     @relation(fields: [createdBy], references: [id])
 
   @@unique([name, companyId])
@@ -529,10 +545,10 @@ model OnboardingStep {
   documentId              String?
   uploadType              OnboardingUploadType?
   instruction             String?
-  formId                  String?                 // <-- Already correctly defined
-  document                Document?               @relation(fields: [documentId], references: [id])
-  form                    Form?                   @relation(fields: [formId], references: [id])
-  template                OnboardingTemplate      @relation(fields: [templateId], references: [id])
+  formId                  String? // <-- Already correctly defined
+  document                Document?                @relation(fields: [documentId], references: [id])
+  form                    Form?                    @relation(fields: [formId], references: [id])
+  template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
   onboardingStepInstances OnboardingStepInstance[]
 
   @@unique([templateId, label])
@@ -630,30 +646,30 @@ model FormSubmission {
 }
 
 model FormDataRecord {
-  id          String   @id @default(cuid())
-  formId      String
-  employeeId  String
-  data        Json     // Persistent data that can be updated
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  employee    Employee @relation(fields: [employeeId], references: [id])
-  form        Form     @relation(fields: [formId], references: [id])
+  id         String   @id @default(cuid())
+  formId     String
+  employeeId String
+  data       Json // Persistent data that can be updated
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  form       Form     @relation(fields: [formId], references: [id])
 
   @@unique([formId, employeeId]) // One data record per employee per form
 }
 
 model PermissionProfile {
-  id          String        @id @default(cuid())
+  id          String   @id @default(cuid())
   companyId   String
   name        String
   description String?
-  permissions Json          // JSON object mapping screens to permission actions
-  builtIn     Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  permissions Json // JSON object mapping screens to permission actions
+  builtIn     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  company     Company       @relation(fields: [companyId], references: [id])
-  users       User[]
+  company      Company           @relation(fields: [companyId], references: [id])
+  users        User[]
   oldAuditLogs PermissionAudit[] @relation("PermissionAuditOldProfile")
   newAuditLogs PermissionAudit[] @relation("PermissionAuditNewProfile")
 
@@ -661,20 +677,20 @@ model PermissionProfile {
 }
 
 model PermissionAudit {
-  id               String   @id @default(cuid())
-  employeeId       String
-  changedById      String
-  oldProfileId     String?
-  newProfileId     String?
-  oldPermissions   Json?    // Snapshot of old profile permissions
-  newPermissions   Json?    // Snapshot of new profile permissions
-  note             String?
-  changedAt        DateTime @default(now())
+  id             String   @id @default(cuid())
+  employeeId     String
+  changedById    String
+  oldProfileId   String?
+  newProfileId   String?
+  oldPermissions Json? // Snapshot of old profile permissions
+  newPermissions Json? // Snapshot of new profile permissions
+  note           String?
+  changedAt      DateTime @default(now())
 
-  employee         User     @relation("PermissionAuditEmployee", fields: [employeeId], references: [id])
-  changedBy        User     @relation("PermissionAuditChangedBy", fields: [changedById], references: [id])
-  oldProfile       PermissionProfile? @relation("PermissionAuditOldProfile", fields: [oldProfileId], references: [id])
-  newProfile       PermissionProfile? @relation("PermissionAuditNewProfile", fields: [newProfileId], references: [id])
+  employee   User               @relation("PermissionAuditEmployee", fields: [employeeId], references: [id])
+  changedBy  User               @relation("PermissionAuditChangedBy", fields: [changedById], references: [id])
+  oldProfile PermissionProfile? @relation("PermissionAuditOldProfile", fields: [oldProfileId], references: [id])
+  newProfile PermissionProfile? @relation("PermissionAuditNewProfile", fields: [newProfileId], references: [id])
 
   @@index([employeeId])
   @@index([changedAt])
@@ -682,40 +698,40 @@ model PermissionAudit {
 
 // Records field-level changes to a user's personal information
 model PersonalInfoAudit {
-  id          String   @id @default(cuid())
-  companyId   String
+  id            String   @id @default(cuid())
+  companyId     String
   subjectUserId String
-  changedById String
-  field       String
-  oldValue    String?
-  newValue    String?
-  changedAt   DateTime @default(now())
+  changedById   String
+  field         String
+  oldValue      String?
+  newValue      String?
+  changedAt     DateTime @default(now())
 
-  subjectUser User     @relation("PersonalInfoAuditSubjectUser", fields: [subjectUserId], references: [id])
-  changedBy   User     @relation("PersonalInfoAuditChangedBy", fields: [changedById], references: [id])
+  subjectUser User @relation("PersonalInfoAuditSubjectUser", fields: [subjectUserId], references: [id])
+  changedBy   User @relation("PersonalInfoAuditChangedBy", fields: [changedById], references: [id])
 
   @@index([companyId, subjectUserId, changedAt])
 }
 
 model GenderOption {
-  id         String   @id @default(cuid())
-  companyId  String
-  key        String
-  label      String
-  order      Int       @default(0)
-  active     Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  companyId String
+  key       String
+  label     String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  company    Company   @relation(fields: [companyId], references: [id])
-  users      User[]
+  company Company @relation(fields: [companyId], references: [id])
+  users   User[]
 
   @@unique([companyId, key])
   @@index([companyId, active])
 }
 
 enum FormType {
-  SUBMISSION  // One-time submission forms (current behavior)
+  SUBMISSION // One-time submission forms (current behavior)
   DATA_SCREEN // Persistent data screens (new behavior)
 }
 
@@ -770,98 +786,98 @@ enum OnboardingUploadType {
 }
 
 model EmployeeOffboarding {
-  id                        String    @id @default(cuid())
-  employeeId                String    @unique
-  initiatedById             String
-  initiatedAt               DateTime  @default(now())
-  completedAt               DateTime?
-  status                    OffboardingStatus @default(IN_PROGRESS)
-  
+  id            String            @id @default(cuid())
+  employeeId    String            @unique
+  initiatedById String
+  initiatedAt   DateTime          @default(now())
+  completedAt   DateTime?
+  status        OffboardingStatus @default(IN_PROGRESS)
+
   // Key Dates
-  resignationDate           DateTime?
-  lastWorkingDate           DateTime
-  noticePeriodDays          Int?
-  actualLeaveDate           DateTime?
-  
+  resignationDate  DateTime?
+  lastWorkingDate  DateTime
+  noticePeriodDays Int?
+  actualLeaveDate  DateTime?
+
   // Reason & Classification
-  offboardingType           OffboardingType
-  offboardingReason         String?
-  isVoluntary               Boolean   @default(true)
-  
+  offboardingType   OffboardingType
+  offboardingReason String?
+  isVoluntary       Boolean         @default(true)
+
   // Access Management
-  removeAccessImmediately   Boolean   @default(false)
-  accessRemovedAt           DateTime?
-  accessRemovedBy           String?
-  
+  removeAccessImmediately Boolean   @default(false)
+  accessRemovedAt         DateTime?
+  accessRemovedBy         String?
+
   // Asset Management
-  assetsToReturn            Json?
-  assetsReturned            Boolean   @default(false)
-  assetsReturnedAt          DateTime?
-  assetsReturnedTo          String?
-  
+  assetsToReturn   Json?
+  assetsReturned   Boolean   @default(false)
+  assetsReturnedAt DateTime?
+  assetsReturnedTo String?
+
   // Knowledge Transfer
-  handoverRequired          Boolean   @default(false)
-  handoverAssignedTo        String?
-  handoverCompleted         Boolean   @default(false)
-  handoverCompletedAt       DateTime?
-  handoverNotes             String?
-  
+  handoverRequired    Boolean   @default(false)
+  handoverAssignedTo  String?
+  handoverCompleted   Boolean   @default(false)
+  handoverCompletedAt DateTime?
+  handoverNotes       String?
+
   // Final Pay & Benefits
-  finalPayCalculated        Boolean   @default(false)
-  finalPayAmount            Decimal?  @db.Decimal(10,2)
-  unusedLeaveHours          Decimal?  @db.Decimal(8,2)
-  unusedLeavePayment        Decimal?  @db.Decimal(10,2)
-  benefitsEndDate           DateTime?
-  
+  finalPayCalculated Boolean   @default(false)
+  finalPayAmount     Decimal?  @db.Decimal(10, 2)
+  unusedLeaveHours   Decimal?  @db.Decimal(8, 2)
+  unusedLeavePayment Decimal?  @db.Decimal(10, 2)
+  benefitsEndDate    DateTime?
+
   // Exit Process - Enhanced with new fields
-  exitInterviewRequired     Boolean   @default(false)
-  exitInterviewScheduled    Boolean   @default(false)
-  exitInterviewDate         DateTime? // store start in UTC
-  exitInterviewEnd          DateTime? // optional: derive +60m by default
-  interviewerUserId         String?
-  interviewerName           String?   // denormalize if interviewer not a user
-  interviewerEmail          String?   // for ICS/attendee
-  location                  String?   // optional
-  exitInterviewNotes        String?
-  
+  exitInterviewRequired  Boolean   @default(false)
+  exitInterviewScheduled Boolean   @default(false)
+  exitInterviewDate      DateTime? // store start in UTC
+  exitInterviewEnd       DateTime? // optional: derive +60m by default
+  interviewerUserId      String?
+  interviewerName        String? // denormalize if interviewer not a user
+  interviewerEmail       String? // for ICS/attendee
+  location               String? // optional
+  exitInterviewNotes     String?
+
   // Exit Interview Form Management
-  sendForm                  Boolean   @default(false)
-  formTemplateId            String?   // ExitInterviewFormTemplate.id
-  formTiming                ExitInterviewFormTiming?
-  inviteIcsUid              String?   // UID used in ICS for updates/cancellation
-  inviteLastSentAt          DateTime?
-  scheduledSendAt           DateTime? // if ON_DATE
-  completionTokenHash       String?   // token hash for employee link (/exit-interview/[token])
-  completionStatus          ExitInterviewCompletionStatus @default(PENDING)
-  
+  sendForm            Boolean                       @default(false)
+  formTemplateId      String? // ExitInterviewFormTemplate.id
+  formTiming          ExitInterviewFormTiming?
+  inviteIcsUid        String? // UID used in ICS for updates/cancellation
+  inviteLastSentAt    DateTime?
+  scheduledSendAt     DateTime? // if ON_DATE
+  completionTokenHash String? // token hash for employee link (/exit-interview/[token])
+  completionStatus    ExitInterviewCompletionStatus @default(PENDING)
+
   // Administrative
-  hrReviewRequired          Boolean   @default(true)
-  hrReviewCompleted         Boolean   @default(false)
-  hrReviewCompletedBy       String?
-  hrReviewCompletedAt       DateTime?
-  hrNotes                   String?
-  
+  hrReviewRequired    Boolean   @default(true)
+  hrReviewCompleted   Boolean   @default(false)
+  hrReviewCompletedBy String?
+  hrReviewCompletedAt DateTime?
+  hrNotes             String?
+
   // References & Documentation
-  referenceContactAllowed   Boolean   @default(true)
-  documentationArchived     Boolean   @default(false)
-  complianceCheckCompleted  Boolean   @default(false)
-  
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
+  referenceContactAllowed  Boolean @default(true)
+  documentationArchived    Boolean @default(false)
+  complianceCheckCompleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  employee                  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  initiatedBy               User      @relation("OffboardingInitiatedBy", fields: [initiatedById], references: [id])
-  accessRemovedByUser       User?     @relation("OffboardingAccessRemovedBy", fields: [accessRemovedBy], references: [id])
-  handoverAssignedToUser    User?     @relation("OffboardingHandoverAssignedTo", fields: [handoverAssignedTo], references: [id])
-  hrReviewCompletedByUser   User?     @relation("OffboardingHRReviewCompletedBy", fields: [hrReviewCompletedBy], references: [id])
-  assetsReturnedToUser      User?     @relation("OffboardingAssetsReturnedTo", fields: [assetsReturnedTo], references: [id])
-  interviewerUser           User?     @relation("ExitInterviewInterviewer", fields: [interviewerUserId], references: [id])
-  formTemplate              ExitInterviewFormTemplate? @relation(fields: [formTemplateId], references: [id])
+  employee                Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  initiatedBy             User                       @relation("OffboardingInitiatedBy", fields: [initiatedById], references: [id])
+  accessRemovedByUser     User?                      @relation("OffboardingAccessRemovedBy", fields: [accessRemovedBy], references: [id])
+  handoverAssignedToUser  User?                      @relation("OffboardingHandoverAssignedTo", fields: [handoverAssignedTo], references: [id])
+  hrReviewCompletedByUser User?                      @relation("OffboardingHRReviewCompletedBy", fields: [hrReviewCompletedBy], references: [id])
+  assetsReturnedToUser    User?                      @relation("OffboardingAssetsReturnedTo", fields: [assetsReturnedTo], references: [id])
+  interviewerUser         User?                      @relation("ExitInterviewInterviewer", fields: [interviewerUserId], references: [id])
+  formTemplate            ExitInterviewFormTemplate? @relation(fields: [formTemplateId], references: [id])
 
-  tasks                     OffboardingTask[]
-  exitInterview             ExitInterview?
-  exitInterviewSubmissions  ExitInterviewSubmission[]
+  tasks                    OffboardingTask[]
+  exitInterview            ExitInterview?
+  exitInterviewSubmissions ExitInterviewSubmission[]
 
   @@index([employeeId])
   @@index([status])
@@ -871,25 +887,25 @@ model EmployeeOffboarding {
 }
 
 model OffboardingTask {
-  id            String    @id @default(cuid())
+  id            String       @id @default(cuid())
   offboardingId String
   title         String
   description   String?
   category      TaskCategory
-  isRequired    Boolean   @default(true)
+  isRequired    Boolean      @default(true)
   assignedTo    String?
   dueDate       DateTime?
   completedAt   DateTime?
   completedBy   String?
   notes         String?
-  order         Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  order         Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   // Relations
-  offboarding   EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
-  assignedToUser User?              @relation("TaskAssignedTo", fields: [assignedTo], references: [id])
-  completedByUser User?             @relation("TaskCompletedBy", fields: [completedBy], references: [id])
+  offboarding     EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  assignedToUser  User?               @relation("TaskAssignedTo", fields: [assignedTo], references: [id])
+  completedByUser User?               @relation("TaskCompletedBy", fields: [completedBy], references: [id])
 
   @@index([offboardingId])
   @@index([category])
@@ -897,47 +913,47 @@ model OffboardingTask {
 }
 
 model ExitInterview {
-  id            String   @id @default(cuid())
-  offboardingId String   @unique
+  id            String    @id @default(cuid())
+  offboardingId String    @unique
   scheduledAt   DateTime?
   interviewerId String?
   location      String?
   notes         String?
-  completed     Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  completed     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  offboarding   EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  offboarding EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
 
   @@index([offboardingId])
 }
 
 model ExitInterviewFormTemplate {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
+  id          String   @id @default(cuid())
+  name        String
+  description String?
   // schemaJson stores the screen-designer-like form definition
-  schemaJson    Json
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  schemaJson  Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  offboardings  EmployeeOffboarding[]
-  submissions   ExitInterviewSubmission[]
+  offboardings EmployeeOffboarding[]
+  submissions  ExitInterviewSubmission[]
 
   @@index([isActive])
 }
 
 model ExitInterviewSubmission {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   offboardingId String
   templateId    String
   submittedBy   String? // employeeId or email
   submittedAt   DateTime?
   answersJson   Json?
 
-  offboarding   EmployeeOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
-  template      ExitInterviewFormTemplate @relation(fields: [templateId], references: [id])
+  offboarding EmployeeOffboarding       @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  template    ExitInterviewFormTemplate @relation(fields: [templateId], references: [id])
 
   @@index([offboardingId])
   @@index([templateId])
@@ -979,4 +995,3 @@ enum ExitInterviewCompletionStatus {
   STARTED
   SUBMITTED
 }
-

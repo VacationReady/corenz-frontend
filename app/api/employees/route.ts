@@ -287,6 +287,7 @@ export async function POST(req: Request) {
             name: "Holiday",
             categoryType: "TIME_OFF",
             isActive: true,
+            companyId,
           },
         });
 
@@ -300,6 +301,7 @@ export async function POST(req: Request) {
               adminOnly: false,
               color: "#10B981", // Green color
               isActive: true,
+              companyId,
             },
           });
         }
@@ -311,6 +313,7 @@ export async function POST(req: Request) {
               eventCategoryId: holidayCategory.id,
               totalDays: entitlementDays,
               usedDays: 0,
+              companyId,
             },
           });
         }

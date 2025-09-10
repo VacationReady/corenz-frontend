@@ -15,8 +15,14 @@ const EventSubcategorySchema = z.object({
 });
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const subcategories = await prisma.eventSubcategory.findMany({
+      where: { companyId: session.user.companyId },
       include: {
         eventCategory: true,
       },
@@ -37,7 +43,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
   }
 
@@ -54,9 +60,8 @@ export async function POST(req: Request) {
 
     const { name, eventCategoryId, defaultPaidStatus, isActive } = parse.data;
 
-    // OPTIONAL: Prevent adding subcategories under system-defined categories
-    const parentCategory = await prisma.eventCategory.findUnique({
-      where: { id: eventCategoryId },
+    const parentCategory = await prisma.eventCategory.findFirst({
+      where: { id: eventCategoryId, companyId: session.user.companyId },
     });
 
     if (!parentCategory) {
@@ -66,20 +71,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // UNCOMMENT TO BLOCK under system-defined categories:
-    // if (parentCategory.systemDefined) {
-    //   return NextResponse.json(
-    //     { success: false, error: "Cannot add subcategories under system-defined categories." },
-    //     { status: 400 }
-    //   );
-    // }
-
     const newSubcategory = await prisma.eventSubcategory.create({
       data: {
         name,
         defaultPaidStatus,
         isActive,
         eventCategory: { connect: { id: eventCategoryId } },
+        company: { connect: { id: session.user.companyId } },
       },
     });
 

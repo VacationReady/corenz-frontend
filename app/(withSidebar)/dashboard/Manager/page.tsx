@@ -50,22 +50,23 @@ function PendingLeaveApprovals() {
   };
 
   return (
-    <DashboardWidget title="Pending Leave Approvals" icon={CalendarCheck2} action={<Link href="/leave/approvals" className="text-sm underline">Approve Leave</Link>}>
+    <DashboardWidget title="Pending Leave Approvals" icon={CalendarCheck2} action={<Link href="/dashboard/approvals" className="text-sm underline">Approve Leave</Link>}>
       {isLoading ? (
         <WidgetLoading />
       ) : error ? (
         <WidgetError message="Failed to load approvals." />
-      ) : !data || data.length === 0 ? (
+      ) : !Array.isArray((data as any)?.data) || (data as any).data.length === 0 ? (
         <p className="text-sm text-muted-foreground">No pending requests.</p>
       ) : (
         <div className="space-y-2">
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="outline" onClick={async () => {
-              await Promise.all(data.map((r: any) => handleAction(r.id, "approve")));
+              const list = (data as any).data as any[];
+              await Promise.all(list.map((r: any) => handleAction(r.id, "approve")));
             }}>Approve all</Button>
           </div>
           <ul className="divide-y divide-border">
-            {data.slice(0, 5).map((r: any) => (
+            {((data as any).data as any[]).slice(0, 5).map((r: any) => (
               <li key={r.id} className="py-2 text-sm flex items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">{r.employee?.user?.name ?? r.employee?.user?.firstName ?? "Employee"}</div>
@@ -112,7 +113,7 @@ function QuickLinks() {
   return (
     <DashboardWidget title="Quick Links" icon={UserPlus}>
       <div className="flex flex-wrap gap-2">
-        <Link href="/employees/new"><Button variant="outline" size="sm"><UserPlus className="w-4 h-4 mr-2" />Add Employee</Button></Link>
+        <Link href="/employees"><Button variant="outline" size="sm"><UserPlus className="w-4 h-4 mr-2" />Add Employee</Button></Link>
         <Link href="/reports"><Button variant="outline" size="sm"><FileBarChart2 className="w-4 h-4 mr-2" />Run Report</Button></Link>
       </div>
     </DashboardWidget>

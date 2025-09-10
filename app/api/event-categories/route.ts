@@ -15,12 +15,17 @@ const EventCategorySchema = z.object({
 });
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const categories = await prisma.eventCategory.findMany({
-      where: { isActive: true },
+      where: { isActive: true, companyId: session.user.companyId },
       include: {
         subcategories: {
-          where: { isActive: true },
+          where: { isActive: true, companyId: session.user.companyId },
         },
       },
       orderBy: {
@@ -40,7 +45,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
   }
 
@@ -57,8 +62,8 @@ export async function POST(req: Request) {
 
     const { name, categoryType, requiresApproval, adminOnly } = parse.data;
 
-    const existing = await prisma.eventCategory.findUnique({
-      where: { name },
+    const existing = await prisma.eventCategory.findFirst({
+      where: { name, companyId: session.user.companyId },
     });
 
     if (existing) {
@@ -74,6 +79,7 @@ export async function POST(req: Request) {
         categoryType,
         requiresApproval,
         adminOnly,
+        companyId: session.user.companyId,
       },
     });
 

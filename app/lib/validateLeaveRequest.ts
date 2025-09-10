@@ -14,12 +14,14 @@ export async function validateLeaveRequest({
   startDate,
   endDate,
   isAdmin = false,
+  companyId,
 }: {
   employeeId: string;
   eventCategoryId: string;
   startDate: Date;
   endDate: Date;
   isAdmin?: boolean;
+  companyId: string;
 }) {
   console.log("🛠️ [validateLeaveRequest] START:", {
     employeeId,
@@ -29,8 +31,8 @@ export async function validateLeaveRequest({
     isAdmin,
   });
 
-  const eventCategory = await prisma.eventCategory.findUnique({
-    where: { id: eventCategoryId },
+  const eventCategory = await prisma.eventCategory.findFirst({
+    where: { id: eventCategoryId, companyId },
     select: { name: true },
   });
 
@@ -43,8 +45,8 @@ export async function validateLeaveRequest({
   const eventRule = await prisma.eventRule.findUnique({
     where: {
       companyId_eventCategoryId: {
-        companyId: "default-company-id",
-        eventCategoryId: eventCategoryId,
+        companyId,
+        eventCategoryId,
       },
     },
     select: {
@@ -87,6 +89,7 @@ export async function validateLeaveRequest({
   if (!isAdmin) {
     const blackoutDays = await prisma.blackoutDay.findMany({
       where: {
+        companyId,
         OR: [
           { allEvents: true },
           { eventCategoryIds: { has: eventCategoryId } },
@@ -117,6 +120,7 @@ export async function validateLeaveRequest({
     where: {
       employeeId,
       eventCategoryId,
+      companyId,
     },
   });
 

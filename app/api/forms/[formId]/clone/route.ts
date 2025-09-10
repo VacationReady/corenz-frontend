@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueSlug } from "@/lib/forms";
+import { Prisma } from "@prisma/client";
 
 export async function POST(_: Request, { params }: { params: { formId: string } }) {
   const session = await getServerSession(authOptions);
@@ -25,7 +26,7 @@ export async function POST(_: Request, { params }: { params: { formId: string } 
       slug: uniqueSlug,
       description: original.description,
       formType: original.formType,
-      schema: original.schema,
+      schema: original.schema === null ? Prisma.JsonNull : (original.schema as Prisma.InputJsonValue),
       companyId: original.companyId,
       visibleToRoles: original.visibleToRoles,
       visibleToDepartments: original.visibleToDepartments,

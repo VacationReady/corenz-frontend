@@ -5,21 +5,19 @@ import { sendExitInterviewFormInvite } from "@/lib/email/send";
 import { isTodayInLondon } from "@/lib/time";
 
 async function processCompany(companyId: string) {
-  const expiryRules = await prisma.expiryRule.findMany({
-    where: { companyId },
-  });
+  const expiryRules = await prisma.expiryRule.findMany();
   const today = new Date();
 
-    for (const rule of expiryRules) {
-      const targetDate = new Date();
-      targetDate.setDate(today.getDate() + rule.daysBefore);
+  for (const rule of expiryRules) {
+    const targetDate = new Date();
+    targetDate.setDate(today.getDate() + rule.daysBefore);
 
-      let expiringItems: {
-        employee: any;
-        expiryDate: Date | null;
-        type: string;
-        itemName: string;
-      }[] = [];
+    let expiringItems: {
+      employee: any;
+      expiryDate: Date | null;
+      type: string;
+      itemName: string;
+    }[] = [];
 
       if (rule.category === "Driver Licence") {
         const items = await prisma.driverLicence.findMany({

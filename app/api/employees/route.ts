@@ -20,11 +20,16 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "active"; // active, archived, all
     const userId = searchParams.get("userId");
+    const managerId = searchParams.get("managerId");
 
     const whereCondition: any = { companyId: session.user.companyId };
 
     if (userId) {
       whereCondition.userId = userId;
+    }
+
+    if (managerId) {
+      whereCondition.user = { managerId };
     }
 
     if (status === "active") {
@@ -45,6 +50,7 @@ export async function GET(req: Request) {
             email: true,
             phone: true,
             role: true,
+            createdAt: true,
             jobRole: {
               select: { id: true, name: true },
             },
@@ -74,6 +80,7 @@ export async function GET(req: Request) {
       email: emp.user.email,
       phone: emp.user.phone,
       role: emp.user.role,
+      createdAt: emp.user.createdAt,
       departmentId: emp.department?.id ?? null,
       departmentName: emp.department?.name ?? null,
       jobRoleId: emp.user.jobRole?.id ?? null,

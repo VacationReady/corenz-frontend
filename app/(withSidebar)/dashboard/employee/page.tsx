@@ -1,111 +1,167 @@
 // app/dashboard/employee/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/Card";
+import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
+import DashboardGrid from "@/components/ui/DashboardGrid";
+import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+import { NewsWidget } from "@/components/dashboard/NewsWidget";
+import { DashboardWidget } from "@/components/ui/DashboardWidget";
+import Button from "@/components/ui/Button";
+import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
+import { Calendar, User, Receipt, Bell } from "lucide-react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 
-interface HolidayEntitlement {
-  id: string;
-  totalDays: number;
-  usedDays: number;
-  carryoverDays: number;
-  eventCategory: {
-    id: string;
-    name: string;
-    color: string;
-  };
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function useEmployeeId(userId?: string) {
+  const { data } = useSWR(userId ? `/api/employees?userId=${userId}` : null, fetcher);
+  return data?.[0]?.id as string | undefined;
+}
+
+function UpcomingLeave({ employeeId }: { employeeId: string }) {
+  const { data, error, isLoading } = useSWR(
+    employeeId ? `/api/employees/${employeeId}/leave-requests?upcoming=true&limit=3` : null,
+    fetcher
+  );
+
+  return (
+    <DashboardWidget title="Upcoming Leave" icon={Calendar} action={<Link href="/leave/request" className="text-sm underline">View all leave</Link>}>
+      {isLoading ? (
+        <WidgetLoading />
+      ) : error ? (
+        <WidgetError message="Failed to load." />
+      ) : !data || data.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No upcoming leave.</p>
+      ) : (
+        <ul className="space-y-2">
+          {data.map((lr: any) => (
+            <li key={lr.id} className="text-sm">
+              <span className="font-medium">{lr.eventCategory?.name}</span>
+              <span className="text-muted-foreground"> — {new Date(lr.startDate).toLocaleDateString()} to {new Date(lr.endDate).toLocaleDateString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </DashboardWidget>
+  );
+}
+
+function PendingTasks({ employeeId }: { employeeId: string }) {
+  const { data, error, isLoading } = useSWR(`/api/onboarding/instances/${employeeId}`, fetcher);
+  const steps = useMemo(() => data?.steps || [], [data]);
+
+  return (
+    <DashboardWidget title="Pending Tasks" icon={Bell}>
+      {isLoading ? (
+        <WidgetLoading />
+      ) : error ? (
+        <WidgetError message="Failed to load tasks." />
+      ) : steps.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No outstanding tasks.</p>
+      ) : (
+        <ul className="space-y-2">
+          {steps
+            .filter((s: any) => s.status !== "completed")
+            .slice(0, 5)
+            .map((s: any) => (
+              <li key={s.id} className="text-sm flex items-center justify-between">
+                <span>{s.label}</span>
+                <Link href={`/onboarding`} className="text-xs underline">Complete</Link>
+              </li>
+            ))}
+        </ul>
+      )}
+    </DashboardWidget>
+  );
+}
+
+function MyDocuments({ employeeId }: { employeeId: string }) {
+  const { data, error, isLoading } = useSWR(
+    `/api/documents/list-employee?employeeId=${employeeId}`,
+    fetcher
+  );
+
+  return (
+    <DashboardWidget title="My Documents" icon={Receipt} action={<Link href="/documents" className="text-sm underline">View all documents</Link>}>
+      {isLoading ? (
+        <WidgetLoading />
+      ) : error ? (
+        <WidgetError message="Failed to load documents." />
+      ) : !data || data.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No documents awaiting action.</p>
+      ) : (
+        <ul className="space-y-2">
+          {data.slice(0, 5).map((d: any) => (
+            <li key={d.id} className="text-sm flex items-center justify-between">
+              <span>{d.name}</span>
+              <Link href={`/documents`} className="text-xs underline">Open</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </DashboardWidget>
+  );
+}
+
+function QuickActions() {
+  return (
+    <DashboardWidget title="Quick Actions" icon={User}>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/leave/request" aria-label="Book Holiday">
+          <Button variant="outline" size="sm"><Calendar className="w-4 h-4 mr-2" />Book Holiday</Button>
+        </Link>
+        <Link href="/profile" aria-label="View Profile">
+          <Button variant="outline" size="sm"><User className="w-4 h-4 mr-2" />View Profile</Button>
+        </Link>
+        <Link href="/payroll/payslips" aria-label="Payslips">
+          <Button variant="outline" size="sm"><Receipt className="w-4 h-4 mr-2" />Payslips</Button>
+        </Link>
+      </div>
+    </DashboardWidget>
+  );
+}
+
+function WellbeingSpotlight() {
+  const { data, error, isLoading } = useSWR("/api/wellbeing/tips", fetcher);
+  if (error) return null; // optional widget
+  return (
+    <DashboardWidget title="Wellbeing Spotlight" icon={Bell}>
+      {isLoading ? (
+        <WidgetLoading />
+      ) : Array.isArray(data) && data.length > 0 ? (
+        <ul className="space-y-2">
+          {data.slice(0, 3).map((tip: any, idx: number) => (
+            <li key={idx} className="text-sm">{tip.title ?? tip.text ?? String(tip)}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Stay healthy and productive.</p>
+      )}
+    </DashboardWidget>
+  );
 }
 
 export default function EmployeeDashboard() {
   const { data: session } = useSession();
-  const [holidayBalance, setHolidayBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchHolidayBalance = async () => {
-      if (!session?.user?.id) return;
-
-      try {
-        // First get the employee ID from the user
-        const employeeRes = await fetch(`/api/employees?userId=${session.user.id}`);
-        if (!employeeRes.ok) return;
-
-        const employees = await employeeRes.json();
-        if (employees.length === 0) return;
-
-        const employeeId = employees[0].id;
-
-        // Then get the holiday entitlements
-        const entitlementRes = await fetch(`/api/employees/${employeeId}/entitlement`);
-        if (entitlementRes.ok) {
-          const entitlements: HolidayEntitlement[] = await entitlementRes.json();
-
-          // Find holiday entitlement
-          const holidayEntitlement = entitlements.find(
-            ent => ent.eventCategory.name.toLowerCase() === 'holiday'
-          );
-
-          if (holidayEntitlement) {
-            const remainingDays = holidayEntitlement.totalDays - holidayEntitlement.usedDays;
-            setHolidayBalance(remainingDays);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching holiday balance:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHolidayBalance();
-  }, [session]);
+  const employeeId = useEmployeeId(session?.user?.id);
 
   return (
-    <PageShell title="Welcome Back!">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardContent>
-            <h3 className="text-lg font-semibold">Upcoming Leave</h3>
-            <p className="text-sm text-neutral-400">No booked time off.</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <h3 className="text-lg font-semibold">Holiday Balance</h3>
-            {loading ? (
-              <p className="text-sm text-neutral-400">Loading...</p>
-            ) : holidayBalance !== null ? (
-              <>
-                <p className="text-3xl font-bold text-green-400">{holidayBalance} Days</p>
-                <p className="text-xs text-neutral-400">Remaining in this year</p>
-              </>
-            ) : (
-              <>
-                <p className="text-3xl font-bold text-gray-400">0 Days</p>
-                <p className="text-xs text-neutral-400">No holiday entitlement set</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <h3 className="text-lg font-semibold">Next 1:1 Meeting</h3>
-            <p className="text-sm text-neutral-400">Not yet scheduled</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <h3 className="text-lg font-semibold">Pending Requests</h3>
-            <p className="text-3xl font-bold text-yellow-400">0</p>
-            <p className="text-xs text-neutral-400">No pending requests</p>
-          </CardContent>
-        </Card>
-      </div>
+    <PageShell
+      title="Employee Dashboard"
+      breadcrumbs={{ items: [{ label: "Dashboard", href: "/dashboard" }, { label: "Employee" }] }}
+    >
+      <DashboardGrid>
+        {employeeId && <LeaveBalanceWidget employeeId={employeeId} />}
+        {employeeId && <UpcomingLeave employeeId={employeeId} />}
+        <NewsWidget limit={5} />
+        {employeeId && <PendingTasks employeeId={employeeId} />}
+        {employeeId && <MyDocuments employeeId={employeeId} />}
+        <QuickActions />
+        <WellbeingSpotlight />
+      </DashboardGrid>
     </PageShell>
   );
 }

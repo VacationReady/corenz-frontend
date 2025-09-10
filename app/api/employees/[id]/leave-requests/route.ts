@@ -5,6 +5,55 @@ import { authOptions } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !session.user.companyId) {
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const upcoming = searchParams.get("upcoming") === "true";
+    const limitParam = searchParams.get("limit");
+    const take = limitParam ? Math.max(1, Math.min(10, parseInt(limitParam, 10) || 0)) : 3;
+
+    const now = new Date();
+
+    const where: any = {
+      employeeId: params.id,
+      employee: { companyId: session.user.companyId },
+      approvalStatus: "APPROVED",
+      ...(upcoming
+        ? {
+            OR: [
+              { startDate: { gte: now } },
+              { AND: [{ startDate: { lte: now } }, { endDate: { gte: now } }] }, // ongoing
+            ],
+          }
+        : {}),
+    };
+
+    const leaves = await prisma.leaveRequest.findMany({
+      where,
+      orderBy: { startDate: "asc" },
+      take,
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        dayType: true,
+        eventCategory: { select: { id: true, name: true } },
+        approvalStatus: true,
+      },
+    });
+
+    return NextResponse.json(leaves);
+  } catch (error) {
+    console.error("[EMPLOYEE_LEAVE_REQUESTS_GET]", error);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);

@@ -49,8 +49,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
-    const eventCategory = await prisma.eventCategory.findUnique({
-      where: { id: eventCategoryId },
+    const eventCategory = await prisma.eventCategory.findFirst({
+      where: { id: eventCategoryId, companyId: session.user.companyId },
       select: { name: true },
     });
 
@@ -68,20 +68,22 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       isAdmin: session.user.role === "ADMIN",
+      companyId: session.user.companyId,
     });
 
     const newLeaveRequest = await prisma.leaveRequest.create({
-  data: {
-    employee: { connect: { id: employeeId } },
-    requester: { connect: { id: userId } },
-    eventCategory: { connect: { id: eventCategoryId } },
-    startDate: new Date(startDate),
-    endDate: new Date(endDate),
-    dayType: dayType ?? "FULL_DAY",
-    reason: reason ?? "",
-    paidStatus: eventCategoryName === "Sick Leave" ? paidStatus ?? "PAID" : null,
-  },
-});
+      data: {
+        employee: { connect: { id: employeeId } },
+        requester: { connect: { id: userId } },
+        eventCategory: { connect: { id: eventCategoryId } },
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        dayType: dayType ?? "FULL_DAY",
+        reason: reason ?? "",
+        paidStatus: eventCategoryName === "Sick Leave" ? paidStatus ?? "PAID" : null,
+        companyId: session.user.companyId,
+      },
+    });
 
     if (employee.user.managerId) {
       const manager = await prisma.user.findUnique({

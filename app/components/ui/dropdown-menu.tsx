@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import React, { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { cn } from "@/lib/utils"; // If you don't have this, replace with className joins.
 
@@ -40,25 +40,39 @@ export function DropdownMenuItem({
   children,
   onClick,
   className,
+  asChild = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
+  asChild?: boolean;
 }) {
   return (
     <Menu.Item>
-      {({ active }) => (
-        <button
-          onClick={onClick}
-          className={cn(
-            "w-full text-left px-4 py-2 text-sm",
-            active ? "bg-gray-100" : "",
-            className
-          )}
-        >
-          {children}
-        </button>
-      )}
+      {({ active }) => {
+        const classes = cn(
+          "w-full text-left px-4 py-2 text-sm",
+          active ? "bg-gray-100" : "",
+          className
+        );
+        if (asChild && React.isValidElement(children)) {
+          const element = children as React.ReactElement<any>;
+          return React.cloneElement(element, {
+            className: cn(element.props.className, classes),
+            onClick: (event: React.MouseEvent) => {
+              if (onClick) onClick();
+              if (typeof element.props.onClick === "function") {
+                element.props.onClick(event);
+              }
+            },
+          });
+        }
+        return (
+          <button onClick={onClick} className={classes}>
+            {children}
+          </button>
+        );
+      }}
     </Menu.Item>
   );
 }

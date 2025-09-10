@@ -56,12 +56,13 @@ export function DropdownMenuItem({
           className
         );
         if (asChild && React.isValidElement(children)) {
-          return React.cloneElement(children, {
-            className: cn((children.props as any).className, classes),
+          const element = children as React.ReactElement<any>;
+          return React.cloneElement(element, {
+            className: cn(element.props.className, classes),
             onClick: (event: React.MouseEvent) => {
               if (onClick) onClick();
-              if (typeof children.props.onClick === "function") {
-                children.props.onClick(event);
+              if (typeof element.props.onClick === "function") {
+                element.props.onClick(event);
               }
             },
           });

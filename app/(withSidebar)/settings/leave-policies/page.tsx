@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users, Calendar, Settings, AlertTriangle } from "lucide-react";
 
@@ -360,11 +360,10 @@ export default function LeavePoliciesPage() {
 
                   <div className="flex items-center space-x-2">
                     <Switch
-                      id="isActive"
                       checked={formData.isActive}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                      onChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
                     />
-                    <Label htmlFor="isActive">Active</Label>
+                    <Label>Active</Label>
                   </div>
                 </TabsContent>
 
@@ -420,11 +419,10 @@ export default function LeavePoliciesPage() {
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
                       <Switch
-                        id="enableProration"
                         checked={formData.enableProration}
-                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enableProration: checked }))}
+                        onChange={(checked) => setFormData(prev => ({ ...prev, enableProration: checked }))}
                       />
-                      <Label htmlFor="enableProration">Enable Proration</Label>
+                      <Label>Enable Proration</Label>
                     </div>
 
                     {formData.enableProration && (
@@ -450,11 +448,10 @@ export default function LeavePoliciesPage() {
 
                     <div className="flex items-center space-x-2">
                       <Switch
-                        id="allowNegativeBalance"
                         checked={formData.allowNegativeBalance}
-                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, allowNegativeBalance: checked }))}
+                        onChange={(checked) => setFormData(prev => ({ ...prev, allowNegativeBalance: checked }))}
                       />
-                      <Label htmlFor="allowNegativeBalance">Allow Negative Balance</Label>
+                      <Label>Allow Negative Balance</Label>
                       <div className="text-sm text-muted-foreground">
                         (Bypasses entitlement checks but Event Rules still apply)
                       </div>
@@ -495,7 +492,7 @@ export default function LeavePoliciesPage() {
                               type="number"
                               min="0"
                               value={tier.maxYears || ''}
-                              onChange={(e) => updateServiceLengthTier(index, 'maxYears', parseInt(e.target.value) || undefined)}
+                              onChange={(e) => updateServiceLengthTier(index, 'maxYears', parseInt(e.target.value) || 0)}
                             />
                           </div>
                           <div>

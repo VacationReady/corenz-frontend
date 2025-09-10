@@ -26,13 +26,7 @@ export async function GET(
         eventCategory: {
           select: { id: true, name: true, color: true }
         },
-        assignments: {
-          include: {
-            _count: {
-              select: { departmentIds: true, jobRoleIds: true, employeeIds: true }
-            }
-          }
-        }
+        assignments: true
       }
     });
 
@@ -183,13 +177,7 @@ export async function PUT(
         eventCategory: {
           select: { id: true, name: true, color: true }
         },
-        assignments: {
-          include: {
-            _count: {
-              select: { departmentIds: true, jobRoleIds: true, employeeIds: true }
-            }
-          }
-        }
+        assignments: true
       }
     });
 

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET: Retrieve form data for an employee
-export async function GET(req: Request, { params }: { params: { formId: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: { formId: string }
     // Verify the form exists and belongs to the company
     const form = await prisma.form.findFirst({
       where: {
-        id: params.formId,
+        id: params.id,
         companyId: session.user.companyId,
         isActive: true,
       },
@@ -48,7 +48,7 @@ export async function GET(req: Request, { params }: { params: { formId: string }
     const dataRecord = await prisma.formDataRecord.findUnique({
       where: {
         formId_employeeId: {
-          formId: params.formId,
+          formId: params.id,
           employeeId: employeeId,
         },
       },
@@ -71,7 +71,7 @@ export async function GET(req: Request, { params }: { params: { formId: string }
 }
 
 // POST/PUT: Save or update form data for an employee
-export async function POST(req: Request, { params }: { params: { formId: string } }) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: { formId: string 
     // Verify the form exists and belongs to the company
     const form = await prisma.form.findFirst({
       where: {
-        id: params.formId,
+        id: params.id,
         companyId: session.user.companyId,
         isActive: true,
       },
@@ -114,7 +114,7 @@ export async function POST(req: Request, { params }: { params: { formId: string 
     const dataRecord = await prisma.formDataRecord.upsert({
       where: {
         formId_employeeId: {
-          formId: params.formId,
+          formId: params.id,
           employeeId: employeeId,
         },
       },
@@ -122,7 +122,7 @@ export async function POST(req: Request, { params }: { params: { formId: string 
         data: data,
       },
       create: {
-        formId: params.formId,
+        formId: params.id,
         employeeId: employeeId,
         data: data,
       },

@@ -5,11 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { generateUniqueSlug } from "@/lib/forms";
 import { Prisma } from "@prisma/client";
 
-export async function POST(_: Request, { params }: { params: { formId: string } }) {
+export async function POST(_: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const original = await prisma.form.findFirst({ where: { id: params.formId, companyId: session.user.companyId } });
+  const original = await prisma.form.findFirst({ where: { id: params.id, companyId: session.user.companyId } });
   if (!original) return NextResponse.json({ error: "Form not found" }, { status: 404 });
 
   const baseName = `${original.name} (Copy)`;

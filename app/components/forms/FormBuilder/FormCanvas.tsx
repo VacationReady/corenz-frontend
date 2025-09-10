@@ -4,7 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { PlusCircle } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { FormField } from '@/api/forms/[formId]/types'
+import { FormField } from '@/api/forms/[id]/types'
 import { SortableFieldItem } from './SortableFieldItem';
 
 export function FormCanvas({

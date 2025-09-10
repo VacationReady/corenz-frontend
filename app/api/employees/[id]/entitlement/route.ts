@@ -13,15 +13,16 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user) {
+    if (!session || !session.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const employeeId = params.id;
+    const companyId = session.user.companyId;
 
-    // ✅ Fetch entitlements with related event category
+    // ✅ Fetch entitlements with related event category scoped by company
     const entitlements = await prisma.leaveEntitlement.findMany({
-      where: { employeeId },
+      where: { employeeId, companyId },
       include: {
         eventCategory: {
           select: {
@@ -64,12 +65,13 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
 
-    // ✅ Restrict to ADMIN only
-    if (!session || session.user.role !== "ADMIN") {
+    // ✅ Restrict to ADMIN only and ensure company scope
+    if (!session || session.user.role !== "ADMIN" || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const employeeId = params.id;
+    const companyId = session.user.companyId;
     const entitlements: { eventCategoryId: string; totalDays: number; daysAllocated?: number }[] = await req.json();
 
     for (const entitlement of entitlements) {
@@ -96,6 +98,7 @@ export async function POST(
           totalDays: entitlement.totalDays,
           usedDays: 0, // adjust if needed
           daysAllocated: entitlement.daysAllocated ?? 0,
+          companyId,
         },
       });
     }

@@ -30,13 +30,7 @@ export async function GET(req: NextRequest) {
         eventCategory: {
           select: { id: true, name: true, color: true }
         },
-        assignments: {
-          include: {
-            _count: {
-              select: { departmentIds: true, jobRoleIds: true, employeeIds: true }
-            }
-          }
-        },
+        assignments: true,
         _count: {
           select: { assignments: true }
         }

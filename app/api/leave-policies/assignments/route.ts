@@ -48,22 +48,18 @@ export async function GET(req: NextRequest) {
       const assignments = await prisma.leavePolicyAssignment.findMany({
         where: {
           companyId: session.user.companyId,
-          OR: [
-            // Specific employee assignment
-            { employeeIds: { has: employeeId } },
-            // Department assignment
-            ...(employee.departmentId ? [{ departmentIds: { has: employee.departmentId } }] : []),
-            // Job role assignment  
-            ...(employee.jobRoleId ? [{ jobRoleIds: { has: employee.jobRoleId } }] : []),
-            // Location assignment
-            ...(employee.locationId ? [{ locationIds: { has: employee.locationId } }] : []),
+          AND: [
+            {
+              OR: [
+                { employeeIds: { has: employeeId } },
+                ...(employee.departmentId ? [{ departmentIds: { has: employee.departmentId } }] : []),
+                ...(employee.jobRoleId ? [{ jobRoleIds: { has: employee.jobRoleId } }] : []),
+                ...(employee.locationId ? [{ locationIds: { has: employee.locationId } }] : []),
+              ],
+            },
+            { effectiveFrom: { lte: new Date() } },
+            { OR: [{ effectiveTo: null }, { effectiveTo: { gte: new Date() } }] },
           ],
-          // Only active assignments
-          effectiveFrom: { lte: new Date() },
-          OR: [
-            { effectiveTo: null },
-            { effectiveTo: { gte: new Date() } }
-          ]
         },
         include: {
           leavePolicy: {

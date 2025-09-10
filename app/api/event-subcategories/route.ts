@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         defaultPaidStatus,
         isActive,
         eventCategory: { connect: { id: eventCategoryId } },
-        companyId: session.user.companyId,
+        company: { connect: { id: session.user.companyId } },
       },
     });
 

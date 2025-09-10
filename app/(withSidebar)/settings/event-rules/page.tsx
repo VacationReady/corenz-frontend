@@ -1,289 +1,866 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "@/hooks/use-toast";
+import { 
+  Settings, 
+  TestTube, 
+  Calendar as CalendarIcon, 
+  Shield, 
+  AlertTriangle, 
+  CheckCircle, 
+  XCircle,
+  Users,
+  Clock,
+  HelpCircle,
+  Plus,
+  Trash2
+} from "lucide-react";
+import { format } from "date-fns";
 
 interface EventCategory {
   id: string;
   name: string;
+  color?: string;
 }
 
 interface EventRule {
+  id?: string;
   eventCategoryId: string;
-  eventCategory: EventCategory;
+  eventCategory?: EventCategory;
   enforceEntitlement: boolean;
   noticePeriodDays: number;
   maxConcurrent: number | null;
   maxBookingLength?: number | null;
   maxCarryoverDays?: number | null;
   carryoverExpiryMonths?: number | null;
-  blackoutDates: string[];
+  maxConcurrentMode: "HARD_BLOCK" | "SOFT_GATE";
+  maxBookingLengthMode: "HARD_BLOCK" | "SOFT_GATE";
+  notes?: string;
+}
+
+interface TestScenario {
+  type: string;
+  title: string;
+  description: string;
+  result: "BLOCKED" | "REQUIRES_APPROVAL" | "ALLOWED" | "DEPENDS_ON_BALANCE";
+  mode: "HARD_BLOCK" | "SOFT_GATE";
+  message: string;
+}
+
+interface BlackoutDay {
+  id: string;
+  date: string;
+  allEvents: boolean;
+  eventCategoryIds: string[];
 }
 
 export default function EventRulesPage() {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [rules, setRules] = useState<Record<string, EventRule>>({});
+  const [blackoutDays, setBlackoutDays] = useState<BlackoutDay[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  const [testResults, setTestResults] = useState<any>(null);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [blackoutDialogOpen, setBlackoutDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [testEmployee, setTestEmployee] = useState<string>("");
+  const [testDate, setTestDate] = useState<Date>(new Date());
+  const [newBlackoutDate, setNewBlackoutDate] = useState<Date>(new Date());
+  const [newBlackoutCategories, setNewBlackoutCategories] = useState<string[]>([]);
+  const [allEventsBlackout, setAllEventsBlackout] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [catRes, ruleRes] = await Promise.all([
-          fetch("/api/event-categories"),
-          fetch("/api/event-rules"),
-        ]);
-        const catData: EventCategory[] = await catRes.json();
-        const ruleData: EventRule[] = await ruleRes.json();
-
-        const merged: Record<string, EventRule> = {};
-        const openState: Record<string, boolean> = {};
-        catData.forEach((cat) => {
-          const existingRule = ruleData.find(
-            (r) => r.eventCategoryId === cat.id
-          );
-          merged[cat.id] = existingRule || {
-            eventCategoryId: cat.id,
-            eventCategory: cat,
-            enforceEntitlement: true,
-            noticePeriodDays: 2,
-            maxConcurrent: null,
-            maxBookingLength: 14,
-            maxCarryoverDays: null,
-            carryoverExpiryMonths: null,
-            blackoutDates: [],
-          };
-          openState[cat.id] = false;
-        });
-        setCategories(catData);
-        setRules(merged);
-        setOpenCards(openState);
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to load event categories and rules.");
-      }
-    };
     fetchData();
   }, []);
 
-  const refreshRules = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch("/api/event-rules");
-      const ruleData: EventRule[] = await res.json();
-      setRules((prev) => {
-        const updated = { ...prev };
-        ruleData.forEach((r) => {
-          updated[r.eventCategoryId] = r;
-        });
-        return updated;
+      const [catRes, ruleRes, blackoutRes, empRes] = await Promise.all([
+        fetch("/api/event-categories"),
+        fetch("/api/event-rules"),
+        fetch("/api/blackout-days/get"),
+        fetch("/api/employees?limit=100")
+      ]);
+      
+      const catData: EventCategory[] = await catRes.json();
+      const ruleData: EventRule[] = await ruleRes.json();
+      const blackoutData: BlackoutDay[] = await blackoutRes.json();
+      const empData = await empRes.json();
+
+      const merged: Record<string, EventRule> = {};
+      const openState: Record<string, boolean> = {};
+      
+      catData.forEach((cat) => {
+        const existingRule = ruleData.find((r) => r.eventCategoryId === cat.id);
+        merged[cat.id] = existingRule || {
+          eventCategoryId: cat.id,
+          eventCategory: cat,
+          enforceEntitlement: true,
+          noticePeriodDays: 0,
+          maxConcurrent: null,
+          maxBookingLength: 14,
+          maxCarryoverDays: null,
+          carryoverExpiryMonths: null,
+          maxConcurrentMode: "HARD_BLOCK",
+          maxBookingLengthMode: "HARD_BLOCK",
+          notes: ""
+        };
+        openState[cat.id] = false;
       });
+
+      setCategories(catData);
+      setRules(merged);
+      setBlackoutDays(blackoutData);
+      setEmployees(empData.employees || []);
+      setOpenCards(openState);
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to refresh rules.");
+      toast({
+        title: "Error",
+        description: "Failed to fetch data",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleSave = async (rule: EventRule) => {
+  const updateRule = (categoryId: string, field: keyof EventRule, value: any) => {
+    setRules((prev) => ({
+      ...prev,
+      [categoryId]: { ...prev[categoryId], [field]: value },
+    }));
+  };
+
+  const saveRule = async (categoryId: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetch("/api/event-rules", {
+      const rule = rules[categoryId];
+      const response = await fetch("/api/event-rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventCategoryId: rule.eventCategoryId,
-          enforceEntitlement: rule.enforceEntitlement,
-          noticePeriodDays: rule.noticePeriodDays,
-          maxConcurrent: rule.maxConcurrent,
-          maxBookingLength: rule.maxBookingLength ?? 14,
-          maxCarryoverDays: rule.maxCarryoverDays ?? null,
-          carryoverExpiryMonths: rule.carryoverExpiryMonths ?? null,
-          blackoutDates: rule.blackoutDates,
+          ...rule,
+          companyId: "default-company-id", // This should come from session
         }),
       });
-      if (!res.ok) throw new Error("Failed to save rule.");
-      toast.success(`Rule saved for ${rule.eventCategory.name}`);
-      refreshRules();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Event rule saved successfully",
+        });
+        fetchData(); // Refresh data
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to save rule",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error(error);
-      toast.error("Error saving rule.");
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleCard = (id: string) => {
-    setOpenCards((prev) => ({ ...prev, [id]: !prev[id] }));
+  const runTestScenario = async () => {
+    if (!selectedCategory) {
+      toast({
+        title: "Error",
+        description: "Please select an event category",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/event-rules/test-scenario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventCategoryId: selectedCategory,
+          employeeId: testEmployee || undefined,
+          testDate: testDate.toISOString()
+        }),
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+        setTestResults(results);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to run test scenario",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addBlackoutDay = async () => {
+    try {
+      const response = await fetch("/api/blackout-days/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: newBlackoutDate.toISOString(),
+          allEvents: allEventsBlackout,
+          eventCategoryIds: allEventsBlackout ? [] : newBlackoutCategories,
+          companyId: "default-company-id" // This should come from session
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Blackout day added successfully",
+        });
+        setBlackoutDialogOpen(false);
+        setNewBlackoutCategories([]);
+        setAllEventsBlackout(false);
+        fetchData();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to add blackout day",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeBlackoutDay = async (blackoutId: string) => {
+    try {
+      const response = await fetch("/api/blackout-days/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: blackoutId }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Blackout day removed successfully",
+        });
+        fetchData();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to remove blackout day",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getResultIcon = (result: string) => {
+    switch (result) {
+      case "BLOCKED":
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case "REQUIRES_APPROVAL":
+        return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+      case "ALLOWED":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      default:
+        return <HelpCircle className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getResultColor = (result: string) => {
+    switch (result) {
+      case "BLOCKED":
+        return "bg-red-50 border-red-200";
+      case "REQUIRES_APPROVAL":
+        return "bg-orange-50 border-orange-200";
+      case "ALLOWED":
+        return "bg-green-50 border-green-200";
+      default:
+        return "bg-gray-50 border-gray-200";
+    }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">Event Rules Configuration</h1>
-      {categories.length === 0 ? (
-        <p className="text-sm text-gray-500">Loading...</p>
-      ) : (
-        categories.map((cat: EventCategory) => {
-          const rule = rules[cat.id];
-          const isOpen = openCards[cat.id];
-          return (
-            <Card key={cat.id} className="p-4 space-y-2">
-              <div
-                className="flex justify-between items-center cursor-pointer"
-                onClick={() => toggleCard(cat.id)}
-              >
-                <h2 className="text-lg font-medium">{cat.name}</h2>
-                <span className="text-sm text-blue-600">
-                  {isOpen ? "Collapse" : "Edit"}
-                </span>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Event Rules</h1>
+          <p className="text-muted-foreground">
+            Configure booking constraints, notice periods, and enforcement modes for leave types
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <TestTube className="w-4 h-4 mr-2" />
+                Test Scenario
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Test Scenario Panel</DialogTitle>
+                <DialogDescription>
+                  Simulate employee/department/date scenarios to see computed values and enforcement behavior
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <Label>Event Category *</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Employee (Optional)</Label>
+                  <Select value={testEmployee} onValueChange={setTestEmployee}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All employees</SelectItem>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.user?.firstName} {emp.user?.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Test Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(testDate, "PPP")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={testDate}
+                        onSelect={(date) => date && setTestDate(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
-              {isOpen && (
-                <div className="space-y-4 mt-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="block text-sm font-medium">Enforce Entitlement</label>
-                      <p className="text-xs text-gray-500">
-                        Toggle to deduct leave from entitlement. Turn off for unpaid/discretionary leave.
-                      </p>
-                    </div>
+              <Button onClick={runTestScenario} className="mb-6">
+                <TestTube className="w-4 h-4 mr-2" />
+                Run Simulation
+              </Button>
+
+              {testResults && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="pt-4">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {testResults.summary.totalRules}
+                        </div>
+                        <div className="text-sm text-blue-700">Total Rules</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="pt-4">
+                        <div className="text-2xl font-bold text-red-600">
+                          {testResults.summary.hardBlocks}
+                        </div>
+                        <div className="text-sm text-red-700">Hard Blocks</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-orange-50 border-orange-200">
+                      <CardContent className="pt-4">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {testResults.summary.softGates}
+                        </div>
+                        <div className="text-sm text-orange-700">Soft Gates</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {testResults.scenarios.map((scenario: TestScenario, index: number) => (
+                    <Card key={index} className={getResultColor(scenario.result)}>
+                      <CardContent className="pt-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          {getResultIcon(scenario.result)}
+                          <div className="font-semibold">{scenario.title}</div>
+                          <Badge variant={scenario.mode === "HARD_BLOCK" ? "destructive" : "secondary"}>
+                            {scenario.mode}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {scenario.description}
+                        </div>
+                        <div className="text-sm">{scenario.message}</div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {testResults.blackoutDays.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CalendarIcon className="w-4 h-4" />
+                          Upcoming Blackout Days
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {testResults.blackoutDays.map((blackout: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span>{format(new Date(blackout.date), "PPP")}</span>
+                              <Badge variant={blackout.allEvents ? "destructive" : "secondary"}>
+                                {blackout.allEvents ? "All Events" : "Specific Categories"}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={blackoutDialogOpen} onOpenChange={setBlackoutDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                Manage Blackouts
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Blackout Days Management</DialogTitle>
+                <DialogDescription>
+                  Add and manage blackout dates that prevent leave bookings
+                </DialogDescription>
+              </DialogHeader>
+
+              <Tabs defaultValue="add" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="add">Add Blackout</TabsTrigger>
+                  <TabsTrigger value="list">Current Blackouts</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="add" className="space-y-4">
+                  <div>
+                    <Label>Blackout Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {format(newBlackoutDate, "PPP")}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={newBlackoutDate}
+                          onSelect={(date) => date && setNewBlackoutDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
                     <Switch
-                      checked={rule.enforceEntitlement}
-                      onChange={(value) =>
-                        setRules((prev) => ({
-                          ...prev,
-                          [cat.id]: { ...rule, enforceEntitlement: value },
-                        }))
-                      }
+                      id="allEvents"
+                      checked={allEventsBlackout}
+                      onCheckedChange={setAllEventsBlackout}
                     />
+                    <Label htmlFor="allEvents">Block all event types</Label>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium">Notice Period (days)</label>
-                    <p className="text-xs text-gray-500">
-                      The minimum number of days notice required before leave can be booked.
-                    </p>
-                    <Input
-                      type="number"
-                      value={rule.noticePeriodDays}
-                      onChange={(e) =>
-                        setRules((prev) => ({
-                          ...prev,
-                          [cat.id]: {
-                            ...rule,
-                            noticePeriodDays: parseInt(e.target.value) || 0,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Max Concurrent Off</label>
-                    <p className="text-xs text-gray-500">
-                      Maximum employees off simultaneously in this leave category and department. Leave blank for no limit.
-                    </p>
-                    <Input
-                      type="number"
-                      value={rule.maxConcurrent ?? ""}
-                      onChange={(e) =>
-                        setRules((prev) => ({
-                          ...prev,
-                          [cat.id]: {
-                            ...rule,
-                            maxConcurrent:
-                              e.target.value === ""
-                                ? null
-                                : parseInt(e.target.value),
-                          },
-                        }))
-                      }
-                      placeholder="Leave blank for no limit"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Max Booking Length (days)</label>
-                    <p className="text-xs text-gray-500">
-                      Maximum number of days an employee can book in a single request.
-                    </p>
-                    <Input
-                      type="number"
-                      value={rule.maxBookingLength ?? 14}
-                      onChange={(e) =>
-                        setRules((prev) => ({
-                          ...prev,
-                          [cat.id]: {
-                            ...rule,
-                            maxBookingLength:
-                              e.target.value === ""
-                                ? 14
-                                : parseInt(e.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">Max Carryover Days</label>
-                    <p className="text-xs text-gray-500">
-                      Maximum unused days carried to next leave year. Leave blank to disable carryover.
-                    </p>
-                    <Input
-                      type="number"
-                      value={rule.maxCarryoverDays ?? ""}
-                      onChange={(e) =>
-                        setRules((prev) => ({
-                          ...prev,
-                          [cat.id]: {
-                            ...rule,
-                            maxCarryoverDays:
-                              e.target.value === ""
-                                ? null
-                                : parseInt(e.target.value),
-                            carryoverExpiryMonths:
-                              e.target.value === "" ? null : rule.carryoverExpiryMonths,
-                          },
-                        }))
-                      }
-                      placeholder="Leave blank to disable carryover"
-                    />
-                  </div>
-                  {rule.maxCarryoverDays !== null && (
+
+                  {!allEventsBlackout && (
                     <div>
-                      <label className="block text-sm font-medium">Carryover Expiry (months after refresh)</label>
-                      <p className="text-xs text-gray-500">
-                        Number of months carryover days remain valid after leave year refresh. Leave blank for no expiry.
-                      </p>
-                      <Input
-                        type="number"
-                        value={rule.carryoverExpiryMonths ?? ""}
-                        onChange={(e) =>
-                          setRules((prev) => ({
-                            ...prev,
-                            [cat.id]: {
-                              ...rule,
-                              carryoverExpiryMonths:
-                                e.target.value === ""
-                                  ? null
-                                  : parseInt(e.target.value),
-                            },
-                          }))
-                        }
-                        placeholder="Leave blank for no expiry"
-                      />
+                      <Label>Select Event Categories</Label>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {categories.map((cat) => (
+                          <div key={cat.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`cat-${cat.id}`}
+                              checked={newBlackoutCategories.includes(cat.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewBlackoutCategories([...newBlackoutCategories, cat.id]);
+                                } else {
+                                  setNewBlackoutCategories(newBlackoutCategories.filter(id => id !== cat.id));
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`cat-${cat.id}`} className="text-sm">
+                              {cat.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button onClick={() => handleSave(rule)} disabled={loading}>
-                      {loading ? "Saving..." : "Save Rule"}
+
+                  <Button onClick={addBlackoutDay} className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Blackout Day
+                  </Button>
+                </TabsContent>
+
+                <TabsContent value="list" className="space-y-4">
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {blackoutDays.map((blackout) => (
+                      <Card key={blackout.id}>
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium">
+                                {format(new Date(blackout.date), "PPP")}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {blackout.allEvents ? "All events blocked" : `${blackout.eventCategoryIds.length} categories blocked`}
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeBlackoutDay(blackout.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  {blackoutDays.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No blackout days configured
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {categories.map((category) => {
+          const rule = rules[category.id];
+          const isOpen = openCards[category.id];
+
+          return (
+            <Card key={category.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: category.color || "#6b7280" }}
+                    />
+                    <div>
+                      <CardTitle>{category.name}</CardTitle>
+                      <CardDescription>
+                        Notice: {rule.noticePeriodDays} days • 
+                        Max Length: {rule.maxBookingLength || "Unlimited"} days • 
+                        Max Concurrent: {rule.maxConcurrent || "Unlimited"}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={rule.enforceEntitlement ? "default" : "secondary"}>
+                      {rule.enforceEntitlement ? "Enforced" : "Not Enforced"}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setOpenCards((prev) => ({
+                          ...prev,
+                          [category.id]: !prev[category.id],
+                        }))
+                      }
+                    >
+                      <Settings className="w-4 h-4" />
+                      {isOpen ? "Close" : "Configure"}
                     </Button>
                   </div>
                 </div>
+              </CardHeader>
+
+              {isOpen && (
+                <CardContent>
+                  <Tabs defaultValue="basic" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="basic">Basic Rules</TabsTrigger>
+                      <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
+                      <TabsTrigger value="carryover">Carryover</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="basic" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor={`notice-${category.id}`}>
+                            Notice Period (days)
+                          </Label>
+                          <Input
+                            id={`notice-${category.id}`}
+                            type="number"
+                            min="0"
+                            value={rule.noticePeriodDays}
+                            onChange={(e) =>
+                              updateRule(
+                                category.id,
+                                "noticePeriodDays",
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`maxBooking-${category.id}`}>
+                            Max Booking Length (days)
+                          </Label>
+                          <Input
+                            id={`maxBooking-${category.id}`}
+                            type="number"
+                            min="1"
+                            value={rule.maxBookingLength || ""}
+                            onChange={(e) =>
+                              updateRule(
+                                category.id,
+                                "maxBookingLength",
+                                parseInt(e.target.value) || null
+                              )
+                            }
+                            placeholder="Unlimited"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`maxConcurrent-${category.id}`}>
+                            Max Concurrent Bookings
+                          </Label>
+                          <Input
+                            id={`maxConcurrent-${category.id}`}
+                            type="number"
+                            min="1"
+                            value={rule.maxConcurrent || ""}
+                            onChange={(e) =>
+                              updateRule(
+                                category.id,
+                                "maxConcurrent",
+                                parseInt(e.target.value) || null
+                              )
+                            }
+                            placeholder="Unlimited"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id={`enforce-${category.id}`}
+                          checked={rule.enforceEntitlement}
+                          onCheckedChange={(checked) =>
+                            updateRule(category.id, "enforceEntitlement", checked)
+                          }
+                        />
+                        <Label htmlFor={`enforce-${category.id}`}>
+                          Enforce Entitlement
+                        </Label>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="enforcement" className="space-y-4 mt-4">
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Enforcement Modes
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Max Concurrent Mode</Label>
+                              <Select
+                                value={rule.maxConcurrentMode}
+                                onValueChange={(value: "HARD_BLOCK" | "SOFT_GATE") =>
+                                  updateRule(category.id, "maxConcurrentMode", value)
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="HARD_BLOCK">
+                                    Hard Block (Deny)
+                                  </SelectItem>
+                                  <SelectItem value="SOFT_GATE">
+                                    Soft Gate (Require Approval)
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Max Booking Length Mode</Label>
+                              <Select
+                                value={rule.maxBookingLengthMode}
+                                onValueChange={(value: "HARD_BLOCK" | "SOFT_GATE") =>
+                                  updateRule(category.id, "maxBookingLengthMode", value)
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="HARD_BLOCK">
+                                    Hard Block (Deny)
+                                  </SelectItem>
+                                  <SelectItem value="SOFT_GATE">
+                                    Soft Gate (Require Approval)
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div className="text-sm text-blue-800">
+                              <strong>Hard Block:</strong> Completely prevents the action<br/>
+                              <strong>Soft Gate:</strong> Allows the action but requires additional approval
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor={`notes-${category.id}`}>
+                            Notes & Help Text
+                          </Label>
+                          <Textarea
+                            id={`notes-${category.id}`}
+                            value={rule.notes || ""}
+                            onChange={(e) =>
+                              updateRule(category.id, "notes", e.target.value)
+                            }
+                            placeholder="Optional notes or help text for this event category"
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="carryover" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor={`maxCarryover-${category.id}`}>
+                            Max Carryover Days
+                          </Label>
+                          <Input
+                            id={`maxCarryover-${category.id}`}
+                            type="number"
+                            min="0"
+                            value={rule.maxCarryoverDays || ""}
+                            onChange={(e) =>
+                              updateRule(
+                                category.id,
+                                "maxCarryoverDays",
+                                parseInt(e.target.value) || null
+                              )
+                            }
+                            placeholder="Unlimited"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`carryoverExpiry-${category.id}`}>
+                            Carryover Expiry (months)
+                          </Label>
+                          <Input
+                            id={`carryoverExpiry-${category.id}`}
+                            type="number"
+                            min="1"
+                            value={rule.carryoverExpiryMonths || ""}
+                            onChange={(e) =>
+                              updateRule(
+                                category.id,
+                                "carryoverExpiryMonths",
+                                parseInt(e.target.value) || null
+                              )
+                            }
+                            placeholder="Never expires"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Configure how unused leave from previous periods can be carried over.
+                        Leave blank for no carryover restrictions.
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <div className="flex justify-end pt-4 border-t mt-6">
+                    <Button
+                      onClick={() => saveRule(category.id)}
+                      disabled={loading}
+                    >
+                      {loading ? "Saving..." : "Save Rule"}
+                    </Button>
+                  </div>
+                </CardContent>
               )}
             </Card>
           );
-        })
-      )}
+        })}
+      </div>
     </div>
   );
 }

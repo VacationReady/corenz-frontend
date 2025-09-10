@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { addDays, eachDayOfInterval } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
 import dayjs from "dayjs";
 
 /**
@@ -153,11 +154,25 @@ export async function validateLeaveRequest({
     combinedAvailable,
   });
 
-  if (daysRequestedForDeduction > combinedAvailable && !isAdmin) {
+  // Check if negative balance is allowed via Leave Policies
+  const negativeBalanceAllowed = await checkNegativeBalanceAllowed({
+    employeeId,
+    eventCategoryId,
+    companyId
+  });
+
+  console.log("🏦 Negative balance allowed:", negativeBalanceAllowed);
+
+  // If negative balance is allowed, skip entitlement check but still enforce Event Rules
+  if (daysRequestedForDeduction > combinedAvailable && !isAdmin && !negativeBalanceAllowed) {
     console.error("❌ Insufficient entitlement including carryover.");
     throw new Error(
       `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${combinedAvailable} days available (including carryover).`
     );
+  }
+
+  if (negativeBalanceAllowed && daysRequestedForDeduction > combinedAvailable) {
+    console.log("⚠️ Allowing negative balance due to Leave Policy setting.");
   }
 
   console.log("✅ [validateLeaveRequest] Validation passed successfully.");

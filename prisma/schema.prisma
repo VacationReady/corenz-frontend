@@ -97,6 +97,8 @@ model Employee {
   workingPatternId     String?
   departmentId         String?
   jobRoleId            String?
+  locationId           String? // For Leave Policy assignments
+  startDate            DateTime? // For service-length tier calculations
   onboardingStatus     Json?
   onboardingTemplateId String?
   companyId            String // <-- Added companyId column
@@ -161,6 +163,7 @@ model EventCategory {
   subcategories    EventSubcategory[]
   LeaveEntitlement LeaveEntitlement[]
   leaveRequests    LeaveRequest[]
+  leavePolicies    LeavePolicy[]
 
   @@unique([companyId, name])
 }
@@ -245,31 +248,33 @@ model Department {
 }
 
 model Company {
-  id                  String               @id @default(cuid())
-  name                String               @unique
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  address             String?
-  code                String?              @unique
-  industry            String?
-  phone               String?
-  size                Int?
-  website             String?
-  departments         Department[]
-  documents           Document[]
-  forms               Form[]
-  jobRoles            JobRole[]
-  onboardingTemplates OnboardingTemplate[]
-  SavedReport         SavedReport[]
-  users               User[]
-  employees           Employee[]
-  permissionProfiles  PermissionProfile[]
-  genderOptions       GenderOption[]
-  workingPatterns     WorkingPattern[]
-  eventCategories     EventCategory[]
-  eventSubcategories  EventSubcategory[]
-  leaveRequests       LeaveRequest[]
-  leaveEntitlements   LeaveEntitlement[]
+  id                     String               @id @default(cuid())
+  name                   String               @unique
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  address                String?
+  code                   String?              @unique
+  industry               String?
+  phone                  String?
+  size                   Int?
+  website                String?
+  departments            Department[]
+  documents              Document[]
+  forms                  Form[]
+  jobRoles               JobRole[]
+  onboardingTemplates    OnboardingTemplate[]
+  SavedReport            SavedReport[]
+  users                  User[]
+  employees              Employee[]
+  permissionProfiles     PermissionProfile[]
+  genderOptions          GenderOption[]
+  workingPatterns        WorkingPattern[]
+  eventCategories        EventCategory[]
+  eventSubcategories     EventSubcategory[]
+  leaveRequests          LeaveRequest[]
+  leaveEntitlements      LeaveEntitlement[]
+  leavePolicies          LeavePolicy[]
+  leavePolicyAssignments LeavePolicyAssignment[]
 }
 
 model JobRole {
@@ -337,9 +342,80 @@ model EventRule {
   maxBookingLength      Int?
   maxCarryoverDays      Int?
   carryoverExpiryMonths Int?
+  // Enforcement mode toggles - NEW
+  maxConcurrentMode     EnforcementMode @default(HARD_BLOCK)
+  maxBookingLengthMode  EnforcementMode @default(HARD_BLOCK)
+  // Help/Notes - NEW
+  notes                 String?
   eventCategory         EventCategory @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([companyId, eventCategoryId])
+}
+
+// Leave Policies - Accrual Engine Only
+model LeavePolicy {
+  id                    String   @id @default(cuid())
+  companyId             String
+  name                  String
+  description           String?
+  eventCategoryId       String
+  isActive              Boolean  @default(true)
+  effectiveFrom         DateTime
+  effectiveTo           DateTime?
+  
+  // Accrual Configuration
+  accrualRate           Float    // days/hours per period
+  accrualPeriod         AccrualPeriod @default(MONTHLY)
+  accrualUnit           AccrualUnit   @default(DAYS)
+  
+  // Proration Rules
+  enableProration       Boolean  @default(true)
+  prorationMethod       ProrationMethod @default(DAILY)
+  
+  // Service-length tiers
+  serviceLengthTiers    Json?    // Array of { minYears: number, maxYears?: number, accrualRate: number }
+  
+  // Negative balance
+  allowNegativeBalance  Boolean  @default(false)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  company               Company       @relation(fields: [companyId], references: [id])
+  eventCategory         EventCategory @relation(fields: [eventCategoryId], references: [id])
+  assignments           LeavePolicyAssignment[]
+
+  @@unique([companyId, name])
+  @@index([companyId, eventCategoryId])
+  @@index([effectiveFrom, effectiveTo])
+}
+
+// Leave Policy Assignments
+model LeavePolicyAssignment {
+  id              String   @id @default(cuid())
+  leavePolicyId   String
+  companyId       String
+  
+  // Assignment targets (at least one must be specified)
+  departmentIds   String[] @default([])
+  jobRoleIds      String[] @default([])
+  locationIds     String[] @default([])
+  employeeIds     String[] @default([]) // Specific employee overrides
+  
+  // Priority for overlapping assignments (higher = more specific)
+  priority        Int      @default(0)
+  
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  leavePolicy     LeavePolicy @relation(fields: [leavePolicyId], references: [id], onDelete: Cascade)
+  company         Company     @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([effectiveFrom, effectiveTo])
 }
 
 model BlackoutDay {
@@ -546,6 +622,12 @@ model OnboardingStep {
   uploadType              OnboardingUploadType?
   instruction             String?
   formId                  String? // <-- Already correctly defined
+  // New fields for step library & SLAs (optional, backward compatible)
+  taskOwnerId             String?  // For CREATE_TASK type
+  trainingId              String?  // For TRAINING_ASSIGNMENT type  
+  slaDays                 Int?     // Due X days from start date
+  dependencies            String[] @default([]) // Array of step IDs that must complete first
+  metadata                Json?    // Additional step-specific configuration
   document                Document?                @relation(fields: [documentId], references: [id])
   form                    Form?                    @relation(fields: [formId], references: [id])
   template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
@@ -665,6 +747,9 @@ model PermissionProfile {
   description String?
   permissions Json // JSON object mapping screens to permission actions
   builtIn     Boolean  @default(false)
+  // New scope and constraints - nullable for backward compatibility
+  scope       PermissionScope? 
+  constraints Json? // { departmentIds?: string[], jobRoles?: string[] }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -672,6 +757,7 @@ model PermissionProfile {
   users        User[]
   oldAuditLogs PermissionAudit[] @relation("PermissionAuditOldProfile")
   newAuditLogs PermissionAudit[] @relation("PermissionAuditNewProfile")
+  auditLogs    PermissionProfileAudit[]
 
   @@unique([companyId, name])
 }
@@ -711,6 +797,21 @@ model PersonalInfoAudit {
   changedBy   User @relation("PersonalInfoAuditChangedBy", fields: [changedById], references: [id])
 
   @@index([companyId, subjectUserId, changedAt])
+}
+
+// New Permission Profile Audit table
+model PermissionProfileAudit {
+  id        String   @id @default(cuid())
+  profileId String
+  action    String   // "created", "updated", "deleted"
+  changes   Json?    // Detailed change log
+  changedBy String
+  changedAt DateTime @default(now())
+  
+  profile   PermissionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  @@index([profileId])
+  @@index([changedAt])
 }
 
 model GenderOption {
@@ -775,6 +876,11 @@ enum OnboardingStepType {
   UPLOAD_DOCUMENT
   INSTRUCTION
   FORM_FILL
+  // New step types for step library
+  COLLECT_DOCUMENT
+  FILL_FORM_BY_SLUG
+  CREATE_TASK
+  TRAINING_ASSIGNMENT
 }
 
 enum OnboardingUploadType {
@@ -994,4 +1100,35 @@ enum ExitInterviewCompletionStatus {
   PENDING
   STARTED
   SUBMITTED
+}
+
+// New enums for Leave Policies and Event Rules
+enum EnforcementMode {
+  HARD_BLOCK
+  SOFT_GATE
+}
+
+enum AccrualPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  WEEKLY
+}
+
+enum AccrualUnit {
+  DAYS
+  HOURS
+}
+
+enum ProrationMethod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  NONE
+}
+
+enum PermissionScope {
+  SELF
+  TEAM
+  COMPANY
 }

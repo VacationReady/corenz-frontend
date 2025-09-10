@@ -106,19 +106,19 @@ function MyDocuments({ employeeId }: { employeeId: string }) {
   );
 }
 
-function QuickActions() {
+function QuickActions({ employeeId }: { employeeId?: string }) {
   return (
     <DashboardWidget title="Quick Actions" icon={User}>
       <div className="flex flex-wrap gap-2">
-        <Link href="/leave/request" aria-label="Book Holiday">
-          <Button variant="outline" size="sm"><Calendar className="w-4 h-4 mr-2" />Book Holiday</Button>
-        </Link>
+        {employeeId && (
+          <Link href={`/employees/${employeeId}/leave`} aria-label="Book Holiday">
+            <Button variant="outline" size="sm"><Calendar className="w-4 h-4 mr-2" />Book Holiday</Button>
+          </Link>
+        )}
         <Link href="/profile" aria-label="View Profile">
           <Button variant="outline" size="sm"><User className="w-4 h-4 mr-2" />View Profile</Button>
         </Link>
-        <Link href="/payroll/payslips" aria-label="Payslips">
-          <Button variant="outline" size="sm"><Receipt className="w-4 h-4 mr-2" />Payslips</Button>
-        </Link>
+        {/* Hide payslips until route exists to avoid 404 */}
       </div>
     </DashboardWidget>
   );
@@ -159,7 +159,7 @@ export default function EmployeeDashboard() {
         <NewsWidget limit={5} />
         {employeeId && <PendingTasks employeeId={employeeId} />}
         {employeeId && <MyDocuments employeeId={employeeId} />}
-        <QuickActions />
+        <QuickActions employeeId={employeeId} />
         <WellbeingSpotlight />
       </DashboardGrid>
     </PageShell>

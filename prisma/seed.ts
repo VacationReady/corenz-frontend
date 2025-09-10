@@ -249,7 +249,7 @@ async function main() {
   for (const category of systemCategories) {
     console.log(`⏳ Attempting to upsert category: ${category.name}`);
     const result = await prisma.eventCategory.upsert({
-      where: { name: category.name },
+      where: { companyId_name: { companyId: company.id, name: category.name } },
       update: {
         systemDefined: true,
         categoryType: category.categoryType,
@@ -257,7 +257,7 @@ async function main() {
         adminOnly: category.adminOnly,
         color: category.color,
       },
-      create: category,
+      create: { ...category, company: { connect: { id: company.id } } },
     });
     console.log(`✅ Category upserted: ${result.name} (${result.id})`);
 

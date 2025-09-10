@@ -8,9 +8,12 @@ import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       console.log("❌ Unauthenticated attempt to submit leave request");
-      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthenticated" },
+        { status: 401 }
+      );
     }
 
     const userId = session.user.id;
@@ -76,12 +79,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         employee: { connect: { id: employeeId } },
         requester: { connect: { id: userId } },
         eventCategory: { connect: { id: eventCategoryId } },
+        company: { connect: { id: session.user.companyId } },
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         dayType: dayType ?? "FULL_DAY",
         reason: reason ?? "",
         paidStatus: eventCategoryName === "Sick Leave" ? paidStatus ?? "PAID" : null,
-        companyId: session.user.companyId,
       },
     });
 

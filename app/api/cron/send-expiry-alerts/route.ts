@@ -4,10 +4,11 @@ import { resend } from "@/lib/resend"; // assumes Resend configured
 import { sendExitInterviewFormInvite } from "@/lib/email/send";
 import { isTodayInLondon } from "@/lib/time";
 
-export async function POST() {
-  try {
-    const expiryRules = await prisma.expiryRule.findMany();
-    const today = new Date();
+async function processCompany(companyId: string) {
+  const expiryRules = await prisma.expiryRule.findMany({
+    where: { companyId },
+  });
+  const today = new Date();
 
     for (const rule of expiryRules) {
       const targetDate = new Date();
@@ -24,6 +25,7 @@ export async function POST() {
         const items = await prisma.driverLicence.findMany({
           where: {
             expiryDate: { lte: targetDate, gte: today },
+            employee: { companyId },
           },
           include: { employee: { include: { user: true } } },
         });
@@ -41,6 +43,7 @@ export async function POST() {
         const items = await prisma.trainingRecord.findMany({
           where: {
             expiryDate: { lte: targetDate, gte: today },
+            employee: { companyId },
           },
           include: { employee: { include: { user: true } }, course: true },
         });
@@ -58,6 +61,7 @@ export async function POST() {
         const items = await prisma.employmentCheck.findMany({
           where: {
             expiryDate: { lte: targetDate, gte: today },
+            employee: { companyId },
           },
           include: { employee: { include: { user: true } } },
         });
@@ -92,8 +96,8 @@ export async function POST() {
         }
 
         if (rule.notifyManager && item.employee.managerId) {
-          const manager = await prisma.user.findUnique({
-            where: { id: item.employee.managerId },
+          const manager = await prisma.user.findFirst({
+            where: { id: item.employee.managerId, companyId },
           });
           if (manager?.email) recipients.push(manager.email);
         }
@@ -127,7 +131,9 @@ export async function POST() {
     }
 
     // Handle Exit Interview Form scheduling
-    const exitInterviewRule = expiryRules.find(rule => rule.category === "Exit Interview Forms");
+    const exitInterviewRule = expiryRules.find(
+      (rule) => rule.category === "Exit Interview Forms"
+    );
     if (exitInterviewRule) {
       console.log("Processing Exit Interview Form scheduling...");
 
@@ -135,53 +141,91 @@ export async function POST() {
       const dueOffboardings = await prisma.employeeOffboarding.findMany({
         where: {
           sendForm: true,
-          formTiming: 'ON_DATE',
-          completionStatus: 'PENDING',
+          formTiming: "ON_DATE",
+          completionStatus: "PENDING",
           // Only send if scheduled for today (in London timezone)
           scheduledSendAt: {
             not: null,
             gte: new Date(new Date().setHours(0, 0, 0, 0)), // Start of today UTC
-            lt: new Date(new Date().setHours(23, 59, 59, 999)) // End of today UTC
-          }
+            lt: new Date(new Date().setHours(23, 59, 59, 999)), // End of today UTC
+          },
+          employee: { companyId },
         },
         include: {
           employee: {
-            include: { user: true }
+            include: { user: true },
           },
-          formTemplate: true
-        }
+          formTemplate: true,
+        },
       });
 
-      console.log(`Found ${dueOffboardings.length} offboarding records due for form invitations today`);
+      console.log(
+        `Found ${dueOffboardings.length} offboarding records due for form invitations today`
+      );
 
       for (const offboarding of dueOffboardings) {
         try {
           // Double-check it's today in London timezone
           if (!isTodayInLondon(offboarding.scheduledSendAt!)) {
-            console.log(`Skipping offboarding ${offboarding.id} - not scheduled for today`);
+            console.log(
+              `Skipping offboarding ${offboarding.id} - not scheduled for today`
+            );
             continue;
           }
 
-          console.log(`Processing form invitation for offboarding ${offboarding.id}, scheduled for: ${offboarding.scheduledSendAt}`);
+          console.log(
+            `Processing form invitation for offboarding ${offboarding.id}, scheduled for: ${offboarding.scheduledSendAt}`
+          );
 
           // Send the form invitation
           const emailSent = await sendExitInterviewFormInvite(offboarding.id);
 
           if (emailSent) {
-            console.log(`✅ Sent form invitation for offboarding ${offboarding.id} to ${offboarding.employee.user.email}`);
+            console.log(
+              `✅ Sent form invitation for offboarding ${offboarding.id} to ${offboarding.employee.user.email}`
+            );
           } else {
-            console.log(`❌ Failed to send form invitation for offboarding ${offboarding.id}`);
+            console.log(
+              `❌ Failed to send form invitation for offboarding ${offboarding.id}`
+            );
           }
-
         } catch (error) {
-          console.error(`Failed to send form invitation for offboarding ${offboarding.id}:`, error);
+          console.error(
+            `Failed to send form invitation for offboarding ${offboarding.id}:`,
+            error
+          );
         }
       }
     }
+}
 
-    return NextResponse.json({ message: "Expiry alerts and form invitations sent successfully." });
+export async function POST(req: Request) {
+  try {
+    let companyIds: string[] = [];
+    try {
+      const body = await req.json();
+      if (body?.companyId) {
+        companyIds = [body.companyId];
+      }
+    } catch {
+      /* no body */
+    }
+
+    if (companyIds.length === 0) {
+      const companies = await prisma.company.findMany({ select: { id: true } });
+      companyIds = companies.map((c) => c.id);
+    }
+
+    for (const id of companyIds) {
+      await processCompany(id);
+    }
+
+    return NextResponse.json({
+      message: "Expiry alerts and form invitations sent successfully.",
+    });
   } catch (error) {
     console.error("Error sending expiry alerts:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+

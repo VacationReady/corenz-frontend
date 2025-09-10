@@ -83,7 +83,7 @@ export async function calculateLeaveEntitlement({
   let applicableTier: ServiceLengthTier | undefined;
 
   if (policy.serviceLengthTiers && Array.isArray(policy.serviceLengthTiers)) {
-    for (const tier of policy.serviceLengthTiers as ServiceLengthTier[]) {
+    for (const tier of policy.serviceLengthTiers as unknown as ServiceLengthTier[]) {
       if (serviceLengthYears >= tier.minYears && 
           (tier.maxYears === undefined || serviceLengthYears < tier.maxYears)) {
         accrualRate = tier.accrualRate;
@@ -156,37 +156,30 @@ async function findApplicableLeavePolicies({
   const assignments = await prisma.leavePolicyAssignment.findMany({
     where: {
       companyId,
-      // Check if assignment applies to this employee
-      OR: [
-        // Specific employee assignment
-        { employeeIds: { has: employeeId } },
-        // Department assignment
-        ...(employee.departmentId ? [{ departmentIds: { has: employee.departmentId } }] : []),
-        // Job role assignment
-        ...(employee.jobRoleId ? [{ jobRoleIds: { has: employee.jobRoleId } }] : []),
-        // Location assignment
-        ...(employee.locationId ? [{ locationIds: { has: employee.locationId } }] : []),
-      ],
-      // Active assignments only
-      effectiveFrom: { lte: calculationDate },
-      OR: [
-        { effectiveTo: null },
-        { effectiveTo: { gte: calculationDate } }
-      ]
-    },
-    include: {
-      leavePolicy: {
-        where: {
-          eventCategoryId,
-          isActive: true,
-          effectiveFrom: { lte: calculationDate },
+      AND: [
+        {
           OR: [
-            { effectiveTo: null },
-            { effectiveTo: { gte: calculationDate } }
-          ]
-        }
-      }
+            { employeeIds: { has: employeeId } },
+            ...(employee.departmentId ? [{ departmentIds: { has: employee.departmentId } }] : []),
+            ...(employee.jobRoleId ? [{ jobRoleIds: { has: employee.jobRoleId } }] : []),
+            ...(employee.locationId ? [{ locationIds: { has: employee.locationId } }] : []),
+          ],
+        },
+        { effectiveFrom: { lte: calculationDate } },
+        { OR: [{ effectiveTo: null }, { effectiveTo: { gte: calculationDate } }] },
+        {
+          leavePolicy: {
+            is: {
+              eventCategoryId,
+              isActive: true,
+              effectiveFrom: { lte: calculationDate },
+              OR: [{ effectiveTo: null }, { effectiveTo: { gte: calculationDate } }],
+            },
+          },
+        },
+      ],
     },
+    include: { leavePolicy: true },
     orderBy: [
       { priority: "desc" }, // Higher priority first
       { effectiveFrom: "desc" }

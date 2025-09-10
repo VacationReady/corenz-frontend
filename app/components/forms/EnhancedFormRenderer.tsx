@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, Save } from 'lucide-react';
-import { FormField, TableColumn } from '@/api/forms/[formId]/types';
+import { FormField, TableColumn } from '@/api/forms/[id]/types';
 
 interface EnhancedFormRendererProps {
   formId: string;

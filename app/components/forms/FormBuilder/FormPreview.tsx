@@ -1,6 +1,6 @@
 'use client';
 
-import { FormField } from '@/api/forms/[formId]/types'
+import { FormField } from '@/api/forms/[id]/types'
 import { AlertCircle } from 'lucide-react';
 
 export function FormPreview({ fields }: { fields: FormField[] }) {

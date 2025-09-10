@@ -264,11 +264,13 @@ export default function PermissionsPage() {
                         }
                         align="right"
                       >
-                        <DropdownMenuItem onClick={() => window.location.href = `/settings/permissions/${profile.id}/edit`}>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/settings/permissions/${profile.id}/edit`}>
                           <div className="flex items-center">
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </div>
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleClone(profile)}>
                           <div className="flex items-center">

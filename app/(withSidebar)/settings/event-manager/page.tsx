@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Switch } from "@headlessui/react";
@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
 import { toast } from "react-hot-toast";
+import { Input } from "@/components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -18,27 +20,84 @@ export default function EventManagerPage() {
   const [isAddSubcategoryModalOpen, setIsAddSubcategoryModalOpen] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
+  // Search & filters
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived">("active");
+  const [typeFilter, setTypeFilter] = useState<"all" | "TIME_OFF" | "WORKING_EVENT">("all");
+  const [adminOnlyFilter, setAdminOnlyFilter] = useState<"all" | "yes" | "no">("all");
+  // Disable while saving
+  const [savingKey, setSavingKey] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [statusFilter]);
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/event-categories", { cache: "no-store" });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setCategories(data);
+      if (statusFilter === "active") {
+        const res = await fetch("/api/event-categories", { cache: "no-store" });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else {
+          console.error("Unexpected API response:", data);
+        }
       } else {
-        console.error("Unexpected API response:", data);
+        const res = await fetch("/api/event-categories/archived", { cache: "no-store" });
+        const json = await res.json();
+        const data = json?.data ?? [];
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else {
+          console.error("Unexpected API response:", json);
+        }
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
   };
+  const filteredCategories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return categories
+      .filter((c) => (typeFilter === "all" ? true : c.categoryType === typeFilter))
+      .filter((c) => (adminOnlyFilter === "all" ? true : adminOnlyFilter === "yes" ? !!c.adminOnly : !c.adminOnly))
+      .filter((c) => (q ? c.name.toLowerCase().includes(q) || (Array.isArray(c.subcategories) && c.subcategories.some((s: any) => s.name?.toLowerCase().includes(q))) : true));
+  }, [categories, search, typeFilter, adminOnlyFilter]);
 
   const toggleExpand = (id: string) => {
     setExpanded(expanded === id ? null : id);
+  };
+  const handleToggleCategory = async (
+    categoryId: string,
+    key: "requiresApproval" | "adminOnly" | "isActive",
+    nextValue: boolean
+  ) => {
+    const sk = `${categoryId}:${key}`;
+    setSavingKey(sk);
+    const prev = categories;
+    const optimistic = categories.map((c) => (c.id === categoryId ? { ...c, [key]: nextValue } : c));
+    setCategories(optimistic);
+    try {
+      const res = await fetch(`/api/event-categories/${categoryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: nextValue }),
+      });
+      if (!res.ok) {
+        let msg = "Failed to update";
+        try {
+          msg = (await res.json())?.error || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+      const json = await res.json();
+      toast.success(json?.message || "Updated");
+    } catch (e: any) {
+      setCategories(prev);
+      toast.error(e?.message || "Failed to update");
+    } finally {
+      setSavingKey(null);
+    }
   };
 
   const handleOpenAddSubcategory = (categoryId: string, categoryName: string) => {
@@ -97,8 +156,41 @@ export default function EventManagerPage() {
           </Button>
         </div>
 
+        {/* Search & Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
+          <Input placeholder="Search categories or subcategories..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="TIME_OFF">Time Off</SelectItem>
+              <SelectItem value="WORKING_EVENT">Working Event</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={adminOnlyFilter} onValueChange={(v: any) => setAdminOnlyFilter(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Admin Only" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Admin Only: All</SelectItem>
+              <SelectItem value="yes">Admin Only: Yes</SelectItem>
+              <SelectItem value="no">Admin Only: No</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
-          {categories.map((category) => (
+          {filteredCategories.map((category) => (
             <div key={category.id} className="border rounded p-3 bg-white shadow-sm">
               <div className="flex justify-between items-center">
                 <div>
@@ -116,13 +208,13 @@ export default function EventManagerPage() {
                           : "Active"}
                       </span>
                       <Switch
-                        checked={category[key]}
-                        onChange={() => {}}
-                        disabled={category.systemDefined}
+                        checked={!!category[key]}
+                        onChange={(val) => handleToggleCategory(category.id, key as any, Boolean(val))}
+                        disabled={category.systemDefined || savingKey === `${category.id}:${key}`}
                         className={cn(
                           category[key] ? "bg-green-500" : "bg-gray-300",
                           "relative inline-flex h-5 w-10 items-center rounded-full",
-                          category.systemDefined ? "opacity-50 cursor-not-allowed" : ""
+                          category.systemDefined || savingKey === `${category.id}:${key}` ? "opacity-50 cursor-not-allowed" : ""
                         )}
                         title={category.systemDefined ? "System category, cannot edit" : ""}
                       >

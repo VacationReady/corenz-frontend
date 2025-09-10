@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Checkbox from '@/components/ui/Checkbox';
@@ -24,6 +24,8 @@ export default function WorkingPatternsPage() {
   ]);
 
   const [viewPattern, setViewPattern] = useState<any>(null);
+  // Copy/Paste week clipboard (in-memory only)
+  const clipboardRef = useRef<Record<string, string> | null>(null);
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dayTypes = [
@@ -63,6 +65,34 @@ export default function WorkingPatternsPage() {
       return updated;
     });
   };
+
+  const handleCopyWeek = (weekIndex: number) => {
+    clipboardRef.current = { ...weeks[weekIndex].days };
+    toast.success(`Copied week ${weeks[weekIndex].weekNumber}`);
+  };
+
+  const handlePasteWeek = (weekIndex: number) => {
+    if (!clipboardRef.current) {
+      toast.error('Nothing copied');
+      return;
+    }
+    setWeeks((prev) => {
+      const updated = [...prev];
+      updated[weekIndex] = {
+        ...updated[weekIndex],
+        days: { ...clipboardRef.current },
+      };
+      return updated;
+    });
+    toast.success(`Pasted to week ${weeks[weekIndex].weekNumber}`);
+  };
+
+  const calendarPreview = useMemo(() => {
+    // Build compact matrix preview of selected weeks/days
+    return weeks.map((week) =>
+      days.map((d) => week.days[d] || null)
+    );
+  }, [weeks]);
 
   const addWeek = () => {
     setWeeks((prev) => [...prev, { weekNumber: prev.length + 1, days: {} }]);
@@ -173,9 +203,13 @@ export default function WorkingPatternsPage() {
                   <div key={weekIndex} className="border p-2 rounded bg-gray-50">
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-medium">Week {week.weekNumber}</h3>
-                      {weeks.length > 1 && (
-                        <Button size="sm" variant="ghost" onClick={() => removeWeek(weekIndex)}>Remove Week</Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleCopyWeek(weekIndex)}>Copy week</Button>
+                        <Button size="sm" variant="outline" onClick={() => handlePasteWeek(weekIndex)} disabled={!clipboardRef.current}>Paste to week</Button>
+                        {weeks.length > 1 && (
+                          <Button size="sm" variant="ghost" onClick={() => removeWeek(weekIndex)}>Remove Week</Button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-4 gap-2">
                       {days.map((day) => (
@@ -214,6 +248,34 @@ export default function WorkingPatternsPage() {
                 <Button onClick={handleSubmit} className="w-full mt-2">
                   {editMode ? 'Save Changes' : 'Create'}
                 </Button>
+                {/* Read-only calendar preview */}
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">Calendar Preview</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-xs border">
+                      <thead>
+                        <tr>
+                          <th className="border px-2 py-1 text-left">Week</th>
+                          {days.map((d) => (
+                            <th key={d} className="border px-2 py-1 text-center">{d}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calendarPreview.map((weekRow, idx) => (
+                          <tr key={idx}>
+                            <td className="border px-2 py-1">{idx + 1}</td>
+                            {weekRow.map((val, j) => (
+                              <td key={j} className="border px-2 py-1 text-center">
+                                {val ? val.replace(/_/g, ' ') : ''}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>

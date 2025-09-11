@@ -26,7 +26,8 @@ import {
   Clock,
   HelpCircle,
   Plus,
-  Trash2
+  Trash2,
+  Edit
 } from "lucide-react";
 import { format } from "date-fns";
 

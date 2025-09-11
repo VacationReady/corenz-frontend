@@ -8,9 +8,20 @@ export default function FormAnalyticsPage() {
   const params = useParams();
   const formId = params?.id ? String(params.id) : '';
 
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Forms & Surveys', href: '/settings/forms' },
+    { label: 'Form Analytics', isCurrentPage: true }
+  ];
+
   if (!formId) {
     return (
-      <PageShell title="Form Analytics" description="View submission statistics and insights">
+      <PageShell
+        title="Form Analytics"
+        description="View submission statistics and insights"
+        breadcrumbs={{ items: breadcrumbItems }}
+        showHomeIcon={false}
+      >
         <div className="flex items-center justify-center h-64 text-gray-500">
           Invalid form ID.
         </div>
@@ -19,9 +30,11 @@ export default function FormAnalyticsPage() {
   }
 
   return (
-    <PageShell 
-      title="Form Analytics" 
+    <PageShell
+      title="Form Analytics"
       description="View submission statistics and insights"
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>

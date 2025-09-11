@@ -369,7 +369,7 @@ export default function AuditLogPage() {
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={filters.dateFrom}
+                      selected={filters.dateFrom ?? undefined}
                       onSelect={(date) => setFilters({ ...filters, dateFrom: date || null })}
                       initialFocus
                     />
@@ -389,7 +389,7 @@ export default function AuditLogPage() {
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={filters.dateTo}
+                      selected={filters.dateTo ?? undefined}
                       onSelect={(date) => setFilters({ ...filters, dateTo: date || null })}
                       initialFocus
                     />

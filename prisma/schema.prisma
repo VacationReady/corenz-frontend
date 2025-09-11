@@ -69,6 +69,10 @@ model User {
   personalInfoAuditsAsSubject PersonalInfoAudit[] @relation("PersonalInfoAuditSubjectUser")
   personalInfoAuditsChangedBy PersonalInfoAudit[] @relation("PersonalInfoAuditChangedBy")
 
+  // New HR product feature relations
+  automationRulesCreated      AutomationRule[]    @relation("AutomationRuleCreator")
+  globalAuditLogsAsActor      GlobalAuditLog[]    @relation("GlobalAuditLogActor")
+
   // Gender option relation
   genderOption GenderOption? @relation(fields: [genderOptionId], references: [id])
 
@@ -164,6 +168,7 @@ model EventCategory {
   LeaveEntitlement LeaveEntitlement[]
   leaveRequests    LeaveRequest[]
   leavePolicies    LeavePolicy[]
+  eventRuleOverrides EventRuleOverride[]
 
   @@unique([companyId, name])
 }
@@ -243,6 +248,7 @@ model Department {
   users               User[]
   documents           Document[]           @relation("DocumentDepartments")
   onboardingTemplates OnboardingTemplate[] @relation("OnboardingTemplateDepartments")
+  eventRuleOverrides  EventRuleOverride[]
 
   @@unique([companyId, name])
 }
@@ -275,6 +281,17 @@ model Company {
   leaveEntitlements      LeaveEntitlement[]
   leavePolicies          LeavePolicy[]
   leavePolicyAssignments LeavePolicyAssignment[]
+  
+  // New HR product feature relations
+  automationRules        AutomationRule[]
+  automationExecutions   AutomationExecution[]
+  eventRuleOverrides     EventRuleOverride[]
+  globalAuditLogs        GlobalAuditLog[]
+  notificationChannels   NotificationChannel[]
+  notificationSettings   NotificationSettings?
+  ssoConfiguration       SSOConfiguration?
+  scimConfiguration      SCIMConfiguration?
+  brandingConfiguration  BrandingConfiguration?
 }
 
 model JobRole {
@@ -1131,4 +1148,300 @@ enum PermissionScope {
   SELF
   TEAM
   COMPANY
+}
+
+// =============================================================================
+// NEW MODELS FOR HR PRODUCT FEATURES
+// =============================================================================
+
+// Automation Rules System
+model AutomationRule {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(false) // Inactive by default
+  
+  // Trigger configuration
+  triggerType AutomationTriggerType
+  triggerConfig Json // Trigger-specific configuration
+  
+  // Conditions configuration
+  conditions Json? // Array of condition objects
+  
+  // Actions configuration  
+  actions Json // Array of action objects
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+  creator     User     @relation("AutomationRuleCreator", fields: [createdBy], references: [id])
+  executions  AutomationExecution[]
+  
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
+}
+
+model AutomationExecution {
+  id            String   @id @default(cuid())
+  ruleId        String
+  companyId     String
+  triggeredAt   DateTime @default(now())
+  status        AutomationExecutionStatus
+  triggerData   Json     // Data that triggered the rule
+  executionLog  Json?    // Detailed execution log
+  errorMessage  String?
+  
+  // Relations
+  rule    AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  company Company        @relation(fields: [companyId], references: [id])
+  
+  @@index([ruleId, triggeredAt])
+  @@index([companyId, status])
+}
+
+// Event Rules Extensions - Hierarchical Overrides
+model EventRuleOverride {
+  id              String   @id @default(cuid())
+  companyId       String
+  eventCategoryId String
+  
+  // Override scope (hierarchical)
+  departmentId    String?  // Department-level override
+  teamId          String?  // Team-level override (if teams exist)
+  
+  // Override values (nullable = use parent/default)
+  enforceEntitlement      Boolean?
+  noticePeriodDays        Int?
+  maxConcurrent           Int?
+  maxBookingLength        Int?
+  maxConcurrentMode       EnforcementMode?
+  maxBookingLengthMode    EnforcementMode?
+  
+  // Staffing density constraints
+  staffingDensityEnabled  Boolean  @default(false)
+  staffingDensityThreshold Float?  // 0.0-1.0 (percentage)
+  staffingDensityBehavior StaffingDensityBehavior @default(DENY)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  company         Company       @relation(fields: [companyId], references: [id])
+  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
+  department      Department?   @relation(fields: [departmentId], references: [id])
+  
+  @@unique([companyId, eventCategoryId, departmentId, teamId])
+  @@index([companyId, eventCategoryId])
+}
+
+// Global Audit Log System
+model GlobalAuditLog {
+  id          String   @id @default(cuid())
+  companyId   String
+  entityType  AuditEntityType
+  entityId    String
+  action      AuditAction
+  actorId     String
+  actorType   AuditActorType @default(USER)
+  
+  // Change details
+  changes     Json?    // Before/after values
+  metadata    Json?    // Additional context
+  
+  // Timestamps
+  timestamp   DateTime @default(now())
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+  actor       User?    @relation("GlobalAuditLogActor", fields: [actorId], references: [id])
+  
+  @@index([companyId, timestamp])
+  @@index([companyId, entityType, entityId])
+  @@index([companyId, actorId])
+}
+
+// Notification Channels & Settings
+model NotificationChannel {
+  id          String   @id @default(cuid())
+  companyId   String
+  type        NotificationChannelType
+  name        String
+  
+  // Channel configuration
+  config      Json     // Channel-specific settings (webhooks, etc.)
+  isActive    Boolean  @default(true)
+  
+  // Fallback behavior
+  fallbackToEmail Boolean @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  @@unique([companyId, name])
+  @@index([companyId, type, isActive])
+}
+
+model NotificationSettings {
+  id          String   @id @default(cuid())
+  companyId   String   @unique
+  
+  // Digest settings
+  dailyDigestEnabled    Boolean @default(false)
+  weeklyDigestEnabled   Boolean @default(false)
+  digestRecipients      String[] @default([])
+  
+  // Email template settings
+  emailTemplateEnabled  Boolean @default(false)
+  emailTemplateConfig   Json?
+  
+  // Default channels for different notification types
+  defaultChannels       Json    // Map of notification types to channel IDs
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+// SSO/SCIM Configuration
+model SSOConfiguration {
+  id          String   @id @default(cuid())
+  companyId   String   @unique
+  
+  // OIDC/SAML settings
+  provider    SSOProvider
+  enabled     Boolean  @default(false)
+  
+  // Provider configuration
+  config      Json     // Provider-specific settings
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+model SCIMConfiguration {
+  id          String   @id @default(cuid())
+  companyId   String   @unique
+  
+  // SCIM settings
+  enabled     Boolean  @default(false)
+  endpoint    String?
+  token       String?  // Encrypted
+  
+  // Provisioning settings
+  autoProvisionEnabled Boolean @default(false)
+  autoDeprovisionEnabled Boolean @default(false)
+  
+  // Attribute mapping
+  attributeMapping Json?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+// Branding Configuration
+model BrandingConfiguration {
+  id          String   @id @default(cuid())
+  companyId   String   @unique
+  
+  // Branding toggle
+  enabled     Boolean  @default(false)
+  
+  // Visual settings
+  logoUrl     String?
+  primaryColor String? // Hex color
+  secondaryColor String? // Hex color
+  accentColor String?  // Hex color
+  
+  // Email template branding
+  emailHeaderEnabled Boolean @default(false)
+  emailFooterEnabled Boolean @default(false)
+  emailFooterText    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+// =============================================================================
+// NEW ENUMS
+// =============================================================================
+
+enum AutomationTriggerType {
+  DOCUMENT_EXPIRING
+  FORM_SUBMITTED  
+  ONBOARDING_STEP_COMPLETED
+  EMPLOYEE_CREATED
+}
+
+enum AutomationExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum StaffingDensityBehavior {
+  DENY
+  REQUIRE_APPROVAL
+}
+
+enum AuditEntityType {
+  LEAVE_POLICY
+  PERMISSION_PROFILE
+  EVENT_RULE
+  DOCUMENT_TYPE
+  AUTOMATION_RULE
+  NOTIFICATION_CHANNEL
+  SSO_CONFIG
+  SCIM_CONFIG
+  BRANDING_CONFIG
+}
+
+enum AuditAction {
+  CREATED
+  UPDATED
+  DELETED
+  ACTIVATED
+  DEACTIVATED
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+  API
+}
+
+enum NotificationChannelType {
+  EMAIL
+  SLACK
+  TEAMS
+  WEBHOOK
+}
+
+enum SSOProvider {
+  OIDC
+  SAML
+  AZURE_AD
+  GOOGLE
+  OKTA
 }

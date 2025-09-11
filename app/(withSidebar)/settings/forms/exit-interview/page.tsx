@@ -27,6 +27,12 @@ export default function ExitInterviewFormsPage() {
   const [templates, setTemplates] = useState<FormTemplate[]>([])
   const [loading, setLoading] = useState(true)
 
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Forms & Surveys', href: '/settings/forms' },
+    { label: 'Exit Interview Forms', isCurrentPage: true }
+  ]
+
   useEffect(() => {
     fetchTemplates()
   }, [])
@@ -104,7 +110,12 @@ export default function ExitInterviewFormsPage() {
 
   if (loading) {
     return (
-      <PageShell title="Exit Interview Forms" description="Manage exit interview form templates">
+      <PageShell
+        title="Exit Interview Forms"
+        description="Manage exit interview form templates"
+        breadcrumbs={{ items: breadcrumbItems }}
+        showHomeIcon={false}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -113,7 +124,12 @@ export default function ExitInterviewFormsPage() {
   }
 
   return (
-    <PageShell title="Exit Interview Forms" description="Manage exit interview form templates">
+    <PageShell
+      title="Exit Interview Forms"
+      description="Manage exit interview form templates"
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
+    >
       <div className="flex justify-between items-center mb-6">
         <div className="text-sm text-gray-600">
           {templates.length} template{templates.length !== 1 ? 's' : ''} total

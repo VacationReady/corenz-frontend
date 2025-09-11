@@ -67,22 +67,51 @@ interface BlackoutDay {
   eventCategoryIds: string[];
 }
 
+interface EventRuleOverride {
+  id?: string;
+  eventCategoryId: string;
+  departmentId?: string;
+  teamId?: string;
+  enforceEntitlement?: boolean;
+  noticePeriodDays?: number;
+  maxConcurrent?: number;
+  maxBookingLength?: number;
+  maxConcurrentMode?: "HARD_BLOCK" | "SOFT_GATE";
+  maxBookingLengthMode?: "HARD_BLOCK" | "SOFT_GATE";
+  staffingDensityEnabled: boolean;
+  staffingDensityThreshold?: number;
+  staffingDensityBehavior: "DENY" | "REQUIRE_APPROVAL";
+}
+
+interface Department {
+  id: string;
+  name: string;
+}
+
 export default function EventRulesPage() {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [rules, setRules] = useState<Record<string, EventRule>>({});
   const [blackoutDays, setBlackoutDays] = useState<BlackoutDay[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [overrides, setOverrides] = useState<EventRuleOverride[]>([]);
   const [loading, setLoading] = useState(false);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
   const [testResults, setTestResults] = useState<any>(null);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [blackoutDialogOpen, setBlackoutDialogOpen] = useState(false);
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [testEmployee, setTestEmployee] = useState<string>("");
   const [testDate, setTestDate] = useState<Date>(new Date());
   const [newBlackoutDate, setNewBlackoutDate] = useState<Date>(new Date());
   const [newBlackoutCategories, setNewBlackoutCategories] = useState<string[]>([]);
   const [allEventsBlackout, setAllEventsBlackout] = useState(false);
+  const [currentOverride, setCurrentOverride] = useState<EventRuleOverride>({
+    eventCategoryId: '',
+    staffingDensityEnabled: false,
+    staffingDensityBehavior: 'DENY'
+  });
 
   useEffect(() => {
     fetchData();
@@ -90,17 +119,21 @@ export default function EventRulesPage() {
 
   const fetchData = async () => {
     try {
-      const [catRes, ruleRes, blackoutRes, empRes] = await Promise.all([
+      const [catRes, ruleRes, blackoutRes, empRes, deptRes, overrideRes] = await Promise.all([
         fetch("/api/event-categories"),
         fetch("/api/event-rules"),
         fetch("/api/blackout-days/get"),
-        fetch("/api/employees?limit=100")
+        fetch("/api/employees?limit=100"),
+        fetch("/api/departments"),
+        fetch("/api/event-rule-overrides")
       ]);
       
       const catData: EventCategory[] = await catRes.json();
       const ruleData: EventRule[] = await ruleRes.json();
       const blackoutData: BlackoutDay[] = await blackoutRes.json();
       const empData = await empRes.json();
+      const deptData = await deptRes.json();
+      const overrideData: EventRuleOverride[] = await overrideRes.json();
 
       const merged: Record<string, EventRule> = {};
       const openState: Record<string, boolean> = {};
@@ -127,6 +160,8 @@ export default function EventRulesPage() {
       setRules(merged);
       setBlackoutDays(blackoutData);
       setEmployees(empData.employees || []);
+      setDepartments(deptData);
+      setOverrides(overrideData);
       setOpenCards(openState);
     } catch (error) {
       toast({
@@ -315,6 +350,94 @@ export default function EventRulesPage() {
       default:
         return "bg-gray-50 border-gray-200";
     }
+  };
+
+  const saveOverride = async () => {
+    try {
+      const method = currentOverride.id ? 'PUT' : 'POST';
+      const url = currentOverride.id ? `/api/event-rule-overrides/${currentOverride.id}` : '/api/event-rule-overrides';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentOverride)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `Override ${currentOverride.id ? 'updated' : 'created'} successfully`,
+        });
+        setOverrideDialogOpen(false);
+        resetOverrideForm();
+        fetchData();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.error || "Failed to save override",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteOverride = async (overrideId: string) => {
+    if (!confirm('Are you sure you want to delete this override?')) return;
+
+    try {
+      const response = await fetch(`/api/event-rule-overrides/${overrideId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Override deleted successfully",
+        });
+        fetchData();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete override",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openCreateOverrideDialog = () => {
+    resetOverrideForm();
+    setOverrideDialogOpen(true);
+  };
+
+  const openEditOverrideDialog = (override: EventRuleOverride) => {
+    setCurrentOverride(override);
+    setOverrideDialogOpen(true);
+  };
+
+  const resetOverrideForm = () => {
+    setCurrentOverride({
+      eventCategoryId: '',
+      staffingDensityEnabled: false,
+      staffingDensityBehavior: 'DENY'
+    });
+  };
+
+  const getOverridesForCategory = (categoryId: string) => {
+    return overrides.filter(o => o.eventCategoryId === categoryId);
+  };
+
+  const getDepartmentName = (departmentId?: string) => {
+    if (!departmentId) return 'Company-wide';
+    const dept = departments.find(d => d.id === departmentId);
+    return dept?.name || 'Unknown Department';
   };
 
   return (
@@ -595,8 +718,15 @@ export default function EventRulesPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {categories.map((category) => {
+      <Tabs defaultValue="rules" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="rules">Event Rules</TabsTrigger>
+          <TabsTrigger value="overrides">Overrides</TabsTrigger>
+          <TabsTrigger value="density">Staffing Density</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="rules" className="space-y-4">
+          {categories.map((category) => {
           const rule = rules[category.id];
           const isOpen = openCards[category.id];
 
@@ -858,7 +988,321 @@ export default function EventRulesPage() {
             </Card>
           );
         })}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="overrides" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Rule Overrides</h3>
+              <p className="text-muted-foreground">
+                Create department-specific overrides that inherit and modify base rules
+              </p>
+            </div>
+            <Button onClick={openCreateOverrideDialog}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Override
+            </Button>
+          </div>
+
+          {overrides.length === 0 ? (
+            <Card>
+              <CardContent className="py-8">
+                <div className="text-center">
+                  <Shield className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h4 className="text-lg font-semibold mb-2">No overrides configured</h4>
+                  <p className="text-muted-foreground mb-4">
+                    Create department-specific rule overrides to customize behavior
+                  </p>
+                  <Button onClick={openCreateOverrideDialog}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Override
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {overrides.map((override) => {
+                const category = categories.find(c => c.id === override.eventCategoryId);
+                return (
+                  <Card key={override.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: category?.color || "#6b7280" }}
+                          />
+                          <div>
+                            <CardTitle>{category?.name} - {getDepartmentName(override.departmentId)}</CardTitle>
+                            <CardDescription>
+                              {override.staffingDensityEnabled && (
+                                <span className="text-orange-600">
+                                  Staffing density: {(override.staffingDensityThreshold! * 100).toFixed(0)}% - {override.staffingDensityBehavior}
+                                </span>
+                              )}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditOverrideDialog(override)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteOverride(override.id!)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Notice Period:</span>{' '}
+                          {override.noticePeriodDays !== undefined ? `${override.noticePeriodDays} days` : 'Inherited'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Max Concurrent:</span>{' '}
+                          {override.maxConcurrent !== undefined ? override.maxConcurrent : 'Inherited'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Max Length:</span>{' '}
+                          {override.maxBookingLength !== undefined ? `${override.maxBookingLength} days` : 'Inherited'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Enforcement:</span>{' '}
+                          {override.enforceEntitlement !== undefined ? (override.enforceEntitlement ? 'Yes' : 'No') : 'Inherited'}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="density" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Staffing Density Constraints</h3>
+            <p className="text-muted-foreground">
+              Configure staffing density thresholds to prevent too many employees from being absent simultaneously
+            </p>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                How Staffing Density Works
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold mb-2">Hierarchical Resolution</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• Company-wide rules apply to all employees</li>
+                      <li>• Department overrides apply to department members</li>
+                      <li>• Team overrides apply to team members (highest priority)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Density Calculation</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• Percentage of employees absent on the same day</li>
+                      <li>• Includes approved leave requests</li>
+                      <li>• Configurable threshold per event category</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="text-sm text-blue-800">
+                    <strong>Example:</strong> If your development team has 10 people and you set a 30% density threshold,
+                    no more than 3 developers can be on leave simultaneously. The 4th request would be denied or require approval.
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4">
+            {categories.map((category) => {
+              const categoryOverrides = getOverridesForCategory(category.id);
+              const hasStaffingDensity = categoryOverrides.some(o => o.staffingDensityEnabled);
+              
+              return (
+                <Card key={category.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color || "#6b7280" }}
+                        />
+                        <div>
+                          <CardTitle>{category.name}</CardTitle>
+                          <CardDescription>
+                            {hasStaffingDensity ? 'Has staffing density constraints' : 'No density constraints'}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Badge variant={hasStaffingDensity ? "default" : "secondary"}>
+                        {hasStaffingDensity ? 'Configured' : 'Not Configured'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  {hasStaffingDensity && (
+                    <CardContent>
+                      <div className="space-y-2">
+                        {categoryOverrides
+                          .filter(o => o.staffingDensityEnabled)
+                          .map((override) => (
+                            <div key={override.id} className="flex items-center justify-between p-3 border rounded">
+                              <div>
+                                <span className="font-medium">{getDepartmentName(override.departmentId)}</span>
+                                <span className="text-muted-foreground ml-2">
+                                  {(override.staffingDensityThreshold! * 100).toFixed(0)}% threshold
+                                </span>
+                              </div>
+                              <Badge variant={override.staffingDensityBehavior === 'DENY' ? 'destructive' : 'secondary'}>
+                                {override.staffingDensityBehavior === 'DENY' ? 'Hard Block' : 'Require Approval'}
+                              </Badge>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Override Dialog */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {currentOverride.id ? 'Edit' : 'Create'} Rule Override
+            </DialogTitle>
+            <DialogDescription>
+              Create department-specific overrides that inherit and modify base event rules
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Event Category *</Label>
+                <Select
+                  value={currentOverride.eventCategoryId}
+                  onValueChange={(value) => setCurrentOverride({ ...currentOverride, eventCategoryId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Department</Label>
+                <Select
+                  value={currentOverride.departmentId || ''}
+                  onValueChange={(value) => setCurrentOverride({ ...currentOverride, departmentId: value || undefined })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Company-wide (no department)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Company-wide</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={currentOverride.staffingDensityEnabled}
+                onChange={(checked) => setCurrentOverride({ ...currentOverride, staffingDensityEnabled: checked })}
+              />
+              <Label>Enable staffing density constraints</Label>
+            </div>
+
+            {currentOverride.staffingDensityEnabled && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Density Threshold (%)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={(currentOverride.staffingDensityThreshold || 0) * 100}
+                    onChange={(e) => setCurrentOverride({
+                      ...currentOverride,
+                      staffingDensityThreshold: parseInt(e.target.value) / 100
+                    })}
+                    placeholder="30"
+                  />
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Maximum percentage of employees that can be absent simultaneously
+                  </div>
+                </div>
+                <div>
+                  <Label>Behavior when threshold exceeded</Label>
+                  <Select
+                    value={currentOverride.staffingDensityBehavior}
+                    onValueChange={(value: "DENY" | "REQUIRE_APPROVAL") => 
+                      setCurrentOverride({ ...currentOverride, staffingDensityBehavior: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DENY">Deny request (Hard Block)</SelectItem>
+                      <SelectItem value="REQUIRE_APPROVAL">Require additional approval</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => setOverrideDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={saveOverride}
+                disabled={!currentOverride.eventCategoryId}
+              >
+                {currentOverride.id ? 'Update' : 'Create'} Override
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

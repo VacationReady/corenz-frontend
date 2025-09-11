@@ -126,7 +126,7 @@ export class AutomationActionExecutor {
           typeof config.title === "string" &&
           config.title.length > 0 &&
           ["employee", "manager", "hr", "specific"].includes(config.assigneeType) &&
-          (config.assigneeType !== "specific" || config.assigneeId)
+          (config.assigneeType !== "specific" || !!config.assigneeId)
         );
       },
       execute: async (config: CreateTaskActionConfig, context) => {
@@ -230,7 +230,7 @@ export class AutomationActionExecutor {
           typeof config.message === "string" &&
           config.message.length > 0 &&
           ["employee", "manager", "hr", "specific"].includes(config.recipientType) &&
-          (config.recipientType !== "specific" || (config.recipients && config.recipients.length > 0))
+          (config.recipientType !== "specific" || !!(config.recipients && config.recipients.length > 0))
         );
       },
       execute: async (config: SendNotificationActionConfig, context) => {

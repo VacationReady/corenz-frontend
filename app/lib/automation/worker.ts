@@ -372,8 +372,13 @@ export class AutomationWorker {
             conditionsEvaluated: rule.conditions ? (rule.conditions as any[]).length : 0,
             conditionsPassed: conditionsPass,
             actionsExecuted: actionResults.length,
-            actionResults,
-            executedAt: new Date(),
+            actionResults: actionResults.map(r => ({
+              success: r.success,
+              message: r.message,
+              error: r.error,
+              data: r.data
+            })),
+            executedAt: new Date().toISOString(),
           },
         },
       });

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { PageShell } from '@/components/ui/PageShell'
+import { breadcrumbConfigs } from '@/components/ui/Breadcrumb'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -81,7 +82,12 @@ export default function FormsPage() {
 
   if (loading) {
     return (
-      <PageShell title="Forms & Surveys" description="Manage and create forms">
+      <PageShell
+        title="Forms & Surveys"
+        description="Manage and create forms"
+        breadcrumbs={breadcrumbConfigs.settingsSection('Forms & Surveys')}
+        showHomeIcon={false}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -90,7 +96,12 @@ export default function FormsPage() {
   }
 
   return (
-    <PageShell title="Forms & Surveys" description="Manage and create forms">
+    <PageShell
+      title="Forms & Surveys"
+      description="Manage and create forms"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Forms & Surveys')}
+      showHomeIcon={false}
+    >
       {/* Search & Filters */}
       <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-2">
         <div className="flex items-center gap-2">

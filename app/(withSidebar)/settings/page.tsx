@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { PageShell } from '@/components/ui/PageShell'
+import { breadcrumbConfigs } from '@/components/ui/Breadcrumb'
 import { Card, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import {
@@ -106,7 +107,13 @@ function SettingSection({
 
 export default function SettingsIndexPage() {
   return (
-    <PageShell title="Settings" description="Configure and manage your system settings across all modules" icon={<Cog className="w-6 h-6" />}>
+    <PageShell
+      title="Settings"
+      description="Configure and manage your system settings across all modules"
+      icon={<Cog className="w-6 h-6" />}
+      breadcrumbs={breadcrumbConfigs.settings}
+      showHomeIcon={false}
+    >
       <Accordion type="multiple" className="space-y-4" defaultValue={['holidays', 'system']}>
         <SettingSection
           id="holidays"

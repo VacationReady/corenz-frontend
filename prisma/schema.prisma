@@ -285,6 +285,7 @@ model Company {
   // New HR product feature relations
   automationRules        AutomationRule[]
   automationExecutions   AutomationExecution[]
+  automationJobs         AutomationJob[]
   eventRuleOverrides     EventRuleOverride[]
   globalAuditLogs        GlobalAuditLog[]
   notificationChannels   NotificationChannel[]
@@ -1181,6 +1182,7 @@ model AutomationRule {
   company     Company  @relation(fields: [companyId], references: [id])
   creator     User     @relation("AutomationRuleCreator", fields: [createdBy], references: [id])
   executions  AutomationExecution[]
+  jobs        AutomationJob[] @relation("AutomationRuleJobs")
   
   @@unique([companyId, name])
   @@index([companyId, isActive])
@@ -1202,6 +1204,37 @@ model AutomationExecution {
   
   @@index([ruleId, triggeredAt])
   @@index([companyId, status])
+}
+
+// Automation Job Queue System
+model AutomationJob {
+  id            String   @id @default(cuid())
+  ruleId        String
+  companyId     String
+  triggerData   Json     // Data that triggered the rule
+  status        AutomationJobStatus @default(PENDING)
+  priority      Int      @default(0) // Higher number = higher priority
+  attempts      Int      @default(0)
+  maxAttempts   Int      @default(3)
+  scheduledAt   DateTime @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  errorMessage  String?
+  executionLog  Json?    // Detailed execution log
+  
+  // Retry configuration
+  nextRetryAt   DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  rule          AutomationRule @relation("AutomationRuleJobs", fields: [ruleId], references: [id], onDelete: Cascade)
+  company       Company        @relation(fields: [companyId], references: [id])
+  
+  @@index([companyId, status, scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([ruleId])
 }
 
 // Event Rules Extensions - Hierarchical Overrides
@@ -1398,6 +1431,14 @@ enum AutomationExecutionStatus {
   COMPLETED
   FAILED
   SKIPPED
+}
+
+enum AutomationJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
 
 enum StaffingDensityBehavior {

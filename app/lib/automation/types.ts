@@ -21,11 +21,11 @@ export interface AutomationJob {
   attempts: number;
   maxAttempts: number;
   scheduledAt: Date;
-  startedAt?: Date;
-  completedAt?: Date;
-  errorMessage?: string;
-  executionLog?: any;
-  nextRetryAt?: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  errorMessage: string | null;
+  executionLog: any | null;
+  nextRetryAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

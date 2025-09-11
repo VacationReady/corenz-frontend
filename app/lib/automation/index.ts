@@ -16,4 +16,4 @@ export { AutomationScheduler, getAutomationScheduler } from "./scheduler";
 export * from "./types";
 
 // Utility functions
-export { startAutomationSystem, stopAutomationSystem, getSystemStatus } from "./utils";
+export { startAutomationSystem, stopAutomationSystem, getSystemStatus, healthCheck, performMaintenance } from "./utils";

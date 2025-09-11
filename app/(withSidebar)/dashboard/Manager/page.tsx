@@ -1,3 +1,5 @@
+export { default } from "../manager/page";
+
 "use client";
 
 import { useMemo } from "react";
@@ -79,10 +81,10 @@ function PendingLeaveApprovals() {
                 </div>
               </li>
             ))}
-          </ul>
-        </div>
+            </ul>
+            </div>
       )}
-    </DashboardWidget>
+          </DashboardWidget>
   );
 }
 
@@ -92,7 +94,7 @@ function TeamAbsenceOverview() {
   const to = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
   const { data, error, isLoading } = useSWR(`/api/calendar-events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, fetcher);
   return (
-    <DashboardWidget title="Team Absences Today" icon={Users}>
+          <DashboardWidget title="Team Absences Today" icon={Users}>
       {isLoading ? (
         <WidgetLoading />
       ) : error ? (
@@ -104,9 +106,9 @@ function TeamAbsenceOverview() {
           {data.map((ev: any) => (
             <li key={ev.id}>{ev.employee?.name} ({ev.title?.split(" - ")[0]})</li>
           ))}
-        </ul>
+            </ul>
       )}
-    </DashboardWidget>
+          </DashboardWidget>
   );
 }
 
@@ -117,7 +119,7 @@ function QuickLinks() {
         <Link href="/employees"><Button variant="outline" size="sm"><UserPlus className="w-4 h-4 mr-2" />Add Employee</Button></Link>
         <Link href="/reports"><Button variant="outline" size="sm"><FileBarChart2 className="w-4 h-4 mr-2" />Run Report</Button></Link>
       </div>
-    </DashboardWidget>
+          </DashboardWidget>
   );
 }
 
@@ -152,7 +154,7 @@ function TeamInsights() {
   }, [data]);
 
   return (
-    <DashboardWidget title="Team Insights" icon={BarChart3}>
+          <DashboardWidget title="Team Insights" icon={BarChart3}>
       {isLoading ? (
         <WidgetLoading />
       ) : error ? (
@@ -170,14 +172,14 @@ function TeamInsights() {
                 {insights.upcomingAnniversaries.map((e: any) => (
                   <li key={e.id}>{e.firstName ?? ''} {e.lastName ?? ''}</li>
                 ))}
-              </ul>
+            </ul>
             )}
           </div>
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">No data.</p>
       )}
-    </DashboardWidget>
+          </DashboardWidget>
   );
 }
 
@@ -207,3 +209,4 @@ export default function ManagerDashboardPage() {
 }
 
 
+ 

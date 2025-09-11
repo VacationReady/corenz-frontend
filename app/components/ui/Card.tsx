@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 
-interface CardProps {
+interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   title?: React.ReactNode;
   icon?: React.ReactNode;
   action?: React.ReactNode;
@@ -9,13 +9,21 @@ interface CardProps {
   className?: string;
 }
 
-export function Card({ title, icon, action, children, className }: CardProps) {
+export function Card({
+  title,
+  icon,
+  action,
+  children,
+  className,
+  ...props
+}: CardProps) {
   return (
     <div
       className={clsx(
         "glass rounded-3xl shadow-glass h-full transition-glass hover-glass hover-lift",
         className
       )}
+      {...props}
     >
       {(title || action) && (
         <CardHeader>

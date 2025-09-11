@@ -35,10 +35,12 @@ export async function POST(req: Request) {
     let matchingEmployees = 0;
     let preview: any[] = [];
 
+    const triggerConfig = rule.triggerConfig as any;
+
     switch (rule.triggerType) {
       case 'DOCUMENT_EXPIRING':
         // Simulate document expiry check
-        const daysBefore = rule.triggerConfig?.daysBefore || 30;
+        const daysBefore = triggerConfig?.daysBefore || 30;
         const expiringDocs = await prisma.employmentCheck.count({
           where: {
             employee: {
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
 
       case 'FORM_SUBMITTED':
         // Simulate form submission check
-        const formId = rule.triggerConfig?.formId;
+        const formId = triggerConfig?.formId;
         if (formId) {
           const recentSubmissions = await prisma.formSubmission.count({
             where: {
@@ -134,10 +136,11 @@ export async function POST(req: Request) {
     }
 
     // Simulate actions that would be executed
-    const actionsToRun = matchingEmployees * rule.actions.length;
-    
+    const actions = (rule.actions as any[]) || [];
+    const actionsToRun = matchingEmployees * actions.length;
+
     // Add action previews
-    rule.actions.forEach((action: any, index: number) => {
+    actions.forEach((action: any, index: number) => {
       let actionDescription = '';
       
       switch (action.type) {
@@ -172,7 +175,7 @@ export async function POST(req: Request) {
       actionsToRun,
       estimatedRuntime,
       preview,
-      conditions: rule.conditions?.length || 0,
+      conditions: ((rule.conditions as any[]) || []).length,
       wouldExecute: matchingEmployees > 0,
       timestamp: new Date().toISOString(),
     });

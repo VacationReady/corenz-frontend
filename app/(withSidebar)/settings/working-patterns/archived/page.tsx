@@ -5,9 +5,17 @@ import Button from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { PageShell } from '@/components/ui/PageShell';
 
 export default function ArchivedWorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
+  const breadcrumbs = {
+    items: [
+      { label: 'Settings', href: '/settings' },
+      { label: 'Working Patterns', href: '/settings/working-patterns' },
+      { label: 'Archived', isCurrentPage: true },
+    ],
+  };
 
   const fetchArchivedPatterns = async () => {
     const res = await fetch('/api/working-patterns?archived=true');
@@ -46,9 +54,8 @@ export default function ArchivedWorkingPatternsPage() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Archived Working Patterns</h1>
+    <PageShell title="Archived Working Patterns" breadcrumbs={breadcrumbs} showHomeIcon={false}>
+      <div className="flex justify-end mb-4">
         <Link href="/settings/working-patterns">
           <Button variant="ghost">Back to Patterns</Button>
         </Link>
@@ -80,6 +87,6 @@ export default function ArchivedWorkingPatternsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/auth-options";
 // ✅ Handle GET requests
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -52,7 +52,7 @@ export async function GET(
     console.error("Error fetching entitlements:", error);
     return NextResponse.json(
       { error: "Failed to fetch entitlements" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,7 +60,7 @@ export async function GET(
 // ✅ Existing POST handler remains unchanged
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -72,13 +72,17 @@ export async function POST(
 
     const employeeId = params.id;
     const companyId = session.user.companyId;
-    const entitlements: { eventCategoryId: string; totalDays: number; daysAllocated?: number }[] = await req.json();
+    const entitlements: {
+      eventCategoryId: string;
+      totalDays: number;
+      daysAllocated?: number;
+    }[] = await req.json();
 
     for (const entitlement of entitlements) {
       if (!entitlement.eventCategoryId || entitlement.totalDays === undefined) {
         return NextResponse.json(
           { error: "Missing required fields in entitlement." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -108,7 +112,7 @@ export async function POST(
     console.error("Error updating entitlements:", error);
     return NextResponse.json(
       { error: "Failed to update entitlements" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

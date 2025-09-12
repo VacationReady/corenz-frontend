@@ -13,7 +13,10 @@ export async function POST(req: Request) {
 
     const { documentId } = await req.json();
     if (!documentId) {
-      return NextResponse.json({ error: "Document ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Document ID is required" },
+        { status: 400 },
+      );
     }
 
     // ✅ Fetch employee record for current user
@@ -21,7 +24,10 @@ export async function POST(req: Request) {
       where: { userId: session.user.id },
     });
     if (!employee) {
-      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 },
+      );
     }
 
     // ✅ Check if already acknowledged
@@ -30,7 +36,10 @@ export async function POST(req: Request) {
     });
 
     if (existingAck) {
-      return NextResponse.json({ message: "Already acknowledged" }, { status: 200 });
+      return NextResponse.json(
+        { message: "Already acknowledged" },
+        { status: 200 },
+      );
     }
 
     // ✅ Create acknowledgement entry
@@ -42,9 +51,15 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ message: "Acknowledgement recorded" }, { status: 200 });
+    return NextResponse.json(
+      { message: "Acknowledgement recorded" },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("❌ Error acknowledging document:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

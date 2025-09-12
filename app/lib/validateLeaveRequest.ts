@@ -66,10 +66,10 @@ export async function validateLeaveRequest({
 
   if (daysNoticeGiven < requiredNoticeDays && !isAdmin) {
     console.error(
-      `❌ Notice period not met: required ${requiredNoticeDays}, given ${daysNoticeGiven}`
+      `❌ Notice period not met: required ${requiredNoticeDays}, given ${daysNoticeGiven}`,
     );
     throw new Error(
-      `This leave requires at least ${requiredNoticeDays} days notice.`
+      `This leave requires at least ${requiredNoticeDays} days notice.`,
     );
   }
 
@@ -79,10 +79,10 @@ export async function validateLeaveRequest({
 
   if (daysRequested > maxBookingLength && !isAdmin) {
     console.error(
-      `❌ Max booking length exceeded: requested ${daysRequested}, allowed ${maxBookingLength}`
+      `❌ Max booking length exceeded: requested ${daysRequested}, allowed ${maxBookingLength}`,
     );
     throw new Error(
-      `You can only book up to ${maxBookingLength} days at a time for this leave type.`
+      `You can only book up to ${maxBookingLength} days at a time for this leave type.`,
     );
   }
 
@@ -98,8 +98,8 @@ export async function validateLeaveRequest({
       },
     });
 
-    const blackoutDates = blackoutDays.map((b) =>
-      b.date.toISOString().split("T")[0]
+    const blackoutDates = blackoutDays.map(
+      (b) => b.date.toISOString().split("T")[0],
     );
     const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
 
@@ -107,10 +107,10 @@ export async function validateLeaveRequest({
       const dateString = date.toISOString().split("T")[0];
       if (blackoutDates.includes(dateString)) {
         console.error(
-          `❌ Blackout day detected on ${dateString}, throwing error.`
+          `❌ Blackout day detected on ${dateString}, throwing error.`,
         );
         throw new Error(
-          `The date ${dateString} is blocked due to a company blackout.`
+          `The date ${dateString} is blocked due to a company blackout.`,
         );
       }
     }
@@ -130,7 +130,7 @@ export async function validateLeaveRequest({
   if (!entitlement) {
     console.error("❌ No entitlement found for employee, throwing.");
     throw new Error(
-      `No entitlement found for event category: ${eventCategory.name}`
+      `No entitlement found for event category: ${eventCategory.name}`,
     );
   }
 
@@ -158,16 +158,20 @@ export async function validateLeaveRequest({
   const negativeBalanceAllowed = await checkNegativeBalanceAllowed({
     employeeId,
     eventCategoryId,
-    companyId
+    companyId,
   });
 
   console.log("🏦 Negative balance allowed:", negativeBalanceAllowed);
 
   // If negative balance is allowed, skip entitlement check but still enforce Event Rules
-  if (daysRequestedForDeduction > combinedAvailable && !isAdmin && !negativeBalanceAllowed) {
+  if (
+    daysRequestedForDeduction > combinedAvailable &&
+    !isAdmin &&
+    !negativeBalanceAllowed
+  ) {
     console.error("❌ Insufficient entitlement including carryover.");
     throw new Error(
-      `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${combinedAvailable} days available (including carryover).`
+      `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${combinedAvailable} days available (including carryover).`,
     );
   }
 

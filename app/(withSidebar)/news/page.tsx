@@ -1,17 +1,18 @@
-import { getAllNewsPosts } from '@/lib/news/getAllNewsPosts';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import { prisma } from '@/lib/prisma';
-import NewsPageClient from '@/components/news/NewsPageClient'; // ✅ Missing import added
+import { getAllNewsPosts } from "@/lib/news/getAllNewsPosts";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import NewsPageClient from "@/components/news/NewsPageClient"; // ✅ Missing import added
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function NewsPage() {
   // Fetch all posts server-side
   const posts = await getAllNewsPosts();
 
   // ✅ Transform posts minimally to ensure correct types
-const transformedPosts = posts.map(post => ({    id: post.id,
+  const transformedPosts = posts.map((post) => ({
+    id: post.id,
     title: post.title,
     slug: post.slug,
     content: post.content,
@@ -20,7 +21,9 @@ const transformedPosts = posts.map(post => ({    id: post.id,
       name: post.author.name,
       email: post.author.email,
     },
-    publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : null,
+    publishedAt: post.publishedAt
+      ? new Date(post.publishedAt).toISOString()
+      : null,
     pinned: post.pinned,
     tags: post.tags,
     createdAt: new Date(post.createdAt).toISOString(),
@@ -40,7 +43,7 @@ const transformedPosts = posts.map(post => ({    id: post.id,
       },
     });
 
-    if (dbUser?.role === 'ADMIN' || dbUser?.role === 'MANAGER') {
+    if (dbUser?.role === "ADMIN" || dbUser?.role === "MANAGER") {
       canPost = true;
     }
   }

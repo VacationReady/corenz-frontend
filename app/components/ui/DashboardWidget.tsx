@@ -21,7 +21,7 @@ export function DashboardWidget({
   return (
     <Card
       title={title}
-      icon={<Icon className="w-5 h-5 text-primary" />} 
+      icon={<Icon className="w-5 h-5 text-primary" />}
       action={action}
       className={className}
     >

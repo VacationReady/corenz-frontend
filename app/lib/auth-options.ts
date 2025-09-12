@@ -30,7 +30,9 @@ export const authOptions: AuthOptions = {
 
           const emailInput = credentials.email.trim();
           const user = await prisma.user.findFirst({
-            where: { email: { equals: emailInput, mode: "insensitive" } as any },
+            where: {
+              email: { equals: emailInput, mode: "insensitive" } as any,
+            },
             select: {
               id: true,
               email: true,
@@ -52,7 +54,10 @@ export const authOptions: AuthOptions = {
             return null;
           }
 
-          const isValid = await bcrypt.compare(credentials.password, user.password);
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.password,
+          );
           if (!isValid) {
             console.warn("[auth] Invalid password for", emailInput);
             return null;

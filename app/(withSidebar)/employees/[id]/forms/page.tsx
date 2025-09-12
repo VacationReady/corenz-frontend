@@ -1,15 +1,33 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import Button from '@/components/ui/Button';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/Table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { CheckCircle, Clock, AlertCircle, FileText, Calendar } from 'lucide-react';
-import { DynamicFormRenderer } from '@/components/forms/DynamicFormRenderer';
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  FileText,
+  Calendar,
+} from "lucide-react";
+import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 
 interface FormAssignment {
   id: string;
@@ -53,7 +71,7 @@ export default function EmployeeFormsPage() {
       try {
         const [assignmentsRes, submissionsRes] = await Promise.all([
           fetch(`/api/employees/${employeeId}/form-assignments`),
-          fetch(`/api/employees/${employeeId}/form-submissions`)
+          fetch(`/api/employees/${employeeId}/form-submissions`),
         ]);
 
         if (assignmentsRes.ok) {
@@ -66,8 +84,8 @@ export default function EmployeeFormsPage() {
           setSubmissions(Array.isArray(submissionsData) ? submissionsData : []);
         }
       } catch (error) {
-        console.error('Failed to fetch forms data:', error);
-        toast.error('Failed to load forms data');
+        console.error("Failed to fetch forms data:", error);
+        toast.error("Failed to load forms data");
       } finally {
         setLoading(false);
       }
@@ -80,11 +98,11 @@ export default function EmployeeFormsPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'pending':
+      case "pending":
         return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'overdue':
+      case "overdue":
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
         return <FileText className="h-4 w-4 text-gray-500" />;
@@ -92,14 +110,17 @@ export default function EmployeeFormsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      completed: 'default',
-      pending: 'secondary',
-      overdue: 'destructive',
+    const variants: Record<
+      string,
+      "default" | "secondary" | "destructive" | "outline"
+    > = {
+      completed: "default",
+      pending: "secondary",
+      overdue: "destructive",
     };
-    
+
     return (
-      <Badge variant={variants[status] || 'outline'}>
+      <Badge variant={variants[status] || "outline"}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
@@ -114,41 +135,44 @@ export default function EmployeeFormsPage() {
     if (!selectedForm) return;
 
     try {
-      const res = await fetch(`/api/forms/${selectedForm.form.id}/submissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId,
-          data,
-          assignmentId: selectedForm.id
-        })
-      });
+      const res = await fetch(
+        `/api/forms/${selectedForm.form.id}/submissions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId,
+            data,
+            assignmentId: selectedForm.id,
+          }),
+        },
+      );
 
       if (res.ok) {
-        toast.success('Form submitted successfully');
+        toast.success("Form submitted successfully");
         setIsFormDialogOpen(false);
         setSelectedForm(null);
         // Refresh data
         window.location.reload();
       } else {
-        toast.error('Failed to submit form');
+        toast.error("Failed to submit form");
       }
     } catch (error) {
-      toast.error('Failed to submit form');
+      toast.error("Failed to submit form");
     }
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No date set';
+    if (!dateString) return "No date set";
     return new Date(dateString).toLocaleDateString();
   };
 
-  const getAssignerName = (assignedBy: FormAssignment['assignedBy']) => {
+  const getAssignerName = (assignedBy: FormAssignment["assignedBy"]) => {
     if (assignedBy.name) return assignedBy.name;
     if (assignedBy.firstName || assignedBy.lastName) {
-      return `${assignedBy.firstName || ''} ${assignedBy.lastName || ''}`.trim();
+      return `${assignedBy.firstName || ""} ${assignedBy.lastName || ""}`.trim();
     }
-    return 'Unknown';
+    return "Unknown";
   };
 
   if (loading) {
@@ -166,11 +190,12 @@ export default function EmployeeFormsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Pending Forms ({assignments.filter(a => a.status === 'pending').length})
+            Pending Forms (
+            {assignments.filter((a) => a.status === "pending").length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {assignments.filter(a => a.status === 'pending').length === 0 ? (
+          {assignments.filter((a) => a.status === "pending").length === 0 ? (
             <p className="text-gray-500 text-center py-4">No pending forms</p>
           ) : (
             <Table>
@@ -184,34 +209,42 @@ export default function EmployeeFormsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assignments.filter(a => a.status === 'pending').map((assignment) => (
-                  <TableRow key={assignment.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{assignment.form.name}</div>
-                        {assignment.form.description && (
-                          <div className="text-sm text-gray-500">{assignment.form.description}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        {formatDate(assignment.dueDate)}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getAssignerName(assignment.assignedBy)}</TableCell>
-                    <TableCell>{getStatusBadge(assignment.status)}</TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => handleFillForm(assignment)}
-                      >
-                        Fill Form
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {assignments
+                  .filter((a) => a.status === "pending")
+                  .map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">
+                            {assignment.form.name}
+                          </div>
+                          {assignment.form.description && (
+                            <div className="text-sm text-gray-500">
+                              {assignment.form.description}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          {formatDate(assignment.dueDate)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getAssignerName(assignment.assignedBy)}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(assignment.status)}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => handleFillForm(assignment)}
+                        >
+                          Fill Form
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           )}
@@ -241,14 +274,16 @@ export default function EmployeeFormsPage() {
               <TableBody>
                 {submissions.map((submission) => (
                   <TableRow key={submission.id}>
-                    <TableCell className="font-medium">{submission.form.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {submission.form.name}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         {formatDate(submission.submittedAt)}
                       </div>
                     </TableCell>
-                    <TableCell>{getStatusBadge('completed')}</TableCell>
+                    <TableCell>{getStatusBadge("completed")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -262,7 +297,9 @@ export default function EmployeeFormsPage() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedForm ? `Fill Form: ${selectedForm.form.name}` : 'Fill Form'}
+              {selectedForm
+                ? `Fill Form: ${selectedForm.form.name}`
+                : "Fill Form"}
             </DialogTitle>
           </DialogHeader>
           {selectedForm && (

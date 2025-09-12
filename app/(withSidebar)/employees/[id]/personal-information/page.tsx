@@ -5,7 +5,13 @@ import Button from "@/components/ui/Button";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import ManageGenderInline from "@/components/shared/ManageGenderInline";
 
 interface PageProps {
@@ -55,7 +61,11 @@ export default async function PersonalInformationPage({ params }: PageProps) {
 
   const user = employee.user;
 
-  const canEdit = Boolean(session?.user && session.user.role === "ADMIN" && session.user.companyId === employee.user.companyId);
+  const canEdit = Boolean(
+    session?.user &&
+      session.user.role === "ADMIN" &&
+      session.user.companyId === employee.user.companyId,
+  );
   const showManageGender = canEdit;
 
   return (
@@ -67,83 +77,178 @@ export default async function PersonalInformationPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold">Basic details</h2>
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <form action={`/api/employees/${params.id}/personal-info`} method="PATCH" className="contents">
+          <form
+            action={`/api/employees/${params.id}/personal-info`}
+            method="PATCH"
+            className="contents"
+          >
             <div>
-              <label className="block text-sm font-medium mb-1">First name</label>
-              <Input name="firstName" defaultValue={user.firstName ?? ""} readOnly={!canEdit} />
+              <label className="block text-sm font-medium mb-1">
+                First name
+              </label>
+              <Input
+                name="firstName"
+                defaultValue={user.firstName ?? ""}
+                readOnly={!canEdit}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Last name</label>
-              <Input name="lastName" defaultValue={user.lastName ?? ""} readOnly={!canEdit} />
+              <label className="block text-sm font-medium mb-1">
+                Last name
+              </label>
+              <Input
+                name="lastName"
+                defaultValue={user.lastName ?? ""}
+                readOnly={!canEdit}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Email</label>
-              <Input name="email" type="email" defaultValue={user.email ?? ""} readOnly={!canEdit} />
+              <Input
+                name="email"
+                type="email"
+                defaultValue={user.email ?? ""}
+                readOnly={!canEdit}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Phone</label>
-              <Input name="phone" defaultValue={user.phone ?? ""} readOnly={!canEdit} />
+              <Input
+                name="phone"
+                defaultValue={user.phone ?? ""}
+                readOnly={!canEdit}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Date of birth</label>
-              <Input name="dateOfBirth" type="date" defaultValue={user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().substring(0, 10) : ""} readOnly={!canEdit} />
+              <label className="block text-sm font-medium mb-1">
+                Date of birth
+              </label>
+              <Input
+                name="dateOfBirth"
+                type="date"
+                defaultValue={
+                  user.dateOfBirth
+                    ? new Date(user.dateOfBirth).toISOString().substring(0, 10)
+                    : ""
+                }
+                readOnly={!canEdit}
+              />
             </div>
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Street</label>
-                <Input name="addressStreet" defaultValue={user.addressStreet ?? ""} readOnly={!canEdit} />
+                <Input
+                  name="addressStreet"
+                  defaultValue={user.addressStreet ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">City</label>
-                <Input name="addressCity" defaultValue={user.addressCity ?? ""} readOnly={!canEdit} />
+                <Input
+                  name="addressCity"
+                  defaultValue={user.addressCity ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Postcode</label>
-                <Input name="addressPostcode" defaultValue={user.addressPostcode ?? ""} readOnly={!canEdit} />
+                <label className="block text-sm font-medium mb-1">
+                  Postcode
+                </label>
+                <Input
+                  name="addressPostcode"
+                  defaultValue={user.addressPostcode ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Country</label>
-                <Input name="addressCountry" defaultValue={user.addressCountry ?? ""} readOnly={!canEdit} />
+                <label className="block text-sm font-medium mb-1">
+                  Country
+                </label>
+                <Input
+                  name="addressCountry"
+                  defaultValue={user.addressCountry ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
             </div>
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Emergency contact name</label>
-                <Input name="emergencyContactName" defaultValue={user.emergencyContactName ?? ""} readOnly={!canEdit} />
+                <label className="block text-sm font-medium mb-1">
+                  Emergency contact name
+                </label>
+                <Input
+                  name="emergencyContactName"
+                  defaultValue={user.emergencyContactName ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Relationship</label>
-                <Input name="emergencyContactRelationship" defaultValue={user.emergencyContactRelationship ?? ""} readOnly={!canEdit} />
+                <label className="block text-sm font-medium mb-1">
+                  Relationship
+                </label>
+                <Input
+                  name="emergencyContactRelationship"
+                  defaultValue={user.emergencyContactRelationship ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Phone</label>
-                <Input name="emergencyContactPhone" defaultValue={user.emergencyContactPhone ?? ""} readOnly={!canEdit} />
+                <Input
+                  name="emergencyContactPhone"
+                  defaultValue={user.emergencyContactPhone ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2">
               <div>
-                <label className="block text-sm font-medium mb-1">National ID</label>
-                <Input name="nationalId" defaultValue={user.nationalId ?? ""} readOnly={!canEdit} />
+                <label className="block text-sm font-medium mb-1">
+                  National ID
+                </label>
+                <Input
+                  name="nationalId"
+                  defaultValue={user.nationalId ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Pronouns</label>
-                <Input name="pronouns" defaultValue={user.pronouns ?? ""} readOnly={!canEdit} />
+                <label className="block text-sm font-medium mb-1">
+                  Pronouns
+                </label>
+                <Input
+                  name="pronouns"
+                  defaultValue={user.pronouns ?? ""}
+                  readOnly={!canEdit}
+                />
               </div>
               <div className="relative">
                 <label className="block text-sm font-medium mb-1">Gender</label>
                 {canEdit ? (
-                  <Select name="genderOptionId" value={user.genderOptionId ?? undefined}>
+                  <Select
+                    name="genderOptionId"
+                    value={user.genderOptionId ?? undefined}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
                       {genderOptions.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>{g.label}</SelectItem>
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input readOnly defaultValue={(genderOptions.find(g => g.id === user.genderOptionId)?.label) || ""} />
+                  <Input
+                    readOnly
+                    defaultValue={
+                      genderOptions.find((g) => g.id === user.genderOptionId)
+                        ?.label || ""
+                    }
+                  />
                 )}
                 {showManageGender && <ManageGenderInline />}
               </div>
@@ -161,9 +266,13 @@ export default async function PersonalInformationPage({ params }: PageProps) {
           <ul className="list-disc ml-5 space-y-1">
             <li>Emergency contact (name, relationship, phone)</li>
             <li>Home address split into Street, City, Postcode, Country</li>
-            <li>National ID (e.g., NI number), Gender/Pronouns (if required)</li>
+            <li>
+              National ID (e.g., NI number), Gender/Pronouns (if required)
+            </li>
           </ul>
-          <p className="mt-2">I can add these as editable fields with an update API if you'd like.</p>
+          <p className="mt-2">
+            I can add these as editable fields with an update API if you'd like.
+          </p>
         </div>
       </Card>
 
@@ -172,6 +281,3 @@ export default async function PersonalInformationPage({ params }: PageProps) {
     </div>
   );
 }
-
-
-

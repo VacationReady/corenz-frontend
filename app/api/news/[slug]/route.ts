@@ -1,66 +1,66 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth-options'
-import { prisma } from '@/lib/prisma'
-import { NextRequest, NextResponse } from 'next/server'
-import { sendNewsEmail } from '@/lib/news/sendNewsEmail'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
 
 interface Params {
-  params: { slug: string }
+  params: { slug: string };
 }
 
 // ✅ GET: Fetch a single news post
 export async function GET(req: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const post = await prisma.newsPost.findUnique({
     where: { slug: params.slug },
     include: { author: true },
-  })
+  });
 
   if (!post) {
-    return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const isAuthor = post.authorId === session.user.id
-  const isAdmin = session.user.role === 'ADMIN'
+  const isAuthor = post.authorId === session.user.id;
+  const isAdmin = session.user.role === "ADMIN";
 
   if (!isAuthor && !isAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return NextResponse.json(post)
+  return NextResponse.json(post);
 }
 
 // ✅ PUT: Update a news post
 export async function PUT(req: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = params
+  const { slug } = params;
 
   const existing = await prisma.newsPost.findUnique({
     where: { slug },
-  })
+  });
 
   if (!existing) {
-    return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const isAuthor = existing.authorId === session.user.id
-  const isAdmin = session.user.role === 'ADMIN'
+  const isAuthor = existing.authorId === session.user.id;
+  const isAdmin = session.user.role === "ADMIN";
 
   if (!isAuthor && !isAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json()
+  const body = await req.json();
 
   const updated = await prisma.newsPost.update({
     where: { slug },
@@ -70,55 +70,55 @@ export async function PUT(req: NextRequest, { params }: Params) {
       videoEmbedUrl: body.videoEmbedUrl,
       attachments: body.attachments,
       sendEmail: body.sendEmail,
-      audience: body.audience || { type: 'all' },
+      audience: body.audience || { type: "all" },
       updatedAt: new Date(),
     },
-  })
+  });
 
   if (body.sendEmail) {
     const recipients = await prisma.user.findMany({
-      where: { email: { not: '' } },
+      where: { email: { not: "" } },
       select: { email: true },
-    })
+    });
 
     await sendNewsEmail({
       title: updated.title,
       slug: updated.slug,
       recipients: recipients.map((u) => u.email!) || [],
-    })
+    });
   }
 
-  return NextResponse.json(updated)
+  return NextResponse.json(updated);
 }
 
 // ✅ DELETE: Delete a news post
 export async function DELETE(req: NextRequest, { params }: Params) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = params
+  const { slug } = params;
 
   const existing = await prisma.newsPost.findUnique({
     where: { slug },
-  })
+  });
 
   if (!existing) {
-    return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const isAuthor = existing.authorId === session.user.id
-  const isAdmin = session.user.role === 'ADMIN'
+  const isAuthor = existing.authorId === session.user.id;
+  const isAdmin = session.user.role === "ADMIN";
 
   if (!isAuthor && !isAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   await prisma.newsPost.delete({
     where: { slug },
-  })
+  });
 
-  return new Response(null, { status: 204 })
+  return new Response(null, { status: 204 });
 }

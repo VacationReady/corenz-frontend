@@ -18,18 +18,23 @@ interface PersonalInfoPanelProps {
   };
 }
 
-export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) {
+export default function PersonalInfoPanel({
+  employee,
+}: PersonalInfoPanelProps) {
   const lengthOfService = employee.startDate
     ? Math.floor(
         (new Date().getTime() - new Date(employee.startDate).getTime()) /
-          (1000 * 60 * 60 * 24 * 365)
+          (1000 * 60 * 60 * 24 * 365),
       )
     : "N/A";
 
-  const formatAccessLevel = (role: string | undefined, permissionProfile?: any) => {
+  const formatAccessLevel = (
+    role: string | undefined,
+    permissionProfile?: any,
+  ) => {
     // If user has a custom permission profile, show that
     if (permissionProfile) {
-      return `${permissionProfile.name} - ${permissionProfile.description || 'Custom permissions'}`;
+      return `${permissionProfile.name} - ${permissionProfile.description || "Custom permissions"}`;
     }
 
     // Fall back to role-based display
@@ -46,7 +51,10 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
     }
   };
 
-  const getAccessLevelBadgeVariant = (role: string | undefined, permissionProfile?: any) => {
+  const getAccessLevelBadgeVariant = (
+    role: string | undefined,
+    permissionProfile?: any,
+  ) => {
     // If user has a custom permission profile, use outline style
     if (permissionProfile) {
       return "outline";
@@ -88,15 +96,18 @@ export default function PersonalInfoPanel({ employee }: PersonalInfoPanelProps) 
       </p>
       <p>
         <strong>Access Level:</strong>{" "}
-        <Badge variant={getAccessLevelBadgeVariant(employee.accessLevel, employee.permissionProfile)}>
+        <Badge
+          variant={getAccessLevelBadgeVariant(
+            employee.accessLevel,
+            employee.permissionProfile,
+          )}
+        >
           {formatAccessLevel(employee.accessLevel, employee.permissionProfile)}
         </Badge>
       </p>
       <p>
         <strong>Employment Status:</strong>{" "}
-        <Badge variant="outline">
-          {employee.employmentStatus || "Active"}
-        </Badge>
+        <Badge variant="outline">{employee.employmentStatus || "Active"}</Badge>
       </p>
       <p>
         <strong>Length of Service:</strong>{" "}

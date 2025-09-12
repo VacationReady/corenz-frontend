@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { Input } from "@/components/ui/Input";
@@ -7,15 +7,32 @@ import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
-import { X, GripVertical, FileText, UploadCloud, FileEdit, Info, RotateCcw } from "lucide-react";
+import {
+  X,
+  GripVertical,
+  FileText,
+  UploadCloud,
+  FileEdit,
+  Info,
+  RotateCcw,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { DialogFooter } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 // --- Step Types
 const STEP_TYPES = [
-  { value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
+  {
+    value: "acknowledge-document",
+    label: "Acknowledge Document",
+    icon: FileText,
+  },
   { value: "upload-document", label: "Upload Document", icon: UploadCloud },
   { value: "fill-form", label: "Fill Form", icon: FileEdit },
   { value: "instructions", label: "Welcome/Instructions", icon: Info },
@@ -60,7 +77,13 @@ function createStep(type: string) {
 }
 
 // --- Document dropdown (API)
-function DocumentDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+function DocumentDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+}) {
   const [docs, setDocs] = useState<any[]>([]);
 
   useEffect(() => {
@@ -70,17 +93,29 @@ function DocumentDropdown({ value, onChange }: { value: string; onChange: (id: s
   }, []);
 
   return (
-    <select className="w-full border rounded-md p-2" value={value} onChange={e => onChange(e.target.value)}>
+    <select
+      className="w-full border rounded-md p-2"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="">Select a document…</option>
       {docs.map((d) => (
-        <option key={d.id} value={d.id}>{d.name} ({d.category})</option>
+        <option key={d.id} value={d.id}>
+          {d.name} ({d.category})
+        </option>
       ))}
     </select>
   );
 }
 
 // --- Form dropdown (API)
-function FormDropdown({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+function FormDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+}) {
   const [forms, setForms] = useState<any[]>([]);
 
   useEffect(() => {
@@ -91,7 +126,11 @@ function FormDropdown({ value, onChange }: { value: string; onChange: (id: strin
   }, []);
 
   return (
-    <select className="w-full border rounded-md p-2" value={value} onChange={e => onChange(e.target.value)}>
+    <select
+      className="w-full border rounded-md p-2"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="">Select a form…</option>
       {forms.map((f) => (
         <option key={f.id} value={f.id}>
@@ -103,9 +142,17 @@ function FormDropdown({ value, onChange }: { value: string; onChange: (id: strin
 }
 
 // --- Custom FormFields Editor
-function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fields: any[]) => void }) {
+function FormFieldsEditor({
+  fields,
+  onChange,
+}: {
+  fields: any[];
+  onChange: (fields: any[]) => void;
+}) {
   const [editFields, setEditFields] = useState<any[]>(fields || []);
-  useEffect(() => { onChange(editFields); }, [editFields]);
+  useEffect(() => {
+    onChange(editFields);
+  }, [editFields]);
 
   return (
     <div>
@@ -116,7 +163,7 @@ function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fiel
               className="w-1/3"
               placeholder="Field label"
               value={f.label}
-              onChange={e => {
+              onChange={(e) => {
                 const arr = [...editFields];
                 arr[i].label = e.target.value;
                 setEditFields(arr);
@@ -125,7 +172,7 @@ function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fiel
             <select
               className="w-1/4 border rounded-md p-2"
               value={f.type}
-              onChange={e => {
+              onChange={(e) => {
                 const arr = [...editFields];
                 arr[i].type = e.target.value;
                 setEditFields(arr);
@@ -137,13 +184,26 @@ function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fiel
               <option value="number">Number</option>
               <option value="select">Dropdown</option>
             </select>
-            <Button type="button" size="md" variant="ghost" onClick={() => setEditFields(editFields.filter((_, idx) => idx !== i))}>
+            <Button
+              type="button"
+              size="md"
+              variant="ghost"
+              onClick={() =>
+                setEditFields(editFields.filter((_, idx) => idx !== i))
+              }
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
         ))}
       </div>
-      <Button type="button" variant="ghost" onClick={() => setEditFields([...editFields, { label: "", type: "text" }])}>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() =>
+          setEditFields([...editFields, { label: "", type: "text" }])
+        }
+      >
         + Add Field
       </Button>
     </div>
@@ -152,7 +212,10 @@ function FormFieldsEditor({ fields, onChange }: { fields: any[]; onChange: (fiel
 
 // --- StepEditor (memoized)
 const StepEditor = React.memo(function StepEditor({
-  step, idx, updateStep, removeStep
+  step,
+  idx,
+  updateStep,
+  removeStep,
 }: {
   step: any;
   idx: number;
@@ -175,22 +238,36 @@ const StepEditor = React.memo(function StepEditor({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <Label>Step Title</Label>
-          <Input value={step.title} onChange={e => updateStep(idx, { title: e.target.value })} maxLength={80} />
+          <Input
+            value={step.title}
+            onChange={(e) => updateStep(idx, { title: e.target.value })}
+            maxLength={80}
+          />
         </div>
         <div>
           <Label>Description</Label>
-          <Input value={step.description} onChange={e => updateStep(idx, { description: e.target.value })} maxLength={200} />
+          <Input
+            value={step.description}
+            onChange={(e) => updateStep(idx, { description: e.target.value })}
+            maxLength={200}
+          />
         </div>
         <div>
           <Label>Required?</Label>
-          <Switch checked={!!step.required} onChange={val => updateStep(idx, { required: val })} />
+          <Switch
+            checked={!!step.required}
+            onChange={(val) => updateStep(idx, { required: val })}
+          />
         </div>
 
         {/* --- Type-specific fields --- */}
         {step.type === "acknowledge-document" && (
           <div className="col-span-2">
             <Label>Document to Acknowledge</Label>
-            <DocumentDropdown value={step.documentId} onChange={docId => updateStep(idx, { documentId: docId })} />
+            <DocumentDropdown
+              value={step.documentId}
+              onChange={(docId) => updateStep(idx, { documentId: docId })}
+            />
           </div>
         )}
 
@@ -200,7 +277,7 @@ const StepEditor = React.memo(function StepEditor({
             <select
               className="w-full border rounded-md p-2"
               value={step.uploadType || ""}
-              onChange={e => updateStep(idx, { uploadType: e.target.value })}
+              onChange={(e) => updateStep(idx, { uploadType: e.target.value })}
             >
               <option value="">Select type…</option>
               <option value="passport">Passport</option>
@@ -219,18 +296,30 @@ const StepEditor = React.memo(function StepEditor({
                 <Label>Select Existing Form (Recommended)</Label>
                 <FormDropdown
                   value={step.formId || ""}
-                  onChange={formId => updateStep(idx, { formId, formFields: formId ? [] : step.formFields })}
+                  onChange={(formId) =>
+                    updateStep(idx, {
+                      formId,
+                      formFields: formId ? [] : step.formFields,
+                    })
+                  }
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Choose a form created in the Forms section for better management and reusability.
+                  Choose a form created in the Forms section for better
+                  management and reusability.
                 </p>
               </div>
               {!step.formId && (
                 <div>
                   <Label>Or Create Inline Fields (Legacy)</Label>
-                  <FormFieldsEditor fields={step.formFields || []} onChange={fields => updateStep(idx, { formFields: fields })} />
+                  <FormFieldsEditor
+                    fields={step.formFields || []}
+                    onChange={(fields) =>
+                      updateStep(idx, { formFields: fields })
+                    }
+                  />
                   <p className="text-xs text-gray-500 mt-1">
-                    Note: Inline fields are harder to manage. Consider creating a reusable form instead.
+                    Note: Inline fields are harder to manage. Consider creating
+                    a reusable form instead.
                   </p>
                 </div>
               )}
@@ -254,10 +343,18 @@ export default function OnboardingTemplateEditor({
 }) {
   const [name, setName] = useState(template?.name || "");
   const [description, setDescription] = useState(template?.description || "");
-  const [departments, setDepartments] = useState<string[]>(template?.departments?.map((d: any) => d.id) || []);
-  const [jobRoles, setJobRoles] = useState<string[]>(template?.jobRoles?.map((j: any) => j.id) || []);
-  const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
-  const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
+  const [departments, setDepartments] = useState<string[]>(
+    template?.departments?.map((d: any) => d.id) || [],
+  );
+  const [jobRoles, setJobRoles] = useState<string[]>(
+    template?.jobRoles?.map((j: any) => j.id) || [],
+  );
+  const [departmentsList, setDepartmentsList] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [jobRolesList, setJobRolesList] = useState<
+    { label: string; value: string }[]
+  >([]);
   const [steps, setSteps] = useState<any[]>(() =>
     template?.steps?.length
       ? template.steps.map((step: any) => ({
@@ -277,7 +374,7 @@ export default function OnboardingTemplateEditor({
           formId: step.formId || "",
           formFields: step.formFields || [],
         }))
-      : []
+      : [],
   );
 
   const [saving, setSaving] = useState(false);
@@ -291,18 +388,22 @@ export default function OnboardingTemplateEditor({
       ]);
       const deptData = await deptRes.json();
       const roleData = await roleRes.json();
-      setDepartmentsList(deptData.map((d: any) => ({ label: d.name, value: d.id })));
-      setJobRolesList(roleData.map((j: any) => ({ label: j.name, value: j.id })));
+      setDepartmentsList(
+        deptData.map((d: any) => ({ label: d.name, value: d.id })),
+      );
+      setJobRolesList(
+        roleData.map((j: any) => ({ label: j.name, value: j.id })),
+      );
     };
     fetchDropdownData();
   }, []);
 
   const addStep = useCallback((type: string) => {
-    setSteps(prev => [...prev, createStep(type)]);
+    setSteps((prev) => [...prev, createStep(type)]);
   }, []);
 
   const updateStep = useCallback((idx: number, data: any) => {
-    setSteps(prev => {
+    setSteps((prev) => {
       const arr = [...prev];
       arr[idx] = { ...arr[idx], ...data };
       return arr;
@@ -310,7 +411,7 @@ export default function OnboardingTemplateEditor({
   }, []);
 
   const removeStep = useCallback((idx: number) => {
-    setSteps(prev => prev.filter((_, i) => i !== idx));
+    setSteps((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
   const handleSave = async (publish = false) => {
@@ -319,7 +420,7 @@ export default function OnboardingTemplateEditor({
       return;
     }
     toast.info(
-      "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template"
+      "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template",
     );
     setSaving(true);
     const body = {
@@ -355,11 +456,18 @@ export default function OnboardingTemplateEditor({
   const StepTypePicker = () => (
     <Accordion type="single" collapsible className="mt-3 mb-6">
       <AccordionItem value="step-types">
-        <AccordionTrigger className="text-sm font-semibold">Add Step</AccordionTrigger>
+        <AccordionTrigger className="text-sm font-semibold">
+          Add Step
+        </AccordionTrigger>
         <AccordionContent>
           <div className="flex flex-wrap gap-2">
             {STEP_TYPES.map((t) => (
-              <Button key={t.value} variant="ghost" onClick={() => addStep(t.value)} className="flex items-center gap-2">
+              <Button
+                key={t.value}
+                variant="ghost"
+                onClick={() => addStep(t.value)}
+                className="flex items-center gap-2"
+              >
                 <t.icon className="w-4 h-4" /> {t.label}
               </Button>
             ))}
@@ -371,11 +479,15 @@ export default function OnboardingTemplateEditor({
 
   const PreviewBlock = () => (
     <div className="bg-muted border p-6 rounded-xl mt-6 mb-4">
-      <h3 className="font-semibold mb-2">Onboarding preview (as new starter):</h3>
+      <h3 className="font-semibold mb-2">
+        Onboarding preview (as new starter):
+      </h3>
       <ol className="list-decimal ml-5 space-y-2">
         {steps.map((s, idx) => (
           <li key={getStepKey(s)}>
-            <span className="font-bold">{s.title || STEP_TYPES.find(t => t.value === s.type)?.label}</span>{" "}
+            <span className="font-bold">
+              {s.title || STEP_TYPES.find((t) => t.value === s.type)?.label}
+            </span>{" "}
             <span className="text-xs text-gray-500">{s.description}</span>
           </li>
         ))}
@@ -386,39 +498,72 @@ export default function OnboardingTemplateEditor({
   return (
     <div className="p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-bold mb-2">{template ? "Edit Onboarding Template" : "New Onboarding Template"}</h2>
+        <h2 className="text-xl font-bold mb-2">
+          {template ? "Edit Onboarding Template" : "New Onboarding Template"}
+        </h2>
         {template?.updatedAt && (
           <div className="flex items-center text-sm text-gray-500 gap-2 mb-2">
             <RotateCcw className="h-4 w-4" />
             <span>
-              Last updated {new Date(template.updatedAt).toLocaleString()} by{' '}
-              {template.updatedBy?.name || template.updatedBy?.email || 'Unknown'}
+              Last updated {new Date(template.updatedAt).toLocaleString()} by{" "}
+              {template.updatedBy?.name ||
+                template.updatedBy?.email ||
+                "Unknown"}
             </span>
           </div>
         )}
         <Label>Template Name</Label>
-        <Input className="mb-3" value={name} onChange={e => setName(e.target.value)} maxLength={60} />
+        <Input
+          className="mb-3"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={60}
+        />
         <Label>Description</Label>
-        <Textarea className="mb-3" value={description} onChange={e => setDescription(e.target.value)} maxLength={200} />
+        <Textarea
+          className="mb-3"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={200}
+        />
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
             <Label>Departments (optional)</Label>
-            <MultiSelect options={departmentsList} selected={departments} onChange={setDepartments} placeholder="All Departments" />
+            <MultiSelect
+              options={departmentsList}
+              selected={departments}
+              onChange={setDepartments}
+              placeholder="All Departments"
+            />
           </div>
           <div className="flex-1">
             <Label>Job Roles (optional)</Label>
-            <MultiSelect options={jobRolesList} selected={jobRoles} onChange={setJobRoles} placeholder="All Job Roles" />
+            <MultiSelect
+              options={jobRolesList}
+              selected={jobRoles}
+              onChange={setJobRoles}
+              placeholder="All Job Roles"
+            />
           </div>
         </div>
       </div>
 
       <div>
         <h3 className="text-lg font-semibold mb-1">Steps</h3>
-        <p className="text-gray-500 mb-2">Drag and drop to reorder. Each step can require a document to be acknowledged, uploaded, or a custom form.</p>
+        <p className="text-gray-500 mb-2">
+          Drag and drop to reorder. Each step can require a document to be
+          acknowledged, uploaded, or a custom form.
+        </p>
         <StepTypePicker />
         <div className="space-y-2">
           {steps.map((step, idx) => (
-            <StepEditor key={step.key} step={step} idx={idx} updateStep={updateStep} removeStep={removeStep} />
+            <StepEditor
+              key={step.key}
+              step={step}
+              idx={idx}
+              updateStep={updateStep}
+              removeStep={removeStep}
+            />
           ))}
         </div>
       </div>
@@ -426,11 +571,23 @@ export default function OnboardingTemplateEditor({
       {steps.length > 0 && <PreviewBlock />}
 
       <DialogFooter>
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button variant="ghost" onClick={() => handleSave(false)} disabled={saving}>
+        <Button variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => handleSave(false)}
+          disabled={saving}
+        >
           {saving ? "Saving…" : "Save as Draft"}
         </Button>
-        <Button onClick={() => { setPublishing(true); handleSave(true); }} disabled={publishing || saving}>
+        <Button
+          onClick={() => {
+            setPublishing(true);
+            handleSave(true);
+          }}
+          disabled={publishing || saving}
+        >
           {publishing ? "Publishing…" : "Publish"}
         </Button>
       </DialogFooter>

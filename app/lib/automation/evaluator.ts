@@ -1,6 +1,6 @@
 /**
  * Automation Rule Evaluator
- * 
+ *
  * Handles evaluation of automation rules, including trigger matching
  * and condition checking to determine if actions should be executed.
  */
@@ -29,7 +29,7 @@ export class AutomationRuleEvaluator {
     this.logger = logger || this.createDefaultLogger();
     this.triggerHandlers = new Map();
     this.conditionEvaluators = new Map();
-    
+
     this.initializeTriggerHandlers();
     this.initializeConditionEvaluators();
   }
@@ -40,7 +40,7 @@ export class AutomationRuleEvaluator {
   async evaluateTrigger(
     triggerType: AutomationTriggerType,
     triggerConfig: any,
-    companyId: string
+    companyId: string,
   ): Promise<TriggerEvaluationResult> {
     const handler = this.triggerHandlers.get(triggerType);
     if (!handler) {
@@ -49,11 +49,13 @@ export class AutomationRuleEvaluator {
 
     try {
       if (!handler.validateConfig(triggerConfig)) {
-        throw new Error(`Invalid trigger configuration for type: ${triggerType}`);
+        throw new Error(
+          `Invalid trigger configuration for type: ${triggerType}`,
+        );
       }
 
       const result = await handler.evaluate(triggerConfig, companyId);
-      
+
       this.logger.debug(`Trigger evaluation completed`, {
         triggerType,
         companyId,
@@ -77,7 +79,7 @@ export class AutomationRuleEvaluator {
    */
   async evaluateConditions(
     conditions: any[],
-    context: ConditionEvaluationContext
+    context: ConditionEvaluationContext,
   ): Promise<boolean> {
     if (!conditions || conditions.length === 0) {
       return true; // No conditions means always pass
@@ -88,7 +90,9 @@ export class AutomationRuleEvaluator {
         conditions.map(async (condition) => {
           const evaluator = this.conditionEvaluators.get(condition.type);
           if (!evaluator) {
-            this.logger.warn(`No evaluator found for condition type: ${condition.type}`);
+            this.logger.warn(
+              `No evaluator found for condition type: ${condition.type}`,
+            );
             return { matches: false, reason: "Unknown condition type" };
           }
 
@@ -101,7 +105,7 @@ export class AutomationRuleEvaluator {
           }
 
           return await evaluator.evaluate(condition.config, context);
-        })
+        }),
       );
 
       // All conditions must pass (AND logic)
@@ -140,7 +144,7 @@ export class AutomationRuleEvaluator {
       evaluate: async (config, companyId) => {
         const daysBefore = config.daysBefore;
         const documentTypes = config.documentTypes || [];
-        
+
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + daysBefore);
 
@@ -200,7 +204,7 @@ export class AutomationRuleEvaluator {
       },
       evaluate: async (config, companyId) => {
         const { formId, timeWindowHours = 24 } = config;
-        
+
         const since = new Date();
         since.setHours(since.getHours() - timeWindowHours);
 
@@ -253,7 +257,7 @@ export class AutomationRuleEvaluator {
       },
       evaluate: async (config, companyId) => {
         const { stepType, timeWindowHours = 24 } = config;
-        
+
         const since = new Date();
         since.setHours(since.getHours() - timeWindowHours);
 
@@ -322,7 +326,7 @@ export class AutomationRuleEvaluator {
       validateConfig: () => true, // No specific config needed
       evaluate: async (config, companyId) => {
         const { timeWindowHours = 24 } = config;
-        
+
         const since = new Date();
         since.setHours(since.getHours() - timeWindowHours);
 
@@ -399,7 +403,9 @@ export class AutomationRuleEvaluator {
 
         return {
           matches,
-          reason: matches ? undefined : `Role ${employeeRole} does not match condition`,
+          reason: matches
+            ? undefined
+            : `Role ${employeeRole} does not match condition`,
         };
       },
     });
@@ -419,7 +425,10 @@ export class AutomationRuleEvaluator {
         const employeeDepartmentId = context.employee.departmentId;
 
         if (!employeeDepartmentId) {
-          return { matches: false, reason: "Employee has no department assigned" };
+          return {
+            matches: false,
+            reason: "Employee has no department assigned",
+          };
         }
 
         let matches = false;
@@ -439,7 +448,9 @@ export class AutomationRuleEvaluator {
 
         return {
           matches,
-          reason: matches ? undefined : `Department ${employeeDepartmentId} does not match condition`,
+          reason: matches
+            ? undefined
+            : `Department ${employeeDepartmentId} does not match condition`,
         };
       },
     });
@@ -459,7 +470,10 @@ export class AutomationRuleEvaluator {
         const employeeJobRoleId = context.employee.jobRoleId;
 
         if (!employeeJobRoleId) {
-          return { matches: false, reason: "Employee has no job role assigned" };
+          return {
+            matches: false,
+            reason: "Employee has no job role assigned",
+          };
         }
 
         let matches = false;
@@ -479,7 +493,9 @@ export class AutomationRuleEvaluator {
 
         return {
           matches,
-          reason: matches ? undefined : `Job role ${employeeJobRoleId} does not match condition`,
+          reason: matches
+            ? undefined
+            : `Job role ${employeeJobRoleId} does not match condition`,
         };
       },
     });
@@ -508,7 +524,9 @@ export class AutomationRuleEvaluator {
 
         return {
           matches,
-          reason: matches ? undefined : "Current date is outside the specified window",
+          reason: matches
+            ? undefined
+            : "Current date is outside the specified window",
         };
       },
     });
@@ -520,10 +538,16 @@ export class AutomationRuleEvaluator {
   private createDefaultLogger(): JobLogger {
     return {
       info: (message: string, data?: any) => {
-        console.log(`[AutomationEvaluator] ${message}`, data ? JSON.stringify(data) : "");
+        console.log(
+          `[AutomationEvaluator] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       warn: (message: string, data?: any) => {
-        console.warn(`[AutomationEvaluator] ${message}`, data ? JSON.stringify(data) : "");
+        console.warn(
+          `[AutomationEvaluator] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       error: (message: string, error?: Error, data?: any) => {
         console.error(`[AutomationEvaluator] ${message}`, {
@@ -534,7 +558,10 @@ export class AutomationRuleEvaluator {
       },
       debug: (message: string, data?: any) => {
         if (process.env.NODE_ENV === "development") {
-          console.debug(`[AutomationEvaluator] ${message}`, data ? JSON.stringify(data) : "");
+          console.debug(
+            `[AutomationEvaluator] ${message}`,
+            data ? JSON.stringify(data) : "",
+          );
         }
       },
     };

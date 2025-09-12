@@ -1,19 +1,55 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Copy, Shield, Users } from 'lucide-react';
-import { toast } from 'sonner';
-import Link from 'next/link';
-import { getScreenDisplayName } from '@/lib/permissions';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Copy,
+  Shield,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
+import { getScreenDisplayName } from "@/lib/permissions";
 
 interface PermissionProfile {
   id: string;
@@ -42,15 +78,18 @@ export default function PermissionsPage() {
   const { data: session } = useSession();
   const [profiles, setProfiles] = useState<PermissionProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
-  const [filterType, setFilterType] = useState<'all' | 'builtin' | 'custom'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'users'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterType, setFilterType] = useState<"all" | "builtin" | "custom">(
+    "all",
+  );
+  const [sortBy, setSortBy] = useState<"name" | "createdAt" | "users">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [profileToDelete, setProfileToDelete] = useState<PermissionProfile | null>(null);
+  const [profileToDelete, setProfileToDelete] =
+    useState<PermissionProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -70,14 +109,14 @@ export default function PermissionsPage() {
       });
 
       const response = await fetch(`/api/permissions?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch profiles');
+      if (!response.ok) throw new Error("Failed to fetch profiles");
 
       const data: ProfilesResponse = await response.json();
       setProfiles(data.profiles);
       setTotal(data.pagination.total);
     } catch (error) {
-      console.error('Error fetching profiles:', error);
-      toast.error('Failed to load permission profiles');
+      console.error("Error fetching profiles:", error);
+      toast.error("Failed to load permission profiles");
     } finally {
       setLoading(false);
     }
@@ -86,12 +125,12 @@ export default function PermissionsPage() {
   const handleClone = async (profile: PermissionProfile) => {
     try {
       const response = await fetch(`/api/permissions/${profile.id}/clone`, {
-        method: 'POST',
+        method: "POST",
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to clone profile');
+        throw new Error(error.error || "Failed to clone profile");
       }
 
       const clonedProfile = await response.json();
@@ -100,8 +139,10 @@ export default function PermissionsPage() {
       fetchProfiles();
       toast.success(`Profile cloned as "${clonedProfile.name}"`);
     } catch (error) {
-      console.error('Error cloning profile:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to clone profile');
+      console.error("Error cloning profile:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to clone profile",
+      );
     }
   };
 
@@ -112,21 +153,23 @@ export default function PermissionsPage() {
       setDeleting(true);
 
       const response = await fetch(`/api/permissions/${profileToDelete.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to delete profile');
+        throw new Error(error.error || "Failed to delete profile");
       }
 
-      setProfiles(profiles.filter(p => p.id !== profileToDelete.id));
+      setProfiles(profiles.filter((p) => p.id !== profileToDelete.id));
       setShowDeleteDialog(false);
       setProfileToDelete(null);
-      toast.success('Permission profile deleted successfully');
+      toast.success("Permission profile deleted successfully");
     } catch (error) {
-      console.error('Error deleting profile:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete profile');
+      console.error("Error deleting profile:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete profile",
+      );
     } finally {
       setDeleting(false);
     }
@@ -137,7 +180,10 @@ export default function PermissionsPage() {
   };
 
   const getTotalPermissions = (permissions: Record<string, string[]>) => {
-    return Object.values(permissions).reduce((total, actions) => total + actions.length, 0);
+    return Object.values(permissions).reduce(
+      (total, actions) => total + actions.length,
+      0,
+    );
   };
 
   return (
@@ -145,7 +191,9 @@ export default function PermissionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Permission Profiles</h1>
-          <p className="text-gray-600">Manage permission profiles for different user roles</p>
+          <p className="text-gray-600">
+            Manage permission profiles for different user roles
+          </p>
         </div>
 
         <Link href="/settings/permissions/new">
@@ -171,7 +219,10 @@ export default function PermissionsPage() {
                 className="w-full"
               />
             </div>
-            <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+            <Select
+              value={filterType}
+              onValueChange={(value: any) => setFilterType(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
@@ -181,11 +232,17 @@ export default function PermissionsPage() {
                 <SelectItem value="custom">Custom Only</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
-              const [field, order] = value.split('-') as [typeof sortBy, typeof sortOrder];
-              setSortBy(field);
-              setSortOrder(order);
-            }}>
+            <Select
+              value={`${sortBy}-${sortOrder}`}
+              onValueChange={(value) => {
+                const [field, order] = value.split("-") as [
+                  typeof sortBy,
+                  typeof sortOrder,
+                ];
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -236,12 +293,18 @@ export default function PermissionsPage() {
               <TableBody>
                 {profiles.map((profile) => (
                   <TableRow key={profile.id}>
-                    <TableCell className="font-medium">{profile.name}</TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {profile.description || 'No description'}
+                    <TableCell className="font-medium">
+                      {profile.name}
                     </TableCell>
-                    <TableCell>{getTotalScreens(profile.permissions)}</TableCell>
-                    <TableCell>{getTotalPermissions(profile.permissions)}</TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {profile.description || "No description"}
+                    </TableCell>
+                    <TableCell>
+                      {getTotalScreens(profile.permissions)}
+                    </TableCell>
+                    <TableCell>
+                      {getTotalPermissions(profile.permissions)}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-gray-500" />
@@ -265,11 +328,13 @@ export default function PermissionsPage() {
                         align="right"
                       >
                         <DropdownMenuItem asChild>
-                          <Link href={`/settings/permissions/${profile.id}/edit`}>
-                          <div className="flex items-center">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </div>
+                          <Link
+                            href={`/settings/permissions/${profile.id}/edit`}
+                          >
+                            <div className="flex items-center">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </div>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleClone(profile)}>
@@ -303,7 +368,8 @@ export default function PermissionsPage() {
           {total > limit && (
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-gray-500">
-                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} profiles
+                Showing {(page - 1) * limit + 1} to{" "}
+                {Math.min(page * limit, total)} of {total} profiles
               </div>
               <div className="flex gap-2">
                 <Button
@@ -334,13 +400,16 @@ export default function PermissionsPage() {
           <DialogHeader>
             <DialogTitle>Delete Permission Profile</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{profileToDelete?.name}"? This action cannot be undone.
-              {profileToDelete?._count?.users && profileToDelete._count.users > 0 && (
-                <span className="block mt-2 text-red-600 font-medium">
-                  Warning: This profile is currently assigned to {profileToDelete._count.users} user(s).
-                  They will lose their custom permissions and fall back to role-based permissions.
-                </span>
-              )}
+              Are you sure you want to delete "{profileToDelete?.name}"? This
+              action cannot be undone.
+              {profileToDelete?._count?.users &&
+                profileToDelete._count.users > 0 && (
+                  <span className="block mt-2 text-red-600 font-medium">
+                    Warning: This profile is currently assigned to{" "}
+                    {profileToDelete._count.users} user(s). They will lose their
+                    custom permissions and fall back to role-based permissions.
+                  </span>
+                )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -351,12 +420,8 @@ export default function PermissionsPage() {
             >
               Cancel
             </Button>
-            <Button
-              variant="danger"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? 'Deleting...' : 'Delete Profile'}
+            <Button variant="danger" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete Profile"}
             </Button>
           </DialogFooter>
         </DialogContent>

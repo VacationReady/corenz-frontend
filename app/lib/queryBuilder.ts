@@ -52,14 +52,15 @@ function buildWhere(filters: any[]) {
 
 function buildPaginationAndSort(
   pagination: { limit?: number; page?: number } = {},
-  sort: { field?: string; direction?: "asc" | "desc" } = {}
+  sort: { field?: string; direction?: "asc" | "desc" } = {},
 ) {
   return {
     take: pagination.limit || 50,
     skip: ((pagination.page || 1) - 1) * (pagination.limit || 50),
-    orderBy: sort.field && !sort.field.startsWith("_computed.")
-      ? { [sort.field]: sort.direction || "asc" }
-      : undefined,
+    orderBy:
+      sort.field && !sort.field.startsWith("_computed.")
+        ? { [sort.field]: sort.direction || "asc" }
+        : undefined,
   };
 }
 
@@ -79,16 +80,23 @@ function groupFieldsByModel(selectedFields: string[]) {
   return modelMap;
 }
 
-export function buildDynamicQuery({ selectedFields, filters, pagination, sort }: any) {
+export function buildDynamicQuery({
+  selectedFields,
+  filters,
+  pagination,
+  sort,
+}: any) {
   const fieldGroups = groupFieldsByModel(selectedFields);
   const queries = [];
 
   for (const model in fieldGroups) {
     const fields = fieldGroups[model];
-    const modelFilters = filters.filter((f: any) => f.field.startsWith(`${model}.`));
+    const modelFilters = filters.filter((f: any) =>
+      f.field.startsWith(`${model}.`),
+    );
     const strippedFilters = modelFilters.map((f: any) => ({
       ...f,
-      field: f.field.replace(`${model}.`, "")
+      field: f.field.replace(`${model}.`, ""),
     }));
 
     queries.push({
@@ -111,7 +119,7 @@ export function buildDynamicQuery({ selectedFields, filters, pagination, sort }:
 export async function attachComputedFields(
   results: any[],
   selectedFields: string[],
-  model: string
+  model: string,
 ) {
   if (!selectedFields.some((f) => f.startsWith("_computed."))) return results;
 
@@ -124,7 +132,8 @@ export async function attachComputedFields(
     for (const field of selectedFields) {
       if (field.startsWith("_computed.") && modelHandlers[field]) {
         try {
-          computed[field.replace("_computed.", "")] = modelHandlers[field](item);
+          computed[field.replace("_computed.", "")] =
+            modelHandlers[field](item);
         } catch (err) {
           console.warn(`Computed field error on ${field}:`, err);
         }

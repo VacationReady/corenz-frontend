@@ -18,13 +18,20 @@ interface BreadcrumbProps {
   showHomeIcon?: boolean;
 }
 
-export function Breadcrumb({ items, className, showHomeIcon = true }: BreadcrumbProps) {
+export function Breadcrumb({
+  items,
+  className,
+  showHomeIcon = true,
+}: BreadcrumbProps) {
   if (!items || items.length === 0) return null;
 
   return (
     <nav
       aria-label="Breadcrumb navigation"
-      className={cn("flex items-center space-x-1 text-sm text-muted-foreground", className)}
+      className={cn(
+        "flex items-center space-x-1 text-sm text-muted-foreground",
+        className,
+      )}
     >
       <ol className="flex items-center space-x-1">
         {showHomeIcon && (
@@ -62,7 +69,10 @@ export function Breadcrumb({ items, className, showHomeIcon = true }: Breadcrumb
                   </Link>
                 ) : (
                   <span
-                    className={cn("px-1 py-0.5", isCurrentPage && "text-foreground font-medium")}
+                    className={cn(
+                      "px-1 py-0.5",
+                      isCurrentPage && "text-foreground font-medium",
+                    )}
                     aria-current={isCurrentPage ? "page" : undefined}
                   >
                     {item.label}
@@ -80,65 +90,69 @@ export function Breadcrumb({ items, className, showHomeIcon = true }: Breadcrumb
 // ✅ Predefined breadcrumb configurations for common pages
 export const breadcrumbConfigs = {
   dashboard: {
-    items: [{ label: "Dashboard", isCurrentPage: true }]
+    items: [{ label: "Dashboard", isCurrentPage: true }],
   },
   employees: {
     items: [
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Employees", isCurrentPage: true }
-    ]
+      { label: "Employees", isCurrentPage: true },
+    ],
   },
   employeeDetail: (employeeName: string, employeeId: string) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Employees", href: "/employees" },
-      { label: employeeName, isCurrentPage: true }
-    ]
+      { label: employeeName, isCurrentPage: true },
+    ],
   }),
-  employeeSection: (employeeName: string, employeeId: string, section: string) => ({
+  employeeSection: (
+    employeeName: string,
+    employeeId: string,
+    section: string,
+  ) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Employees", href: "/employees" },
       { label: employeeName, href: `/employees/${employeeId}/overview` },
-      { label: section, isCurrentPage: true }
-    ]
+      { label: section, isCurrentPage: true },
+    ],
   }),
   documents: {
     items: [
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Documents", isCurrentPage: true }
-    ]
+      { label: "Documents", isCurrentPage: true },
+    ],
   },
   news: {
     items: [
       { label: "Dashboard", href: "/dashboard" },
-      { label: "News", isCurrentPage: true }
-    ]
+      { label: "News", isCurrentPage: true },
+    ],
   },
   newsDetail: (newsTitle: string, newsSlug: string) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "News", href: "/news" },
-      { label: newsTitle, isCurrentPage: true }
-    ]
+      { label: newsTitle, isCurrentPage: true },
+    ],
   }),
   calendar: {
     items: [
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Calendar", isCurrentPage: true }
-    ]
+      { label: "Calendar", isCurrentPage: true },
+    ],
   },
   settings: {
     items: [
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Settings", isCurrentPage: true }
-    ]
+      { label: "Settings", isCurrentPage: true },
+    ],
   },
   settingsSection: (section: string) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Settings", href: "/settings" },
-      { label: section, isCurrentPage: true }
-    ]
-  })
+      { label: section, isCurrentPage: true },
+    ],
+  }),
 };

@@ -1,11 +1,18 @@
 // app/settings/onboarding/page.tsx
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Plus, Edit, Copy, Trash2, UploadCloud } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import OnboardingTemplateEditor from "@/components/onboarding/OnboardingTemplateEditor";
@@ -30,7 +37,7 @@ export default function OnboardingSettingsPage() {
 
   const fetchTemplates = async () => {
     setLoading(true);
-    const res = await fetch('/api/onboarding/templates');
+    const res = await fetch("/api/onboarding/templates");
     if (!res.ok) {
       toast("Failed to fetch templates");
       setLoading(false);
@@ -51,10 +58,10 @@ export default function OnboardingSettingsPage() {
   };
 
   const handleDuplicate = async (template: Template) => {
-    const res = await fetch('/api/onboarding/templates/duplicate', {
+    const res = await fetch("/api/onboarding/templates/duplicate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: template.id })
+      body: JSON.stringify({ id: template.id }),
     });
     if (res.ok) {
       toast("Template duplicated");
@@ -66,9 +73,9 @@ export default function OnboardingSettingsPage() {
 
   const handleDelete = async (template: Template) => {
     if (!confirm("Delete this onboarding template?")) return;
-    const res = await fetch('/api/onboarding/templates', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/onboarding/templates", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: template.id }),
     });
     if (res.ok) {
@@ -80,7 +87,7 @@ export default function OnboardingSettingsPage() {
   };
 
   const handleToggleStatus = async (template: Template) => {
-    const res = await fetch('/api/onboarding/templates', {
+    const res = await fetch("/api/onboarding/templates", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -105,7 +112,12 @@ export default function OnboardingSettingsPage() {
     <div className="max-w-5xl mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Onboarding Templates</h1>
-        <Button onClick={() => { setEditingTemplate(null); setIsEditorOpen(true); }}>
+        <Button
+          onClick={() => {
+            setEditingTemplate(null);
+            setIsEditorOpen(true);
+          }}
+        >
           <Plus className="w-5 h-5 mr-1" /> New Template
         </Button>
       </div>
@@ -113,7 +125,9 @@ export default function OnboardingSettingsPage() {
       {loading ? (
         <div>Loading templates...</div>
       ) : templates.length === 0 ? (
-        <Card className="text-center p-8">No onboarding templates yet. Click <b>New Template</b> to get started.</Card>
+        <Card className="text-center p-8">
+          No onboarding templates yet. Click <b>New Template</b> to get started.
+        </Card>
       ) : (
         <Table>
           <TableHeader>
@@ -133,26 +147,48 @@ export default function OnboardingSettingsPage() {
                   {t.departments?.length
                     ? t.departments.map((d) => d.name).join(", ")
                     : t.jobRoles?.length
-                    ? t.jobRoles.map((j) => j.name).join(", ")
-                    : "All"}
+                      ? t.jobRoles.map((j) => j.name).join(", ")
+                      : "All"}
                 </TableCell>
                 <TableCell>{t.steps?.length || 0}</TableCell>
                 <TableCell>
-                  <span className={t.isActive ? "text-green-600 font-medium" : "text-gray-400"}>
+                  <span
+                    className={
+                      t.isActive
+                        ? "text-green-600 font-medium"
+                        : "text-gray-400"
+                    }
+                  >
                     {t.isActive ? "Active" : "Draft"}
                   </span>
                 </TableCell>
                 <TableCell className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => handleToggleStatus(t)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleToggleStatus(t)}
+                  >
                     {t.isActive ? "Unpublish" : "Publish"}
                   </Button>
-                  <Button size="md" variant="ghost" onClick={() => handleEdit(t)}>
+                  <Button
+                    size="md"
+                    variant="ghost"
+                    onClick={() => handleEdit(t)}
+                  >
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button size="md" variant="ghost" onClick={() => handleDuplicate(t)}>
+                  <Button
+                    size="md"
+                    variant="ghost"
+                    onClick={() => handleDuplicate(t)}
+                  >
                     <Copy className="w-4 h-4" />
                   </Button>
-                  <Button size="md" variant="ghost" onClick={() => handleDelete(t)}>
+                  <Button
+                    size="md"
+                    variant="ghost"
+                    onClick={() => handleDelete(t)}
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>
@@ -166,7 +202,10 @@ export default function OnboardingSettingsPage() {
         <DialogContent className="max-w-3xl p-0">
           <OnboardingTemplateEditor
             template={editingTemplate}
-            onSaved={() => { setIsEditorOpen(false); fetchTemplates(); }}
+            onSaved={() => {
+              setIsEditorOpen(false);
+              fetchTemplates();
+            }}
             onCancel={() => setIsEditorOpen(false)}
           />
         </DialogContent>

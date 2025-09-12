@@ -26,11 +26,14 @@ export async function GET() {
         createdAt: report.createdAt,
         createdBy: { email: report.user?.email || "Unknown" },
         fields: report.fields, // ✅ ADD THIS LINE
-      }))
+      })),
     );
   } catch (error) {
     console.error("Error fetching reports:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -45,7 +48,10 @@ export async function POST(req: Request) {
     const { name, category, fields } = body;
 
     if (!name || !category || !fields) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     const report = await prisma.savedReport.create({
@@ -61,6 +67,9 @@ export async function POST(req: Request) {
     return NextResponse.json(report);
   } catch (error) {
     console.error("Error creating report:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -127,13 +127,15 @@ export function MultiSelect({
                   "flex w-full items-center px-3 py-2 text-sm text-left",
                   selected.includes(option.value)
                     ? "bg-gray-50"
-                    : "hover:bg-gray-100"
+                    : "hover:bg-gray-100",
                 )}
               >
                 <Check
                   className={cn(
                     "mr-2 h-4 w-4",
-                    selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                    selected.includes(option.value)
+                      ? "opacity-100"
+                      : "opacity-0",
                   )}
                 />
                 {option.label}

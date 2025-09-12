@@ -6,9 +6,22 @@ import { PageShell } from "@/components/ui/PageShell";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserX, Clock, CheckCircle, AlertCircle, Calendar, User } from "lucide-react";
+import {
+  UserX,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Calendar,
+  User,
+} from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -74,7 +87,9 @@ export default function OffboardingPage() {
   const fetchOffboardingRecords = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/offboarding?status=${activeTab}&limit=50`);
+      const response = await fetch(
+        `/api/offboarding?status=${activeTab}&limit=50`,
+      );
       if (response.ok) {
         const data = await response.json();
         setRecords(data.records || []);
@@ -99,7 +114,7 @@ export default function OffboardingPage() {
     }
   };
 
-  const filteredRecords = records.filter(record => {
+  const filteredRecords = records.filter((record) => {
     if (activeTab === "all") return true;
     return record.status === activeTab.toUpperCase();
   });
@@ -113,17 +128,16 @@ export default function OffboardingPage() {
       {/* Status Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
         <TabsList className="grid w-full max-w-md grid-cols-4">
-          <TabsTrigger value="all">
-            All ({records.length})
-          </TabsTrigger>
+          <TabsTrigger value="all">All ({records.length})</TabsTrigger>
           <TabsTrigger value="in_progress">
-            In Progress ({records.filter(r => r.status === "IN_PROGRESS").length})
+            In Progress (
+            {records.filter((r) => r.status === "IN_PROGRESS").length})
           </TabsTrigger>
           <TabsTrigger value="completed">
-            Completed ({records.filter(r => r.status === "COMPLETED").length})
+            Completed ({records.filter((r) => r.status === "COMPLETED").length})
           </TabsTrigger>
           <TabsTrigger value="cancelled">
-            Cancelled ({records.filter(r => r.status === "CANCELLED").length})
+            Cancelled ({records.filter((r) => r.status === "CANCELLED").length})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -132,14 +146,16 @@ export default function OffboardingPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Offboardings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Offboardings
+            </CardTitle>
             <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{records.length}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
@@ -147,11 +163,11 @@ export default function OffboardingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {records.filter(r => r.status === "IN_PROGRESS").length}
+              {records.filter((r) => r.status === "IN_PROGRESS").length}
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
@@ -159,21 +175,29 @@ export default function OffboardingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {records.filter(r => r.status === "COMPLETED").length}
+              {records.filter((r) => r.status === "COMPLETED").length}
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Completion</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg. Completion
+            </CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {records.length > 0 
-                ? Math.round(records.reduce((sum, r) => sum + r.completionPercentage, 0) / records.length)
-                : 0}%
+              {records.length > 0
+                ? Math.round(
+                    records.reduce(
+                      (sum, r) => sum + r.completionPercentage,
+                      0,
+                    ) / records.length,
+                  )
+                : 0}
+              %
             </div>
           </CardContent>
         </Card>
@@ -184,12 +208,16 @@ export default function OffboardingPage() {
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Loading offboarding records...</p>
+            <p className="mt-2 text-muted-foreground">
+              Loading offboarding records...
+            </p>
           </div>
         ) : filteredRecords.length === 0 ? (
           <div className="text-center py-8">
             <UserX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No offboarding records found.</p>
+            <p className="text-muted-foreground">
+              No offboarding records found.
+            </p>
           </div>
         ) : (
           filteredRecords.map((record) => (
@@ -201,25 +229,38 @@ export default function OffboardingPage() {
                       {getStatusIcon(record.status)}
                       <div>
                         <CardTitle className="text-lg">
-                          <Link 
+                          <Link
                             href={`/employees/${record.employee.id}/overview`}
                             className="hover:text-primary transition-colors"
                           >
-                            {record.employee.user.firstName} {record.employee.user.lastName}
+                            {record.employee.user.firstName}{" "}
+                            {record.employee.user.lastName}
                           </Link>
                         </CardTitle>
                         <CardDescription>
-                          {record.employee.jobRole?.name} • {record.employee.department?.name}
+                          {record.employee.jobRole?.name} •{" "}
+                          {record.employee.department?.name}
                         </CardDescription>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge className={statusColors[record.status as keyof typeof statusColors]}>
-                      {record.status.replace('_', ' ')}
+                    <Badge
+                      className={
+                        statusColors[record.status as keyof typeof statusColors]
+                      }
+                    >
+                      {record.status.replace("_", " ")}
                     </Badge>
-                    <Badge variant="outline" className={typeColors[record.offboardingType as keyof typeof typeColors]}>
-                      {record.offboardingType.replace('_', ' ')}
+                    <Badge
+                      variant="outline"
+                      className={
+                        typeColors[
+                          record.offboardingType as keyof typeof typeColors
+                        ]
+                      }
+                    >
+                      {record.offboardingType.replace("_", " ")}
                     </Badge>
                   </div>
                 </div>
@@ -235,30 +276,40 @@ export default function OffboardingPage() {
                       {format(new Date(record.lastWorkingDate), "MMM dd, yyyy")}
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <User className="w-4 h-4" />
                       <span>Initiated By</span>
                     </div>
                     <p className="font-medium">
-                      {record.initiatedBy.firstName} {record.initiatedBy.lastName}
+                      {record.initiatedBy.firstName}{" "}
+                      {record.initiatedBy.lastName}
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span>Progress</span>
-                      <span>{record.completedTasks}/{record.totalTasks} tasks</span>
+                      <span>
+                        {record.completedTasks}/{record.totalTasks} tasks
+                      </span>
                     </div>
-                    <Progress value={record.completionPercentage} className="w-full" />
+                    <Progress
+                      value={record.completionPercentage}
+                      className="w-full"
+                    />
                   </div>
                 </div>
-                
+
                 {record.status === "COMPLETED" && record.completedAt && (
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-sm text-muted-foreground">
-                      Completed on {format(new Date(record.completedAt), "MMM dd, yyyy 'at' h:mm a")}
+                      Completed on{" "}
+                      {format(
+                        new Date(record.completedAt),
+                        "MMM dd, yyyy 'at' h:mm a",
+                      )}
                     </p>
                   </div>
                 )}

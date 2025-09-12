@@ -7,7 +7,10 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const jobRoles = await prisma.jobRole.findMany({
@@ -26,7 +29,10 @@ export async function GET() {
     return NextResponse.json({ success: true, jobRoles });
   } catch (error) {
     console.error("Error fetching job roles:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch job roles" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch job roles" },
+      { status: 500 },
+    );
   }
 }
 
@@ -35,12 +41,18 @@ export async function POST(req: Request) {
     const { name } = await req.json();
 
     if (!name || name.trim() === "") {
-      return NextResponse.json({ success: false, error: "Job role name is required." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Job role name is required." },
+        { status: 400 },
+      );
     }
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     // ✅ Check duplicate within the same company using compound unique
@@ -54,7 +66,10 @@ export async function POST(req: Request) {
     });
 
     if (existing) {
-      return NextResponse.json({ success: false, error: "A job role with this name already exists." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "A job role with this name already exists." },
+        { status: 400 },
+      );
     }
 
     // ✅ Create job role linked to company
@@ -68,6 +83,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, jobRole });
   } catch (error) {
     console.error("Error creating job role:", error);
-    return NextResponse.json({ success: false, error: "Failed to create job role" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Failed to create job role" },
+      { status: 500 },
+    );
   }
 }

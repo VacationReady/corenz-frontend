@@ -72,7 +72,7 @@ export async function GET(req: Request) {
     console.error("[CALENDAR_EVENTS_GET]", error);
     return NextResponse.json(
       { error: "Failed to fetch calendar events" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

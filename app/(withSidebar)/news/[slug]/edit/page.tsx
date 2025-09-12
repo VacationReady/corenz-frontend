@@ -1,85 +1,93 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { Input } from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
-import { Switch } from '@/components/ui/switch'
-import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
-import dynamic from 'next/dynamic'
-import AudienceSelector from '@/components/news/AudienceSelector'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Input } from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import { Switch } from "@/components/ui/switch";
+import { uploadFileToSupabase } from "@/lib/news/uploadFileToSupabase";
+import dynamic from "next/dynamic";
+import AudienceSelector from "@/components/news/AudienceSelector";
 
-const NewsContentBuilder = dynamic(() => import('@/components/news/NewsContentBuilder'), { ssr: false })
+const NewsContentBuilder = dynamic(
+  () => import("@/components/news/NewsContentBuilder"),
+  { ssr: false },
+);
 
 type ContentBlock =
-  | { type: 'heading'; level: number; text: string }
-  | { type: 'paragraph'; text: string }
-  | { type: 'bullet_list'; items: string[] }
+  | { type: "heading"; level: number; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "bullet_list"; items: string[] };
 
 interface Props {
-  params: { slug: string }
+  params: { slug: string };
 }
 
 export default function EditNewsPostPage({ params }: Props) {
-  const router = useRouter()
-  const { data: session, status } = useSession()
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
-  const [loading, setLoading] = useState(true)
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState<ContentBlock[]>([])
-  const [videoUrl, setVideoUrl] = useState('')
-  const [attachments, setAttachments] = useState<File[]>([])
-  const [existingFiles, setExistingFiles] = useState<string[]>([])
-  const [sendEmail, setSendEmail] = useState(false)
-  const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState<ContentBlock[]>([]);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [sendEmail, setSendEmail] = useState(false);
+  const [audience, setAudience] = useState<{
+    type?: "all";
+    departments?: string[];
+    roles?: string[];
+    locations?: string[];
+  }>({ type: "all" });
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (status === "loading") return;
 
-    if (!session?.user) return router.push('/news')
+    if (!session?.user) return router.push("/news");
 
     async function fetchPost() {
-      const res = await fetch(`/api/news/${params.slug}`)
-      if (!res.ok) return router.push('/news')
+      const res = await fetch(`/api/news/${params.slug}`);
+      if (!res.ok) return router.push("/news");
 
-      const post = await res.json()
+      const post = await res.json();
 
-      if (!post) return router.push('/news')
+      if (!post) return router.push("/news");
 
-      const isAdmin = session?.user?.role === 'ADMIN'
-const isAuthor = session?.user?.id === post.authorId
+      const isAdmin = session?.user?.role === "ADMIN";
+      const isAuthor = session?.user?.id === post.authorId;
 
-      if (!isAdmin && !isAuthor) return router.push('/news')
+      if (!isAdmin && !isAuthor) return router.push("/news");
 
-      setTitle(post.title)
-      setContent(post.content || [])
-      setVideoUrl(post.videoEmbedUrl || '')
-      setExistingFiles(post.attachments || [])
-      setSendEmail(post.sendEmail || false)
-      setAudience(post.audience || { type: 'all' })
-      setLoading(false)
+      setTitle(post.title);
+      setContent(post.content || []);
+      setVideoUrl(post.videoEmbedUrl || "");
+      setExistingFiles(post.attachments || []);
+      setSendEmail(post.sendEmail || false);
+      setAudience(post.audience || { type: "all" });
+      setLoading(false);
     }
 
-    fetchPost()
-  }, [params.slug, router, session, status])
+    fetchPost();
+  }, [params.slug, router, session, status]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setAttachments(Array.from(e.target.files))
+      setAttachments(Array.from(e.target.files));
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     const uploadedUrls = await Promise.all(
-      attachments.map(file => uploadFileToSupabase(file))
-    )
+      attachments.map((file) => uploadFileToSupabase(file)),
+    );
 
     const res = await fetch(`/api/news/${params.slug}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         content,
@@ -87,17 +95,18 @@ const isAuthor = session?.user?.id === post.authorId
         attachments: [...existingFiles, ...uploadedUrls],
         sendEmail,
         audience,
-      })
-    })
+      }),
+    });
 
     if (res.ok) {
-      router.push(`/news/${params.slug}`)
+      router.push(`/news/${params.slug}`);
     } else {
-      alert('Failed to update news post.')
+      alert("Failed to update news post.");
     }
-  }
+  };
 
-  if (loading || status === 'loading') return <p className="p-4">Loading post…</p>
+  if (loading || status === "loading")
+    return <p className="p-4">Loading post…</p>;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
@@ -106,7 +115,11 @@ const isAuthor = session?.user?.id === post.authorId
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-1">Title</label>
-          <Input value={title} onChange={e => setTitle(e.target.value)} required />
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
         </div>
 
         <div>
@@ -115,12 +128,19 @@ const isAuthor = session?.user?.id === post.authorId
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Video Embed URL (optional)</label>
-          <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
+          <label className="block text-sm font-medium mb-1">
+            Video Embed URL (optional)
+          </label>
+          <Input
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Add Attachments</label>
+          <label className="block text-sm font-medium mb-1">
+            Add Attachments
+          </label>
           <Input type="file" multiple onChange={handleFileChange} />
         </div>
 
@@ -129,14 +149,18 @@ const isAuthor = session?.user?.id === post.authorId
             <p>Existing files:</p>
             <ul className="list-disc pl-5">
               {existingFiles.map((url, i) => (
-                <li key={i}>{url.split('/').pop()}</li>
+                <li key={i}>{url.split("/").pop()}</li>
               ))}
             </ul>
           </div>
         )}
 
         <div>
-          <AudienceSelector value={audience} onChange={setAudience} refreshKey={0} />
+          <AudienceSelector
+            value={audience}
+            onChange={setAudience}
+            refreshKey={0}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -147,5 +171,5 @@ const isAuthor = session?.user?.id === post.authorId
         <Button type="submit">Update News</Button>
       </form>
     </div>
-  )
+  );
 }

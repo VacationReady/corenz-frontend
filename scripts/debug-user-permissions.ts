@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function debugUserPermissions() {
-  console.log('🔍 Debugging user permissions issue...');
+  console.log("🔍 Debugging user permissions issue...");
 
-  const targetUserId = 'cmfbi1xpq0008qspke5wlh20o';
+  const targetUserId = "cmfbi1xpq0008qspke5wlh20o";
 
   try {
     // Check if user exists
@@ -28,15 +28,17 @@ async function debugUserPermissions() {
     console.log(`   - Role: ${user.role}`);
     console.log(`   - Company ID: ${user.companyId}`);
     console.log(`   - Company Name: ${user.company?.name}`);
-    console.log(`   - Permission Profile: ${user.permissionProfile?.name || 'None (using default)'}`);
+    console.log(
+      `   - Permission Profile: ${user.permissionProfile?.name || "None (using default)"}`,
+    );
 
     // Check if there's an admin user to simulate the API call
     const adminUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' },
+      where: { role: "ADMIN" },
     });
 
     if (!adminUser) {
-      console.log('❌ No admin user found to test permissions');
+      console.log("❌ No admin user found to test permissions");
       return;
     }
 
@@ -54,15 +56,17 @@ async function debugUserPermissions() {
     });
 
     if (!apiUser) {
-      console.log('❌ API query returned no user - user might not belong to admin\'s company');
+      console.log(
+        "❌ API query returned no user - user might not belong to admin's company",
+      );
       console.log(`   Admin company: ${adminUser.companyId}`);
       console.log(`   Target user company: ${user.companyId}`);
 
       if (adminUser.companyId !== user.companyId) {
-        console.log('⚠️  Company mismatch! This would cause the 404 error.');
+        console.log("⚠️  Company mismatch! This would cause the 404 error.");
       }
     } else {
-      console.log('✅ API query successful - user found in admin\'s company');
+      console.log("✅ API query successful - user found in admin's company");
     }
 
     // Check permission audit table
@@ -71,15 +75,14 @@ async function debugUserPermissions() {
     });
 
     console.log(`\n📊 Permission audit records for this user: ${auditCount}`);
-
   } catch (error) {
-    console.error('❌ Error debugging user permissions:', error);
+    console.error("❌ Error debugging user permissions:", error);
   }
 }
 
 debugUserPermissions()
   .catch((e) => {
-    console.error('Error:', e);
+    console.error("Error:", e);
     process.exit(1);
   })
   .finally(async () => {

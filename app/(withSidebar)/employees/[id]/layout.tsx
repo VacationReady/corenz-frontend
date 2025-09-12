@@ -7,7 +7,10 @@ interface EmployeeLayoutProps {
   params: { id: string };
 }
 
-export default async function EmployeeLayout({ children, params }: EmployeeLayoutProps) {
+export default async function EmployeeLayout({
+  children,
+  params,
+}: EmployeeLayoutProps) {
   const employee = await prisma.employee.findUnique({
     where: { id: params.id },
     include: {
@@ -59,7 +62,8 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     const roleMatch = form.visibleToRoles.includes(userRole);
     const deptMatch =
       form.visibleToDepartments.length === 0 ||
-      (userDepartmentId && form.visibleToDepartments.includes(userDepartmentId));
+      (userDepartmentId &&
+        form.visibleToDepartments.includes(userDepartmentId));
     const jobRoleMatch =
       form.visibleToJobRoles.length === 0 ||
       (userJobRole && form.visibleToJobRoles.includes(userJobRole));
@@ -117,7 +121,10 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
 
   const menu = [
     { href: `/employees/${params.id}/overview`, label: "Overview" },
-    { href: `/employees/${params.id}/personal-information`, label: "Personal information" },
+    {
+      href: `/employees/${params.id}/personal-information`,
+      label: "Personal information",
+    },
     { href: `/employees/${params.id}/leave`, label: "Leave" },
     { href: `/employees/${params.id}/documents`, label: "Documents" },
     ...forms.map((form) => ({
@@ -127,12 +134,18 @@ export default async function EmployeeLayout({ children, params }: EmployeeLayou
     { href: `/employees/${params.id}/performance`, label: "Performance" },
     { href: `/employees/${params.id}/onboarding`, label: "Onboarding History" },
     // Show offboarding tab for archived employees or if they have an offboarding record
-    ...(employee.offboardingRecord || !employee.isActive ? [
-      { href: `/employees/${params.id}/offboarding`, label: "Offboarding" }
-    ] : []),
-    { href: `/employees/${params.id}/driver-licenses`, label: "Driver Licenses" },
+    ...(employee.offboardingRecord || !employee.isActive
+      ? [{ href: `/employees/${params.id}/offboarding`, label: "Offboarding" }]
+      : []),
+    {
+      href: `/employees/${params.id}/driver-licenses`,
+      label: "Driver Licenses",
+    },
     { href: `/employees/${params.id}/training`, label: "Training" },
-    { href: `/employees/${params.id}/employment-checks`, label: "Employment Checks" },
+    {
+      href: `/employees/${params.id}/employment-checks`,
+      label: "Employment Checks",
+    },
     { href: `/employees/${params.id}/settings`, label: "Settings" },
   ];
 

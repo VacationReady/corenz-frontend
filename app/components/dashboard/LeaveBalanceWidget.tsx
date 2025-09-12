@@ -14,7 +14,11 @@ export default async function LeaveBalanceWidget({
 }: LeaveBalanceWidgetProps) {
   if (titleOnly) {
     return (
-      <DashboardWidget title="Book Leave" icon={CalendarCheck2} className="h-full">
+      <DashboardWidget
+        title="Book Leave"
+        icon={CalendarCheck2}
+        className="h-full"
+      >
         <p className="p-4 text-center">Quick access to book your leave</p>
       </DashboardWidget>
     );
@@ -30,17 +34,19 @@ export default async function LeaveBalanceWidget({
   }
 
   // Fully serialize leaveEntitlements precisely for LeaveBalancePanel
-  const serializedEntitlements = employee.leaveEntitlements.map(entitlement => ({
-    id: entitlement.id,
-    totalDays: entitlement.totalDays,
-    usedDays: entitlement.usedDays,
-    carryoverDays: entitlement.carryoverDays ?? 0,
-    eventCategory: {
-      id: entitlement.eventCategory.id,
-      name: entitlement.eventCategory.name,
-      color: entitlement.eventCategory.color ?? null,
-    },
-  }));
+  const serializedEntitlements = employee.leaveEntitlements.map(
+    (entitlement) => ({
+      id: entitlement.id,
+      totalDays: entitlement.totalDays,
+      usedDays: entitlement.usedDays,
+      carryoverDays: entitlement.carryoverDays ?? 0,
+      eventCategory: {
+        id: entitlement.eventCategory.id,
+        name: entitlement.eventCategory.name,
+        color: entitlement.eventCategory.color ?? null,
+      },
+    }),
+  );
 
   return (
     <LeaveBalanceClientWidget

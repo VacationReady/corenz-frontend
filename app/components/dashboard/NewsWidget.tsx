@@ -90,7 +90,11 @@ export function NewsWidgetLoading() {
   );
 }
 
-export function NewsWidgetError({ message = "Failed to load news" }: { message?: string }) {
+export function NewsWidgetError({
+  message = "Failed to load news",
+}: {
+  message?: string;
+}) {
   return (
     <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">
       <p className="text-center text-muted-foreground">{message}</p>

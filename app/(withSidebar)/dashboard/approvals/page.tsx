@@ -5,7 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 interface LeaveRequest {
   id: string;
@@ -28,17 +34,24 @@ export default function ApprovalsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [canViewAll, setCanViewAll] = useState(false);
   const [scopeMy, setScopeMy] = useState(true);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [departments, setDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [departmentId, setDepartmentId] = useState<string | "all">("all");
 
-  const scopeParam = useMemo(() => (canViewAll ? (scopeMy ? "my" : "all") : undefined), [canViewAll, scopeMy]);
+  const scopeParam = useMemo(
+    () => (canViewAll ? (scopeMy ? "my" : "all") : undefined),
+    [canViewAll, scopeMy],
+  );
 
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
       try {
-        const metricsRes = await fetch("/api/dashboard/metrics", { cache: "no-store" });
+        const metricsRes = await fetch("/api/dashboard/metrics", {
+          cache: "no-store",
+        });
         if (metricsRes.ok) {
           const metrics = await metricsRes.json();
           if (isMounted) setCanViewAll(Boolean(metrics?.canViewAllApprovals));
@@ -47,7 +60,9 @@ export default function ApprovalsPage() {
         const qs = new URLSearchParams({ status: "PENDING" });
         if (scopeParam) qs.set("scope", scopeParam);
         if (departmentId !== "all") qs.set("departmentId", departmentId);
-        const res = await fetch(`/api/leave-request?${qs.toString()}`, { cache: "no-store" });
+        const res = await fetch(`/api/leave-request?${qs.toString()}`, {
+          cache: "no-store",
+        });
         const data = await res.json();
         if (data.success) {
           if (isMounted) setRequests(data.data);
@@ -73,13 +88,14 @@ export default function ApprovalsPage() {
         const res = await fetch("/api/departments", { cache: "no-store" });
         if (res.ok) {
           const items = await res.json();
-          if (isMounted) setDepartments(items.map((d: any) => ({ id: d.id, name: d.name })));
+          if (isMounted)
+            setDepartments(items.map((d: any) => ({ id: d.id, name: d.name })));
         }
       } catch {}
     };
     loadDepts();
     return () => {
-        isMounted = false;
+      isMounted = false;
     };
   }, []);
 
@@ -93,7 +109,9 @@ export default function ApprovalsPage() {
       });
 
       if (res.ok) {
-        toast.success(`Leave ${action === "approve" ? "approved" : "declined"}`);
+        toast.success(
+          `Leave ${action === "approve" ? "approved" : "declined"}`,
+        );
         setRequests((prev) => prev.filter((r) => r.id !== id));
       } else {
         const data = await res.json();
@@ -120,16 +138,30 @@ export default function ApprovalsPage() {
               <SelectContent>
                 <SelectItem value="all">All departments</SelectItem>
                 {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           {canViewAll && (
             <div className="flex items-center gap-2 text-sm">
-              <span className={!scopeMy ? "text-foreground" : "text-muted-foreground"}>All</span>
+              <span
+                className={
+                  !scopeMy ? "text-foreground" : "text-muted-foreground"
+                }
+              >
+                All
+              </span>
               <Switch checked={scopeMy} onChange={setScopeMy} />
-              <span className={scopeMy ? "text-foreground" : "text-muted-foreground"}>My</span>
+              <span
+                className={
+                  scopeMy ? "text-foreground" : "text-muted-foreground"
+                }
+              >
+                My
+              </span>
             </div>
           )}
         </div>
@@ -148,10 +180,12 @@ export default function ApprovalsPage() {
             <div key={req.id} className="border p-4 rounded shadow bg-white">
               <p>
                 <strong>{req.type}</strong> from{" "}
-                <strong>{new Date(req.startDate).toLocaleDateString()}</strong> to{" "}
-                <strong>{new Date(req.endDate).toLocaleDateString()}</strong>
+                <strong>{new Date(req.startDate).toLocaleDateString()}</strong>{" "}
+                to <strong>{new Date(req.endDate).toLocaleDateString()}</strong>
               </p>
-              <p>Employee: {req.employee.user.name} ({req.employee.user.email})</p>
+              <p>
+                Employee: {req.employee.user.name} ({req.employee.user.email})
+              </p>
               <p>Reason: {req.reason || "N/A"}</p>
               <div className="flex gap-2 mt-2">
                 <button

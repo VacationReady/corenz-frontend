@@ -22,14 +22,20 @@ export async function GET(_req: NextRequest) {
       orderBy: { startedAt: "desc" },
       include: {
         template: { select: { name: true } },
-        employee: { include: { user: { select: { firstName: true, lastName: true, email: true } } } },
+        employee: {
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+          },
+        },
         steps: true,
       },
     });
 
     const items = instances.map((inst) => {
       const stepsTotal = inst.steps.length;
-      const stepsCompleted = inst.steps.filter((s) => s.status === "completed").length;
+      const stepsCompleted = inst.steps.filter(
+        (s) => s.status === "completed",
+      ).length;
       return {
         id: inst.id,
         status: inst.status,
@@ -51,8 +57,9 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ summary, items });
   } catch (error) {
     console.error("Dashboard error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
-
-

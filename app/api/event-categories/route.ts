@@ -9,7 +9,9 @@ import { z } from "zod";
 // Zod schema for EventCategory payload
 const EventCategorySchema = z.object({
   name: z.string().min(1, "Name is required."),
-  categoryType: z.enum(["TIME_OFF", "WORKING_EVENT"], { required_error: "Category type is required." }),
+  categoryType: z.enum(["TIME_OFF", "WORKING_EVENT"], {
+    required_error: "Category type is required.",
+  }),
   requiresApproval: z.boolean().optional().default(true),
   adminOnly: z.boolean().optional().default(false),
 });
@@ -17,7 +19,10 @@ const EventCategorySchema = z.object({
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
@@ -37,16 +42,26 @@ export async function GET() {
   } catch (error: any) {
     console.error("[Event Categories GET]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch event categories." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to fetch event categories.",
+      },
+      { status: 500 },
     );
   }
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+  if (
+    !session?.user ||
+    session.user.role !== "ADMIN" ||
+    !session.user.companyId
+  ) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -56,7 +71,7 @@ export async function POST(req: Request) {
     if (!parse.success) {
       return NextResponse.json(
         { success: false, error: parse.error.flatten().fieldErrors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,8 +83,11 @@ export async function POST(req: Request) {
 
     if (existing) {
       return NextResponse.json(
-        { success: false, error: "Event category with this name already exists." },
-        { status: 400 }
+        {
+          success: false,
+          error: "Event category with this name already exists.",
+        },
+        { status: 400 },
       );
     }
 
@@ -87,8 +105,11 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("[Event Categories POST]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to create event category." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to create event category.",
+      },
+      { status: 500 },
     );
   }
 }

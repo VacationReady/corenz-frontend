@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { PageShell } from '@/components/ui/PageShell';
-import { DynamicFormRenderer } from '@/components/forms/DynamicFormRenderer';
-import { EnhancedFormRenderer } from '@/components/forms/EnhancedFormRenderer';
-import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
-import Button from '@/components/ui/Button';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { PageShell } from "@/components/ui/PageShell";
+import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
+import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
+import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+import Button from "@/components/ui/Button";
 
 interface Form {
   id: string;
   name: string;
   slug: string;
   description?: string;
-  formType: 'SUBMISSION' | 'DATA_SCREEN';
+  formType: "SUBMISSION" | "DATA_SCREEN";
   schema: any[];
 }
 
@@ -32,19 +32,21 @@ export default function EmployeeFormPage() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const res = await fetch(`/api/forms/by-slug/${slug}?employeeId=${employeeId}`);
+        const res = await fetch(
+          `/api/forms/by-slug/${slug}?employeeId=${employeeId}`,
+        );
 
         if (res.ok) {
           const formData = await res.json();
           setForm(formData);
         } else if (res.status === 404) {
-          setError('Form not found');
+          setError("Form not found");
         } else {
-          setError('Failed to load form');
+          setError("Failed to load form");
         }
       } catch (error) {
-        console.error('Error fetching form:', error);
-        setError('Failed to load form');
+        console.error("Error fetching form:", error);
+        setError("Failed to load form");
       } finally {
         setLoading(false);
       }
@@ -54,7 +56,7 @@ export default function EmployeeFormPage() {
   }, [slug, employeeId]);
 
   const handleFormSubmit = (data: any) => {
-    toast.success('Form submitted successfully');
+    toast.success("Form submitted successfully");
     router.push(`/employees/${employeeId}/overview`);
   };
 
@@ -72,7 +74,7 @@ export default function EmployeeFormPage() {
     return (
       <PageShell title="Error" description="Form not found">
         <div className="text-center py-16">
-          <p className="text-gray-500 mb-4">{error || 'Form not found'}</p>
+          <p className="text-gray-500 mb-4">{error || "Form not found"}</p>
           <Button
             onClick={() => router.push(`/employees/${employeeId}/overview`)}
             variant="outline"
@@ -86,7 +88,10 @@ export default function EmployeeFormPage() {
   }
 
   return (
-    <PageShell title={form.name} description={form.description || 'Complete this form'}>
+    <PageShell
+      title={form.name}
+      description={form.description || "Complete this form"}
+    >
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <Button
@@ -99,7 +104,7 @@ export default function EmployeeFormPage() {
           </Button>
         </div>
 
-        {form.formType === 'DATA_SCREEN' ? (
+        {form.formType === "DATA_SCREEN" ? (
           <EnhancedFormRenderer
             formId={form.id}
             employeeId={employeeId}

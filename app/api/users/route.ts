@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,33 +13,35 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const users = await prisma.user.findMany({
       where: {
-        isActivated: true
+        isActivated: true,
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         email: true,
-        role: true
+        role: true,
       },
-      orderBy: [
-        { firstName: 'asc' },
-        { lastName: 'asc' }
-      ]
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     });
 
     return NextResponse.json(users);
-
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ 
-      error: "Failed to fetch users" 
-    }, { status: 500 });
+    console.error("Error fetching users:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch users",
+      },
+      { status: 500 },
+    );
   }
 }

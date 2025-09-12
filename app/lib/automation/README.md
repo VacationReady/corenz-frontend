@@ -16,18 +16,21 @@ The automation system consists of several key components:
 ## 🚀 Features
 
 ### Trigger Types
+
 - **Document Expiring** - Triggered when employment documents approach expiry
 - **Form Submitted** - Triggered when specific forms are submitted
 - **Onboarding Step Completed** - Triggered when onboarding milestones are reached
 - **Employee Created** - Triggered when new employees are added
 
 ### Action Types
+
 - **Create Task** - Assign tasks to employees, managers, or HR team
 - **Send Notification** - Multi-channel notifications (email, Slack, Teams)
 - **Start Onboarding** - Automatically assign onboarding templates
 - **Update Field** - Modify employee record fields
 
 ### Condition System
+
 - **Role-based** - Filter by employee roles (Admin, Manager, Employee)
 - **Department-based** - Filter by organizational departments
 - **Job Role-based** - Filter by specific job roles
@@ -38,18 +41,18 @@ The automation system consists of several key components:
 ### Basic Setup
 
 ```typescript
-import { 
-  startAutomationSystem, 
+import {
+  startAutomationSystem,
   getAutomationWorker,
-  getAutomationScheduler 
-} from '@/lib/automation'
+  getAutomationScheduler,
+} from "@/lib/automation";
 
 // Start the automation system
-await startAutomationSystem()
+await startAutomationSystem();
 
 // Get system status
-const status = await getSystemStatus()
-console.log('System healthy:', status.worker.isHealthy)
+const status = await getSystemStatus();
+console.log("System healthy:", status.worker.isHealthy);
 ```
 
 ### Creating Automation Rules
@@ -58,67 +61,67 @@ Rules are created through the UI at `/settings/automation-rules` or via API:
 
 ```typescript
 const rule = {
-  name: 'Document Expiry Alert',
-  description: 'Alert employees about expiring documents',
-  triggerType: 'DOCUMENT_EXPIRING',
+  name: "Document Expiry Alert",
+  description: "Alert employees about expiring documents",
+  triggerType: "DOCUMENT_EXPIRING",
   triggerConfig: {
     daysBefore: 30,
-    documentTypes: ['Passport', 'Visa']
+    documentTypes: ["Passport", "Visa"],
   },
   conditions: [
     {
-      type: 'role',
-      config: { operator: 'in', value: ['EMPLOYEE', 'MANAGER'] }
-    }
+      type: "role",
+      config: { operator: "in", value: ["EMPLOYEE", "MANAGER"] },
+    },
   ],
   actions: [
     {
-      type: 'send_notification',
+      type: "send_notification",
       config: {
-        channels: ['email'],
-        recipientType: 'employee',
-        subject: 'Document Expiry Alert',
-        message: 'Your document expires in 30 days'
-      }
+        channels: ["email"],
+        recipientType: "employee",
+        subject: "Document Expiry Alert",
+        message: "Your document expires in 30 days",
+      },
     },
     {
-      type: 'create_task',
+      type: "create_task",
       config: {
-        title: 'Renew Document',
-        assigneeType: 'manager',
-        dueDays: 7
-      }
-    }
-  ]
-}
+        title: "Renew Document",
+        assigneeType: "manager",
+        dueDays: 7,
+      },
+    },
+  ],
+};
 ```
 
 ### Manual Triggering
 
 ```typescript
 // Trigger a specific rule
-const response = await fetch('/api/automation/trigger', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/automation/trigger", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    ruleId: 'rule-123',
-    triggerData: { employeeId: 'emp-456' }
-  })
-})
+    ruleId: "rule-123",
+    triggerData: { employeeId: "emp-456" },
+  }),
+});
 
 // Handle events
-await fetch('/api/automation/trigger', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+await fetch("/api/automation/trigger", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    eventType: 'form.submitted',
+    eventType: "form.submitted",
     eventData: {
-      formId: 'form-123',
-      employeeId: 'emp-456',
-      submissionId: 'sub-789'
-    }
-  })
-})
+      formId: "form-123",
+      employeeId: "emp-456",
+      submissionId: "sub-789",
+    },
+  }),
+});
 ```
 
 ## 🔧 Configuration
@@ -127,13 +130,13 @@ await fetch('/api/automation/trigger', {
 
 ```typescript
 const workerConfig = {
-  maxConcurrentJobs: 5,        // Max parallel job processing
-  pollIntervalMs: 5000,        // Queue polling interval
-  jobTimeoutMs: 300000,        // 5 minute job timeout
-  enableMetrics: true,         // Collect performance metrics
-  enableCircuitBreaker: true,  // Enable circuit breaker pattern
-  circuitBreakerThreshold: 5,  // Failures before opening circuit
-}
+  maxConcurrentJobs: 5, // Max parallel job processing
+  pollIntervalMs: 5000, // Queue polling interval
+  jobTimeoutMs: 300000, // 5 minute job timeout
+  enableMetrics: true, // Collect performance metrics
+  enableCircuitBreaker: true, // Enable circuit breaker pattern
+  circuitBreakerThreshold: 5, // Failures before opening circuit
+};
 ```
 
 ### Rate Limiting
@@ -144,7 +147,7 @@ const rateLimitConfig = {
   maxJobsPerMinute: 60,
   maxJobsPerHour: 1000,
   burstLimit: 10,
-}
+};
 ```
 
 ## 📊 Monitoring
@@ -153,38 +156,38 @@ const rateLimitConfig = {
 
 ```typescript
 // Get comprehensive system status
-const status = await fetch('/api/automation/status?type=detailed')
-const data = await status.json()
+const status = await fetch("/api/automation/status?type=detailed");
+const data = await status.json();
 
-console.log('Worker Status:', data.worker)
-console.log('Queue Stats:', data.queue)
-console.log('Scheduler Status:', data.scheduler)
+console.log("Worker Status:", data.worker);
+console.log("Queue Stats:", data.queue);
+console.log("Scheduler Status:", data.scheduler);
 ```
 
 ### Queue Statistics
 
 ```typescript
 // Get queue statistics
-const queueStats = await fetch('/api/automation/status?type=queue')
-const stats = await queueStats.json()
+const queueStats = await fetch("/api/automation/status?type=queue");
+const stats = await queueStats.json();
 
-console.log('Pending Jobs:', stats.queue.pending)
-console.log('Running Jobs:', stats.queue.running)
-console.log('Completed Jobs:', stats.queue.completed)
-console.log('Failed Jobs:', stats.queue.failed)
+console.log("Pending Jobs:", stats.queue.pending);
+console.log("Running Jobs:", stats.queue.running);
+console.log("Completed Jobs:", stats.queue.completed);
+console.log("Failed Jobs:", stats.queue.failed);
 ```
 
 ### Health Checks
 
 ```typescript
 // Health check for monitoring systems
-const health = await fetch('/api/automation/status?type=health')
-const healthData = await health.json()
+const health = await fetch("/api/automation/status?type=health");
+const healthData = await health.json();
 
-if (healthData.status === 'healthy') {
-  console.log('System is healthy')
+if (healthData.status === "healthy") {
+  console.log("System is healthy");
 } else {
-  console.error('System issues detected:', healthData.details)
+  console.error("System issues detected:", healthData.details);
 }
 ```
 
@@ -201,19 +204,24 @@ if (healthData.status === 'healthy') {
 ## 🛠️ Error Handling
 
 ### Circuit Breaker Pattern
+
 The system implements a circuit breaker to prevent cascade failures:
+
 - Opens after 5 consecutive failures
 - Resets after 60 seconds
 - Provides system stability under load
 
 ### Retry Logic
+
 Failed jobs are automatically retried:
+
 - Maximum 3 attempts per job
 - Exponential backoff: 2^attempt minutes
 - Maximum delay: 1 hour
 - Jitter added to prevent thundering herd
 
 ### Error Categories
+
 - **Validation Errors** - Invalid rule configuration
 - **Resource Errors** - Missing employees, forms, templates
 - **Network Errors** - External API failures
@@ -222,6 +230,7 @@ Failed jobs are automatically retried:
 ## 📈 Performance
 
 ### Metrics Collected
+
 - Jobs processed per minute/hour
 - Success/failure rates
 - Average execution time
@@ -229,6 +238,7 @@ Failed jobs are automatically retried:
 - Circuit breaker events
 
 ### Optimization Features
+
 - Database-based queue for serverless compatibility
 - Efficient job prioritization
 - Rate limiting to prevent system overload
@@ -237,11 +247,13 @@ Failed jobs are automatically retried:
 ## 🔐 Security
 
 ### Multi-tenancy
+
 - All operations scoped to company ID
 - Strict data isolation between companies
 - Permission-based access control
 
 ### Audit Trail
+
 - Complete execution logging
 - Actor tracking for all operations
 - Change history for all configurations
@@ -252,23 +264,27 @@ Failed jobs are automatically retried:
 The system includes comprehensive test coverage:
 
 ### Unit Tests
+
 - Queue operations
 - Rule evaluation logic
 - Action execution
 - API endpoints
 
 ### Integration Tests
+
 - End-to-end workflows
 - Multi-component interactions
 - Error handling scenarios
 - Audit logging verification
 
 ### Component Tests
+
 - UI component behavior
 - Form validation
 - API integration patterns
 
 Run tests with:
+
 ```bash
 npm test tests/automation/**/*.test.ts
 ```
@@ -278,6 +294,7 @@ npm test tests/automation/**/*.test.ts
 ### Serverless Deployment (Vercel)
 
 1. **Environment Variables**
+
 ```bash
 DATABASE_URL=postgresql://...
 NEXTAUTH_SECRET=your-secret
@@ -285,6 +302,7 @@ CRON_SECRET=your-cron-secret
 ```
 
 2. **Cron Jobs** (`vercel.json`)
+
 ```json
 {
   "crons": [
@@ -297,6 +315,7 @@ CRON_SECRET=your-cron-secret
 ```
 
 3. **Database Setup**
+
 ```bash
 npx prisma migrate deploy
 npx prisma generate
@@ -307,10 +326,10 @@ npx prisma generate
 For traditional server deployments, start the worker process:
 
 ```typescript
-import { startAutomationSystem } from '@/lib/automation'
+import { startAutomationSystem } from "@/lib/automation";
 
 // Start worker and scheduler
-await startAutomationSystem()
+await startAutomationSystem();
 
 // Graceful shutdown is handled automatically
 ```
@@ -318,28 +337,30 @@ await startAutomationSystem()
 ## 🔧 Maintenance
 
 ### Cleanup Old Jobs
+
 ```typescript
 // Clean up jobs older than 30 days
-await fetch('/api/automation/status', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+await fetch("/api/automation/status", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    action: 'cleanup',
-    olderThanDays: 30
-  })
-})
+    action: "cleanup",
+    olderThanDays: 30,
+  }),
+});
 ```
 
 ### System Maintenance
+
 ```typescript
 // Perform comprehensive maintenance
-await fetch('/api/automation/status', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+await fetch("/api/automation/status", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    action: 'maintenance'
-  })
-})
+    action: "maintenance",
+  }),
+});
 ```
 
 ## 📝 Troubleshooting
@@ -362,7 +383,9 @@ await fetch('/api/automation/status', {
    - Review concurrent job limits
 
 ### Debug Mode
+
 Enable detailed logging in development:
+
 ```bash
 NODE_ENV=development npm start
 ```
@@ -387,6 +410,7 @@ When extending the automation system:
    - Update validation logic
 
 Remember to:
+
 - Add comprehensive tests
 - Update documentation
 - Follow existing patterns
@@ -394,4 +418,4 @@ Remember to:
 
 ## 📄 License
 
-This automation system is part of the CoreNZ HR platform and follows the same licensing terms.
+This automation system is part of the PeopleCore HR platform and follows the same licensing terms.

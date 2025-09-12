@@ -11,7 +11,7 @@ import { DayType } from "@prisma/client";
  */
 export async function calculateLeaveDeduction(
   employeeId: string,
-  leaveDate: Date
+  leaveDate: Date,
 ): Promise<number> {
   const assignment = await prisma.employeeWorkingPatternAssignment.findFirst({
     where: {
@@ -34,7 +34,7 @@ export async function calculateLeaveDeduction(
 
   if (!assignment || !assignment.workingPattern) {
     console.log(
-      `[Deduction] No pattern assigned for ${leaveDate.toISOString()}. Returning 1.`
+      `[Deduction] No pattern assigned for ${leaveDate.toISOString()}. Returning 1.`,
     );
     return 1;
   }
@@ -42,13 +42,15 @@ export async function calculateLeaveDeduction(
   const workingPattern = assignment.workingPattern;
   const firstEffectiveDate = assignment.effectiveDate;
   const diffInDays = Math.floor(
-    (leaveDate.getTime() - firstEffectiveDate.getTime()) / (1000 * 60 * 60 * 24)
+    (leaveDate.getTime() - firstEffectiveDate.getTime()) /
+      (1000 * 60 * 60 * 24),
   );
 
   // use the correct relation field name
   const weeks = workingPattern.WorkingPatternWeek;
   const weekCount = weeks.length;
-  const weekIndex = diffInDays >= 0 ? Math.floor(diffInDays / 7) % weekCount : 0;
+  const weekIndex =
+    diffInDays >= 0 ? Math.floor(diffInDays / 7) % weekCount : 0;
 
   // sort by weekNumber
   const sortedWeeks = weeks.sort((a, b) => a.weekNumber - b.weekNumber);
@@ -62,14 +64,18 @@ export async function calculateLeaveDeduction(
   const dayEntry = days.find((day) => day.day === dayOfWeek);
 
   console.log(`-----------------------------`);
-  console.log(`[Deduction] Leave Date: ${leaveDate.toISOString()} (${dayOfWeek})`);
   console.log(
-    `[Deduction] Effective From: ${firstEffectiveDate.toISOString()}`
+    `[Deduction] Leave Date: ${leaveDate.toISOString()} (${dayOfWeek})`,
+  );
+  console.log(
+    `[Deduction] Effective From: ${firstEffectiveDate.toISOString()}`,
   );
   console.log(`[Deduction] Days Since Effective: ${diffInDays}`);
   console.log(`[Deduction] Week Count: ${weekCount}`);
   console.log(`[Deduction] Week Index Used: ${weekIndex}`);
-  console.log(`[Deduction] Applicable Week Number: ${applicableWeek?.weekNumber}`);
+  console.log(
+    `[Deduction] Applicable Week Number: ${applicableWeek?.weekNumber}`,
+  );
   console.log(`[Deduction] Applicable Week Days:`, days);
   console.log(`[Deduction] Found Day Entry:`, dayEntry);
 

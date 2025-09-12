@@ -22,7 +22,12 @@ export default async function EmployeeDashboard() {
   return (
     <PageShell
       title="Employee Dashboard"
-      breadcrumbs={{ items: [{ label: "Dashboard", href: "/dashboard" }, { label: "Employee" }] }}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Employee" },
+        ],
+      }}
     >
       <DashboardGrid>
         {employeeId && <LeaveBalanceWidget employeeId={employeeId} />}

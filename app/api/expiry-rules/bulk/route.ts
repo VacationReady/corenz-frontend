@@ -11,9 +11,13 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const { ruleIds, daysBefore, notifyAdmin, notifyManager, notifyEmployee } = body || {};
+    const { ruleIds, daysBefore, notifyAdmin, notifyManager, notifyEmployee } =
+      body || {};
     if (!Array.isArray(ruleIds) || ruleIds.length === 0) {
-      return NextResponse.json({ error: "ruleIds is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "ruleIds is required" },
+        { status: 400 },
+      );
     }
 
     const updated = await prisma.expiryRule.updateMany({
@@ -29,8 +33,9 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true, count: updated.count });
   } catch (error) {
     console.error("[expiry-rules bulk]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
-
-

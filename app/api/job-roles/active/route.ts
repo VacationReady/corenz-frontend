@@ -21,14 +21,17 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        level: true,      // ✅ Useful for showing seniority (L1, L2, etc.)
-        payGrade: true,   // ✅ Compensation context if used in future
+        level: true, // ✅ Useful for showing seniority (L1, L2, etc.)
+        payGrade: true, // ✅ Compensation context if used in future
       },
     });
 
     return NextResponse.json(jobRoles);
   } catch (error) {
     console.error("Error fetching active job roles:", error);
-    return NextResponse.json({ error: "Failed to fetch active job roles" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch active job roles" },
+      { status: 500 },
+    );
   }
 }

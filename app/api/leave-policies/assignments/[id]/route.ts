@@ -6,15 +6,12 @@ import { prisma } from "@/lib/prisma";
 // PUT: Update a leave policy assignment
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -25,21 +22,21 @@ export async function PUT(
       employeeIds = [],
       priority = 0,
       effectiveFrom,
-      effectiveTo
+      effectiveTo,
     } = body;
 
     // Check if assignment exists and belongs to company
     const existingAssignment = await prisma.leavePolicyAssignment.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!existingAssignment) {
       return NextResponse.json(
         { error: "Leave policy assignment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -47,16 +44,20 @@ export async function PUT(
     if (!effectiveFrom) {
       return NextResponse.json(
         { error: "Missing required field: effectiveFrom" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // At least one assignment target must be specified
-    if (departmentIds.length === 0 && jobRoleIds.length === 0 && 
-        locationIds.length === 0 && employeeIds.length === 0) {
+    if (
+      departmentIds.length === 0 &&
+      jobRoleIds.length === 0 &&
+      locationIds.length === 0 &&
+      employeeIds.length === 0
+    ) {
       return NextResponse.json(
         { error: "At least one assignment target must be specified" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,13 +66,13 @@ export async function PUT(
       const validDepartments = await prisma.department.count({
         where: {
           id: { in: departmentIds },
-          companyId: session.user.companyId
-        }
+          companyId: session.user.companyId,
+        },
       });
       if (validDepartments !== departmentIds.length) {
         return NextResponse.json(
           { error: "One or more invalid department IDs" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -81,13 +82,13 @@ export async function PUT(
       const validJobRoles = await prisma.jobRole.count({
         where: {
           id: { in: jobRoleIds },
-          companyId: session.user.companyId
-        }
+          companyId: session.user.companyId,
+        },
       });
       if (validJobRoles !== jobRoleIds.length) {
         return NextResponse.json(
           { error: "One or more invalid job role IDs" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -97,13 +98,13 @@ export async function PUT(
       const validEmployees = await prisma.employee.count({
         where: {
           id: { in: employeeIds },
-          companyId: session.user.companyId
-        }
+          companyId: session.user.companyId,
+        },
       });
       if (validEmployees !== employeeIds.length) {
         return NextResponse.json(
           { error: "One or more invalid employee IDs" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -117,17 +118,17 @@ export async function PUT(
         employeeIds,
         priority,
         effectiveFrom: new Date(effectiveFrom),
-        effectiveTo: effectiveTo ? new Date(effectiveTo) : null
+        effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
       },
       include: {
         leavePolicy: {
           include: {
             eventCategory: {
-              select: { id: true, name: true, color: true }
-            }
-          }
-        }
-      }
+              select: { id: true, name: true, color: true },
+            },
+          },
+        },
+      },
     });
 
     return NextResponse.json(updatedAssignment);
@@ -135,7 +136,7 @@ export async function PUT(
     console.error("Error updating leave policy assignment:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -143,44 +144,41 @@ export async function PUT(
 // DELETE: Delete a leave policy assignment
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if assignment exists and belongs to company
     const existingAssignment = await prisma.leavePolicyAssignment.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!existingAssignment) {
       return NextResponse.json(
         { error: "Leave policy assignment not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     await prisma.leavePolicyAssignment.delete({
-      where: { id: params.id }
+      where: { id: params.id },
     });
 
     return NextResponse.json({
-      message: "Leave policy assignment deleted successfully"
+      message: "Leave policy assignment deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting leave policy assignment:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

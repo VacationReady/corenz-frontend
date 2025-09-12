@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, Save } from 'lucide-react';
-import { FormField, TableColumn } from '@/api/forms/[id]/types';
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Loader2, Plus, Trash2, Save } from "lucide-react";
+import { FormField, TableColumn } from "@/api/forms/[id]/types";
 
 interface EnhancedFormRendererProps {
   formId: string;
@@ -19,14 +19,18 @@ interface FormDataShape {
   form: {
     id: string;
     name: string;
-    formType: 'SUBMISSION' | 'DATA_SCREEN';
+    formType: "SUBMISSION" | "DATA_SCREEN";
     schema: FormField[];
   };
   data: Record<string, any>;
   lastUpdated: string | null;
 }
 
-export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: EnhancedFormRendererProps) {
+export function EnhancedFormRenderer({
+  formId,
+  employeeId,
+  onDataChange,
+}: EnhancedFormRendererProps) {
   const [formData, setFormData] = useState<FormDataShape | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,14 +41,20 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
   useEffect(() => {
     const loadFormData = async () => {
       try {
-        const res = await fetch(`/api/forms/${formId}/data?employeeId=${employeeId}`);
+        const res = await fetch(
+          `/api/forms/${formId}/data?employeeId=${employeeId}`,
+        );
         if (res.ok) {
           const data = await res.json();
           setFormData(data);
-          if (data.data) Object.keys(data.data).forEach(k => setValue(k, data.data[k]));
-        } else setError('Failed to load form data');
-      } catch { setError('Failed to load form data'); }
-      finally { setLoading(false); }
+          if (data.data)
+            Object.keys(data.data).forEach((k) => setValue(k, data.data[k]));
+        } else setError("Failed to load form data");
+      } catch {
+        setError("Failed to load form data");
+      } finally {
+        setLoading(false);
+      }
     };
     loadFormData();
   }, [formId, employeeId, setValue]);
@@ -53,38 +63,50 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     setSaving(true);
     try {
       const res = await fetch(`/api/forms/${formId}/data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId, data }),
       });
       if (res.ok) {
-        toast.success('Data saved successfully');
+        toast.success("Data saved successfully");
         onDataChange?.(data);
-        const r = await fetch(`/api/forms/${formId}/data?employeeId=${employeeId}`);
+        const r = await fetch(
+          `/api/forms/${formId}/data?employeeId=${employeeId}`,
+        );
         if (r.ok) setFormData(await r.json());
-      } else toast.error('Failed to save data');
-    } catch { toast.error('Failed to save data'); }
-    finally { setSaving(false); }
+      } else toast.error("Failed to save data");
+    } catch {
+      toast.error("Failed to save data");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const submitForm = async (data: Record<string, any>) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/forms/${formId}/submissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId, data }),
       });
-      if (res.ok) { toast.success('Form submitted successfully'); reset(); onDataChange?.(data); }
-      else toast.error('Failed to submit form');
-    } catch { toast.error('Failed to submit form'); }
-    finally { setSaving(false); }
+      if (res.ok) {
+        toast.success("Form submitted successfully");
+        reset();
+        onDataChange?.(data);
+      } else toast.error("Failed to submit form");
+    } catch {
+      toast.error("Failed to submit form");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toFile = (v: unknown): File | undefined => {
     if (!v) return undefined;
     if (v instanceof File) return v;
-    if (typeof FileList !== 'undefined' && v instanceof FileList) return v.length ? v[0] : undefined;
+    if (typeof FileList !== "undefined" && v instanceof FileList)
+      return v.length ? v[0] : undefined;
     // fallback for RHF quirks
     const anyV = v as any;
     if (anyV?.item) return anyV.item(0) ?? undefined;
@@ -95,25 +117,39 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
     const data = { ...rawData };
 
     for (const field of formData!.form.schema) {
-      if (field.type === 'file') {
+      if (field.type === "file") {
         const file = toFile(rawData[field.id]);
         if (file) {
           const fd = new FormData();
-          fd.append('file', file);
-          fd.append('name', file.name);
-          fd.append('employeeId', String(employeeId));
-          fd.append('category', String(formData!.form.name || ''));
-          fd.append('canViewAdmin', 'true');
-          fd.append('canViewManager', 'true');
-          fd.append('canViewEmployee', 'true');
-          fd.append('requiresAck', 'false');
+          fd.append("file", file);
+          fd.append("name", file.name);
+          fd.append("employeeId", String(employeeId));
+          fd.append("category", String(formData!.form.name || ""));
+          fd.append("canViewAdmin", "true");
+          fd.append("canViewManager", "true");
+          fd.append("canViewEmployee", "true");
+          fd.append("requiresAck", "false");
           try {
-            const uploadRes = await fetch('/api/documents/upload-employee', { method: 'POST', body: fd });
-            if (!uploadRes.ok) { toast.error(`Failed to upload file for ${field.label}: ${await uploadRes.text()}`); return; }
+            const uploadRes = await fetch("/api/documents/upload-employee", {
+              method: "POST",
+              body: fd,
+            });
+            if (!uploadRes.ok) {
+              toast.error(
+                `Failed to upload file for ${field.label}: ${await uploadRes.text()}`,
+              );
+              return;
+            }
             const uploadResult = await uploadRes.json();
-            if (!uploadResult?.document) { toast.error(`Failed to upload file for ${field.label}`); return; }
+            if (!uploadResult?.document) {
+              toast.error(`Failed to upload file for ${field.label}`);
+              return;
+            }
             data[field.id] = uploadResult.document;
-          } catch { toast.error(`Upload error: ${field.label}`); return; }
+          } catch {
+            toast.error(`Upload error: ${field.label}`);
+            return;
+          }
         } else if (rawData[field.id]?.url) {
           // keep existing document if no new file selected
           data[field.id] = rawData[field.id];
@@ -123,7 +159,7 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
       }
     }
 
-    if (formData?.form.formType === 'DATA_SCREEN') saveData(data);
+    if (formData?.form.formType === "DATA_SCREEN") saveData(data);
     else submitForm(data);
   };
 
@@ -139,7 +175,7 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
   if (error || !formData) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500">{error || 'Form not found'}</p>
+        <p className="text-red-500">{error || "Form not found"}</p>
       </div>
     );
   }
@@ -149,10 +185,18 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
       <div className="border-b pb-4">
         <h2 className="text-xl font-semibold">{formData.form.name}</h2>
         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-          <span className={`px-2 py-1 rounded text-xs font-medium ${formData.form.formType === 'DATA_SCREEN' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-            {formData.form.formType === 'DATA_SCREEN' ? 'Data Screen' : 'Submission Form'}
+          <span
+            className={`px-2 py-1 rounded text-xs font-medium ${formData.form.formType === "DATA_SCREEN" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
+          >
+            {formData.form.formType === "DATA_SCREEN"
+              ? "Data Screen"
+              : "Submission Form"}
           </span>
-          {formData.lastUpdated && (<span>Last updated: {new Date(formData.lastUpdated).toLocaleString()}</span>)}
+          {formData.lastUpdated && (
+            <span>
+              Last updated: {new Date(formData.lastUpdated).toLocaleString()}
+            </span>
+          )}
         </div>
       </div>
 
@@ -168,9 +212,21 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
         ))}
 
         <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={saving} className="flex items-center gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : (formData.form.formType === 'DATA_SCREEN' ? <Save className="h-4 w-4" /> : null)}
-            {saving ? 'Saving...' : (formData.form.formType === 'DATA_SCREEN' ? 'Save Data' : 'Submit Form')}
+          <Button
+            type="submit"
+            disabled={saving}
+            className="flex items-center gap-2"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : formData.form.formType === "DATA_SCREEN" ? (
+              <Save className="h-4 w-4" />
+            ) : null}
+            {saving
+              ? "Saving..."
+              : formData.form.formType === "DATA_SCREEN"
+                ? "Save Data"
+                : "Submit Form"}
           </Button>
         </div>
       </form>
@@ -178,24 +234,33 @@ export function EnhancedFormRenderer({ formId, employeeId, onDataChange }: Enhan
   );
 }
 
-export function renderField(field: FormField, register: any, watch: any, setValue: any) {
-  const baseInput = 'border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
+export function renderField(
+  field: FormField,
+  register: any,
+  watch: any,
+  setValue: any,
+) {
+  const baseInput =
+    "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
 
   switch (field.type) {
-    case 'file':
+    case "file":
       const existing = watch(field.id);
       return (
         <div className="space-y-2">
           {existing?.url && (
             <div className="space-y-2">
-              <iframe src={existing.url} className="w-full h-64 rounded border" />
+              <iframe
+                src={existing.url}
+                className="w-full h-64 rounded border"
+              />
               <a
                 href={existing.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 underline block"
               >
-                {existing.name || 'View document'}
+                {existing.name || "View document"}
               </a>
             </div>
           )}
@@ -207,37 +272,64 @@ export function renderField(field: FormField, register: any, watch: any, setValu
         </div>
       );
 
-    case 'text':
-    case 'email':
-    case 'phone':
-    case 'date':
-      return <Input type={field.type} placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
+    case "text":
+    case "email":
+    case "phone":
+    case "date":
+      return (
+        <Input
+          type={field.type}
+          placeholder={field.placeholder}
+          {...register(field.id, { required: field.required })}
+        />
+      );
 
-    case 'number':
-      return <Input type="number" placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
+    case "number":
+      return (
+        <Input
+          type="number"
+          placeholder={field.placeholder}
+          {...register(field.id, { required: field.required })}
+        />
+      );
 
-    case 'textarea':
-      return <Textarea placeholder={field.placeholder} className="min-h-[80px]" {...register(field.id, { required: field.required })} />;
+    case "textarea":
+      return (
+        <Textarea
+          placeholder={field.placeholder}
+          className="min-h-[80px]"
+          {...register(field.id, { required: field.required })}
+        />
+      );
 
     // dropdown/select
-    case 'dropdown':
-    case 'select':
+    case "dropdown":
+    case "select":
       return (
-        <select className={baseInput} {...register(field.id, { required: field.required })}>
-          <option value="">{field.placeholder || 'Select an option'}</option>
+        <select
+          className={baseInput}
+          {...register(field.id, { required: field.required })}
+        >
+          <option value="">{field.placeholder || "Select an option"}</option>
           {field.options?.map((opt, i) => (
-            <option key={i} value={opt}>{opt}</option>
+            <option key={i} value={opt}>
+              {opt}
+            </option>
           ))}
         </select>
       );
 
     // radio group
-    case 'radio':
+    case "radio":
       return (
         <div className="space-y-1">
           {field.options?.map((opt, i) => (
             <label key={i} className="flex items-center gap-2 text-sm">
-              <input type="radio" value={opt} {...register(field.id, { required: field.required })} />
+              <input
+                type="radio"
+                value={opt}
+                {...register(field.id, { required: field.required })}
+              />
               <span>{opt}</span>
             </label>
           ))}
@@ -245,13 +337,17 @@ export function renderField(field: FormField, register: any, watch: any, setValu
       );
 
     // checkbox: multi or single
-    case 'checkbox':
+    case "checkbox":
       if (field.options?.length) {
         return (
           <div className="space-y-1">
             {field.options.map((opt, i) => (
               <label key={i} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" value={opt} {...register(field.id, { required: field.required })} />
+                <input
+                  type="checkbox"
+                  value={opt}
+                  {...register(field.id, { required: field.required })}
+                />
                 <span>{opt}</span>
               </label>
             ))}
@@ -262,44 +358,91 @@ export function renderField(field: FormField, register: any, watch: any, setValu
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            onChange={(e) => setValue(field.id, e.target.checked, { shouldValidate: true })}
+            onChange={(e) =>
+              setValue(field.id, e.target.checked, { shouldValidate: true })
+            }
             defaultChecked={!!watch(field.id)}
           />
           <span>{field.placeholder || field.label}</span>
         </label>
       );
 
-    case 'list':
-      return <ListField field={field} register={register} watch={watch} setValue={setValue} />;
+    case "list":
+      return (
+        <ListField
+          field={field}
+          register={register}
+          watch={watch}
+          setValue={setValue}
+        />
+      );
 
-    case 'table':
-      return <TableField field={field} register={register} watch={watch} setValue={setValue} />;
+    case "table":
+      return (
+        <TableField
+          field={field}
+          register={register}
+          watch={watch}
+          setValue={setValue}
+        />
+      );
 
     default:
-      return <Input placeholder={field.placeholder} {...register(field.id, { required: field.required })} />;
+      return (
+        <Input
+          placeholder={field.placeholder}
+          {...register(field.id, { required: field.required })}
+        />
+      );
   }
 }
 
 function ListField({ field, register, watch, setValue }: any) {
   const currentValue = watch(field.id) || [];
 
-  const addEntry = () => { setValue(field.id, [...currentValue, '']); };
-  const removeEntry = (index: number) => { setValue(field.id, currentValue.filter((_: any, i: number) => i !== index)); };
+  const addEntry = () => {
+    setValue(field.id, [...currentValue, ""]);
+  };
+  const removeEntry = (index: number) => {
+    setValue(
+      field.id,
+      currentValue.filter((_: any, i: number) => i !== index),
+    );
+  };
   const updateEntry = (index: number, value: string) => {
-    const newValue = [...currentValue]; newValue[index] = value; setValue(field.id, newValue);
+    const newValue = [...currentValue];
+    newValue[index] = value;
+    setValue(field.id, newValue);
   };
 
   return (
     <div className="space-y-2">
       {currentValue.map((entry: string, index: number) => (
         <div key={index} className="flex gap-2">
-          <Input value={entry} onChange={(e) => updateEntry(index, e.target.value)} placeholder={`${field.label} ${index + 1}`} className="flex-1" />
-          <Button type="button" variant="outline" size="sm" onClick={() => removeEntry(index)} className="px-2">
+          <Input
+            value={entry}
+            onChange={(e) => updateEntry(index, e.target.value)}
+            placeholder={`${field.label} ${index + 1}`}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => removeEntry(index)}
+            className="px-2"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={addEntry} className="flex items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addEntry}
+        className="flex items-center gap-2"
+      >
         <Plus className="h-4 w-4" /> Add {field.label}
       </Button>
     </div>
@@ -311,17 +454,28 @@ function TableField({ field, register, watch, setValue }: any) {
 
   const addRow = () => {
     const newRow: Record<string, any> = {};
-    field.tableColumns?.forEach((col: TableColumn) => { newRow[col.id] = ''; });
+    field.tableColumns?.forEach((col: TableColumn) => {
+      newRow[col.id] = "";
+    });
     setValue(field.id, [...currentValue, newRow]);
   };
 
-  const removeRow = (index: number) => { setValue(field.id, currentValue.filter((_: any, i: number) => i !== index)); };
+  const removeRow = (index: number) => {
+    setValue(
+      field.id,
+      currentValue.filter((_: any, i: number) => i !== index),
+    );
+  };
   const updateCell = (rowIndex: number, columnId: string, value: any) => {
-    const newValue = [...currentValue]; newValue[rowIndex] = { ...newValue[rowIndex], [columnId]: value }; setValue(field.id, newValue);
+    const newValue = [...currentValue];
+    newValue[rowIndex] = { ...newValue[rowIndex], [columnId]: value };
+    setValue(field.id, newValue);
   };
 
   if (!field.tableColumns || field.tableColumns.length === 0) {
-    return <div className="text-gray-500 italic">No table columns configured</div>;
+    return (
+      <div className="text-gray-500 italic">No table columns configured</div>
+    );
   }
 
   return (
@@ -332,8 +486,14 @@ function TableField({ field, register, watch, setValue }: any) {
             <thead className="bg-gray-50">
               <tr>
                 {field.tableColumns.map((col: TableColumn) => (
-                  <th key={col.id} className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">
-                    {col.label}{col.required && <span className="text-red-500 ml-1">*</span>}
+                  <th
+                    key={col.id}
+                    className="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b"
+                  >
+                    {col.label}
+                    {col.required && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
                   </th>
                 ))}
                 <th className="px-4 py-2 w-16 border-b"></th>
@@ -344,27 +504,41 @@ function TableField({ field, register, watch, setValue }: any) {
                 <tr key={rowIndex} className="border-b">
                   {field.tableColumns.map((col: TableColumn) => (
                     <td key={col.id} className="px-4 py-2">
-                      {col.type === 'select' ? (
+                      {col.type === "select" ? (
                         <select
-                          value={row[col.id] || ''}
-                          onChange={(e) => updateCell(rowIndex, col.id, e.target.value)}
+                          value={row[col.id] || ""}
+                          onChange={(e) =>
+                            updateCell(rowIndex, col.id, e.target.value)
+                          }
                           className="w-full border rounded px-2 py-1 text-sm"
                         >
                           <option value="">Select...</option>
-                          {col.options?.map((opt, i) => (<option key={i} value={opt}>{opt}</option>))}
+                          {col.options?.map((opt, i) => (
+                            <option key={i} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
                         </select>
                       ) : (
                         <Input
                           type={col.type}
-                          value={row[col.id] || ''}
-                          onChange={(e) => updateCell(rowIndex, col.id, e.target.value)}
+                          value={row[col.id] || ""}
+                          onChange={(e) =>
+                            updateCell(rowIndex, col.id, e.target.value)
+                          }
                           className="w-full text-sm"
                         />
                       )}
                     </td>
                   ))}
                   <td className="px-4 py-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => removeRow(rowIndex)} className="px-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeRow(rowIndex)}
+                      className="px-2"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </td>
@@ -375,7 +549,13 @@ function TableField({ field, register, watch, setValue }: any) {
         </div>
       )}
 
-      <Button type="button" variant="outline" size="sm" onClick={addRow} className="flex items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addRow}
+        className="flex items-center gap-2"
+      >
         <Plus className="h-4 w-4" /> Add Row
       </Button>
     </div>

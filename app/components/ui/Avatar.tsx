@@ -19,7 +19,11 @@ export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
     return letters.join("") || "?";
   }, [name]);
 
-  const dimension = { width: size, height: size, minWidth: size } as React.CSSProperties;
+  const dimension = {
+    width: size,
+    height: size,
+    minWidth: size,
+  } as React.CSSProperties;
 
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -37,16 +41,17 @@ export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
     <div
       className={cn(
         "rounded-full bg-accent text-foreground flex items-center justify-center font-semibold",
-        className
+        className,
       )}
       style={dimension}
       aria-label={name || "avatar"}
     >
-      <span className="text-xs" style={{ fontSize: Math.max(11, Math.floor(size / 3)) }}>
+      <span
+        className="text-xs"
+        style={{ fontSize: Math.max(11, Math.floor(size / 3)) }}
+      >
         {initials}
       </span>
     </div>
   );
 }
-
-

@@ -13,7 +13,11 @@ type Props = {
   initialUrl?: string | null;
 };
 
-export default function ProfileAvatarUploader({ userId, name, initialUrl }: Props) {
+export default function ProfileAvatarUploader({
+  userId,
+  name,
+  initialUrl,
+}: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [url, setUrl] = useState<string | undefined | null>(initialUrl);
   const [isUploading, setIsUploading] = useState(false);
@@ -51,7 +55,12 @@ export default function ProfileAvatarUploader({ userId, name, initialUrl }: Prop
   return (
     <div className="flex flex-col items-center">
       <div className="relative">
-        <Avatar src={url || undefined} name={name} className="bg-muted" size={96} />
+        <Avatar
+          src={url || undefined}
+          name={name}
+          className="bg-muted"
+          size={96}
+        />
         <Button
           type="button"
           onClick={handleClick}
@@ -62,10 +71,14 @@ export default function ProfileAvatarUploader({ userId, name, initialUrl }: Prop
         >
           <Camera className="h-4 w-4" />
         </Button>
-        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onFileChange}
+        />
       </div>
     </div>
   );
 }
-
-

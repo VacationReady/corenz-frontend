@@ -55,9 +55,9 @@ export async function GET(req: Request) {
     if (validatedParams.search) {
       const searchTerm = validatedParams.search.toLowerCase();
       whereClause.OR = [
-        { entityId: { contains: searchTerm, mode: 'insensitive' } },
-        { actor: { email: { contains: searchTerm, mode: 'insensitive' } } },
-        { actor: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { entityId: { contains: searchTerm, mode: "insensitive" } },
+        { actor: { email: { contains: searchTerm, mode: "insensitive" } } },
+        { actor: { name: { contains: searchTerm, mode: "insensitive" } } },
         { changes: { path: [], string_contains: searchTerm } },
         { metadata: { path: [], string_contains: searchTerm } },
       ];
@@ -76,58 +76,62 @@ export async function GET(req: Request) {
         },
       },
       orderBy: {
-        timestamp: 'desc',
+        timestamp: "desc",
       },
       take: 10000, // Limit to 10k records for performance
     });
 
     // Convert to CSV
     const csvHeaders = [
-      'Timestamp',
-      'Entity Type',
-      'Entity ID', 
-      'Action',
-      'Actor Name',
-      'Actor Email',
-      'Actor Type',
-      'Changes',
-      'Metadata'
-    ].join(',');
+      "Timestamp",
+      "Entity Type",
+      "Entity ID",
+      "Action",
+      "Actor Name",
+      "Actor Email",
+      "Actor Type",
+      "Changes",
+      "Metadata",
+    ].join(",");
 
-    const csvRows = logs.map(log => [
-      log.timestamp.toISOString(),
-      log.entityType,
-      log.entityId,
-      log.action,
-      log.actor?.name || '',
-      log.actor?.email || '',
-      log.actorType,
-      log.changes ? JSON.stringify(log.changes).replace(/"/g, '""') : '',
-      log.metadata ? JSON.stringify(log.metadata).replace(/"/g, '""') : ''
-    ].map(field => `"${field}"`).join(','));
+    const csvRows = logs.map((log) =>
+      [
+        log.timestamp.toISOString(),
+        log.entityType,
+        log.entityId,
+        log.action,
+        log.actor?.name || "",
+        log.actor?.email || "",
+        log.actorType,
+        log.changes ? JSON.stringify(log.changes).replace(/"/g, '""') : "",
+        log.metadata ? JSON.stringify(log.metadata).replace(/"/g, '""') : "",
+      ]
+        .map((field) => `"${field}"`)
+        .join(","),
+    );
 
-    const csvContent = [csvHeaders, ...csvRows].join('\n');
+    const csvContent = [csvHeaders, ...csvRows].join("\n");
 
     // Return CSV file
     return new Response(csvContent, {
       headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`,
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="audit-logs-${new Date().toISOString().split("T")[0]}.csv"`,
       },
     });
   } catch (error) {
     console.error("GET /api/audit-logs/export error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid query parameters", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to export audit logs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

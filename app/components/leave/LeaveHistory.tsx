@@ -63,8 +63,8 @@ export default function LeaveHistory() {
                         req.status === "APPROVED"
                           ? "bg-green-600"
                           : req.status === "DECLINED"
-                          ? "bg-red-500"
-                          : "bg-yellow-500"
+                            ? "bg-red-500"
+                            : "bg-yellow-500"
                       }`}
                     >
                       {req.status}
@@ -79,4 +79,3 @@ export default function LeaveHistory() {
     </div>
   );
 }
-

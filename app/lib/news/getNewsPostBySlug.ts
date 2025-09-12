@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from "@/lib/prisma";
 
 export async function getNewsPostBySlug(slug: string) {
   return prisma.newsPost.findUnique({
@@ -8,5 +8,5 @@ export async function getNewsPostBySlug(slug: string) {
         select: { name: true, email: true },
       },
     },
-  })
+  });
 }

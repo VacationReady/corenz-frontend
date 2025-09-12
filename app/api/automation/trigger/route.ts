@@ -5,14 +5,16 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 import { getAutomationScheduler } from "@/lib/automation";
 
-const TriggerSchema = z.object({
-  ruleId: z.string().cuid().optional(),
-  eventType: z.string().optional(),
-  eventData: z.record(z.any()).optional(),
-  triggerData: z.record(z.any()).optional(),
-}).refine(data => data.ruleId || data.eventType, {
-  message: "Either ruleId or eventType must be provided"
-});
+const TriggerSchema = z
+  .object({
+    ruleId: z.string().cuid().optional(),
+    eventType: z.string().optional(),
+    eventData: z.record(z.any()).optional(),
+    triggerData: z.record(z.any()).optional(),
+  })
+  .refine((data) => data.ruleId || data.eventType, {
+    message: "Either ruleId or eventType must be provided",
+  });
 
 // POST: Manually trigger automation rules or handle events
 export async function POST(req: Request) {
@@ -39,13 +41,13 @@ export async function POST(req: Request) {
       if (!rule) {
         return NextResponse.json(
           { error: "Rule not found or inactive" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
       const jobIds = await scheduler.triggerRule(
         validatedData.ruleId,
-        validatedData.triggerData
+        validatedData.triggerData,
       );
 
       // Log the manual trigger in audit log
@@ -74,7 +76,6 @@ export async function POST(req: Request) {
         jobIds,
         ruleId: validatedData.ruleId,
       });
-
     } else if (validatedData.eventType && validatedData.eventData) {
       // Event-based trigger
       const eventData = {
@@ -95,22 +96,21 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { error: "Invalid trigger request" },
-      { status: 400 }
+      { status: 400 },
     );
-
   } catch (error) {
     console.error("POST /api/automation/trigger error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to trigger automation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -162,10 +162,7 @@ export async function GET(req: Request) {
       });
 
       if (!rule) {
-        return NextResponse.json(
-          { error: "Rule not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Rule not found" }, { status: 404 });
       }
 
       return NextResponse.json({
@@ -185,34 +182,35 @@ export async function GET(req: Request) {
       });
     } else {
       // Get overall trigger activity for company
-      const [recentExecutions, recentJobs, activeRulesCount] = await Promise.all([
-        prisma.automationExecution.findMany({
-          where: { companyId: session.user.companyId },
-          take: 20,
-          orderBy: { triggeredAt: "desc" },
-          include: {
-            rule: {
-              select: { id: true, name: true, triggerType: true },
+      const [recentExecutions, recentJobs, activeRulesCount] =
+        await Promise.all([
+          prisma.automationExecution.findMany({
+            where: { companyId: session.user.companyId },
+            take: 20,
+            orderBy: { triggeredAt: "desc" },
+            include: {
+              rule: {
+                select: { id: true, name: true, triggerType: true },
+              },
             },
-          },
-        }),
-        prisma.automationJob.findMany({
-          where: { companyId: session.user.companyId },
-          take: 20,
-          orderBy: { createdAt: "desc" },
-          include: {
-            rule: {
-              select: { id: true, name: true, triggerType: true },
+          }),
+          prisma.automationJob.findMany({
+            where: { companyId: session.user.companyId },
+            take: 20,
+            orderBy: { createdAt: "desc" },
+            include: {
+              rule: {
+                select: { id: true, name: true, triggerType: true },
+              },
             },
-          },
-        }),
-        prisma.automationRule.count({
-          where: {
-            companyId: session.user.companyId,
-            isActive: true,
-          },
-        }),
-      ]);
+          }),
+          prisma.automationRule.count({
+            where: {
+              companyId: session.user.companyId,
+              isActive: true,
+            },
+          }),
+        ]);
 
       return NextResponse.json({
         summary: {
@@ -226,12 +224,11 @@ export async function GET(req: Request) {
         },
       });
     }
-
   } catch (error) {
     console.error("GET /api/automation/trigger error:", error);
     return NextResponse.json(
       { error: "Failed to get trigger status" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

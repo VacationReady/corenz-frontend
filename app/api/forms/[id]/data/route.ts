@@ -4,7 +4,10 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET: Retrieve form data for an employee
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
@@ -12,10 +15,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 
   const url = new URL(req.url);
-  const employeeId = url.searchParams.get('employeeId');
+  const employeeId = url.searchParams.get("employeeId");
 
   if (!employeeId) {
-    return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "employeeId is required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -41,7 +47,10 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     // Get the data record for this form and employee
@@ -66,12 +75,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     });
   } catch (error) {
     console.error("Error fetching form data:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 // POST/PUT: Save or update form data for an employee
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
@@ -81,7 +96,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { employeeId, data } = await req.json();
 
   if (!employeeId || !data) {
-    return NextResponse.json({ error: "employeeId and data are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "employeeId and data are required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -107,7 +125,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     // Upsert the data record (create or update)
@@ -131,6 +152,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json(dataRecord, { status: 200 });
   } catch (error) {
     console.error("Error saving form data:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

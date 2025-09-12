@@ -6,14 +6,48 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Users, Calendar, Settings, AlertTriangle } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  Calendar,
+  Settings,
+  AlertTriangle,
+} from "lucide-react";
 
 interface EventCategory {
   id: string;
@@ -72,7 +106,7 @@ export default function LeavePoliciesPage() {
     name: "",
     description: "",
     eventCategoryId: "",
-    effectiveFrom: new Date().toISOString().split('T')[0],
+    effectiveFrom: new Date().toISOString().split("T")[0],
     effectiveTo: "",
     accrualRate: 0,
     accrualPeriod: "MONTHLY",
@@ -81,7 +115,7 @@ export default function LeavePoliciesPage() {
     prorationMethod: "DAILY",
     serviceLengthTiers: [],
     allowNegativeBalance: false,
-    isActive: true
+    isActive: true,
   });
 
   useEffect(() => {
@@ -121,21 +155,24 @@ export default function LeavePoliciesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
-      const url = editingPolicy 
+      const url = editingPolicy
         ? `/api/leave-policies/${editingPolicy.id}`
         : "/api/leave-policies";
-      
+
       const method = editingPolicy ? "PUT" : "POST";
-      
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           effectiveTo: formData.effectiveTo || null,
-          serviceLengthTiers: formData.serviceLengthTiers.length > 0 ? formData.serviceLengthTiers : null
+          serviceLengthTiers:
+            formData.serviceLengthTiers.length > 0
+              ? formData.serviceLengthTiers
+              : null,
         }),
       });
 
@@ -170,8 +207,8 @@ export default function LeavePoliciesPage() {
       name: policy.name,
       description: policy.description || "",
       eventCategoryId: policy.eventCategory.id,
-      effectiveFrom: policy.effectiveFrom.split('T')[0],
-      effectiveTo: policy.effectiveTo?.split('T')[0] || "",
+      effectiveFrom: policy.effectiveFrom.split("T")[0],
+      effectiveTo: policy.effectiveTo?.split("T")[0] || "",
       accrualRate: policy.accrualRate,
       accrualPeriod: policy.accrualPeriod,
       accrualUnit: policy.accrualUnit,
@@ -179,7 +216,7 @@ export default function LeavePoliciesPage() {
       prorationMethod: policy.prorationMethod,
       serviceLengthTiers: policy.serviceLengthTiers || [],
       allowNegativeBalance: policy.allowNegativeBalance,
-      isActive: policy.isActive
+      isActive: policy.isActive,
     });
     setDialogOpen(true);
   };
@@ -221,7 +258,7 @@ export default function LeavePoliciesPage() {
       name: "",
       description: "",
       eventCategoryId: "",
-      effectiveFrom: new Date().toISOString().split('T')[0],
+      effectiveFrom: new Date().toISOString().split("T")[0],
       effectiveTo: "",
       accrualRate: 0,
       accrualPeriod: "MONTHLY",
@@ -230,35 +267,44 @@ export default function LeavePoliciesPage() {
       prorationMethod: "DAILY",
       serviceLengthTiers: [],
       allowNegativeBalance: false,
-      isActive: true
+      isActive: true,
     });
   };
 
   const addServiceLengthTier = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      serviceLengthTiers: [...prev.serviceLengthTiers, { minYears: 0, accrualRate: 0 }]
+      serviceLengthTiers: [
+        ...prev.serviceLengthTiers,
+        { minYears: 0, accrualRate: 0 },
+      ],
     }));
   };
 
-  const updateServiceLengthTier = (index: number, field: keyof ServiceLengthTier, value: number) => {
-    setFormData(prev => ({
+  const updateServiceLengthTier = (
+    index: number,
+    field: keyof ServiceLengthTier,
+    value: number,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      serviceLengthTiers: prev.serviceLengthTiers.map((tier, i) => 
-        i === index ? { ...tier, [field]: value } : tier
-      )
+      serviceLengthTiers: prev.serviceLengthTiers.map((tier, i) =>
+        i === index ? { ...tier, [field]: value } : tier,
+      ),
     }));
   };
 
   const removeServiceLengthTier = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      serviceLengthTiers: prev.serviceLengthTiers.filter((_, i) => i !== index)
+      serviceLengthTiers: prev.serviceLengthTiers.filter((_, i) => i !== index),
     }));
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">Loading...</div>
+    );
   }
 
   return (
@@ -267,7 +313,8 @@ export default function LeavePoliciesPage() {
         <div>
           <h1 className="text-3xl font-bold">Leave Policies</h1>
           <p className="text-muted-foreground">
-            Manage accrual rates, proration rules, and service-length tiers for leave entitlements
+            Manage accrual rates, proration rules, and service-length tiers for
+            leave entitlements
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -283,7 +330,9 @@ export default function LeavePoliciesPage() {
                 {editingPolicy ? "Edit Leave Policy" : "Create Leave Policy"}
               </DialogTitle>
               <DialogDescription>
-                Configure accrual rates and rules for leave entitlements. This affects only entitlement calculations - booking rules are managed in Event Rules.
+                Configure accrual rates and rules for leave entitlements. This
+                affects only entitlement calculations - booking rules are
+                managed in Event Rules.
               </DialogDescription>
             </DialogHeader>
 
@@ -302,7 +351,12 @@ export default function LeavePoliciesPage() {
                       <Input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
                         required
                       />
                     </div>
@@ -310,7 +364,12 @@ export default function LeavePoliciesPage() {
                       <Label htmlFor="eventCategory">Leave Type *</Label>
                       <Select
                         value={formData.eventCategoryId}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, eventCategoryId: value }))}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            eventCategoryId: value,
+                          }))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select leave type" />
@@ -331,7 +390,12 @@ export default function LeavePoliciesPage() {
                     <Textarea
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
                       placeholder="Optional description of this policy"
                     />
                   </div>
@@ -343,7 +407,12 @@ export default function LeavePoliciesPage() {
                         id="effectiveFrom"
                         type="date"
                         value={formData.effectiveFrom}
-                        onChange={(e) => setFormData(prev => ({ ...prev, effectiveFrom: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            effectiveFrom: e.target.value,
+                          }))
+                        }
                         required
                       />
                     </div>
@@ -353,7 +422,12 @@ export default function LeavePoliciesPage() {
                         id="effectiveTo"
                         type="date"
                         value={formData.effectiveTo}
-                        onChange={(e) => setFormData(prev => ({ ...prev, effectiveTo: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            effectiveTo: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                   </div>
@@ -361,7 +435,9 @@ export default function LeavePoliciesPage() {
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={formData.isActive}
-                      onChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                      onChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, isActive: checked }))
+                      }
                     />
                     <Label>Active</Label>
                   </div>
@@ -377,7 +453,12 @@ export default function LeavePoliciesPage() {
                         step="0.5"
                         min="0"
                         value={formData.accrualRate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, accrualRate: parseFloat(e.target.value) || 0 }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            accrualRate: parseFloat(e.target.value) || 0,
+                          }))
+                        }
                         required
                       />
                     </div>
@@ -385,7 +466,12 @@ export default function LeavePoliciesPage() {
                       <Label htmlFor="accrualUnit">Unit</Label>
                       <Select
                         value={formData.accrualUnit}
-                        onValueChange={(value: "DAYS" | "HOURS") => setFormData(prev => ({ ...prev, accrualUnit: value }))}
+                        onValueChange={(value: "DAYS" | "HOURS") =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            accrualUnit: value,
+                          }))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -400,8 +486,18 @@ export default function LeavePoliciesPage() {
                       <Label htmlFor="accrualPeriod">Per Period</Label>
                       <Select
                         value={formData.accrualPeriod}
-                        onValueChange={(value: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY") => 
-                          setFormData(prev => ({ ...prev, accrualPeriod: value }))}
+                        onValueChange={(
+                          value:
+                            | "WEEKLY"
+                            | "MONTHLY"
+                            | "QUARTERLY"
+                            | "ANNUALLY",
+                        ) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            accrualPeriod: value,
+                          }))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -420,18 +516,31 @@ export default function LeavePoliciesPage() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         checked={formData.enableProration}
-                        onChange={(checked) => setFormData(prev => ({ ...prev, enableProration: checked }))}
+                        onChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            enableProration: checked,
+                          }))
+                        }
                       />
                       <Label>Enable Proration</Label>
                     </div>
 
                     {formData.enableProration && (
                       <div>
-                        <Label htmlFor="prorationMethod">Proration Method</Label>
+                        <Label htmlFor="prorationMethod">
+                          Proration Method
+                        </Label>
                         <Select
                           value={formData.prorationMethod}
-                          onValueChange={(value: "DAILY" | "WEEKLY" | "MONTHLY" | "NONE") => 
-                            setFormData(prev => ({ ...prev, prorationMethod: value }))}
+                          onValueChange={(
+                            value: "DAILY" | "WEEKLY" | "MONTHLY" | "NONE",
+                          ) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              prorationMethod: value,
+                            }))
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -449,11 +558,17 @@ export default function LeavePoliciesPage() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         checked={formData.allowNegativeBalance}
-                        onChange={(checked) => setFormData(prev => ({ ...prev, allowNegativeBalance: checked }))}
+                        onChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            allowNegativeBalance: checked,
+                          }))
+                        }
                       />
                       <Label>Allow Negative Balance</Label>
                       <div className="text-sm text-muted-foreground">
-                        (Bypasses entitlement checks but Event Rules still apply)
+                        (Bypasses entitlement checks but Event Rules still
+                        apply)
                       </div>
                     </div>
                   </div>
@@ -462,12 +577,18 @@ export default function LeavePoliciesPage() {
                 <TabsContent value="tiers" className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="text-lg font-semibold">Service Length Tiers</h3>
+                      <h3 className="text-lg font-semibold">
+                        Service Length Tiers
+                      </h3>
                       <p className="text-sm text-muted-foreground">
                         Define different accrual rates based on years of service
                       </p>
                     </div>
-                    <Button type="button" variant="outline" onClick={addServiceLengthTier}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addServiceLengthTier}
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Tier
                     </Button>
@@ -483,7 +604,13 @@ export default function LeavePoliciesPage() {
                               type="number"
                               min="0"
                               value={tier.minYears}
-                              onChange={(e) => updateServiceLengthTier(index, 'minYears', parseInt(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateServiceLengthTier(
+                                  index,
+                                  "minYears",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
                             />
                           </div>
                           <div>
@@ -491,8 +618,14 @@ export default function LeavePoliciesPage() {
                             <Input
                               type="number"
                               min="0"
-                              value={tier.maxYears || ''}
-                              onChange={(e) => updateServiceLengthTier(index, 'maxYears', parseInt(e.target.value) || 0)}
+                              value={tier.maxYears || ""}
+                              onChange={(e) =>
+                                updateServiceLengthTier(
+                                  index,
+                                  "maxYears",
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
                             />
                           </div>
                           <div>
@@ -502,7 +635,13 @@ export default function LeavePoliciesPage() {
                               step="0.5"
                               min="0"
                               value={tier.accrualRate}
-                              onChange={(e) => updateServiceLengthTier(index, 'accrualRate', parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateServiceLengthTier(
+                                  index,
+                                  "accrualRate",
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
                             />
                           </div>
                           <Button
@@ -520,14 +659,19 @@ export default function LeavePoliciesPage() {
 
                   {formData.serviceLengthTiers.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      No service length tiers configured. Base accrual rate will apply to all employees.
+                      No service length tiers configured. Base accrual rate will
+                      apply to all employees.
                     </div>
                   )}
                 </TabsContent>
               </Tabs>
 
               <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit">
@@ -546,7 +690,8 @@ export default function LeavePoliciesPage() {
               <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Leave Policies</h3>
               <p className="text-muted-foreground text-center mb-4">
-                Create your first leave policy to start managing accrual rates and entitlement rules.
+                Create your first leave policy to start managing accrual rates
+                and entitlement rules.
               </p>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -568,21 +713,30 @@ export default function LeavePoliciesPage() {
                         )}
                       </CardTitle>
                       <CardDescription>
-                        {policy.eventCategory.name} • {policy.accrualRate} {policy.accrualUnit.toLowerCase()} per {policy.accrualPeriod.toLowerCase()}
+                        {policy.eventCategory.name} • {policy.accrualRate}{" "}
+                        {policy.accrualUnit.toLowerCase()} per{" "}
+                        {policy.accrualPeriod.toLowerCase()}
                       </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
                       <Users className="w-3 h-3" />
                       {policy._count.assignments} assignments
                     </Badge>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(policy)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(policy)}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleDelete(policy.id)}
                       className="text-destructive hover:text-destructive"
                     >
@@ -595,13 +749,18 @@ export default function LeavePoliciesPage() {
                     <div>
                       <div className="font-medium">Effective Period</div>
                       <div className="text-muted-foreground">
-                        {new Date(policy.effectiveFrom).toLocaleDateString()} - {policy.effectiveTo ? new Date(policy.effectiveTo).toLocaleDateString() : 'Ongoing'}
+                        {new Date(policy.effectiveFrom).toLocaleDateString()} -{" "}
+                        {policy.effectiveTo
+                          ? new Date(policy.effectiveTo).toLocaleDateString()
+                          : "Ongoing"}
                       </div>
                     </div>
                     <div>
                       <div className="font-medium">Proration</div>
                       <div className="text-muted-foreground">
-                        {policy.enableProration ? policy.prorationMethod : 'Disabled'}
+                        {policy.enableProration
+                          ? policy.prorationMethod
+                          : "Disabled"}
                       </div>
                     </div>
                     <div>
@@ -612,14 +771,20 @@ export default function LeavePoliciesPage() {
                     </div>
                     <div>
                       <div className="font-medium">Negative Balance</div>
-                      <div className={`text-sm ${policy.allowNegativeBalance ? 'text-orange-600' : 'text-muted-foreground'}`}>
-                        {policy.allowNegativeBalance ? 'Allowed' : 'Not allowed'}
+                      <div
+                        className={`text-sm ${policy.allowNegativeBalance ? "text-orange-600" : "text-muted-foreground"}`}
+                      >
+                        {policy.allowNegativeBalance
+                          ? "Allowed"
+                          : "Not allowed"}
                       </div>
                     </div>
                   </div>
                   {policy.description && (
                     <div className="mt-3 pt-3 border-t">
-                      <div className="text-sm text-muted-foreground">{policy.description}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {policy.description}
+                      </div>
                     </div>
                   )}
                 </CardContent>

@@ -1,6 +1,6 @@
 /**
  * Automation Action Executor
- * 
+ *
  * Executes automation actions with proper error handling, retries,
  * and comprehensive logging. Supports all action types defined in the UI.
  */
@@ -24,7 +24,7 @@ export class AutomationActionExecutor {
   constructor(logger?: JobLogger) {
     this.logger = logger || this.createDefaultLogger();
     this.actionExecutors = new Map();
-    
+
     this.initializeActionExecutors();
   }
 
@@ -34,7 +34,7 @@ export class AutomationActionExecutor {
   async executeAction(
     actionType: string,
     actionConfig: any,
-    context: ActionExecutionContext
+    context: ActionExecutionContext,
   ): Promise<ActionExecutionResult> {
     const executor = this.actionExecutors.get(actionType);
     if (!executor) {
@@ -92,12 +92,16 @@ export class AutomationActionExecutor {
    */
   async executeActions(
     actions: Array<{ type: string; config: any }>,
-    context: ActionExecutionContext
+    context: ActionExecutionContext,
   ): Promise<ActionExecutionResult[]> {
     const results: ActionExecutionResult[] = [];
 
     for (const action of actions) {
-      const result = await this.executeAction(action.type, action.config, context);
+      const result = await this.executeAction(
+        action.type,
+        action.config,
+        context,
+      );
       results.push(result);
 
       // If an action fails and it's marked as critical, stop execution
@@ -125,17 +129,20 @@ export class AutomationActionExecutor {
         return (
           typeof config.title === "string" &&
           config.title.length > 0 &&
-          ["employee", "manager", "hr", "specific"].includes(config.assigneeType) &&
+          ["employee", "manager", "hr", "specific"].includes(
+            config.assigneeType,
+          ) &&
           (config.assigneeType !== "specific" || !!config.assigneeId)
         );
       },
       execute: async (config: CreateTaskActionConfig, context) => {
         try {
-          const { title, description, assigneeType, assigneeId, dueDays } = config;
+          const { title, description, assigneeType, assigneeId, dueDays } =
+            config;
 
           // Resolve the assignee
           let resolvedAssigneeId: string | null = null;
-          
+
           if (assigneeType === "specific" && assigneeId) {
             resolvedAssigneeId = assigneeId;
           } else if (assigneeType === "employee" && context.employeeId) {
@@ -229,13 +236,17 @@ export class AutomationActionExecutor {
           config.subject.length > 0 &&
           typeof config.message === "string" &&
           config.message.length > 0 &&
-          ["employee", "manager", "hr", "specific"].includes(config.recipientType) &&
-          (config.recipientType !== "specific" || !!(config.recipients && config.recipients.length > 0))
+          ["employee", "manager", "hr", "specific"].includes(
+            config.recipientType,
+          ) &&
+          (config.recipientType !== "specific" ||
+            !!(config.recipients && config.recipients.length > 0))
         );
       },
       execute: async (config: SendNotificationActionConfig, context) => {
         try {
-          const { channels, recipientType, recipients, subject, message } = config;
+          const { channels, recipientType, recipients, subject, message } =
+            config;
 
           // Resolve recipients
           let resolvedRecipients: string[] = [];
@@ -266,7 +277,7 @@ export class AutomationActionExecutor {
               },
               select: { email: true },
             });
-            resolvedRecipients = hrUsers.map(user => user.email);
+            resolvedRecipients = hrUsers.map((user) => user.email);
           }
 
           if (resolvedRecipients.length === 0) {
@@ -338,7 +349,9 @@ export class AutomationActionExecutor {
     this.actionExecutors.set("start_onboarding", {
       type: "start_onboarding",
       validateConfig: (config: StartOnboardingActionConfig) => {
-        return typeof config.templateId === "string" && config.templateId.length > 0;
+        return (
+          typeof config.templateId === "string" && config.templateId.length > 0
+        );
       },
       execute: async (config: StartOnboardingActionConfig, context) => {
         try {
@@ -379,7 +392,8 @@ export class AutomationActionExecutor {
           if (existingInstance) {
             return {
               success: false,
-              error: "Employee already has an active onboarding instance for this template",
+              error:
+                "Employee already has an active onboarding instance for this template",
             };
           }
 
@@ -407,8 +421,8 @@ export class AutomationActionExecutor {
                   status: "pending",
                   order: step.order,
                 },
-              })
-            )
+              }),
+            ),
           );
 
           return {
@@ -506,7 +520,10 @@ export class AutomationActionExecutor {
             message: `Updated ${field} to ${value}`,
             data: {
               field,
-              oldValue: updateTarget === "employee" ? (employee as any)[field] : (employee.user as any)[field],
+              oldValue:
+                updateTarget === "employee"
+                  ? (employee as any)[field]
+                  : (employee.user as any)[field],
               newValue: value,
             },
           };
@@ -526,10 +543,16 @@ export class AutomationActionExecutor {
   private createDefaultLogger(): JobLogger {
     return {
       info: (message: string, data?: any) => {
-        console.log(`[AutomationExecutor] ${message}`, data ? JSON.stringify(data) : "");
+        console.log(
+          `[AutomationExecutor] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       warn: (message: string, data?: any) => {
-        console.warn(`[AutomationExecutor] ${message}`, data ? JSON.stringify(data) : "");
+        console.warn(
+          `[AutomationExecutor] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       error: (message: string, error?: Error, data?: any) => {
         console.error(`[AutomationExecutor] ${message}`, {
@@ -540,7 +563,10 @@ export class AutomationActionExecutor {
       },
       debug: (message: string, data?: any) => {
         if (process.env.NODE_ENV === "development") {
-          console.debug(`[AutomationExecutor] ${message}`, data ? JSON.stringify(data) : "");
+          console.debug(
+            `[AutomationExecutor] ${message}`,
+            data ? JSON.stringify(data) : "",
+          );
         }
       },
     };

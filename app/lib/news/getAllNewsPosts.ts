@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from "@/lib/prisma";
 
 export async function getAllNewsPosts() {
   return prisma.newsPost.findMany({
@@ -8,12 +8,12 @@ export async function getAllNewsPosts() {
       },
     },
     orderBy: {
-      publishedAt: 'desc',
+      publishedAt: "desc",
     },
     include: {
       author: {
         select: { name: true, email: true },
       },
     },
-  })
+  });
 }

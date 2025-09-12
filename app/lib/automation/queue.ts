@@ -1,6 +1,6 @@
 /**
  * Automation Job Queue Manager
- * 
+ *
  * Database-based job queue system for serverless environments.
  * Handles job creation, scheduling, prioritization, and retry logic.
  */
@@ -27,7 +27,7 @@ export class AutomationJobQueue {
       priority?: number;
       maxAttempts?: number;
       scheduledAt?: Date;
-    } = {}
+    } = {},
   ): Promise<string> {
     try {
       const job = await prisma.automationJob.create({
@@ -77,15 +77,9 @@ export class AutomationJobQueue {
             attempts: {
               lt: tx.automationJob.fields.maxAttempts,
             },
-            OR: [
-              { nextRetryAt: null },
-              { nextRetryAt: { lte: new Date() } },
-            ],
+            OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: new Date() } }],
           },
-          orderBy: [
-            { priority: "desc" },
-            { scheduledAt: "asc" },
-          ],
+          orderBy: [{ priority: "desc" }, { scheduledAt: "asc" }],
         });
 
         if (!job) {
@@ -132,7 +126,7 @@ export class AutomationJobQueue {
   async complete(
     jobId: string,
     executionLog?: any,
-    workerId?: string
+    workerId?: string,
   ): Promise<void> {
     try {
       await prisma.automationJob.update({
@@ -168,7 +162,7 @@ export class AutomationJobQueue {
     jobId: string,
     errorMessage: string,
     executionLog?: any,
-    workerId?: string
+    workerId?: string,
   ): Promise<void> {
     try {
       const job = await prisma.automationJob.findUnique({
@@ -187,7 +181,9 @@ export class AutomationJobQueue {
       await prisma.automationJob.update({
         where: { id: jobId },
         data: {
-          status: shouldRetry ? AutomationJobStatus.PENDING : AutomationJobStatus.FAILED,
+          status: shouldRetry
+            ? AutomationJobStatus.PENDING
+            : AutomationJobStatus.FAILED,
           errorMessage,
           nextRetryAt,
           executionLog: {
@@ -281,24 +277,25 @@ export class AutomationJobQueue {
     try {
       const where = companyId ? { companyId } : {};
 
-      const [pending, running, completed, failed, cancelled, total] = await Promise.all([
-        prisma.automationJob.count({
-          where: { ...where, status: AutomationJobStatus.PENDING },
-        }),
-        prisma.automationJob.count({
-          where: { ...where, status: AutomationJobStatus.RUNNING },
-        }),
-        prisma.automationJob.count({
-          where: { ...where, status: AutomationJobStatus.COMPLETED },
-        }),
-        prisma.automationJob.count({
-          where: { ...where, status: AutomationJobStatus.FAILED },
-        }),
-        prisma.automationJob.count({
-          where: { ...where, status: AutomationJobStatus.CANCELLED },
-        }),
-        prisma.automationJob.count({ where }),
-      ]);
+      const [pending, running, completed, failed, cancelled, total] =
+        await Promise.all([
+          prisma.automationJob.count({
+            where: { ...where, status: AutomationJobStatus.PENDING },
+          }),
+          prisma.automationJob.count({
+            where: { ...where, status: AutomationJobStatus.RUNNING },
+          }),
+          prisma.automationJob.count({
+            where: { ...where, status: AutomationJobStatus.COMPLETED },
+          }),
+          prisma.automationJob.count({
+            where: { ...where, status: AutomationJobStatus.FAILED },
+          }),
+          prisma.automationJob.count({
+            where: { ...where, status: AutomationJobStatus.CANCELLED },
+          }),
+          prisma.automationJob.count({ where }),
+        ]);
 
       return {
         pending,
@@ -327,7 +324,11 @@ export class AutomationJobQueue {
       const result = await prisma.automationJob.deleteMany({
         where: {
           status: {
-            in: [AutomationJobStatus.COMPLETED, AutomationJobStatus.FAILED, AutomationJobStatus.CANCELLED],
+            in: [
+              AutomationJobStatus.COMPLETED,
+              AutomationJobStatus.FAILED,
+              AutomationJobStatus.CANCELLED,
+            ],
           },
           completedAt: {
             lt: cutoffDate,
@@ -359,7 +360,7 @@ export class AutomationJobQueue {
     const jitterMs = Math.random() * 30 * 1000; // Up to 30 seconds jitter
 
     const delayMs = Math.min(baseDelayMs, maxDelayMs) + jitterMs;
-    
+
     return new Date(Date.now() + delayMs);
   }
 
@@ -369,10 +370,16 @@ export class AutomationJobQueue {
   private createDefaultLogger(): JobLogger {
     return {
       info: (message: string, data?: any) => {
-        console.log(`[AutomationQueue] ${message}`, data ? JSON.stringify(data) : "");
+        console.log(
+          `[AutomationQueue] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       warn: (message: string, data?: any) => {
-        console.warn(`[AutomationQueue] ${message}`, data ? JSON.stringify(data) : "");
+        console.warn(
+          `[AutomationQueue] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       error: (message: string, error?: Error, data?: any) => {
         console.error(`[AutomationQueue] ${message}`, {
@@ -383,7 +390,10 @@ export class AutomationJobQueue {
       },
       debug: (message: string, data?: any) => {
         if (process.env.NODE_ENV === "development") {
-          console.debug(`[AutomationQueue] ${message}`, data ? JSON.stringify(data) : "");
+          console.debug(
+            `[AutomationQueue] ${message}`,
+            data ? JSON.stringify(data) : "",
+          );
         }
       },
     };

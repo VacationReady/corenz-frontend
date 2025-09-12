@@ -5,13 +5,15 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   try {
     const hashedPassword = await bcrypt.hash("password123", 10);
     const company = await prisma.company.findFirst();
     if (!company) {
-      throw new Error("No company found. Seed companies before creating users.");
+      throw new Error(
+        "No company found. Seed companies before creating users.",
+      );
     }
 
     const user = await prisma.user.create({

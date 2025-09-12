@@ -28,18 +28,26 @@ type OnboardingStepProps = {
   companyId?: string;
 };
 
-export default function OnboardingStepRenderer({ step, onComplete, readOnly = false, employeeId, companyId }: OnboardingStepProps) {
+export default function OnboardingStepRenderer({
+  step,
+  onComplete,
+  readOnly = false,
+  employeeId,
+  companyId,
+}: OnboardingStepProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [ack, setAck] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [formValues, setFormValues] = useState<{ [key: string]: string }>({});
-  const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN" | null>(step.form?.formType || null);
+  const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN" | null>(
+    step.form?.formType || null,
+  );
 
   useEffect(() => {
     if (!formType && step.formId) {
       fetch(`/api/forms/${step.formId}`)
-        .then((res) => res.ok ? res.json() : null)
+        .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data?.formType) setFormType(data.formType);
         })
@@ -58,11 +66,20 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
         <div className="mb-3 text-sm">{desc}</div>
         {step.document && (
           <div className="mb-4 border rounded">
-            <iframe src={step.document.url} className="w-full h-96 border-none" title={step.document.name} />
+            <iframe
+              src={step.document.url}
+              className="w-full h-96 border-none"
+              title={step.document.name}
+            />
           </div>
         )}
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={ack} disabled={readOnly} onChange={e => setAck(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={ack}
+            disabled={readOnly}
+            onChange={(e) => setAck(e.target.checked)}
+          />
           I have read and acknowledge this document
         </label>
         {!readOnly && (
@@ -73,20 +90,22 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
               try {
                 setLoading(true);
                 if (step.document?.id) {
-                  const res = await fetch('/api/documents/acknowledge', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                  const res = await fetch("/api/documents/acknowledge", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ documentId: step.document.id }),
                   });
-                  if (!res.ok) throw new Error('Failed to acknowledge');
+                  if (!res.ok) throw new Error("Failed to acknowledge");
                   window.dispatchEvent(
-                    new CustomEvent('employee-documents-updated', { detail: { employeeId } })
+                    new CustomEvent("employee-documents-updated", {
+                      detail: { employeeId },
+                    }),
                   );
                 }
                 await onComplete();
               } catch (err) {
                 console.error(err);
-                toast('Failed to acknowledge document');
+                toast("Failed to acknowledge document");
               } finally {
                 setLoading(false);
               }
@@ -106,10 +125,21 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
         <div className="mb-2 font-semibold">{title}</div>
         <div className="mb-3 text-sm">{desc}</div>
         {step.document?.url ? (
-          <a href={step.document.url} target="_blank" className="text-blue-600 underline">View Uploaded Document</a>
+          <a
+            href={step.document.url}
+            target="_blank"
+            className="text-blue-600 underline"
+          >
+            View Uploaded Document
+          </a>
         ) : (
           <>
-            <input type="file" accept=".pdf,.jpg,.png" disabled={readOnly} onChange={e => setFile(e.target.files?.[0] || null)} />
+            <input
+              type="file"
+              accept=".pdf,.jpg,.png"
+              disabled={readOnly}
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
             {!readOnly && (
               <Button
                 disabled={!file || loading}
@@ -129,7 +159,10 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                   formData.append("requiresAck", "false");
 
                   try {
-                    const res = await fetch("/api/documents/upload-employee", { method: "POST", body: formData });
+                    const res = await fetch("/api/documents/upload-employee", {
+                      method: "POST",
+                      body: formData,
+                    });
                     if (!res.ok) {
                       toast("Failed to upload document");
                       setLoading(false);
@@ -139,7 +172,11 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                     toast("Document uploaded");
                     // ✅ Auto-refresh onboarding UI and employee docs
                     await onComplete();
-                    window.dispatchEvent(new CustomEvent("employee-documents-updated", { detail: { employeeId } }));
+                    window.dispatchEvent(
+                      new CustomEvent("employee-documents-updated", {
+                        detail: { employeeId },
+                      }),
+                    );
                   } catch (err) {
                     console.error(err);
                     toast("Failed to upload document");
@@ -172,17 +209,21 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
       const handleComplete = (data: any) => {
         setLoading(true);
         onComplete({ formResponse: data });
-        window.dispatchEvent(new CustomEvent('employee-documents-updated', { detail: { employeeId } }));
+        window.dispatchEvent(
+          new CustomEvent("employee-documents-updated", {
+            detail: { employeeId },
+          }),
+        );
       };
 
       return (
         <Card className="p-4">
           <div className="mb-2 font-semibold">{title}</div>
           <div className="mb-3 text-sm">{desc}</div>
-          {formType === 'DATA_SCREEN' ? (
+          {formType === "DATA_SCREEN" ? (
             <EnhancedFormRenderer
               formId={step.formId}
-              employeeId={employeeId || ''}
+              employeeId={employeeId || ""}
               onDataChange={handleComplete}
             />
           ) : (
@@ -203,7 +244,7 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
           <div className="mb-2 font-semibold">{title}</div>
           <div className="mb-3 text-sm">{desc}</div>
           <form
-            onSubmit={e => {
+            onSubmit={(e) => {
               e.preventDefault();
               setLoading(true);
               onComplete({ formResponse: formValues });
@@ -215,12 +256,18 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
                 <Input
                   type={f.type === "date" ? "date" : "text"}
                   value={formValues[f.label] || ""}
-                  onChange={e => setFormValues({ ...formValues, [f.label]: e.target.value })}
+                  onChange={(e) =>
+                    setFormValues({ ...formValues, [f.label]: e.target.value })
+                  }
                   disabled={readOnly}
                 />
               </div>
             ))}
-            {!readOnly && <Button type="submit" disabled={loading}>Submit & Complete</Button>}
+            {!readOnly && (
+              <Button type="submit" disabled={loading}>
+                Submit & Complete
+              </Button>
+            )}
           </form>
         </Card>
       );
@@ -233,7 +280,11 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
         <div className="mb-3 text-sm">{desc}</div>
-        {!readOnly && <Button onClick={() => onComplete()} disabled={loading}>Next</Button>}
+        {!readOnly && (
+          <Button onClick={() => onComplete()} disabled={loading}>
+            Next
+          </Button>
+        )}
       </Card>
     );
   }
@@ -241,7 +292,9 @@ export default function OnboardingStepRenderer({ step, onComplete, readOnly = fa
   // 🚨 Fallback
   return (
     <Card className="p-4">
-      <div className="text-sm text-destructive">Unknown step type: {step.type}</div>
+      <div className="text-sm text-destructive">
+        Unknown step type: {step.type}
+      </div>
     </Card>
   );
 }

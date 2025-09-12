@@ -10,21 +10,34 @@ import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
 import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [isAddSubcategoryModalOpen, setIsAddSubcategoryModalOpen] = useState(false);
+  const [isAddSubcategoryModalOpen, setIsAddSubcategoryModalOpen] =
+    useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
   // Search & filters
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"active" | "archived">("active");
-  const [typeFilter, setTypeFilter] = useState<"all" | "TIME_OFF" | "WORKING_EVENT">("all");
-  const [adminOnlyFilter, setAdminOnlyFilter] = useState<"all" | "yes" | "no">("all");
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived">(
+    "active",
+  );
+  const [typeFilter, setTypeFilter] = useState<
+    "all" | "TIME_OFF" | "WORKING_EVENT"
+  >("all");
+  const [adminOnlyFilter, setAdminOnlyFilter] = useState<"all" | "yes" | "no">(
+    "all",
+  );
   // Disable while saving
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
@@ -43,7 +56,9 @@ export default function EventManagerPage() {
           console.error("Unexpected API response:", data);
         }
       } else {
-        const res = await fetch("/api/event-categories/archived", { cache: "no-store" });
+        const res = await fetch("/api/event-categories/archived", {
+          cache: "no-store",
+        });
         const json = await res.json();
         const data = json?.data ?? [];
         if (Array.isArray(data)) {
@@ -59,9 +74,25 @@ export default function EventManagerPage() {
   const filteredCategories = useMemo(() => {
     const q = search.trim().toLowerCase();
     return categories
-      .filter((c) => (typeFilter === "all" ? true : c.categoryType === typeFilter))
-      .filter((c) => (adminOnlyFilter === "all" ? true : adminOnlyFilter === "yes" ? !!c.adminOnly : !c.adminOnly))
-      .filter((c) => (q ? c.name.toLowerCase().includes(q) || (Array.isArray(c.subcategories) && c.subcategories.some((s: any) => s.name?.toLowerCase().includes(q))) : true));
+      .filter((c) =>
+        typeFilter === "all" ? true : c.categoryType === typeFilter,
+      )
+      .filter((c) =>
+        adminOnlyFilter === "all"
+          ? true
+          : adminOnlyFilter === "yes"
+            ? !!c.adminOnly
+            : !c.adminOnly,
+      )
+      .filter((c) =>
+        q
+          ? c.name.toLowerCase().includes(q) ||
+            (Array.isArray(c.subcategories) &&
+              c.subcategories.some((s: any) =>
+                s.name?.toLowerCase().includes(q),
+              ))
+          : true,
+      );
   }, [categories, search, typeFilter, adminOnlyFilter]);
 
   const toggleExpand = (id: string) => {
@@ -70,12 +101,14 @@ export default function EventManagerPage() {
   const handleToggleCategory = async (
     categoryId: string,
     key: "requiresApproval" | "adminOnly" | "isActive",
-    nextValue: boolean
+    nextValue: boolean,
   ) => {
     const sk = `${categoryId}:${key}`;
     setSavingKey(sk);
     const prev = categories;
-    const optimistic = categories.map((c) => (c.id === categoryId ? { ...c, [key]: nextValue } : c));
+    const optimistic = categories.map((c) =>
+      c.id === categoryId ? { ...c, [key]: nextValue } : c,
+    );
     setCategories(optimistic);
     try {
       const res = await fetch(`/api/event-categories/${categoryId}`, {
@@ -100,7 +133,10 @@ export default function EventManagerPage() {
     }
   };
 
-  const handleOpenAddSubcategory = (categoryId: string, categoryName: string) => {
+  const handleOpenAddSubcategory = (
+    categoryId: string,
+    categoryName: string,
+  ) => {
     setSelectedCategoryId(categoryId);
     setSelectedCategoryName(categoryName);
     setIsAddSubcategoryModalOpen(true);
@@ -158,8 +194,15 @@ export default function EventManagerPage() {
 
         {/* Search & Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
-          <Input placeholder="Search categories or subcategories..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+          <Input
+            placeholder="Search categories or subcategories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Select
+            value={statusFilter}
+            onValueChange={(v: any) => setStatusFilter(v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -168,7 +211,10 @@ export default function EventManagerPage() {
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+          <Select
+            value={typeFilter}
+            onValueChange={(v: any) => setTypeFilter(v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Type" />
             </SelectTrigger>
@@ -178,7 +224,10 @@ export default function EventManagerPage() {
               <SelectItem value="WORKING_EVENT">Working Event</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={adminOnlyFilter} onValueChange={(v: any) => setAdminOnlyFilter(v)}>
+          <Select
+            value={adminOnlyFilter}
+            onValueChange={(v: any) => setAdminOnlyFilter(v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Admin Only" />
             </SelectTrigger>
@@ -191,11 +240,16 @@ export default function EventManagerPage() {
         </div>
         <div className="space-y-2">
           {filteredCategories.map((category) => (
-            <div key={category.id} className="border rounded p-3 bg-white shadow-sm">
+            <div
+              key={category.id}
+              className="border rounded p-3 bg-white shadow-sm"
+            >
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{category.name}</p>
-                  <p className="text-sm text-gray-500">{category.categoryType ?? ""}</p>
+                  <p className="text-sm text-gray-500">
+                    {category.categoryType ?? ""}
+                  </p>
                 </div>
                 <div className="flex items-center space-x-4">
                   {["requiresApproval", "adminOnly", "isActive"].map((key) => (
@@ -204,24 +258,40 @@ export default function EventManagerPage() {
                         {key === "requiresApproval"
                           ? "Requires Approval"
                           : key === "adminOnly"
-                          ? "Admin Only"
-                          : "Active"}
+                            ? "Admin Only"
+                            : "Active"}
                       </span>
                       <Switch
                         checked={!!category[key]}
-                        onChange={(val) => handleToggleCategory(category.id, key as any, Boolean(val))}
-                        disabled={category.systemDefined || savingKey === `${category.id}:${key}`}
+                        onChange={(val) =>
+                          handleToggleCategory(
+                            category.id,
+                            key as any,
+                            Boolean(val),
+                          )
+                        }
+                        disabled={
+                          category.systemDefined ||
+                          savingKey === `${category.id}:${key}`
+                        }
                         className={cn(
                           category[key] ? "bg-green-500" : "bg-gray-300",
                           "relative inline-flex h-5 w-10 items-center rounded-full",
-                          category.systemDefined || savingKey === `${category.id}:${key}` ? "opacity-50 cursor-not-allowed" : ""
+                          category.systemDefined ||
+                            savingKey === `${category.id}:${key}`
+                            ? "opacity-50 cursor-not-allowed"
+                            : "",
                         )}
-                        title={category.systemDefined ? "System category, cannot edit" : ""}
+                        title={
+                          category.systemDefined
+                            ? "System category, cannot edit"
+                            : ""
+                        }
                       >
                         <span
                           className={cn(
                             category[key] ? "translate-x-6" : "translate-x-1",
-                            "inline-block h-4 w-4 transform rounded-full bg-white transition"
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition",
                           )}
                         />
                       </Switch>
@@ -255,7 +325,8 @@ export default function EventManagerPage() {
                       <div>
                         <p className="font-medium">{sub.name}</p>
                         <p className="text-sm text-gray-500">
-                          {sub.defaultPaidStatus} | {sub.isActive ? "Active" : "Archived"}
+                          {sub.defaultPaidStatus} |{" "}
+                          {sub.isActive ? "Active" : "Archived"}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -273,7 +344,9 @@ export default function EventManagerPage() {
                   <Button
                     variant="ghost"
                     className="mt-2"
-                    onClick={() => handleOpenAddSubcategory(category.id, category.name)}
+                    onClick={() =>
+                      handleOpenAddSubcategory(category.id, category.name)
+                    }
                   >
                     <PlusIcon className="w-4 h-4 mr-1" />
                     Add Subcategory

@@ -58,12 +58,16 @@ export default function LoginClient() {
     <div className="flex min-h-screen items-center justify-center bg-surface dark:bg-surface-dark px-4">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-dark p-8 shadow-sm transition-colors">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-primary">CoreNZ</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-primary">PeopleCore</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Sign in to your account
+          </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+              Email
+            </label>
             <Input
               type="email"
               value={email}
@@ -74,7 +78,9 @@ export default function LoginClient() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+              Password
+            </label>
             <Input
               type="password"
               value={password}
@@ -93,5 +99,3 @@ export default function LoginClient() {
     </div>
   );
 }
-
-

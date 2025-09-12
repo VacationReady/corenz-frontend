@@ -22,35 +22,39 @@ export async function POST(req: NextRequest) {
                 "Company culture",
                 "Management issues",
                 "Personal reasons",
-                "Other"
-              ]
+                "Other",
+              ],
             },
             {
               id: "satisfaction_rating",
               type: "radio",
-              label: "How would you rate your overall satisfaction with your role?",
+              label:
+                "How would you rate your overall satisfaction with your role?",
               required: true,
               options: [
                 "Very satisfied",
                 "Satisfied",
                 "Neutral",
                 "Dissatisfied",
-                "Very dissatisfied"
-              ]
+                "Very dissatisfied",
+              ],
             },
             {
               id: "work_environment",
               type: "textarea",
-              label: "How would you describe the work environment and company culture?",
+              label:
+                "How would you describe the work environment and company culture?",
               required: false,
-              placeholder: "Please share your thoughts on the work environment..."
+              placeholder:
+                "Please share your thoughts on the work environment...",
             },
             {
               id: "management_feedback",
               type: "textarea",
-              label: "What feedback would you give to your manager or the company?",
+              label:
+                "What feedback would you give to your manager or the company?",
               required: false,
-              placeholder: "Any suggestions for improvement..."
+              placeholder: "Any suggestions for improvement...",
             },
             {
               id: "would_recommend",
@@ -62,13 +66,13 @@ export async function POST(req: NextRequest) {
                 "Yes, probably",
                 "Maybe",
                 "No, probably not",
-                "No, definitely not"
-              ]
-            }
-          ]
+                "No, definitely not",
+              ],
+            },
+          ],
         },
-        isActive: true
-      }
+        isActive: true,
+      },
     });
 
     return NextResponse.json({
@@ -76,14 +80,16 @@ export async function POST(req: NextRequest) {
       template: {
         id: template.id,
         name: template.name,
-        description: template.description
-      }
+        description: template.description,
+      },
     });
-
   } catch (error) {
-    console.error('Error creating test template:', error);
-    return NextResponse.json({ 
-      error: "Failed to create test template" 
-    }, { status: 500 });
+    console.error("Error creating test template:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to create test template",
+      },
+      { status: 500 },
+    );
   }
 }

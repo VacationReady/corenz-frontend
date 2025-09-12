@@ -3,7 +3,7 @@ import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const employeeId = params.id;
   const startDateParam = req.nextUrl.searchParams.get("startDate");
@@ -12,7 +12,7 @@ export async function GET(
   if (!startDateParam || !endDateParam) {
     return NextResponse.json(
       { error: "Missing startDate or endDate" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

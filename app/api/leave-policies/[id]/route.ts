@@ -6,34 +6,31 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch a specific leave policy
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const policy = await prisma.leavePolicy.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
+        companyId: session.user.companyId,
       },
       include: {
         eventCategory: {
-          select: { id: true, name: true, color: true }
+          select: { id: true, name: true, color: true },
         },
-        assignments: true
-      }
+        assignments: true,
+      },
     });
 
     if (!policy) {
       return NextResponse.json(
         { error: "Leave policy not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -42,7 +39,7 @@ export async function GET(
     console.error("Error fetching leave policy:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -50,15 +47,12 @@ export async function GET(
 // PUT: Update a leave policy
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -75,29 +69,32 @@ export async function PUT(
       prorationMethod,
       serviceLengthTiers,
       allowNegativeBalance,
-      isActive
+      isActive,
     } = body;
 
     // Check if policy exists and belongs to company
     const existingPolicy = await prisma.leavePolicy.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!existingPolicy) {
       return NextResponse.json(
         { error: "Leave policy not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Validate required fields
     if (!name || !eventCategoryId || !effectiveFrom || !accrualRate) {
       return NextResponse.json(
-        { error: "Missing required fields: name, eventCategoryId, effectiveFrom, accrualRate" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: name, eventCategoryId, effectiveFrom, accrualRate",
+        },
+        { status: 400 },
       );
     }
 
@@ -105,14 +102,14 @@ export async function PUT(
     const eventCategory = await prisma.eventCategory.findFirst({
       where: {
         id: eventCategoryId,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!eventCategory) {
       return NextResponse.json(
         { error: "Invalid event category" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -121,36 +118,48 @@ export async function PUT(
       where: {
         companyId: session.user.companyId,
         name,
-        id: { not: params.id }
-      }
+        id: { not: params.id },
+      },
     });
 
     if (duplicatePolicy) {
       return NextResponse.json(
         { error: "A leave policy with this name already exists" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate service length tiers if provided
     if (serviceLengthTiers && Array.isArray(serviceLengthTiers)) {
       for (const tier of serviceLengthTiers) {
-        if (typeof tier.minYears !== 'number' || tier.minYears < 0) {
+        if (typeof tier.minYears !== "number" || tier.minYears < 0) {
           return NextResponse.json(
-            { error: "Invalid service length tier: minYears must be a non-negative number" },
-            { status: 400 }
+            {
+              error:
+                "Invalid service length tier: minYears must be a non-negative number",
+            },
+            { status: 400 },
           );
         }
-        if (tier.maxYears !== undefined && (typeof tier.maxYears !== 'number' || tier.maxYears <= tier.minYears)) {
+        if (
+          tier.maxYears !== undefined &&
+          (typeof tier.maxYears !== "number" || tier.maxYears <= tier.minYears)
+        ) {
           return NextResponse.json(
-            { error: "Invalid service length tier: maxYears must be greater than minYears" },
-            { status: 400 }
+            {
+              error:
+                "Invalid service length tier: maxYears must be greater than minYears",
+            },
+            { status: 400 },
           );
         }
-        if (typeof tier.accrualRate !== 'number' || tier.accrualRate < 0) {
+        if (typeof tier.accrualRate !== "number" || tier.accrualRate < 0) {
           return NextResponse.json(
-            { error: "Invalid service length tier: accrualRate must be a non-negative number" },
-            { status: 400 }
+            {
+              error:
+                "Invalid service length tier: accrualRate must be a non-negative number",
+            },
+            { status: 400 },
           );
         }
       }
@@ -171,14 +180,14 @@ export async function PUT(
         prorationMethod,
         serviceLengthTiers,
         allowNegativeBalance,
-        isActive
+        isActive,
       },
       include: {
         eventCategory: {
-          select: { id: true, name: true, color: true }
+          select: { id: true, name: true, color: true },
         },
-        assignments: true
-      }
+        assignments: true,
+      },
     });
 
     return NextResponse.json(updatedPolicy);
@@ -186,7 +195,7 @@ export async function PUT(
     console.error("Error updating leave policy:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -194,34 +203,31 @@ export async function PUT(
 // DELETE: Delete a leave policy
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if policy exists and belongs to company
     const existingPolicy = await prisma.leavePolicy.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
+        companyId: session.user.companyId,
       },
       include: {
         _count: {
-          select: { assignments: true }
-        }
-      }
+          select: { assignments: true },
+        },
+      },
     });
 
     if (!existingPolicy) {
       return NextResponse.json(
         { error: "Leave policy not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -230,28 +236,28 @@ export async function DELETE(
       // Instead of hard delete, deactivate the policy
       const deactivatedPolicy = await prisma.leavePolicy.update({
         where: { id: params.id },
-        data: { isActive: false }
+        data: { isActive: false },
       });
-      
+
       return NextResponse.json({
         message: "Leave policy deactivated (has existing assignments)",
-        policy: deactivatedPolicy
+        policy: deactivatedPolicy,
       });
     }
 
     // Hard delete if no assignments
     await prisma.leavePolicy.delete({
-      where: { id: params.id }
+      where: { id: params.id },
     });
 
     return NextResponse.json({
-      message: "Leave policy deleted successfully"
+      message: "Leave policy deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting leave policy:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -21,8 +21,11 @@ export async function GET(req: Request) {
     },
   });
 
-  if (!user || !hasPermission(user as any, 'onboarding', 'read')) {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  if (!user || !hasPermission(user as any, "onboarding", "read")) {
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   const templates = await prisma.onboardingTemplate.findMany({
@@ -66,8 +69,11 @@ export async function POST(req: Request) {
     },
   });
 
-  if (!user || !hasPermission(user as any, 'onboarding', 'edit')) {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  if (!user || !hasPermission(user as any, "onboarding", "edit")) {
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -97,8 +103,11 @@ export async function PUT(req: Request) {
     },
   });
 
-  if (!user || !hasPermission(user as any, 'onboarding', 'edit')) {
-    return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+  if (!user || !hasPermission(user as any, "onboarding", "edit")) {
+    return NextResponse.json(
+      { error: "Insufficient permissions" },
+      { status: 403 },
+    );
   }
 
   try {

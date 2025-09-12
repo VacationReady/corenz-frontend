@@ -16,6 +16,9 @@ export async function GET(req: Request) {
     return NextResponse.json(rules);
   } catch (error) {
     console.error("Error fetching expiry rules:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

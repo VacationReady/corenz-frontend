@@ -31,7 +31,10 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json(report);
   } catch (error) {
     console.error("Error fetching report:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -52,6 +55,9 @@ export async function DELETE(req: Request, { params }: Params) {
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error) {
     console.error("Error deleting report:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

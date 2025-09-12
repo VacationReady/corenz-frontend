@@ -12,7 +12,10 @@ export async function POST(req: Request) {
 
     const { name, fields, category } = await req.json();
     if (!fields || !Array.isArray(fields) || fields.length === 0) {
-      return NextResponse.json({ error: "No fields selected." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No fields selected." },
+        { status: 400 },
+      );
     }
 
     const newReport = await prisma.savedReport.create({

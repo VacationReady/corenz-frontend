@@ -5,8 +5,14 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
 const AuditLogQuerySchema = z.object({
-  page: z.string().transform(val => parseInt(val) || 1).optional(),
-  limit: z.string().transform(val => Math.min(parseInt(val) || 50, 100)).optional(),
+  page: z
+    .string()
+    .transform((val) => parseInt(val) || 1)
+    .optional(),
+  limit: z
+    .string()
+    .transform((val) => Math.min(parseInt(val) || 50, 100))
+    .optional(),
   entityType: z.string().optional(),
   action: z.string().optional(),
   actorId: z.string().optional(),
@@ -61,9 +67,9 @@ export async function GET(req: Request) {
     if (validatedParams.search) {
       const searchTerm = validatedParams.search.toLowerCase();
       whereClause.OR = [
-        { entityId: { contains: searchTerm, mode: 'insensitive' } },
-        { actor: { email: { contains: searchTerm, mode: 'insensitive' } } },
-        { actor: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { entityId: { contains: searchTerm, mode: "insensitive" } },
+        { actor: { email: { contains: searchTerm, mode: "insensitive" } } },
+        { actor: { name: { contains: searchTerm, mode: "insensitive" } } },
         { changes: { path: [], string_contains: searchTerm } },
         { metadata: { path: [], string_contains: searchTerm } },
       ];
@@ -87,7 +93,7 @@ export async function GET(req: Request) {
         },
       },
       orderBy: {
-        timestamp: 'desc',
+        timestamp: "desc",
       },
       skip,
       take: limit,
@@ -110,17 +116,17 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("GET /api/audit-logs error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid query parameters", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to fetch audit logs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -134,21 +140,27 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    
+
     const AuditLogCreateSchema = z.object({
       entityType: z.enum([
         "LEAVE_POLICY",
-        "PERMISSION_PROFILE", 
+        "PERMISSION_PROFILE",
         "EVENT_RULE",
         "DOCUMENT_TYPE",
         "AUTOMATION_RULE",
         "NOTIFICATION_CHANNEL",
         "SSO_CONFIG",
         "SCIM_CONFIG",
-        "BRANDING_CONFIG"
+        "BRANDING_CONFIG",
       ]),
       entityId: z.string(),
-      action: z.enum(["CREATED", "UPDATED", "DELETED", "ACTIVATED", "DEACTIVATED"]),
+      action: z.enum([
+        "CREATED",
+        "UPDATED",
+        "DELETED",
+        "ACTIVATED",
+        "DEACTIVATED",
+      ]),
       changes: z.any().optional(),
       metadata: z.any().optional(),
     });
@@ -160,7 +172,7 @@ export async function POST(req: Request) {
         ...validatedData,
         companyId: session.user.companyId,
         actorId: session.user.id,
-        actorType: 'USER',
+        actorType: "USER",
       },
       include: {
         actor: {
@@ -176,17 +188,17 @@ export async function POST(req: Request) {
     return NextResponse.json(auditLog, { status: 201 });
   } catch (error) {
     console.error("POST /api/audit-logs error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create audit log entry" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

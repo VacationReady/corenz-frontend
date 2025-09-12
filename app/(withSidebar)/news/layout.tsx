@@ -10,7 +10,11 @@ import AdminSidebar from "@/components/sidebars/AdminSidebar";
 import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 
-export default async function SectionLayout({ children }: { children: ReactNode }) {
+export default async function SectionLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role ?? "EMPLOYEE";
 

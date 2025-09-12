@@ -21,8 +21,9 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        code: true,         // ✅ Useful for ERP sync in dropdown metadata
-        head: {             // ✅ Optional: show department head in UI if needed
+        code: true, // ✅ Useful for ERP sync in dropdown metadata
+        head: {
+          // ✅ Optional: show department head in UI if needed
           select: { id: true, name: true },
         },
       },
@@ -31,6 +32,9 @@ export async function GET() {
     return NextResponse.json(departments);
   } catch (error) {
     console.error("Error fetching active departments:", error);
-    return NextResponse.json({ error: "Failed to fetch active departments" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch active departments" },
+      { status: 500 },
+    );
   }
 }

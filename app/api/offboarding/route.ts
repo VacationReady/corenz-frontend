@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    
+
     if (status && status !== "all") {
       where.status = status;
     }
@@ -79,17 +79,21 @@ export async function GET(req: NextRequest) {
     const recordsWithProgress = offboardingRecords.map((record) => {
       const requiredTasks = record.tasks.filter((task) => task.isRequired);
       const completedRequiredTasks = requiredTasks.filter(
-        (task) => task.completedAt !== null
+        (task) => task.completedAt !== null,
       );
-      const completionPercentage = requiredTasks.length > 0 
-        ? Math.round((completedRequiredTasks.length / requiredTasks.length) * 100)
-        : 0;
+      const completionPercentage =
+        requiredTasks.length > 0
+          ? Math.round(
+              (completedRequiredTasks.length / requiredTasks.length) * 100,
+            )
+          : 0;
 
       return {
         ...record,
         completionPercentage,
         totalTasks: record.tasks.length,
-        completedTasks: record.tasks.filter((task) => task.completedAt !== null).length,
+        completedTasks: record.tasks.filter((task) => task.completedAt !== null)
+          .length,
       };
     });
 
@@ -106,7 +110,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching offboarding records:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -119,12 +123,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { offboardingId, title, description, category, assignedTo, dueDate, isRequired } = body;
+    const {
+      offboardingId,
+      title,
+      description,
+      category,
+      assignedTo,
+      dueDate,
+      isRequired,
+    } = body;
 
     if (!offboardingId || !title || !category) {
       return NextResponse.json(
         { error: "Offboarding ID, title, and category are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -136,7 +148,7 @@ export async function POST(req: NextRequest) {
     if (!offboardingRecord) {
       return NextResponse.json(
         { error: "Offboarding record not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -179,7 +191,7 @@ export async function POST(req: NextRequest) {
     console.error("Error creating offboarding task:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -4,7 +4,10 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { toUTCFromLondon } from "@/lib/time";
-import { generateCompletionToken, sendExitInterviewConfirmation } from "@/lib/email/send";
+import {
+  generateCompletionToken,
+  sendExitInterviewConfirmation,
+} from "@/lib/email/send";
 
 // Validation schema
 const initiateSchema = z.object({
@@ -41,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!["ADMIN", "MANAGER"].includes((session.user as any).role)) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -70,13 +73,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     if (employee.offboardingRecord) {
       return NextResponse.json(
         { error: "Employee is already being offboarded" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -92,7 +98,7 @@ export async function POST(req: NextRequest) {
       if (!interviewer) {
         return NextResponse.json(
           { error: "Interviewer not found" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       interviewerNameValid = `${interviewer.firstName} ${interviewer.lastName}`;
@@ -100,7 +106,7 @@ export async function POST(req: NextRequest) {
     } else if (!interviewerName || !interviewerEmail) {
       return NextResponse.json(
         { error: "Interviewer information is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -109,10 +115,13 @@ export async function POST(req: NextRequest) {
     let exitInterviewEndUTC: Date | null = null;
 
     if (exitInterviewDate && exitInterviewTime) {
-      exitInterviewDateUTC = toUTCFromLondon(exitInterviewDate, exitInterviewTime);
+      exitInterviewDateUTC = toUTCFromLondon(
+        exitInterviewDate,
+        exitInterviewTime,
+      );
       const duration = exitInterviewDuration ?? 60;
       exitInterviewEndUTC = new Date(
-        exitInterviewDateUTC.getTime() + duration * 60 * 1000
+        exitInterviewDateUTC.getTime() + duration * 60 * 1000,
       );
     }
 
@@ -124,7 +133,7 @@ export async function POST(req: NextRequest) {
       if (!template || !template.isActive) {
         return NextResponse.json(
           { error: "Invalid or inactive form template" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -156,7 +165,7 @@ export async function POST(req: NextRequest) {
       location: location ?? null,
       exitInterviewNotes: notes ?? null,
       sendForm,
-      formTemplateId: sendForm ? formTemplateId ?? null : null,
+      formTemplateId: sendForm ? (formTemplateId ?? null) : null,
       formTiming: sendForm ? (formTiming ?? null) : null,
       scheduledSendAt,
       completionTokenHash,
@@ -206,7 +215,7 @@ export async function POST(req: NextRequest) {
           error: "Validation error",
           details: error.errors,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -214,7 +223,7 @@ export async function POST(req: NextRequest) {
       {
         error: "Failed to initiate offboarding",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

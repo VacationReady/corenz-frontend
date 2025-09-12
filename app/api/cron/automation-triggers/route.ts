@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     }
 
     const scheduler = getAutomationScheduler();
-    
+
     // This endpoint is called by external cron services (like Vercel Cron)
     // It manually triggers the scheduler check
     console.log("Cron trigger: Starting automation rule evaluation");
@@ -28,15 +28,14 @@ export async function GET(req: Request) {
       message: "Automation triggers evaluated",
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("Cron automation triggers error:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to evaluate automation triggers",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -54,9 +53,9 @@ export async function POST(req: Request) {
     }
 
     const scheduler = getAutomationScheduler();
-    
+
     console.log("Manual trigger: Starting automation rule evaluation");
-    
+
     // Manually trigger the scheduler check
     await scheduler.checkTriggers?.();
 
@@ -66,15 +65,14 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString(),
       trigger: "manual",
     });
-
   } catch (error) {
     console.error("Manual automation triggers error:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to evaluate automation triggers",
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

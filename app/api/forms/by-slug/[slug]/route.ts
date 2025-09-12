@@ -4,7 +4,10 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET: Fetch form by slug
-export async function GET(req: Request, { params }: { params: { slug: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { slug: string } },
+) {
   const session = await getServerSession(authOptions);
 
   console.log("📡 Incoming request to /api/forms/by-slug/[slug]");
@@ -72,7 +75,8 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
       console.log("  Dept ID on user:", userDepartmentId);
       console.log(
         "  Match result:",
-        userDepartmentId && formDebug?.visibleToDepartments?.includes(userDepartmentId)
+        userDepartmentId &&
+          formDebug?.visibleToDepartments?.includes(userDepartmentId),
       );
 
       visibilityFilter = {
@@ -103,7 +107,10 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
       };
     }
 
-    console.log("🧩 Final visibility filter:", JSON.stringify(visibilityFilter, null, 2));
+    console.log(
+      "🧩 Final visibility filter:",
+      JSON.stringify(visibilityFilter, null, 2),
+    );
 
     const form = await prisma.form.findFirst({
       where: {
@@ -130,7 +137,14 @@ export async function GET(req: Request, { params }: { params: { slug: string } }
 
     return NextResponse.json(form);
   } catch (error: any) {
-    console.error("🔥 Error fetching form by slug:", error.message, error.stack);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error(
+      "🔥 Error fetching form by slug:",
+      error.message,
+      error.stack,
+    );
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

@@ -4,7 +4,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -13,8 +16,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const userId = params.id;
     const body = await req.json();
-    let url: string | undefined = typeof body?.url === "string" ? body.url : undefined;
-    const path: string | undefined = typeof body?.path === "string" ? body.path : undefined;
+    let url: string | undefined =
+      typeof body?.url === "string" ? body.url : undefined;
+    const path: string | undefined =
+      typeof body?.path === "string" ? body.path : undefined;
 
     if (!url && path) {
       const { data } = supabase.storage.from("documents").getPublicUrl(path);
@@ -22,7 +27,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     if (!url) {
-      return NextResponse.json({ error: "Invalid url or path" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid url or path" },
+        { status: 400 },
+      );
     }
 
     // Allow self-update or admin
@@ -38,8 +46,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     return NextResponse.json(updated);
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Server error" },
+      { status: 500 },
+    );
   }
 }
-
-

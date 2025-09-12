@@ -29,7 +29,10 @@ export const computedHandlers: ComputedFieldRegistry = {
     "_computed.durationDays": (item) => {
       const start = new Date(item.startDate);
       const end = new Date(item.endDate);
-      return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return (
+        Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+        1
+      );
     },
   },
 
@@ -40,7 +43,9 @@ export const computedHandlers: ComputedFieldRegistry = {
     "_computed.daysUntilExpiry": (item) => {
       const expiry = new Date(item.expiryDate);
       const today = new Date();
-      return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.ceil(
+        (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
     },
   },
 
@@ -51,7 +56,9 @@ export const computedHandlers: ComputedFieldRegistry = {
     "_computed.daysUntilExpiry": (item) => {
       const expiry = new Date(item.expiryDate);
       const today = new Date();
-      return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.ceil(
+        (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
     },
   },
 
@@ -62,7 +69,9 @@ export const computedHandlers: ComputedFieldRegistry = {
     "_computed.daysSinceCompleted": (item) => {
       const completed = new Date(item.completedAt);
       const today = new Date();
-      return Math.floor((today.getTime() - completed.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.floor(
+        (today.getTime() - completed.getTime()) / (1000 * 60 * 60 * 24),
+      );
     },
   },
 
@@ -73,7 +82,9 @@ export const computedHandlers: ComputedFieldRegistry = {
     "_computed.daysSinceUpload": (item) => {
       const uploaded = new Date(item.uploadedAt);
       const today = new Date();
-      return Math.floor((today.getTime() - uploaded.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.floor(
+        (today.getTime() - uploaded.getTime()) / (1000 * 60 * 60 * 24),
+      );
     },
   },
 
@@ -81,11 +92,14 @@ export const computedHandlers: ComputedFieldRegistry = {
   // Employee
   // ===========================
   employee: {
-    "_computed.fullName": (item) => `${item.firstName || ""} ${item.lastName || ""}`.trim(),
+    "_computed.fullName": (item) =>
+      `${item.firstName || ""} ${item.lastName || ""}`.trim(),
     "_computed.serviceYears": (item) => {
       const start = new Date(item.startDate);
       const now = new Date();
-      return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      return Math.floor(
+        (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25),
+      );
     },
   },
 

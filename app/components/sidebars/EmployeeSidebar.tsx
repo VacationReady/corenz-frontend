@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -11,10 +11,14 @@ export default function EmployeeSidebar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
-    { label: 'Calendar', href: '/calendar', icon: <Calendar size={18} /> },
-    { label: 'My Leave', href: '/leave', icon: <Clock size={18} /> },
-    { label: 'My Profile', href: '/profile', icon: <User size={18} /> },
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: <LayoutDashboard size={18} />,
+    },
+    { label: "Calendar", href: "/calendar", icon: <Calendar size={18} /> },
+    { label: "My Leave", href: "/leave", icon: <Clock size={18} /> },
+    { label: "My Profile", href: "/profile", icon: <User size={18} /> },
   ];
 
   return (
@@ -25,10 +29,12 @@ export default function EmployeeSidebar() {
         <div className="px-8 py-8 border-b border-glass">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
-              <span className="text-primary-foreground font-bold text-lg">C</span>
+              <span className="text-primary-foreground font-bold text-lg">
+                P
+              </span>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">CoreNZ</h2>
+              <h2 className="text-2xl font-bold text-foreground">PeopleCore</h2>
               <p className="text-sm text-muted-foreground">Employee Portal</p>
             </div>
           </div>
@@ -36,8 +42,12 @@ export default function EmployeeSidebar() {
 
         {/* Quick Actions Header */}
         <div className="px-8 py-6">
-          <h2 className="text-lg font-bold text-foreground mb-2">Quick actions</h2>
-          <p className="text-sm text-muted-foreground">Navigate your workspace</p>
+          <h2 className="text-lg font-bold text-foreground mb-2">
+            Quick actions
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Navigate your workspace
+          </p>
         </div>
 
         {/* Navigation */}
@@ -48,13 +58,15 @@ export default function EmployeeSidebar() {
                 key={href}
                 href={href}
                 className={clsx(
-                  'flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass hover-glass',
+                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass hover-glass",
                   pathname === href
-                    ? 'bg-primary text-primary-foreground shadow-warm'
-                    : 'text-foreground'
+                    ? "bg-primary text-primary-foreground shadow-warm"
+                    : "text-foreground",
                 )}
               >
-                <div className="w-6 h-6">{React.cloneElement(icon, { size: 24 })}</div>
+                <div className="w-6 h-6">
+                  {React.cloneElement(icon, { size: 24 })}
+                </div>
                 <span className="truncate font-medium text-base">{label}</span>
               </Link>
             ))}

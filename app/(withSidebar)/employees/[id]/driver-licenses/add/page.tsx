@@ -1,16 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 
 export default function AddDriverLicence() {
   const router = useRouter();
   const params = useParams();
-  const employeeIdRaw = params?.id ?? '';
-const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
+  const employeeIdRaw = params?.id ?? "";
+  const employeeId = Array.isArray(employeeIdRaw)
+    ? employeeIdRaw[0]
+    : employeeIdRaw;
 
   const [loading, setLoading] = useState(false);
 
@@ -19,11 +21,11 @@ const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdR
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    formData.append('employeeId', employeeId);
+    formData.append("employeeId", employeeId);
 
     try {
-      const res = await fetch('/api/driver-licenses/create', {
-        method: 'POST',
+      const res = await fetch("/api/driver-licenses/create", {
+        method: "POST",
         body: formData,
       });
 
@@ -31,11 +33,11 @@ const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdR
         router.push(`/employees/${employeeId}/driver-licenses`);
       } else {
         const error = await res.json();
-        alert('Error: ' + error.error);
+        alert("Error: " + error.error);
       }
     } catch (error) {
       console.error(error);
-      alert('Upload failed.');
+      alert("Upload failed.");
     } finally {
       setLoading(false);
     }
@@ -47,12 +49,22 @@ const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdR
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label>Type</Label>
-          <Input name="type" type="text" placeholder="e.g., Full NZ Car" required />
+          <Input
+            name="type"
+            type="text"
+            placeholder="e.g., Full NZ Car"
+            required
+          />
         </div>
 
         <div>
           <Label>Licence Number</Label>
-          <Input name="licenceNumber" type="text" placeholder="Licence Number" required />
+          <Input
+            name="licenceNumber"
+            type="text"
+            placeholder="Licence Number"
+            required
+          />
         </div>
 
         <div>
@@ -71,7 +83,7 @@ const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdR
         </div>
 
         <Button type="submit" disabled={loading}>
-          {loading ? 'Uploading...' : 'Add Licence'}
+          {loading ? "Uploading..." : "Add Licence"}
         </Button>
       </form>
     </div>

@@ -6,7 +6,12 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 interface AddLeaveRequestDialogProps {
   employeeId: string;
@@ -73,7 +78,9 @@ export default function AddLeaveRequestDialog({
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const diff =
+        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+        1;
       setTotalDays(diff > 0 ? diff : 0);
     } else {
       setTotalDays(0);
@@ -85,7 +92,7 @@ export default function AddLeaveRequestDialog({
       (async () => {
         try {
           const res = await fetch(
-            `/api/employees/${employeeId}/leave-requests/preview-deduction?startDate=${startDate}&endDate=${endDate}`
+            `/api/employees/${employeeId}/leave-requests/preview-deduction?startDate=${startDate}&endDate=${endDate}`,
           );
           if (res.ok) {
             const data = await res.json();
@@ -120,7 +127,10 @@ export default function AddLeaveRequestDialog({
       return;
     }
 
-    if (!isAdminOrManager && selectedCategory.name.toLowerCase().includes("sick")) {
+    if (
+      !isAdminOrManager &&
+      selectedCategory.name.toLowerCase().includes("sick")
+    ) {
       toast.error("Only managers/admins can book sick leave directly.");
       return;
     }
@@ -158,7 +168,8 @@ export default function AddLeaveRequestDialog({
 
       if (!res.ok || data.success === false) {
         const errorMessage =
-          data?.error || `Failed to submit leave request. Status: ${res.status}`;
+          data?.error ||
+          `Failed to submit leave request. Status: ${res.status}`;
         toast.error(errorMessage);
         return;
       }
@@ -177,7 +188,8 @@ export default function AddLeaveRequestDialog({
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
       toast.error(
-        error?.message || "An unexpected error occurred while submitting the leave request."
+        error?.message ||
+          "An unexpected error occurred while submitting the leave request.",
       );
     } finally {
       setLoading(false);
@@ -195,7 +207,11 @@ export default function AddLeaveRequestDialog({
             Book Leave
           </Button>
         )}
-        <Modal isOpen={modalOpen} onClose={() => handleSetOpen(false)} title="Book Leave">
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => handleSetOpen(false)}
+          title="Book Leave"
+        >
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium">Leave Type</label>
@@ -215,7 +231,9 @@ export default function AddLeaveRequestDialog({
 
             {selectedCategory && selectedCategory.subcategories.length > 0 && (
               <div>
-                <label className="block text-sm font-medium">Subcategory (optional)</label>
+                <label className="block text-sm font-medium">
+                  Subcategory (optional)
+                </label>
                 <select
                   className="w-full border rounded p-2 mt-1"
                   value={subcategory}
@@ -233,7 +251,11 @@ export default function AddLeaveRequestDialog({
 
             <div>
               <label className="block text-sm font-medium">Start Date</label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </div>
 
             <div>
@@ -245,50 +267,65 @@ export default function AddLeaveRequestDialog({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs max-w-[200px]">
-                      If returning to work on Monday, select Sunday as your end date.
+                      If returning to work on Monday, select Sunday as your end
+                      date.
                     </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
               <p className="text-xs text-gray-500 mt-1">
-                Select the last day you will be <em>away</em>. Do not include your return-to-work day.
+                Select the last day you will be <em>away</em>. Do not include
+                your return-to-work day.
               </p>
             </div>
 
-            <p className="text-sm text-gray-700">Total Days Requested: {totalDays}</p>
+            <p className="text-sm text-gray-700">
+              Total Days Requested: {totalDays}
+            </p>
             {deduction !== null && (
               <p className="text-sm font-medium text-green-700">
                 ✅ Total Days Deducted (per working pattern): {totalDeducted}
               </p>
             )}
 
-            {selectedCategory && selectedCategory.name.toLowerCase().includes("sick") && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium">Reason for Sickness</label>
-                  <Input
-                    value={sickReason}
-                    onChange={(e) => setSickReason(e.target.value)}
-                    placeholder="E.g. Flu, injury, etc."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Paid or Unpaid</label>
-                  <select
-                    className="w-full border rounded p-2 mt-1"
-                    value={paidStatus}
-                    onChange={(e) => setPaidStatus(e.target.value)}
-                  >
-                    <option value="PAID">Paid</option>
-                    <option value="UNPAID">Unpaid</option>
-                  </select>
-                </div>
-              </>
-            )}
+            {selectedCategory &&
+              selectedCategory.name.toLowerCase().includes("sick") && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Reason for Sickness
+                    </label>
+                    <Input
+                      value={sickReason}
+                      onChange={(e) => setSickReason(e.target.value)}
+                      placeholder="E.g. Flu, injury, etc."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Paid or Unpaid
+                    </label>
+                    <select
+                      className="w-full border rounded p-2 mt-1"
+                      value={paidStatus}
+                      onChange={(e) => setPaidStatus(e.target.value)}
+                    >
+                      <option value="PAID">Paid</option>
+                      <option value="UNPAID">Unpaid</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
             <div>
-              <label className="block text-sm font-medium">General Reason (optional)</label>
+              <label className="block text-sm font-medium">
+                General Reason (optional)
+              </label>
               <Input
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

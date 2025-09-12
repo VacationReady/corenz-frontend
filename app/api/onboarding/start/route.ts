@@ -9,7 +9,11 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 1. By Job Role
   if (employee.jobRoleId) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
-      where: { jobRoles: { some: { id: employee.jobRoleId } }, isActive: true, companyId },
+      where: {
+        jobRoles: { some: { id: employee.jobRoleId } },
+        isActive: true,
+        companyId,
+      },
       include: { steps: true },
     });
     if (byJobRole) return byJobRole;
@@ -18,14 +22,21 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 2. By Department
   if (employee.departmentId) {
     const byDept = await prisma.onboardingTemplate.findFirst({
-      where: { departments: { some: { id: employee.departmentId } }, isActive: true, companyId },
+      where: {
+        departments: { some: { id: employee.departmentId } },
+        isActive: true,
+        companyId,
+      },
       include: { steps: true },
     });
     if (byDept) return byDept;
   }
 
   // 3. Default (fallback)
-  return prisma.onboardingTemplate.findFirst({ where: { isDefault: true, isActive: true, companyId }, include: { steps: true } });
+  return prisma.onboardingTemplate.findFirst({
+    where: { isDefault: true, isActive: true, companyId },
+    include: { steps: true },
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -35,9 +46,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { employeeId, templateId: rawTemplateId, sendEmail = true } = await req.json();
+    const {
+      employeeId,
+      templateId: rawTemplateId,
+      sendEmail = true,
+    } = await req.json();
     if (!employeeId) {
-      return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "employeeId is required" },
+        { status: 400 },
+      );
     }
 
     const templateId =
@@ -52,7 +70,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     // Prevent duplicate onboarding
@@ -60,7 +81,10 @@ export async function POST(req: NextRequest) {
       where: { employeeId, status: { in: ["active", "in_progress"] } },
     });
     if (active) {
-      return NextResponse.json({ error: "Onboarding already in progress" }, { status: 409 });
+      return NextResponse.json(
+        { error: "Onboarding already in progress" },
+        { status: 409 },
+      );
     }
 
     // Fetch related user for email notification and template resolution
@@ -79,13 +103,22 @@ export async function POST(req: NextRequest) {
       });
     }
     if (!template) {
-      template = await findBestOnboardingTemplate(employee, session.user.companyId);
+      template = await findBestOnboardingTemplate(
+        employee,
+        session.user.companyId,
+      );
     }
     if (!template) {
-      return NextResponse.json({ error: "No onboarding template found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No onboarding template found" },
+        { status: 400 },
+      );
     }
     if (!template.steps?.length) {
-      return NextResponse.json({ error: "Selected template has no steps" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Selected template has no steps" },
+        { status: 400 },
+      );
     }
 
     // Create assignment + instance + seed steps atomically
@@ -121,13 +154,16 @@ export async function POST(req: NextRequest) {
 
     if (sendEmail) {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "";
+        const baseUrl =
+          process.env.NEXT_PUBLIC_APP_URL ||
+          process.env.NEXT_PUBLIC_BASE_URL ||
+          "";
         const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
         const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
         await resend.emails.send({
-          from: "CoreNZ Notifications <onboarding@resend.dev>",
+          from: "PeopleCore Notifications <onboarding@resend.dev>",
           to: user.email,
-          subject: "Welcome to CoreNZ – Your onboarding is ready",
+          subject: "Welcome to PeopleCore – Your onboarding is ready",
           html: `
             <p>Hi ${user.firstName || "there"},</p>
             <p>Your onboarding has been started. Please log in and complete your onboarding steps.</p>
@@ -144,8 +180,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("Start onboarding error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
-
-

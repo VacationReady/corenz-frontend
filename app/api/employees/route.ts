@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     if (!session || !session.user || !session.user.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized or missing company context." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -135,14 +135,14 @@ export async function POST(req: Request) {
     if (!firstName || !lastName || !email || !startDate || !role) {
       return NextResponse.json(
         { success: false, error: "Missing required fields." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!onboardingTemplateId) {
       return NextResponse.json(
         { success: false, error: "Need to select onboarding template" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -151,8 +151,11 @@ export async function POST(req: Request) {
     });
     if (existingUser && existingUser.isActivated) {
       return NextResponse.json(
-        { success: false, error: "A user with this email already exists and is activated." },
-        { status: 400 }
+        {
+          success: false,
+          error: "A user with this email already exists and is activated.",
+        },
+        { status: 400 },
       );
     }
 
@@ -163,7 +166,7 @@ export async function POST(req: Request) {
           error:
             "A user with this email already exists but is not activated. Please activate this user or use a different email.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -171,7 +174,9 @@ export async function POST(req: Request) {
     const hashedPassword = ""; // Leave blank for activation
 
     // ✅ Handle manager linking safely
-    let managerConnect: Prisma.UserCreateNestedOneWithoutSubordinatesInput | undefined = undefined;
+    let managerConnect:
+      | Prisma.UserCreateNestedOneWithoutSubordinatesInput
+      | undefined = undefined;
     if (managerId && managerId.trim() !== "") {
       const managerEmployee = await prisma.employee.findUnique({
         where: { id: managerId },
@@ -182,7 +187,7 @@ export async function POST(req: Request) {
         managerConnect = { connect: { id: managerEmployee.userId } };
       } else {
         console.warn(
-          `Manager Employee ID ${managerId} provided, but no Employee found. Skipping manager connect.`
+          `Manager Employee ID ${managerId} provided, but no Employee found. Skipping manager connect.`,
         );
       }
     }
@@ -198,7 +203,9 @@ export async function POST(req: Request) {
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         role,
         company: { connect: { id: companyId } },
-        department: departmentId ? { connect: { id: departmentId } } : undefined,
+        department: departmentId
+          ? { connect: { id: departmentId } }
+          : undefined,
         jobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
         manager: managerConnect,
       },
@@ -212,7 +219,9 @@ export async function POST(req: Request) {
       data: {
         user: { connect: { id: user.id } },
         isActive: true,
-        department: departmentId ? { connect: { id: departmentId } } : undefined,
+        department: departmentId
+          ? { connect: { id: departmentId } }
+          : undefined,
         company: { connect: { id: companyId! } }, // ✅ use relation connect
         onboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }
@@ -237,10 +246,10 @@ export async function POST(req: Request) {
       await resend.emails.send({
         from: "onboarding@resend.dev",
         to: email,
-        subject: "Activate Your CoreNZ Account",
+        subject: "Activate Your PeopleCore Account",
         html: `
           <p>Hi ${firstName},</p>
-          <p>Welcome to CoreNZ! Please click the link below to activate your account and get started:</p>
+          <p>Welcome to PeopleCore! Please click the link below to activate your account and get started:</p>
           <p><a href="${activationLink}">Activate Your Account</a></p>
         `,
       });
@@ -249,18 +258,21 @@ export async function POST(req: Request) {
     // ✅ Optional onboarding trigger
     if (normalizedTemplateId) {
       try {
-        const startRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            cookie: req.headers.get("cookie") ?? "",
+        const startRes = await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/api/onboarding/start`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              cookie: req.headers.get("cookie") ?? "",
+            },
+            body: JSON.stringify({
+              employeeId: employee.id,
+              templateId: normalizedTemplateId,
+              sendEmail: false,
+            }),
           },
-          body: JSON.stringify({
-            employeeId: employee.id,
-            templateId: normalizedTemplateId,
-            sendEmail: false,
-          }),
-        });
+        );
 
         if (!startRes.ok) {
           console.warn("Onboarding start failed:", await startRes.text());
@@ -338,8 +350,11 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Error creating employee:", error);
     return NextResponse.json(
-      { success: false, error: "Internal server error while creating employee." },
-      { status: 500 }
+      {
+        success: false,
+        error: "Internal server error while creating employee.",
+      },
+      { status: 500 },
     );
   }
 }

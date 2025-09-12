@@ -7,15 +7,20 @@ import { z } from "zod";
 const updateTemplateSchema = z.object({
   name: z.string().min(1, "Template name is required").optional(),
   description: z.string().optional(),
-  schemaJson: z.record(z.any()).refine((schema) => {
-    return schema && typeof schema === 'object' && Array.isArray(schema.fields);
-  }, "Invalid form schema").optional(),
+  schemaJson: z
+    .record(z.any())
+    .refine((schema) => {
+      return (
+        schema && typeof schema === "object" && Array.isArray(schema.fields)
+      );
+    }, "Invalid form schema")
+    .optional(),
   isActive: z.boolean().optional(),
 });
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,8 +29,11 @@ export async function GET(
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { id } = params;
@@ -36,29 +44,34 @@ export async function GET(
         _count: {
           select: {
             offboardings: true,
-            submissions: true
-          }
-        }
-      }
+            submissions: true,
+          },
+        },
+      },
     });
 
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Template not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(template);
-
   } catch (error) {
-    console.error('Error fetching exit interview template:', error);
-    return NextResponse.json({ 
-      error: "Failed to fetch template" 
-    }, { status: 500 });
+    console.error("Error fetching exit interview template:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch template",
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -67,8 +80,11 @@ export async function PUT(
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { id } = params;
@@ -77,16 +93,19 @@ export async function PUT(
 
     // Check if template exists
     const existingTemplate = await prisma.exitInterviewFormTemplate.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingTemplate) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Template not found" },
+        { status: 404 },
+      );
     }
 
     const template = await prisma.exitInterviewFormTemplate.update({
       where: { id },
-      data: validatedData
+      data: validatedData,
     });
 
     return NextResponse.json({
@@ -96,29 +115,34 @@ export async function PUT(
         name: template.name,
         description: template.description,
         isActive: template.isActive,
-        updatedAt: template.updatedAt
-      }
+        updatedAt: template.updatedAt,
+      },
     });
-
   } catch (error) {
-    console.error('Error updating exit interview template:', error);
-    
+    console.error("Error updating exit interview template:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: "Validation error", 
-        details: error.errors 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          details: error.errors,
+        },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ 
-      error: "Failed to update template" 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to update template",
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -127,8 +151,11 @@ export async function DELETE(
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { id } = params;
@@ -140,36 +167,45 @@ export async function DELETE(
         _count: {
           select: {
             offboardings: true,
-            submissions: true
-          }
-        }
-      }
+            submissions: true,
+          },
+        },
+      },
     });
 
     if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Template not found" },
+        { status: 404 },
+      );
     }
 
     // Check if template is in use
     if (template._count.offboardings > 0 || template._count.submissions > 0) {
-      return NextResponse.json({ 
-        error: "Cannot delete template that is in use. Deactivate it instead." 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error:
+            "Cannot delete template that is in use. Deactivate it instead.",
+        },
+        { status: 400 },
+      );
     }
 
     await prisma.exitInterviewFormTemplate.delete({
-      where: { id }
+      where: { id },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Template deleted successfully"
+      message: "Template deleted successfully",
     });
-
   } catch (error) {
-    console.error('Error deleting exit interview template:', error);
-    return NextResponse.json({ 
-      error: "Failed to delete template" 
-    }, { status: 500 });
+    console.error("Error deleting exit interview template:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to delete template",
+      },
+      { status: 500 },
+    );
   }
 }

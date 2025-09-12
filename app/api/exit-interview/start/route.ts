@@ -6,7 +6,7 @@ import { z } from "zod";
 // based on the stored completionTokenHash. No offboardingId is required
 // from the client as it can be derived from the lookup.
 const startSchema = z.object({
-  token: z.string().min(1)
+  token: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -20,28 +20,34 @@ export async function POST(req: NextRequest) {
       where: { completionTokenHash: token },
       include: {
         employee: {
-          include: { user: true }
+          include: { user: true },
         },
-        formTemplate: true
-      }
+        formTemplate: true,
+      },
     });
 
     if (!offboarding) {
-      return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Offboarding record not found" },
+        { status: 404 },
+      );
     }
 
     // Check if already submitted
-    if (offboarding.completionStatus === 'SUBMITTED') {
-      return NextResponse.json({ error: "Form already submitted" }, { status: 400 });
+    if (offboarding.completionStatus === "SUBMITTED") {
+      return NextResponse.json(
+        { error: "Form already submitted" },
+        { status: 400 },
+      );
     }
 
     // Update completion status to STARTED if it's still PENDING
-    if (offboarding.completionStatus === 'PENDING') {
+    if (offboarding.completionStatus === "PENDING") {
       await prisma.employeeOffboarding.update({
         where: { id: offboarding.id },
         data: {
-          completionStatus: 'STARTED'
-        }
+          completionStatus: "STARTED",
+        },
       });
     }
 
@@ -51,23 +57,28 @@ export async function POST(req: NextRequest) {
       formTemplate: offboarding.formTemplate,
       employee: {
         firstName: offboarding.employee.user.firstName,
-        lastName: offboarding.employee.user.lastName
+        lastName: offboarding.employee.user.lastName,
       },
-      offboardingId: offboarding.id
+      offboardingId: offboarding.id,
     });
-
   } catch (error) {
-    console.error('Error starting exit interview form:', error);
-    
+    console.error("Error starting exit interview form:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: "Validation error", 
-        details: error.errors 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          details: error.errors,
+        },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ 
-      error: "Failed to start form" 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to start form",
+      },
+      { status: 500 },
+    );
   }
 }

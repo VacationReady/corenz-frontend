@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Trash2, Plus, Bold, Italic, Underline } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Trash2, Plus, Bold, Italic, Underline } from "lucide-react";
 
 type ContentBlock =
-  | { type: 'heading'; level: number; text: string }
-  | { type: 'paragraph'; text: string }
-  | { type: 'bullet_list'; items: string[] };
+  | { type: "heading"; level: number; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "bullet_list"; items: string[] };
 
 interface Props {
   value: ContentBlock[];
@@ -24,13 +24,13 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
     onChange(newBlocks);
   };
 
-  const addBlock = (type: ContentBlock['type']) => {
+  const addBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock =
-      type === 'heading'
-        ? { type: 'heading', level: 2, text: '' }
-        : type === 'bullet_list'
-        ? { type: 'bullet_list', items: [''] }
-        : { type: 'paragraph', text: '' };
+      type === "heading"
+        ? { type: "heading", level: 2, text: "" }
+        : type === "bullet_list"
+          ? { type: "bullet_list", items: [""] }
+          : { type: "paragraph", text: "" };
 
     updateBlocks([...blocks, newBlock]);
   };
@@ -52,10 +52,10 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
   };
 
   const FONT_SIZES: { label: string; value: string }[] = [
-    { label: 'Small', value: '2' },
-    { label: 'Normal', value: '3' },
-    { label: 'Large', value: '5' },
-    { label: 'Huge', value: '7' },
+    { label: "Small", value: "2" },
+    { label: "Normal", value: "3" },
+    { label: "Large", value: "5" },
+    { label: "Huge", value: "7" },
   ];
 
   return (
@@ -74,7 +74,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
             <Trash2 size={16} />
           </button>
 
-          {block.type === 'heading' && (
+          {block.type === "heading" && (
             <>
               <label className="block text-sm font-medium">Heading</label>
               <Input
@@ -87,79 +87,79 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
             </>
           )}
 
-          {block.type === 'paragraph' && (
-  <>
-    <label className="block text-sm font-medium mb-1">
-      Paragraph (Rich Text)
-    </label>
+          {block.type === "paragraph" && (
+            <>
+              <label className="block text-sm font-medium mb-1">
+                Paragraph (Rich Text)
+              </label>
 
-    {/* Toolbar (unchanged) */}
-    <div className="flex items-center gap-2 mb-2">
-      <select
-        className="border text-sm px-2 py-1 rounded"
-        onChange={(e) => applyCommand('fontSize', e.target.value)}
-        defaultValue="3"
-      >
-        {FONT_SIZES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        onClick={() => applyCommand('bold')}
-        title="Bold"
-      >
-        <Bold className="w-4 h-4" />
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        onClick={() => applyCommand('italic')}
-        title="Italic"
-      >
-        <Italic className="w-4 h-4" />
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        onClick={() => applyCommand('underline')}
-        title="Underline"
-      >
-        <Underline className="w-4 h-4" />
-      </Button>
-    </div>
+              {/* Toolbar (unchanged) */}
+              <div className="flex items-center gap-2 mb-2">
+                <select
+                  className="border text-sm px-2 py-1 rounded"
+                  onChange={(e) => applyCommand("fontSize", e.target.value)}
+                  defaultValue="3"
+                >
+                  {FONT_SIZES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyCommand("bold")}
+                  title="Bold"
+                >
+                  <Bold className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyCommand("italic")}
+                  title="Italic"
+                >
+                  <Italic className="w-4 h-4" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyCommand("underline")}
+                  title="Underline"
+                >
+                  <Underline className="w-4 h-4" />
+                </Button>
+              </div>
 
-    {/* Rich paragraph box */}
-    <div
-      contentEditable
-      suppressContentEditableWarning
-      ref={(el) => {
-        paragraphRefs.current[index] = el;
-        if (el && el.innerHTML !== block.text) {
-          el.innerHTML = block.text;
-        }
-      }}
-      className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
-      onInput={(e) =>
-        updateBlock(index, {
-          ...block,
-          text: (e.target as HTMLDivElement).innerHTML,
-        })
-      }
-    />
-    <p className="text-xs text-muted-foreground">
-      Use formatting buttons or keyboard shortcuts (e.g. Ctrl+B)
-    </p>
-  </>
-)}
+              {/* Rich paragraph box */}
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                ref={(el) => {
+                  paragraphRefs.current[index] = el;
+                  if (el && el.innerHTML !== block.text) {
+                    el.innerHTML = block.text;
+                  }
+                }}
+                className="min-h-[100px] border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-200"
+                onInput={(e) =>
+                  updateBlock(index, {
+                    ...block,
+                    text: (e.target as HTMLDivElement).innerHTML,
+                  })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Use formatting buttons or keyboard shortcuts (e.g. Ctrl+B)
+              </p>
+            </>
+          )}
 
-          {block.type === 'bullet_list' && (
+          {block.type === "bullet_list" && (
             <>
               <label className="block text-sm font-medium">Bullet List</label>
               {block.items.map((item, i) => (
@@ -182,7 +182,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 onClick={() =>
                   updateBlock(index, {
                     ...block,
-                    items: [...block.items, ''],
+                    items: [...block.items, ""],
                   })
                 }
               >
@@ -197,7 +197,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => addBlock('heading')}
+          onClick={() => addBlock("heading")}
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" /> Add Heading
@@ -205,7 +205,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => addBlock('paragraph')}
+          onClick={() => addBlock("paragraph")}
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" /> Add Paragraph
@@ -213,7 +213,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
         <Button
           type="button"
           variant="ghost"
-          onClick={() => addBlock('bullet_list')}
+          onClick={() => addBlock("bullet_list")}
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" /> Add Bullet List

@@ -1,30 +1,36 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import supabase from '@/lib/supabase-admin';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import supabase from "@/lib/supabase-admin";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await req.formData();
-  const employeeId = formData.get('employeeId') as string;
-  const type = formData.get('type') as string;
-  const licenceNumber = formData.get('licenceNumber') as string;
-  const issueDate = new Date(formData.get('issueDate') as string);
-  const expiryDate = new Date(formData.get('expiryDate') as string);
-  const file = formData.get('file') as File | null;
+  const employeeId = formData.get("employeeId") as string;
+  const type = formData.get("type") as string;
+  const licenceNumber = formData.get("licenceNumber") as string;
+  const issueDate = new Date(formData.get("issueDate") as string);
+  const expiryDate = new Date(formData.get("expiryDate") as string);
+  const file = formData.get("file") as File | null;
 
   let documentId: string | null = null; // ✅ FIXED TYPING
 
   if (file) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage.from('documents').upload(fileName, buffer);
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .upload(fileName, buffer);
 
     if (error) {
-      return NextResponse.json({ error: 'Supabase upload failed', details: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: "Supabase upload failed", details: error.message },
+        { status: 500 },
+      );
     }
 
     const publicUrl = `https://lzthrdwhziggqfbgogij.supabase.co/storage/v1/object/public/documents/${data.path}`;
@@ -35,7 +41,7 @@ export async function POST(req: Request) {
         path: data.path,
         size: file.size,
         type: file.type,
-        category: 'Driver Licence',
+        category: "Driver Licence",
         url: publicUrl,
         uploaderId: session.user.id,
         companyId: session.user.companyId,

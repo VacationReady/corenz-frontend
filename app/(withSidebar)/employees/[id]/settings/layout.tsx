@@ -10,7 +10,7 @@ export default function SettingsLayout({
   params: { id: string };
 }) {
   const subnav: { href: string; label: string }[] = [];
-    // add more settings sections here...
+  // add more settings sections here...
 
   return (
     <div>

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       console.warn("❌ No fields selected in report request.");
       return NextResponse.json(
         { status: "error", message: "No fields selected", data: [] },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,19 +33,27 @@ export async function POST(req: Request) {
 
       console.log("🔵 Processing model:", model);
       console.log("🔵 Prisma model resolved as:", prismaModelKey);
-      console.log("🔵 Prisma query payload:", JSON.stringify(prismaQuery, null, 2));
+      console.log(
+        "🔵 Prisma query payload:",
+        JSON.stringify(prismaQuery, null, 2),
+      );
 
       if (!(prismaModelKey in prisma)) {
         console.error("❌ Invalid model:", model);
-        console.error("✅ Available models in Prisma client:", Object.keys(prisma));
+        console.error(
+          "✅ Available models in Prisma client:",
+          Object.keys(prisma),
+        );
         return NextResponse.json(
           { status: "error", message: `Invalid model '${model}'`, data: [] },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       // @ts-ignore – dynamic model access is safe here
-      let results = await (prisma[prismaModelKey as keyof typeof prisma] as any).findMany(prismaQuery);
+      let results = await (
+        prisma[prismaModelKey as keyof typeof prisma] as any
+      ).findMany(prismaQuery);
 
       results = await attachComputedFields(results, selectedFields, model);
       combinedResults[model] = results;
@@ -60,7 +68,7 @@ export async function POST(req: Request) {
     console.error("🔥 Error in report query API:", error);
     return NextResponse.json(
       { status: "error", message: "Internal server error", data: [] },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

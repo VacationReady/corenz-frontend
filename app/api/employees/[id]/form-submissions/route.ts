@@ -24,7 +24,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     // Get form submissions for this employee
@@ -45,6 +48,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     return NextResponse.json(submissions);
   } catch (error) {
     console.error("Error fetching form submissions:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

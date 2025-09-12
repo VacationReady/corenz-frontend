@@ -18,11 +18,15 @@ export default function AddCategoryModal({
   onClose,
   onSuccess,
 }: AddCategoryModalProps) {
-  const [categoryType, setCategoryType] = useState<"TIME_OFF" | "WORKING_EVENT" | null>(null);
+  const [categoryType, setCategoryType] = useState<
+    "TIME_OFF" | "WORKING_EVENT" | null
+  >(null);
   const [name, setName] = useState("");
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [adminOnly, setAdminOnly] = useState(false);
-  const [defaultPaidStatus, setDefaultPaidStatus] = useState<"PAID" | "UNPAID">("PAID");
+  const [defaultPaidStatus, setDefaultPaidStatus] = useState<"PAID" | "UNPAID">(
+    "PAID",
+  );
   const [color, setColor] = useState("#3b82f6");
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -73,7 +77,11 @@ export default function AddCategoryModal({
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 z-50 flex items-center justify-center">
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+    >
       <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
         <div className="flex justify-between items-center">
@@ -102,7 +110,8 @@ export default function AddCategoryModal({
             type="button"
             onClick={() => setCategoryType("WORKING_EVENT")}
             style={{
-              backgroundColor: categoryType === "WORKING_EVENT" ? "red" : "gray",
+              backgroundColor:
+                categoryType === "WORKING_EVENT" ? "red" : "gray",
               color: categoryType === "WORKING_EVENT" ? "white" : "black",
               padding: "1rem",
               width: "100%",
@@ -125,7 +134,11 @@ export default function AddCategoryModal({
         {/* Color Picker */}
         <div className="flex items-center space-x-2">
           <label className="text-sm">Color:</label>
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+          />
         </div>
 
         {/* Toggles */}
@@ -149,7 +162,9 @@ export default function AddCategoryModal({
           <label className="text-sm">Default Paid Status:</label>
           <select
             value={defaultPaidStatus}
-            onChange={(e) => setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")}
+            onChange={(e) =>
+              setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")
+            }
             className="border rounded p-1"
           >
             <option value="PAID">Paid</option>
@@ -158,7 +173,9 @@ export default function AddCategoryModal({
         </div>
 
         <Button onClick={handleSubmit} disabled={loading} className="w-full">
-          {loading ? "Adding..." : (
+          {loading ? (
+            "Adding..."
+          ) : (
             <>
               <PlusIcon className="w-4 h-4 mr-2" /> Add Category
             </>

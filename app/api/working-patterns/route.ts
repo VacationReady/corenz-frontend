@@ -8,17 +8,21 @@ import { authOptions } from "@/lib/auth-options";
 const WorkingPatternCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  weeks: z.array(
-    z.object({
-      weekNumber: z.number().int().min(1, "Week number must be at least 1"),
-      days: z.array(
-        z.object({
-          day: z.string().min(1, "Day is required"),
-          type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
-        })
-      ).min(1, "At least one day is required"),
-    })
-  ).min(1, "At least one week is required"),
+  weeks: z
+    .array(
+      z.object({
+        weekNumber: z.number().int().min(1, "Week number must be at least 1"),
+        days: z
+          .array(
+            z.object({
+              day: z.string().min(1, "Day is required"),
+              type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
+            }),
+          )
+          .min(1, "At least one day is required"),
+      }),
+    )
+    .min(1, "At least one week is required"),
 });
 
 export async function GET() {
@@ -59,8 +63,11 @@ export async function GET() {
   } catch (error) {
     console.error("GET /api/working-patterns error:", error);
     return NextResponse.json(
-      { message: "Error fetching working patterns", error: (error as Error).message },
-      { status: 500 }
+      {
+        message: "Error fetching working patterns",
+        error: (error as Error).message,
+      },
+      { status: 500 },
     );
   }
 }
@@ -107,8 +114,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ errors: error.flatten() }, { status: 400 });
     }
     return NextResponse.json(
-      { message: "Error creating working pattern", error: error.message || String(error) },
-      { status: 500 }
+      {
+        message: "Error creating working pattern",
+        error: error.message || String(error),
+      },
+      { status: 500 },
     );
   }
 }

@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2015",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -26,9 +22,7 @@
       "@/lib/*": ["app/lib/*"],
       "@/types/*": ["app/types/*"]
     },
-    "types": [
-      "next-auth"
-    ],
+    "types": ["next-auth"],
     "plugins": [
       {
         "name": "next"
@@ -43,8 +37,5 @@
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "scripts/**/*"
-  ]
+  "exclude": ["node_modules", "scripts/**/*"]
 }

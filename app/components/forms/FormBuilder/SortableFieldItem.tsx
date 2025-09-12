@@ -1,10 +1,14 @@
-'use client';
+"use client";
 
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Trash2 } from 'lucide-react';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { FormField } from '@/api/forms/[id]/types';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import { FormField } from "@/api/forms/[id]/types";
 
 interface SortableFieldItemProps {
   field: FormField;
@@ -34,7 +38,7 @@ export function SortableFieldItem({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
-    cursor: 'grab',
+    cursor: "grab",
   };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -45,7 +49,7 @@ export function SortableFieldItem({
 
   const handleFieldClick = (e: React.MouseEvent) => {
     // Don't select field if clicking on action buttons
-    if ((e.target as HTMLElement).closest('.action-buttons')) {
+    if ((e.target as HTMLElement).closest(".action-buttons")) {
       return;
     }
     onSelectField(field);
@@ -59,16 +63,18 @@ export function SortableFieldItem({
       onClick={handleFieldClick}
       className={`group flex items-center justify-between border p-3 rounded-md cursor-pointer transition ${
         selectedField?.id === field.id
-          ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-400'
-          : 'bg-white hover:bg-gray-50 border-gray-200'
+          ? "bg-blue-50 border-blue-400 ring-2 ring-blue-400"
+          : "bg-white hover:bg-gray-50 border-gray-200"
       }`}
     >
       <div className="flex flex-col">
         <span className="font-medium">
-          {field.label || <span className="text-gray-400 italic">Click to add label</span>}
+          {field.label || (
+            <span className="text-gray-400 italic">Click to add label</span>
+          )}
         </span>
         <span className="text-xs text-gray-500">
-          {field.type} {field.required && '• Required'}
+          {field.type} {field.required && "• Required"}
         </span>
       </div>
 

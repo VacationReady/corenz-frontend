@@ -11,7 +11,7 @@ function downloadCSV(data: any[], columns: any[]) {
 
   const headers = columns.map((col: any) => col.header);
   const fields = columns.map((col: any) =>
-    col.accessorKey ? col.accessorKey : col.header
+    col.accessorKey ? col.accessorKey : col.header,
   );
 
   const csvData = data.map((row) => {
@@ -28,7 +28,7 @@ function downloadCSV(data: any[], columns: any[]) {
 
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", `corenz-report-${Date.now()}.csv`);
+  link.setAttribute("download", `peoplecore-report-${Date.now()}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -83,29 +83,29 @@ export default function ReportsPreviewClient() {
   }, [fieldsParam]);
 
   const handleSaveReport = async () => {
-  const reportName = prompt("Enter a name for this report:");
-  if (!reportName) return;
+    const reportName = prompt("Enter a name for this report:");
+    if (!reportName) return;
 
-  try {
-    const res = await fetch("/api/reports/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: reportName,
-        fields: selectedFields,
-        category: "General", // or let user choose later
-      }),
-    });
+    try {
+      const res = await fetch("/api/reports/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: reportName,
+          fields: selectedFields,
+          category: "General", // or let user choose later
+        }),
+      });
 
-    if (!res.ok) throw new Error("Failed to save report");
+      if (!res.ok) throw new Error("Failed to save report");
 
-    alert("Report saved!");
-    router.push("/reports");
-  } catch (err) {
-    console.error(err);
-    alert("Error saving report.");
-  }
-};
+      alert("Report saved!");
+      router.push("/reports");
+    } catch (err) {
+      console.error(err);
+      alert("Error saving report.");
+    }
+  };
 
   if (!selectedFields.length) {
     return (
@@ -140,14 +140,14 @@ export default function ReportsPreviewClient() {
   }
 
   const columns = selectedFields.map((field) => {
-  const keys = field.split(".");
-  const flatKey = keys[1] || keys[0];
+    const keys = field.split(".");
+    const flatKey = keys[1] || keys[0];
 
-  return {
-    header: flatKey,
-    accessorKey: flatKey, // ✅ simpler, faster, and works
-  };
-});
+    return {
+      header: flatKey,
+      accessorKey: flatKey, // ✅ simpler, faster, and works
+    };
+  });
 
   // ✅ Moved outside JSX so it executes
   console.log("✅ Final data being sent to DataTable:", data);
@@ -157,7 +157,8 @@ export default function ReportsPreviewClient() {
     <main className="p-6">
       <h1 className="text-2xl font-bold mb-4">Report Preview</h1>
       <p className="mb-4">
-        Your custom report is displayed below. You can sort and filter as needed.
+        Your custom report is displayed below. You can sort and filter as
+        needed.
       </p>
       <div className="flex gap-2 mb-4">
         <Button onClick={() => downloadCSV(data, columns)}>Download CSV</Button>

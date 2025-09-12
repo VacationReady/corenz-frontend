@@ -4,7 +4,12 @@ import { useState } from "react";
 import useSWR from "swr";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/Select";
 import Checkbox from "@/components/ui/Checkbox";
 import { useRouter } from "next/navigation";
 
@@ -15,10 +20,12 @@ function exportToCsv(rows: any[], selectedFields: string[]) {
   const csvRows = rows.map((row) =>
     selectedFields
       .map((field) => {
-        const value = field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row) || "";
+        const value =
+          field.split(".").reduce((obj, key) => (obj ? obj[key] : ""), row) ||
+          "";
         return `"${String(value).replace(/"/g, '""')}"`;
       })
-      .join(",")
+      .join(","),
   );
   const csvContent = [header, ...csvRows].join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -31,7 +38,7 @@ function exportToCsv(rows: any[], selectedFields: string[]) {
 }
 
 export default function ReportBuilder() {
-const router = useRouter();
+  const router = useRouter();
   type ReportField = {
     model: string;
     field: string;
@@ -41,13 +48,23 @@ const router = useRouter();
     join?: string;
   };
 
-  const { data: fieldsData } = useSWR<ReportField[]>("/api/reports/fields", fetcher);
-  const models: string[] = Array.from(new Set(fieldsData?.map((f) => f.model) || []));
+  const { data: fieldsData } = useSWR<ReportField[]>(
+    "/api/reports/fields",
+    fetcher,
+  );
+  const models: string[] = Array.from(
+    new Set(fieldsData?.map((f) => f.model) || []),
+  );
 
-  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(
+    undefined,
+  );
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [filters, setFilters] = useState<any[]>([]);
-  const [sort, setSort] = useState<{ field: string | undefined; direction: "asc" | "desc" }>({
+  const [sort, setSort] = useState<{
+    field: string | undefined;
+    direction: "asc" | "desc";
+  }>({
     field: undefined,
     direction: "asc",
   });
@@ -55,30 +72,33 @@ const router = useRouter();
   const [results, setResults] = useState<any[]>([]);
 
   const handleGenerate = async () => {
-  const res = await fetch("/api/reports/query", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      selectedFields,
-      filters,
-      pagination,
-      sort,
-    }),
-  });
+    const res = await fetch("/api/reports/query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        selectedFields,
+        filters,
+        pagination,
+        sort,
+      }),
+    });
 
-  router.push(`/reports/preview?fields=${selectedFields.join(",")}`);
-};
+    router.push(`/reports/preview?fields=${selectedFields.join(",")}`);
+  };
 
   const toggleField = (field: string) => {
     setSelectedFields((prev) =>
-      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
+      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field],
     );
   };
 
   const addFilter = () => {
-    setFilters((prev) => [...prev, { field: undefined, operator: "equals", value: "" }]);
+    setFilters((prev) => [
+      ...prev,
+      { field: undefined, operator: "equals", value: "" },
+    ]);
   };
 
   const updateFilter = (index: number, key: string, value: any) => {
@@ -137,7 +157,9 @@ const router = useRouter();
                   value={filter.field || undefined}
                   onValueChange={(val) => updateFilter(idx, "field", val)}
                 >
-                  <SelectTrigger>{filter.field || "Select Field"}</SelectTrigger>
+                  <SelectTrigger>
+                    {filter.field || "Select Field"}
+                  </SelectTrigger>
                   <SelectContent>
                     {fieldsData &&
                       fieldsData
@@ -192,7 +214,9 @@ const router = useRouter();
               </Select>
               <Select
                 value={sort.direction}
-                onValueChange={(val) => setSort({ ...sort, direction: val as "asc" | "desc" })}
+                onValueChange={(val) =>
+                  setSort({ ...sort, direction: val as "asc" | "desc" })
+                }
               >
                 <SelectTrigger>{sort.direction}</SelectTrigger>
                 <SelectContent>

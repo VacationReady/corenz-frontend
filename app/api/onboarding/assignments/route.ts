@@ -33,7 +33,10 @@ export async function POST(req: NextRequest) {
   const { templateId, userId, employeeId } = await req.json();
 
   if (!templateId || !userId || !employeeId) {
-    return NextResponse.json({ error: "templateId, userId, and employeeId are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "templateId, userId, and employeeId are required" },
+      { status: 400 },
+    );
   }
 
   // Ensure template belongs to company
@@ -56,7 +59,10 @@ export async function POST(req: NextRequest) {
 
   // Optional: validate provided userId matches employee's userId
   if (employee.userId !== userId) {
-    return NextResponse.json({ error: "User does not match employee" }, { status: 400 });
+    return NextResponse.json(
+      { error: "User does not match employee" },
+      { status: 400 },
+    );
   }
 
   // Transaction: Create assignment, instance, and seed steps atomically
@@ -105,7 +111,10 @@ export async function PATCH(req: NextRequest) {
   const { onboardingInstanceId } = await req.json();
 
   if (!onboardingInstanceId) {
-    return NextResponse.json({ error: "onboardingInstanceId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "onboardingInstanceId is required" },
+      { status: 400 },
+    );
   }
 
   // Fetch instance with steps and related assignment, scoped to company
@@ -122,10 +131,15 @@ export async function PATCH(req: NextRequest) {
   });
 
   if (!instance) {
-    return NextResponse.json({ error: "Onboarding instance not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Onboarding instance not found" },
+      { status: 404 },
+    );
   }
 
-  const allCompleted = instance.steps.every((step) => step.status === "completed");
+  const allCompleted = instance.steps.every(
+    (step) => step.status === "completed",
+  );
 
   if (allCompleted) {
     await prisma.onboardingAssignment.updateMany({

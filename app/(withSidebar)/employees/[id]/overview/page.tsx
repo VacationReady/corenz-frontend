@@ -13,7 +13,10 @@ import {
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 import dynamic from "next/dynamic";
-const ProfileAvatarUploader = dynamic(() => import("@/components/employees/ProfileAvatarUploader"), { ssr: false });
+const ProfileAvatarUploader = dynamic(
+  () => import("@/components/employees/ProfileAvatarUploader"),
+  { ssr: false },
+);
 
 interface PageProps {
   params: { id: string };
@@ -69,7 +72,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           initialUrl={employee.user.profileImageUrl}
         />
         <h1 className="text-2xl font-semibold text-center">
-          {employee.user.firstName ?? ""} {employee.user.lastName ?? ""} - Overview
+          {employee.user.firstName ?? ""} {employee.user.lastName ?? ""} -
+          Overview
         </h1>
       </div>
 
@@ -129,10 +133,14 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                 <DialogHeader>
                   <DialogTitle>Test Modal</DialogTitle>
                   <DialogDescription>
-                    This confirms your Dialog component is functioning and opens correctly.
+                    This confirms your Dialog component is functioning and opens
+                    correctly.
                   </DialogDescription>
                 </DialogHeader>
-                <p>If you can see this modal, your Dialog system is working correctly.</p>
+                <p>
+                  If you can see this modal, your Dialog system is working
+                  correctly.
+                </p>
               </DialogContent>
             </Dialog>
           </div>

@@ -29,7 +29,7 @@ export default function AdminSidebar() {
     <div
       className={clsx(
         "min-h-screen transition-all duration-300 flex flex-col m-4 ml-6",
-        collapsed ? "w-16" : "w-80"
+        collapsed ? "w-16" : "w-80",
       )}
     >
       {/* Glassmorphism Container */}
@@ -39,13 +39,15 @@ export default function AdminSidebar() {
           <div
             className={clsx(
               "flex items-center transition-opacity duration-200",
-              collapsed ? "opacity-0 w-0" : "opacity-100"
+              collapsed ? "opacity-0 w-0" : "opacity-100",
             )}
           >
             <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
-              <span className="text-primary-foreground font-bold text-lg">C</span>
+              <span className="text-primary-foreground font-bold text-lg">
+                P
+              </span>
             </div>
-            <h1 className="font-bold text-foreground text-2xl">CoreNZ</h1>
+            <h1 className="font-bold text-foreground text-2xl">PeopleCore</h1>
           </div>
           <button
             onClick={toggleSidebar}
@@ -62,8 +64,12 @@ export default function AdminSidebar() {
         {/* Quick Actions Header */}
         {!collapsed && (
           <div className="px-8 py-6">
-            <h2 className="text-lg font-bold text-foreground mb-2">Quick actions</h2>
-            <p className="text-sm text-muted-foreground">Navigate your workspace</p>
+            <h2 className="text-lg font-bold text-foreground mb-2">
+              Quick actions
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Navigate your workspace
+            </p>
           </div>
         )}
 
@@ -151,11 +157,13 @@ function SidebarLink({
           "hover-glass",
           active
             ? "bg-primary text-primary-foreground shadow-warm"
-            : "text-foreground"
+            : "text-foreground",
         )}
       >
         <div className="flex-shrink-0 w-6 h-6">{icon}</div>
-        {!collapsed && <span className="truncate font-medium text-base">{label}</span>}
+        {!collapsed && (
+          <span className="truncate font-medium text-base">{label}</span>
+        )}
         {collapsed && (
           <div className="absolute left-full ml-4 px-3 py-2 glass rounded-2xl shadow-glass opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
             <span className="text-sm font-medium text-foreground">{label}</span>
@@ -167,8 +175,16 @@ function SidebarLink({
 }
 
 const coreLinks = [
-  { href: "/dashboard/admin", icon: <LayoutDashboard size={24} />, label: "Dashboard" },
-  { href: "/dashboard/approvals", icon: <ClipboardCheck size={24} />, label: "Approvals" },
+  {
+    href: "/dashboard/admin",
+    icon: <LayoutDashboard size={24} />,
+    label: "Dashboard",
+  },
+  {
+    href: "/dashboard/approvals",
+    icon: <ClipboardCheck size={24} />,
+    label: "Approvals",
+  },
   { href: "/employees", icon: <Users size={24} />, label: "Employees" },
   { href: "/calendar", icon: <Calendar size={24} />, label: "Calendar" },
 ];

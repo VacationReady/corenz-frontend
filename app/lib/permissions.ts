@@ -1,52 +1,54 @@
-import { User, PermissionProfile } from '@prisma/client';
+import { User, PermissionProfile } from "@prisma/client";
 
-export type PermissionAction = 'read' | 'edit' | 'delete';
+export type PermissionAction = "read" | "edit" | "delete";
 
 export type ScreenPermissions = Record<string, PermissionAction[]>;
 
-export type UserWithProfile = User & { permissionProfile?: PermissionProfile | null };
+export type UserWithProfile = User & {
+  permissionProfile?: PermissionProfile | null;
+};
 
 // Default permission sets for built-in roles
 export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
   ADMIN: {
-    'dashboard': ['read'],
-    'approvals': ['read', 'edit'],
-    'employees': ['read', 'edit', 'delete'],
-    'calendar': ['read', 'edit', 'delete'],
-    'documents': ['read', 'edit', 'delete'],
-    'reports': ['read', 'edit', 'delete'],
-    'org-chart': ['read'],
-    'news': ['read', 'edit', 'delete'],
-    'settings': ['read', 'edit', 'delete'],
-    'onboarding': ['read', 'edit', 'delete'],
-    'offboarding': ['read', 'edit', 'delete'],
-    'forms': ['read', 'edit', 'delete'],
-    'leave-requests': ['read', 'edit', 'delete'],
-    'working-patterns': ['read', 'edit', 'delete'],
-    'departments': ['read', 'edit', 'delete'],
-    'job-roles': ['read', 'edit', 'delete'],
-    'permissions': ['read', 'edit', 'delete'],
+    dashboard: ["read"],
+    approvals: ["read", "edit"],
+    employees: ["read", "edit", "delete"],
+    calendar: ["read", "edit", "delete"],
+    documents: ["read", "edit", "delete"],
+    reports: ["read", "edit", "delete"],
+    "org-chart": ["read"],
+    news: ["read", "edit", "delete"],
+    settings: ["read", "edit", "delete"],
+    onboarding: ["read", "edit", "delete"],
+    offboarding: ["read", "edit", "delete"],
+    forms: ["read", "edit", "delete"],
+    "leave-requests": ["read", "edit", "delete"],
+    "working-patterns": ["read", "edit", "delete"],
+    departments: ["read", "edit", "delete"],
+    "job-roles": ["read", "edit", "delete"],
+    permissions: ["read", "edit", "delete"],
   },
   MANAGER: {
-    'dashboard': ['read'],
-    'employees': ['read', 'edit'],
-    'calendar': ['read', 'edit'],
-    'documents': ['read', 'edit'],
-    'reports': ['read'],
-    'org-chart': ['read'],
-    'news': ['read'],
-    'leave-requests': ['read', 'edit'],
-    'working-patterns': ['read'],
-    'onboarding': ['read'],
-    'offboarding': ['read'],
+    dashboard: ["read"],
+    employees: ["read", "edit"],
+    calendar: ["read", "edit"],
+    documents: ["read", "edit"],
+    reports: ["read"],
+    "org-chart": ["read"],
+    news: ["read"],
+    "leave-requests": ["read", "edit"],
+    "working-patterns": ["read"],
+    onboarding: ["read"],
+    offboarding: ["read"],
   },
   EMPLOYEE: {
-    'dashboard': ['read'],
-    'calendar': ['read'],
-    'documents': ['read'],
-    'news': ['read'],
-    'leave-requests': ['read', 'edit'],
-    'onboarding': ['read'],
+    dashboard: ["read"],
+    calendar: ["read"],
+    documents: ["read"],
+    news: ["read"],
+    "leave-requests": ["read", "edit"],
+    onboarding: ["read"],
   },
 };
 
@@ -59,10 +61,12 @@ export function resolvePermissions(user: UserWithProfile): ScreenPermissions {
     try {
       const raw = user.permissionProfile.permissions as unknown;
       const profilePermissions =
-        typeof raw === 'string' ? (JSON.parse(raw) as ScreenPermissions) : (raw as ScreenPermissions);
+        typeof raw === "string"
+          ? (JSON.parse(raw) as ScreenPermissions)
+          : (raw as ScreenPermissions);
       return profilePermissions || {};
     } catch (error) {
-      console.error('Error parsing permission profile:', error);
+      console.error("Error parsing permission profile:", error);
       // Fall back to role-based permissions
     }
   }
@@ -78,10 +82,10 @@ export function resolvePermissions(user: UserWithProfile): ScreenPermissions {
 export function hasPermission(
   user: UserWithProfile,
   screen: string,
-  action: PermissionAction
+  action: PermissionAction,
 ): boolean {
   // Admin override: ADMIN role always has all permissions
-  if (user.role === 'ADMIN' && !user.permissionProfile) {
+  if (user.role === "ADMIN" && !user.permissionProfile) {
     return true;
   }
 
@@ -101,35 +105,35 @@ export function hasPermission(
  */
 export function getAvailableScreens(): string[] {
   return [
-    'dashboard',
-    'approvals',
-    'employees',
-    'calendar',
-    'documents',
-    'reports',
-    'org-chart',
-    'news',
-    'settings',
-    'onboarding',
-    'offboarding',
-    'forms',
-    'leave-requests',
-    'working-patterns',
-    'departments',
-    'job-roles',
-    'permissions',
+    "dashboard",
+    "approvals",
+    "employees",
+    "calendar",
+    "documents",
+    "reports",
+    "org-chart",
+    "news",
+    "settings",
+    "onboarding",
+    "offboarding",
+    "forms",
+    "leave-requests",
+    "working-patterns",
+    "departments",
+    "job-roles",
+    "permissions",
     // Employee detail screens
-    'employee-overview',
-    'employee-documents',
-    'employee-driver-licenses',
-    'employee-employment-checks',
-    'employee-forms',
-    'employee-leave',
-    'employee-offboarding',
-    'employee-onboarding',
-    'employee-performance',
-    'employee-settings',
-    'employee-training',
+    "employee-overview",
+    "employee-documents",
+    "employee-driver-licenses",
+    "employee-employment-checks",
+    "employee-forms",
+    "employee-leave",
+    "employee-offboarding",
+    "employee-onboarding",
+    "employee-performance",
+    "employee-settings",
+    "employee-training",
   ];
 }
 
@@ -145,7 +149,7 @@ export function getDefaultPermissionsForRole(role: string): ScreenPermissions {
  */
 export function validatePermissions(permissions: ScreenPermissions): boolean {
   const availableScreens = getAvailableScreens();
-  const availableActions: PermissionAction[] = ['read', 'edit', 'delete'];
+  const availableActions: PermissionAction[] = ["read", "edit", "delete"];
 
   for (const [screen, actions] of Object.entries(permissions)) {
     // Check if screen is valid
@@ -154,12 +158,18 @@ export function validatePermissions(permissions: ScreenPermissions): boolean {
     }
 
     // Check if all actions are valid
-    if (!Array.isArray(actions) || !actions.every(action => availableActions.includes(action))) {
+    if (
+      !Array.isArray(actions) ||
+      !actions.every((action) => availableActions.includes(action))
+    ) {
       return false;
     }
 
     // Check for logical consistency (read is required if edit/delete are present)
-    if ((actions.includes('edit') || actions.includes('delete')) && !actions.includes('read')) {
+    if (
+      (actions.includes("edit") || actions.includes("delete")) &&
+      !actions.includes("read")
+    ) {
       return false;
     }
   }
@@ -172,35 +182,35 @@ export function validatePermissions(permissions: ScreenPermissions): boolean {
  */
 export function getScreenDisplayName(screen: string): string {
   const screenNames: Record<string, string> = {
-    'dashboard': 'Dashboard',
-    'approvals': 'Approvals',
-    'employees': 'Employees',
-    'calendar': 'Calendar',
-    'documents': 'Documents',
-    'reports': 'Reports',
-    'org-chart': 'Organization Chart',
-    'news': 'News',
-    'settings': 'Settings',
-    'onboarding': 'Onboarding',
-    'offboarding': 'Offboarding',
-    'forms': 'Forms',
-    'leave-requests': 'Leave Requests',
-    'working-patterns': 'Working Patterns',
-    'departments': 'Departments',
-    'job-roles': 'Job Roles',
-    'permissions': 'Permissions',
+    dashboard: "Dashboard",
+    approvals: "Approvals",
+    employees: "Employees",
+    calendar: "Calendar",
+    documents: "Documents",
+    reports: "Reports",
+    "org-chart": "Organization Chart",
+    news: "News",
+    settings: "Settings",
+    onboarding: "Onboarding",
+    offboarding: "Offboarding",
+    forms: "Forms",
+    "leave-requests": "Leave Requests",
+    "working-patterns": "Working Patterns",
+    departments: "Departments",
+    "job-roles": "Job Roles",
+    permissions: "Permissions",
     // Employee detail screens
-    'employee-overview': 'Employee Overview',
-    'employee-documents': 'Employee Documents',
-    'employee-driver-licenses': 'Employee Driver Licenses',
-    'employee-employment-checks': 'Employee Employment Checks',
-    'employee-forms': 'Employee Forms',
-    'employee-leave': 'Employee Leave',
-    'employee-offboarding': 'Employee Offboarding',
-    'employee-onboarding': 'Employee Onboarding',
-    'employee-performance': 'Employee Performance',
-    'employee-settings': 'Employee Settings',
-    'employee-training': 'Employee Training',
+    "employee-overview": "Employee Overview",
+    "employee-documents": "Employee Documents",
+    "employee-driver-licenses": "Employee Driver Licenses",
+    "employee-employment-checks": "Employee Employment Checks",
+    "employee-forms": "Employee Forms",
+    "employee-leave": "Employee Leave",
+    "employee-offboarding": "Employee Offboarding",
+    "employee-onboarding": "Employee Onboarding",
+    "employee-performance": "Employee Performance",
+    "employee-settings": "Employee Settings",
+    "employee-training": "Employee Training",
   };
 
   return screenNames[screen] || screen;
@@ -211,9 +221,9 @@ export function getScreenDisplayName(screen: string): string {
  */
 export function getActionDisplayName(action: PermissionAction): string {
   const actionNames: Record<PermissionAction, string> = {
-    'read': 'View',
-    'edit': 'Edit',
-    'delete': 'Delete',
+    read: "View",
+    edit: "Edit",
+    delete: "Delete",
   };
 
   return actionNames[action];

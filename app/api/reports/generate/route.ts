@@ -22,17 +22,22 @@ export async function POST(req: Request) {
     } = body;
 
     if (!reportDefinitions[reportType as keyof typeof reportDefinitions]) {
-      return NextResponse.json({ error: "Invalid report type" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid report type" },
+        { status: 400 },
+      );
     }
 
-    const data = await reportDefinitions[reportType as keyof typeof reportDefinitions].query(
-      filters,
-      pagination
-    );
+    const data = await reportDefinitions[
+      reportType as keyof typeof reportDefinitions
+    ].query(filters, pagination);
 
     return NextResponse.json({ data });
   } catch (error) {
     console.error("Error generating report:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

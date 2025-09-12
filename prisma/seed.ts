@@ -1,39 +1,40 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-import { execSync } from 'child_process';
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { execSync } from "child_process";
 
 const prisma = new PrismaClient();
 
 async function main() {
   // Ensure the database schema is up to date before seeding
-  execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+  execSync("npx prisma migrate deploy", { stdio: "inherit" });
 
   // ✅ 1. Create Company
   const company = await prisma.company.upsert({
-    where: { name: 'CoreNZ' },
+    where: { name: "PeopleCore" },
     update: {},
-    create: { name: 'CoreNZ' },
+    create: { name: "PeopleCore" },
   });
   console.log(`✅ Company created: ${company.name} (${company.id})`);
 
   // ✅ 2. Create Department linked to Company
   const department = await prisma.department.upsert({
-    where: { companyId_name: { companyId: company.id, name: 'Sales' } },
+    where: { companyId_name: { companyId: company.id, name: "Sales" } },
     update: {},
-    create: { name: 'Sales', companyId: company.id },
+    create: { name: "Sales", companyId: company.id },
   });
   console.log(`✅ Department created: ${department.name} (${department.id})`);
 
   // ✅ 3. Standard Working Pattern (Monday-Friday, 9am-5pm)
   let standardWorkingPattern = await prisma.workingPattern.findFirst({
-    where: { name: 'Standard (Mon-Fri, 9am-5pm)', companyId: company.id },
+    where: { name: "Standard (Mon-Fri, 9am-5pm)", companyId: company.id },
   });
 
   if (!standardWorkingPattern) {
     standardWorkingPattern = await prisma.workingPattern.create({
       data: {
-        name: 'Standard (Mon-Fri, 9am-5pm)',
-        description: 'Standard Monday to Friday working pattern from 9am to 5pm',
+        name: "Standard (Mon-Fri, 9am-5pm)",
+        description:
+          "Standard Monday to Friday working pattern from 9am to 5pm",
         companyId: company.id,
         WorkingPatternWeek: {
           create: [
@@ -41,13 +42,13 @@ async function main() {
               weekNumber: 1,
               WorkingPatternDay: {
                 create: [
-                  { day: 'Monday', type: 'FULL_DAY' },
-                  { day: 'Tuesday', type: 'FULL_DAY' },
-                  { day: 'Wednesday', type: 'FULL_DAY' },
-                  { day: 'Thursday', type: 'FULL_DAY' },
-                  { day: 'Friday', type: 'FULL_DAY' },
-                  { day: 'Saturday', type: 'FULL_DAY' },
-                  { day: 'Sunday', type: 'FULL_DAY' },
+                  { day: "Monday", type: "FULL_DAY" },
+                  { day: "Tuesday", type: "FULL_DAY" },
+                  { day: "Wednesday", type: "FULL_DAY" },
+                  { day: "Thursday", type: "FULL_DAY" },
+                  { day: "Friday", type: "FULL_DAY" },
+                  { day: "Saturday", type: "FULL_DAY" },
+                  { day: "Sunday", type: "FULL_DAY" },
                 ],
               },
             },
@@ -59,120 +60,120 @@ async function main() {
 
   // ✅ 4. Built-in Permission Profiles
   const adminProfile = await prisma.permissionProfile.upsert({
-    where: { companyId_name: { companyId: company.id, name: 'Admin' } },
+    where: { companyId_name: { companyId: company.id, name: "Admin" } },
     update: {},
     create: {
       companyId: company.id,
-      name: 'Admin',
-      description: 'Full system access with administrative privileges',
+      name: "Admin",
+      description: "Full system access with administrative privileges",
       permissions: JSON.stringify({
-        'dashboard': ['read'],
-        'approvals': ['read', 'edit'],
-        'employees': ['read', 'edit', 'delete'],
-        'calendar': ['read', 'edit', 'delete'],
-        'documents': ['read', 'edit', 'delete'],
-        'reports': ['read', 'edit', 'delete'],
-        'org-chart': ['read'],
-        'news': ['read', 'edit', 'delete'],
-        'settings': ['read', 'edit', 'delete'],
-        'onboarding': ['read', 'edit', 'delete'],
-        'offboarding': ['read', 'edit', 'delete'],
-        'forms': ['read', 'edit', 'delete'],
-        'leave-requests': ['read', 'edit', 'delete'],
-        'working-patterns': ['read', 'edit', 'delete'],
-        'departments': ['read', 'edit', 'delete'],
-        'job-roles': ['read', 'edit', 'delete'],
-        'permissions': ['read', 'edit', 'delete'],
+        dashboard: ["read"],
+        approvals: ["read", "edit"],
+        employees: ["read", "edit", "delete"],
+        calendar: ["read", "edit", "delete"],
+        documents: ["read", "edit", "delete"],
+        reports: ["read", "edit", "delete"],
+        "org-chart": ["read"],
+        news: ["read", "edit", "delete"],
+        settings: ["read", "edit", "delete"],
+        onboarding: ["read", "edit", "delete"],
+        offboarding: ["read", "edit", "delete"],
+        forms: ["read", "edit", "delete"],
+        "leave-requests": ["read", "edit", "delete"],
+        "working-patterns": ["read", "edit", "delete"],
+        departments: ["read", "edit", "delete"],
+        "job-roles": ["read", "edit", "delete"],
+        permissions: ["read", "edit", "delete"],
         // Employee detail screens
-        'employee-overview': ['read', 'edit'],
-        'employee-documents': ['read', 'edit', 'delete'],
-        'employee-driver-licenses': ['read', 'edit', 'delete'],
-        'employee-employment-checks': ['read', 'edit', 'delete'],
-        'employee-forms': ['read', 'edit', 'delete'],
-        'employee-leave': ['read', 'edit'],
-        'employee-offboarding': ['read', 'edit'],
-        'employee-onboarding': ['read', 'edit', 'delete'],
-        'employee-performance': ['read', 'edit'],
-        'employee-settings': ['read', 'edit'],
-        'employee-training': ['read', 'edit', 'delete'],
+        "employee-overview": ["read", "edit"],
+        "employee-documents": ["read", "edit", "delete"],
+        "employee-driver-licenses": ["read", "edit", "delete"],
+        "employee-employment-checks": ["read", "edit", "delete"],
+        "employee-forms": ["read", "edit", "delete"],
+        "employee-leave": ["read", "edit"],
+        "employee-offboarding": ["read", "edit"],
+        "employee-onboarding": ["read", "edit", "delete"],
+        "employee-performance": ["read", "edit"],
+        "employee-settings": ["read", "edit"],
+        "employee-training": ["read", "edit", "delete"],
       }),
       builtIn: true,
     },
   });
 
   const managerProfile = await prisma.permissionProfile.upsert({
-    where: { companyId_name: { companyId: company.id, name: 'Manager' } },
+    where: { companyId_name: { companyId: company.id, name: "Manager" } },
     update: {},
     create: {
       companyId: company.id,
-      name: 'Manager',
-      description: 'Management access with employee oversight capabilities',
+      name: "Manager",
+      description: "Management access with employee oversight capabilities",
       permissions: JSON.stringify({
-        'dashboard': ['read'],
-        'employees': ['read', 'edit'],
-        'calendar': ['read', 'edit'],
-        'documents': ['read', 'edit'],
-        'reports': ['read'],
-        'org-chart': ['read'],
-        'news': ['read'],
-        'leave-requests': ['read', 'edit'],
-        'working-patterns': ['read'],
-        'onboarding': ['read'],
-        'offboarding': ['read'],
+        dashboard: ["read"],
+        employees: ["read", "edit"],
+        calendar: ["read", "edit"],
+        documents: ["read", "edit"],
+        reports: ["read"],
+        "org-chart": ["read"],
+        news: ["read"],
+        "leave-requests": ["read", "edit"],
+        "working-patterns": ["read"],
+        onboarding: ["read"],
+        offboarding: ["read"],
         // Employee detail screens - Managers can view and edit most employee details
-        'employee-overview': ['read', 'edit'],
-        'employee-documents': ['read', 'edit'],
-        'employee-driver-licenses': ['read', 'edit'],
-        'employee-employment-checks': ['read', 'edit'],
-        'employee-forms': ['read', 'edit'],
-        'employee-leave': ['read', 'edit'],
-        'employee-offboarding': ['read'],
-        'employee-onboarding': ['read', 'edit'],
-        'employee-performance': ['read', 'edit'],
-        'employee-settings': ['read'],
-        'employee-training': ['read', 'edit'],
+        "employee-overview": ["read", "edit"],
+        "employee-documents": ["read", "edit"],
+        "employee-driver-licenses": ["read", "edit"],
+        "employee-employment-checks": ["read", "edit"],
+        "employee-forms": ["read", "edit"],
+        "employee-leave": ["read", "edit"],
+        "employee-offboarding": ["read"],
+        "employee-onboarding": ["read", "edit"],
+        "employee-performance": ["read", "edit"],
+        "employee-settings": ["read"],
+        "employee-training": ["read", "edit"],
       }),
       builtIn: true,
     },
   });
 
   const employeeProfile = await prisma.permissionProfile.upsert({
-    where: { companyId_name: { companyId: company.id, name: 'Employee' } },
+    where: { companyId_name: { companyId: company.id, name: "Employee" } },
     update: {},
     create: {
       companyId: company.id,
-      name: 'Employee',
-      description: 'Standard employee access to essential features',
+      name: "Employee",
+      description: "Standard employee access to essential features",
       permissions: JSON.stringify({
-        'dashboard': ['read'],
-        'calendar': ['read'],
-        'documents': ['read'],
-        'news': ['read'],
-        'leave-requests': ['read', 'edit'],
-        'onboarding': ['read'],
+        dashboard: ["read"],
+        calendar: ["read"],
+        documents: ["read"],
+        news: ["read"],
+        "leave-requests": ["read", "edit"],
+        onboarding: ["read"],
         // Employee detail screens - Employees can only view their own details
-        'employee-overview': ['read'],
-        'employee-documents': ['read'],
-        'employee-forms': ['read'],
-        'employee-leave': ['read', 'edit'],
-        'employee-training': ['read'],
+        "employee-overview": ["read"],
+        "employee-documents": ["read"],
+        "employee-forms": ["read"],
+        "employee-leave": ["read", "edit"],
+        "employee-training": ["read"],
       }),
       builtIn: true,
     },
   });
 
   // ✅ 5. Admin User & Employees
-  const hashedPassword = await bcrypt.hash('Admin123!', 10);
+  const hashedPassword = await bcrypt.hash("Admin123!", 10);
   const adminUser = await prisma.user.upsert({
     where: {
-      email_companyId: { email: 'admin@corenz.com', companyId: company.id },
+      email_companyId: { email: "admin@peoplecore.com", companyId: company.id },
     },
     update: {},
     create: {
-      email: 'admin@corenz.com',
-      firstName: 'System',
-      lastName: 'Admin',
-      role: 'ADMIN',
+      email: "admin@peoplecore.com",
+      firstName: "System",
+      lastName: "Admin",
+      role: "ADMIN",
       password: hashedPassword,
       companyId: company.id,
       departmentId: department.id,
@@ -192,8 +193,18 @@ async function main() {
   });
 
   const sampleEmployees = [
-    { email: 'john.doe@corenz.com', firstName: 'John', lastName: 'Doe', role: 'MANAGER' },
-    { email: 'jane.smith@corenz.com', firstName: 'Jane', lastName: 'Smith', role: 'EMPLOYEE' },
+    {
+      email: "john.doe@peoplecore.com",
+      firstName: "John",
+      lastName: "Doe",
+      role: "MANAGER",
+    },
+    {
+      email: "jane.smith@peoplecore.com",
+      firstName: "Jane",
+      lastName: "Smith",
+      role: "EMPLOYEE",
+    },
   ];
 
   for (const emp of sampleEmployees) {
@@ -206,11 +217,12 @@ async function main() {
         email: emp.email,
         firstName: emp.firstName,
         lastName: emp.lastName,
-        role: emp.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
+        role: emp.role as "ADMIN" | "MANAGER" | "EMPLOYEE",
         password: hashedPassword,
         companyId: company.id,
         departmentId: department.id,
-        permissionProfileId: emp.role === 'MANAGER' ? managerProfile.id : employeeProfile.id,
+        permissionProfileId:
+          emp.role === "MANAGER" ? managerProfile.id : employeeProfile.id,
       },
     });
 
@@ -229,19 +241,19 @@ async function main() {
   // ✅ 5. Create system-defined EventCategories
   const systemCategories = [
     {
-      name: 'Annual Leave',
-      categoryType: 'TIME_OFF',
+      name: "Annual Leave",
+      categoryType: "TIME_OFF",
       requiresApproval: true,
       adminOnly: false,
-      color: '#008000',
+      color: "#008000",
       systemDefined: true,
     },
     {
-      name: 'Sickness',
-      categoryType: 'TIME_OFF',
+      name: "Sickness",
+      categoryType: "TIME_OFF",
       requiresApproval: false,
       adminOnly: false,
-      color: '#FF0000',
+      color: "#FF0000",
       systemDefined: true,
     },
   ];
@@ -289,29 +301,114 @@ async function main() {
       // User fields
       { model: "user", field: "email", label: "Email", fieldType: "string" },
       { model: "user", field: "role", label: "Role", fieldType: "string" },
-      { model: "user", field: "firstName", label: "First Name", fieldType: "string" },
-      { model: "user", field: "lastName", label: "Last Name", fieldType: "string" },
+      {
+        model: "user",
+        field: "firstName",
+        label: "First Name",
+        fieldType: "string",
+      },
+      {
+        model: "user",
+        field: "lastName",
+        label: "Last Name",
+        fieldType: "string",
+      },
       { model: "user", field: "phone", label: "Phone", fieldType: "string" },
       // Employee fields
-      { model: "employee", field: "isActive", label: "Is Active", fieldType: "boolean" },
-      { model: "employee", field: "departmentId", label: "Department ID", fieldType: "string" },
-      { model: "employee", field: "workingPatternId", label: "Working Pattern ID", fieldType: "string" },
+      {
+        model: "employee",
+        field: "isActive",
+        label: "Is Active",
+        fieldType: "boolean",
+      },
+      {
+        model: "employee",
+        field: "departmentId",
+        label: "Department ID",
+        fieldType: "string",
+      },
+      {
+        model: "employee",
+        field: "workingPatternId",
+        label: "Working Pattern ID",
+        fieldType: "string",
+      },
       // Department fields
-      { model: "department", field: "name", label: "Department Name", fieldType: "string" },
-      { model: "department", field: "companyId", label: "Company ID", fieldType: "string" },
+      {
+        model: "department",
+        field: "name",
+        label: "Department Name",
+        fieldType: "string",
+      },
+      {
+        model: "department",
+        field: "companyId",
+        label: "Company ID",
+        fieldType: "string",
+      },
       // JobRole fields
-      { model: "jobrole", field: "name", label: "Job Role Name", fieldType: "string" },
-      { model: "jobrole", field: "description", label: "Job Role Description", fieldType: "string" },
+      {
+        model: "jobrole",
+        field: "name",
+        label: "Job Role Name",
+        fieldType: "string",
+      },
+      {
+        model: "jobrole",
+        field: "description",
+        label: "Job Role Description",
+        fieldType: "string",
+      },
       // Leave Request fields
-      { model: "leaverequest", field: "startDate", label: "Start Date", fieldType: "date" },
-      { model: "leaverequest", field: "endDate", label: "End Date", fieldType: "date" },
-      { model: "leaverequest", field: "status", label: "Status", fieldType: "string" },
-      { model: "leaverequest", field: "daysRequested", label: "Days Requested", fieldType: "int" },
+      {
+        model: "leaverequest",
+        field: "startDate",
+        label: "Start Date",
+        fieldType: "date",
+      },
+      {
+        model: "leaverequest",
+        field: "endDate",
+        label: "End Date",
+        fieldType: "date",
+      },
+      {
+        model: "leaverequest",
+        field: "status",
+        label: "Status",
+        fieldType: "string",
+      },
+      {
+        model: "leaverequest",
+        field: "daysRequested",
+        label: "Days Requested",
+        fieldType: "int",
+      },
       // Leave Entitlement fields
-      { model: "leaveentitlement", field: "totalDays", label: "Total Days", fieldType: "int" },
-      { model: "leaveentitlement", field: "usedDays", label: "Used Days", fieldType: "int" },
-      { model: "leaveentitlement", field: "carryoverDays", label: "Carryover Days", fieldType: "int" },
-      { model: "leaveentitlement", field: "carryoverExpiry", label: "Carryover Expiry", fieldType: "date" },
+      {
+        model: "leaveentitlement",
+        field: "totalDays",
+        label: "Total Days",
+        fieldType: "int",
+      },
+      {
+        model: "leaveentitlement",
+        field: "usedDays",
+        label: "Used Days",
+        fieldType: "int",
+      },
+      {
+        model: "leaveentitlement",
+        field: "carryoverDays",
+        label: "Carryover Days",
+        fieldType: "int",
+      },
+      {
+        model: "leaveentitlement",
+        field: "carryoverExpiry",
+        label: "Carryover Expiry",
+        fieldType: "date",
+      },
     ],
     skipDuplicates: true, // prevent duplication on re-seeding
   });
@@ -319,9 +416,27 @@ async function main() {
 
   // ✅ 8. Seed ExpiryRules for expiry alerts
   const expiryRules = [
-    { category: "Employment Checks", daysBefore: 28, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
-    { category: "Driver Licence", daysBefore: 30, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
-    { category: "Training", daysBefore: 45, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    {
+      category: "Employment Checks",
+      daysBefore: 28,
+      notifyAdmin: true,
+      notifyManager: true,
+      notifyEmployee: true,
+    },
+    {
+      category: "Driver Licence",
+      daysBefore: 30,
+      notifyAdmin: true,
+      notifyManager: true,
+      notifyEmployee: true,
+    },
+    {
+      category: "Training",
+      daysBefore: 45,
+      notifyAdmin: true,
+      notifyManager: true,
+      notifyEmployee: true,
+    },
   ];
 
   for (const rule of expiryRules) {
@@ -338,7 +453,7 @@ async function main() {
     console.log(`✅ ExpiryRule created: ${result.category} (${result.id})`);
   }
 
-  console.log('✅ Seeding process completed.');
+  console.log("✅ Seeding process completed.");
 }
 
 main()

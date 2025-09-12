@@ -7,9 +7,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await req.formData();
 
@@ -33,7 +37,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       console.error(error);
       return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }
-    const { data: urlData } = supabase.storage.from("documents").getPublicUrl(data.path);
+    const { data: urlData } = supabase.storage
+      .from("documents")
+      .getPublicUrl(data.path);
     documentUrl = urlData.publicUrl;
   }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -11,7 +11,8 @@ export async function GET() {
     });
 
     // Group by model for the report builder
-    const groupedFields: Record<string, { label: string; value: string }[]> = {};
+    const groupedFields: Record<string, { label: string; value: string }[]> =
+      {};
 
     fields.forEach((field) => {
       if (!groupedFields[field.model]) {
@@ -26,6 +27,9 @@ export async function GET() {
     return NextResponse.json(groupedFields);
   } catch (error) {
     console.error("Error fetching fields:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

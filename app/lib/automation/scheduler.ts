@@ -1,6 +1,6 @@
 /**
  * Automation Scheduler
- * 
+ *
  * Handles scheduled evaluation of automation rules and creation of jobs
  * when triggers are met. Supports both cron-based and event-based scheduling.
  */
@@ -27,7 +27,8 @@ export class AutomationScheduler {
   /**
    * Start the scheduler
    */
-  start(intervalMs: number = 60000): void { // Default: check every minute
+  start(intervalMs: number = 60000): void {
+    // Default: check every minute
     if (this.isRunning) {
       this.logger.warn("Scheduler is already running");
       return;
@@ -87,7 +88,7 @@ export class AutomationScheduler {
           rule.id,
           rule.companyId,
           triggerData,
-          { priority: 5 } // Higher priority for manual triggers
+          { priority: 5 }, // Higher priority for manual triggers
         );
 
         this.logger.info("Manual trigger created job", {
@@ -102,7 +103,10 @@ export class AutomationScheduler {
         return await this.evaluateAndCreateJobs(rule);
       }
     } catch (error) {
-      this.logger.error("Failed to trigger rule", error as Error, { ruleId, triggerData });
+      this.logger.error("Failed to trigger rule", error as Error, {
+        ruleId,
+        triggerData,
+      });
       throw error;
     }
   }
@@ -117,7 +121,8 @@ export class AutomationScheduler {
       // Map event types to trigger types
       const triggerTypeMap: Record<string, AutomationTriggerType> = {
         "form.submitted": AutomationTriggerType.FORM_SUBMITTED,
-        "onboarding.step.completed": AutomationTriggerType.ONBOARDING_STEP_COMPLETED,
+        "onboarding.step.completed":
+          AutomationTriggerType.ONBOARDING_STEP_COMPLETED,
         "employee.created": AutomationTriggerType.EMPLOYEE_CREATED,
       };
 
@@ -155,7 +160,7 @@ export class AutomationScheduler {
               data: eventData,
               triggeredAt: new Date(),
             },
-            { priority: 3 } // Medium priority for event-based triggers
+            { priority: 3 }, // Medium priority for event-based triggers
           );
 
           this.logger.debug("Created job for event", {
@@ -218,7 +223,7 @@ export class AutomationScheduler {
       const batchSize = 10;
       for (let i = 0; i < rules.length; i += batchSize) {
         const batch = rules.slice(i, i + batchSize);
-        
+
         await Promise.all(
           batch.map(async (rule) => {
             try {
@@ -229,7 +234,7 @@ export class AutomationScheduler {
                 ruleName: rule.name,
               });
             }
-          })
+          }),
         );
 
         // Small delay between batches
@@ -250,9 +255,11 @@ export class AutomationScheduler {
   private async evaluateAndCreateJobs(rule: any): Promise<string[]> {
     try {
       // Skip time-based triggers for now (they should be handled by events)
-      if (rule.triggerType === AutomationTriggerType.FORM_SUBMITTED ||
-          rule.triggerType === AutomationTriggerType.ONBOARDING_STEP_COMPLETED ||
-          rule.triggerType === AutomationTriggerType.EMPLOYEE_CREATED) {
+      if (
+        rule.triggerType === AutomationTriggerType.FORM_SUBMITTED ||
+        rule.triggerType === AutomationTriggerType.ONBOARDING_STEP_COMPLETED ||
+        rule.triggerType === AutomationTriggerType.EMPLOYEE_CREATED
+      ) {
         return []; // These are handled by real-time events
       }
 
@@ -260,7 +267,7 @@ export class AutomationScheduler {
       const result = await this.evaluator.evaluateTrigger(
         rule.triggerType,
         rule.triggerConfig,
-        rule.companyId
+        rule.companyId,
       );
 
       if (!result.matches || result.matchingEntities.length === 0) {
@@ -295,7 +302,7 @@ export class AutomationScheduler {
             rule.id,
             rule.companyId,
             entity,
-            { priority: 1 } // Low priority for scheduled triggers
+            { priority: 1 }, // Low priority for scheduled triggers
           );
 
           return jobId;
@@ -329,7 +336,10 @@ export class AutomationScheduler {
   /**
    * Check if a recent job exists for the same entity to avoid duplicates
    */
-  private async findRecentJob(ruleId: string, entity: any): Promise<any | null> {
+  private async findRecentJob(
+    ruleId: string,
+    entity: any,
+  ): Promise<any | null> {
     try {
       const hourAgo = new Date();
       hourAgo.setHours(hourAgo.getHours() - 1);
@@ -338,11 +348,20 @@ export class AutomationScheduler {
       let entityKey = "";
       if (entity.type === "document_expiry" && entity.data?.employmentCheckId) {
         entityKey = `doc_${entity.data.employmentCheckId}`;
-      } else if (entity.type === "form_submission" && entity.data?.submissionId) {
+      } else if (
+        entity.type === "form_submission" &&
+        entity.data?.submissionId
+      ) {
         entityKey = `form_${entity.data.submissionId}`;
-      } else if (entity.type === "onboarding_step_completed" && entity.data?.stepInstanceId) {
+      } else if (
+        entity.type === "onboarding_step_completed" &&
+        entity.data?.stepInstanceId
+      ) {
         entityKey = `step_${entity.data.stepInstanceId}`;
-      } else if (entity.type === "employee_created" && entity.data?.employeeId) {
+      } else if (
+        entity.type === "employee_created" &&
+        entity.data?.employeeId
+      ) {
         entityKey = `emp_${entity.data.employeeId}`;
       }
 
@@ -379,7 +398,7 @@ export class AutomationScheduler {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -388,10 +407,16 @@ export class AutomationScheduler {
   private createDefaultLogger(): JobLogger {
     return {
       info: (message: string, data?: any) => {
-        console.log(`[AutomationScheduler] ${message}`, data ? JSON.stringify(data) : "");
+        console.log(
+          `[AutomationScheduler] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       warn: (message: string, data?: any) => {
-        console.warn(`[AutomationScheduler] ${message}`, data ? JSON.stringify(data) : "");
+        console.warn(
+          `[AutomationScheduler] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       error: (message: string, error?: Error, data?: any) => {
         console.error(`[AutomationScheduler] ${message}`, {
@@ -402,7 +427,10 @@ export class AutomationScheduler {
       },
       debug: (message: string, data?: any) => {
         if (process.env.NODE_ENV === "development") {
-          console.debug(`[AutomationScheduler] ${message}`, data ? JSON.stringify(data) : "");
+          console.debug(
+            `[AutomationScheduler] ${message}`,
+            data ? JSON.stringify(data) : "",
+          );
         }
       },
     };

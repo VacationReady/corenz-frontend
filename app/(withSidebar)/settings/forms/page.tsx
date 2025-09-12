@@ -1,39 +1,15 @@
 "use client";
 
-<<<<<<< HEAD
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import {
-  Plus,
-  Users,
-  Calendar,
-  Settings,
-  Trash2,
-  MoreVertical,
-  Copy,
-  Eye,
-  Download,
-  Upload,
-  Filter,
-} from "lucide-react";
+import { Plus, Users, Calendar, Settings, Trash2, MoreVertical, Copy, Eye, Download, Upload, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-=======
-import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
-import { PageShell } from '@/components/ui/PageShell'
-import { breadcrumbConfigs } from '@/components/ui/Breadcrumb'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Plus, Users, Calendar, Settings, Trash2, MoreVertical, Copy, Eye, Download, Upload, Filter } from 'lucide-react'
-import { toast } from 'sonner'
-import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu'
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
 
 interface Form {
   id: string;

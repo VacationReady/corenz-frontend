@@ -476,18 +476,6 @@ export default function EventRulesPage() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Event Rules</h1>
-          <p className="text-muted-foreground">
-            Configure booking constraints, notice periods, and enforcement modes
-            for leave types
-          </p>
-        </div>
-        <div className="flex gap-2">
-=======
     <PageShell
       title="Event Rules"
       description="Configure booking constraints, notice periods, and enforcement modes for leave types"
@@ -495,7 +483,6 @@ export default function EventRulesPage() {
       showHomeIcon={false}
     >
       <div className="flex justify-end gap-2 mb-4">
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
           <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">

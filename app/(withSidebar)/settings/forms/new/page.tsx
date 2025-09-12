@@ -43,11 +43,8 @@ export default function NewFormPage() {
     <PageShell
       title="Create Form"
       description="Build a new form using the builder"
-<<<<<<< HEAD
-=======
       breadcrumbs={{ items: breadcrumbItems }}
       showHomeIcon={false}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
     >
       <FormBuilder onSave={handleSave} />
     </PageShell>

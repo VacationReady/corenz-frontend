@@ -168,11 +168,8 @@ export default function NewExitInterviewTemplatePage() {
     <PageShell
       title="New Exit Interview Template"
       description="Create a new exit interview form template"
-<<<<<<< HEAD
-=======
       breadcrumbs={{ items: breadcrumbItems }}
       showHomeIcon={false}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

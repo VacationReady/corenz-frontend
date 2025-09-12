@@ -142,11 +142,8 @@ export default function ExitInterviewFormsPage() {
       <PageShell
         title="Exit Interview Forms"
         description="Manage exit interview form templates"
-<<<<<<< HEAD
-=======
         breadcrumbs={{ items: breadcrumbItems }}
         showHomeIcon={false}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
       >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -159,11 +156,8 @@ export default function ExitInterviewFormsPage() {
     <PageShell
       title="Exit Interview Forms"
       description="Manage exit interview form templates"
-<<<<<<< HEAD
-=======
       breadcrumbs={{ items: breadcrumbItems }}
       showHomeIcon={false}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
     >
       <div className="flex justify-between items-center mb-6">
         <div className="text-sm text-gray-600">

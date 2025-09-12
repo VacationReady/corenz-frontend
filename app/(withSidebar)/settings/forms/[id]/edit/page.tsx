@@ -124,11 +124,8 @@ export default function EditFormPage() {
       <PageShell
         title="Form Not Found"
         description="The requested form could not be found"
-<<<<<<< HEAD
-=======
         breadcrumbs={{ items: breadcrumbItems }}
         showHomeIcon={false}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
       >
         <div className="text-center py-8">
           <p className="text-gray-500">

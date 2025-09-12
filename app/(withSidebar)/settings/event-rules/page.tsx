@@ -30,6 +30,8 @@ import {
   Edit
 } from "lucide-react";
 import { format } from "date-fns";
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 interface EventCategory {
   id: string;
@@ -442,15 +444,13 @@ export default function EventRulesPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Event Rules</h1>
-          <p className="text-muted-foreground">
-            Configure booking constraints, notice periods, and enforcement modes for leave types
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <PageShell
+      title="Event Rules"
+      description="Configure booking constraints, notice periods, and enforcement modes for leave types"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Event Rules')}
+      showHomeIcon={false}
+    >
+      <div className="flex justify-end gap-2 mb-4">
           <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -717,7 +717,6 @@ export default function EventRulesPage() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
 
       <Tabs defaultValue="rules" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -1304,6 +1303,6 @@ export default function EventRulesPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

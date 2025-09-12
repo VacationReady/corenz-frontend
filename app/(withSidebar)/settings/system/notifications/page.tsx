@@ -335,6 +335,7 @@ export default function NotificationSettingsPage() {
       title="Notification Settings"
       description="Configure notification channels, digests, and email templates"
       breadcrumbs={breadcrumbConfigs.settingsSection("Notification Settings")}
+      showHomeIcon={false}
     >
       <div className="space-y-6">
         <Tabs defaultValue="channels" className="w-full">

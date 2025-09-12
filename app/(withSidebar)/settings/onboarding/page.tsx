@@ -9,6 +9,8 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import OnboardingTemplateEditor from "@/components/onboarding/OnboardingTemplateEditor";
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 type Template = {
   id: string;
@@ -102,14 +104,17 @@ export default function OnboardingSettingsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Onboarding Templates</h1>
+    <PageShell
+      title="Onboarding Templates"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Onboarding')}
+      action={
         <Button onClick={() => { setEditingTemplate(null); setIsEditorOpen(true); }}>
           <Plus className="w-5 h-5 mr-1" /> New Template
         </Button>
-      </div>
-
+      }
+      showHomeIcon={false}
+    >
+      <div className="max-w-5xl mx-auto">
       {loading ? (
         <div>Loading templates...</div>
       ) : templates.length === 0 ? (
@@ -171,6 +176,7 @@ export default function OnboardingSettingsPage() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

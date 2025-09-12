@@ -27,6 +27,12 @@ export default function EditFormPage() {
   const [formData, setFormData] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Forms & Surveys', href: '/settings/forms' },
+    { label: formData ? `Edit: ${formData.name}` : 'Edit Form', isCurrentPage: true }
+  ]
+
   useEffect(() => {
     if (!formId) return; // ✅ Prevent fetch if formId is missing
 
@@ -85,7 +91,12 @@ export default function EditFormPage() {
 
   if (!formId) {
     return (
-      <PageShell title="Invalid Form" description="Missing or invalid form ID">
+      <PageShell
+        title="Invalid Form"
+        description="Missing or invalid form ID"
+        breadcrumbs={{ items: breadcrumbItems }}
+        showHomeIcon={false}
+      >
         <div className="text-center py-8">
           <p className="text-gray-500">The form ID is missing or invalid.</p>
         </div>
@@ -95,7 +106,12 @@ export default function EditFormPage() {
 
   if (loading) {
     return (
-      <PageShell title="Edit Form" description="Loading form data...">
+      <PageShell
+        title="Edit Form"
+        description="Loading form data..."
+        breadcrumbs={{ items: breadcrumbItems }}
+        showHomeIcon={false}
+      >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -108,6 +124,11 @@ export default function EditFormPage() {
       <PageShell
         title="Form Not Found"
         description="The requested form could not be found"
+<<<<<<< HEAD
+=======
+        breadcrumbs={{ items: breadcrumbItems }}
+        showHomeIcon={false}
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
       >
         <div className="text-center py-8">
           <p className="text-gray-500">
@@ -122,6 +143,8 @@ export default function EditFormPage() {
     <PageShell
       title={`Edit: ${formData.name}`}
       description="Modify the form using the builder below"
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
     >
       <FormBuilder
         onSave={handleSave}

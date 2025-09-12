@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
@@ -50,6 +51,24 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { getScreenDisplayName } from "@/lib/permissions";
+=======
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import Button from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Plus, Search, MoreHorizontal, Edit, Trash2, Copy, Shield, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import { getScreenDisplayName } from '@/lib/permissions';
+import { PageShell } from '@/components/ui/PageShell';
+import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
 
 interface PermissionProfile {
   id: string;
@@ -187,6 +206,7 @@ export default function PermissionsPage() {
   };
 
   return (
+<<<<<<< HEAD
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -196,14 +216,23 @@ export default function PermissionsPage() {
           </p>
         </div>
 
+=======
+    <PageShell
+      title="Permission Profiles"
+      description="Manage permission profiles for different user roles"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Permission Profiles')}
+      action={
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
         <Link href="/settings/permissions/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Profile
           </Button>
         </Link>
-      </div>
-
+      }
+      showHomeIcon={false}
+    >
+      <div className="space-y-6">
       {/* Search and Filters */}
       <Card>
         <CardHeader>
@@ -426,6 +455,7 @@ export default function PermissionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

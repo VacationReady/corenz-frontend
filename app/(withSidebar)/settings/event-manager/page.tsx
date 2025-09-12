@@ -10,6 +10,7 @@ import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
 import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/Input";
+<<<<<<< HEAD
 import {
   Select,
   SelectContent,
@@ -17,6 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+=======
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -181,8 +187,11 @@ export default function EventManagerPage() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Event Manager</h1>
+    <PageShell
+      title="Event Manager"
+      breadcrumbs={breadcrumbConfigs.settingsSection("Event Manager")}
+      showHomeIcon={false}
+    >
       <Card className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Event Categories</h2>
@@ -373,6 +382,6 @@ export default function EventManagerPage() {
         parentCategoryId={selectedCategoryId}
         parentCategoryName={selectedCategoryName}
       />
-    </div>
+    </PageShell>
   );
 }

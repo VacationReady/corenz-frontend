@@ -10,19 +10,9 @@ import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
 import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/Input";
-<<<<<<< HEAD
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
-=======
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
 
 export default function EventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);

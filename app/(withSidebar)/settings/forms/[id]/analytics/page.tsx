@@ -19,11 +19,8 @@ export default function FormAnalyticsPage() {
       <PageShell
         title="Form Analytics"
         description="View submission statistics and insights"
-<<<<<<< HEAD
-=======
         breadcrumbs={{ items: breadcrumbItems }}
         showHomeIcon={false}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
       >
         <div className="flex items-center justify-center h-64 text-gray-500">
           Invalid form ID.

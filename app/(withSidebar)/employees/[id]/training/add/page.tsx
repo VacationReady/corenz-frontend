@@ -1,12 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Course {
   id: string;
@@ -21,26 +33,28 @@ interface Provider {
 export default function AddTraining() {
   const router = useRouter();
   const params = useParams();
-  const employeeIdRaw = params?.id ?? '';
-  const employeeId = Array.isArray(employeeIdRaw) ? employeeIdRaw[0] : employeeIdRaw;
+  const employeeIdRaw = params?.id ?? "";
+  const employeeId = Array.isArray(employeeIdRaw)
+    ? employeeIdRaw[0]
+    : employeeIdRaw;
 
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("");
 
   // Modals
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
-  const [newCourseName, setNewCourseName] = useState('');
-  const [newProviderName, setNewProviderName] = useState('');
+  const [newCourseName, setNewCourseName] = useState("");
+  const [newProviderName, setNewProviderName] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
       const [coursesRes, providersRes] = await Promise.all([
-        fetch('/api/courses/list'),
-        fetch('/api/providers/list'),
+        fetch("/api/courses/list"),
+        fetch("/api/providers/list"),
       ]);
       const coursesData = await coursesRes.json();
       const providersData = await providersRes.json();
@@ -55,13 +69,13 @@ export default function AddTraining() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    formData.append('employeeId', employeeId);
-    formData.append('courseId', selectedCourse);
-    formData.append('providerId', selectedProvider);
+    formData.append("employeeId", employeeId);
+    formData.append("courseId", selectedCourse);
+    formData.append("providerId", selectedProvider);
 
     try {
-      const res = await fetch('/api/training-records/create', {
-        method: 'POST',
+      const res = await fetch("/api/training-records/create", {
+        method: "POST",
         body: formData,
       });
 
@@ -69,11 +83,11 @@ export default function AddTraining() {
         router.push(`/employees/${employeeId}/training`);
       } else {
         const error = await res.json();
-        alert('Error: ' + error.error);
+        alert("Error: " + error.error);
       }
     } catch (error) {
       console.error(error);
-      alert('Upload failed.');
+      alert("Upload failed.");
     } finally {
       setLoading(false);
     }
@@ -81,29 +95,29 @@ export default function AddTraining() {
 
   const handleAddCourse = async () => {
     if (!newCourseName.trim()) return;
-    const res = await fetch('/api/courses/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/courses/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newCourseName }),
     });
     const data = await res.json();
     setCourses((prev) => [...prev, data]);
     setSelectedCourse(data.id);
-    setNewCourseName('');
+    setNewCourseName("");
     setIsCourseModalOpen(false);
   };
 
   const handleAddProvider = async () => {
     if (!newProviderName.trim()) return;
-    const res = await fetch('/api/providers/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/providers/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newProviderName }),
     });
     const data = await res.json();
     setProviders((prev) => [...prev, data]);
     setSelectedProvider(data.id);
-    setNewProviderName('');
+    setNewProviderName("");
     setIsProviderModalOpen(false);
   };
 
@@ -135,7 +149,10 @@ export default function AddTraining() {
         <div>
           <Label>Provider</Label>
           <div className="flex gap-2">
-            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+            <Select
+              value={selectedProvider}
+              onValueChange={setSelectedProvider}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a provider" />
               </SelectTrigger>
@@ -169,7 +186,7 @@ export default function AddTraining() {
         </div>
 
         <Button type="submit" disabled={loading}>
-          {loading ? 'Uploading...' : 'Add Training'}
+          {loading ? "Uploading..." : "Add Training"}
         </Button>
       </form>
 

@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
@@ -40,26 +45,48 @@ export default function EditAccessModal({
   const [canManager, setCanManager] = useState(false);
   const [canEmployee, setCanEmployee] = useState(false);
   const [requiresAck, setRequiresAck] = useState(false); // ✅ NEW STATE
-  const [departmentsList, setDepartmentsList] = useState<{ label: string; value: string }[]>([]);
-  const [jobRolesList, setJobRolesList] = useState<{ label: string; value: string }[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [jobRolesList, setJobRolesList] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   // Fetch dropdowns if not employee document
   useEffect(() => {
     if (!isEmployeeDocument) {
-      fetch("/api/departments/active").then((res) => res.json()).then((data) => {
-        setDepartmentsList([{ label: "All Departments", value: "all" }, ...data.map((d: any) => ({ label: d.name, value: d.id }))]);
-      });
-      fetch("/api/job-roles/active").then((res) => res.json()).then((data) => {
-        setJobRolesList([{ label: "All Job Roles", value: "all" }, ...data.map((r: any) => ({ label: r.name, value: r.id }))]);
-      });
+      fetch("/api/departments/active")
+        .then((res) => res.json())
+        .then((data) => {
+          setDepartmentsList([
+            { label: "All Departments", value: "all" },
+            ...data.map((d: any) => ({ label: d.name, value: d.id })),
+          ]);
+        });
+      fetch("/api/job-roles/active")
+        .then((res) => res.json())
+        .then((data) => {
+          setJobRolesList([
+            { label: "All Job Roles", value: "all" },
+            ...data.map((r: any) => ({ label: r.name, value: r.id })),
+          ]);
+        });
     }
   }, [isEmployeeDocument]);
 
   // Populate fields when modal opens
   useEffect(() => {
     if (document) {
-      setDeptIds(document.departments?.length ? document.departments.map((d) => d.id) : ["all"]);
-      setRoleIds(document.jobRoles?.length ? document.jobRoles.map((jr) => jr.id) : ["all"]);
+      setDeptIds(
+        document.departments?.length
+          ? document.departments.map((d) => d.id)
+          : ["all"],
+      );
+      setRoleIds(
+        document.jobRoles?.length
+          ? document.jobRoles.map((jr) => jr.id)
+          : ["all"],
+      );
       setCanAdmin(document.canViewAdmin);
       setCanManager(document.canViewManager);
       setCanEmployee(document.canViewEmployee);
@@ -78,8 +105,16 @@ export default function EditAccessModal({
         canViewManager: canManager,
         canViewEmployee: canEmployee,
         requiresAck, // ✅ Send to API
-        departmentIds: isEmployeeDocument ? [] : deptIds.includes("all") ? [] : deptIds,
-        jobRoleIds: isEmployeeDocument ? [] : roleIds.includes("all") ? [] : roleIds,
+        departmentIds: isEmployeeDocument
+          ? []
+          : deptIds.includes("all")
+            ? []
+            : deptIds,
+        jobRoleIds: isEmployeeDocument
+          ? []
+          : roleIds.includes("all")
+            ? []
+            : roleIds,
       }),
     });
 

@@ -9,7 +9,12 @@ const AutomationRuleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   isActive: z.boolean().default(false),
-  triggerType: z.enum(["DOCUMENT_EXPIRING", "FORM_SUBMITTED", "ONBOARDING_STEP_COMPLETED", "EMPLOYEE_CREATED"]),
+  triggerType: z.enum([
+    "DOCUMENT_EXPIRING",
+    "FORM_SUBMITTED",
+    "ONBOARDING_STEP_COMPLETED",
+    "EMPLOYEE_CREATED",
+  ]),
   triggerConfig: z.record(z.any()),
   conditions: z.array(z.record(z.any())).optional(),
   actions: z.array(z.record(z.any())).min(1, "At least one action is required"),
@@ -51,7 +56,7 @@ export async function GET() {
     console.error("GET /api/automation-rules error:", error);
     return NextResponse.json(
       { error: "Failed to fetch automation rules" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -78,7 +83,7 @@ export async function POST(req: Request) {
     if (existingRule) {
       return NextResponse.json(
         { error: "A rule with this name already exists" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -124,17 +129,17 @@ export async function POST(req: Request) {
     return NextResponse.json(rule, { status: 201 });
   } catch (error) {
     console.error("POST /api/automation-rules error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create automation rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

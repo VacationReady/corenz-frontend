@@ -1,14 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
 
 interface Acknowledgement {
   name: string;
   email: string;
   acknowledgedAt?: string;
   department?: string | null; // ✅ Added for company docs
-  jobRole?: string | null;    // ✅ Added for company docs
+  jobRole?: string | null; // ✅ Added for company docs
 }
 
 interface Props {
@@ -19,7 +31,13 @@ interface Props {
   isEmployeeDocument?: boolean; // ✅ NEW FLAG
 }
 
-export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId, documentName, isEmployeeDocument = false }: Props) {
+export default function ViewAcknowledgementsModal({
+  isOpen,
+  onClose,
+  documentId,
+  documentName,
+  isEmployeeDocument = false,
+}: Props) {
   const [acknowledged, setAcknowledged] = useState<Acknowledgement[]>([]);
   const [pending, setPending] = useState<Acknowledgement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,12 +53,18 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
           .then((data) => {
             if (data.acknowledged) {
               setAcknowledged([
-                { name: data.employee.name, email: data.employee.email, acknowledgedAt: data.acknowledgedAt },
+                {
+                  name: data.employee.name,
+                  email: data.employee.email,
+                  acknowledgedAt: data.acknowledgedAt,
+                },
               ]);
               setPending([]);
             } else {
               setAcknowledged([]);
-              setPending([{ name: data.employee.name, email: data.employee.email }]);
+              setPending([
+                { name: data.employee.name, email: data.employee.email },
+              ]);
             }
           })
           .finally(() => setLoading(false));
@@ -56,7 +80,7 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
                 acknowledgedAt: ack.acknowledgedAt,
                 department: ack.department || null,
                 jobRole: ack.jobRole || null,
-              }))
+              })),
             );
             setPending(data.pending || []);
           })
@@ -93,7 +117,10 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {isEmployeeDocument ? "View Acknowledgement" : "View Acknowledgements"}: {documentName}
+            {isEmployeeDocument
+              ? "View Acknowledgement"
+              : "View Acknowledgements"}
+            : {documentName}
           </DialogTitle>
         </DialogHeader>
 
@@ -101,7 +128,9 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
           <p>Loading acknowledgements...</p>
         ) : (
           <div className="space-y-4">
-            <h3 className="font-semibold">✅ Acknowledged ({acknowledged.length})</h3>
+            <h3 className="font-semibold">
+              ✅ Acknowledged ({acknowledged.length})
+            </h3>
             {acknowledged.length > 0 ? (
               <Table>
                 <TableHeader>
@@ -118,23 +147,35 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
                     <TableRow key={a.email}>
                       <TableCell>{a.name}</TableCell>
                       <TableCell>{a.email}</TableCell>
-                      {!isEmployeeDocument && <TableCell>{a.department || "-"}</TableCell>}
-                      {!isEmployeeDocument && <TableCell>{a.jobRole || "-"}</TableCell>}
-                      <TableCell>{a.acknowledgedAt ? new Date(a.acknowledgedAt).toLocaleDateString() : "-"}</TableCell>
+                      {!isEmployeeDocument && (
+                        <TableCell>{a.department || "-"}</TableCell>
+                      )}
+                      {!isEmployeeDocument && (
+                        <TableCell>{a.jobRole || "-"}</TableCell>
+                      )}
+                      <TableCell>
+                        {a.acknowledgedAt
+                          ? new Date(a.acknowledgedAt).toLocaleDateString()
+                          : "-"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
               <p className="text-sm text-gray-500">
-                {isEmployeeDocument ? "No acknowledgement yet from this employee." : "No acknowledgements yet."}
+                {isEmployeeDocument
+                  ? "No acknowledgement yet from this employee."
+                  : "No acknowledgements yet."}
               </p>
             )}
 
             {/* ✅ Only show pending for company docs */}
             {!isEmployeeDocument && (
               <>
-                <h3 className="font-semibold mt-4">❌ Pending ({pending.length})</h3>
+                <h3 className="font-semibold mt-4">
+                  ❌ Pending ({pending.length})
+                </h3>
                 {pending.length > 0 ? (
                   <Table>
                     <TableHeader>
@@ -153,7 +194,9 @@ export default function ViewAcknowledgementsModal({ isOpen, onClose, documentId,
                     </TableBody>
                   </Table>
                 ) : (
-                  <p className="text-sm text-gray-500">No pending acknowledgements.</p>
+                  <p className="text-sm text-gray-500">
+                    No pending acknowledgements.
+                  </p>
                 )}
               </>
             )}

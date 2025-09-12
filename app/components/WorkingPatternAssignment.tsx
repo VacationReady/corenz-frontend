@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/Select";
 import { toast } from "sonner";
 
 interface Pattern {
@@ -39,14 +45,17 @@ export default function WorkingPatternAssignment({
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/employees/${employeeId}/working-pattern-assignment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workingPatternId: selected,
-          effectiveDate: date,
-        }),
-      });
+      const res = await fetch(
+        `/api/employees/${employeeId}/working-pattern-assignment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workingPatternId: selected,
+            effectiveDate: date,
+          }),
+        },
+      );
 
       if (!res.ok) {
         const data = await res.json();
@@ -76,21 +85,23 @@ export default function WorkingPatternAssignment({
             <div>
               <label className="block text-sm font-medium">Pattern</label>
               <Select value={selected} onValueChange={setSelected}>
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Select a pattern" />
-  </SelectTrigger>
-  <SelectContent>
-    {patterns.map((p) => (
-      <SelectItem key={p.id} value={p.id}>
-        {p.name}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a pattern" />
+                </SelectTrigger>
+                <SelectContent>
+                  {patterns.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Effective Date</label>
+              <label className="block text-sm font-medium">
+                Effective Date
+              </label>
               <Input
                 type="date"
                 value={date}
@@ -98,7 +109,10 @@ export default function WorkingPatternAssignment({
               />
             </div>
 
-            <Button onClick={handleAssign} disabled={!selected || !date || loading}>
+            <Button
+              onClick={handleAssign}
+              disabled={!selected || !date || loading}
+            >
               {loading ? "Saving..." : "Save Assignment"}
             </Button>
           </div>

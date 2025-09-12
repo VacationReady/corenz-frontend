@@ -1,18 +1,26 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const { documentId, canViewAdmin, canViewManager, canViewEmployee, departmentIds, jobRoleIds, requiresAck } = await req.json();
+  const {
+    documentId,
+    canViewAdmin,
+    canViewManager,
+    canViewEmployee,
+    departmentIds,
+    jobRoleIds,
+    requiresAck,
+  } = await req.json();
 
   if (!documentId) {
-    return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
+    return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
   }
 
   try {
@@ -39,7 +47,10 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json(updatedDoc);
   } catch (err) {
-    console.error('Update Access Error:', err);
-    return NextResponse.json({ error: 'Failed to update document access' }, { status: 500 });
+    console.error("Update Access Error:", err);
+    return NextResponse.json(
+      { error: "Failed to update document access" },
+      { status: 500 },
+    );
   }
 }

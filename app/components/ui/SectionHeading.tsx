@@ -5,6 +5,7 @@ export default function SectionHeading({
 }: {
   children: React.ReactNode;
 }) {
-  return <h2 className="text-lg font-semibold text-gray-800 mb-2">{children}</h2>;
+  return (
+    <h2 className="text-lg font-semibold text-gray-800 mb-2">{children}</h2>
+  );
 }
-

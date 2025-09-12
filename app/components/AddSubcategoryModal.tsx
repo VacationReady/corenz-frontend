@@ -23,7 +23,9 @@ export default function AddSubcategoryModal({
   parentCategoryName,
 }: AddSubcategoryModalProps) {
   const [name, setName] = useState("");
-  const [defaultPaidStatus, setDefaultPaidStatus] = useState<"PAID" | "UNPAID">("PAID");
+  const [defaultPaidStatus, setDefaultPaidStatus] = useState<"PAID" | "UNPAID">(
+    "PAID",
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -76,22 +78,31 @@ export default function AddSubcategoryModal({
 
         <div className="space-y-2">
           <div>
-            <label htmlFor="subcategoryName" className="block text-sm font-medium mb-1">
+            <label
+              htmlFor="subcategoryName"
+              className="block text-sm font-medium mb-1"
+            >
               Subcategory Name
             </label>
             <Input
               id="subcategoryName"
               placeholder="e.g., Doctor's Appointment"
               value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setName(e.target.value)
+              }
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Default Paid Status</label>
+            <label className="block text-sm font-medium mb-1">
+              Default Paid Status
+            </label>
             <select
               value={defaultPaidStatus}
-              onChange={(e) => setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")}
+              onChange={(e) =>
+                setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")
+              }
               className="w-full border rounded p-2"
             >
               <option value="PAID">Paid</option>

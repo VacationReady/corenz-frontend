@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { usePathname } from 'next/navigation';
-import { BreadcrumbConfig, DynamicBreadcrumbData } from '@/types/breadcrumb';
-import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
+import { useMemo } from "react";
+import { usePathname } from "next/navigation";
+import { BreadcrumbConfig, DynamicBreadcrumbData } from "@/types/breadcrumb";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 export function useBreadcrumbs(
   dynamicData?: DynamicBreadcrumbData,
-  customConfig?: BreadcrumbConfig
+  customConfig?: BreadcrumbConfig,
 ): BreadcrumbConfig | null {
   const pathname = usePathname();
 
@@ -21,7 +21,7 @@ export function useBreadcrumbs(
     }
 
     // Generate breadcrumbs based on current path
-    const pathSegments = pathname.split('/').filter(Boolean);
+    const pathSegments = pathname.split("/").filter(Boolean);
 
     if (pathSegments.length === 0) {
       return breadcrumbConfigs.dashboard;
@@ -30,16 +30,17 @@ export function useBreadcrumbs(
     const firstSegment = pathSegments[0];
 
     switch (firstSegment) {
-      case 'dashboard':
+      case "dashboard":
         return breadcrumbConfigs.dashboard;
 
-      case 'employees':
+      case "employees":
         if (pathSegments.length === 1) {
           return breadcrumbConfigs.employees;
         }
 
         const employeeId = pathSegments[1];
-        const employeeName = dynamicData?.employeeName || `Employee ${employeeId}`;
+        const employeeName =
+          dynamicData?.employeeName || `Employee ${employeeId}`;
 
         if (pathSegments.length === 2) {
           return breadcrumbConfigs.employeeDetail(employeeName, employeeId);
@@ -47,27 +48,27 @@ export function useBreadcrumbs(
 
         const section = pathSegments[2];
         const sectionLabels: Record<string, string> = {
-          overview: 'Overview',
-          leave: 'Leave',
-          documents: 'Documents',
-          performance: 'Performance',
-          onboarding: 'Onboarding History',
-          'driver-licenses': 'Driver Licenses',
-          training: 'Training',
-          'employment-checks': 'Employment Checks',
-          settings: 'Settings',
+          overview: "Overview",
+          leave: "Leave",
+          documents: "Documents",
+          performance: "Performance",
+          onboarding: "Onboarding History",
+          "driver-licenses": "Driver Licenses",
+          training: "Training",
+          "employment-checks": "Employment Checks",
+          settings: "Settings",
         };
 
         return breadcrumbConfigs.employeeSection(
           employeeName,
           employeeId,
-          sectionLabels[section] || section
+          sectionLabels[section] || section,
         );
 
-      case 'documents':
+      case "documents":
         return breadcrumbConfigs.documents;
 
-      case 'news':
+      case "news":
         if (pathSegments.length === 1) {
           return breadcrumbConfigs.news;
         }
@@ -77,26 +78,26 @@ export function useBreadcrumbs(
 
         return breadcrumbConfigs.newsDetail(newsTitle, newsSlug);
 
-      case 'calendar':
+      case "calendar":
         return breadcrumbConfigs.calendar;
 
-      case 'settings':
+      case "settings":
         if (pathSegments.length === 1) {
           return breadcrumbConfigs.settings;
         }
 
         const settingsSection = pathSegments[1];
         const settingsSectionLabels: Record<string, string> = {
-          onboarding: 'Onboarding',
-          holidays: 'Holidays & Absence',
-          documents: 'Documents',
-          workflows: 'Workflows',
-          forms: 'Forms & Surveys',
-          system: 'System',
+          onboarding: "Onboarding",
+          holidays: "Holidays & Absence",
+          documents: "Documents",
+          workflows: "Workflows",
+          forms: "Forms & Surveys",
+          system: "System",
         };
 
         return breadcrumbConfigs.settingsSection(
-          settingsSectionLabels[settingsSection] || settingsSection
+          settingsSectionLabels[settingsSection] || settingsSection,
         );
 
       default:

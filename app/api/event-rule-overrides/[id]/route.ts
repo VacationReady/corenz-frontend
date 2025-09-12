@@ -22,7 +22,7 @@ const EventRuleOverrideUpdateSchema = z.object({
 // GET: Fetch a specific event rule override
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -53,7 +53,10 @@ export async function GET(
     });
 
     if (!override) {
-      return NextResponse.json({ error: "Override not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Override not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(override);
@@ -61,7 +64,7 @@ export async function GET(
     console.error("GET /api/event-rule-overrides/[id] error:", error);
     return NextResponse.json(
       { error: "Failed to fetch event rule override" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -69,7 +72,7 @@ export async function GET(
 // PUT: Update an event rule override
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -92,17 +95,30 @@ export async function PUT(
     });
 
     if (!existingOverride) {
-      return NextResponse.json({ error: "Override not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Override not found" },
+        { status: 404 },
+      );
     }
 
     // Check for duplicate overrides if category or scope is being changed
-    if (validatedData.eventCategoryId || validatedData.departmentId !== undefined) {
+    if (
+      validatedData.eventCategoryId ||
+      validatedData.departmentId !== undefined
+    ) {
       const duplicateOverride = await prisma.eventRuleOverride.findFirst({
         where: {
           companyId: session.user.companyId,
-          eventCategoryId: validatedData.eventCategoryId || existingOverride.eventCategoryId,
-          departmentId: validatedData.departmentId !== undefined ? validatedData.departmentId : existingOverride.departmentId,
-          teamId: validatedData.teamId !== undefined ? validatedData.teamId : existingOverride.teamId,
+          eventCategoryId:
+            validatedData.eventCategoryId || existingOverride.eventCategoryId,
+          departmentId:
+            validatedData.departmentId !== undefined
+              ? validatedData.departmentId
+              : existingOverride.departmentId,
+          teamId:
+            validatedData.teamId !== undefined
+              ? validatedData.teamId
+              : existingOverride.teamId,
           id: { not: params.id },
         },
       });
@@ -110,7 +126,7 @@ export async function PUT(
       if (duplicateOverride) {
         return NextResponse.json(
           { error: "An override for this category and scope already exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -171,17 +187,17 @@ export async function PUT(
     return NextResponse.json(updatedOverride);
   } catch (error) {
     console.error("PUT /api/event-rule-overrides/[id] error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to update event rule override" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -189,7 +205,7 @@ export async function PUT(
 // DELETE: Delete an event rule override
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -210,7 +226,10 @@ export async function DELETE(
     });
 
     if (!existingOverride) {
-      return NextResponse.json({ error: "Override not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Override not found" },
+        { status: 404 },
+      );
     }
 
     // Delete the override
@@ -242,7 +261,7 @@ export async function DELETE(
     console.error("DELETE /api/event-rule-overrides/[id] error:", error);
     return NextResponse.json(
       { error: "Failed to delete event rule override" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

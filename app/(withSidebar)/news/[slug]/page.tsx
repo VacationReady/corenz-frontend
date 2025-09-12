@@ -1,35 +1,35 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth-options'
-import { prisma } from '@/lib/prisma'
-import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import NewsContentRenderer from '@/components/news/NewsContentRenderer'
-import DeleteNewsButton from '@/components/news/DeleteNewsButton'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import NewsContentRenderer from "@/components/news/NewsContentRenderer";
+import DeleteNewsButton from "@/components/news/DeleteNewsButton";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface Props {
-  params: { slug: string }
+  params: { slug: string };
 }
 
 export default async function NewsDetailPage({ params }: Props) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   const post = await prisma.newsPost.findUnique({
     where: { slug: params.slug },
     include: { author: true },
-  })
+  });
 
-  if (!post) return notFound()
+  if (!post) return notFound();
 
-  const isAuthor = session?.user?.id === post.authorId
-  const isAdmin = session?.user?.role === 'ADMIN'
+  const isAuthor = session?.user?.id === post.authorId;
+  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
       <p className="text-sm text-muted-foreground mb-4">
-        Posted by {post.author.name || 'Unknown'} on{' '}
+        Posted by {post.author.name || "Unknown"} on{" "}
         {new Date(post.publishedAt ?? post.createdAt).toLocaleDateString()}
       </p>
 
@@ -53,8 +53,13 @@ export default async function NewsDetailPage({ params }: Props) {
           <ul className="list-disc pl-5">
             {post.attachments.map((url, i) => (
               <li key={i}>
-                <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                  {url.split('/').pop()}
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  {url.split("/").pop()}
                 </a>
               </li>
             ))}
@@ -62,22 +67,24 @@ export default async function NewsDetailPage({ params }: Props) {
         </div>
       )}
 
-      {(post.audience as any)?.type !== 'all' && (
-  <div className="mb-6 text-sm text-muted-foreground">
-    <p>Targeted Audience:</p>
-    <ul className="list-disc pl-5">
-      {(post.audience as any)?.departments?.length > 0 && (
-        <li>Departments: {(post.audience as any).departments.join(', ')}</li>
+      {(post.audience as any)?.type !== "all" && (
+        <div className="mb-6 text-sm text-muted-foreground">
+          <p>Targeted Audience:</p>
+          <ul className="list-disc pl-5">
+            {(post.audience as any)?.departments?.length > 0 && (
+              <li>
+                Departments: {(post.audience as any).departments.join(", ")}
+              </li>
+            )}
+            {(post.audience as any)?.roles?.length > 0 && (
+              <li>Roles: {(post.audience as any).roles.join(", ")}</li>
+            )}
+            {(post.audience as any)?.locations?.length > 0 && (
+              <li>Locations: {(post.audience as any).locations.join(", ")}</li>
+            )}
+          </ul>
+        </div>
       )}
-      {(post.audience as any)?.roles?.length > 0 && (
-        <li>Roles: {(post.audience as any).roles.join(', ')}</li>
-      )}
-      {(post.audience as any)?.locations?.length > 0 && (
-        <li>Locations: {(post.audience as any).locations.join(', ')}</li>
-      )}
-    </ul>
-  </div>
-)}
       {(isAdmin || isAuthor) && (
         <div className="mt-10 flex gap-3">
           <Link
@@ -91,5 +98,5 @@ export default async function NewsDetailPage({ params }: Props) {
         </div>
       )}
     </div>
-  )
+  );
 }

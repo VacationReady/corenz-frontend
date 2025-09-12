@@ -17,7 +17,11 @@ type LeaveEntitlement = {
   };
 };
 
-export default function LeaveSummaryCard({ employeeId }: { employeeId: string }) {
+export default function LeaveSummaryCard({
+  employeeId,
+}: {
+  employeeId: string;
+}) {
   const [entitlements, setEntitlements] = useState<LeaveEntitlement[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -49,9 +53,15 @@ export default function LeaveSummaryCard({ employeeId }: { employeeId: string })
         <h2 className="text-lg font-semibold">Holiday Balance</h2>
       </div>
       <div className="p-4 space-y-2 text-sm">
-        <p>Total Allowance: <strong>{totalAllowance} days</strong></p>
-        <p>Taken: <strong>{totalTaken} days</strong></p>
-        <p>Remaining: <strong>{totalRemaining} days</strong></p>
+        <p>
+          Total Allowance: <strong>{totalAllowance} days</strong>
+        </p>
+        <p>
+          Taken: <strong>{totalTaken} days</strong>
+        </p>
+        <p>
+          Remaining: <strong>{totalRemaining} days</strong>
+        </p>
 
         <Button className="mt-2 w-full" onClick={() => setModalOpen(true)}>
           Book Holiday

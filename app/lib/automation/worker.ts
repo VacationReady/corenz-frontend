@@ -1,6 +1,6 @@
 /**
  * Automation Worker
- * 
+ *
  * Main worker class that processes automation jobs from the queue.
  * Handles job execution, error handling, retries, and metrics collection.
  */
@@ -37,7 +37,7 @@ export class AutomationWorker {
   constructor(config?: Partial<WorkerConfig>, logger?: JobLogger) {
     this.workerId = `worker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.logger = logger || this.createDefaultLogger();
-    
+
     this.config = {
       maxConcurrentJobs: 5,
       pollIntervalMs: 5000,
@@ -118,7 +118,9 @@ export class AutomationWorker {
 
     // Wait for current jobs to complete
     while (this.processingJobs.size > 0) {
-      this.logger.info(`Waiting for ${this.processingJobs.size} jobs to complete`);
+      this.logger.info(
+        `Waiting for ${this.processingJobs.size} jobs to complete`,
+      );
       await this.sleep(1000);
     }
 
@@ -185,7 +187,6 @@ export class AutomationWorker {
 
         // Process job asynchronously
         this.executeJobAsync(job);
-
       } catch (error) {
         this.logger.error("Error in processing loop", error as Error);
         await this.sleep(this.config.retryDelayMs);
@@ -198,7 +199,7 @@ export class AutomationWorker {
    */
   private async executeJobAsync(job: AutomationJob): Promise<void> {
     this.processingJobs.add(job.id);
-    
+
     try {
       await this.executeJob(job);
     } finally {
@@ -230,7 +231,10 @@ export class AutomationWorker {
     try {
       // Set job timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Job timeout")), this.config.jobTimeoutMs);
+        setTimeout(
+          () => reject(new Error("Job timeout")),
+          this.config.jobTimeoutMs,
+        );
       });
 
       // Execute job with timeout
@@ -254,12 +258,11 @@ export class AutomationWorker {
           job.id,
           "Job execution failed",
           { executionTime },
-          this.workerId
+          this.workerId,
         );
       }
 
       return success;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       const errorMessage = (error as Error).message;
@@ -277,7 +280,7 @@ export class AutomationWorker {
         job.id,
         errorMessage,
         { executionTime, error: errorMessage },
-        this.workerId
+        this.workerId,
       );
 
       return false;
@@ -287,7 +290,9 @@ export class AutomationWorker {
   /**
    * Internal job execution logic
    */
-  private async executeJobInternal(context: JobExecutionContext): Promise<boolean> {
+  private async executeJobInternal(
+    context: JobExecutionContext,
+  ): Promise<boolean> {
     try {
       // Get the automation rule
       const rule = await prisma.automationRule.findFirst({
@@ -329,13 +334,13 @@ export class AutomationWorker {
 
       // Evaluate conditions
       const conditionsPass = await this.evaluator.evaluateConditions(
-        rule.conditions as any[] || [],
+        (rule.conditions as any[]) || [],
         {
           companyId: context.companyId,
           triggerData: context.triggerData,
           employeeId,
           employee,
-        }
+        },
       );
 
       if (!conditionsPass) {
@@ -354,7 +359,7 @@ export class AutomationWorker {
           triggerData: context.triggerData,
           employeeId,
           logger: context.logger,
-        }
+        },
       );
 
       // Create execution record
@@ -362,41 +367,44 @@ export class AutomationWorker {
         data: {
           ruleId: context.ruleId,
           companyId: context.companyId,
-          status: actionResults.every(r => r.success) ? "COMPLETED" : "FAILED",
+          status: actionResults.every((r) => r.success)
+            ? "COMPLETED"
+            : "FAILED",
           triggerData: context.triggerData,
           executionLog: {
             workerId: this.workerId,
             jobId: context.jobId,
             attempt: context.attempt,
             employeeId,
-            conditionsEvaluated: rule.conditions ? (rule.conditions as any[]).length : 0,
+            conditionsEvaluated: rule.conditions
+              ? (rule.conditions as any[]).length
+              : 0,
             conditionsPassed: conditionsPass,
             actionsExecuted: actionResults.length,
-            actionResults: actionResults.map(r => ({
+            actionResults: actionResults.map((r) => ({
               success: r.success,
               message: r.message,
               error: r.error,
-              data: r.data
+              data: r.data,
             })),
             executedAt: new Date().toISOString(),
           },
         },
       });
 
-      const allSucceeded = actionResults.every(result => result.success);
-      const failedActions = actionResults.filter(result => !result.success);
+      const allSucceeded = actionResults.every((result) => result.success);
+      const failedActions = actionResults.filter((result) => !result.success);
 
       if (!allSucceeded) {
         this.logger.warn("Some actions failed", {
           ruleId: context.ruleId,
           totalActions: actionResults.length,
           failedActions: failedActions.length,
-          failures: failedActions.map(f => f.error),
+          failures: failedActions.map((f) => f.error),
         });
       }
 
       return allSucceeded;
-
     } catch (error) {
       this.logger.error("Internal job execution failed", error as Error, {
         context,
@@ -422,8 +430,10 @@ export class AutomationWorker {
     }
 
     // Update average execution time
-    const totalTime = this.metrics.averageExecutionTime * (this.metrics.jobsProcessed - 1);
-    this.metrics.averageExecutionTime = (totalTime + executionTime) / this.metrics.jobsProcessed;
+    const totalTime =
+      this.metrics.averageExecutionTime * (this.metrics.jobsProcessed - 1);
+    this.metrics.averageExecutionTime =
+      (totalTime + executionTime) / this.metrics.jobsProcessed;
 
     // Update health status
     const successRate = this.metrics.jobsSucceeded / this.metrics.jobsProcessed;
@@ -439,23 +449,34 @@ export class AutomationWorker {
     const now = new Date();
 
     // Reset minute counter
-    if (now.getTime() - this.rateLimitState.lastResetMinute.getTime() >= 60000) {
+    if (
+      now.getTime() - this.rateLimitState.lastResetMinute.getTime() >=
+      60000
+    ) {
       this.rateLimitState.currentMinuteJobs = 0;
       this.rateLimitState.lastResetMinute = now;
     }
 
     // Reset hour counter
-    if (now.getTime() - this.rateLimitState.lastResetHour.getTime() >= 3600000) {
+    if (
+      now.getTime() - this.rateLimitState.lastResetHour.getTime() >=
+      3600000
+    ) {
       this.rateLimitState.currentHourJobs = 0;
       this.rateLimitState.lastResetHour = now;
     }
 
     // Check limits
-    if (this.rateLimitState.currentMinuteJobs >= this.rateLimitConfig.maxJobsPerMinute) {
+    if (
+      this.rateLimitState.currentMinuteJobs >=
+      this.rateLimitConfig.maxJobsPerMinute
+    ) {
       return false;
     }
 
-    if (this.rateLimitState.currentHourJobs >= this.rateLimitConfig.maxJobsPerHour) {
+    if (
+      this.rateLimitState.currentHourJobs >= this.rateLimitConfig.maxJobsPerHour
+    ) {
       return false;
     }
 
@@ -470,7 +491,10 @@ export class AutomationWorker {
 
     // Reset burst counter gradually
     setTimeout(() => {
-      this.rateLimitState.currentBurst = Math.max(0, this.rateLimitState.currentBurst - 1);
+      this.rateLimitState.currentBurst = Math.max(
+        0,
+        this.rateLimitState.currentBurst - 1,
+      );
     }, 1000);
 
     return true;
@@ -526,7 +550,7 @@ export class AutomationWorker {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -535,10 +559,16 @@ export class AutomationWorker {
   private createDefaultLogger(): JobLogger {
     return {
       info: (message: string, data?: any) => {
-        console.log(`[AutomationWorker:${this.workerId}] ${message}`, data ? JSON.stringify(data) : "");
+        console.log(
+          `[AutomationWorker:${this.workerId}] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       warn: (message: string, data?: any) => {
-        console.warn(`[AutomationWorker:${this.workerId}] ${message}`, data ? JSON.stringify(data) : "");
+        console.warn(
+          `[AutomationWorker:${this.workerId}] ${message}`,
+          data ? JSON.stringify(data) : "",
+        );
       },
       error: (message: string, error?: Error, data?: any) => {
         console.error(`[AutomationWorker:${this.workerId}] ${message}`, {
@@ -549,7 +579,10 @@ export class AutomationWorker {
       },
       debug: (message: string, data?: any) => {
         if (process.env.NODE_ENV === "development") {
-          console.debug(`[AutomationWorker:${this.workerId}] ${message}`, data ? JSON.stringify(data) : "");
+          console.debug(
+            `[AutomationWorker:${this.workerId}] ${message}`,
+            data ? JSON.stringify(data) : "",
+          );
         }
       },
     };

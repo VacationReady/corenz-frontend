@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Button from '@/components/ui/Button';
+import { useEffect, useState } from "react";
+import Button from "@/components/ui/Button";
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/Input';
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/Input";
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/Select';
+} from "@/components/ui/Select";
 import {
   Table,
   TableHeader,
@@ -25,31 +25,37 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '@/components/ui/Table';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
+} from "@/components/ui/Table";
+import { toast } from "sonner";
+import { format } from "date-fns";
 
-export default function EmploymentChecks({ employeeId }: { employeeId: string }) {
+export default function EmploymentChecks({
+  employeeId,
+}: {
+  employeeId: string;
+}) {
   const [checks, setChecks] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedCheck, setSelectedCheck] = useState<any>(null);
 
-  const [typeOfCheck, setTypeOfCheck] = useState('');
-  const [documentNumber, setDocumentNumber] = useState('');
-  const [dateOfIssue, setDateOfIssue] = useState('');
-  const [dateOfExpiry, setDateOfExpiry] = useState('');
+  const [typeOfCheck, setTypeOfCheck] = useState("");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [dateOfIssue, setDateOfIssue] = useState("");
+  const [dateOfExpiry, setDateOfExpiry] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchChecks = async () => {
       try {
-        const res = await fetch(`/api/employment-checks/list?employeeId=${employeeId}`);
+        const res = await fetch(
+          `/api/employment-checks/list?employeeId=${employeeId}`,
+        );
         const data = await res.json();
         setChecks(data);
       } catch (error) {
-        console.error('Failed to fetch checks:', error);
+        console.error("Failed to fetch checks:", error);
       }
     };
 
@@ -60,17 +66,17 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
 
   const openEditModal = (check: any) => {
     setSelectedCheck(check);
-    setTypeOfCheck(check.typeOfCheck || '');
-    setDocumentNumber(check.documentNumber || '');
-    setDateOfIssue(check.dateOfIssue ? check.dateOfIssue.slice(0, 10) : '');
-    setDateOfExpiry(check.expiryDate ? check.expiryDate.slice(0, 10) : '');
+    setTypeOfCheck(check.typeOfCheck || "");
+    setDocumentNumber(check.documentNumber || "");
+    setDateOfIssue(check.dateOfIssue ? check.dateOfIssue.slice(0, 10) : "");
+    setDateOfExpiry(check.expiryDate ? check.expiryDate.slice(0, 10) : "");
     setEditMode(true);
     setOpen(true);
   };
 
   const handleSubmit = async () => {
     if (!typeOfCheck || !documentNumber || !dateOfIssue || !dateOfExpiry) {
-      toast.error('Please complete all fields.');
+      toast.error("Please complete all fields.");
       return;
     }
 
@@ -78,17 +84,17 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
 
     try {
       const formData = new FormData();
-      if (file) formData.append('file', file);
-      formData.append('typeOfCheck', typeOfCheck);
-      formData.append('documentNumber', documentNumber);
-      formData.append('dateOfIssue', dateOfIssue);
-      formData.append('expiryDate', dateOfExpiry);
-      formData.append('employeeId', employeeId);
+      if (file) formData.append("file", file);
+      formData.append("typeOfCheck", typeOfCheck);
+      formData.append("documentNumber", documentNumber);
+      formData.append("dateOfIssue", dateOfIssue);
+      formData.append("expiryDate", dateOfExpiry);
+      formData.append("employeeId", employeeId);
 
       const url = editMode
         ? `/api/employment-checks/update/${selectedCheck.id}`
-        : '/api/employment-checks/create';
-      const method = editMode ? 'PATCH' : 'POST';
+        : "/api/employment-checks/create";
+      const method = editMode ? "PATCH" : "POST";
 
       const res = await fetch(url, {
         method,
@@ -97,31 +103,33 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
 
       if (res.ok) {
         const updatedCheck = await res.json();
-        toast.success(editMode ? 'Employment Check updated' : 'Employment Check created');
+        toast.success(
+          editMode ? "Employment Check updated" : "Employment Check created",
+        );
 
         if (editMode) {
           setChecks((prev) =>
-            prev.map((c) => (c.id === updatedCheck.id ? updatedCheck : c))
+            prev.map((c) => (c.id === updatedCheck.id ? updatedCheck : c)),
           );
         } else {
           setChecks((prev) => [updatedCheck, ...prev]);
         }
 
         // reset form
-        setTypeOfCheck('');
-        setDocumentNumber('');
-        setDateOfIssue('');
-        setDateOfExpiry('');
+        setTypeOfCheck("");
+        setDocumentNumber("");
+        setDateOfIssue("");
+        setDateOfExpiry("");
         setFile(null);
         setOpen(false);
         setEditMode(false);
         setSelectedCheck(null);
       } else {
-        toast.error('Failed to save Employment Check');
+        toast.error("Failed to save Employment Check");
       }
     } catch (error) {
       console.error(error);
-      toast.error('An error occurred');
+      toast.error("An error occurred");
     }
 
     setLoading(false);
@@ -131,13 +139,31 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Employment Checks</h2>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditMode(false); setSelectedCheck(null); } }}>
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (!o) {
+              setEditMode(false);
+              setSelectedCheck(null);
+            }
+          }}
+        >
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditMode(false); setSelectedCheck(null); }}>Add Employment Check</Button>
+            <Button
+              onClick={() => {
+                setEditMode(false);
+                setSelectedCheck(null);
+              }}
+            >
+              Add Employment Check
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editMode ? 'Edit' : 'Add'} Employment Check</DialogTitle>
+              <DialogTitle>
+                {editMode ? "Edit" : "Add"} Employment Check
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -178,7 +204,11 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
                 />
               </div>
               <div>
-                <Label>{editMode ? 'Replace Document (optional)' : 'Upload Document (optional)'}</Label>
+                <Label>
+                  {editMode
+                    ? "Replace Document (optional)"
+                    : "Upload Document (optional)"}
+                </Label>
                 <Input
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -187,11 +217,11 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
               <Button onClick={handleSubmit} disabled={loading}>
                 {loading
                   ? editMode
-                    ? 'Updating...'
-                    : 'Uploading...'
+                    ? "Updating..."
+                    : "Uploading..."
                   : editMode
-                    ? 'Update Employment Check'
-                    : 'Upload Employment Check'}
+                    ? "Update Employment Check"
+                    : "Upload Employment Check"}
               </Button>
             </div>
           </DialogContent>
@@ -216,8 +246,16 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
             >
               <TableCell>{check.typeOfCheck}</TableCell>
               <TableCell>{check.documentNumber}</TableCell>
-              <TableCell>{check.dateOfIssue ? format(new Date(check.dateOfIssue), 'dd/MM/yyyy') : 'N/A'}</TableCell>
-              <TableCell>{check.expiryDate ? format(new Date(check.expiryDate), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+              <TableCell>
+                {check.dateOfIssue
+                  ? format(new Date(check.dateOfIssue), "dd/MM/yyyy")
+                  : "N/A"}
+              </TableCell>
+              <TableCell>
+                {check.expiryDate
+                  ? format(new Date(check.expiryDate), "dd/MM/yyyy")
+                  : "N/A"}
+              </TableCell>
               <TableCell>
                 {check.documentUrl ? (
                   <a
@@ -229,7 +267,7 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
                     Download
                   </a>
                 ) : (
-                  'N/A'
+                  "N/A"
                 )}
               </TableCell>
             </TableRow>

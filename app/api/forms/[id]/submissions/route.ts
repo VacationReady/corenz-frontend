@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.companyId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const submissions = await prisma.formSubmission.findMany({
     where: {
@@ -22,7 +23,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 }
 
 // POST: Employee submits a form
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId || !session?.user?.id)

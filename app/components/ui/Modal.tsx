@@ -11,7 +11,12 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: ModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -43,7 +48,10 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
               {/* Header */}
               <div className="bg-card-header border-b border-enhanced px-6 py-4">
                 <div className="flex justify-between items-center">
-                  <Dialog.Title as="h3" className="text-xl font-bold text-foreground">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-xl font-bold text-foreground"
+                  >
                     {title}
                   </Dialog.Title>
                   <button

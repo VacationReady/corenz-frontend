@@ -89,14 +89,22 @@ export default function ArchivedEventManagerPage() {
         ) : (
           <div className="space-y-2">
             {categories.map((category) => (
-              <div key={category.id} className="border rounded p-3 bg-white shadow-sm">
+              <div
+                key={category.id}
+                className="border rounded p-3 bg-white shadow-sm"
+              >
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">{category.name}</p>
-                    <p className="text-sm text-gray-500">{category.categoryType ?? ""}</p>
+                    <p className="text-sm text-gray-500">
+                      {category.categoryType ?? ""}
+                    </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button size="sm" onClick={() => handleReactivateCategory(category.id)}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleReactivateCategory(category.id)}
+                    >
                       Reactivate
                     </Button>
                     <button onClick={() => toggleExpand(category.id)}>

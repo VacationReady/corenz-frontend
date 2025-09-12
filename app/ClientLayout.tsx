@@ -9,7 +9,11 @@ import AdminSidebar from "./components/sidebars/AdminSidebar";
 
 // 🚫 Manager and Employee sidebars are not yet recreated — skip them safely
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname() || "";
 
   // ✅ Safe destructure to prevent crash

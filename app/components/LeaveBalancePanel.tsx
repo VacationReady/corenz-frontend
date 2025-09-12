@@ -4,8 +4,15 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import EditEntitlementModal from "@/components/EditEntitlementModal";
-import type { LeaveEntitlement as PrismaEntitlement, EventCategory } from "@prisma/client";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import type {
+  LeaveEntitlement as PrismaEntitlement,
+  EventCategory,
+} from "@prisma/client";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Info } from "lucide-react";
 
 interface LeaveEntitlement extends PrismaEntitlement {
@@ -48,8 +55,8 @@ export default function LeaveBalancePanel({
 
           return (
             <p key={entitlement.id} className="flex items-center gap-1">
-              <strong>{entitlement.eventCategory.name}:</strong>{" "}
-              {remainingDays} days remaining
+              <strong>{entitlement.eventCategory.name}:</strong> {remainingDays}{" "}
+              days remaining
               <HoverCard>
                 <HoverCardTrigger asChild>
                   <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />

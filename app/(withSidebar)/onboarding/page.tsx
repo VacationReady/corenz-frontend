@@ -2,9 +2,12 @@ import { Suspense } from "react";
 import { Card } from "@/components/ui/Card";
 
 async function fetchDashboard() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ""}/api/onboarding/dashboard`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/onboarding/dashboard`,
+    {
+      cache: "no-store",
+    },
+  );
   if (!res.ok) {
     return { error: true } as any;
   }
@@ -23,14 +26,16 @@ export default async function OnboardingDashboardPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card title="Pending" >
+        <Card title="Pending">
           <div className="text-3xl font-bold">{summary?.pending ?? 0}</div>
         </Card>
-        <Card title="In Progress" >
+        <Card title="In Progress">
           <div className="text-3xl font-bold">{summary?.in_progress ?? 0}</div>
         </Card>
-        <Card title="Overdue" >
-          <div className="text-3xl font-bold text-red-600">{summary?.overdue ?? 0}</div>
+        <Card title="Overdue">
+          <div className="text-3xl font-bold text-red-600">
+            {summary?.overdue ?? 0}
+          </div>
         </Card>
       </div>
 
@@ -50,12 +55,25 @@ export default async function OnboardingDashboardPage() {
             <tbody>
               {items?.map((item: any) => (
                 <tr key={item.id} className="border-b">
-                  <td className="p-3">{item.employee?.user?.firstName} {item.employee?.user?.lastName}</td>
+                  <td className="p-3">
+                    {item.employee?.user?.firstName}{" "}
+                    {item.employee?.user?.lastName}
+                  </td>
                   <td className="p-3">{item.template?.name}</td>
                   <td className="p-3">{item.status}</td>
-                  <td className="p-3">{item.startedAt ? new Date(item.startedAt).toLocaleDateString() : "-"}</td>
-                  <td className="p-3">{item.completedAt ? new Date(item.completedAt).toLocaleDateString() : "-"}</td>
-                  <td className="p-3">{item.stepsCompleted}/{item.stepsTotal}</td>
+                  <td className="p-3">
+                    {item.startedAt
+                      ? new Date(item.startedAt).toLocaleDateString()
+                      : "-"}
+                  </td>
+                  <td className="p-3">
+                    {item.completedAt
+                      ? new Date(item.completedAt).toLocaleDateString()
+                      : "-"}
+                  </td>
+                  <td className="p-3">
+                    {item.stepsCompleted}/{item.stepsTotal}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -65,5 +83,3 @@ export default async function OnboardingDashboardPage() {
     </div>
   );
 }
-
-

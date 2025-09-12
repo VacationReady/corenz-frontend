@@ -8,7 +8,14 @@ const AutomationRuleUpdateSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
-  triggerType: z.enum(["DOCUMENT_EXPIRING", "FORM_SUBMITTED", "ONBOARDING_STEP_COMPLETED", "EMPLOYEE_CREATED"]).optional(),
+  triggerType: z
+    .enum([
+      "DOCUMENT_EXPIRING",
+      "FORM_SUBMITTED",
+      "ONBOARDING_STEP_COMPLETED",
+      "EMPLOYEE_CREATED",
+    ])
+    .optional(),
   triggerConfig: z.record(z.any()).optional(),
   conditions: z.array(z.record(z.any())).optional(),
   actions: z.array(z.record(z.any())).optional(),
@@ -17,7 +24,7 @@ const AutomationRuleUpdateSchema = z.object({
 // GET: Fetch a specific automation rule
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -56,7 +63,7 @@ export async function GET(
     console.error("GET /api/automation-rules/[id] error:", error);
     return NextResponse.json(
       { error: "Failed to fetch automation rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -64,7 +71,7 @@ export async function GET(
 // PUT: Update an automation rule
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -100,7 +107,7 @@ export async function PUT(
       if (duplicateRule) {
         return NextResponse.json(
           { error: "A rule with this name already exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -152,17 +159,17 @@ export async function PUT(
     return NextResponse.json(updatedRule);
   } catch (error) {
     console.error("PUT /api/automation-rules/[id] error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to update automation rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -170,7 +177,7 @@ export async function PUT(
 // PATCH: Partial update (e.g., toggle active status)
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -179,11 +186,11 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    
+
     // For PATCH, we only allow specific fields
-    const allowedFields = ['isActive'];
+    const allowedFields = ["isActive"];
     const updateData: any = {};
-    
+
     for (const field of allowedFields) {
       if (field in body) {
         updateData[field] = body[field];
@@ -193,7 +200,7 @@ export async function PATCH(
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
         { error: "No valid fields to update" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -216,7 +223,7 @@ export async function PATCH(
     });
 
     // Log status change in audit log if isActive was changed
-    if ('isActive' in updateData) {
+    if ("isActive" in updateData) {
       await prisma.globalAuditLog.create({
         data: {
           companyId: session.user.companyId,
@@ -239,7 +246,7 @@ export async function PATCH(
     console.error("PATCH /api/automation-rules/[id] error:", error);
     return NextResponse.json(
       { error: "Failed to update automation rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -247,7 +254,7 @@ export async function PATCH(
 // DELETE: Delete an automation rule
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -292,7 +299,7 @@ export async function DELETE(
     console.error("DELETE /api/automation-rules/[id] error:", error);
     return NextResponse.json(
       { error: "Failed to delete automation rule" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

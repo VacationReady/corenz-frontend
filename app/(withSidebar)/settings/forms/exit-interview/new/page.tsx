@@ -1,17 +1,23 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { PageShell } from '@/components/ui/PageShell'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-import { Checkbox } from '@/components/ui/Checkbox'
-import { toast } from 'sonner'
-import { Plus, Trash2, Save } from 'lucide-react'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { PageShell } from "@/components/ui/PageShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { toast } from "sonner";
+import { Plus, Trash2, Save } from "lucide-react";
 
 interface FormField {
   id: string;
@@ -23,127 +29,139 @@ interface FormField {
 }
 
 export default function NewExitInterviewTemplatePage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: ''
-  })
-  const [fields, setFields] = useState<FormField[]>([])
+    name: "",
+    description: "",
+  });
+  const [fields, setFields] = useState<FormField[]>([]);
 
   const addField = () => {
     const newField: FormField = {
       id: `field_${Date.now()}`,
-      type: 'text',
-      label: '',
+      type: "text",
+      label: "",
       required: false,
-      placeholder: ''
-    }
-    setFields([...fields, newField])
-  }
+      placeholder: "",
+    };
+    setFields([...fields, newField]);
+  };
 
   const updateField = (index: number, updates: Partial<FormField>) => {
-    const updatedFields = [...fields]
-    updatedFields[index] = { ...updatedFields[index], ...updates }
-    setFields(updatedFields)
-  }
+    const updatedFields = [...fields];
+    updatedFields[index] = { ...updatedFields[index], ...updates };
+    setFields(updatedFields);
+  };
 
   const removeField = (index: number) => {
-    setFields(fields.filter((_, i) => i !== index))
-  }
+    setFields(fields.filter((_, i) => i !== index));
+  };
 
   const addOption = (fieldIndex: number) => {
-    const updatedFields = [...fields]
+    const updatedFields = [...fields];
     if (!updatedFields[fieldIndex].options) {
-      updatedFields[fieldIndex].options = []
+      updatedFields[fieldIndex].options = [];
     }
-    updatedFields[fieldIndex].options!.push('')
-    setFields(updatedFields)
-  }
+    updatedFields[fieldIndex].options!.push("");
+    setFields(updatedFields);
+  };
 
-  const updateOption = (fieldIndex: number, optionIndex: number, value: string) => {
-    const updatedFields = [...fields]
+  const updateOption = (
+    fieldIndex: number,
+    optionIndex: number,
+    value: string,
+  ) => {
+    const updatedFields = [...fields];
     if (updatedFields[fieldIndex].options) {
-      updatedFields[fieldIndex].options![optionIndex] = value
-      setFields(updatedFields)
+      updatedFields[fieldIndex].options![optionIndex] = value;
+      setFields(updatedFields);
     }
-  }
+  };
 
   const removeOption = (fieldIndex: number, optionIndex: number) => {
-    const updatedFields = [...fields]
+    const updatedFields = [...fields];
     if (updatedFields[fieldIndex].options) {
-      updatedFields[fieldIndex].options!.splice(optionIndex, 1)
-      setFields(updatedFields)
+      updatedFields[fieldIndex].options!.splice(optionIndex, 1);
+      setFields(updatedFields);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!formData.name.trim()) {
-      toast.error('Template name is required')
-      return
+      toast.error("Template name is required");
+      return;
     }
 
     if (fields.length === 0) {
-      toast.error('At least one field is required')
-      return
+      toast.error("At least one field is required");
+      return;
     }
 
     // Validate fields
     for (const field of fields) {
       if (!field.label.trim()) {
-        toast.error('All fields must have a label')
-        return
+        toast.error("All fields must have a label");
+        return;
       }
-      
-      if ((field.type === 'select' || field.type === 'checkbox' || field.type === 'radio') && 
-          (!field.options || field.options.length === 0)) {
-        toast.error(`${field.label} must have at least one option`)
-        return
+
+      if (
+        (field.type === "select" ||
+          field.type === "checkbox" ||
+          field.type === "radio") &&
+        (!field.options || field.options.length === 0)
+      ) {
+        toast.error(`${field.label} must have at least one option`);
+        return;
       }
     }
 
     try {
-      setLoading(true)
+      setLoading(true);
 
       const schemaJson = {
-        fields: fields.map(field => ({
+        fields: fields.map((field) => ({
           ...field,
-          options: field.options?.filter(opt => opt.trim() !== '')
-        }))
-      }
+          options: field.options?.filter((opt) => opt.trim() !== ""),
+        })),
+      };
 
-      const response = await fetch('/api/exit-interview-templates', {
-        method: 'POST',
+      const response = await fetch("/api/exit-interview-templates", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
-          schemaJson
+          schemaJson,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create template')
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create template");
       }
 
-      toast.success('Template created successfully')
-      router.push('/settings/forms/exit-interview')
-
+      toast.success("Template created successfully");
+      router.push("/settings/forms/exit-interview");
     } catch (error) {
-      console.error('Error creating template:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to create template')
+      console.error("Error creating template:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create template",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <PageShell title="New Exit Interview Template" description="Create a new exit interview form template">
+    <PageShell
+      title="New Exit Interview Template"
+      description="Create a new exit interview form template"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
@@ -155,18 +173,25 @@ export default function NewExitInterviewTemplatePage() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="e.g., Standard Exit Interview"
                 required
               />
             </div>
-            
+
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 placeholder="Optional description of this template"
                 rows={3}
               />
@@ -192,7 +217,10 @@ export default function NewExitInterviewTemplatePage() {
             ) : (
               <div className="space-y-6">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="border rounded-lg p-4 space-y-4">
+                  <div
+                    key={field.id}
+                    className="border rounded-lg p-4 space-y-4"
+                  >
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">Field {index + 1}</h4>
                       <Button
@@ -210,7 +238,9 @@ export default function NewExitInterviewTemplatePage() {
                         <Label>Field Type</Label>
                         <Select
                           value={field.type}
-                          onValueChange={(value) => updateField(index, { type: value })}
+                          onValueChange={(value) =>
+                            updateField(index, { type: value })
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -232,9 +262,18 @@ export default function NewExitInterviewTemplatePage() {
                           <Checkbox
                             id={`required-${index}`}
                             checked={field.required}
-                            onCheckedChange={(checked) => updateField(index, { required: checked as boolean })}
+                            onCheckedChange={(checked) =>
+                              updateField(index, {
+                                required: checked as boolean,
+                              })
+                            }
                           />
-                          <Label htmlFor={`required-${index}`} className="text-sm">Required field</Label>
+                          <Label
+                            htmlFor={`required-${index}`}
+                            className="text-sm"
+                          >
+                            Required field
+                          </Label>
                         </div>
                       </div>
                     </div>
@@ -243,7 +282,9 @@ export default function NewExitInterviewTemplatePage() {
                       <Label>Field Label *</Label>
                       <Input
                         value={field.label}
-                        onChange={(e) => updateField(index, { label: e.target.value })}
+                        onChange={(e) =>
+                          updateField(index, { label: e.target.value })
+                        }
                         placeholder="e.g., What is your reason for leaving?"
                         required
                       />
@@ -252,13 +293,17 @@ export default function NewExitInterviewTemplatePage() {
                     <div>
                       <Label>Placeholder (Optional)</Label>
                       <Input
-                        value={field.placeholder || ''}
-                        onChange={(e) => updateField(index, { placeholder: e.target.value })}
+                        value={field.placeholder || ""}
+                        onChange={(e) =>
+                          updateField(index, { placeholder: e.target.value })
+                        }
                         placeholder="Placeholder text for this field"
                       />
                     </div>
 
-                    {(field.type === 'select' || field.type === 'radio' || field.type === 'checkbox') && (
+                    {(field.type === "select" ||
+                      field.type === "radio" ||
+                      field.type === "checkbox") && (
                       <div>
                         <Label className="flex items-center justify-between">
                           Options *
@@ -274,10 +319,19 @@ export default function NewExitInterviewTemplatePage() {
                         </Label>
                         <div className="space-y-2 mt-2">
                           {field.options?.map((option, optionIndex) => (
-                            <div key={optionIndex} className="flex items-center space-x-2">
+                            <div
+                              key={optionIndex}
+                              className="flex items-center space-x-2"
+                            >
                               <Input
                                 value={option}
-                                onChange={(e) => updateOption(index, optionIndex, e.target.value)}
+                                onChange={(e) =>
+                                  updateOption(
+                                    index,
+                                    optionIndex,
+                                    e.target.value,
+                                  )
+                                }
                                 placeholder={`Option ${optionIndex + 1}`}
                                 required
                               />
@@ -305,7 +359,7 @@ export default function NewExitInterviewTemplatePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/settings/forms/exit-interview')}
+            onClick={() => router.push("/settings/forms/exit-interview")}
             disabled={loading}
           >
             Cancel
@@ -326,5 +380,5 @@ export default function NewExitInterviewTemplatePage() {
         </div>
       </form>
     </PageShell>
-  )
+  );
 }

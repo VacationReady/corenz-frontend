@@ -1,16 +1,19 @@
-'use client'
-import { useParams } from 'next/navigation'
-import { PageShell } from '@/components/ui/PageShell'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { BarChart3, Users, FileText, TrendingUp } from 'lucide-react'
+"use client";
+import { useParams } from "next/navigation";
+import { PageShell } from "@/components/ui/PageShell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { BarChart3, Users, FileText, TrendingUp } from "lucide-react";
 
 export default function FormAnalyticsPage() {
   const params = useParams();
-  const formId = params?.id ? String(params.id) : '';
+  const formId = params?.id ? String(params.id) : "";
 
   if (!formId) {
     return (
-      <PageShell title="Form Analytics" description="View submission statistics and insights">
+      <PageShell
+        title="Form Analytics"
+        description="View submission statistics and insights"
+      >
         <div className="flex items-center justify-center h-64 text-gray-500">
           Invalid form ID.
         </div>
@@ -19,14 +22,16 @@ export default function FormAnalyticsPage() {
   }
 
   return (
-    <PageShell 
-      title="Form Analytics" 
+    <PageShell
+      title="Form Analytics"
       description="View submission statistics and insights"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Submissions
+            </CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -34,7 +39,7 @@ export default function FormAnalyticsPage() {
             <p className="text-xs text-muted-foreground">No submissions yet</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unique Users</CardTitle>
@@ -45,10 +50,12 @@ export default function FormAnalyticsPage() {
             <p className="text-xs text-muted-foreground">No users yet</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Completion Rate
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -56,7 +63,7 @@ export default function FormAnalyticsPage() {
             <p className="text-xs text-muted-foreground">No data available</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg. Time</CardTitle>
@@ -81,11 +88,12 @@ export default function FormAnalyticsPage() {
               Detailed form analytics and insights will be available here soon.
             </p>
             <p className="text-sm text-gray-500">
-              Features will include submission trends, completion rates, user engagement metrics, and more.
+              Features will include submission trends, completion rates, user
+              engagement metrics, and more.
             </p>
           </div>
         </CardContent>
       </Card>
     </PageShell>
-  )
+  );
 }

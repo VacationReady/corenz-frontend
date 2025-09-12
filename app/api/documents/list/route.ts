@@ -36,8 +36,8 @@ export async function GET(req: Request) {
   };
 
   // ✅ Check if user has admin permissions for documents
-  const hasAdminAccess = hasPermission(user as any, 'documents', 'read');
-  const hasEditAccess = hasPermission(user as any, 'documents', 'edit');
+  const hasAdminAccess = hasPermission(user as any, "documents", "read");
+  const hasEditAccess = hasPermission(user as any, "documents", "edit");
 
   // ✅ Admin bypass - if user has read access to documents
   if (hasAdminAccess) {
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
       adminDocs.map((doc) => ({
         ...doc,
         requiresAck: doc.requiresAck,
-      }))
+      })),
     );
   }
 
@@ -101,6 +101,6 @@ export async function GET(req: Request) {
     documents.map((doc) => ({
       ...doc,
       requiresAck: doc.requiresAck,
-    }))
+    })),
   );
 }

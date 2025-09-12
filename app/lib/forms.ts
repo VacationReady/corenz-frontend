@@ -1,6 +1,6 @@
 export async function generateUniqueSlug(
   baseSlug: string,
-  doesExist: (slug: string) => Promise<boolean>
+  doesExist: (slug: string) => Promise<boolean>,
 ): Promise<string> {
   const normalized = baseSlug
     .toLowerCase()
@@ -18,5 +18,3 @@ export async function generateUniqueSlug(
     counter += 1;
   }
 }
-
-

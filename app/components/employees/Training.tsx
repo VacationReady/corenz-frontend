@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/Table';
-import Button from '@/components/ui/Button';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
+import Button from "@/components/ui/Button";
 
 interface TrainingRecord {
   id: string;
@@ -31,7 +38,9 @@ export default function Training({ employeeId }: { employeeId: string }) {
 
   useEffect(() => {
     const fetchRecords = async () => {
-      const res = await fetch(`/api/training-records/list?employeeId=${employeeId}`);
+      const res = await fetch(
+        `/api/training-records/list?employeeId=${employeeId}`,
+      );
       const data = await res.json();
       setRecords(data);
       setLoading(false);
@@ -44,7 +53,9 @@ export default function Training({ employeeId }: { employeeId: string }) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Training Records</h1>
-        <Button onClick={() => router.push(`/employees/${employeeId}/training/add`)}>
+        <Button
+          onClick={() => router.push(`/employees/${employeeId}/training/add`)}
+        >
           Add Training
         </Button>
       </div>
@@ -68,14 +79,20 @@ export default function Training({ employeeId }: { employeeId: string }) {
             {records.map((record) => (
               <TableRow
                 key={record.id}
-                onClick={() => router.push(`/employees/${employeeId}/training/${record.id}`)}
+                onClick={() =>
+                  router.push(`/employees/${employeeId}/training/${record.id}`)
+                }
                 className="cursor-pointer hover:bg-muted transition"
               >
-                <TableCell>{record.course?.name ?? '—'}</TableCell>
-                <TableCell>{record.provider?.name ?? '—'}</TableCell>
-                <TableCell>{new Date(record.dateCompleted).toLocaleDateString()}</TableCell>
+                <TableCell>{record.course?.name ?? "—"}</TableCell>
+                <TableCell>{record.provider?.name ?? "—"}</TableCell>
                 <TableCell>
-                  {record.expiryDate ? new Date(record.expiryDate).toLocaleDateString() : '—'}
+                  {new Date(record.dateCompleted).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  {record.expiryDate
+                    ? new Date(record.expiryDate).toLocaleDateString()
+                    : "—"}
                 </TableCell>
                 <TableCell>
                   {record.document ? (
@@ -89,7 +106,7 @@ export default function Training({ employeeId }: { employeeId: string }) {
                       {record.document.name}
                     </a>
                   ) : (
-                    '—'
+                    "—"
                   )}
                 </TableCell>
               </TableRow>

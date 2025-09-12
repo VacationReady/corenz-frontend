@@ -1,16 +1,42 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, AlertCircle, User, Clock, Shield, Package, Users, FileText, CheckCircle } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  CalendarIcon,
+  AlertCircle,
+  User,
+  Clock,
+  Shield,
+  Package,
+  Users,
+  FileText,
+  CheckCircle,
+} from "lucide-react";
 import { format } from "date-fns";
 import { toUTCFromLondon } from "@/lib/time";
 import { useToast } from "@/hooks/use-toast";
@@ -83,7 +109,12 @@ const commonAssets = [
   "Documentation",
 ];
 
-export default function OffboardingModal({ open, onClose, employee, onSuccess }: OffboardingModalProps) {
+export default function OffboardingModal({
+  open,
+  onClose,
+  employee,
+  onSuccess,
+}: OffboardingModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -144,7 +175,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       const response = await fetch("/api/employees?status=active");
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data.filter((emp: Employee) => emp.userId !== employee?.userId));
+        setEmployees(
+          data.filter((emp: Employee) => emp.userId !== employee?.userId),
+        );
       }
     } catch (error) {
       console.error("Error fetching employees:", error);
@@ -153,12 +186,18 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
 
   const fetchFormTemplates = async () => {
     try {
-      const response = await fetch("/api/exit-interview-templates?activeOnly=true");
+      const response = await fetch(
+        "/api/exit-interview-templates?activeOnly=true",
+      );
       if (response.ok) {
         const data = await response.json();
         setFormTemplates(data);
       } else {
-        console.error("Failed to fetch form templates:", response.status, response.statusText);
+        console.error(
+          "Failed to fetch form templates:",
+          response.status,
+          response.statusText,
+        );
       }
     } catch (error) {
       console.error("Error fetching form templates:", error);
@@ -185,13 +224,16 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
         offboardingType: formData.offboardingType,
         offboardingReason: formData.offboardingReason,
         isVoluntary: formData.isVoluntary,
-        noticePeriodDays: formData.noticePeriodDays ? parseInt(formData.noticePeriodDays) : null,
+        noticePeriodDays: formData.noticePeriodDays
+          ? parseInt(formData.noticePeriodDays)
+          : null,
         resignationDate: formData.resignationDate,
         removeAccessImmediately: formData.removeAccessImmediately,
         handoverRequired: formData.handoverRequired,
         handoverAssignedTo: formData.handoverAssignedTo,
         exitInterviewRequired: formData.exitInterviewRequired,
-        assetsToReturn: formData.assetsToReturn.length > 0 ? formData.assetsToReturn : null,
+        assetsToReturn:
+          formData.assetsToReturn.length > 0 ? formData.assetsToReturn : null,
         hrNotes: formData.hrNotes,
       };
 
@@ -211,23 +253,31 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       if (formData.exitInterviewRequired && data.offboardingId) {
         // Create/schedule exit interview
         try {
-          const finalFormTemplateId = formData.sendForm ? (formData.formTemplateId || formTemplates[0]?.id) : undefined;
+          const finalFormTemplateId = formData.sendForm
+            ? formData.formTemplateId || formTemplates[0]?.id
+            : undefined;
           const scheduledAt = formData.exitInterviewDate
-            ? toUTCFromLondon(format(formData.exitInterviewDate, "yyyy-MM-dd"), formData.exitInterviewTime).toISOString()
+            ? toUTCFromLondon(
+                format(formData.exitInterviewDate, "yyyy-MM-dd"),
+                formData.exitInterviewTime,
+              ).toISOString()
             : undefined;
 
-          const exitInterviewResponse = await fetch(`/api/offboarding/${employee.id}/exit-interview`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              scheduledAt,
-              durationMinutes: formData.exitInterviewDuration,
-              interviewerId: formData.exitInterviewInterviewer || undefined,
-              sendForm: formData.sendForm,
-              formTemplateId: finalFormTemplateId,
-              formTiming: formData.sendForm ? formData.formTiming : undefined,
-            }),
-          });
+          const exitInterviewResponse = await fetch(
+            `/api/offboarding/${employee.id}/exit-interview`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                scheduledAt,
+                durationMinutes: formData.exitInterviewDuration,
+                interviewerId: formData.exitInterviewInterviewer || undefined,
+                sendForm: formData.sendForm,
+                formTemplateId: finalFormTemplateId,
+                formTiming: formData.sendForm ? formData.formTiming : undefined,
+              }),
+            },
+          );
 
           if (!exitInterviewResponse.ok) {
             const errorData = await exitInterviewResponse.json();
@@ -268,7 +318,10 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
       console.error("Error starting offboarding:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to start offboarding",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to start offboarding",
         variant: "destructive",
       });
     } finally {
@@ -296,7 +349,8 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             Start Offboarding Process
           </DialogTitle>
           <DialogDescription>
-            Initiate the offboarding process for {employee.firstName} {employee.lastName} ({employee.email})
+            Initiate the offboarding process for {employee.firstName}{" "}
+            {employee.lastName} ({employee.email})
           </DialogDescription>
         </DialogHeader>
 
@@ -309,16 +363,19 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Name:</span> {employee.firstName} {employee.lastName}
+                <span className="font-medium">Name:</span> {employee.firstName}{" "}
+                {employee.lastName}
               </div>
               <div>
                 <span className="font-medium">Email:</span> {employee.email}
               </div>
               <div>
-                <span className="font-medium">Department:</span> {employee.departmentName || "N/A"}
+                <span className="font-medium">Department:</span>{" "}
+                {employee.departmentName || "N/A"}
               </div>
               <div>
-                <span className="font-medium">Job Role:</span> {employee.jobRoleName || "N/A"}
+                <span className="font-medium">Job Role:</span>{" "}
+                {employee.jobRoleName || "N/A"}
               </div>
             </div>
           </div>
@@ -335,16 +392,29 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 <Label htmlFor="lastWorkingDate">Last Working Date *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal" type="button">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      type="button"
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.lastWorkingDate ? format(formData.lastWorkingDate, "PPP") : <span>Pick a date</span>}
+                      {formData.lastWorkingDate ? (
+                        format(formData.lastWorkingDate, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 z-[200]" align="start">
                     <Calendar
                       mode="single"
                       selected={formData.lastWorkingDate || undefined}
-                      onSelect={(date) => setFormData((prev) => ({ ...prev, lastWorkingDate: date || null }))}
+                      onSelect={(date) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          lastWorkingDate: date || null,
+                        }))
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -355,16 +425,29 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 <Label htmlFor="resignationDate">Resignation Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal" type="button">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                      type="button"
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.resignationDate ? format(formData.resignationDate, "PPP") : <span>Pick a date (optional)</span>}
+                      {formData.resignationDate ? (
+                        format(formData.resignationDate, "PPP")
+                      ) : (
+                        <span>Pick a date (optional)</span>
+                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 z-[200]" align="start">
                     <Calendar
                       mode="single"
                       selected={formData.resignationDate || undefined}
-                      onSelect={(date) => setFormData((prev) => ({ ...prev, resignationDate: date || null }))}
+                      onSelect={(date) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          resignationDate: date || null,
+                        }))
+                      }
                       initialFocus
                     />
                   </PopoverContent>
@@ -377,7 +460,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                   id="noticePeriodDays"
                   type="number"
                   value={formData.noticePeriodDays}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, noticePeriodDays: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      noticePeriodDays: e.target.value,
+                    }))
+                  }
                   placeholder="e.g., 14"
                 />
               </div>
@@ -396,7 +484,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 <Label htmlFor="offboardingType">Offboarding Type *</Label>
                 <Select
                   value={formData.offboardingType}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, offboardingType: value }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, offboardingType: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -418,7 +508,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 <Checkbox
                   id="isVoluntary"
                   checked={formData.isVoluntary}
-                  onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isVoluntary: checked as boolean }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isVoluntary: checked as boolean,
+                    }))
+                  }
                 />
                 <Label htmlFor="isVoluntary">Voluntary departure</Label>
               </div>
@@ -429,7 +524,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
               <Textarea
                 id="offboardingReason"
                 value={formData.offboardingReason}
-                onChange={(e) => setFormData((prev) => ({ ...prev, offboardingReason: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    offboardingReason: e.target.value,
+                  }))
+                }
                 placeholder="Brief description of the reason for leaving..."
                 rows={3}
               />
@@ -448,17 +548,23 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 id="removeAccessImmediately"
                 checked={formData.removeAccessImmediately}
                 onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, removeAccessImmediately: checked as boolean }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    removeAccessImmediately: checked as boolean,
+                  }))
                 }
               />
-              <Label htmlFor="removeAccessImmediately">Remove access immediately</Label>
+              <Label htmlFor="removeAccessImmediately">
+                Remove access immediately
+              </Label>
             </div>
 
             {formData.removeAccessImmediately && (
               <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
                 <p className="text-sm text-orange-800">
                   <AlertCircle className="w-4 h-4 inline mr-1" />
-                  System access will be revoked immediately upon starting the offboarding process.
+                  System access will be revoked immediately upon starting the
+                  offboarding process.
                 </p>
               </div>
             )}
@@ -475,7 +581,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
               <Checkbox
                 id="handoverRequired"
                 checked={formData.handoverRequired}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, handoverRequired: checked as boolean }))}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    handoverRequired: checked as boolean,
+                  }))
+                }
               />
               <Label htmlFor="handoverRequired">Handover required</Label>
             </div>
@@ -485,7 +596,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 <Label htmlFor="handoverAssignedTo">Assign handover to</Label>
                 <Select
                   value={formData.handoverAssignedTo}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, handoverAssignedTo: value }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      handoverAssignedTo: value,
+                    }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select employee" />
@@ -537,10 +653,15 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                 id="exitInterviewRequired"
                 checked={formData.exitInterviewRequired}
                 onCheckedChange={(checked) =>
-                  setFormData((prev) => ({ ...prev, exitInterviewRequired: checked as boolean }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    exitInterviewRequired: checked as boolean,
+                  }))
                 }
               />
-              <Label htmlFor="exitInterviewRequired">Schedule exit interview</Label>
+              <Label htmlFor="exitInterviewRequired">
+                Schedule exit interview
+              </Label>
             </div>
 
             {formData.exitInterviewRequired && (
@@ -550,8 +671,16 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                     <Label htmlFor="exitInterviewDate">Interview date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className="w-full justify-start text-left font-normal">
-                          {formData.exitInterviewDate ? format(formData.exitInterviewDate, "PPP") : <span>Pick a date</span>}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal"
+                        >
+                          {formData.exitInterviewDate ? (
+                            format(formData.exitInterviewDate, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -559,7 +688,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                         <Calendar
                           mode="single"
                           selected={formData.exitInterviewDate || undefined}
-                          onSelect={(date) => setFormData((prev) => ({ ...prev, exitInterviewDate: date || null }))}
+                          onSelect={(date) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              exitInterviewDate: date || null,
+                            }))
+                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -571,7 +705,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                     <Input
                       type="time"
                       value={formData.exitInterviewTime}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, exitInterviewTime: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          exitInterviewTime: e.target.value,
+                        }))
+                      }
                     />
                   </div>
 
@@ -580,7 +719,10 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                     <Select
                       value={formData.exitInterviewDuration.toString()}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, exitInterviewDuration: parseInt(value, 10) }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          exitInterviewDuration: parseInt(value, 10),
+                        }))
                       }
                     >
                       <SelectTrigger>
@@ -597,10 +739,17 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                   </div>
 
                   <div>
-                    <Label htmlFor="exitInterviewInterviewer">Interviewer</Label>
+                    <Label htmlFor="exitInterviewInterviewer">
+                      Interviewer
+                    </Label>
                     <Select
                       value={formData.exitInterviewInterviewer}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, exitInterviewInterviewer: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          exitInterviewInterviewer: value,
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select interviewer" />
@@ -622,7 +771,12 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                     <Checkbox
                       id="sendForm"
                       checked={formData.sendForm}
-                      onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, sendForm: checked as boolean }))}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          sendForm: checked as boolean,
+                        }))
+                      }
                     />
                     <Label htmlFor="sendForm">Send exit interview form?</Label>
                   </div>
@@ -630,12 +784,20 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                   {formData.sendForm && (
                     <div className="space-y-4 pl-6 border-l-2 border-gray-200 bg-gray-50 p-4 rounded-lg">
                       <div>
-                        <Label htmlFor="formTemplate" className="text-sm font-medium">
+                        <Label
+                          htmlFor="formTemplate"
+                          className="text-sm font-medium"
+                        >
                           Exit Interview Form Template *
                         </Label>
                         <Select
                           value={formData.formTemplateId}
-                          onValueChange={(value) => setFormData((prev) => ({ ...prev, formTemplateId: value }))}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              formTemplateId: value,
+                            }))
+                          }
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select form template" />
@@ -647,7 +809,10 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                               </SelectItem>
                             ) : (
                               formTemplates.map((template) => (
-                                <SelectItem key={template.id} value={template.id}>
+                                <SelectItem
+                                  key={template.id}
+                                  value={template.id}
+                                >
                                   {template.name}
                                 </SelectItem>
                               ))
@@ -657,7 +822,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                       </div>
 
                       <div>
-                        <Label className="text-sm font-medium">When should the employee complete the form?</Label>
+                        <Label className="text-sm font-medium">
+                          When should the employee complete the form?
+                        </Label>
                         <div className="space-y-2 mt-2">
                           <div className="flex items-center space-x-2">
                             <input
@@ -667,7 +834,10 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                               value="NOW"
                               checked={formData.formTiming === "NOW"}
                               onChange={(e) =>
-                                setFormData((prev) => ({ ...prev, formTiming: e.target.value as FormTiming }))
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  formTiming: e.target.value as FormTiming,
+                                }))
                               }
                               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                             />
@@ -683,7 +853,10 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
                               value="ON_DATE"
                               checked={formData.formTiming === "ON_DATE"}
                               onChange={(e) =>
-                                setFormData((prev) => ({ ...prev, formTiming: e.target.value as FormTiming }))
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  formTiming: e.target.value as FormTiming,
+                                }))
                               }
                               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                             />
@@ -706,7 +879,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
             <Textarea
               id="hrNotes"
               value={formData.hrNotes}
-              onChange={(e) => setFormData((prev) => ({ ...prev, hrNotes: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, hrNotes: e.target.value }))
+              }
               placeholder="Internal notes for HR team..."
               rows={3}
             />
@@ -718,7 +893,9 @@ export default function OffboardingModal({ open, onClose, employee, onSuccess }:
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Starting Offboarding..." : "Start Offboarding Process"}
+              {loading
+                ? "Starting Offboarding..."
+                : "Start Offboarding Process"}
             </Button>
           </div>
         </form>

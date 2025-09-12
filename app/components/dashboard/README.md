@@ -18,7 +18,7 @@ import DashboardGrid from "@/components/ui/DashboardGrid";
 <DashboardGrid>
   {/* widgets */}
   ...
-</DashboardGrid>
+</DashboardGrid>;
 ```
 
 Data Fetching
@@ -26,7 +26,7 @@ Data Fetching
 Prefer SWR with a lightweight fetcher:
 
 ```tsx
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 const { data, error, isLoading, mutate } = useSWR(key, fetcher);
 ```
 
@@ -36,6 +36,7 @@ const { data, error, isLoading, mutate } = useSWR(key, fetcher);
 Testing
 
 For each widget:
+
 - Render loading state
 - Render with mocked data
 - Render error state
@@ -51,5 +52,3 @@ Accessibility
 Examples
 
 See `NewsWidget.tsx` for an example of props, loading, and error UI, and `DashboardGrid.tsx` for the layout container.
-
-

@@ -1,6 +1,6 @@
 /**
  * Automation Worker System Types
- * 
+ *
  * Core types and interfaces for the automation worker system.
  * Provides type safety for triggers, actions, and job processing.
  */
@@ -58,7 +58,10 @@ export interface TriggerEvaluationResult {
 
 export interface TriggerHandler {
   type: AutomationTriggerType;
-  evaluate: (triggerConfig: any, companyId: string) => Promise<TriggerEvaluationResult>;
+  evaluate: (
+    triggerConfig: any,
+    companyId: string,
+  ) => Promise<TriggerEvaluationResult>;
   validateConfig: (config: any) => boolean;
 }
 
@@ -112,7 +115,10 @@ export interface ActionExecutionResult {
 
 export interface ActionExecutor {
   type: string;
-  execute: (config: any, context: ActionExecutionContext) => Promise<ActionExecutionResult>;
+  execute: (
+    config: any,
+    context: ActionExecutionContext,
+  ) => Promise<ActionExecutionResult>;
   validateConfig: (config: any) => boolean;
 }
 
@@ -127,15 +133,15 @@ export interface ActionExecutionContext {
 export interface CreateTaskActionConfig {
   title: string;
   description?: string;
-  assigneeType: 'employee' | 'manager' | 'hr' | 'specific';
+  assigneeType: "employee" | "manager" | "hr" | "specific";
   assigneeId?: string;
   dueDays?: number;
 }
 
 // Notification action config
 export interface SendNotificationActionConfig {
-  channels: ('email' | 'slack' | 'teams')[];
-  recipientType: 'employee' | 'manager' | 'hr' | 'specific';
+  channels: ("email" | "slack" | "teams")[];
+  recipientType: "employee" | "manager" | "hr" | "specific";
   recipients?: string[];
   subject: string;
   message: string;
@@ -163,7 +169,10 @@ export interface ConditionEvaluationResult {
 
 export interface ConditionEvaluator {
   type: string;
-  evaluate: (config: any, context: ConditionEvaluationContext) => Promise<ConditionEvaluationResult>;
+  evaluate: (
+    config: any,
+    context: ConditionEvaluationContext,
+  ) => Promise<ConditionEvaluationResult>;
   validateConfig: (config: any) => boolean;
 }
 

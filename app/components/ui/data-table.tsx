@@ -42,17 +42,19 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        {table.getAllColumns().map((column) => (
-          column.getCanFilter() ? (
-            <Input
-              key={column.id}
-              placeholder={`Filter ${column.id}`}
-              value={(column.getFilterValue() ?? "") as string}
-              onChange={(e) => column.setFilterValue(e.target.value)}
-              className="max-w-xs"
-            />
-          ) : null
-        ))}
+        {table
+          .getAllColumns()
+          .map((column) =>
+            column.getCanFilter() ? (
+              <Input
+                key={column.id}
+                placeholder={`Filter ${column.id}`}
+                value={(column.getFilterValue() ?? "") as string}
+                onChange={(e) => column.setFilterValue(e.target.value)}
+                className="max-w-xs"
+              />
+            ) : null,
+          )}
       </div>
       <div className="rounded-md border overflow-x-auto">
         <table className="min-w-full border-collapse">
@@ -67,7 +69,7 @@ export function DataTable<TData, TValue>({
                   >
                     {flexRender(
                       header.column.columnDef.header,
-                      header.getContext()
+                      header.getContext(),
                     )}
                     {{
                       asc: " 🔼",

@@ -1,6 +1,6 @@
-# CoreNZ Exit Interview System
+# PeopleCore Exit Interview System
 
-This document describes the enhanced offboarding system with exit interview functionality for CoreNZ.
+This document describes the enhanced offboarding system with exit interview functionality for PeopleCore.
 
 ## Overview
 
@@ -16,29 +16,34 @@ The exit interview system provides:
 ## Features
 
 ### 1. Exit Interview Scheduling
+
 - Date and time picker with Europe/London timezone support
 - Interviewer selection (internal users or external contacts)
 - Location and notes fields
 - Automatic ICS calendar invite generation
 
 ### 2. Form Template Management
+
 - Create, edit, and manage exit interview form templates
 - Support for various field types: text, textarea, select, checkbox, radio
 - Template activation/deactivation
 - Usage tracking (number of offboardings and submissions)
 
 ### 3. Email Automation
+
 - **Confirmation Emails**: Sent immediately with ICS calendar attachment
 - **Form Invitations**: Can be sent immediately or scheduled for interview date
 - **Cron Job**: Automated sending of scheduled form invitations
 
 ### 4. Public Form Access
+
 - Secure token-based access (`/exit-interview/[token]`)
 - No login required for employees
 - Form validation and submission tracking
 - Success/error handling
 
 ### 5. Admin Interface
+
 - Employee offboarding profile page (`/employees/[id]/offboarding`)
 - Form template management (`/settings/forms/exit-interview`)
 - Real-time status tracking
@@ -49,6 +54,7 @@ The exit interview system provides:
 ### New Tables
 
 #### `ExitInterviewFormTemplate`
+
 ```sql
 - id: String (Primary Key)
 - name: String
@@ -60,6 +66,7 @@ The exit interview system provides:
 ```
 
 #### `ExitInterviewSubmission`
+
 ```sql
 - id: String (Primary Key)
 - offboardingId: String (Foreign Key)
@@ -70,7 +77,9 @@ The exit interview system provides:
 ```
 
 ### Enhanced `EmployeeOffboarding` Table
+
 Added fields for exit interview management:
+
 - `exitInterviewDate`: DateTime (UTC)
 - `exitInterviewEnd`: DateTime (UTC)
 - `interviewerUserId`: String (Optional)
@@ -89,12 +98,14 @@ Added fields for exit interview management:
 ## API Endpoints
 
 ### Offboarding Management
+
 - `POST /api/offboarding/initiate` - Create new offboarding with exit interview
 - `POST /api/offboarding/send-invites` - Send confirmation emails
 - `POST /api/offboarding/schedule-due-sends` - Cron endpoint for scheduled sends
 - `GET /api/offboarding/[employeeId]` - Get offboarding details
 
 ### Form Templates
+
 - `GET /api/exit-interview-templates` - List templates
 - `POST /api/exit-interview-templates` - Create template
 - `GET /api/exit-interview-templates/[id]` - Get template details
@@ -102,6 +113,7 @@ Added fields for exit interview management:
 - `DELETE /api/exit-interview-templates/[id]` - Delete template
 
 ### Form Submission
+
 - `POST /api/exit-interview/start` - Start form (validate token)
 - `POST /api/exit-interview/submit` - Submit form answers
 
@@ -159,6 +171,7 @@ Add to `vercel.json`:
 #### Railway Cron
 
 Create a cron job that hits:
+
 ```
 POST https://your-app.railway.app/api/offboarding/schedule-due-sends
 Authorization: Bearer your_cron_secret

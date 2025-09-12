@@ -17,7 +17,10 @@ const EventSubcategorySchema = z.object({
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
@@ -35,16 +38,26 @@ export async function GET() {
   } catch (error: any) {
     console.error("[Event Subcategories GET]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch event subcategories." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to fetch event subcategories.",
+      },
+      { status: 500 },
     );
   }
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+  if (
+    !session?.user ||
+    session.user.role !== "ADMIN" ||
+    !session.user.companyId
+  ) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -54,7 +67,7 @@ export async function POST(req: Request) {
     if (!parse.success) {
       return NextResponse.json(
         { success: false, error: parse.error.flatten().fieldErrors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -67,7 +80,7 @@ export async function POST(req: Request) {
     if (!parentCategory) {
       return NextResponse.json(
         { success: false, error: "Parent category not found." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -85,8 +98,11 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("[Event Subcategories POST]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to create event subcategory." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to create event subcategory.",
+      },
+      { status: 500 },
     );
   }
 }

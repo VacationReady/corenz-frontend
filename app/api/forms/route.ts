@@ -40,18 +40,28 @@ export async function POST(req: Request) {
 
   // Validate required fields
   if (!name || !schema) {
-    return NextResponse.json({ error: "Name and schema are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Name and schema are required" },
+      { status: 400 },
+    );
   }
 
   // Generate slug from name if not provided
-  const slug = providedSlug || name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const slug =
+    providedSlug ||
+    name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
 
   // Validate slug format
   const slugRegex = /^[a-z0-9-]+$/;
   if (!slugRegex.test(slug)) {
     return NextResponse.json(
-      { error: "Slug can only contain lowercase letters, numbers, and hyphens" },
-      { status: 400 }
+      {
+        error: "Slug can only contain lowercase letters, numbers, and hyphens",
+      },
+      { status: 400 },
     );
   }
 
@@ -65,10 +75,16 @@ export async function POST(req: Request) {
 
   if (existingForm) {
     if (existingForm.name === name) {
-      return NextResponse.json({ error: "A form with this name already exists" }, { status: 400 });
+      return NextResponse.json(
+        { error: "A form with this name already exists" },
+        { status: 400 },
+      );
     }
     if (existingForm.slug === slug) {
-      return NextResponse.json({ error: "A form with this path already exists" }, { status: 400 });
+      return NextResponse.json(
+        { error: "A form with this path already exists" },
+        { status: 400 },
+      );
     }
   }
 

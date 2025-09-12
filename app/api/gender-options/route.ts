@@ -20,7 +20,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { key, label, order = 0, active = true } = await req.json();
-  if (!key || !label) return NextResponse.json({ error: "key and label required" }, { status: 400 });
+  if (!key || !label)
+    return NextResponse.json(
+      { error: "key and label required" },
+      { status: 400 },
+    );
   const item = await prisma.genderOption.upsert({
     where: { companyId_key: { companyId: session.user.companyId, key } },
     update: { label, order, active },
@@ -28,5 +32,3 @@ export async function POST(req: Request) {
   } as any);
   return NextResponse.json(item);
 }
-
-

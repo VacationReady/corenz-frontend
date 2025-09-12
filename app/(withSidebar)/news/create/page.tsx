@@ -1,54 +1,65 @@
-'use client'
+"use client";
 
-export const dynamic = 'force-dynamic' // ✅ Required for dynamic Supabase use at runtime
+export const dynamic = "force-dynamic"; // ✅ Required for dynamic Supabase use at runtime
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Input } from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
-import { Switch } from '@/components/ui/switch'
-import { uploadFileToSupabase } from '@/lib/news/uploadFileToSupabase'
-import NewsContentBuilder from '@/components/news/NewsContentBuilder'
-import AudienceSelector from '@/components/news/AudienceSelector'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/Input";
+import Button from "@/components/ui/Button";
+import { Switch } from "@/components/ui/switch";
+import { uploadFileToSupabase } from "@/lib/news/uploadFileToSupabase";
+import NewsContentBuilder from "@/components/news/NewsContentBuilder";
+import AudienceSelector from "@/components/news/AudienceSelector";
 
 type ContentBlock =
-  | { type: 'heading'; level: number; text: string }
-  | { type: 'paragraph'; text: string }
-  | { type: 'bullet_list'; items: string[] }
+  | { type: "heading"; level: number; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "bullet_list"; items: string[] };
 
 export default function CreateNewsPostPage() {
-  const router = useRouter()
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState<ContentBlock[]>([])
-  const [videoUrl, setVideoUrl] = useState('')
-  const [attachments, setAttachments] = useState<File[]>([])
-  const [sendEmail, setSendEmail] = useState(false)
-  const [audience, setAudience] = useState<{ type?: 'all'; departments?: string[]; roles?: string[]; locations?: string[] }>({ type: 'all' })
-  const [refreshKey, setRefreshKey] = useState(0)
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState<ContentBlock[]>([]);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [sendEmail, setSendEmail] = useState(false);
+  const [audience, setAudience] = useState<{
+    type?: "all";
+    departments?: string[];
+    roles?: string[];
+    locations?: string[];
+  }>({ type: "all" });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setAttachments(Array.from(e.target.files))
+      setAttachments(Array.from(e.target.files));
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!audience || (!audience.type && !audience.departments?.length && !audience.roles?.length && !audience.locations?.length)) {
-      console.warn('⚠️ Audience is empty on submit. Defaulting to Target All.')
-      setAudience({ type: 'all' })
-      return
+    if (
+      !audience ||
+      (!audience.type &&
+        !audience.departments?.length &&
+        !audience.roles?.length &&
+        !audience.locations?.length)
+    ) {
+      console.warn("⚠️ Audience is empty on submit. Defaulting to Target All.");
+      setAudience({ type: "all" });
+      return;
     }
 
-    console.log('🔍 Submitting News with audience:', audience)
+    console.log("🔍 Submitting News with audience:", audience);
 
     const uploadedUrls = await Promise.all(
-      attachments.map(file => uploadFileToSupabase(file))
-    )
+      attachments.map((file) => uploadFileToSupabase(file)),
+    );
 
-    const res = await fetch('/api/news', {
-      method: 'POST',
+    const res = await fetch("/api/news", {
+      method: "POST",
       body: JSON.stringify({
         title,
         content,
@@ -58,24 +69,24 @@ export default function CreateNewsPostPage() {
         audience,
       }),
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    })
+    });
 
     if (res.ok) {
-      router.push('/news')
+      router.push("/news");
     } else {
-      alert('Failed to create news post.')
+      alert("Failed to create news post.");
     }
-  }
+  };
 
   const handleAudienceRefresh = () => {
-    setRefreshKey(prev => prev + 1)
-  }
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
-    handleAudienceRefresh()  // ✅ Force refresh on page mount
-  }, [])
+    handleAudienceRefresh(); // ✅ Force refresh on page mount
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
@@ -85,14 +96,21 @@ export default function CreateNewsPostPage() {
         onSubmit={handleSubmit}
         className="space-y-6"
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+          if (
+            e.key === "Enter" &&
+            (e.target as HTMLElement).tagName !== "TEXTAREA"
+          ) {
             e.preventDefault();
           }
         }}
       >
         <div>
           <label className="block text-sm font-medium mb-1">Title</label>
-          <Input value={title} onChange={e => setTitle(e.target.value)} required />
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
         </div>
 
         <div>
@@ -101,8 +119,13 @@ export default function CreateNewsPostPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Video Embed URL (optional)</label>
-          <Input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
+          <label className="block text-sm font-medium mb-1">
+            Video Embed URL (optional)
+          </label>
+          <Input
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+          />
         </div>
 
         <div>
@@ -111,7 +134,11 @@ export default function CreateNewsPostPage() {
         </div>
 
         <div>
-          <AudienceSelector value={audience} onChange={setAudience} refreshKey={refreshKey} />
+          <AudienceSelector
+            value={audience}
+            onChange={setAudience}
+            refreshKey={refreshKey}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -121,7 +148,6 @@ export default function CreateNewsPostPage() {
 
         <Button type="submit">Publish News</Button>
       </form>
-
     </div>
-  )
+  );
 }

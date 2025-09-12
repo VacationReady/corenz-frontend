@@ -20,24 +20,33 @@ export async function POST(req: NextRequest) {
       where: { completionTokenHash: token },
       include: {
         employee: {
-          include: { user: true }
+          include: { user: true },
         },
-        formTemplate: true
-      }
+        formTemplate: true,
+      },
     });
 
     if (!offboarding) {
-      return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Offboarding record not found" },
+        { status: 404 },
+      );
     }
 
     // Check if already submitted
-    if (offboarding.completionStatus === 'SUBMITTED') {
-      return NextResponse.json({ error: "Form already submitted" }, { status: 400 });
+    if (offboarding.completionStatus === "SUBMITTED") {
+      return NextResponse.json(
+        { error: "Form already submitted" },
+        { status: 400 },
+      );
     }
 
     // Check if form template exists
     if (!offboarding.formTemplateId) {
-      return NextResponse.json({ error: "No form template assigned" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No form template assigned" },
+        { status: 400 },
+      );
     }
 
     // Create submission record
@@ -47,36 +56,41 @@ export async function POST(req: NextRequest) {
         templateId: offboarding.formTemplateId,
         submittedBy: offboarding.employee.user.email,
         submittedAt: new Date(),
-        answersJson: answersJson || {}
-      }
+        answersJson: answersJson || {},
+      },
     });
 
     // Update offboarding completion status
     await prisma.employeeOffboarding.update({
       where: { id: offboarding.id },
       data: {
-        completionStatus: 'SUBMITTED'
-      }
+        completionStatus: "SUBMITTED",
+      },
     });
 
     return NextResponse.json({
       success: true,
       message: "Exit interview form submitted successfully",
-      submissionId: submission.id
+      submissionId: submission.id,
     });
-
   } catch (error) {
-    console.error('Error submitting exit interview form:', error);
-    
+    console.error("Error submitting exit interview form:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: "Validation error", 
-        details: error.errors 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          details: error.errors,
+        },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ 
-      error: "Failed to submit form" 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to submit form",
+      },
+      { status: 500 },
+    );
   }
 }

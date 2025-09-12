@@ -22,18 +22,22 @@ export async function POST(req: Request) {
 
   // ✅ Access control flags default to visible
   const canViewAdmin =
-    formData.get("canViewAdmin") === "true" || formData.get("canViewAdmin") === null;
+    formData.get("canViewAdmin") === "true" ||
+    formData.get("canViewAdmin") === null;
   const canViewManager =
-    formData.get("canViewManager") === "true" || formData.get("canViewManager") === null;
+    formData.get("canViewManager") === "true" ||
+    formData.get("canViewManager") === null;
   const canViewEmployee =
-    formData.get("canViewEmployee") === "true" || formData.get("canViewEmployee") === null;
+    formData.get("canViewEmployee") === "true" ||
+    formData.get("canViewEmployee") === null;
 
   // ✅ Requires Acknowledgement toggle
   const requiresAck = formData.get("requiresAck") === "true";
 
   // ✅ NEW: Require Acknowledgement for New Starters
   // Accepts "true" or "false" string, default false
-  const requireAckFromNewStarters = formData.get("requireAckFromNewStarters") === "true";
+  const requireAckFromNewStarters =
+    formData.get("requireAckFromNewStarters") === "true";
 
   // ✅ Department & Job Role restrictions
   const rawDepartments = formData.get("departments") as string | null;
@@ -43,7 +47,10 @@ export async function POST(req: Request) {
   const jobRoles = rawJobRoles ? JSON.parse(rawJobRoles) : [];
 
   if (!file || !name) {
-    return NextResponse.json({ error: "File and name are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "File and name are required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -51,17 +58,27 @@ export async function POST(req: Request) {
     const fileName = `${Date.now()}-${file.name}`;
 
     // ✅ Upload to Supabase
-    const { data, error } = await supabase.storage.from("documents").upload(fileName, buffer);
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .upload(fileName, buffer);
     if (error) {
       console.error("Supabase upload error:", error);
-      return NextResponse.json({ error: "Supabase upload failed" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Supabase upload failed" },
+        { status: 500 },
+      );
     }
 
     // ✅ Generate public URL
-    const { data: publicUrlData } = supabase.storage.from("documents").getPublicUrl(data.path);
+    const { data: publicUrlData } = supabase.storage
+      .from("documents")
+      .getPublicUrl(data.path);
     const publicUrl = publicUrlData?.publicUrl;
     if (!publicUrl) {
-      return NextResponse.json({ error: "Failed to generate public URL" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to generate public URL" },
+        { status: 500 },
+      );
     }
 
     // ✅ Save document in DB
@@ -82,7 +99,11 @@ export async function POST(req: Request) {
         requiresAck, // ✅ Persist toggle!
         requireAckFromNewStarters, // ✅ Persist new field!
         ...(departments.length > 0 && departments[0] !== "all"
-          ? { departments: { connect: departments.map((d: string) => ({ id: d })) } }
+          ? {
+              departments: {
+                connect: departments.map((d: string) => ({ id: d })),
+              },
+            }
           : {}),
         ...(jobRoles.length > 0 && jobRoles[0] !== "all"
           ? { jobRoles: { connect: jobRoles.map((j: string) => ({ id: j })) } }
@@ -111,23 +132,23 @@ export async function POST(req: Request) {
 
         if (user?.email) {
           const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${document.employeeId}/documents`;
-          const resendRes = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
+          const resendRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
             headers: {
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: 'onboarding@resend.dev',
+              from: "onboarding@resend.dev",
               to: user.email,
-              subject: 'New Document Requires Your Acknowledgement',
+              subject: "New Document Requires Your Acknowledgement",
               html: `
-                <p>Hi ${user.name || 'there'},</p>
-                <p>A new document <b>${document.name}</b> (${document.category || 'General'}) has been uploaded and requires your acknowledgement.</p>
+                <p>Hi ${user.name || "there"},</p>
+                <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your acknowledgement.</p>
                 <p><a href="${docLink}">View & Acknowledge Document</a></p>
                 <p>Thank you,<br/>HR Team</p>
-              `
-            })
+              `,
+            }),
           });
           const resendJson = await resendRes.json();
           console.log("Resend API response:", resendJson);
@@ -173,7 +194,10 @@ export async function POST(req: Request) {
           select: { id: true, userId: true },
         });
       }
-      console.log("Company doc notification: Employees in scope:", employees.length);
+      console.log(
+        "Company doc notification: Employees in scope:",
+        employees.length,
+      );
 
       const users = await prisma.user.findMany({
         where: {
@@ -210,9 +234,9 @@ export async function POST(req: Request) {
             const resendJson = await resendRes.json();
             console.log(
               `Resend API response for user ${user.email}:`,
-              resendJson
+              resendJson,
             );
-          })
+          }),
         );
       }
     }
@@ -222,6 +246,9 @@ export async function POST(req: Request) {
     return NextResponse.json(document);
   } catch (error) {
     console.error("❌ Document upload error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

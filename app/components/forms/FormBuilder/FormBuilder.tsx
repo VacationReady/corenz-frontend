@@ -1,129 +1,168 @@
-'use client'
+"use client";
 
-import { useMemo, useState } from 'react'
-import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
-import { v4 as uuidv4 } from 'uuid'
-import { FieldPalette } from './FieldPalette'
-import { FormCanvas } from './FormCanvas'
-import { FieldEditor } from './FieldEditor'
-import { FormPreview } from './FormPreview'
-import { VisibilitySettings } from './VisibilitySettings'
-import Button from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
-import { FormField } from '@/api/forms/[id]/types'
+import { useMemo, useState } from "react";
+import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
+import { v4 as uuidv4 } from "uuid";
+import { FieldPalette } from "./FieldPalette";
+import { FormCanvas } from "./FormCanvas";
+import { FieldEditor } from "./FieldEditor";
+import { FormPreview } from "./FormPreview";
+import { VisibilitySettings } from "./VisibilitySettings";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { FormField } from "@/api/forms/[id]/types";
 
 function useSlug(initialName: string, initialSlug: string) {
-  const [name, setName] = useState(initialName)
-  const [slug, setSlug] = useState(initialSlug)
-  const generate = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '-').trim()
+  const [name, setName] = useState(initialName);
+  const [slug, setSlug] = useState(initialSlug);
+  const generate = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, "-")
+      .trim();
   const onNameChange = (value: string) => {
-    setName(value)
-    if (!slug || slug === generate(name)) setSlug(generate(value))
-  }
-  return { name, slug, setSlug, onNameChange }
+    setName(value);
+    if (!slug || slug === generate(name)) setSlug(generate(value));
+  };
+  return { name, slug, setSlug, onNameChange };
 }
 
-function useVisibility(initial: { roles: string[]; departments: string[]; jobRoles: string[] }) {
-  const [roles, setRoles] = useState(initial.roles)
-  const [departments, setDepartments] = useState(initial.departments)
-  const [jobRoles, setJobRoles] = useState(initial.jobRoles)
-  return { roles, departments, jobRoles, setRoles, setDepartments, setJobRoles }
+function useVisibility(initial: {
+  roles: string[];
+  departments: string[];
+  jobRoles: string[];
+}) {
+  const [roles, setRoles] = useState(initial.roles);
+  const [departments, setDepartments] = useState(initial.departments);
+  const [jobRoles, setJobRoles] = useState(initial.jobRoles);
+  return {
+    roles,
+    departments,
+    jobRoles,
+    setRoles,
+    setDepartments,
+    setJobRoles,
+  };
 }
 
 interface FormBuilderProps {
   onSave: (data: {
-    name: string
-    slug: string
-    description?: string
-    formType: 'SUBMISSION' | 'DATA_SCREEN'
-    schema: FormField[]
-    visibleToRoles?: string[]
-    visibleToDepartments?: string[]
-    visibleToJobRoles?: string[]
-  }) => void
+    name: string;
+    slug: string;
+    description?: string;
+    formType: "SUBMISSION" | "DATA_SCREEN";
+    schema: FormField[];
+    visibleToRoles?: string[];
+    visibleToDepartments?: string[];
+    visibleToJobRoles?: string[];
+  }) => void;
   initialData?: {
-    name: string
-    slug?: string
-    description?: string
-    formType?: 'SUBMISSION' | 'DATA_SCREEN'
-    schema: FormField[]
-    visibleToRoles?: string[]
-    visibleToDepartments?: string[]
-    visibleToJobRoles?: string[]
-  }
+    name: string;
+    slug?: string;
+    description?: string;
+    formType?: "SUBMISSION" | "DATA_SCREEN";
+    schema: FormField[];
+    visibleToRoles?: string[];
+    visibleToDepartments?: string[];
+    visibleToJobRoles?: string[];
+  };
 }
 
 export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
-  const [fields, setFields] = useState<FormField[]>(initialData?.schema || [])
-  const [selectedField, setSelectedField] = useState<FormField | null>(null)
-  const [activeDragField, setActiveDragField] = useState<FormField | null>(null)
-  const { name: formName, slug: formSlug, setSlug: setFormSlug, onNameChange: handleNameChange } = useSlug(initialData?.name || 'New Form', initialData?.slug || '')
-  const [formDescription, setFormDescription] = useState(initialData?.description || '')
-  const [formType, setFormType] = useState<'SUBMISSION' | 'DATA_SCREEN'>(initialData?.formType || 'SUBMISSION')
+  const [fields, setFields] = useState<FormField[]>(initialData?.schema || []);
+  const [selectedField, setSelectedField] = useState<FormField | null>(null);
+  const [activeDragField, setActiveDragField] = useState<FormField | null>(
+    null,
+  );
+  const {
+    name: formName,
+    slug: formSlug,
+    setSlug: setFormSlug,
+    onNameChange: handleNameChange,
+  } = useSlug(initialData?.name || "New Form", initialData?.slug || "");
+  const [formDescription, setFormDescription] = useState(
+    initialData?.description || "",
+  );
+  const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN">(
+    initialData?.formType || "SUBMISSION",
+  );
   const vis = useVisibility({
-    roles: initialData?.visibleToRoles || ['ADMIN', 'MANAGER', 'EMPLOYEE'],
+    roles: initialData?.visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
     departments: initialData?.visibleToDepartments || [],
     jobRoles: initialData?.visibleToJobRoles || [],
-  })
+  });
 
-  const slugIsValid = useMemo(() => /^[a-z0-9-]+$/.test(formSlug), [formSlug])
+  const slugIsValid = useMemo(() => /^[a-z0-9-]+$/.test(formSlug), [formSlug]);
 
   // (slug generation handled by useSlug)
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveDragField(null)
-    const { active, over } = event
-    if (!over) return
+    setActiveDragField(null);
+    const { active, over } = event;
+    if (!over) return;
 
     // Add new field from palette
-    const dragged = active.data?.current as { type: string; label: string } | undefined
-    if (over.id === 'canvas' && dragged && !fields.find((f) => f.id === active.id)) {
+    const dragged = active.data?.current as
+      | { type: string; label: string }
+      | undefined;
+    if (
+      over.id === "canvas" &&
+      dragged &&
+      !fields.find((f) => f.id === active.id)
+    ) {
       const newField: FormField = {
         id: uuidv4(),
         type: dragged.type,
-        label: dragged.label || 'Untitled Field',
+        label: dragged.label || "Untitled Field",
         required: false,
-      }
-      setFields((prev) => [...prev, newField])
-      setSelectedField(newField)
-      toast.success(`Added ${newField.type} field`)
-      return
+      };
+      setFields((prev) => [...prev, newField]);
+      setSelectedField(newField);
+      toast.success(`Added ${newField.type} field`);
+      return;
     }
 
     // Reorder fields
     if (active.id !== over.id) {
-      const activeIndex = fields.findIndex((f) => f.id === active.id)
-      const overIndex = fields.findIndex((f) => f.id === over.id)
+      const activeIndex = fields.findIndex((f) => f.id === active.id);
+      const overIndex = fields.findIndex((f) => f.id === over.id);
       if (activeIndex !== -1 && overIndex !== -1) {
-        setFields((prev) => arrayMove(prev, activeIndex, overIndex))
+        setFields((prev) => arrayMove(prev, activeIndex, overIndex));
       }
     }
-  }
+  };
 
   const saveForm = () => {
-    if (!formName.trim()) return toast.error('Form name is required')
-    if (!formSlug.trim()) return toast.error('Form slug is required')
-    if (!slugIsValid) return toast.error('Slug can only contain lowercase letters, numbers, and hyphens')
-    if (!fields.length) return toast.error('Add at least one field before saving')
-    if (fields.some((f) => !f.label.trim())) return toast.error('All fields must have labels')
-    if (!vis.roles.length) return toast.error('At least one role must be selected for visibility')
+    if (!formName.trim()) return toast.error("Form name is required");
+    if (!formSlug.trim()) return toast.error("Form slug is required");
+    if (!slugIsValid)
+      return toast.error(
+        "Slug can only contain lowercase letters, numbers, and hyphens",
+      );
+    if (!fields.length)
+      return toast.error("Add at least one field before saving");
+    if (fields.some((f) => !f.label.trim()))
+      return toast.error("All fields must have labels");
+    if (!vis.roles.length)
+      return toast.error("At least one role must be selected for visibility");
 
-    onSave({ 
-      name: formName, 
-      slug: formSlug, 
-      description: formDescription, 
+    onSave({
+      name: formName,
+      slug: formSlug,
+      description: formDescription,
       formType,
-      schema: fields, 
-      visibleToRoles: vis.roles, 
-      visibleToDepartments: vis.departments, 
-      visibleToJobRoles: vis.jobRoles 
-    })
+      schema: fields,
+      visibleToRoles: vis.roles,
+      visibleToDepartments: vis.departments,
+      visibleToJobRoles: vis.jobRoles,
+    });
 
-    toast.success('Form saved successfully')
-  }
+    toast.success("Form saved successfully");
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,21 +174,50 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Form Name <span className="text-red-500">*</span>
             </label>
-            <Input value={formName} onChange={(e) => handleNameChange(e.target.value)} placeholder="Enter form name" className={!formName.trim() ? 'border-red-500 focus:ring-red-500' : ''} />
-            {!formName.trim() && <p className="text-xs text-red-600 mt-1">Name is required</p>}
+            <Input
+              value={formName}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Enter form name"
+              className={
+                !formName.trim() ? "border-red-500 focus:ring-red-500" : ""
+              }
+            />
+            {!formName.trim() && (
+              <p className="text-xs text-red-600 mt-1">Name is required</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Path (slug) <span className="text-red-500">*</span>
             </label>
-            <Input value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="form-path" className={`font-mono text-sm ${!formSlug.trim() || !slugIsValid ? 'border-red-500 focus:ring-red-500' : ''}`} />
-            {!formSlug.trim() && <p className="text-xs text-red-600 mt-1">Slug is required</p>}
-            {formSlug.trim() && !slugIsValid && <p className="text-xs text-red-600 mt-1">Only lowercase letters, numbers and hyphens are allowed</p>}
-            <p className="text-xs text-gray-500 mt-1">Used in URL: /employees/[id]/{'{'}formSlug{'}'}</p>
+            <Input
+              value={formSlug}
+              onChange={(e) => setFormSlug(e.target.value)}
+              placeholder="form-path"
+              className={`font-mono text-sm ${!formSlug.trim() || !slugIsValid ? "border-red-500 focus:ring-red-500" : ""}`}
+            />
+            {!formSlug.trim() && (
+              <p className="text-xs text-red-600 mt-1">Slug is required</p>
+            )}
+            {formSlug.trim() && !slugIsValid && (
+              <p className="text-xs text-red-600 mt-1">
+                Only lowercase letters, numbers and hyphens are allowed
+              </p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Used in URL: /employees/[id]/{"{"}formSlug{"}"}
+            </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Optional form description" className="min-h-[80px]" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <Textarea
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="Optional form description"
+              className="min-h-[80px]"
+            />
           </div>
         </div>
       </div>
@@ -160,27 +228,47 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div
             className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              formType === 'SUBMISSION' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              formType === "SUBMISSION"
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
             }`}
-            onClick={() => setFormType('SUBMISSION')}
+            onClick={() => setFormType("SUBMISSION")}
           >
             <div className="flex items-center mb-2">
-              <input type="radio" checked={formType === 'SUBMISSION'} onChange={() => setFormType('SUBMISSION')} className="mr-2" />
+              <input
+                type="radio"
+                checked={formType === "SUBMISSION"}
+                onChange={() => setFormType("SUBMISSION")}
+                className="mr-2"
+              />
               <h4 className="font-medium">Submission Form</h4>
             </div>
-            <p className="text-sm text-gray-600">One-time form submissions. Data is submitted and stored as records.</p>
+            <p className="text-sm text-gray-600">
+              One-time form submissions. Data is submitted and stored as
+              records.
+            </p>
           </div>
           <div
             className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              formType === 'DATA_SCREEN' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+              formType === "DATA_SCREEN"
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
             }`}
-            onClick={() => setFormType('DATA_SCREEN')}
+            onClick={() => setFormType("DATA_SCREEN")}
           >
             <div className="flex items-center mb-2">
-              <input type="radio" checked={formType === 'DATA_SCREEN'} onChange={() => setFormType('DATA_SCREEN')} className="mr-2" />
+              <input
+                type="radio"
+                checked={formType === "DATA_SCREEN"}
+                onChange={() => setFormType("DATA_SCREEN")}
+                className="mr-2"
+              />
               <h4 className="font-medium">Data Screen</h4>
             </div>
-            <p className="text-sm text-gray-600">Persistent data that can be viewed, edited, and updated. Perfect for employee profiles.</p>
+            <p className="text-sm text-gray-600">
+              Persistent data that can be viewed, edited, and updated. Perfect
+              for employee profiles.
+            </p>
           </div>
         </div>
       </div>
@@ -191,35 +279,51 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         visibleToDepartments={vis.departments}
         visibleToJobRoles={vis.jobRoles}
         onChange={(v) => {
-          vis.setRoles(v.visibleToRoles)
-          vis.setDepartments(v.visibleToDepartments)
-          vis.setJobRoles(v.visibleToJobRoles)
+          vis.setRoles(v.visibleToRoles);
+          vis.setDepartments(v.visibleToDepartments);
+          vis.setJobRoles(v.visibleToJobRoles);
         }}
       />
 
       <DndContext
         onDragEnd={handleDragEnd}
         onDragStart={(e) => {
-          const dragged = e.active.data?.current as { type: string; label: string } | undefined
-          if (!dragged) return
-          setActiveDragField({ id: 'temp', type: dragged.type, label: dragged.label, required: false })
+          const dragged = e.active.data?.current as
+            | { type: string; label: string }
+            | undefined;
+          if (!dragged) return;
+          setActiveDragField({
+            id: "temp",
+            type: dragged.type,
+            label: dragged.label,
+            required: false,
+          });
         }}
       >
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
           <FieldPalette />
-          <FormCanvas fields={fields} setFields={setFields} selectedField={selectedField} onSelectField={setSelectedField} />
+          <FormCanvas
+            fields={fields}
+            setFields={setFields}
+            selectedField={selectedField}
+            onSelectField={setSelectedField}
+          />
           <div className="xl:col-span-1">
             {selectedField ? (
               <FieldEditor
                 key={selectedField.id}
                 field={selectedField}
                 onChange={(updated) => {
-                  setFields((prev) => prev.map((f) => (f.id === updated.id ? updated : f)))
-                  setSelectedField(updated)
+                  setFields((prev) =>
+                    prev.map((f) => (f.id === updated.id ? updated : f)),
+                  );
+                  setSelectedField(updated);
                 }}
               />
             ) : (
-              <p className="text-gray-500 italic mt-4">Select a field to edit its properties</p>
+              <p className="text-gray-500 italic mt-4">
+                Select a field to edit its properties
+              </p>
             )}
           </div>
           <FormPreview fields={fields} />
@@ -233,9 +337,18 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         </DragOverlay>
       </DndContext>
 
-      <Button onClick={saveForm} className="self-end mt-4" disabled={!formName.trim() || !fields.length || !vis.roles.length || !slugIsValid}>
+      <Button
+        onClick={saveForm}
+        className="self-end mt-4"
+        disabled={
+          !formName.trim() ||
+          !fields.length ||
+          !vis.roles.length ||
+          !slugIsValid
+        }
+      >
         Save Form
       </Button>
     </div>
-  )
+  );
 }

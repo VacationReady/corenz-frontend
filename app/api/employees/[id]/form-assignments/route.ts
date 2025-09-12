@@ -14,14 +14,17 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
     // Verify employee belongs to the same company
     const employee = await prisma.employee.findFirst({
-      where: { 
+      where: {
         id: employeeId,
-        companyId: session.user.companyId 
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     // Get form assignments for this employee
@@ -32,41 +35,47 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
           select: {
             id: true,
             name: true,
-            description: true
-          }
+            description: true,
+          },
         },
         assignedBy: {
           select: {
             name: true,
             firstName: true,
-            lastName: true
-          }
-        }
+            lastName: true,
+          },
+        },
       },
-      orderBy: { dueDate: 'asc' }
+      orderBy: { dueDate: "asc" },
     });
 
     // Determine status based on completion and due date
-    const assignmentsWithStatus = assignments.map(assignment => {
+    const assignmentsWithStatus = assignments.map((assignment) => {
       let status = assignment.status;
-      
+
       if (assignment.completedAt) {
-        status = 'completed';
-      } else if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
-        status = 'overdue';
+        status = "completed";
+      } else if (
+        assignment.dueDate &&
+        new Date(assignment.dueDate) < new Date()
+      ) {
+        status = "overdue";
       } else {
-        status = 'pending';
+        status = "pending";
       }
 
       return {
         ...assignment,
-        status
+        status,
       };
     });
 
     return NextResponse.json(assignmentsWithStatus);
   } catch (error) {
-    console.error('Error fetching form assignments:', error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Error fetching form assignments:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

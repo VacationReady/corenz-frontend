@@ -1,22 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import { prisma } from '@/lib/prisma';
-import { hasPermission, resolvePermissions } from '@/lib/permissions';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { hasPermission, resolvePermissions } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has permission to view permissions
-    if (!hasPermission(session.user as any, 'permissions', 'read')) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (!hasPermission(session.user as any, "permissions", "read")) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     // Get user with their current permission profile
@@ -31,7 +34,7 @@ export async function GET(
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Get effective permissions
@@ -56,7 +59,7 @@ export async function GET(
           select: { id: true, name: true, description: true, builtIn: true },
         },
       },
-      orderBy: { changedAt: 'desc' },
+      orderBy: { changedAt: "desc" },
       take: 10,
     });
 
@@ -72,24 +75,30 @@ export async function GET(
       auditTrail,
     });
   } catch (error) {
-    console.error('Error fetching user permissions:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching user permissions:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has permission to manage permissions
-    if (!hasPermission(session.user as any, 'permissions', 'edit')) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (!hasPermission(session.user as any, "permissions", "edit")) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -107,7 +116,7 @@ export async function PATCH(
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // If setting a custom profile, validate it exists and belongs to the company
@@ -120,13 +129,16 @@ export async function PATCH(
       });
 
       if (!profile) {
-        return NextResponse.json({ error: 'Permission profile not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: "Permission profile not found" },
+          { status: 404 },
+        );
       }
     }
 
     // Get old permissions for audit
     const oldPermissions = user.permissionProfile
-      ? typeof user.permissionProfile.permissions === 'string'
+      ? typeof user.permissionProfile.permissions === "string"
         ? JSON.parse(user.permissionProfile.permissions as unknown as string)
         : (user.permissionProfile.permissions as any)
       : null;
@@ -144,8 +156,10 @@ export async function PATCH(
 
     // Get new permissions for audit
     const newPermissions = updatedUser.permissionProfile
-      ? typeof updatedUser.permissionProfile.permissions === 'string'
-        ? JSON.parse(updatedUser.permissionProfile.permissions as unknown as string)
+      ? typeof updatedUser.permissionProfile.permissions === "string"
+        ? JSON.parse(
+            updatedUser.permissionProfile.permissions as unknown as string,
+          )
         : (updatedUser.permissionProfile.permissions as any)
       : null;
 
@@ -156,8 +170,12 @@ export async function PATCH(
         changedById: session.user.id,
         oldProfileId: user.permissionProfileId,
         newProfileId: permissionProfileId,
-        oldPermissions: oldPermissions ? JSON.parse(JSON.stringify(oldPermissions)) : undefined,
-        newPermissions: newPermissions ? JSON.parse(JSON.stringify(newPermissions)) : undefined,
+        oldPermissions: oldPermissions
+          ? JSON.parse(JSON.stringify(oldPermissions))
+          : undefined,
+        newPermissions: newPermissions
+          ? JSON.parse(JSON.stringify(newPermissions))
+          : undefined,
         note: note?.trim(),
       },
     });
@@ -184,7 +202,7 @@ export async function PATCH(
           select: { id: true, name: true, description: true, builtIn: true },
         },
       },
-      orderBy: { changedAt: 'desc' },
+      orderBy: { changedAt: "desc" },
       take: 10,
     });
 
@@ -200,7 +218,10 @@ export async function PATCH(
       auditTrail,
     });
   } catch (error) {
-    console.error('Error updating user permissions:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error updating user permissions:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

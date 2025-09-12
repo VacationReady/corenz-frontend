@@ -1,7 +1,8 @@
 import React from "react";
 import clsx from "clsx";
 
-interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+interface CardProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   title?: React.ReactNode;
   icon?: React.ReactNode;
   action?: React.ReactNode;
@@ -21,7 +22,7 @@ export function Card({
     <div
       className={clsx(
         "glass rounded-3xl shadow-glass h-full transition-glass hover-glass hover-lift",
-        className
+        className,
       )}
       {...props}
     >
@@ -52,7 +53,7 @@ export function CardHeader({
     <div
       className={clsx(
         "glass-subtle border-b border-glass px-6 py-5 rounded-t-3xl",
-        className
+        className,
       )}
     >
       {children}
@@ -68,7 +69,12 @@ export function CardContent({
   className?: string;
 }) {
   return (
-    <div className={clsx("p-6 text-sm text-foreground space-y-3 leading-relaxed", className)}>
+    <div
+      className={clsx(
+        "p-6 text-sm text-foreground space-y-3 leading-relaxed",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -113,7 +119,7 @@ export function CardFooter({
     <div
       className={clsx(
         "border-t border-glass px-6 py-5 glass-subtle rounded-b-3xl",
-        className
+        className,
       )}
     >
       {children}

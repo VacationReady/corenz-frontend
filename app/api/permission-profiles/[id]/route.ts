@@ -6,41 +6,38 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch a specific permission profile
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const profile = await prisma.permissionProfile.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
+        companyId: session.user.companyId,
       },
       include: {
         _count: {
-          select: { users: true }
+          select: { users: true },
         },
         users: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
 
     if (!profile) {
       return NextResponse.json(
         { error: "Permission profile not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -49,7 +46,7 @@ export async function GET(
     console.error("Error fetching permission profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -57,38 +54,29 @@ export async function GET(
 // PUT: Update a permission profile
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
-    const {
-      name,
-      description,
-      permissions,
-      scope,
-      constraints
-    } = body;
+    const { name, description, permissions, scope, constraints } = body;
 
     // Check if profile exists and belongs to company
     const existingProfile = await prisma.permissionProfile.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!existingProfile) {
       return NextResponse.json(
         { error: "Permission profile not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -96,7 +84,7 @@ export async function PUT(
     if (existingProfile.builtIn) {
       return NextResponse.json(
         { error: "Cannot modify built-in permission profiles" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -104,7 +92,7 @@ export async function PUT(
     if (!name || !permissions) {
       return NextResponse.json(
         { error: "Missing required fields: name, permissions" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -113,30 +101,33 @@ export async function PUT(
       where: {
         companyId: session.user.companyId,
         name,
-        id: { not: params.id }
-      }
+        id: { not: params.id },
+      },
     });
 
     if (duplicateProfile) {
       return NextResponse.json(
         { error: "A permission profile with this name already exists" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validate constraints if provided
     if (constraints) {
-      if (constraints.departmentIds && Array.isArray(constraints.departmentIds)) {
+      if (
+        constraints.departmentIds &&
+        Array.isArray(constraints.departmentIds)
+      ) {
         const validDepartments = await prisma.department.count({
           where: {
             id: { in: constraints.departmentIds },
-            companyId: session.user.companyId
-          }
+            companyId: session.user.companyId,
+          },
         });
         if (validDepartments !== constraints.departmentIds.length) {
           return NextResponse.json(
             { error: "One or more invalid department IDs in constraints" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
@@ -145,13 +136,13 @@ export async function PUT(
         const validJobRoles = await prisma.jobRole.count({
           where: {
             id: { in: constraints.jobRoles },
-            companyId: session.user.companyId
-          }
+            companyId: session.user.companyId,
+          },
         });
         if (validJobRoles !== constraints.jobRoles.length) {
           return NextResponse.json(
             { error: "One or more invalid job role IDs in constraints" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
@@ -159,14 +150,32 @@ export async function PUT(
 
     // Track changes for audit
     const changes: any = {};
-    if (existingProfile.name !== name) changes.name = { from: existingProfile.name, to: name };
-    if (existingProfile.description !== description) changes.description = { from: existingProfile.description, to: description };
-    if (JSON.stringify(existingProfile.permissions) !== JSON.stringify(permissions)) {
-      changes.permissions = { from: existingProfile.permissions, to: permissions };
+    if (existingProfile.name !== name)
+      changes.name = { from: existingProfile.name, to: name };
+    if (existingProfile.description !== description)
+      changes.description = {
+        from: existingProfile.description,
+        to: description,
+      };
+    if (
+      JSON.stringify(existingProfile.permissions) !==
+      JSON.stringify(permissions)
+    ) {
+      changes.permissions = {
+        from: existingProfile.permissions,
+        to: permissions,
+      };
     }
-    if (existingProfile.scope !== scope) changes.scope = { from: existingProfile.scope, to: scope };
-    if (JSON.stringify(existingProfile.constraints) !== JSON.stringify(constraints)) {
-      changes.constraints = { from: existingProfile.constraints, to: constraints };
+    if (existingProfile.scope !== scope)
+      changes.scope = { from: existingProfile.scope, to: scope };
+    if (
+      JSON.stringify(existingProfile.constraints) !==
+      JSON.stringify(constraints)
+    ) {
+      changes.constraints = {
+        from: existingProfile.constraints,
+        to: constraints,
+      };
     }
 
     const updatedProfile = await prisma.permissionProfile.update({
@@ -176,13 +185,13 @@ export async function PUT(
         description,
         permissions,
         scope: scope || null,
-        constraints: constraints || null
+        constraints: constraints || null,
       },
       include: {
         _count: {
-          select: { users: true }
-        }
-      }
+          select: { users: true },
+        },
+      },
     });
 
     // Create audit log entry if there were changes
@@ -192,8 +201,8 @@ export async function PUT(
           profileId: updatedProfile.id,
           action: "updated",
           changes,
-          changedBy: session.user.id
-        }
+          changedBy: session.user.id,
+        },
       });
     }
 
@@ -202,7 +211,7 @@ export async function PUT(
     console.error("Error updating permission profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -210,34 +219,31 @@ export async function PUT(
 // DELETE: Delete a permission profile
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if profile exists and belongs to company
     const existingProfile = await prisma.permissionProfile.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
+        companyId: session.user.companyId,
       },
       include: {
         _count: {
-          select: { users: true }
-        }
-      }
+          select: { users: true },
+        },
+      },
     });
 
     if (!existingProfile) {
       return NextResponse.json(
         { error: "Permission profile not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -245,15 +251,17 @@ export async function DELETE(
     if (existingProfile.builtIn) {
       return NextResponse.json(
         { error: "Cannot delete built-in permission profiles" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Check if profile is in use
     if (existingProfile._count.users > 0) {
       return NextResponse.json(
-        { error: `Cannot delete permission profile that is assigned to ${existingProfile._count.users} user(s)` },
-        { status: 400 }
+        {
+          error: `Cannot delete permission profile that is assigned to ${existingProfile._count.users} user(s)`,
+        },
+        { status: 400 },
       );
     }
 
@@ -267,24 +275,24 @@ export async function DELETE(
           description: existingProfile.description,
           permissions: existingProfile.permissions,
           scope: existingProfile.scope,
-          constraints: existingProfile.constraints
+          constraints: existingProfile.constraints,
         },
-        changedBy: session.user.id
-      }
+        changedBy: session.user.id,
+      },
     });
 
     await prisma.permissionProfile.delete({
-      where: { id: params.id }
+      where: { id: params.id },
     });
 
     return NextResponse.json({
-      message: "Permission profile deleted successfully"
+      message: "Permission profile deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting permission profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

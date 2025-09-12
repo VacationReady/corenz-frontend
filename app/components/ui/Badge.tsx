@@ -1,10 +1,14 @@
 import { cn } from "@/lib/utils";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'outline' | 'secondary' | 'destructive';
+  variant?: "default" | "outline" | "secondary" | "destructive";
 }
 
-export function Badge({ className, variant = "default", ...props }: BadgeProps) {
+export function Badge({
+  className,
+  variant = "default",
+  ...props
+}: BadgeProps) {
   return (
     <div
       className={cn(
@@ -12,7 +16,7 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
         variant === "default"
           ? "bg-primary text-primary-foreground"
           : "border-border bg-background",
-        className
+        className,
       )}
       {...props}
     />

@@ -1,6 +1,6 @@
 // app/api/working-patterns/[id]/route.ts
 
-import { prisma } from "@/lib/prisma";            // ← named import
+import { prisma } from "@/lib/prisma"; // ← named import
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -15,15 +15,15 @@ const WorkingPatternUpdateSchema = z.object({
         z.object({
           day: z.string(),
           type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
-        })
+        }),
       ),
-    })
+    }),
   ),
 });
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const { name, description, weeks } = await req.json();
@@ -33,7 +33,7 @@ export async function PATCH(
       where: { id: params.id },
       data: {
         name,
-        description,  // ← now supported in schema
+        description, // ← now supported in schema
         WorkingPatternWeek: {
           deleteMany: {}, // clear out existing weeks & days
           create: weeks.map((week: any) => ({
@@ -65,14 +65,14 @@ export async function PATCH(
         message: "Error updating working pattern",
         error: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     await prisma.workingPattern.update({
@@ -87,7 +87,7 @@ export async function DELETE(
         message: "Error deleting working pattern",
         error: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

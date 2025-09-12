@@ -1,7 +1,7 @@
-import { format } from 'date-fns';
-import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { format } from "date-fns";
+import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 
-const LONDON_TIMEZONE = 'Europe/London';
+const LONDON_TIMEZONE = "Europe/London";
 
 /**
  * Convert a date and time from Europe/London to UTC
@@ -22,9 +22,9 @@ export function toUTCFromLondon(date: string, time: string): Date {
  */
 export function formatLondon(
   utcDate: string | Date,
-  formatString: string = 'dd/MM/yyyy HH:mm'
+  formatString: string = "dd/MM/yyyy HH:mm",
 ): string {
-  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+  const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
   return formatInTimeZone(date, LONDON_TIMEZONE, formatString);
 }
 
@@ -34,7 +34,7 @@ export function formatLondon(
  * @returns Time string in HH:mm format
  */
 export function formatLondonTime(utcDate: string | Date): string {
-  return formatLondon(utcDate, 'HH:mm');
+  return formatLondon(utcDate, "HH:mm");
 }
 
 /**
@@ -43,7 +43,7 @@ export function formatLondonTime(utcDate: string | Date): string {
  * @returns Date string in dd/MM/yyyy format
  */
 export function formatLondonDate(utcDate: string | Date): string {
-  return formatLondon(utcDate, 'dd/MM/yyyy');
+  return formatLondon(utcDate, "dd/MM/yyyy");
 }
 
 /**
@@ -60,10 +60,10 @@ export function getCurrentLondonTime(): Date {
  * @returns boolean
  */
 export function isTodayInLondon(utcDate: string | Date): boolean {
-  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+  const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
   const now = new Date();
-  
-  return format(date, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+
+  return format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd");
 }
 
 /**
@@ -72,7 +72,10 @@ export function isTodayInLondon(utcDate: string | Date): boolean {
  * @param minutes - Number of minutes to add
  * @returns New Date object in London timezone
  */
-export function addMinutesInLondon(utcDate: string | Date, minutes: number): Date {
-  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+export function addMinutesInLondon(
+  utcDate: string | Date,
+  minutes: number,
+): Date {
+  const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
   return new Date(date.getTime() + minutes * 60 * 1000);
 }

@@ -7,7 +7,9 @@ import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 
-const AdminDashboardClient = dynamic(() => import("./AdminDashboardClient"), { ssr: false });
+const AdminDashboardClient = dynamic(() => import("./AdminDashboardClient"), {
+  ssr: false,
+});
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -17,7 +19,9 @@ export default async function AdminDashboardPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      employee: { include: { leaveEntitlements: { include: { eventCategory: true } } } },
+      employee: {
+        include: { leaveEntitlements: { include: { eventCategory: true } } },
+      },
     },
   });
 
@@ -46,12 +50,14 @@ export default async function AdminDashboardPage() {
                   <span>📍 London</span>
                   <div className="flex items-center space-x-1">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600 font-medium">Up to date</span>
+                    <span className="text-green-600 font-medium">
+                      Up to date
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Search */}
             <div className="relative max-w-sm">
               <input

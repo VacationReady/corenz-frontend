@@ -1,22 +1,27 @@
-'use client';
+"use client";
 
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 const FIELD_TYPES = [
-  { type: 'text', label: 'Text', hint: 'Single-line text input' },
-  { type: 'textarea', label: 'Textarea', hint: 'Multi-line text input' },
-  { type: 'email', label: 'Email', hint: 'Email address field' },
-  { type: 'phone', label: 'Phone', hint: 'Phone number input' },
-  { type: 'date', label: 'Date', hint: 'Date picker' },
-  { type: 'number', label: 'Number', hint: 'Numeric input field' },
-  { type: 'select', label: 'Dropdown', hint: 'Single-choice dropdown list' },
-  { type: 'radio', label: 'Radio', hint: 'Single-choice radio buttons' },
-  { type: 'checkbox', label: 'Checkbox', hint: 'Multi-choice checkboxes' },
-  { type: 'file', label: 'File Upload', hint: 'File attachment field' },
-  { type: 'table', label: 'Table', hint: 'Multiple entries in table format' },
-  { type: 'list', label: 'List', hint: 'Multiple text entries' },
+  { type: "text", label: "Text", hint: "Single-line text input" },
+  { type: "textarea", label: "Textarea", hint: "Multi-line text input" },
+  { type: "email", label: "Email", hint: "Email address field" },
+  { type: "phone", label: "Phone", hint: "Phone number input" },
+  { type: "date", label: "Date", hint: "Date picker" },
+  { type: "number", label: "Number", hint: "Numeric input field" },
+  { type: "select", label: "Dropdown", hint: "Single-choice dropdown list" },
+  { type: "radio", label: "Radio", hint: "Single-choice radio buttons" },
+  { type: "checkbox", label: "Checkbox", hint: "Multi-choice checkboxes" },
+  { type: "file", label: "File Upload", hint: "File attachment field" },
+  { type: "table", label: "Table", hint: "Multiple entries in table format" },
+  { type: "list", label: "List", hint: "Multiple text entries" },
 ];
 
 export function FieldPalette() {
@@ -34,17 +39,22 @@ export function FieldPalette() {
   );
 }
 
-function DraggableField({ field }: { field: { type: string; label: string; hint: string } }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: field.type,
-    data: field,
-  });
+function DraggableField({
+  field,
+}: {
+  field: { type: string; label: string; hint: string };
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: field.type,
+      data: field,
+    });
 
   const style = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.6 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
-    transition: 'opacity 0.15s ease, transform 0.15s ease',
+    cursor: isDragging ? "grabbing" : "grab",
+    transition: "opacity 0.15s ease, transform 0.15s ease",
   };
 
   return (
@@ -56,7 +66,7 @@ function DraggableField({ field }: { field: { type: string; label: string; hint:
           {...listeners}
           style={style}
           className={`border rounded-md p-2 text-sm bg-white hover:bg-gray-50 select-none shadow-sm hover:shadow transition-shadow ${
-            isDragging ? 'ring-2 ring-blue-400' : ''
+            isDragging ? "ring-2 ring-blue-400" : ""
           }`}
         >
           {field.label}

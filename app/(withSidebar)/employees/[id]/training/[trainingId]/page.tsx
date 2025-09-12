@@ -1,38 +1,58 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
-interface Course { id: string; name: string; }
-interface Provider { id: string; name: string; }
-interface Document { id: string; name: string; url: string; }
+interface Course {
+  id: string;
+  name: string;
+}
+interface Provider {
+  id: string;
+  name: string;
+}
+interface Document {
+  id: string;
+  name: string;
+  url: string;
+}
 
 export default function EditTraining() {
   const router = useRouter();
   const params = useParams();
-  const employeeId = Array.isArray(params?.id) ? params.id[0] : params?.id ?? '';
-  const trainingId = Array.isArray(params?.trainingId) ? params.trainingId[0] : params?.trainingId ?? '';
+  const employeeId = Array.isArray(params?.id)
+    ? params.id[0]
+    : (params?.id ?? "");
+  const trainingId = Array.isArray(params?.trainingId)
+    ? params.trainingId[0]
+    : (params?.trainingId ?? "");
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('');
-  const [dateCompleted, setDateCompleted] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("");
+  const [dateCompleted, setDateCompleted] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
   const [document, setDocument] = useState<Document | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [coursesRes, providersRes, recordRes] = await Promise.all([
-          fetch('/api/courses/list'),
-          fetch('/api/providers/list'),
+          fetch("/api/courses/list"),
+          fetch("/api/providers/list"),
           fetch(`/api/training-records/${trainingId}`),
         ]);
         const [coursesData, providersData, recordData] = await Promise.all([
@@ -41,7 +61,7 @@ export default function EditTraining() {
           recordRes.json(),
         ]);
 
-        console.log('Fetched recordData:', recordData); // Debugging check
+        console.log("Fetched recordData:", recordData); // Debugging check
 
         setCourses(coursesData);
         setProviders(providersData);
@@ -52,12 +72,12 @@ export default function EditTraining() {
         if (recordData.provider?.id) {
           setSelectedProvider(recordData.provider.id);
         }
-        setDateCompleted(recordData.dateCompleted?.substring(0, 10) ?? '');
-        setExpiryDate(recordData.expiryDate?.substring(0, 10) ?? '');
+        setDateCompleted(recordData.dateCompleted?.substring(0, 10) ?? "");
+        setExpiryDate(recordData.expiryDate?.substring(0, 10) ?? "");
         setDocument(recordData.document);
       } catch (error) {
-        console.error('Error loading data:', error);
-        alert('Failed to load data.');
+        console.error("Error loading data:", error);
+        alert("Failed to load data.");
       } finally {
         setLoading(false);
       }
@@ -71,14 +91,14 @@ export default function EditTraining() {
     setSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    formData.append('courseId', selectedCourse);
-    formData.append('providerId', selectedProvider);
-    formData.append('dateCompleted', dateCompleted);
-    formData.append('expiryDate', expiryDate);
+    formData.append("courseId", selectedCourse);
+    formData.append("providerId", selectedProvider);
+    formData.append("dateCompleted", dateCompleted);
+    formData.append("expiryDate", expiryDate);
 
     try {
       const res = await fetch(`/api/training-records/${trainingId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: formData,
       });
 
@@ -86,11 +106,11 @@ export default function EditTraining() {
         router.push(`/employees/${employeeId}/training`);
       } else {
         const error = await res.json();
-        alert('Error: ' + error.error);
+        alert("Error: " + error.error);
       }
     } catch (error) {
       console.error(error);
-      alert('Update failed.');
+      alert("Update failed.");
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +199,7 @@ export default function EditTraining() {
         )}
 
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Updating...' : 'Update Training'}
+          {submitting ? "Updating..." : "Update Training"}
         </Button>
       </form>
     </div>

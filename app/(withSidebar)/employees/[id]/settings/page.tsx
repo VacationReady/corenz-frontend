@@ -12,7 +12,9 @@ interface EmployeeSettingsPageProps {
   params: { id: string };
 }
 
-export default async function EmployeeSettingsPage({ params }: EmployeeSettingsPageProps) {
+export default async function EmployeeSettingsPage({
+  params,
+}: EmployeeSettingsPageProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -33,17 +35,20 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
   });
 
   const current = [...assignments]
-    .filter(a => a.effectiveDate <= today)
+    .filter((a) => a.effectiveDate <= today)
     .sort((a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime())[0];
 
   const upcoming = [...assignments]
-    .filter(a => a.effectiveDate > today)
+    .filter((a) => a.effectiveDate > today)
     .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())[0];
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Employee Settings</h1>
-      <p>Manage the employee's settings, such as working patterns, documents, or permissions.</p>
+      <p>
+        Manage the employee's settings, such as working patterns, documents, or
+        permissions.
+      </p>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Current Pattern */}
@@ -57,7 +62,9 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
               </p>
             </div>
           ) : (
-            <p className="text-sm text-gray-600">No current working pattern assigned.</p>
+            <p className="text-sm text-gray-600">
+              No current working pattern assigned.
+            </p>
           )}
 
           {/* Only the Assign New Pattern button */}
@@ -70,16 +77,21 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
 
         {/* Upcoming Pattern */}
         <div className="border rounded p-4 bg-white shadow">
-          <h2 className="text-lg font-semibold mb-2">Upcoming Working Pattern</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Upcoming Working Pattern
+          </h2>
           {upcoming ? (
             <div>
               <p className="font-medium">{upcoming.workingPattern.name}</p>
               <p className="text-sm text-gray-600">
-                Effective from: {format(new Date(upcoming.effectiveDate), "PPP")}
+                Effective from:{" "}
+                {format(new Date(upcoming.effectiveDate), "PPP")}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-gray-600">No upcoming working pattern assigned.</p>
+            <p className="text-sm text-gray-600">
+              No upcoming working pattern assigned.
+            </p>
           )}
         </div>
       </div>
@@ -87,7 +99,11 @@ export default async function EmployeeSettingsPage({ params }: EmployeeSettingsP
       {/* Permission Profile Management */}
       <div className="border rounded p-4 bg-white shadow">
         <h2 className="text-lg font-semibold mb-4">Permission Profile</h2>
-        <Suspense fallback={<div className="text-sm text-gray-600">Loading permissions...</div>}>
+        <Suspense
+          fallback={
+            <div className="text-sm text-gray-600">Loading permissions...</div>
+          }
+        >
           <PermissionProfileManagement employeeId={employee.user.id} />
         </Suspense>
       </div>

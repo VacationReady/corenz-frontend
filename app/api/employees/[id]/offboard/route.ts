@@ -6,7 +6,7 @@ import { OffboardingType, TaskCategory } from "@prisma/client";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -36,7 +36,7 @@ export async function POST(
     if (!lastWorkingDate || !offboardingType) {
       return NextResponse.json(
         { error: "Last working date and offboarding type are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,13 +47,16 @@ export async function POST(
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
     }
 
     if (employee.offboardingRecord) {
       return NextResponse.json(
         { error: "Employee is already being offboarded" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,7 +71,7 @@ export async function POST(
       if (!assignee) {
         return NextResponse.json(
           { error: "Handover assignee not found" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -109,7 +112,8 @@ export async function POST(
       },
       {
         title: "Collect company assets",
-        description: "Retrieve laptop, phone, keys, ID card, and other company property",
+        description:
+          "Retrieve laptop, phone, keys, ID card, and other company property",
         category: "ASSETS" as TaskCategory,
         isRequired: true,
         order: 2,
@@ -141,7 +145,8 @@ export async function POST(
     if (handoverRequired && handoverAssigneeUserId) {
       defaultTasks.push({
         title: "Complete knowledge handover",
-        description: "Transfer responsibilities and knowledge to assigned colleague",
+        description:
+          "Transfer responsibilities and knowledge to assigned colleague",
         category: "HANDOVER" as TaskCategory,
         isRequired: true,
         order: 2.5,
@@ -168,7 +173,9 @@ export async function POST(
         isRequired: task.isRequired,
         order: Math.floor(task.order * 10), // Convert to integer
         assignedTo:
-          task.category === TaskCategory.HANDOVER ? handoverAssigneeUserId : null,
+          task.category === TaskCategory.HANDOVER
+            ? handoverAssigneeUserId
+            : null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       })),
     });
@@ -194,14 +201,14 @@ export async function POST(
     console.error("Error starting offboarding:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -265,7 +272,7 @@ export async function GET(
     if (!offboardingRecord) {
       return NextResponse.json(
         { error: "No offboarding record found for this employee" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -289,14 +296,14 @@ export async function GET(
     console.error("Error fetching offboarding record:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -314,7 +321,7 @@ export async function PATCH(
     if (!offboardingRecord) {
       return NextResponse.json(
         { error: "No offboarding record found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -335,7 +342,7 @@ export async function PATCH(
     console.error("Error updating offboarding record:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

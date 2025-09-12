@@ -1,17 +1,41 @@
-'use client';
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/Table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/Select";
 import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import EditAccessModal from "@/components/documents/EditAccessModal";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 
@@ -35,7 +59,9 @@ type Document = {
 
 export default function EmployeeDocumentsPage() {
   const params = useParams();
-  const employeeId = Array.isArray(params?.id) ? params.id[0] : params?.id ?? '';
+  const employeeId = Array.isArray(params?.id)
+    ? params.id[0]
+    : (params?.id ?? "");
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +78,9 @@ export default function EmployeeDocumentsPage() {
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
-  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | null>(null);
+  const [userRole, setUserRole] = useState<
+    "ADMIN" | "MANAGER" | "EMPLOYEE" | null
+  >(null);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
@@ -105,7 +133,8 @@ export default function EmployeeDocumentsPage() {
       }
     };
     window.addEventListener("employee-documents-updated", handler);
-    return () => window.removeEventListener("employee-documents-updated", handler);
+    return () =>
+      window.removeEventListener("employee-documents-updated", handler);
   }, [employeeId]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -128,10 +157,15 @@ export default function EmployeeDocumentsPage() {
     formData.append("requiresAck", String(requiresAck));
 
     try {
-      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
       if (res.ok) {
         const newDoc = await res.json();
-        toast("Upload successful", { description: `${name} has been uploaded.` });
+        toast("Upload successful", {
+          description: `${name} has been uploaded.`,
+        });
         setDocuments((prev) => [newDoc, ...prev]);
         setIsUploadModalOpen(false);
         setFile(null);
@@ -164,7 +198,9 @@ export default function EmployeeDocumentsPage() {
   };
 
   const formatFileSize = (size: number) =>
-    size < 1024 * 1024 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
+    size < 1024 * 1024
+      ? `${(size / 1024).toFixed(1)} KB`
+      : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
   const handleRowClick = (doc: Document) => {
     setSelectedDoc(doc);
@@ -189,7 +225,9 @@ export default function EmployeeDocumentsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Employee Documents</h1>
           {userRole === "ADMIN" && (
-            <Button onClick={() => setIsUploadModalOpen(true)}>Add Document</Button>
+            <Button onClick={() => setIsUploadModalOpen(true)}>
+              Add Document
+            </Button>
           )}
         </div>
 
@@ -206,20 +244,49 @@ export default function EmployeeDocumentsPage() {
                 <TableHead>Access</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
-                {userRole === "ADMIN" && <TableHead className="w-[50px] text-right">Actions</TableHead>}
+                {userRole === "ADMIN" && (
+                  <TableHead className="w-[50px] text-right">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {documents.map((doc) => {
                 const accessBadges = [
-                  doc.canViewAdmin && <span key="admin" className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Admin</span>,
-                  doc.canViewManager && <span key="manager" className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Manager</span>,
-                  doc.canViewEmployee && <span key="employee" className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Employee</span>,
+                  doc.canViewAdmin && (
+                    <span
+                      key="admin"
+                      className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded"
+                    >
+                      Admin
+                    </span>
+                  ),
+                  doc.canViewManager && (
+                    <span
+                      key="manager"
+                      className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
+                    >
+                      Manager
+                    </span>
+                  ),
+                  doc.canViewEmployee && (
+                    <span
+                      key="employee"
+                      className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded"
+                    >
+                      Employee
+                    </span>
+                  ),
                 ].filter(Boolean);
 
                 return (
-                  <TableRow key={doc.id} onClick={() => handleRowClick(doc)} className="cursor-pointer hover:bg-muted transition">
-                    <TableCell className="text-blue-600 underline">{doc.name}</TableCell>
+                  <TableRow
+                    key={doc.id}
+                    onClick={() => handleRowClick(doc)}
+                    className="cursor-pointer hover:bg-muted transition"
+                  >
+                    <TableCell className="text-blue-600 underline">
+                      {doc.name}
+                    </TableCell>
                     <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
                     <TableCell>
                       <Tooltip>
@@ -227,22 +294,50 @@ export default function EmployeeDocumentsPage() {
                           <div className="flex gap-1">{accessBadges}</div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <div className="text-xs space-y-1">{accessBadges}</div>
+                          <div className="text-xs space-y-1">
+                            {accessBadges}
+                          </div>
                         </TooltipContent>
                       </Tooltip>
                     </TableCell>
-                    <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {new Date(doc.createdAt).toLocaleDateString()}
+                    </TableCell>
                     <TableCell>{formatFileSize(doc.size)}</TableCell>
                     {userRole === "ADMIN" && (
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu trigger={<button className="p-2 hover:bg-gray-100 rounded">⋮</button>}>
-                          <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>Edit Access</DropdownMenuItem>
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenu
+                          trigger={
+                            <button className="p-2 hover:bg-gray-100 rounded">
+                              ⋮
+                            </button>
+                          }
+                        >
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingDoc(doc);
+                              setIsEditAccessOpen(true);
+                            }}
+                          >
+                            Edit Access
+                          </DropdownMenuItem>
                           {doc.requiresAck && (
-                            <DropdownMenuItem onClick={() => { setSelectedDoc(doc); setIsViewAckOpen(true); }}>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedDoc(doc);
+                                setIsViewAckOpen(true);
+                              }}
+                            >
                               View Acknowledgements
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => confirmDelete(doc.id)} className="text-red-600">
+                          <DropdownMenuItem
+                            onClick={() => confirmDelete(doc.id)}
+                            className="text-red-600"
+                          >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenu>
@@ -265,7 +360,11 @@ export default function EmployeeDocumentsPage() {
               <form onSubmit={handleUpload} className="space-y-4">
                 <div>
                   <Label>Document Name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
                 </div>
                 <div>
                   <Label>Category</Label>
@@ -274,35 +373,57 @@ export default function EmployeeDocumentsPage() {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Employment Checks">Employment Checks</SelectItem>
-                      <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                      <SelectItem value="Employment Checks">
+                        Employment Checks
+                      </SelectItem>
+                      <SelectItem value="Driver Licence">
+                        Driver Licence
+                      </SelectItem>
                       <SelectItem value="Training">Training</SelectItem>
-                      <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                      <SelectItem value="Visa Documents">
+                        Visa Documents
+                      </SelectItem>
                       <SelectItem value="General HR">General HR</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>Requires Acknowledgement</Label>
-                  <Switch checked={requiresAck} onChange={(checked) => setRequiresAck(checked)} />
+                  <Switch
+                    checked={requiresAck}
+                    onChange={(checked) => setRequiresAck(checked)}
+                  />
                 </div>
                 <div>
                   <Label>File</Label>
-                  <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+                  <Input
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    required
+                  />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label>Admin Access</Label>
-                    <Switch checked={canViewAdmin} onChange={(checked) => setCanViewAdmin(checked)} />
+                    <Switch
+                      checked={canViewAdmin}
+                      onChange={(checked) => setCanViewAdmin(checked)}
+                    />
                   </div>
                   <div>
                     <Label>Manager Access</Label>
-                    <Switch checked={canViewManager} onChange={(checked) => setCanViewManager(checked)} />
+                    <Switch
+                      checked={canViewManager}
+                      onChange={(checked) => setCanViewManager(checked)}
+                    />
                   </div>
                   <div>
                     <Label>Employee Access</Label>
-                    <Switch checked={canViewEmployee} onChange={(checked) => setCanViewEmployee(checked)} />
+                    <Switch
+                      checked={canViewEmployee}
+                      onChange={(checked) => setCanViewEmployee(checked)}
+                    />
                   </div>
                 </div>
 
@@ -324,7 +445,10 @@ export default function EmployeeDocumentsPage() {
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
-                <iframe src={selectedDoc.url} className="w-full h-[500px] rounded border"></iframe>
+                <iframe
+                  src={selectedDoc.url}
+                  className="w-full h-[500px] rounded border"
+                ></iframe>
                 <a
                   href={selectedDoc.url}
                   download={selectedDoc.name}

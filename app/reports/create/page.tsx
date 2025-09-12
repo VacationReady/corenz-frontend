@@ -33,7 +33,7 @@ export default function ReportsPage() {
 
   const handleFieldToggle = (field: string) => {
     setSelectedFields((prev) =>
-      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field]
+      prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field],
     );
   };
 
@@ -47,7 +47,7 @@ export default function ReportsPage() {
   const renderFieldGroup = (
     id: string,
     title: string,
-    fields: { label: string; value: string }[]
+    fields: { label: string; value: string }[],
   ) => (
     <AccordionItem value={id} key={id}>
       <AccordionTrigger>{title}</AccordionTrigger>
@@ -71,14 +71,20 @@ export default function ReportsPage() {
   return (
     <main className="flex-1 p-6 overflow-y-auto">
       <h1 className="text-2xl font-bold mb-6">Build a Custom Report</h1>
-      <p className="mb-4">Select the fields you would like to include in your report:</p>
+      <p className="mb-4">
+        Select the fields you would like to include in your report:
+      </p>
 
       {Object.keys(fieldGroups).length === 0 ? (
         <p>Loading fields...</p>
       ) : (
         <Accordion type="multiple" className="w-full space-y-2">
           {Object.entries(fieldGroups).map(([model, fields]) =>
-            renderFieldGroup(model, `${model.charAt(0).toUpperCase() + model.slice(1)} Fields`, fields)
+            renderFieldGroup(
+              model,
+              `${model.charAt(0).toUpperCase() + model.slice(1)} Fields`,
+              fields,
+            ),
           )}
         </Accordion>
       )}

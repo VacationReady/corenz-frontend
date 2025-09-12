@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useMemo,
+} from "react";
 import { FilterState, FilterContextType } from "@/types/filter";
 
 const initialFilterState: FilterState = {
@@ -37,10 +43,10 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
         [action.key]: Array.isArray(state[action.key])
           ? []
           : action.key === "dateRange"
-          ? {}
-          : action.key === "sortOrder"
-          ? "asc"
-          : "",
+            ? {}
+            : action.key === "sortOrder"
+              ? "asc"
+              : "",
       };
     case "SET_FILTERS":
       return {
@@ -59,18 +65,20 @@ interface FilterProviderProps {
   initialFilters?: Partial<FilterState>;
 }
 
-export function FilterProvider({ children, initialFilters }: FilterProviderProps) {
+export function FilterProvider({
+  children,
+  initialFilters,
+}: FilterProviderProps) {
   const [filters, dispatch] = useReducer(filterReducer, {
     ...initialFilterState,
     ...initialFilters,
   });
 
-  const updateFilter = useCallback<<K extends keyof FilterState>(key: K, value: FilterState[K]) => void>(
-    (key, value) => {
-      dispatch({ type: "UPDATE_FILTER", key, value });
-    },
-    []
-  );
+  const updateFilter = useCallback<
+    <K extends keyof FilterState>(key: K, value: FilterState[K]) => void
+  >((key, value) => {
+    dispatch({ type: "UPDATE_FILTER", key, value });
+  }, []);
 
   const clearFilters = useCallback(() => {
     dispatch({ type: "CLEAR_FILTERS" });
@@ -89,7 +97,8 @@ export function FilterProvider({ children, initialFilters }: FilterProviderProps
       filters.documentTypes.length > 0 ||
       filters.authors.length > 0 ||
       filters.categories.length > 0 ||
-      (filters.dateRange.from !== undefined || filters.dateRange.to !== undefined)
+      filters.dateRange.from !== undefined ||
+      filters.dateRange.to !== undefined
     );
   }, [filters]);
 
@@ -101,10 +110,14 @@ export function FilterProvider({ children, initialFilters }: FilterProviderProps
       clearFilter,
       isFiltered,
     }),
-    [filters, updateFilter, clearFilters, clearFilter, isFiltered]
+    [filters, updateFilter, clearFilters, clearFilter, isFiltered],
   );
 
-  return <FilterContext.Provider value={contextValue}>{children}</FilterContext.Provider>;
+  return (
+    <FilterContext.Provider value={contextValue}>
+      {children}
+    </FilterContext.Provider>
+  );
 }
 
 export function useFilters() {

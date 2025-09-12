@@ -28,7 +28,10 @@ export async function GET() {
     return NextResponse.json(departments); // ✅ Clean array for frontend
   } catch (error) {
     console.error("Error fetching departments:", error);
-    return NextResponse.json({ error: "Failed to fetch departments" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch departments" },
+      { status: 500 },
+    );
   }
 }
 
@@ -37,7 +40,10 @@ export async function POST(req: Request) {
     const { name } = await req.json();
 
     if (!name || name.trim() === "") {
-      return NextResponse.json({ error: "Department name is required." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Department name is required." },
+        { status: 400 },
+      );
     }
 
     const session = await getServerSession(authOptions);
@@ -56,7 +62,10 @@ export async function POST(req: Request) {
     });
 
     if (existing) {
-      return NextResponse.json({ error: "A department with this name already exists." }, { status: 400 });
+      return NextResponse.json(
+        { error: "A department with this name already exists." },
+        { status: 400 },
+      );
     }
 
     const department = await prisma.department.create({
@@ -69,6 +78,9 @@ export async function POST(req: Request) {
     return NextResponse.json(department);
   } catch (error) {
     console.error("Error creating department:", error);
-    return NextResponse.json({ error: "Failed to create department" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create department" },
+      { status: 500 },
+    );
   }
 }

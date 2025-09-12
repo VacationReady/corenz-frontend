@@ -6,45 +6,42 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch steps for a template
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Verify template belongs to company
     const template = await prisma.onboardingTemplate.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!template) {
       return NextResponse.json(
         { error: "Onboarding template not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const steps = await prisma.onboardingStep.findMany({
       where: {
-        templateId: params.id
+        templateId: params.id,
       },
       include: {
         document: {
-          select: { id: true, name: true }
+          select: { id: true, name: true },
         },
         form: {
-          select: { id: true, name: true, slug: true }
-        }
+          select: { id: true, name: true, slug: true },
+        },
       },
-      orderBy: { order: "asc" }
+      orderBy: { order: "asc" },
     });
 
     return NextResponse.json(steps);
@@ -52,7 +49,7 @@ export async function GET(
     console.error("Error fetching onboarding steps:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,15 +57,12 @@ export async function GET(
 // POST: Create a new step
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -84,21 +78,21 @@ export async function POST(
       trainingId,
       slaDays,
       dependencies = [],
-      metadata
+      metadata,
     } = body;
 
     // Verify template belongs to company
     const template = await prisma.onboardingTemplate.findFirst({
       where: {
         id: params.id,
-        companyId: session.user.companyId
-      }
+        companyId: session.user.companyId,
+      },
     });
 
     if (!template) {
       return NextResponse.json(
         { error: "Onboarding template not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -106,7 +100,7 @@ export async function POST(
     if (!type || !label || order === undefined) {
       return NextResponse.json(
         { error: "Missing required fields: type, label, order" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,13 +109,13 @@ export async function POST(
       const document = await prisma.document.findFirst({
         where: {
           id: documentId,
-          companyId: session.user.companyId
-        }
+          companyId: session.user.companyId,
+        },
       });
       if (!document) {
         return NextResponse.json(
           { error: "Invalid document ID" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -131,14 +125,11 @@ export async function POST(
       const form = await prisma.form.findFirst({
         where: {
           id: formId,
-          companyId: session.user.companyId
-        }
+          companyId: session.user.companyId,
+        },
       });
       if (!form) {
-        return NextResponse.json(
-          { error: "Invalid form ID" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid form ID" }, { status: 400 });
       }
     }
 
@@ -147,13 +138,13 @@ export async function POST(
       const taskOwner = await prisma.user.findFirst({
         where: {
           id: taskOwnerId,
-          companyId: session.user.companyId
-        }
+          companyId: session.user.companyId,
+        },
       });
       if (!taskOwner) {
         return NextResponse.json(
           { error: "Invalid task owner ID" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -163,13 +154,13 @@ export async function POST(
       const validDependencies = await prisma.onboardingStep.count({
         where: {
           id: { in: dependencies },
-          templateId: params.id
-        }
+          templateId: params.id,
+        },
       });
       if (validDependencies !== dependencies.length) {
         return NextResponse.json(
           { error: "One or more invalid dependency step IDs" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -178,14 +169,14 @@ export async function POST(
     const existingStep = await prisma.onboardingStep.findFirst({
       where: {
         templateId: params.id,
-        label
-      }
+        label,
+      },
     });
 
     if (existingStep) {
       return NextResponse.json(
         { error: "A step with this label already exists in the template" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -203,16 +194,16 @@ export async function POST(
         trainingId: trainingId || null,
         slaDays: slaDays || null,
         dependencies,
-        metadata: metadata || null
+        metadata: metadata || null,
       },
       include: {
         document: {
-          select: { id: true, name: true }
+          select: { id: true, name: true },
         },
         form: {
-          select: { id: true, name: true, slug: true }
-        }
-      }
+          select: { id: true, name: true, slug: true },
+        },
+      },
     });
 
     return NextResponse.json(step, { status: 201 });
@@ -220,7 +211,7 @@ export async function POST(
     console.error("Error creating onboarding step:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

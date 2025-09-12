@@ -25,7 +25,7 @@ export async function sendLeaveNotification({
 
     const html = `
       <div style="font-family: sans-serif; max-width: 500px; margin: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
-        <h2 style="color: #111827;">CoreNZ Leave Notification</h2>
+        <h2 style="color: #111827;">PeopleCore Leave Notification</h2>
         <p>Hello,</p>
         <p>This is a notification regarding <strong>${employeeName}</strong>'s leave request:</p>
         <ul>
@@ -35,7 +35,7 @@ export async function sendLeaveNotification({
         </ul>
         <p>
           <a 
-            href="https://corenz.vercel.app/dashboard/approvals" 
+            href="https://peoplecore.vercel.app/dashboard/approvals" 
             style="background-color:#1d4ed8;color:white;padding:10px 15px;text-decoration:none;border-radius:5px;display:inline-block;"
             target="_blank"
           >
@@ -43,12 +43,12 @@ export async function sendLeaveNotification({
           </a>
         </p>
         <br/>
-        <p style="font-size: 12px; color: #6b7280;">CoreNZ HRIS System</p>
+        <p style="font-size: 12px; color: #6b7280;">PeopleCore HRIS System</p>
       </div>
     `;
 
     const data = await resend.emails.send({
-      from: "CoreNZ Notifications <onboarding@resend.dev>",
+      from: "PeopleCore Notifications <onboarding@resend.dev>",
       to,
       subject,
       html,

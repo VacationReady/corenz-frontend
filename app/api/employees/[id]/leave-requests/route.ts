@@ -5,17 +5,25 @@ import { authOptions } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
-      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthenticated" },
+        { status: 401 },
+      );
     }
 
     const { searchParams } = new URL(req.url);
     const upcoming = searchParams.get("upcoming") === "true";
     const limitParam = searchParams.get("limit");
-    const take = limitParam ? Math.max(1, Math.min(10, parseInt(limitParam, 10) || 0)) : 3;
+    const take = limitParam
+      ? Math.max(1, Math.min(10, parseInt(limitParam, 10) || 0))
+      : 3;
 
     const now = new Date();
 
@@ -50,29 +58,46 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json(leaves);
   } catch (error) {
     console.error("[EMPLOYEE_LEAVE_REQUESTS_GET]", error);
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       console.log("❌ Unauthenticated attempt to submit leave request");
       return NextResponse.json(
         { success: false, error: "Unauthenticated" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const userId = session.user.id;
     const employeeId = params.id;
     const body = await req.json();
-    const { eventCategoryId, startDate, endDate, reason, sickReason, paidStatus, dayType } = body;
+    const {
+      eventCategoryId,
+      startDate,
+      endDate,
+      reason,
+      sickReason,
+      paidStatus,
+      dayType,
+    } = body;
 
     if (!eventCategoryId || !startDate || !endDate) {
       console.log("❌ Missing required leave request fields");
-      return NextResponse.json({ success: false, error: "Missing required fields." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Missing required fields." },
+        { status: 400 },
+      );
     }
 
     const employee = await prisma.employee.findUnique({
@@ -93,12 +118,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     if (!employee) {
       console.log("❌ Employee not found for leave request");
-      return NextResponse.json({ success: false, error: "Employee not found." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Employee not found." },
+        { status: 404 },
+      );
     }
 
     if (employee.user.id !== userId && session.user.role !== "ADMIN") {
       console.log("❌ Unauthorized leave request submission attempt");
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 },
+      );
     }
 
     const eventCategory = await prisma.eventCategory.findFirst({
@@ -108,7 +139,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     if (!eventCategory) {
       console.log("❌ Invalid event category");
-      return NextResponse.json({ success: false, error: "Invalid event category." }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid event category." },
+        { status: 400 },
+      );
     }
 
     const eventCategoryName = eventCategory.name;
@@ -133,7 +167,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         endDate: new Date(endDate),
         dayType: dayType ?? "FULL_DAY",
         reason: reason ?? "",
-        paidStatus: eventCategoryName === "Sick Leave" ? paidStatus ?? "PAID" : null,
+        paidStatus:
+          eventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
       },
     });
 
@@ -145,15 +180,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
       if (manager?.email) {
         const employeeFullName =
-          `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() || "Employee";
+          `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() ||
+          "Employee";
         await sendLeaveNotification({
-  to: manager.email,
-  subject: `New Leave Request from ${employeeFullName}`,
-  employeeName: employeeFullName,
-  type: eventCategoryName,
-  startDate,
-  endDate,
-});
+          to: manager.email,
+          subject: `New Leave Request from ${employeeFullName}`,
+          employeeName: employeeFullName,
+          type: eventCategoryName,
+          startDate,
+          endDate,
+        });
       }
     }
 
@@ -162,8 +198,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   } catch (error: any) {
     console.error("❌ Error submitting leave request:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to submit leave request." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to submit leave request.",
+      },
+      { status: 500 },
     );
   }
 }

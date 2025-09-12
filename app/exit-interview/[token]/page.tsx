@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { toast } from 'sonner';
-import { Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { toast } from "sonner";
+import { Loader2, CheckCircle, AlertCircle, FileText } from "lucide-react";
 
 interface FormField {
   id: string;
@@ -38,7 +44,7 @@ interface Employee {
 export default function ExitInterviewPage() {
   const params = useParams();
   const token = params?.token as string;
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -59,17 +65,17 @@ export default function ExitInterviewPage() {
       setError(null);
 
       // Start the form (this validates the token and gets form data)
-      const response = await fetch('/api/exit-interview/start', {
-        method: 'POST',
+      const response = await fetch("/api/exit-interview/start", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ token }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load form');
+        throw new Error(errorData.error || "Failed to load form");
       }
 
       const data = await response.json();
@@ -79,41 +85,44 @@ export default function ExitInterviewPage() {
       // Initialize form data
       const initialData: Record<string, any> = {};
       data.formTemplate.schemaJson.fields.forEach((field: FormField) => {
-        if (field.type === 'checkbox') {
+        if (field.type === "checkbox") {
           initialData[field.id] = [];
         } else {
-          initialData[field.id] = '';
+          initialData[field.id] = "";
         }
       });
       setFormData(initialData);
-
     } catch (err) {
-      console.error('Error loading form:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load form');
+      console.error("Error loading form:", err);
+      setError(err instanceof Error ? err.message : "Failed to load form");
     } finally {
       setLoading(false);
     }
   };
 
   const handleInputChange = (fieldId: string, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [fieldId]: value
+      [fieldId]: value,
     }));
   };
 
-  const handleCheckboxChange = (fieldId: string, option: string, checked: boolean) => {
-    setFormData(prev => {
+  const handleCheckboxChange = (
+    fieldId: string,
+    option: string,
+    checked: boolean,
+  ) => {
+    setFormData((prev) => {
       const currentValues = prev[fieldId] || [];
       if (checked) {
         return {
           ...prev,
-          [fieldId]: [...currentValues, option]
+          [fieldId]: [...currentValues, option],
         };
       } else {
         return {
           ...prev,
-          [fieldId]: currentValues.filter((val: string) => val !== option)
+          [fieldId]: currentValues.filter((val: string) => val !== option),
         };
       }
     });
@@ -125,12 +134,12 @@ export default function ExitInterviewPage() {
     for (const field of template.schemaJson.fields) {
       if (field.required) {
         const value = formData[field.id];
-        if (field.type === 'checkbox') {
+        if (field.type === "checkbox") {
           if (!Array.isArray(value) || value.length === 0) {
             return false;
           }
         } else {
-          if (!value || value.trim() === '') {
+          if (!value || value.trim() === "") {
             return false;
           }
         }
@@ -141,49 +150,48 @@ export default function ExitInterviewPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
 
     try {
       setSubmitting(true);
 
-      const response = await fetch('/api/exit-interview/submit', {
-        method: 'POST',
+      const response = await fetch("/api/exit-interview/submit", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           token,
-          answersJson: formData
+          answersJson: formData,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit form');
+        throw new Error(errorData.error || "Failed to submit form");
       }
 
       setSubmitted(true);
-      toast.success('Exit interview form submitted successfully');
-
+      toast.success("Exit interview form submitted successfully");
     } catch (err) {
-      console.error('Error submitting form:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to submit form');
+      console.error("Error submitting form:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to submit form");
     } finally {
       setSubmitting(false);
     }
   };
 
   const renderField = (field: FormField) => {
-    const value = formData[field.id] || '';
+    const value = formData[field.id] || "";
 
     switch (field.type) {
-      case 'text':
-      case 'email':
-      case 'phone':
+      case "text":
+      case "email":
+      case "phone":
         return (
           <Input
             type={field.type}
@@ -194,7 +202,7 @@ export default function ExitInterviewPage() {
           />
         );
 
-      case 'textarea':
+      case "textarea":
         return (
           <Textarea
             placeholder={field.placeholder}
@@ -205,12 +213,19 @@ export default function ExitInterviewPage() {
           />
         );
 
-      case 'select':
-      case 'dropdown':
+      case "select":
+      case "dropdown":
         return (
-          <Select value={value} onValueChange={(val) => handleInputChange(field.id, val)}>
+          <Select
+            value={value}
+            onValueChange={(val) => handleInputChange(field.id, val)}
+          >
             <SelectTrigger>
-              <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
+              <SelectValue
+                placeholder={
+                  field.placeholder || `Select ${field.label.toLowerCase()}`
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {field.options?.map((option) => (
@@ -222,7 +237,7 @@ export default function ExitInterviewPage() {
           </Select>
         );
 
-      case 'checkbox':
+      case "checkbox":
         return (
           <div className="space-y-2">
             {field.options?.map((option) => (
@@ -230,7 +245,9 @@ export default function ExitInterviewPage() {
                 <Checkbox
                   id={`${field.id}-${option}`}
                   checked={Array.isArray(value) && value.includes(option)}
-                  onCheckedChange={(checked) => handleCheckboxChange(field.id, option, checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleCheckboxChange(field.id, option, checked as boolean)
+                  }
                 />
                 <Label htmlFor={`${field.id}-${option}`} className="text-sm">
                   {option}
@@ -240,7 +257,7 @@ export default function ExitInterviewPage() {
           </div>
         );
 
-      case 'radio':
+      case "radio":
         return (
           <div className="space-y-2">
             {field.options?.map((option) => (
@@ -293,7 +310,9 @@ export default function ExitInterviewPage() {
         <Card className="w-full max-w-md">
           <CardContent className="text-center p-6">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Error</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Access Error
+            </h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <p className="text-sm text-gray-500">
               If you believe this is an error, please contact HR for assistance.
@@ -310,12 +329,15 @@ export default function ExitInterviewPage() {
         <Card className="w-full max-w-md">
           <CardContent className="text-center p-6">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Thank You</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Thank You
+            </h2>
             <p className="text-gray-600 mb-4">
               Your exit interview form has been submitted successfully.
             </p>
             <p className="text-sm text-gray-500">
-              We appreciate your feedback and wish you all the best in your future endeavors.
+              We appreciate your feedback and wish you all the best in your
+              future endeavors.
             </p>
           </CardContent>
         </Card>
@@ -347,17 +369,21 @@ export default function ExitInterviewPage() {
               Exit Interview for {employee.firstName} {employee.lastName}
             </p>
             {template.description && (
-              <p className="text-sm text-gray-500 mt-2">{template.description}</p>
+              <p className="text-sm text-gray-500 mt-2">
+                {template.description}
+              </p>
             )}
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {template.schemaJson.fields.map((field) => (
                 <div key={field.id} className="space-y-2">
                   <Label htmlFor={field.id} className="text-sm font-medium">
                     {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                    {field.required && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
                   </Label>
                   {renderField(field)}
                 </div>
@@ -375,7 +401,7 @@ export default function ExitInterviewPage() {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Exit Interview'
+                    "Submit Exit Interview"
                   )}
                 </Button>
               </div>

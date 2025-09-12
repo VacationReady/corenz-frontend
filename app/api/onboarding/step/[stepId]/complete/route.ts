@@ -14,7 +14,7 @@ async function parseBody(request: NextRequest) {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { stepId: string } }
+  { params }: { params: { stepId: string } },
 ) {
   const { stepId } = params;
   const body = await parseBody(request);
@@ -25,20 +25,20 @@ export async function POST(
   try {
     // 1. Find step instance (and onboardingInstance, employee, company for security)
     const stepInstance = await prisma.onboardingStepInstance.findUnique({
-  where: { id: stepId },
-  include: {
-    onboardingInstance: {
+      where: { id: stepId },
       include: {
-        employee: {
+        onboardingInstance: {
           include: {
-            user: true, // This gets you employee.user.companyId
-          }
-        }
-      }
-    },
-    step: true,
-  },
-});
+            employee: {
+              include: {
+                user: true, // This gets you employee.user.companyId
+              },
+            },
+          },
+        },
+        step: true,
+      },
+    });
 
     if (!stepInstance) {
       return NextResponse.json({ error: "Step not found." }, { status: 404 });
@@ -70,25 +70,27 @@ export async function POST(
     if (body.fileUrl) {
       // You already have Document model; insert a new document and associate it to this step
       const employee = stepInstance.onboardingInstance.employee;
-const user = employee.user;
+      const user = employee.user;
 
-if (!user.companyId) {
-  throw new Error("CompanyId missing for uploader user. Cannot create document.");
-}
+      if (!user.companyId) {
+        throw new Error(
+          "CompanyId missing for uploader user. Cannot create document.",
+        );
+      }
 
-await prisma.document.create({
-  data: {
-    name: body.fileName || "Uploaded Document",
-    url: body.fileUrl,
-    path: body.filePath || body.fileUrl,
-    size: body.fileSize || 0,
-    type: body.fileType || "other",
-    employeeId: employee.id,
-    uploaderId: user.id,
-    companyId: user.companyId, // now always a string
-    // ...other fields
-  },
-});
+      await prisma.document.create({
+        data: {
+          name: body.fileName || "Uploaded Document",
+          url: body.fileUrl,
+          path: body.filePath || body.fileUrl,
+          size: body.fileSize || 0,
+          type: body.fileType || "other",
+          employeeId: employee.id,
+          uploaderId: user.id,
+          companyId: user.companyId, // now always a string
+          // ...other fields
+        },
+      });
     }
 
     // 5. (Optional) Log to audit table here

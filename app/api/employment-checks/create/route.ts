@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Upload failed" }, { status: 500 });
       }
 
-      const { data: urlData } = supabase.storage.from("documents").getPublicUrl(data.path);
+      const { data: urlData } = supabase.storage
+        .from("documents")
+        .getPublicUrl(data.path);
       documentUrl = urlData.publicUrl;
       documentName = file.name;
       documentSize = file.size;
@@ -87,6 +89,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(employmentCheck);
   } catch (error) {
     console.error("Employment Check creation error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

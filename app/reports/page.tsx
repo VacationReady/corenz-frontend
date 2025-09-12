@@ -49,7 +49,9 @@ export default function ReportsPage() {
     <main className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Saved Reports</h1>
-        <Button onClick={() => router.push("/reports/builder")}>+ Create Report</Button>
+        <Button onClick={() => router.push("/reports/builder")}>
+          + Create Report
+        </Button>
       </div>
 
       {loading ? (
@@ -73,33 +75,40 @@ export default function ReportsPage() {
                 <TableCell>{report.name}</TableCell>
                 <TableCell>{report.category}</TableCell>
                 <TableCell>{report.createdBy?.email || "Unknown"}</TableCell>
-                <TableCell>{format(new Date(report.createdAt), "PPP")}</TableCell>
+                <TableCell>
+                  {format(new Date(report.createdAt), "PPP")}
+                </TableCell>
                 <TableCell>
                   <Button
-  variant="ghost"
-  onClick={() => {
-    console.log("🧪 Raw report.fields:", report.fields);
+                    variant="ghost"
+                    onClick={() => {
+                      console.log("🧪 Raw report.fields:", report.fields);
 
-    if (!report.fields) {
-      alert("No fields found in this report.");
-      return;
-    }
+                      if (!report.fields) {
+                        alert("No fields found in this report.");
+                        return;
+                      }
 
-    const fieldArray = Array.isArray(report.fields)
-      ? report.fields
-      : JSON.parse(report.fields || "[]");
+                      const fieldArray = Array.isArray(report.fields)
+                        ? report.fields
+                        : JSON.parse(report.fields || "[]");
 
-    if (!fieldArray.length) {
-      alert("This report has no fields.");
-      return;
-    }
+                      if (!fieldArray.length) {
+                        alert("This report has no fields.");
+                        return;
+                      }
 
-    router.push(`/reports/preview?fields=${encodeURIComponent(fieldArray.join(","))}`);
-  }}
->
-  View
-</Button>
-                  <Button variant="ghost" onClick={() => handleDelete(report.id)}>
+                      router.push(
+                        `/reports/preview?fields=${encodeURIComponent(fieldArray.join(","))}`,
+                      );
+                    }}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleDelete(report.id)}
+                  >
                     Delete
                   </Button>
                 </TableCell>

@@ -48,12 +48,14 @@ export default function CalendarPage() {
   const fetchCalendarEvents = async (
     fetchInfo: EventSourceFuncArg,
     successCallback: (events: EventInput[]) => void,
-    failureCallback: (error: any) => void
+    failureCallback: (error: any) => void,
   ) => {
     try {
       const [leaveRes, blackoutRes] = await Promise.all([
-        fetch(`/api/calendar-events${selectedDepartment ? `?department=${encodeURIComponent(selectedDepartment)}` : ""}`),
-        fetch("/api/blackout-days/get")
+        fetch(
+          `/api/calendar-events${selectedDepartment ? `?department=${encodeURIComponent(selectedDepartment)}` : ""}`,
+        ),
+        fetch("/api/blackout-days/get"),
       ]);
 
       if (!leaveRes.ok || !blackoutRes.ok) {
@@ -124,7 +126,9 @@ export default function CalendarPage() {
     <PageShell title="Calendar">
       <Card title="Company Calendar">
         <div className="p-4">
-          <label className="block mb-2 font-medium">Filter by Department:</label>
+          <label className="block mb-2 font-medium">
+            Filter by Department:
+          </label>
           <select
             value={selectedDepartment}
             onChange={handleDepartmentChange}
@@ -143,16 +147,16 @@ export default function CalendarPage() {
             <p className="p-4">Loading...</p>
           ) : (
             <FullCalendar
-    ref={calendarRef}
-    plugins={[dayGridPlugin, interactionPlugin]}
-    initialView="dayGridMonth"
-    events={fetchCalendarEvents}
-    dateClick={handleDateClick}
-    eventClick={handleEventClick}
-    height="auto"
-    key={refreshTrigger ? "refresh-on" : "refresh-off"} // 🚩 forces rerender on refresh
-    timeZone="Europe/London" // 🚩 added for BST stability
-/>
+              ref={calendarRef}
+              plugins={[dayGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              events={fetchCalendarEvents}
+              dateClick={handleDateClick}
+              eventClick={handleEventClick}
+              height="auto"
+              key={refreshTrigger ? "refresh-on" : "refresh-off"} // 🚩 forces rerender on refresh
+              timeZone="Europe/London" // 🚩 added for BST stability
+            />
           )}
         </div>
       </Card>

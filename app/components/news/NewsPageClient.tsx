@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo } from 'react';
-import Link from 'next/link';
-import { format } from 'date-fns';
-import Button from '@/components/ui/Button';
-import { PageShell } from '@/components/ui/PageShell';
-import { FilterProvider, useFilters } from '@/components/ui/FilterProvider';
-import { FilterBar } from '@/components/ui/FilterBar';
-import { useBreadcrumbs } from '@/hooks/useBreadcrumbs';
-import { Megaphone } from 'lucide-react';
-import { FilterOption } from '@/types/filter';
+import { useMemo } from "react";
+import Link from "next/link";
+import { format } from "date-fns";
+import Button from "@/components/ui/Button";
+import { PageShell } from "@/components/ui/PageShell";
+import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+import { Megaphone } from "lucide-react";
+import { FilterOption } from "@/types/filter";
 
 // ✅ Props interface matches server-provided props
 interface NewsPost {
@@ -39,17 +39,25 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
   // ✅ Unified author name formatter
   const getAuthorName = (author: NewsPost["author"]) =>
-    author?.name || author?.email || 'Unknown Author';
+    author?.name || author?.email || "Unknown Author";
 
   // Filter options
   const authorOptions: FilterOption[] = useMemo(() => {
-    const authors = [...new Set(posts.map(post => getAuthorName(post.author)))];
-    return [{ label: "All Authors", value: "all" }, ...authors.map(author => ({ label: author, value: author }))];
+    const authors = [
+      ...new Set(posts.map((post) => getAuthorName(post.author))),
+    ];
+    return [
+      { label: "All Authors", value: "all" },
+      ...authors.map((author) => ({ label: author, value: author })),
+    ];
   }, [posts]);
 
   const tagOptions: FilterOption[] = useMemo(() => {
-    const tags = [...new Set(posts.flatMap(post => post.tags))];
-    return [{ label: "All Tags", value: "all" }, ...tags.map(tag => ({ label: tag, value: tag }))];
+    const tags = [...new Set(posts.flatMap((post) => post.tags))];
+    return [
+      { label: "All Tags", value: "all" },
+      ...tags.map((tag) => ({ label: tag, value: tag })),
+    ];
   }, [posts]);
 
   const sortOptions: FilterOption[] = [
@@ -65,24 +73,29 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(
-        post =>
+        (post) =>
           post.title.toLowerCase().includes(searchLower) ||
           getAuthorName(post.author).toLowerCase().includes(searchLower) ||
-          post.tags.some(tag => tag.toLowerCase().includes(searchLower))
+          post.tags.some((tag) => tag.toLowerCase().includes(searchLower)),
       );
     }
 
     if (filters.authors.length > 0 && !filters.authors.includes("all")) {
-      filtered = filtered.filter(post => filters.authors.includes(getAuthorName(post.author)));
+      filtered = filtered.filter((post) =>
+        filters.authors.includes(getAuthorName(post.author)),
+      );
     }
 
     if (filters.categories.length > 0 && !filters.categories.includes("all")) {
-      filtered = filtered.filter(post => post.tags.some(tag => filters.categories.includes(tag)));
+      filtered = filtered.filter((post) =>
+        post.tags.some((tag) => filters.categories.includes(tag)),
+      );
     }
 
     if (filters.sortBy) {
       filtered.sort((a, b) => {
-        let aValue = "", bValue = "";
+        let aValue = "",
+          bValue = "";
         switch (filters.sortBy) {
           case "title":
             aValue = a.title;
@@ -102,29 +115,33 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       });
     }
 
-    return filtered.sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1));
+    return filtered.sort((a, b) =>
+      a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1,
+    );
   }, [posts, filters]);
 
   // Export CSV
   const handleExport = () => {
     const csvContent = [
       ["Title", "Author", "Published Date", "Tags", "Pinned"],
-      ...filteredPosts.map(post => [
+      ...filteredPosts.map((post) => [
         post.title,
         getAuthorName(post.author),
-        post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : "Draft",
+        post.publishedAt
+          ? new Date(post.publishedAt).toLocaleDateString()
+          : "Draft",
         post.tags.join("; "),
         post.pinned ? "Yes" : "No",
       ]),
     ]
-      .map(row => row.map(field => `"${field}"`).join(","))
+      .map((row) => row.map((field) => `"${field}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `news-posts-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `news-posts-${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -164,7 +181,9 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       <div className="max-w-4xl mx-auto space-y-6">
         {filteredPosts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            {filters.search || filters.authors.length > 0 || filters.categories.length > 0
+            {filters.search ||
+            filters.authors.length > 0 ||
+            filters.categories.length > 0
               ? "No news posts match your current filters."
               : "No news posts found."}
           </div>
@@ -185,7 +204,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                   </div>
                   {post.publishedAt && (
                     <span className="text-sm text-muted-foreground bg-section-background px-3 py-1 rounded-full">
-                      {format(new Date(post.publishedAt), 'dd MMM yyyy')}
+                      {format(new Date(post.publishedAt), "dd MMM yyyy")}
                     </span>
                   )}
                 </div>
@@ -194,12 +213,17 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                   {post.tags.length > 0 && (
                     <div className="flex gap-2">
                       {post.tags.slice(0, 3).map((tag, index) => (
-                        <span key={index} className="bg-muted px-2 py-1 rounded text-xs">
+                        <span
+                          key={index}
+                          className="bg-muted px-2 py-1 rounded text-xs"
+                        >
                           {tag}
                         </span>
                       ))}
                       {post.tags.length > 3 && (
-                        <span className="text-xs">+{post.tags.length - 3} more</span>
+                        <span className="text-xs">
+                          +{post.tags.length - 3} more
+                        </span>
                       )}
                     </div>
                   )}

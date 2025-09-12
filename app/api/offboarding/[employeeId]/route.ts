@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { employeeId: string } }
+  { params }: { params: { employeeId: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,8 +14,11 @@ export async function GET(
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { employeeId } = params;
@@ -28,24 +31,24 @@ export async function GET(
           include: {
             user: true,
             department: true,
-            jobRole: true
-          }
+            jobRole: true,
+          },
         },
         initiatedBy: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true
-          }
+            email: true,
+          },
         },
         formTemplate: {
           select: {
             id: true,
             name: true,
             description: true,
-            schemaJson: true
-          }
+            schemaJson: true,
+          },
         },
         exitInterviewSubmissions: {
           include: {
@@ -53,19 +56,22 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                schemaJson: true
-              }
-            }
+                schemaJson: true,
+              },
+            },
           },
           orderBy: {
-            submittedAt: 'desc'
-          }
-        }
-      }
+            submittedAt: "desc",
+          },
+        },
+      },
     });
 
     if (!offboarding) {
-      return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Offboarding record not found" },
+        { status: 404 },
+      );
     }
 
     // Format the response
@@ -83,28 +89,30 @@ export async function GET(
         email: offboarding.employee.user.email,
         department: offboarding.employee.department?.name,
         jobRole: offboarding.employee.jobRole?.name,
-        isActive: offboarding.employee.isActive
+        isActive: offboarding.employee.isActive,
       },
 
       // Initiated by
       initiatedBy: {
         id: offboarding.initiatedBy.id,
         name: `${offboarding.initiatedBy.firstName} ${offboarding.initiatedBy.lastName}`,
-        email: offboarding.initiatedBy.email
+        email: offboarding.initiatedBy.email,
       },
 
       // Exit interview details
       exitInterview: {
         date: offboarding.exitInterviewDate,
         endTime: offboarding.exitInterviewEnd,
-        interviewer: offboarding.interviewerUserId ? {
-          id: offboarding.interviewerUserId,
-          name: offboarding.interviewerName || 'Unknown',
-          email: offboarding.interviewerEmail || ''
-        } : {
-          name: offboarding.interviewerName || 'Not assigned',
-          email: offboarding.interviewerEmail || ''
-        },
+        interviewer: offboarding.interviewerUserId
+          ? {
+              id: offboarding.interviewerUserId,
+              name: offboarding.interviewerName || "Unknown",
+              email: offboarding.interviewerEmail || "",
+            }
+          : {
+              name: offboarding.interviewerName || "Not assigned",
+              email: offboarding.interviewerEmail || "",
+            },
         location: offboarding.location,
         notes: offboarding.exitInterviewNotes,
         sendForm: offboarding.sendForm,
@@ -112,22 +120,24 @@ export async function GET(
         formTiming: offboarding.formTiming,
         completionStatus: offboarding.completionStatus,
         inviteLastSentAt: offboarding.inviteLastSentAt,
-        scheduledSendAt: offboarding.scheduledSendAt
+        scheduledSendAt: offboarding.scheduledSendAt,
       },
 
       // Form submissions
-      formSubmissions: offboarding.exitInterviewSubmissions.map(submission => ({
-        id: submission.id,
-        templateName: submission.template.name,
-        templateSchema: submission.template.schemaJson,
-        submittedAt: submission.submittedAt,
-        submittedBy: submission.submittedBy,
-        answersJson: submission.answersJson
-      })),
+      formSubmissions: offboarding.exitInterviewSubmissions.map(
+        (submission) => ({
+          id: submission.id,
+          templateName: submission.template.name,
+          templateSchema: submission.template.schemaJson,
+          submittedAt: submission.submittedAt,
+          submittedBy: submission.submittedBy,
+          answersJson: submission.answersJson,
+        }),
+      ),
 
       // Tasks (empty for now)
       tasks: [],
-      
+
       // Other offboarding details
       lastWorkingDate: offboarding.lastWorkingDate,
       offboardingType: offboarding.offboardingType,
@@ -135,64 +145,67 @@ export async function GET(
       isVoluntary: offboarding.isVoluntary,
       noticePeriodDays: offboarding.noticePeriodDays,
       resignationDate: offboarding.resignationDate,
-      
+
       // Access management
       removeAccessImmediately: offboarding.removeAccessImmediately,
       accessRemovedAt: offboarding.accessRemovedAt,
       accessRemovedBy: offboarding.accessRemovedBy,
-      
+
       // Asset management
       assetsToReturn: offboarding.assetsToReturn,
       assetsReturned: offboarding.assetsReturned,
       assetsReturnedAt: offboarding.assetsReturnedAt,
-      
+
       // Knowledge transfer
       handoverRequired: offboarding.handoverRequired,
       handoverAssignedTo: offboarding.handoverAssignedTo,
       handoverCompleted: offboarding.handoverCompleted,
       handoverCompletedAt: offboarding.handoverCompletedAt,
       handoverNotes: offboarding.handoverNotes,
-      
+
       // Final pay & benefits
       finalPayCalculated: offboarding.finalPayCalculated,
       finalPayAmount: offboarding.finalPayAmount,
       unusedLeaveHours: offboarding.unusedLeaveHours,
       unusedLeavePayment: offboarding.unusedLeavePayment,
       benefitsEndDate: offboarding.benefitsEndDate,
-      
+
       // Administrative
       hrReviewRequired: offboarding.hrReviewRequired,
       hrReviewCompleted: offboarding.hrReviewCompleted,
       hrReviewCompletedBy: offboarding.hrReviewCompletedBy,
       hrReviewCompletedAt: offboarding.hrReviewCompletedAt,
       hrNotes: offboarding.hrNotes,
-      
+
       // References & documentation
       referenceContactAllowed: offboarding.referenceContactAllowed,
       documentationArchived: offboarding.documentationArchived,
       complianceCheckCompleted: offboarding.complianceCheckCompleted,
-      
+
       createdAt: offboarding.createdAt,
-      updatedAt: offboarding.updatedAt
+      updatedAt: offboarding.updatedAt,
     };
 
     return NextResponse.json(response);
-
   } catch (error) {
-    console.error('Error fetching offboarding details:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error("Error fetching offboarding details:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error('Error stack:', errorStack);
-    return NextResponse.json({
-      error: "Failed to fetch offboarding details",
-      details: errorMessage
-    }, { status: 500 });
+    console.error("Error stack:", errorStack);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch offboarding details",
+        details: errorMessage,
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { employeeId: string } }
+  { params }: { params: { employeeId: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -200,8 +213,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { assetsToReturn } = await req.json();
@@ -222,7 +238,10 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating assets:', error);
-    return NextResponse.json({ error: 'Failed to update assets' }, { status: 500 });
+    console.error("Error updating assets:", error);
+    return NextResponse.json(
+      { error: "Failed to update assets" },
+      { status: 500 },
+    );
   }
 }

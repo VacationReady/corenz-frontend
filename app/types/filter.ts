@@ -20,7 +20,7 @@ export interface FilterState {
   authors: string[];
   categories: string[];
   sortBy: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 }
 
 export interface FilterConfig {
@@ -38,13 +38,16 @@ export interface FilterConfig {
 export interface CustomFilter {
   key: string;
   label: string;
-  type: 'select' | 'multiselect' | 'date' | 'daterange';
+  type: "select" | "multiselect" | "date" | "daterange";
   options?: FilterOption[];
 }
 
 export interface FilterContextType {
   filters: FilterState;
-  updateFilter: <K extends keyof FilterState>(key: K, value: FilterState[K]) => void;
+  updateFilter: <K extends keyof FilterState>(
+    key: K,
+    value: FilterState[K],
+  ) => void;
   clearFilters: () => void;
   clearFilter: (key: keyof FilterState) => void;
   isFiltered: boolean;

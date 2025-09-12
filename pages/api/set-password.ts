@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -74,27 +74,29 @@ export default async function handler(
     // 7. Notify admin that the user has activated/logged in
     try {
       const adminUsers = await prisma.user.findMany({
-        where: { role: 'ADMIN', companyId: user.companyId || undefined },
+        where: { role: "ADMIN", companyId: user.companyId || undefined },
         select: { email: true },
       });
-      const recipients = adminUsers.map(u => u.email).filter(Boolean) as string[];
+      const recipients = adminUsers
+        .map((u) => u.email)
+        .filter(Boolean) as string[];
       if (recipients.length) {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
           headers: {
             Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: 'onboarding@resend.dev',
+            from: "onboarding@resend.dev",
             to: recipients,
-            subject: 'User activated their account',
-            html: `<p>${user.firstName || ''} ${user.lastName || ''} (${user.email}) has activated their account.</p>`,
+            subject: "User activated their account",
+            html: `<p>${user.firstName || ""} ${user.lastName || ""} (${user.email}) has activated their account.</p>`,
           }),
         });
       }
     } catch (e) {
-      console.warn('Failed to send admin activation email:', e);
+      console.warn("Failed to send admin activation email:", e);
     }
 
     return res.status(200).json({ message: "Password set successfully" });

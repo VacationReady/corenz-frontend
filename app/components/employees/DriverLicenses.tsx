@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/Table';
-import Button from '@/components/ui/Button';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
+import Button from "@/components/ui/Button";
 
 interface DriverLicence {
   id: string;
@@ -26,11 +33,13 @@ export default function DriverLicenses({ employeeId }: { employeeId: string }) {
   useEffect(() => {
     const fetchLicences = async () => {
       try {
-        const res = await fetch(`/api/driver-licenses/list?employeeId=${employeeId}`);
+        const res = await fetch(
+          `/api/driver-licenses/list?employeeId=${employeeId}`,
+        );
         const data = await res.json();
         setLicences(data);
       } catch (error) {
-        console.error('Error fetching driver licences:', error);
+        console.error("Error fetching driver licences:", error);
       } finally {
         setLoading(false);
       }
@@ -45,7 +54,11 @@ export default function DriverLicenses({ employeeId }: { employeeId: string }) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Driver Licences</h1>
-        <Button onClick={() => router.push(`/employees/${employeeId}/driver-licenses/add`)}>
+        <Button
+          onClick={() =>
+            router.push(`/employees/${employeeId}/driver-licenses/add`)
+          }
+        >
           Add Licence
         </Button>
       </div>
@@ -70,8 +83,12 @@ export default function DriverLicenses({ employeeId }: { employeeId: string }) {
               <TableRow key={licence.id}>
                 <TableCell>{licence.type}</TableCell>
                 <TableCell>{licence.licenceNumber}</TableCell>
-                <TableCell>{new Date(licence.issueDate).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(licence.expiryDate).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {new Date(licence.issueDate).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  {new Date(licence.expiryDate).toLocaleDateString()}
+                </TableCell>
                 <TableCell>
                   {licence.document ? (
                     <a
@@ -83,7 +100,7 @@ export default function DriverLicenses({ employeeId }: { employeeId: string }) {
                       {licence.document.name}
                     </a>
                   ) : (
-                    '—'
+                    "—"
                   )}
                 </TableCell>
               </TableRow>

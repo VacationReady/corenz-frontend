@@ -7,9 +7,13 @@ import { randomBytes } from "crypto";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  _req: NextRequest,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!session?.user)
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { id: employeeId } = params;
   try {
@@ -17,7 +21,11 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       where: { id: employeeId },
       include: { user: true },
     });
-    if (!employee?.user) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    if (!employee?.user)
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 },
+      );
 
     // Create or rotate activation token
     const activationToken = randomBytes(32).toString("hex");
@@ -35,10 +43,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     await resend.emails.send({
       from: "onboarding@resend.dev",
       to: employee.user.email,
-      subject: "Activate Your CoreNZ Account",
+      subject: "Activate Your PeopleCore Account",
       html: `
-        <p>Hi ${employee.user.firstName || ''},</p>
-        <p>Welcome to CoreNZ! Please click the link below to activate your account and get started:</p>
+        <p>Hi ${employee.user.firstName || ""},</p>
+        <p>Welcome to PeopleCore! Please click the link below to activate your account and get started:</p>
         <p><a href="${activationLink}">Activate Your Account</a></p>
       `,
     });
@@ -46,8 +54,9 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Send invite error:", e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
-
-

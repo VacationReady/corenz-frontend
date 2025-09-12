@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import React from 'react';
-import type { JSX } from 'react';
+import React from "react";
+import type { JSX } from "react";
 
 type ContentBlock =
-  | { type: 'heading'; level?: number; text: string }
-  | { type: 'paragraph'; text: string }
-  | { type: 'bullet_list'; items: string[] }
-  | { type: 'divider' }
-  | { type: 'quote'; text: string }
-  | { type: 'code'; code: string };
+  | { type: "heading"; level?: number; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "bullet_list"; items: string[] }
+  | { type: "divider" }
+  | { type: "quote"; text: string }
+  | { type: "code"; code: string };
 
 interface Props {
   content: ContentBlock[];
@@ -22,7 +22,7 @@ export default function NewsContentRenderer({ content }: Props) {
     <div className="space-y-4 leading-relaxed text-gray-800">
       {content.map((block, index) => {
         switch (block.type) {
-          case 'heading': {
+          case "heading": {
             const Tag = `h${block.level || 2}` as keyof JSX.IntrinsicElements;
             return (
               <Tag key={index} className="text-xl font-semibold">
@@ -30,7 +30,7 @@ export default function NewsContentRenderer({ content }: Props) {
               </Tag>
             );
           }
-          case 'paragraph':
+          case "paragraph":
             return (
               <p
                 key={index}
@@ -38,20 +38,17 @@ export default function NewsContentRenderer({ content }: Props) {
                 dangerouslySetInnerHTML={{ __html: block.text }}
               />
             );
-          case 'bullet_list':
+          case "bullet_list":
             return (
-              <ul
-                key={index}
-                className="list-disc list-inside pl-4 space-y-1"
-              >
+              <ul key={index} className="list-disc list-inside pl-4 space-y-1">
                 {block.items.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
               </ul>
             );
-          case 'divider':
+          case "divider":
             return <hr key={index} className="border-t my-4" />;
-          case 'quote':
+          case "quote":
             return (
               <blockquote
                 key={index}
@@ -60,7 +57,7 @@ export default function NewsContentRenderer({ content }: Props) {
                 {block.text}
               </blockquote>
             );
-          case 'code':
+          case "code":
             return (
               <pre
                 key={index}

@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function debugEmployeeUserMapping() {
-  console.log('🔍 Debugging employee-user ID mapping...');
+  console.log("🔍 Debugging employee-user ID mapping...");
 
   try {
     // Get all employees with their user information
@@ -27,11 +27,13 @@ async function debugEmployeeUserMapping() {
       if (emp.user) {
         console.log(`   User Email: ${emp.user.email}`);
         console.log(`   User Role: ${emp.user.role}`);
-        console.log(`   Permission Profile: ${emp.user.permissionProfile?.name || 'Default'}`);
+        console.log(
+          `   Permission Profile: ${emp.user.permissionProfile?.name || "Default"}`,
+        );
       } else {
         console.log(`   ⚠️  No associated user found!`);
       }
-      console.log('');
+      console.log("");
     });
 
     // Check if there are any orphaned employees (employees without users)
@@ -44,7 +46,9 @@ async function debugEmployeeUserMapping() {
     console.log(`\n📊 Summary:`);
     console.log(`   Total employees: ${await prisma.employee.count()}`);
     console.log(`   Orphaned employees (no user): ${orphanedCount}`);
-    console.log(`   Valid employees: ${(await prisma.employee.count()) - orphanedCount}`);
+    console.log(
+      `   Valid employees: ${(await prisma.employee.count()) - orphanedCount}`,
+    );
 
     // Check recent employees to see if the target ID might be a recent creation
     const recentEmployees = await prisma.employee.findMany({
@@ -57,25 +61,26 @@ async function debugEmployeeUserMapping() {
         user: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     if (recentEmployees.length > 0) {
       console.log(`\n🕒 Recent employees (last 24 hours):`);
       recentEmployees.forEach((emp, index) => {
-        console.log(`${index + 1}. ${emp.id} -> ${emp.user?.email || 'No user'}`);
+        console.log(
+          `${index + 1}. ${emp.id} -> ${emp.user?.email || "No user"}`,
+        );
       });
     }
-
   } catch (error) {
-    console.error('❌ Error debugging employee-user mapping:', error);
+    console.error("❌ Error debugging employee-user mapping:", error);
   }
 }
 
 debugEmployeeUserMapping()
   .catch((e) => {
-    console.error('Error:', e);
+    console.error("Error:", e);
     process.exit(1);
   })
   .finally(async () => {

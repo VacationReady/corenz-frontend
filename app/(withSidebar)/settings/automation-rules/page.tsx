@@ -3,22 +3,41 @@
 import React, { useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "@/hooks/use-toast";
-import { 
-  Settings, 
-  Plus, 
-  Play, 
+import {
+  Settings,
+  Plus,
+  Play,
   Pause,
   TestTube,
   Zap,
@@ -33,7 +52,7 @@ import {
   Trash2,
   Edit,
   Copy,
-  HelpCircle
+  HelpCircle,
 } from "lucide-react";
 
 interface AutomationRule {
@@ -75,175 +94,262 @@ interface ActionType {
 interface ConfigField {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'boolean';
+  type: "text" | "number" | "select" | "multiselect" | "date" | "boolean";
   required?: boolean;
-  options?: { value: string; label: string; }[];
+  options?: { value: string; label: string }[];
   placeholder?: string;
 }
 
 const triggerTypes: TriggerType[] = [
   {
-    id: 'DOCUMENT_EXPIRING',
-    name: 'Document Expiring',
-    description: 'Triggered when a document is approaching its expiry date',
+    id: "DOCUMENT_EXPIRING",
+    name: "Document Expiring",
+    description: "Triggered when a document is approaching its expiry date",
     icon: <FileText className="w-4 h-4" />,
     configFields: [
-      { key: 'daysBefore', label: 'Days Before Expiry', type: 'number', required: true, placeholder: '30' },
-      { key: 'documentTypes', label: 'Document Types', type: 'multiselect', options: [] } // Will be populated from API
-    ]
+      {
+        key: "daysBefore",
+        label: "Days Before Expiry",
+        type: "number",
+        required: true,
+        placeholder: "30",
+      },
+      {
+        key: "documentTypes",
+        label: "Document Types",
+        type: "multiselect",
+        options: [],
+      }, // Will be populated from API
+    ],
   },
   {
-    id: 'FORM_SUBMITTED',
-    name: 'Form Submitted',
-    description: 'Triggered when a specific form is submitted',
+    id: "FORM_SUBMITTED",
+    name: "Form Submitted",
+    description: "Triggered when a specific form is submitted",
     icon: <FileText className="w-4 h-4" />,
     configFields: [
-      { key: 'formId', label: 'Form', type: 'select', required: true, options: [] } // Will be populated from API
-    ]
+      {
+        key: "formId",
+        label: "Form",
+        type: "select",
+        required: true,
+        options: [],
+      }, // Will be populated from API
+    ],
   },
   {
-    id: 'ONBOARDING_STEP_COMPLETED',
-    name: 'Onboarding Step Completed',
-    description: 'Triggered when an onboarding step is completed',
+    id: "ONBOARDING_STEP_COMPLETED",
+    name: "Onboarding Step Completed",
+    description: "Triggered when an onboarding step is completed",
     icon: <User className="w-4 h-4" />,
     configFields: [
-      { key: 'stepType', label: 'Step Type', type: 'select', options: [
-        { value: 'ACKNOWLEDGE_DOCUMENT', label: 'Acknowledge Document' },
-        { value: 'UPLOAD_DOCUMENT', label: 'Upload Document' },
-        { value: 'FORM_FILL', label: 'Fill Form' },
-        { value: 'INSTRUCTION', label: 'Instruction' }
-      ]}
-    ]
+      {
+        key: "stepType",
+        label: "Step Type",
+        type: "select",
+        options: [
+          { value: "ACKNOWLEDGE_DOCUMENT", label: "Acknowledge Document" },
+          { value: "UPLOAD_DOCUMENT", label: "Upload Document" },
+          { value: "FORM_FILL", label: "Fill Form" },
+          { value: "INSTRUCTION", label: "Instruction" },
+        ],
+      },
+    ],
   },
   {
-    id: 'EMPLOYEE_CREATED',
-    name: 'Employee Created',
-    description: 'Triggered when a new employee is added to the system',
+    id: "EMPLOYEE_CREATED",
+    name: "Employee Created",
+    description: "Triggered when a new employee is added to the system",
     icon: <User className="w-4 h-4" />,
-    configFields: []
-  }
+    configFields: [],
+  },
 ];
 
 const conditionTypes: ConditionType[] = [
   {
-    id: 'role',
-    name: 'Employee Role',
-    description: 'Filter by employee role',
+    id: "role",
+    name: "Employee Role",
+    description: "Filter by employee role",
     configFields: [
-      { key: 'operator', label: 'Operator', type: 'select', options: [
-        { value: 'equals', label: 'Equals' },
-        { value: 'not_equals', label: 'Not Equals' },
-        { value: 'in', label: 'In' }
-      ]},
-      { key: 'value', label: 'Role', type: 'multiselect', options: [
-        { value: 'ADMIN', label: 'Admin' },
-        { value: 'MANAGER', label: 'Manager' },
-        { value: 'EMPLOYEE', label: 'Employee' }
-      ]}
-    ]
+      {
+        key: "operator",
+        label: "Operator",
+        type: "select",
+        options: [
+          { value: "equals", label: "Equals" },
+          { value: "not_equals", label: "Not Equals" },
+          { value: "in", label: "In" },
+        ],
+      },
+      {
+        key: "value",
+        label: "Role",
+        type: "multiselect",
+        options: [
+          { value: "ADMIN", label: "Admin" },
+          { value: "MANAGER", label: "Manager" },
+          { value: "EMPLOYEE", label: "Employee" },
+        ],
+      },
+    ],
   },
   {
-    id: 'department',
-    name: 'Department',
-    description: 'Filter by department',
+    id: "department",
+    name: "Department",
+    description: "Filter by department",
     configFields: [
-      { key: 'operator', label: 'Operator', type: 'select', options: [
-        { value: 'equals', label: 'Equals' },
-        { value: 'not_equals', label: 'Not Equals' },
-        { value: 'in', label: 'In' }
-      ]},
-      { key: 'value', label: 'Department', type: 'multiselect', options: [] } // Will be populated from API
-    ]
+      {
+        key: "operator",
+        label: "Operator",
+        type: "select",
+        options: [
+          { value: "equals", label: "Equals" },
+          { value: "not_equals", label: "Not Equals" },
+          { value: "in", label: "In" },
+        ],
+      },
+      { key: "value", label: "Department", type: "multiselect", options: [] }, // Will be populated from API
+    ],
   },
   {
-    id: 'jobRole',
-    name: 'Job Role',
-    description: 'Filter by job role',
+    id: "jobRole",
+    name: "Job Role",
+    description: "Filter by job role",
     configFields: [
-      { key: 'operator', label: 'Operator', type: 'select', options: [
-        { value: 'equals', label: 'Equals' },
-        { value: 'not_equals', label: 'Not Equals' },
-        { value: 'in', label: 'In' }
-      ]},
-      { key: 'value', label: 'Job Role', type: 'multiselect', options: [] } // Will be populated from API
-    ]
+      {
+        key: "operator",
+        label: "Operator",
+        type: "select",
+        options: [
+          { value: "equals", label: "Equals" },
+          { value: "not_equals", label: "Not Equals" },
+          { value: "in", label: "In" },
+        ],
+      },
+      { key: "value", label: "Job Role", type: "multiselect", options: [] }, // Will be populated from API
+    ],
   },
   {
-    id: 'dateWindow',
-    name: 'Date Window',
-    description: 'Filter by date range',
+    id: "dateWindow",
+    name: "Date Window",
+    description: "Filter by date range",
     configFields: [
-      { key: 'startDate', label: 'Start Date', type: 'date' },
-      { key: 'endDate', label: 'End Date', type: 'date' }
-    ]
-  }
+      { key: "startDate", label: "Start Date", type: "date" },
+      { key: "endDate", label: "End Date", type: "date" },
+    ],
+  },
 ];
 
 const actionTypes: ActionType[] = [
   {
-    id: 'create_task',
-    name: 'Create Task',
-    description: 'Create a task for a user',
+    id: "create_task",
+    name: "Create Task",
+    description: "Create a task for a user",
     icon: <CheckCircle className="w-4 h-4" />,
     configFields: [
-      { key: 'title', label: 'Task Title', type: 'text', required: true },
-      { key: 'description', label: 'Task Description', type: 'text' },
-      { key: 'assigneeType', label: 'Assign To', type: 'select', required: true, options: [
-        { value: 'employee', label: 'Employee (trigger subject)' },
-        { value: 'manager', label: 'Employee\'s Manager' },
-        { value: 'hr', label: 'HR Team' },
-        { value: 'specific', label: 'Specific User' }
-      ]},
-      { key: 'assigneeId', label: 'Specific User', type: 'select', options: [] }, // Conditional field
-      { key: 'dueDays', label: 'Due in (days)', type: 'number', placeholder: '7' }
-    ]
+      { key: "title", label: "Task Title", type: "text", required: true },
+      { key: "description", label: "Task Description", type: "text" },
+      {
+        key: "assigneeType",
+        label: "Assign To",
+        type: "select",
+        required: true,
+        options: [
+          { value: "employee", label: "Employee (trigger subject)" },
+          { value: "manager", label: "Employee's Manager" },
+          { value: "hr", label: "HR Team" },
+          { value: "specific", label: "Specific User" },
+        ],
+      },
+      {
+        key: "assigneeId",
+        label: "Specific User",
+        type: "select",
+        options: [],
+      }, // Conditional field
+      {
+        key: "dueDays",
+        label: "Due in (days)",
+        type: "number",
+        placeholder: "7",
+      },
+    ],
   },
   {
-    id: 'send_notification',
-    name: 'Send Notification',
-    description: 'Send email, Slack, or Teams notification',
+    id: "send_notification",
+    name: "Send Notification",
+    description: "Send email, Slack, or Teams notification",
     icon: <Send className="w-4 h-4" />,
     configFields: [
-      { key: 'channels', label: 'Channels', type: 'multiselect', required: true, options: [
-        { value: 'email', label: 'Email' },
-        { value: 'slack', label: 'Slack' },
-        { value: 'teams', label: 'Teams' }
-      ]},
-      { key: 'recipientType', label: 'Send To', type: 'select', required: true, options: [
-        { value: 'employee', label: 'Employee (trigger subject)' },
-        { value: 'manager', label: 'Employee\'s Manager' },
-        { value: 'hr', label: 'HR Team' },
-        { value: 'specific', label: 'Specific Users' }
-      ]},
-      { key: 'recipients', label: 'Specific Recipients', type: 'multiselect', options: [] }, // Conditional field
-      { key: 'subject', label: 'Subject', type: 'text', required: true },
-      { key: 'message', label: 'Message', type: 'text', required: true }
-    ]
+      {
+        key: "channels",
+        label: "Channels",
+        type: "multiselect",
+        required: true,
+        options: [
+          { value: "email", label: "Email" },
+          { value: "slack", label: "Slack" },
+          { value: "teams", label: "Teams" },
+        ],
+      },
+      {
+        key: "recipientType",
+        label: "Send To",
+        type: "select",
+        required: true,
+        options: [
+          { value: "employee", label: "Employee (trigger subject)" },
+          { value: "manager", label: "Employee's Manager" },
+          { value: "hr", label: "HR Team" },
+          { value: "specific", label: "Specific Users" },
+        ],
+      },
+      {
+        key: "recipients",
+        label: "Specific Recipients",
+        type: "multiselect",
+        options: [],
+      }, // Conditional field
+      { key: "subject", label: "Subject", type: "text", required: true },
+      { key: "message", label: "Message", type: "text", required: true },
+    ],
   },
   {
-    id: 'start_onboarding',
-    name: 'Start Onboarding Template',
-    description: 'Assign an onboarding template to the employee',
+    id: "start_onboarding",
+    name: "Start Onboarding Template",
+    description: "Assign an onboarding template to the employee",
     icon: <User className="w-4 h-4" />,
     configFields: [
-      { key: 'templateId', label: 'Onboarding Template', type: 'select', required: true, options: [] } // Will be populated from API
-    ]
+      {
+        key: "templateId",
+        label: "Onboarding Template",
+        type: "select",
+        required: true,
+        options: [],
+      }, // Will be populated from API
+    ],
   },
   {
-    id: 'update_field',
-    name: 'Update Employee Field',
-    description: 'Update a field on the employee record',
+    id: "update_field",
+    name: "Update Employee Field",
+    description: "Update a field on the employee record",
     icon: <Edit className="w-4 h-4" />,
     configFields: [
-      { key: 'field', label: 'Field', type: 'select', required: true, options: [
-        { value: 'department', label: 'Department' },
-        { value: 'jobRole', label: 'Job Role' },
-        { value: 'manager', label: 'Manager' },
-        { value: 'workingPattern', label: 'Working Pattern' }
-      ]},
-      { key: 'value', label: 'New Value', type: 'text', required: true }
-    ]
-  }
+      {
+        key: "field",
+        label: "Field",
+        type: "select",
+        required: true,
+        options: [
+          { value: "department", label: "Department" },
+          { value: "jobRole", label: "Job Role" },
+          { value: "manager", label: "Manager" },
+          { value: "workingPattern", label: "Working Pattern" },
+        ],
+      },
+      { key: "value", label: "New Value", type: "text", required: true },
+    ],
+  },
 ];
 
 export default function AutomationRulesPage() {
@@ -256,13 +362,13 @@ export default function AutomationRulesPage() {
 
   // Form state for rule creation/editing
   const [formData, setFormData] = useState<AutomationRule>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     isActive: false,
-    triggerType: '',
+    triggerType: "",
     triggerConfig: {},
     conditions: [],
-    actions: []
+    actions: [],
   });
 
   useEffect(() => {
@@ -272,7 +378,7 @@ export default function AutomationRulesPage() {
   const fetchRules = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/automation-rules');
+      const response = await fetch("/api/automation-rules");
       if (response.ok) {
         const data = await response.json();
         setRules(data);
@@ -290,19 +396,21 @@ export default function AutomationRulesPage() {
 
   const saveRule = async () => {
     try {
-      const method = selectedRule?.id ? 'PUT' : 'POST';
-      const url = selectedRule?.id ? `/api/automation-rules/${selectedRule.id}` : '/api/automation-rules';
-      
+      const method = selectedRule?.id ? "PUT" : "POST";
+      const url = selectedRule?.id
+        ? `/api/automation-rules/${selectedRule.id}`
+        : "/api/automation-rules";
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: `Rule ${selectedRule?.id ? 'updated' : 'created'} successfully`,
+          description: `Rule ${selectedRule?.id ? "updated" : "created"} successfully`,
         });
         setCreateDialogOpen(false);
         setSelectedRule(null);
@@ -326,11 +434,11 @@ export default function AutomationRulesPage() {
   };
 
   const deleteRule = async (ruleId: string) => {
-    if (!confirm('Are you sure you want to delete this rule?')) return;
+    if (!confirm("Are you sure you want to delete this rule?")) return;
 
     try {
       const response = await fetch(`/api/automation-rules/${ruleId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
 
       if (response.ok) {
@@ -352,15 +460,15 @@ export default function AutomationRulesPage() {
   const toggleRuleStatus = async (ruleId: string, isActive: boolean) => {
     try {
       const response = await fetch(`/api/automation-rules/${ruleId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive })
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive }),
       });
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: `Rule ${isActive ? 'activated' : 'deactivated'} successfully`,
+          description: `Rule ${isActive ? "activated" : "deactivated"} successfully`,
         });
         fetchRules();
       }
@@ -375,10 +483,10 @@ export default function AutomationRulesPage() {
 
   const runDryTest = async (rule: AutomationRule) => {
     try {
-      const response = await fetch('/api/automation-rules/dry-run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ruleId: rule.id })
+      const response = await fetch("/api/automation-rules/dry-run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ruleId: rule.id }),
       });
 
       if (response.ok) {
@@ -397,13 +505,13 @@ export default function AutomationRulesPage() {
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
+      name: "",
+      description: "",
       isActive: false,
-      triggerType: '',
+      triggerType: "",
       triggerConfig: {},
       conditions: [],
-      actions: []
+      actions: [],
     });
   };
 
@@ -420,7 +528,7 @@ export default function AutomationRulesPage() {
   };
 
   const getTriggerTypeInfo = (triggerType: string) => {
-    return triggerTypes.find(t => t.id === triggerType);
+    return triggerTypes.find((t) => t.id === triggerType);
   };
 
   const getStatusBadge = (rule: AutomationRule) => {
@@ -448,7 +556,9 @@ export default function AutomationRulesPage() {
           {loading ? (
             <Card>
               <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">Loading...</div>
+                <div className="text-center text-muted-foreground">
+                  Loading...
+                </div>
               </CardContent>
             </Card>
           ) : rules.length === 0 ? (
@@ -456,7 +566,9 @@ export default function AutomationRulesPage() {
               <CardContent className="py-8">
                 <div className="text-center">
                   <Zap className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No automation rules</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    No automation rules
+                  </h3>
                   <p className="text-muted-foreground mb-4">
                     Create your first automation rule to streamline HR processes
                   </p>
@@ -498,14 +610,16 @@ export default function AutomationRulesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toggleRuleStatus(rule.id!, !rule.isActive)}
+                          onClick={() =>
+                            toggleRuleStatus(rule.id!, !rule.isActive)
+                          }
                         >
                           {rule.isActive ? (
                             <Pause className="w-4 h-4 mr-2" />
                           ) : (
                             <Play className="w-4 h-4 mr-2" />
                           )}
-                          {rule.isActive ? 'Pause' : 'Activate'}
+                          {rule.isActive ? "Pause" : "Activate"}
                         </Button>
                         <Button
                           variant="outline"
@@ -527,13 +641,16 @@ export default function AutomationRulesPage() {
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Trigger:</span> {triggerInfo?.name}
+                        <span className="font-medium">Trigger:</span>{" "}
+                        {triggerInfo?.name}
                       </div>
                       <div>
-                        <span className="font-medium">Conditions:</span> {rule.conditions?.length || 0}
+                        <span className="font-medium">Conditions:</span>{" "}
+                        {rule.conditions?.length || 0}
                       </div>
                       <div>
-                        <span className="font-medium">Actions:</span> {rule.actions?.length || 0}
+                        <span className="font-medium">Actions:</span>{" "}
+                        {rule.actions?.length || 0}
                       </div>
                     </div>
                   </CardContent>
@@ -548,7 +665,7 @@ export default function AutomationRulesPage() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {selectedRule ? 'Edit' : 'Create'} Automation Rule
+                {selectedRule ? "Edit" : "Create"} Automation Rule
               </DialogTitle>
               <DialogDescription>
                 Build a no-code automation rule to streamline your HR processes
@@ -563,7 +680,9 @@ export default function AutomationRulesPage() {
                   <Input
                     id="rule-name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     placeholder="e.g., Document Expiry Reminder"
                   />
                 </div>
@@ -571,8 +690,10 @@ export default function AutomationRulesPage() {
                   <Label htmlFor="rule-description">Description</Label>
                   <Input
                     id="rule-description"
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    value={formData.description || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     placeholder="Optional description"
                   />
                 </div>
@@ -594,17 +715,25 @@ export default function AutomationRulesPage() {
                           key={trigger.id}
                           className={`cursor-pointer transition-colors ${
                             formData.triggerType === trigger.id
-                              ? 'border-primary bg-primary/5'
-                              : 'hover:border-primary/50'
+                              ? "border-primary bg-primary/5"
+                              : "hover:border-primary/50"
                           }`}
-                          onClick={() => setFormData({ ...formData, triggerType: trigger.id, triggerConfig: {} })}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              triggerType: trigger.id,
+                              triggerConfig: {},
+                            })
+                          }
                         >
                           <CardContent className="p-4">
                             <div className="flex items-center gap-3 mb-2">
                               {trigger.icon}
                               <h4 className="font-medium">{trigger.name}</h4>
                             </div>
-                            <p className="text-sm text-muted-foreground">{trigger.description}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {trigger.description}
+                            </p>
                           </CardContent>
                         </Card>
                       ))}
@@ -615,37 +744,57 @@ export default function AutomationRulesPage() {
                   {formData.triggerType && (
                     <div className="space-y-4">
                       <h4 className="font-medium">Configure Trigger</h4>
-                      {getTriggerTypeInfo(formData.triggerType)?.configFields.map((field) => (
+                      {getTriggerTypeInfo(
+                        formData.triggerType,
+                      )?.configFields.map((field) => (
                         <div key={field.key}>
-                          <Label>{field.label}{field.required && ' *'}</Label>
-                          {field.type === 'select' && (
+                          <Label>
+                            {field.label}
+                            {field.required && " *"}
+                          </Label>
+                          {field.type === "select" && (
                             <Select
-                              value={formData.triggerConfig[field.key] || ''}
-                              onValueChange={(value) => setFormData({
-                                ...formData,
-                                triggerConfig: { ...formData.triggerConfig, [field.key]: value }
-                              })}
+                              value={formData.triggerConfig[field.key] || ""}
+                              onValueChange={(value) =>
+                                setFormData({
+                                  ...formData,
+                                  triggerConfig: {
+                                    ...formData.triggerConfig,
+                                    [field.key]: value,
+                                  },
+                                })
+                              }
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder={`Select ${field.label}`} />
+                                <SelectValue
+                                  placeholder={`Select ${field.label}`}
+                                />
                               </SelectTrigger>
                               <SelectContent>
                                 {field.options?.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
                                     {option.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           )}
-                          {field.type === 'number' && (
+                          {field.type === "number" && (
                             <Input
                               type="number"
-                              value={formData.triggerConfig[field.key] || ''}
-                              onChange={(e) => setFormData({
-                                ...formData,
-                                triggerConfig: { ...formData.triggerConfig, [field.key]: parseInt(e.target.value) || 0 }
-                              })}
+                              value={formData.triggerConfig[field.key] || ""}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  triggerConfig: {
+                                    ...formData.triggerConfig,
+                                    [field.key]: parseInt(e.target.value) || 0,
+                                  },
+                                })
+                              }
                               placeholder={field.placeholder}
                             />
                           )}
@@ -659,15 +808,22 @@ export default function AutomationRulesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">Conditions (Optional)</h4>
-                      <p className="text-sm text-muted-foreground">Add conditions to filter when this rule runs</p>
+                      <p className="text-sm text-muted-foreground">
+                        Add conditions to filter when this rule runs
+                      </p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setFormData({
-                        ...formData,
-                        conditions: [...(formData.conditions || []), { type: '', config: {} }]
-                      })}
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          conditions: [
+                            ...(formData.conditions || []),
+                            { type: "", config: {} },
+                          ],
+                        })
+                      }
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Condition
@@ -682,10 +838,14 @@ export default function AutomationRulesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setFormData({
-                              ...formData,
-                              conditions: formData.conditions?.filter((_, i) => i !== index)
-                            })}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                conditions: formData.conditions?.filter(
+                                  (_, i) => i !== index,
+                                ),
+                              })
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -696,9 +856,17 @@ export default function AutomationRulesPage() {
                             <Select
                               value={condition.type}
                               onValueChange={(value) => {
-                                const updatedConditions = [...(formData.conditions || [])];
-                                updatedConditions[index] = { type: value, config: {} };
-                                setFormData({ ...formData, conditions: updatedConditions });
+                                const updatedConditions = [
+                                  ...(formData.conditions || []),
+                                ];
+                                updatedConditions[index] = {
+                                  type: value,
+                                  config: {},
+                                };
+                                setFormData({
+                                  ...formData,
+                                  conditions: updatedConditions,
+                                });
                               }}
                             >
                               <SelectTrigger>
@@ -706,7 +874,10 @@ export default function AutomationRulesPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 {conditionTypes.map((condType) => (
-                                  <SelectItem key={condType.id} value={condType.id}>
+                                  <SelectItem
+                                    key={condType.id}
+                                    value={condType.id}
+                                  >
                                     {condType.name}
                                   </SelectItem>
                                 ))}
@@ -719,7 +890,8 @@ export default function AutomationRulesPage() {
                     </Card>
                   )) || (
                     <div className="text-center py-8 text-muted-foreground">
-                      No conditions added. This rule will run for all matching triggers.
+                      No conditions added. This rule will run for all matching
+                      triggers.
                     </div>
                   )}
                 </TabsContent>
@@ -728,15 +900,22 @@ export default function AutomationRulesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">Actions *</h4>
-                      <p className="text-sm text-muted-foreground">Define what happens when this rule triggers</p>
+                      <p className="text-sm text-muted-foreground">
+                        Define what happens when this rule triggers
+                      </p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setFormData({
-                        ...formData,
-                        actions: [...(formData.actions || []), { type: '', config: {} }]
-                      })}
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          actions: [
+                            ...(formData.actions || []),
+                            { type: "", config: {} },
+                          ],
+                        })
+                      }
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Action
@@ -751,10 +930,14 @@ export default function AutomationRulesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setFormData({
-                              ...formData,
-                              actions: formData.actions?.filter((_, i) => i !== index)
-                            })}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                actions: formData.actions?.filter(
+                                  (_, i) => i !== index,
+                                ),
+                              })
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -768,21 +951,33 @@ export default function AutomationRulesPage() {
                                   key={actionType.id}
                                   className={`cursor-pointer transition-colors ${
                                     action.type === actionType.id
-                                      ? 'border-primary bg-primary/5'
-                                      : 'hover:border-primary/50'
+                                      ? "border-primary bg-primary/5"
+                                      : "hover:border-primary/50"
                                   }`}
                                   onClick={() => {
-                                    const updatedActions = [...(formData.actions || [])];
-                                    updatedActions[index] = { type: actionType.id, config: {} };
-                                    setFormData({ ...formData, actions: updatedActions });
+                                    const updatedActions = [
+                                      ...(formData.actions || []),
+                                    ];
+                                    updatedActions[index] = {
+                                      type: actionType.id,
+                                      config: {},
+                                    };
+                                    setFormData({
+                                      ...formData,
+                                      actions: updatedActions,
+                                    });
                                   }}
                                 >
                                   <CardContent className="p-3">
                                     <div className="flex items-center gap-2 mb-1">
                                       {actionType.icon}
-                                      <span className="font-medium text-sm">{actionType.name}</span>
+                                      <span className="font-medium text-sm">
+                                        {actionType.name}
+                                      </span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{actionType.description}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {actionType.description}
+                                    </p>
                                   </CardContent>
                                 </Card>
                               ))}
@@ -804,16 +999,28 @@ export default function AutomationRulesPage() {
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={formData.isActive}
-                    onChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    onChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
                   />
                   <Label>Activate rule immediately</Label>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCreateDialogOpen(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={saveRule} disabled={!formData.name || !formData.triggerType || !formData.actions?.length}>
-                    {selectedRule ? 'Update' : 'Create'} Rule
+                  <Button
+                    onClick={saveRule}
+                    disabled={
+                      !formData.name ||
+                      !formData.triggerType ||
+                      !formData.actions?.length
+                    }
+                  >
+                    {selectedRule ? "Update" : "Create"} Rule
                   </Button>
                 </div>
               </div>
@@ -836,20 +1043,32 @@ export default function AutomationRulesPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">{dryRunResults.matchingEmployees || 0}</div>
-                      <div className="text-sm text-muted-foreground">Matching Employees</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {dryRunResults.matchingEmployees || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Matching Employees
+                      </div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">{dryRunResults.actionsToRun || 0}</div>
-                      <div className="text-sm text-muted-foreground">Actions to Run</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {dryRunResults.actionsToRun || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Actions to Run
+                      </div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-orange-600">{dryRunResults.estimatedRuntime || 0}s</div>
-                      <div className="text-sm text-muted-foreground">Est. Runtime</div>
+                      <div className="text-2xl font-bold text-orange-600">
+                        {dryRunResults.estimatedRuntime || 0}s
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Est. Runtime
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -859,11 +1078,16 @@ export default function AutomationRulesPage() {
                     <h4 className="font-medium mb-2">Preview Actions</h4>
                     <div className="space-y-2">
                       {dryRunResults.preview.map((item: any, index: number) => (
-                        <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 border rounded-lg"
+                        >
                           <CheckCircle className="w-4 h-4 text-green-500" />
                           <div>
                             <div className="font-medium">{item.action}</div>
-                            <div className="text-sm text-muted-foreground">{item.description}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.description}
+                            </div>
                           </div>
                         </div>
                       ))}

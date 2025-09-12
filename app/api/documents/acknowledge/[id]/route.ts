@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,7 +25,10 @@ export async function GET(
     });
 
     if (!doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 },
+      );
     }
 
     // ✅ Handle company-level documents (no employee link)
@@ -93,12 +96,18 @@ export async function GET(
     });
 
     return NextResponse.json({
-      employee: { name: doc.employee.user.name, email: doc.employee.user.email },
+      employee: {
+        name: doc.employee.user.name,
+        email: doc.employee.user.email,
+      },
       acknowledged: !!ack,
       acknowledgedAt: ack?.acknowledgedAt || null,
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

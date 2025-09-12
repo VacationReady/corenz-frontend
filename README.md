@@ -5,9 +5,11 @@
 This update introduces a basic exit interview workflow for employee offboarding. After initiating an offboarding you can optionally schedule an interview and assign an interviewer.
 
 ### Environment
+
 - No new environment variables are required.
 
 ### Testing locally
+
 1. Run Prisma migrations: `npx prisma migrate dev`.
 2. Start the dev server: `npm run dev`.
 3. Execute tests: `npm test`.
@@ -20,4 +22,3 @@ This update introduces a basic exit interview workflow for employee offboarding.
 - **Assets to return** – tick any items the leaver must return. Each item is tracked as a task during offboarding.
 - **Start Offboarding Process** – submits the form, creates the offboarding record, and seeds default tasks (including any above selections).
 - **Cancel** – closes the modal without saving.
-

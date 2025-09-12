@@ -3,11 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { exitInterviewSchema } from "./schema";
-import { generateCompletionToken, sendExitInterviewConfirmation } from "@/lib/email/send";
+import {
+  generateCompletionToken,
+  sendExitInterviewConfirmation,
+} from "@/lib/email/send";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { employeeId: string } }
+  { params }: { params: { employeeId: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -30,7 +33,10 @@ export async function POST(
     });
 
     if (!offboarding) {
-      return NextResponse.json({ error: "Offboarding not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Offboarding not found" },
+        { status: 404 },
+      );
     }
 
     // Update the main offboarding record with exit interview details
@@ -46,15 +52,20 @@ export async function POST(
       try {
         const interviewer = await prisma.user.findUnique({
           where: { id: data.interviewerId },
-          select: { id: true }
+          select: { id: true },
         });
         if (interviewer) {
           validInterviewerId = data.interviewerId;
         } else {
-          console.warn(`Interviewer with ID ${data.interviewerId} not found, setting to null`);
+          console.warn(
+            `Interviewer with ID ${data.interviewerId} not found, setting to null`,
+          );
         }
       } catch (error) {
-        console.warn(`Error validating interviewer ID ${data.interviewerId}:`, error);
+        console.warn(
+          `Error validating interviewer ID ${data.interviewerId}:`,
+          error,
+        );
       }
     }
 
@@ -99,7 +110,7 @@ export async function POST(
         if (!data.formTemplateId) {
           return NextResponse.json(
             { error: "formTemplateId is required when sendForm is true" },
-            { status: 400 }
+            { status: 400 },
           );
         }
         const template = await prisma.exitInterviewFormTemplate.findUnique({
@@ -108,28 +119,30 @@ export async function POST(
         if (!template) {
           return NextResponse.json(
             { error: "Form template not found" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
 
       const updateData: any = {
         sendForm: data.sendForm ?? false,
-        formTemplateId: data.sendForm ? data.formTemplateId ?? null : null,
-        formTiming: data.sendForm ? data.formTiming ?? null : null,
+        formTemplateId: data.sendForm ? (data.formTemplateId ?? null) : null,
+        formTiming: data.sendForm ? (data.formTiming ?? null) : null,
       };
 
       if (data.sendForm) {
         if (!offboarding.completionTokenHash) {
-          updateData.completionTokenHash = generateCompletionToken(offboarding.id);
+          updateData.completionTokenHash = generateCompletionToken(
+            offboarding.id,
+          );
         }
         updateData.completionStatus = "PENDING";
         updateData.scheduledSendAt =
           data.formTiming === "ON_DATE" && data.scheduledAt
             ? new Date(data.scheduledAt)
             : data.formTiming === "NOW"
-            ? new Date(Date.now() - 60000) // Set to 1 minute ago so it's definitely within today's range
-            : null;
+              ? new Date(Date.now() - 60000) // Set to 1 minute ago so it's definitely within today's range
+              : null;
       } else {
         updateData.completionStatus = null;
         updateData.scheduledSendAt = null;
@@ -154,24 +167,27 @@ export async function POST(
     let calendarInviteSent = false;
     if (scheduledDate) {
       try {
-        calendarInviteSent = await sendExitInterviewConfirmation(offboarding.id);
+        calendarInviteSent = await sendExitInterviewConfirmation(
+          offboarding.id,
+        );
       } catch (error) {
-        console.error('Failed to send calendar invite:', error);
+        console.error("Failed to send calendar invite:", error);
       }
     }
 
     return NextResponse.json({
       exitInterview: { ...exitInterview, interviewer },
-      calendarInviteSent
+      calendarInviteSent,
     });
   } catch (error) {
     console.error("Error saving exit interview:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error("Error stack:", errorStack);
     return NextResponse.json(
       { error: "Internal server error", details: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

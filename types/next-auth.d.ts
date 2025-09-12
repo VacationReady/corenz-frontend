@@ -9,7 +9,7 @@ declare module "next-auth" {
       email: string;
       name?: string | null;
       role: "ADMIN" | "MANAGER" | "EMPLOYEE";
-      companyId: string; // ✅ Ensure companyId exists for CoreNZ HRIS
+      companyId: string; // ✅ Ensure companyId exists for PeopleCore HRIS
     } & DefaultSession["user"];
   }
 
@@ -18,7 +18,7 @@ declare module "next-auth" {
     email: string;
     name?: string | null;
     role: "ADMIN" | "MANAGER" | "EMPLOYEE";
-    companyId: string; // ✅ Ensure companyId exists for CoreNZ HRIS
+    companyId: string; // ✅ Ensure companyId exists for PeopleCore HRIS
   }
 }
 

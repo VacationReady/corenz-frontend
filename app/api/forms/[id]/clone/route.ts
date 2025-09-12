@@ -7,16 +7,22 @@ import { Prisma } from "@prisma/client";
 
 export async function POST(_: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.companyId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const original = await prisma.form.findFirst({ where: { id: params.id, companyId: session.user.companyId } });
-  if (!original) return NextResponse.json({ error: "Form not found" }, { status: 404 });
+  const original = await prisma.form.findFirst({
+    where: { id: params.id, companyId: session.user.companyId },
+  });
+  if (!original)
+    return NextResponse.json({ error: "Form not found" }, { status: 404 });
 
   const baseName = `${original.name} (Copy)`;
   const baseSlug = `${original.slug}-copy`;
 
   const uniqueSlug = await generateUniqueSlug(baseSlug, async (slug) => {
-    const exists = await prisma.form.findFirst({ where: { slug, companyId: session.user.companyId } });
+    const exists = await prisma.form.findFirst({
+      where: { slug, companyId: session.user.companyId },
+    });
     return Boolean(exists);
   });
 
@@ -26,7 +32,10 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
       slug: uniqueSlug,
       description: original.description,
       formType: original.formType,
-      schema: original.schema === null ? Prisma.JsonNull : (original.schema as Prisma.InputJsonValue),
+      schema:
+        original.schema === null
+          ? Prisma.JsonNull
+          : (original.schema as Prisma.InputJsonValue),
       companyId: original.companyId,
       visibleToRoles: original.visibleToRoles,
       visibleToDepartments: original.visibleToDepartments,
@@ -37,5 +46,3 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
 
   return NextResponse.json(cloned, { status: 201 });
 }
-
-

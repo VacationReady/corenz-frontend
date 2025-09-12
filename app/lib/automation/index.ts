@@ -1,6 +1,6 @@
 /**
  * Automation System Entry Point
- * 
+ *
  * Main exports for the automation worker system.
  * Provides convenient access to all automation components.
  */
@@ -16,4 +16,10 @@ export { AutomationScheduler, getAutomationScheduler } from "./scheduler";
 export * from "./types";
 
 // Utility functions
-export { startAutomationSystem, stopAutomationSystem, getSystemStatus, healthCheck, performMaintenance } from "./utils";
+export {
+  startAutomationSystem,
+  stopAutomationSystem,
+  getSystemStatus,
+  healthCheck,
+  performMaintenance,
+} from "./utils";

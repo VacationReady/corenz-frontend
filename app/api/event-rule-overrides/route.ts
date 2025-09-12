@@ -58,7 +58,7 @@ export async function GET() {
     console.error("GET /api/event-rule-overrides error:", error);
     return NextResponse.json(
       { error: "Failed to fetch event rule overrides" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     if (existingOverride) {
       return NextResponse.json(
         { error: "An override for this category and scope already exists" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
     if (!eventCategory) {
       return NextResponse.json(
         { error: "Event category not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
       if (!department) {
         return NextResponse.json(
           { error: "Department not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
@@ -169,17 +169,17 @@ export async function POST(req: Request) {
     return NextResponse.json(override, { status: 201 });
   } catch (error) {
     console.error("POST /api/event-rule-overrides error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create event rule override" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

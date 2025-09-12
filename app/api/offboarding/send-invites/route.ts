@@ -17,8 +17,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user has admin/manager role
-    if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
-      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    if (!["ADMIN", "MANAGER"].includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const body = await req.json();
@@ -29,51 +32,68 @@ export async function POST(req: NextRequest) {
       where: { id: offboardingId },
       include: {
         employee: {
-          include: { user: true }
+          include: { user: true },
         },
-        interviewerUser: true
-      }
+        interviewerUser: true,
+      },
     });
 
     if (!offboarding) {
-      return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Offboarding record not found" },
+        { status: 404 },
+      );
     }
 
     if (!offboarding.exitInterviewDate) {
-      return NextResponse.json({ error: "Exit interview date not set" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Exit interview date not set" },
+        { status: 400 },
+      );
     }
 
-    console.log('About to send exit interview confirmation email for offboarding:', offboardingId);
+    console.log(
+      "About to send exit interview confirmation email for offboarding:",
+      offboardingId,
+    );
 
     // Send confirmation email
     const emailSent = await sendExitInterviewConfirmation(offboardingId);
 
-    console.log('Email sending result:', emailSent);
+    console.log("Email sending result:", emailSent);
 
     if (!emailSent) {
-      console.error('Email sending failed for offboarding:', offboardingId);
-      return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+      console.error("Email sending failed for offboarding:", offboardingId);
+      return NextResponse.json(
+        { error: "Failed to send email" },
+        { status: 500 },
+      );
     }
 
-    console.log('Email sent successfully for offboarding:', offboardingId);
+    console.log("Email sent successfully for offboarding:", offboardingId);
 
     return NextResponse.json({
       success: true,
-      message: "Exit interview confirmation sent successfully"
+      message: "Exit interview confirmation sent successfully",
     });
-
   } catch (error) {
-    console.error('Error sending invites:', error);
-    
+    console.error("Error sending invites:", error);
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ 
-        error: "Validation error", 
-        details: error.errors 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          details: error.errors,
+        },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ 
-      error: "Failed to send invites" 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to send invites",
+      },
+      { status: 500 },
+    );
   }
 }

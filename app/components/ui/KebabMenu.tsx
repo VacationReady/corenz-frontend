@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Menu } from '@headlessui/react';
-import { MoreVertical } from 'lucide-react';
-import clsx from 'clsx';
+import { Menu } from "@headlessui/react";
+import { MoreVertical } from "lucide-react";
+import clsx from "clsx";
 
 interface KebabMenuProps {
   options: { label: string; action: () => void }[];
@@ -21,8 +21,8 @@ export default function KebabMenu({ options }: KebabMenuProps) {
               <button
                 onClick={option.action}
                 className={clsx(
-                  'w-full text-left px-4 py-2 text-sm',
-                  active ? 'bg-gray-100' : ''
+                  "w-full text-left px-4 py-2 text-sm",
+                  active ? "bg-gray-100" : "",
                 )}
               >
                 {option.label}

@@ -5,10 +5,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.companyId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const form = await prisma.form.findFirst({ where: { id: params.id, companyId: session.user.companyId } });
-  if (!form) return NextResponse.json({ error: "Form not found" }, { status: 404 });
+  const form = await prisma.form.findFirst({
+    where: { id: params.id, companyId: session.user.companyId },
+  });
+  if (!form)
+    return NextResponse.json({ error: "Form not found" }, { status: 404 });
 
   const payload = {
     name: form.name,
@@ -25,5 +29,3 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
   return NextResponse.json(payload);
 }
-
-

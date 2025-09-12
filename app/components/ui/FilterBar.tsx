@@ -4,7 +4,13 @@ import React, { useState, useMemo } from "react";
 import { Search, Filter, X, Calendar, SortAsc, SortDesc } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { useFilters } from "@/components/ui/FilterProvider";
 import { FilterConfig, FilterOption } from "@/types/filter";
@@ -87,7 +93,10 @@ export function FilterBar({
         {/* Sort Controls */}
         {sortOptions.length > 0 && (
           <div className="flex items-center gap-2">
-            <Select value={filters.sortBy} onValueChange={(value) => updateFilter("sortBy", value)}>
+            <Select
+              value={filters.sortBy}
+              onValueChange={(value) => updateFilter("sortBy", value)}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
@@ -101,7 +110,12 @@ export function FilterBar({
             </Select>
 
             {filters.sortBy && (
-              <Button variant="outline" size="sm" onClick={toggleSortOrder} className="px-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSortOrder}
+                className="px-2"
+              >
                 {filters.sortOrder === "asc" ? (
                   <SortAsc className="w-4 h-4" />
                 ) : (
@@ -158,7 +172,9 @@ export function FilterBar({
             {/* Department Filter */}
             {config.showDepartmentFilter && departmentOptions.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Department</label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Department
+                </label>
                 <MultiSelect
                   options={departmentOptions}
                   selected={filters.departments}
@@ -171,7 +187,9 @@ export function FilterBar({
             {/* Job Role Filter */}
             {config.showJobRoleFilter && jobRoleOptions.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Job Role</label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Job Role
+                </label>
                 <MultiSelect
                   options={jobRoleOptions}
                   selected={filters.jobRoles}
@@ -184,7 +202,9 @@ export function FilterBar({
             {/* Status Filter */}
             {config.showStatusFilter && statusOptions.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Status</label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Status
+                </label>
                 <MultiSelect
                   options={statusOptions}
                   selected={filters.status}
@@ -195,22 +215,27 @@ export function FilterBar({
             )}
 
             {/* Document Type Filter */}
-            {config.showDocumentTypeFilter && documentTypeOptions.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Document Type</label>
-                <MultiSelect
-                  options={documentTypeOptions}
-                  selected={filters.documentTypes}
-                  onChange={(values) => updateFilter("documentTypes", values)}
-                  placeholder="Select document types..."
-                />
-              </div>
-            )}
+            {config.showDocumentTypeFilter &&
+              documentTypeOptions.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Document Type
+                  </label>
+                  <MultiSelect
+                    options={documentTypeOptions}
+                    selected={filters.documentTypes}
+                    onChange={(values) => updateFilter("documentTypes", values)}
+                    placeholder="Select document types..."
+                  />
+                </div>
+              )}
 
             {/* Author Filter */}
             {config.showAuthorFilter && authorOptions.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Author</label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Author
+                </label>
                 <MultiSelect
                   options={authorOptions}
                   selected={filters.authors}
@@ -223,7 +248,9 @@ export function FilterBar({
             {/* Category Filter */}
             {config.showCategoryFilter && categoryOptions.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Category</label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Category
+                </label>
                 <MultiSelect
                   options={categoryOptions}
                   selected={filters.categories}

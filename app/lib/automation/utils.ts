@@ -1,6 +1,6 @@
 /**
  * Automation System Utilities
- * 
+ *
  * Utility functions for managing the automation system,
  * including startup, shutdown, and status monitoring.
  */
@@ -115,7 +115,9 @@ export async function getSystemStatus(): Promise<SystemStatus> {
  */
 function setupGracefulShutdown(): void {
   const shutdown = async (signal: string) => {
-    console.log(`Received ${signal}, shutting down automation system gracefully...`);
+    console.log(
+      `Received ${signal}, shutting down automation system gracefully...`,
+    );
     try {
       await stopAutomationSystem();
       process.exit(0);

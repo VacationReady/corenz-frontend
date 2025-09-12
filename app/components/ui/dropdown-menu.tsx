@@ -10,7 +10,11 @@ type DropdownMenuProps = {
   align?: "left" | "right";
 };
 
-export function DropdownMenu({ trigger, children, align = "right" }: DropdownMenuProps) {
+export function DropdownMenu({
+  trigger,
+  children,
+  align = "right",
+}: DropdownMenuProps) {
   return (
     <Menu as="div" className="relative inline-block text-left">
       <Menu.Button as={Fragment}>{trigger}</Menu.Button>
@@ -26,7 +30,7 @@ export function DropdownMenu({ trigger, children, align = "right" }: DropdownMen
         <Menu.Items
           className={cn(
             "absolute z-50 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
-            align === "right" ? "right-0" : "left-0"
+            align === "right" ? "right-0" : "left-0",
           )}
         >
           {children}
@@ -53,7 +57,7 @@ export function DropdownMenuItem({
         const classes = cn(
           "w-full text-left px-4 py-2 text-sm",
           active ? "bg-gray-100" : "",
-          className
+          className,
         );
         if (asChild && React.isValidElement(children)) {
           const element = children as React.ReactElement<any>;

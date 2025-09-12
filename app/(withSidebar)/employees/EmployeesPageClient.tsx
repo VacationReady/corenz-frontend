@@ -58,7 +58,9 @@ function EmployeesContent() {
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
   const [isOffboardingModalOpen, setOffboardingModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null,
+  );
   const [activeTab, setActiveTab] = useState("active");
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -82,7 +84,9 @@ function EmployeesContent() {
       ]);
 
       setEmployees(empRes);
-      setDepartments(Array.isArray(deptRes) ? deptRes : deptRes.departments || []);
+      setDepartments(
+        Array.isArray(deptRes) ? deptRes : deptRes.departments || [],
+      );
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
     } catch {
       setError("Failed to load data");
@@ -93,7 +97,9 @@ function EmployeesContent() {
     fetchData(activeTab);
   }, [activeTab]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -149,13 +155,19 @@ function EmployeesContent() {
 
   // Filters
   const departmentOptions: FilterOption[] = useMemo(
-    () => [{ label: "All Departments", value: "all" }, ...departments.map((dept) => ({ label: dept.name, value: dept.id }))],
-    [departments]
+    () => [
+      { label: "All Departments", value: "all" },
+      ...departments.map((dept) => ({ label: dept.name, value: dept.id })),
+    ],
+    [departments],
   );
 
   const jobRoleOptions: FilterOption[] = useMemo(
-    () => [{ label: "All Job Roles", value: "all" }, ...jobRoles.map((role) => ({ label: role.name, value: role.id }))],
-    [jobRoles]
+    () => [
+      { label: "All Job Roles", value: "all" },
+      ...jobRoles.map((role) => ({ label: role.name, value: role.id })),
+    ],
+    [jobRoles],
   );
 
   const statusOptions: FilterOption[] = [
@@ -182,20 +194,30 @@ function EmployeesContent() {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(
         (emp) =>
-          `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchLower) ||
+          `${emp.firstName} ${emp.lastName}`
+            .toLowerCase()
+            .includes(searchLower) ||
           emp.email?.toLowerCase().includes(searchLower) ||
           emp.phone?.toLowerCase().includes(searchLower) ||
           emp.departmentName?.toLowerCase().includes(searchLower) ||
-          emp.jobRoleName?.toLowerCase().includes(searchLower)
+          emp.jobRoleName?.toLowerCase().includes(searchLower),
       );
     }
 
-    if (filters.departments.length > 0 && !filters.departments.includes("all")) {
-      filtered = filtered.filter((emp) => emp.departmentId && filters.departments.includes(emp.departmentId));
+    if (
+      filters.departments.length > 0 &&
+      !filters.departments.includes("all")
+    ) {
+      filtered = filtered.filter(
+        (emp) =>
+          emp.departmentId && filters.departments.includes(emp.departmentId),
+      );
     }
 
     if (filters.jobRoles.length > 0 && !filters.jobRoles.includes("all")) {
-      filtered = filtered.filter((emp) => emp.jobRoleId && filters.jobRoles.includes(emp.jobRoleId));
+      filtered = filtered.filter(
+        (emp) => emp.jobRoleId && filters.jobRoles.includes(emp.jobRoleId),
+      );
     }
 
     if (filters.status.length > 0 && !filters.status.includes("all")) {
@@ -273,7 +295,11 @@ function EmployeesContent() {
       description="Manage your team members and their information"
       icon={<Users className="w-6 h-6" />}
       breadcrumbs={breadcrumbs || undefined}
-      action={<Button onClick={() => setModalOpen(true)} variant="primary">Add Employee</Button>}
+      action={
+        <Button onClick={() => setModalOpen(true)} variant="primary">
+          Add Employee
+        </Button>
+      }
     >
       {error && (
         <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -303,11 +329,11 @@ function EmployeesContent() {
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="active" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Active ({employees.filter(emp => emp.isActive).length})
+            Active ({employees.filter((emp) => emp.isActive).length})
           </TabsTrigger>
           <TabsTrigger value="archived" className="flex items-center gap-2">
             <Archive className="w-4 h-4" />
-            Archived ({employees.filter(emp => !emp.isActive).length})
+            Archived ({employees.filter((emp) => !emp.isActive).length})
           </TabsTrigger>
           <TabsTrigger value="all" className="flex items-center gap-2">
             All ({employees.length})
@@ -321,52 +347,95 @@ function EmployeesContent() {
           <table className="min-w-full">
             <thead className="bg-card-header sticky top-0 z-10">
               <tr className="border-b border-enhanced">
-                <th className="text-left p-4 font-semibold text-foreground">Name</th>
-                <th className="text-left p-4 font-semibold text-foreground">Phone</th>
-                <th className="text-left p-4 font-semibold text-foreground">Department</th>
-                <th className="text-left p-4 font-semibold text-foreground">Job Role</th>
-                <th className="text-left p-4 font-semibold text-foreground">Email</th>
-                <th className="text-left p-4 font-semibold text-foreground">Status</th>
-                <th className="text-left p-4 font-semibold text-foreground">Actions</th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Name
+                </th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Phone
+                </th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Department
+                </th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Job Role
+                </th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Email
+                </th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Status
+                </th>
+                <th className="text-left p-4 font-semibold text-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-enhanced">
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                    {filters.search || filters.departments.length > 0 || filters.jobRoles.length > 0 || filters.status.length > 0
+                  <td
+                    colSpan={7}
+                    className="p-8 text-center text-muted-foreground"
+                  >
+                    {filters.search ||
+                    filters.departments.length > 0 ||
+                    filters.jobRoles.length > 0 ||
+                    filters.status.length > 0
                       ? "No employees match your current filters."
                       : "No employees found."}
                   </td>
                 </tr>
               ) : (
                 filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-section-background transition-smooth">
+                  <tr
+                    key={emp.id}
+                    className="hover:bg-section-background transition-smooth"
+                  >
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <Avatar size={28} name={`${emp.firstName} ${emp.lastName}`} src={(emp as any).profileImageUrl} />
-                        <Link href={`/employees/${emp.id}/overview`} className="text-primary hover:text-primary/80 font-medium transition-smooth">
+                        <Avatar
+                          size={28}
+                          name={`${emp.firstName} ${emp.lastName}`}
+                          src={(emp as any).profileImageUrl}
+                        />
+                        <Link
+                          href={`/employees/${emp.id}/overview`}
+                          className="text-primary hover:text-primary/80 font-medium transition-smooth"
+                        >
                           {emp.firstName} {emp.lastName}
                         </Link>
                       </div>
                     </td>
                     <td className="p-4 text-foreground">{emp.phone || "-"}</td>
-                    <td className="p-4 text-foreground">{emp.departmentName || "-"}</td>
-                    <td className="p-4 text-foreground">{emp.jobRoleName || "-"}</td>
+                    <td className="p-4 text-foreground">
+                      {emp.departmentName || "-"}
+                    </td>
+                    <td className="p-4 text-foreground">
+                      {emp.jobRoleName || "-"}
+                    </td>
                     <td className="p-4 text-foreground">{emp.email || "-"}</td>
                     <td className="p-4">
                       {emp.isActive ? (
-                        <Badge variant="default" className="bg-green-100 text-green-800">
+                        <Badge
+                          variant="default"
+                          className="bg-green-100 text-green-800"
+                        >
                           Active
                         </Badge>
                       ) : (
                         <div className="flex flex-col gap-1">
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                          <Badge
+                            variant="secondary"
+                            className="bg-gray-100 text-gray-800"
+                          >
                             Archived
                           </Badge>
                           {emp.offboardingRecord && (
                             <Badge variant="outline" className="text-xs">
-                              {emp.offboardingRecord.offboardingType.replace('_', ' ')}
+                              {emp.offboardingRecord.offboardingType.replace(
+                                "_",
+                                " ",
+                              )}
                             </Badge>
                           )}
                         </div>
@@ -382,16 +451,31 @@ function EmployeesContent() {
                       >
                         <DropdownMenuItem
                           onClick={async () => {
-                            if (!confirm("Are you sure you want to delete this employee?")) return;
+                            if (
+                              !confirm(
+                                "Are you sure you want to delete this employee?",
+                              )
+                            )
+                              return;
                             try {
-                              const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
+                              const res = await fetch(
+                                `/api/employees/${emp.id}`,
+                                { method: "DELETE" },
+                              );
                               if (!res.ok) {
-                                const errorData = await res.json().catch(() => ({}));
-                                throw new Error(errorData.error || "Delete failed");
+                                const errorData = await res
+                                  .json()
+                                  .catch(() => ({}));
+                                throw new Error(
+                                  errorData.error || "Delete failed",
+                                );
                               }
                               fetchData(activeTab);
                             } catch (err) {
-                              alert("Error deleting employee: " + (err as Error).message);
+                              alert(
+                                "Error deleting employee: " +
+                                  (err as Error).message,
+                              );
                               console.error(err);
                             }
                           }}
@@ -402,23 +486,28 @@ function EmployeesContent() {
                         <DropdownMenuItem
                           onClick={async () => {
                             try {
-                              const res = await fetch(`/api/employees/${emp.id}/send-invite`, { method: 'POST' });
+                              const res = await fetch(
+                                `/api/employees/${emp.id}/send-invite`,
+                                { method: "POST" },
+                              );
                               if (!res.ok) {
                                 const data = await res.json().catch(() => ({}));
-                                toast.error(data.error || 'Failed to send invite');
+                                toast.error(
+                                  data.error || "Failed to send invite",
+                                );
                                 return;
                               }
-                              toast.success('Login invite sent');
+                              toast.success("Login invite sent");
                               fetchData(activeTab); // Refresh to update any status changes
                             } catch (e) {
-                              toast.error('Network error sending invite');
+                              toast.error("Network error sending invite");
                             }
                           }}
                         >
                           Resend invite
                         </DropdownMenuItem>
                         {emp.isActive && !emp.offboardingRecord && (
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleStartOffboarding(emp)}
                             className="text-orange-600"
                           >
@@ -437,15 +526,33 @@ function EmployeesContent() {
       </div>
 
       {/* Modals */}
-      <AddEmployeeModal open={isModalOpen} onClose={() => setModalOpen(false)} onSuccess={() => fetchData(activeTab)} />
-      {isDeptModalOpen && <NewDepartmentModal onClose={() => { setDeptModalOpen(false); fetchData(activeTab); }} />}
-      {isRoleModalOpen && <NewJobRoleModal onClose={() => { setRoleModalOpen(false); fetchData(activeTab); }} />}
-      <OffboardingModal 
-        open={isOffboardingModalOpen} 
+      <AddEmployeeModal
+        open={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => fetchData(activeTab)}
+      />
+      {isDeptModalOpen && (
+        <NewDepartmentModal
+          onClose={() => {
+            setDeptModalOpen(false);
+            fetchData(activeTab);
+          }}
+        />
+      )}
+      {isRoleModalOpen && (
+        <NewJobRoleModal
+          onClose={() => {
+            setRoleModalOpen(false);
+            fetchData(activeTab);
+          }}
+        />
+      )}
+      <OffboardingModal
+        open={isOffboardingModalOpen}
         onClose={() => {
           setOffboardingModalOpen(false);
           setSelectedEmployee(null);
-        }} 
+        }}
         employee={selectedEmployee}
         onSuccess={handleOffboardingSuccess}
       />

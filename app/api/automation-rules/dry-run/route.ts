@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const triggerConfig = rule.triggerConfig as any;
 
     switch (rule.triggerType) {
-      case 'DOCUMENT_EXPIRING':
+      case "DOCUMENT_EXPIRING":
         // Simulate document expiry check
         const daysBefore = triggerConfig?.daysBefore || 30;
         const expiringDocs = await prisma.employmentCheck.count({
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         ];
         break;
 
-      case 'FORM_SUBMITTED':
+      case "FORM_SUBMITTED":
         // Simulate form submission check
         const formId = triggerConfig?.formId;
         if (formId) {
@@ -87,11 +87,11 @@ export async function POST(req: Request) {
         }
         break;
 
-      case 'ONBOARDING_STEP_COMPLETED':
+      case "ONBOARDING_STEP_COMPLETED":
         // Simulate onboarding step completion check
         const completedSteps = await prisma.onboardingStepInstance.count({
           where: {
-            status: 'completed',
+            status: "completed",
             onboardingInstance: {
               employee: {
                 companyId: session.user.companyId,
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         ];
         break;
 
-      case 'EMPLOYEE_CREATED':
+      case "EMPLOYEE_CREATED":
         // Simulate new employee check
         const newEmployees = await prisma.employee.count({
           where: {
@@ -141,20 +141,20 @@ export async function POST(req: Request) {
 
     // Add action previews
     actions.forEach((action: any, index: number) => {
-      let actionDescription = '';
-      
+      let actionDescription = "";
+
       switch (action.type) {
-        case 'create_task':
-          actionDescription = `Create task: "${action.config?.title || 'Untitled Task'}"`;
+        case "create_task":
+          actionDescription = `Create task: "${action.config?.title || "Untitled Task"}"`;
           break;
-        case 'send_notification':
-          const channels = action.config?.channels?.join(', ') || 'email';
+        case "send_notification":
+          const channels = action.config?.channels?.join(", ") || "email";
           actionDescription = `Send notification via ${channels}`;
           break;
-        case 'start_onboarding':
+        case "start_onboarding":
           actionDescription = `Start onboarding template`;
           break;
-        case 'update_field':
+        case "update_field":
           actionDescription = `Update employee field: ${action.config?.field}`;
           break;
         default:
@@ -181,17 +181,17 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("POST /api/automation-rules/dry-run error:", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to run dry test" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -38,7 +38,7 @@ export default function LeaveCalendar({ employeeId }: { employeeId: string }) {
     const leave = leaveRequests.find(
       (lr) =>
         dateStr >= lr.startDate.slice(0, 10) &&
-        dateStr <= lr.endDate.slice(0, 10)
+        dateStr <= lr.endDate.slice(0, 10),
     );
 
     if (leave) {
@@ -48,8 +48,8 @@ export default function LeaveCalendar({ employeeId }: { employeeId: string }) {
             leave.type === "ANNUAL"
               ? "bg-green-500"
               : leave.type === "SICK"
-              ? "bg-yellow-500"
-              : "bg-purple-500"
+                ? "bg-yellow-500"
+                : "bg-purple-500"
           }`}
           title={`${leave.type} (${leave.status})`}
         ></div>
@@ -62,18 +62,16 @@ export default function LeaveCalendar({ employeeId }: { employeeId: string }) {
     <Card>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Leave Calendar</h2>
-        <Button size="sm">Book Leave</Button> {/* Wire modal for future phase */}
+        <Button size="sm">Book Leave</Button>{" "}
+        {/* Wire modal for future phase */}
       </div>
       {error && <p className="text-red-500">{error}</p>}
-      <Calendar
-        tileContent={tileContent}
-        className="mx-auto border-none"
-      />
+      <Calendar tileContent={tileContent} className="mx-auto border-none" />
       <p className="text-xs mt-2 text-center">
-        <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> Annual
-        Leave
-        <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full ml-4 mr-1"></span> Sick
-        Leave
+        <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span>{" "}
+        Annual Leave
+        <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full ml-4 mr-1"></span>{" "}
+        Sick Leave
         <span className="inline-block w-3 h-3 bg-purple-500 rounded-full ml-4 mr-1"></span>{" "}
         Bereavement Leave
       </p>

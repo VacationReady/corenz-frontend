@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import Button from './ui/Button';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import Button from "./ui/Button";
 
 interface Props {
   children: ReactNode;
@@ -14,7 +14,7 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
   };
 
   public static getDerivedStateFromError(error: Error): State {
@@ -22,11 +22,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
 
     // Handle chunk loading errors specifically
-    if (error.name === 'ChunkLoadError' || error.message.includes('Loading chunk')) {
-      console.log('ChunkLoadError detected, attempting recovery...');
+    if (
+      error.name === "ChunkLoadError" ||
+      error.message.includes("Loading chunk")
+    ) {
+      console.log("ChunkLoadError detected, attempting recovery...");
       // Force a page reload to get fresh chunks
       window.location.reload();
     }
@@ -46,9 +49,10 @@ class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h2>
             <p className="text-muted-foreground mb-4">
-              We encountered an error while loading the application. This might be due to a network issue.
+              We encountered an error while loading the application. This might
+              be due to a network issue.
             </p>
-            {this.state.error?.name === 'ChunkLoadError' && (
+            {this.state.error?.name === "ChunkLoadError" && (
               <p className="text-sm text-muted-foreground mb-4">
                 A loading error occurred. We'll refresh the page to fix this.
               </p>

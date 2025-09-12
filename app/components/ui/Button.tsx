@@ -23,24 +23,29 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       asChild = false,
       ...props
     },
-    ref
+    ref,
   ) => {
-  const baseClasses =
-    "inline-flex items-center justify-center rounded-2xl font-medium transition-glass focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed";
+    const baseClasses =
+      "inline-flex items-center justify-center rounded-2xl font-medium transition-glass focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed";
 
-  const variantClasses = {
-    primary: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-warm hover-lift",
-    secondary: "glass-subtle text-secondary-foreground hover-glass border-glass",
-    outline: "border border-glass bg-transparent hover-glass hover:text-accent-foreground",
-    ghost: "hover:bg-accent/50 hover:text-accent-foreground hover:backdrop-blur-md",
-    danger: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-warm hover-lift",
-  }[variant];
+    const variantClasses = {
+      primary:
+        "bg-primary text-primary-foreground hover:bg-primary/90 shadow-warm hover-lift",
+      secondary:
+        "glass-subtle text-secondary-foreground hover-glass border-glass",
+      outline:
+        "border border-glass bg-transparent hover-glass hover:text-accent-foreground",
+      ghost:
+        "hover:bg-accent/50 hover:text-accent-foreground hover:backdrop-blur-md",
+      danger:
+        "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-warm hover-lift",
+    }[variant];
 
-  const sizeClasses = {
-    sm: "h-8 px-3 text-sm",
-    md: "h-10 px-4 text-sm",
-    lg: "h-12 px-6 text-base",
-  }[size];
+    const sizeClasses = {
+      sm: "h-8 px-3 text-sm",
+      md: "h-10 px-4 text-sm",
+      lg: "h-12 px-6 text-base",
+    }[size];
 
     const Comp = asChild ? Slot : "button";
 
@@ -57,7 +62,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           props.className,
           {
             "opacity-50 cursor-not-allowed": disabled || loading,
-          }
+          },
         )}
       >
         {loading ? (
@@ -89,7 +94,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
       </Comp>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";

@@ -14,7 +14,10 @@ const UpdateSubcategorySchema = z.object({
 });
 
 // GET single subcategory
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     const { id } = params;
 
@@ -26,7 +29,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     if (!subcategory) {
       return NextResponse.json(
         { success: false, error: "Event subcategory not found." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -34,16 +37,25 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   } catch (error: any) {
     console.error("[Event Subcategories GET]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch event subcategory." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to fetch event subcategory.",
+      },
+      { status: 500 },
     );
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -54,7 +66,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (!parse.success) {
       return NextResponse.json(
         { success: false, error: parse.error.flatten().fieldErrors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,16 +87,25 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   } catch (error: any) {
     console.error("[Event Subcategories PATCH]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to update event subcategory." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to update event subcategory.",
+      },
+      { status: 500 },
     );
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 403 },
+    );
   }
 
   try {
@@ -101,8 +122,11 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   } catch (error: any) {
     console.error("[Event Subcategories DELETE]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to archive event subcategory." },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Failed to archive event subcategory.",
+      },
+      { status: 500 },
     );
   }
 }

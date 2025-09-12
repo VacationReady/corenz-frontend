@@ -21,7 +21,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 }
 
 // UPDATE a form
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -44,8 +47,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const slugRegex = /^[a-z0-9-]+$/;
     if (!slugRegex.test(slug)) {
       return NextResponse.json(
-        { error: "Slug can only contain lowercase letters, numbers, and hyphens" },
-        { status: 400 }
+        {
+          error:
+            "Slug can only contain lowercase letters, numbers, and hyphens",
+        },
+        { status: 400 },
       );
     }
 
@@ -62,23 +68,32 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       if (existingForm.name === name) {
         return NextResponse.json(
           { error: "A form with this name already exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (existingForm.slug === slug) {
         return NextResponse.json(
           { error: "A form with this path already exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
   }
 
-  const updateData: any = { name, slug, description, formType, schema, isActive };
+  const updateData: any = {
+    name,
+    slug,
+    description,
+    formType,
+    schema,
+    isActive,
+  };
 
   if (visibleToRoles !== undefined) updateData.visibleToRoles = visibleToRoles;
-  if (visibleToDepartments !== undefined) updateData.visibleToDepartments = visibleToDepartments;
-  if (visibleToJobRoles !== undefined) updateData.visibleToJobRoles = visibleToJobRoles;
+  if (visibleToDepartments !== undefined)
+    updateData.visibleToDepartments = visibleToDepartments;
+  if (visibleToJobRoles !== undefined)
+    updateData.visibleToJobRoles = visibleToJobRoles;
 
   const updated = await prisma.form.update({
     where: { id: params.id, companyId: session.user.companyId },
@@ -89,7 +104,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE a form
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _: Request,
+  { params }: { params: { id: string } },
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)

@@ -6,14 +6,14 @@ import { authOptions } from "@/lib/auth-options";
 // ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -43,14 +43,14 @@ export async function GET(
     if (!employee) {
       return NextResponse.json(
         { success: false, error: "Employee not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (employee.companyId !== session.user.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -58,11 +58,11 @@ export async function GET(
   } catch (error) {
     console.error(
       "Error fetching employee:",
-      JSON.stringify(error, Object.getOwnPropertyNames(error))
+      JSON.stringify(error, Object.getOwnPropertyNames(error)),
     );
     return NextResponse.json(
       { success: false, error: "Internal server error." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -70,14 +70,14 @@ export async function GET(
 // ✅ DELETE employee by Employee.id
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -89,14 +89,14 @@ export async function DELETE(
     if (!employee) {
       return NextResponse.json(
         { success: false, error: "Employee not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (employee.companyId !== session.user.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -108,7 +108,9 @@ export async function DELETE(
     const result = await prisma.$transaction(async (tx) => {
       // Onboarding instances and nested data
       await tx.onboardingStepResponse.deleteMany({
-        where: { onboardingStepInstance: { onboardingInstance: { employeeId } } },
+        where: {
+          onboardingStepInstance: { onboardingInstance: { employeeId } },
+        },
       });
       await tx.onboardingStepInstance.deleteMany({
         where: { onboardingInstance: { employeeId } },
@@ -157,7 +159,7 @@ export async function DELETE(
       // Reassign company-level documents uploaded by this user (if any) to another admin, else delete
       if (companyId) {
         const fallbackAdmin = await tx.user.findFirst({
-          where: { companyId, role: 'ADMIN', id: { not: userId } },
+          where: { companyId, role: "ADMIN", id: { not: userId } },
           select: { id: true },
         });
         if (fallbackAdmin) {
@@ -166,14 +168,20 @@ export async function DELETE(
             data: { uploaderId: fallbackAdmin.id },
           });
         } else {
-          await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
+          await tx.document.deleteMany({
+            where: { uploaderId: userId, employeeId: null },
+          });
         }
       } else {
-        await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
+        await tx.document.deleteMany({
+          where: { uploaderId: userId, employeeId: null },
+        });
       }
 
       // Working pattern assignments
-      await tx.employeeWorkingPatternAssignment.deleteMany({ where: { employeeId } });
+      await tx.employeeWorkingPatternAssignment.deleteMany({
+        where: { employeeId },
+      });
 
       // Finally delete employee then user
       await tx.employee.delete({ where: { id: employeeId } });
@@ -186,11 +194,11 @@ export async function DELETE(
   } catch (error) {
     console.error(
       "Error deleting employee:",
-      JSON.stringify(error, Object.getOwnPropertyNames(error))
+      JSON.stringify(error, Object.getOwnPropertyNames(error)),
     );
     return NextResponse.json(
       { success: false, error: "Internal server error." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

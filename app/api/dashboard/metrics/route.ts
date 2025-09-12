@@ -26,27 +26,52 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const canViewAllApprovals = hasPermission(user as any, "leave-requests", "edit");
+    const canViewAllApprovals = hasPermission(
+      user as any,
+      "leave-requests",
+      "edit",
+    );
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    const [headcount, managers, newStartersThisMonth, pendingApprovalsMy, pendingApprovalsAll] = await Promise.all([
-      prisma.employee.count({ where: { isActive: true, companyId, departmentId } }),
-      prisma.user.count({ where: { companyId, role: "MANAGER", ...(departmentId ? { departmentId } : {}) } }),
+    const [
+      headcount,
+      managers,
+      newStartersThisMonth,
+      pendingApprovalsMy,
+      pendingApprovalsAll,
+    ] = await Promise.all([
+      prisma.employee.count({
+        where: { isActive: true, companyId, departmentId },
+      }),
+      prisma.user.count({
+        where: {
+          companyId,
+          role: "MANAGER",
+          ...(departmentId ? { departmentId } : {}),
+        },
+      }),
       prisma.user.count({
         where: {
           companyId,
           createdAt: { gte: startOfMonth, lt: startOfNextMonth },
-          employee: { isActive: true, ...(departmentId ? { departmentId } : {}) },
+          employee: {
+            isActive: true,
+            ...(departmentId ? { departmentId } : {}),
+          },
           ...(departmentId ? { departmentId } : {}),
         },
       }),
       prisma.leaveRequest.count({
         where: {
           approvalStatus: "PENDING",
-          employee: { user: { managerId: session.user.id }, companyId, ...(departmentId ? { departmentId } : {}) },
+          employee: {
+            user: { managerId: session.user.id },
+            companyId,
+            ...(departmentId ? { departmentId } : {}),
+          },
         },
       }),
       prisma.leaveRequest.count({
@@ -69,8 +94,9 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("[DASHBOARD_METRICS]", error);
-    return NextResponse.json({ error: "Failed to fetch metrics" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch metrics" },
+      { status: 500 },
+    );
   }
 }
-
-

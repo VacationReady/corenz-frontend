@@ -23,7 +23,10 @@ export default function LeaveBalanceClientWidget({
           employeeId={employeeId}
           leaveEntitlements={leaveEntitlements}
         />
-        <AddLeaveRequestDialog employeeId={employeeId} isAdminOrManager={true} />
+        <AddLeaveRequestDialog
+          employeeId={employeeId}
+          isAdminOrManager={true}
+        />
       </div>
     </Card>
   );

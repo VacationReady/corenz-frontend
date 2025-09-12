@@ -16,7 +16,7 @@ export interface FormField {
 export interface TableColumn {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select';
+  type: "text" | "number" | "date" | "select";
   options?: string[]; // For select columns
   required?: boolean;
 }

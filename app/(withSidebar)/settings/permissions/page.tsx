@@ -14,6 +14,8 @@ import { Plus, Search, MoreHorizontal, Edit, Trash2, Copy, Shield, Users } from 
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { getScreenDisplayName } from '@/lib/permissions';
+import { PageShell } from '@/components/ui/PageShell';
+import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
 
 interface PermissionProfile {
   id: string;
@@ -141,21 +143,21 @@ export default function PermissionsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Permission Profiles</h1>
-          <p className="text-gray-600">Manage permission profiles for different user roles</p>
-        </div>
-
+    <PageShell
+      title="Permission Profiles"
+      description="Manage permission profiles for different user roles"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Permission Profiles')}
+      action={
         <Link href="/settings/permissions/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             New Profile
           </Button>
         </Link>
-      </div>
-
+      }
+      showHomeIcon={false}
+    >
+      <div className="space-y-6">
       {/* Search and Filters */}
       <Card>
         <CardHeader>
@@ -361,6 +363,7 @@ export default function PermissionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

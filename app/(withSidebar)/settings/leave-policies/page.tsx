@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users, Calendar, Settings, AlertTriangle } from "lucide-react";
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 interface EventCategory {
   id: string;
@@ -262,14 +264,13 @@ export default function LeavePoliciesPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Leave Policies</h1>
-          <p className="text-muted-foreground">
-            Manage accrual rates, proration rules, and service-length tiers for leave entitlements
-          </p>
-        </div>
+    <PageShell
+      title="Leave Policies"
+      description="Manage accrual rates, proration rules, and service-length tiers for leave entitlements"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Leave Policies')}
+      showHomeIcon={false}
+    >
+      <div className="flex justify-end mb-6">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -628,6 +629,6 @@ export default function LeavePoliciesPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

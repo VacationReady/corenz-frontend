@@ -1,48 +1,20 @@
 "use client";
 
-<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/Badge";
 import { ArrowLeft, Save, Shield } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import {
-  getAvailableScreens,
-  getScreenDisplayName,
-  getActionDisplayName,
-  PermissionAction,
-} from "@/lib/permissions";
-=======
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Checkbox } from '@/components/ui/Checkbox';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/Badge';
-import { Save, Shield, ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
-import { PageShell } from '@/components/ui/PageShell';
-import { getAvailableScreens, getScreenDisplayName, getActionDisplayName, PermissionAction } from '@/lib/permissions';
-import Link from 'next/link';
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
+import { getAvailableScreens, getScreenDisplayName, getActionDisplayName, PermissionAction } from "@/lib/permissions";
+import { PageShell } from "@/components/ui/PageShell";
 
 const AVAILABLE_ACTIONS: PermissionAction[] = ["read", "edit", "delete"];
 
@@ -71,12 +43,6 @@ export default function EditPermissionProfilePage() {
   });
 
   const availableScreens = getAvailableScreens();
-  const breadcrumbItems = [
-    { label: 'Settings', href: '/settings' },
-    { label: 'Permission Profiles', href: '/settings/permissions' },
-    { label: 'Edit Profile', isCurrentPage: true },
-  ];
-  const title = profile ? `Edit ${profile.name}` : 'Edit Permission Profile';
 
   useEffect(() => {
     if (params?.id) {
@@ -254,31 +220,14 @@ export default function EditPermissionProfilePage() {
     );
   }
 
-  return (
-<<<<<<< HEAD
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/settings/permissions">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Profiles
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
-          <Shield className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Edit Permission Profile</h1>
-            <p className="text-gray-600">
-              Modify access permissions for this profile
-            </p>
-          </div>
-          {profile.builtIn && (
-            <Badge variant="secondary">Built-in Profile</Badge>
-          )}
-        </div>
-      </div>
+  const title = `Edit ${profile?.name || 'Profile'}`;
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Permission Profiles', href: '/settings/permissions' },
+    { label: profile?.name || 'Edit Profile', isCurrentPage: true }
+  ];
 
-=======
+  return (
     <PageShell
       title={title}
       description="Modify access permissions for this profile"
@@ -288,7 +237,6 @@ export default function EditPermissionProfilePage() {
       {profile?.builtIn && (
         <Badge variant="secondary" className="mb-4">Built-in Profile</Badge>
       )}
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>

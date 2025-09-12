@@ -1,19 +1,11 @@
 "use client";
 
-<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { toast } from "sonner";
 import Link from "next/link";
-=======
-import { useEffect, useState } from 'react';
-import Button from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { toast } from 'sonner';
-import Link from 'next/link';
-import { PageShell } from '@/components/ui/PageShell';
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
+import { PageShell } from "@/components/ui/PageShell";
 
 export default function ArchivedWorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);

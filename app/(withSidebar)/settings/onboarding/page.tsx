@@ -111,23 +111,11 @@ export default function OnboardingSettingsPage() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="max-w-5xl mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Onboarding Templates</h1>
-        <Button
-          onClick={() => {
-            setEditingTemplate(null);
-            setIsEditorOpen(true);
-          }}
-        >
-=======
     <PageShell
       title="Onboarding Templates"
       breadcrumbs={breadcrumbConfigs.settingsSection('Onboarding')}
       action={
         <Button onClick={() => { setEditingTemplate(null); setIsEditorOpen(true); }}>
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
           <Plus className="w-5 h-5 mr-1" /> New Template
         </Button>
       }

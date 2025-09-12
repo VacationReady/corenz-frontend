@@ -13,6 +13,7 @@ import { Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAvailableScreens, getScreenDisplayName, getActionDisplayName, PermissionAction } from '@/lib/permissions';
 import { PageShell } from '@/components/ui/PageShell';
+import Link from 'next/link';
 
 const AVAILABLE_ACTIONS: PermissionAction[] = ['read', 'edit', 'delete'];
 

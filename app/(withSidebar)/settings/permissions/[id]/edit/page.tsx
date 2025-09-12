@@ -10,10 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/Badge';
-import { Save, Shield } from 'lucide-react';
+import { Save, Shield, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageShell } from '@/components/ui/PageShell';
 import { getAvailableScreens, getScreenDisplayName, getActionDisplayName, PermissionAction } from '@/lib/permissions';
+import Link from 'next/link';
 
 const AVAILABLE_ACTIONS: PermissionAction[] = ['read', 'edit', 'delete'];
 

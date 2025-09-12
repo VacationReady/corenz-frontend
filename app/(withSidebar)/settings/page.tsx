@@ -1,9 +1,17 @@
 "use client";
 
+<<<<<<< HEAD
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+=======
+import Link from 'next/link'
+import { PageShell } from '@/components/ui/PageShell'
+import { breadcrumbConfigs } from '@/components/ui/Breadcrumb'
+import { Card, CardContent } from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
 import {
   Calendar,
   Bell,
@@ -176,12 +184,19 @@ export default function SettingsIndexPage() {
       title="Settings"
       description="Configure and manage your system settings across all modules"
       icon={<Cog className="w-6 h-6" />}
+<<<<<<< HEAD
     >
       <Accordion
         type="multiple"
         className="space-y-4"
         defaultValue={["holidays", "system"]}
       >
+=======
+      breadcrumbs={breadcrumbConfigs.settings}
+      showHomeIcon={false}
+    >
+      <Accordion type="multiple" className="space-y-4" defaultValue={['holidays', 'system']}>
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
         <SettingSection
           id="holidays"
           label="Holidays & Absence"

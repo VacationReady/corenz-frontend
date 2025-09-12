@@ -543,6 +543,7 @@ export default function AutomationRulesPage() {
       title="Automation Rules"
       description="Create and manage no-code automation rules to streamline HR processes"
       breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
+      showHomeIcon={false}
       action={
         <Button onClick={openCreateDialog}>
           <Plus className="w-4 h-4 mr-2" />

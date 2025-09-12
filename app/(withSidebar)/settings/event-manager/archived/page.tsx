@@ -7,10 +7,18 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { PageShell } from "@/components/ui/PageShell";
 
 export default function ArchivedEventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const breadcrumbs = {
+    items: [
+      { label: "Settings", href: "/settings" },
+      { label: "Event Manager", href: "/settings/event-manager" },
+      { label: "Archived", isCurrentPage: true },
+    ],
+  };
 
   useEffect(() => {
     fetchArchivedCategories();
@@ -81,8 +89,7 @@ export default function ArchivedEventManagerPage() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Archived Event Categories</h1>
+    <PageShell title="Archived Event Categories" breadcrumbs={breadcrumbs} showHomeIcon={false}>
       <Card className="p-4">
         {categories.length === 0 ? (
           <p className="text-sm text-gray-500">No archived categories found.</p>
@@ -145,6 +152,6 @@ export default function ArchivedEventManagerPage() {
           </div>
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }

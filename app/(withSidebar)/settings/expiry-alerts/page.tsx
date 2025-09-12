@@ -13,6 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 type ExpiryRule = {
   id: string;
@@ -131,6 +133,7 @@ export default function ExpirySettingsPage() {
   };
 
   return (
+<<<<<<< HEAD
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold">Expiry Alerts Settings</h1>
       <p className="text-muted-foreground">
@@ -138,6 +141,14 @@ export default function ExpirySettingsPage() {
         notified for each category.
       </p>
 
+=======
+    <PageShell
+      title="Expiry Alerts"
+      description="Set how many days before expiry alerts should trigger and who should be notified for each category."
+      breadcrumbs={breadcrumbConfigs.settingsSection('Expiry Alerts')}
+      showHomeIcon={false}
+    >
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
       {loading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
@@ -297,6 +308,6 @@ export default function ExpirySettingsPage() {
           </Table>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -302,6 +302,7 @@ export default function AuditLogPage() {
       title="Global Audit Log"
       description="Track all changes to system configuration and settings"
       breadcrumbs={breadcrumbConfigs.settingsSection("System Audit Log")}
+      showHomeIcon={false}
       action={
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportLogs}>

@@ -11,6 +11,7 @@ interface PageShellProps {
   className?: string;
   action?: React.ReactNode;
   breadcrumbs?: BreadcrumbConfig; // Added for breadcrumb support
+  showHomeIcon?: boolean;
 }
 
 export function PageShell({
@@ -21,6 +22,7 @@ export function PageShell({
   className,
   action,
   breadcrumbs,
+  showHomeIcon = true,
 }: PageShellProps) {
   return (
     <div className={clsx("w-full min-h-screen bg-content-panel", className)}>
@@ -30,7 +32,7 @@ export function PageShell({
           {/* Breadcrumbs */}
           {breadcrumbs && (
             <div className="mb-4">
-              <Breadcrumb items={breadcrumbs.items} />
+              <Breadcrumb items={breadcrumbs.items} showHomeIcon={showHomeIcon} />
             </div>
           )}
 

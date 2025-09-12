@@ -37,6 +37,13 @@ export default function NewExitInterviewTemplatePage() {
   });
   const [fields, setFields] = useState<FormField[]>([]);
 
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Forms & Surveys', href: '/settings/forms' },
+    { label: 'Exit Interview Forms', href: '/settings/forms/exit-interview' },
+    { label: 'New Template', isCurrentPage: true }
+  ]
+
   const addField = () => {
     const newField: FormField = {
       id: `field_${Date.now()}`,
@@ -161,6 +168,11 @@ export default function NewExitInterviewTemplatePage() {
     <PageShell
       title="New Exit Interview Template"
       description="Create a new exit interview form template"
+<<<<<<< HEAD
+=======
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
+>>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>

@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import KebabMenu from '@/components/ui/KebabMenu';
 import Link from 'next/link';
+import { PageShell } from '@/components/ui/PageShell';
+import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
@@ -181,9 +183,13 @@ export default function WorkingPatternsPage() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <PageShell
+      title="Working Patterns"
+      breadcrumbs={breadcrumbConfigs.settingsSection('Working Patterns')}
+      showHomeIcon={false}
+    >
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Working Patterns</h1>
+        <div />
         <div className="flex space-x-2">
           <Link href="/settings/working-patterns/archived">
             <Button variant="ghost">View Archived</Button>
@@ -331,6 +337,6 @@ export default function WorkingPatternsPage() {
           );
         })}
       </div>
-    </div>
+    </PageShell>
   );
 }

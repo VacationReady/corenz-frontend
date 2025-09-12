@@ -9,10 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { toast } from 'sonner';
-import Link from 'next/link';
 import { getAvailableScreens, getScreenDisplayName, getActionDisplayName, PermissionAction } from '@/lib/permissions';
+import { PageShell } from '@/components/ui/PageShell';
+import Link from 'next/link';
 
 const AVAILABLE_ACTIONS: PermissionAction[] = ['read', 'edit', 'delete'];
 
@@ -28,6 +29,11 @@ export default function NewPermissionProfilePage() {
   });
 
   const availableScreens = getAvailableScreens();
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Permission Profiles', href: '/settings/permissions' },
+    { label: 'Create Profile', isCurrentPage: true },
+  ];
 
   const handlePermissionChange = (screen: string, action: PermissionAction, checked: boolean) => {
     setFormData(prev => {
@@ -117,20 +123,12 @@ export default function NewPermissionProfilePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/settings/permissions">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Profiles
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Create Permission Profile</h1>
-          <p className="text-gray-600">Define access permissions for this profile</p>
-        </div>
-      </div>
-
+    <PageShell
+      title="Create Permission Profile"
+      description="Define access permissions for this profile"
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
@@ -218,6 +216,6 @@ export default function NewPermissionProfilePage() {
           </Button>
         </div>
       </form>
-    </div>
+    </PageShell>
   );
 }

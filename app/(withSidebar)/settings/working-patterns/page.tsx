@@ -1,42 +1,17 @@
 "use client";
 
-<<<<<<< HEAD
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/Card";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/Select";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import KebabMenu from "@/components/ui/KebabMenu";
 import Link from "next/link";
-=======
-import { useEffect, useMemo, useRef, useState } from 'react';
-import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import Checkbox from '@/components/ui/Checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Card } from '@/components/ui/Card';
-import { toast } from 'sonner';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import KebabMenu from '@/components/ui/KebabMenu';
-import Link from 'next/link';
-import { PageShell } from '@/components/ui/PageShell';
-import { breadcrumbConfigs } from '@/components/ui/Breadcrumb';
->>>>>>> afc988c949ba7840bfa71e7339193d24419e21ec
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);

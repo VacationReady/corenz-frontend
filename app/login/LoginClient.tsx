@@ -95,6 +95,14 @@ export default function LoginClient() {
             Sign In
           </Button>
         </form>
+        <div className="mt-4 space-y-2">
+          <Button className="w-full" onClick={() => signIn("google")}>
+            Sign in with Google
+          </Button>
+          <Button className="w-full" onClick={() => signIn("azure-ad")}>
+            Sign in with Azure AD
+          </Button>
+        </div>
       </div>
     </div>
   );

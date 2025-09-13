@@ -10,7 +10,7 @@ interface PageShellProps {
   children: React.ReactNode;
   className?: string;
   action?: React.ReactNode;
-  breadcrumbs?: BreadcrumbConfig; // Added for breadcrumb support
+  breadcrumbs?: BreadcrumbConfig | null; // Added for breadcrumb support
   showHomeIcon?: boolean;
 }
 

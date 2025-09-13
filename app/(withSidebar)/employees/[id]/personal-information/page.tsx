@@ -5,14 +5,6 @@ import Button from "@/components/ui/Button";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
-import ManageGenderInline from "@/components/shared/ManageGenderInline";
 
 interface PageProps {
   params: { id: string };
@@ -47,13 +39,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
       },
     },
   });
-  const genderOptions = employee?.user?.companyId
-    ? await prisma.genderOption.findMany({
-        where: { companyId: employee.user.companyId as string, active: true },
-        orderBy: { order: "asc" },
-        select: { id: true, label: true },
-      })
-    : [];
+  const genderOptions: Array<{ id: string; label: string }> = [];
 
   if (!employee?.user) {
     return <div className="p-6">Employee not found.</div>;
@@ -119,21 +105,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
                 readOnly={!canEdit}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Date of birth
-              </label>
-              <Input
-                name="dateOfBirth"
-                type="date"
-                defaultValue={
-                  user.dateOfBirth
-                    ? new Date(user.dateOfBirth).toISOString().substring(0, 10)
-                    : ""
-                }
-                readOnly={!canEdit}
-              />
-            </div>
+            {/* Date of birth moved to Demographic page */}
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Street</label>
@@ -172,36 +144,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
                 />
               </div>
             </div>
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Emergency contact name
-                </label>
-                <Input
-                  name="emergencyContactName"
-                  defaultValue={user.emergencyContactName ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Relationship
-                </label>
-                <Input
-                  name="emergencyContactRelationship"
-                  defaultValue={user.emergencyContactRelationship ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Phone</label>
-                <Input
-                  name="emergencyContactPhone"
-                  defaultValue={user.emergencyContactPhone ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-            </div>
+            {/* Emergency contacts moved to dedicated screen */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -223,35 +166,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
                   readOnly={!canEdit}
                 />
               </div>
-              <div className="relative">
-                <label className="block text-sm font-medium mb-1">Gender</label>
-                {canEdit ? (
-                  <Select
-                    name="genderOptionId"
-                    value={user.genderOptionId ?? undefined}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {genderOptions.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          {g.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    readOnly
-                    defaultValue={
-                      genderOptions.find((g) => g.id === user.genderOptionId)
-                        ?.label || ""
-                    }
-                  />
-                )}
-                {showManageGender && <ManageGenderInline />}
-              </div>
+              {/* Gender moved to Demographic page */}
             </div>
           </form>
         </div>

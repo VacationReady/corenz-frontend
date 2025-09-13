@@ -41,6 +41,7 @@ export async function PATCH(
       "emergencyContactRelationship",
       "emergencyContactPhone",
       "nationalId",
+      "residencyStatus",
       "pronouns",
       "genderOptionId",
     ] as const;

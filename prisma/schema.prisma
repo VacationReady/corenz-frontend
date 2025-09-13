@@ -37,6 +37,7 @@ model User {
   emergencyContactRelationship                 String?
   emergencyContactPhone                        String?
   nationalId                                   String?
+  residencyStatus                              String?
   pronouns                                     String?
   genderOptionId                               String?
   activationToken                              ActivationToken?
@@ -135,6 +136,31 @@ model Employee {
   onboardingInstances       OnboardingInstance[]
   trainingRecords           TrainingRecord[]
   offboardingRecord         EmployeeOffboarding?
+  emergencyContacts         EmergencyContact[]
+
+  // Payroll & Employment
+  bankAccountNumber     String?
+  taxCode               String?
+  kiwiSaverEnrolled     Boolean?
+  kiwiSaverContribution Int?
+  employmentType        String?
+  contractType          String?
+  siteLocation          String?
+  salaryAmount          Decimal?  @db.Decimal(10, 2)
+  hourlyRate            Decimal?  @db.Decimal(10, 2)
+}
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  employeeId   String
+  name         String
+  relationship String?
+  phone        String?
+  email        String?
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
 }
 
 model EmployeeWorkingPatternAssignment {

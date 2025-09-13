@@ -481,69 +481,85 @@ export default function AddEmployeeModal({
                   </Select>
                 </div>
 
-                <div className="flex space-x-2">
-                  <Select
-                    value={formData.departmentId || undefined}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, departmentId: value })
-                    }
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select Department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-2">
-                        <Button type="button" variant="ghost" onClick={() => setDeptModalOpen(true)}>
-                          + Add new department
-                        </Button>
-                      </div>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setDeptModalOpen(true)}
-                  >
-                    + New
-                  </Button>
-                </div>
+                <Select
+                  value={formData.departmentId || undefined}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, departmentId: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{d.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await fetch("/api/departments", {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: d.id }),
+                              });
+                              fetchData();
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-2">
+                      <Button type="button" variant="ghost" onClick={() => setDeptModalOpen(true)}>
+                        + Add new department
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
 
-                <div className="flex space-x-2">
-                  <Select
-                    value={formData.jobRoleId || undefined}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, jobRoleId: value })
-                    }
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select Job Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jobRoles.map((j) => (
-                        <SelectItem key={j.id} value={j.id}>
-                          {j.name}
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-2">
-                        <Button type="button" variant="ghost" onClick={() => setRoleModalOpen(true)}>
-                          + Add new job role
-                        </Button>
-                      </div>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setRoleModalOpen(true)}
-                  >
-                    + New
-                  </Button>
-                </div>
+                <Select
+                  value={formData.jobRoleId || undefined}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, jobRoleId: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Job Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobRoles.map((j) => (
+                      <SelectItem key={j.id} value={j.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{j.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await fetch("/api/job-roles", {
+                                method: "DELETE",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ id: j.id }),
+                              });
+                              fetchData();
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-2">
+                      <Button type="button" variant="ghost" onClick={() => setRoleModalOpen(true)}>
+                        + Add new job role
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
 
                 <Select
                   value={formData.managerId || undefined}

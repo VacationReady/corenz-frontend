@@ -57,6 +57,11 @@ export function useBreadcrumbs(
           training: "Training",
           "employment-checks": "Employment Checks",
           settings: "Settings",
+          forms: "Forms",
+          offboarding: "Offboarding",
+          "bank-payroll": "Bank & Payroll",
+          "emergency-contacts": "Emergency Contacts",
+          "employment-details": "Employment Details",
         };
 
         return breadcrumbConfigs.employeeSection(
@@ -94,11 +99,43 @@ export function useBreadcrumbs(
           workflows: "Workflows",
           forms: "Forms & Surveys",
           system: "System",
+          permissions: "Permissions",
+          "leave-policies": "Leave Policies",
+          "expiry-alerts": "Expiry Alerts",
+          "event-rules": "Event Rules",
+          "automation-rules": "Automation Rules",
+          "working-patterns": "Working Patterns",
+          "event-manager": "Event Manager",
         };
 
         return breadcrumbConfigs.settingsSection(
           settingsSectionLabels[settingsSection] || settingsSection,
         );
+
+      case "reports":
+        if (pathSegments.length === 1) {
+          return breadcrumbConfigs.reports;
+        }
+
+        const reportsSection = pathSegments[1];
+        const reportsSectionLabels: Record<string, string> = {
+          builder: "Report Builder",
+          create: "Create Report",
+          preview: "Preview",
+        };
+
+        return breadcrumbConfigs.reportsSection(
+          reportsSectionLabels[reportsSection] || reportsSection,
+        );
+
+      case "offboarding":
+        return breadcrumbConfigs.offboarding;
+
+      case "onboarding":
+        return breadcrumbConfigs.onboarding;
+
+      case "profile":
+        return breadcrumbConfigs.profile;
 
       default:
         return null;

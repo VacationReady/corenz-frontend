@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Button from "@/components/ui/Button";
+import { PageShell } from "@/components/ui/PageShell";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { FileText } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,6 +32,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const breadcrumbs = useBreadcrumbs();
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -45,19 +50,40 @@ export default function ReportsPage() {
     setReports((prev) => prev.filter((r) => r.id !== id));
   };
 
+  if (loading) {
+    return (
+      <PageShell
+        title="Reports"
+        description="View and manage your saved reports"
+        icon={<FileText className="w-6 h-6" />}
+        breadcrumbs={breadcrumbs}
+      >
+        <PageLoader text="Loading reports..." />
+      </PageShell>
+    );
+  }
+
   return (
-    <main className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Saved Reports</h1>
+    <PageShell
+      title="Reports"
+      description="View and manage your saved reports"
+      icon={<FileText className="w-6 h-6" />}
+      breadcrumbs={breadcrumbs}
+      action={
         <Button onClick={() => router.push("/reports/builder")}>
           + Create Report
         </Button>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : reports.length === 0 ? (
-        <p>No saved reports found.</p>
+      }
+    >
+      {reports.length === 0 ? (
+        <div className="text-center py-16">
+          <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <p className="text-lg font-medium text-foreground mb-2">No saved reports found</p>
+          <p className="text-muted-foreground mb-6">Create your first report to get started</p>
+          <Button onClick={() => router.push("/reports/builder")}>
+            Create Report
+          </Button>
+        </div>
       ) : (
         <Table>
           <TableHeader>
@@ -117,6 +143,6 @@ export default function ReportsPage() {
           </TableBody>
         </Table>
       )}
-    </main>
+    </PageShell>
   );
 }

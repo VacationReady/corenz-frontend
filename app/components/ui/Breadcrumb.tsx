@@ -155,4 +155,67 @@ export const breadcrumbConfigs = {
       { label: section, isCurrentPage: true },
     ],
   }),
+  // Reports section
+  reports: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Reports", isCurrentPage: true },
+    ],
+  },
+  reportsSection: (section: string) => ({
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Reports", href: "/reports" },
+      { label: section, isCurrentPage: true },
+    ],
+  }),
+  // Offboarding section
+  offboarding: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Offboarding", isCurrentPage: true },
+    ],
+  },
+  // Onboarding section  
+  onboarding: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Onboarding", isCurrentPage: true },
+    ],
+  },
+  // Profile section
+  profile: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Profile", isCurrentPage: true },
+    ],
+  },
+  // Form-specific breadcrumbs
+  formDetail: (formName: string, formId: string) => ({
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Settings", href: "/settings" },
+      { label: "Forms & Surveys", href: "/settings/forms" },
+      { label: formName, isCurrentPage: true },
+    ],
+  }),
+  // Employee form breadcrumbs
+  employeeForm: (employeeName: string, employeeId: string, formName: string) => ({
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Employees", href: "/employees" },
+      { label: employeeName, href: `/employees/${employeeId}/overview` },
+      { label: formName, isCurrentPage: true },
+    ],
+  }),
+  // Training breadcrumbs
+  employeeTraining: (employeeName: string, employeeId: string, section?: string) => ({
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Employees", href: "/employees" },
+      { label: employeeName, href: `/employees/${employeeId}/overview` },
+      { label: "Training", href: `/employees/${employeeId}/training` },
+      ...(section ? [{ label: section, isCurrentPage: true }] : []),
+    ],
+  }),
 };

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { FormField, TableColumn } from "@/api/forms/[id]/types";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 
 interface EnhancedFormRendererProps {
   formId: string;
@@ -166,8 +167,7 @@ export function EnhancedFormRenderer({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Loading form...</span>
+        <PageLoader text="Loading form..." />
       </div>
     );
   }

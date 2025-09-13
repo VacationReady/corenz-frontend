@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { PageShell } from "@/components/ui/PageShell";
 import Button from "@/components/ui/Button";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -79,6 +81,7 @@ export default function OffboardingPage() {
   const [records, setRecords] = useState<OffboardingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const breadcrumbs = useBreadcrumbs();
 
   useEffect(() => {
     fetchOffboardingRecords();
@@ -119,11 +122,25 @@ export default function OffboardingPage() {
     return record.status === activeTab.toUpperCase();
   });
 
+  if (loading) {
+    return (
+      <PageShell
+        title="Offboarding Management"
+        description="Track and manage employee offboarding processes"
+        icon={<UserX className="w-6 h-6" />}
+        breadcrumbs={breadcrumbs}
+      >
+        <PageLoader text="Loading offboarding records..." />
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell
       title="Offboarding Management"
       description="Track and manage employee offboarding processes"
       icon={<UserX className="w-6 h-6" />}
+      breadcrumbs={breadcrumbs}
     >
       {/* Status Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">

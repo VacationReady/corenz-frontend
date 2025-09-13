@@ -1,11 +1,26 @@
 "use client";
 export const dynamic = "force-dynamic";
 
+import { PageShell } from "@/components/ui/PageShell";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+import { User } from "lucide-react";
+
 export default function ProfilePage() {
+  const breadcrumbs = useBreadcrumbs();
+
   return (
-    <main className="flex-1 p-6 overflow-y-auto">
-      <h1 className="text-2xl font-bold mb-6">Profile</h1>
-      <p>This is your profile page.</p>
-    </main>
+    <PageShell
+      title="Profile"
+      description="Manage your personal information and account settings"
+      icon={<User className="w-6 h-6" />}
+      breadcrumbs={breadcrumbs}
+    >
+      <div className="max-w-2xl">
+        <p className="text-muted-foreground">
+          This is your profile page. Here you can manage your personal information and account settings.
+        </p>
+        {/* Add profile content here */}
+      </div>
+    </PageShell>
   );
 }

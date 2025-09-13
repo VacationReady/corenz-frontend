@@ -8,6 +8,7 @@ import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 
 interface Form {
   id: string;
@@ -63,9 +64,7 @@ export default function EmployeeFormPage() {
   if (loading) {
     return (
       <PageShell title="Loading..." description="Loading form...">
-        <div className="flex items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
+        <PageLoader text="Loading form..." />
       </PageShell>
     );
   }

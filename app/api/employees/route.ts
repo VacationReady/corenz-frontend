@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { canAccessEmployee } from "@/lib/permissions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -22,22 +23,33 @@ export async function GET(req: Request) {
     const userId = searchParams.get("userId");
     const managerId = searchParams.get("managerId");
 
+    // Base scoping
     const whereCondition: any = { companyId: session.user.companyId };
 
-    if (userId) {
-      whereCondition.userId = userId;
-    }
+    if (userId) whereCondition.userId = userId;
+    if (managerId) whereCondition.user = { managerId };
+    if (status === "active") whereCondition.isActive = true;
+    else if (status === "archived") whereCondition.isActive = false;
+    // If status is "all", no isActive filter is applied
 
-    if (managerId) {
-      whereCondition.user = { managerId };
-    }
+    // Access control: ADMIN can list all; MANAGER limited to themselves + direct reports
+    if (session.user.role === "MANAGER") {
+      // Fetch subordinates of the current manager (by User relation)
+      const subordinates = await prisma.user.findMany({
+        where: { managerId: session.user.id, companyId: session.user.companyId },
+        select: { id: true },
+      });
+      const subordinateUserIds = subordinates.map((u) => u.id);
 
-    if (status === "active") {
-      whereCondition.isActive = true;
-    } else if (status === "archived") {
-      whereCondition.isActive = false;
+      // Allowed employee userIds are: self and subordinates
+      const allowedUserIds = [session.user.id, ...subordinateUserIds];
+
+      // Combine with any existing whereCondition
+      whereCondition.user = {
+        ...(whereCondition.user || {}),
+        id: { in: allowedUserIds },
+      };
     }
-    // If status is "all", no filter is applied
 
     const employees = await prisma.employee.findMany({
       where: whereCondition,

@@ -52,7 +52,6 @@ export default function AddEmployeeModal({
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [permissionProfiles, setPermissionProfiles] = useState<any[]>([]);
   interface OnboardingTemplate {
     id: string;
     name: string;
@@ -90,6 +89,7 @@ export default function AddEmployeeModal({
 
   // Toggle
   const [sendInviteNow, setSendInviteNow] = useState(true);
+  const [isAdminAccess, setIsAdminAccess] = useState(false);
 
   // Calculate entitlement modal state
   const [fullTimeHours, setFullTimeHours] = useState("40");
@@ -98,12 +98,11 @@ export default function AddEmployeeModal({
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, roleRes, profilesRes, templateRes, patternsRes] =
+      const [empRes, deptRes, roleRes, templateRes, patternsRes] =
         await Promise.all([
           fetch("/api/employees").then((r) => r.json()),
           fetch("/api/departments").then((r) => r.json()),
           fetch("/api/job-roles").then((r) => r.json()),
-          fetch("/api/permissions").then((r) => r.json()),
           fetch("/api/onboarding/templates").then((r) => r.json()),
           fetch("/api/working-patterns").then((r) => r.json()),
         ]);
@@ -114,9 +113,6 @@ export default function AddEmployeeModal({
         Array.isArray(deptRes) ? deptRes : deptRes.departments || [],
       );
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-      setPermissionProfiles(
-        Array.isArray(profilesRes.profiles) ? profilesRes.profiles : [],
-      );
       setTemplates(
         Array.isArray(templateRes)
           ? (templateRes as OnboardingTemplate[])
@@ -272,6 +268,8 @@ export default function AddEmployeeModal({
 
       const payload = {
         ...formData,
+        // Determine role from Admin toggle. Manager role is based on line manager relationship.
+        role: isAdminAccess ? "ADMIN" : "EMPLOYEE",
         companyId: session?.user?.companyId,
         sendInviteNow,
         entitlementDays: parseFloat(formData.entitlementDays),
@@ -279,7 +277,8 @@ export default function AddEmployeeModal({
         departmentId: formData.departmentId || "",
         jobRoleId: formData.jobRoleId || "",
         managerId: formData.managerId || "",
-        permissionProfileId: formData.permissionProfileId || "",
+        // No profile picker; allow backend defaults
+        permissionProfileId: "",
         holidayYear: formData.holidayYear || "",
         workingPatternId: formData.workingPatternId || "",
       };
@@ -317,6 +316,7 @@ export default function AddEmployeeModal({
         entitlementDays: "",
       });
       setSendInviteNow(true);
+      setIsAdminAccess(false);
       setCurrentStep(1);
 
       onClose();
@@ -438,48 +438,12 @@ export default function AddEmployeeModal({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Permission Profile *
-                  </label>
-                  <Select
-                    value={formData.permissionProfileId || undefined}
-                    onValueChange={(value) => {
-                      const profile = permissionProfiles.find(
-                        (p) => p.id === value,
-                      );
-                      const role =
-                        profile?.name === "Admin"
-                          ? "ADMIN"
-                          : profile?.name === "Manager"
-                            ? "MANAGER"
-                            : "EMPLOYEE";
-                      setFormData({
-                        ...formData,
-                        permissionProfileId: value,
-                        role: role,
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Permission Profile" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {permissionProfiles
-                        .sort((a, b) => {
-                          // Sort built-in profiles first
-                          if (a.builtIn && !b.builtIn) return -1;
-                          if (!a.builtIn && b.builtIn) return 1;
-                          return a.name.localeCompare(b.name);
-                        })
-                        .map((profile) => (
-                          <SelectItem key={profile.id} value={profile.id}>
-                            {profile.name} {profile.builtIn ? "(Built-in)" : ""}{" "}
-                            - {profile.description || "No description"}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={isAdminAccess}
+                    onChange={(checked: boolean) => setIsAdminAccess(checked)}
+                  />
+                  <Label className="text-sm">Admin Access?</Label>
                 </div>
 
                 <Select

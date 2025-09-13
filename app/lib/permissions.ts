@@ -1,4 +1,5 @@
 import { User, PermissionProfile } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export type PermissionAction = "read" | "edit" | "delete";
 
@@ -227,4 +228,34 @@ export function getActionDisplayName(action: PermissionAction): string {
   };
 
   return actionNames[action];
+}
+
+/**
+ * Determines if the requesting user can access a target employee record.
+ * Access rules:
+ * - ADMIN can access any employee in their company
+ * - A user can access their own employee record
+ * - A MANAGER can access employees whose user.managerId = requestor.id
+ */
+export async function canAccessEmployee(
+  requestor: { id: string; role: "ADMIN" | "MANAGER" | "EMPLOYEE"; companyId: string },
+  targetEmployeeId: string,
+): Promise<boolean> {
+  // Admins can access any employee within their company
+  if (requestor.role === "ADMIN") {
+    return true;
+  }
+
+  const target = await prisma.employee.findUnique({
+    where: { id: targetEmployeeId, companyId: requestor.companyId },
+    select: { userId: true, user: { select: { managerId: true } } },
+  });
+
+  if (!target) return false;
+
+  // Self-access
+  if (target.userId === requestor.id) return true;
+
+  // Manager access (only if they directly manage the target)
+  return target.user?.managerId === requestor.id;
 }

@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { format } from "date-fns";
@@ -45,15 +46,18 @@ export default async function EmployeeSettingsPage({
     .filter((a) => a.effectiveDate > today)
     .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())[0];
 
-  // If the viewer is a MANAGER, fetch their subordinates to display
-  let subordinates: { id: string; firstName: string | null; lastName: string | null; email: string }[] = [];
-  if (session?.user?.role === "MANAGER") {
-    subordinates = await prisma.user.findMany({
-      where: { managerId: session.user.id, companyId: session.user.companyId },
-      select: { id: true, firstName: true, lastName: true, email: true },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-    });
-  }
+  // Fetch subordinates for the employee being viewed (if they are a manager)
+  const subordinates = await prisma.user.findMany({
+    where: { managerId: employee.user.id, companyId: employee.companyId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      employee: { select: { id: true } },
+    },
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+  });
 
   return (
     <div className="space-y-4">
@@ -119,26 +123,36 @@ export default async function EmployeeSettingsPage({
         >
           <PermissionProfileManagement employeeId={employee.user.id} />
         </Suspense>
-      </div>
 
-      {session?.user?.role === "MANAGER" && (
-        <div className="border rounded p-4 bg-white shadow">
-          <h2 className="text-lg font-semibold mb-2">Line Manager For</h2>
-          {subordinates.length === 0 ? (
-            <p className="text-sm text-gray-600">No direct reports.</p>
-          ) : (
-            <ul className="list-disc pl-5 space-y-1">
-              {subordinates.map((s) => (
-                <li key={s.id} className="text-sm">
-                  {(s.firstName || s.lastName)
+        {employee.user.role === "MANAGER" && (
+          <div className="mt-6">
+            <h3 className="text-md font-semibold mb-2">Line Manager For</h3>
+            {subordinates.length === 0 ? (
+              <p className="text-sm text-gray-600">No direct reports.</p>
+            ) : (
+              <ul className="list-disc pl-5 space-y-1">
+                {subordinates.map((s) => {
+                  const display = (s.firstName || s.lastName)
                     ? `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim()
-                    : s.email}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+                    : s.email;
+                  const empId = s.employee?.id;
+                  return (
+                    <li key={s.id} className="text-sm">
+                      {empId ? (
+                        <Link className="text-blue-600 hover:underline" href={`/employees/${empId}/overview`}>
+                          {display}
+                        </Link>
+                      ) : (
+                        display
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

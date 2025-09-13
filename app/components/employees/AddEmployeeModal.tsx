@@ -52,7 +52,6 @@ export default function AddEmployeeModal({
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [managerSearch, setManagerSearch] = useState("");
   const [permissionProfiles, setPermissionProfiles] = useState<any[]>([]);
   interface OnboardingTemplate {
     id: string;
@@ -109,7 +108,8 @@ export default function AddEmployeeModal({
           fetch("/api/working-patterns").then((r) => r.json()),
         ]);
 
-      setEmployees(empRes.filter((emp: any) => emp.user));
+      // API returns flattened employees with id, firstName, lastName, etc.
+      setEmployees(Array.isArray(empRes) ? empRes : []);
       setDepartments(
         Array.isArray(deptRes) ? deptRes : deptRes.departments || [],
       );
@@ -528,38 +528,25 @@ export default function AddEmployeeModal({
                   </SelectContent>
                 </Select>
 
-                <div>
-                  <div className="mb-2">
-                    <Input
-                      placeholder="Search employees..."
-                      value={managerSearch}
-                      onChange={(e) => setManagerSearch(e.target.value)}
-                    />
-                  </div>
-                  <Select
-                    value={formData.managerId || undefined}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, managerId: value })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Line Manager (Optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees
-                        .filter((emp) =>
-                          `${emp.user.firstName ?? ""} ${emp.user.lastName ?? ""}`
-                            .toLowerCase()
-                            .includes(managerSearch.toLowerCase()),
-                        )
-                        .map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.user.firstName} {emp.user.lastName}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select
+                  value={formData.managerId || undefined}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, managerId: value })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Line Manager (Optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp: any) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {(emp.firstName || emp.lastName)
+                          ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+                          : emp.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
                 <div className="flex items-center gap-2">
                   <Switch

@@ -493,24 +493,7 @@ export default function AddEmployeeModal({
                   <SelectContent>
                     {departments.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{d.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              await fetch("/api/departments", {
-                                method: "DELETE",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ id: d.id }),
-                              });
-                              fetchData();
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </div>
+                        {d.name}
                       </SelectItem>
                     ))}
                     <div className="px-2 py-2">
@@ -533,24 +516,7 @@ export default function AddEmployeeModal({
                   <SelectContent>
                     {jobRoles.map((j) => (
                       <SelectItem key={j.id} value={j.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{j.name}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              await fetch("/api/job-roles", {
-                                method: "DELETE",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ id: j.id }),
-                              });
-                              fetchData();
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </div>
+                        {j.name}
                       </SelectItem>
                     ))}
                     <div className="px-2 py-2">

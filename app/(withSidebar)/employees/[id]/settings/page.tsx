@@ -3,6 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { format } from "date-fns";
 import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
@@ -15,6 +17,7 @@ interface EmployeeSettingsPageProps {
 export default async function EmployeeSettingsPage({
   params,
 }: EmployeeSettingsPageProps) {
+  const session = await getServerSession(authOptions);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -41,6 +44,16 @@ export default async function EmployeeSettingsPage({
   const upcoming = [...assignments]
     .filter((a) => a.effectiveDate > today)
     .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())[0];
+
+  // If the viewer is a MANAGER, fetch their subordinates to display
+  let subordinates: { id: string; firstName: string | null; lastName: string | null; email: string }[] = [];
+  if (session?.user?.role === "MANAGER") {
+    subordinates = await prisma.user.findMany({
+      where: { managerId: session.user.id, companyId: session.user.companyId },
+      select: { id: true, firstName: true, lastName: true, email: true },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    });
+  }
 
   return (
     <div className="space-y-4">
@@ -107,6 +120,25 @@ export default async function EmployeeSettingsPage({
           <PermissionProfileManagement employeeId={employee.user.id} />
         </Suspense>
       </div>
+
+      {session?.user?.role === "MANAGER" && (
+        <div className="border rounded p-4 bg-white shadow">
+          <h2 className="text-lg font-semibold mb-2">Line Manager For</h2>
+          {subordinates.length === 0 ? (
+            <p className="text-sm text-gray-600">No direct reports.</p>
+          ) : (
+            <ul className="list-disc pl-5 space-y-1">
+              {subordinates.map((s) => (
+                <li key={s.id} className="text-sm">
+                  {(s.firstName || s.lastName)
+                    ? `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim()
+                    : s.email}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { canAccessEmployee } from "@/lib/permissions";
 
 // ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
@@ -47,10 +48,19 @@ export async function GET(
       );
     }
 
-    if (employee.companyId !== session.user.companyId) {
+    // Access control: ADMIN has access; MANAGER can only access self or direct reports
+    const allowed = await canAccessEmployee(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        companyId: session.user.companyId,
+      },
+      params.id,
+    );
+    if (!allowed) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
@@ -93,10 +103,11 @@ export async function DELETE(
       );
     }
 
-    if (employee.companyId !== session.user.companyId) {
+    // Only ADMIN can delete employees
+    if (session.user.role !== "ADMIN") {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 

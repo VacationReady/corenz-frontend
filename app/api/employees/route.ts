@@ -229,7 +229,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // After creating employee, auto-promote manager to MANAGER role if provided
+    // After creating employee, auto-promote manager to MANAGER role and apply Manager permission profile if provided
     if (managerId && managerId.trim() !== "") {
       try {
         const mgr = await prisma.employee.findUnique({
@@ -237,9 +237,21 @@ export async function POST(req: Request) {
           select: { userId: true },
         });
         if (mgr?.userId) {
+          // Try to find a Manager permission profile for this company
+          const managerProfile = await prisma.permissionProfile.findFirst({
+            where: {
+              companyId,
+              name: { equals: "Manager", mode: "insensitive" },
+            },
+            select: { id: true },
+          });
+
           await prisma.user.update({
             where: { id: mgr.userId },
-            data: { role: "MANAGER" },
+            data: {
+              role: "MANAGER",
+              ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
+            },
           });
         }
       } catch (e) {

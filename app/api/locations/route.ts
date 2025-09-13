@@ -21,4 +21,19 @@ export async function POST(req: Request) {
   return NextResponse.json(created, { status: 201 });
 }
 
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.role || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const body = await req.json();
+  if (!body?.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  try {
+    await prisma.location.delete({ where: { id: String(body.id) } });
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Delete failed" }, { status: 400 });
+  }
+}
+
 

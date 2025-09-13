@@ -19,7 +19,6 @@ import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@/components/ui/dialog";
 
 export default function EmploymentDetailsPage({
@@ -37,6 +36,7 @@ export default function EmploymentDetailsPage({
 
   const [newOption, setNewOption] = useState("");
   const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const canEdit = session?.user?.role === "ADMIN";
   const canViewComp = session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
@@ -102,9 +102,9 @@ export default function EmploymentDetailsPage({
     } else if (manageKind === "contract") {
       await fetch(`/api/contract-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     } else if (manageKind === "location") {
-      // add DELETE for locations if needed; skipping destructive ops if not supported
+      await fetch(`/api/locations`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     } else if (manageKind === "department") {
-      // departments deletion may have constraints; skipping here
+      await fetch(`/api/departments`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     }
     await reloadOptions();
   };
@@ -122,29 +122,7 @@ export default function EmploymentDetailsPage({
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium mb-1">Employment type</label>
               {canEdit && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" onClick={() => setManageKind("employment")}>Manage</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Manage employment types</DialogTitle>
-                      <DialogDescription>Add, remove, or edit options</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2 max-h-60 overflow-auto">
-                      {employmentTypes.map((t) => (
-                        <div key={t.id} className="flex items-center justify-between gap-2">
-                          <span className="text-sm">{t.label}</span>
-                          <Button variant="danger" onClick={() => deleteOption(t.id)}>Delete</Button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Input placeholder="Add new option" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
-                      <Button onClick={addOption}>Add</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="ghost" onClick={() => { setManageKind("employment"); setManageOpen(true); }}>Manage</Button>
               )}
             </div>
             {canEdit ? (
@@ -162,7 +140,7 @@ export default function EmploymentDetailsPage({
                     </SelectItem>
                   ))}
                   <div className="px-2 py-2">
-                    <Button variant="ghost" onClick={() => setManageKind("employment")}>+ Add new option</Button>
+                    <Button variant="ghost" onClick={() => { setManageKind("employment"); setManageOpen(true); }}>+ Add new option</Button>
                   </div>
                 </SelectContent>
               </Select>
@@ -174,29 +152,7 @@ export default function EmploymentDetailsPage({
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium mb-1">Contract type</label>
               {canEdit && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" onClick={() => setManageKind("contract")}>Manage</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Manage contract types</DialogTitle>
-                      <DialogDescription>Add, remove, or edit options</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2 max-h-60 overflow-auto">
-                      {contractTypes.map((t) => (
-                        <div key={t.id} className="flex items-center justify-between gap-2">
-                          <span className="text-sm">{t.label}</span>
-                          <Button variant="danger" onClick={() => deleteOption(t.id)}>Delete</Button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Input placeholder="Add new option" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
-                      <Button onClick={addOption}>Add</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="ghost" onClick={() => { setManageKind("contract"); setManageOpen(true); }}>Manage</Button>
               )}
             </div>
             {canEdit ? (
@@ -214,7 +170,7 @@ export default function EmploymentDetailsPage({
                     </SelectItem>
                   ))}
                   <div className="px-2 py-2">
-                    <Button variant="ghost" onClick={() => setManageKind("contract")}>+ Add new option</Button>
+                    <Button variant="ghost" onClick={() => { setManageKind("contract"); setManageOpen(true); }}>+ Add new option</Button>
                   </div>
                 </SelectContent>
               </Select>
@@ -226,28 +182,7 @@ export default function EmploymentDetailsPage({
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium mb-1">Site location</label>
               {canEdit && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" onClick={() => setManageKind("location")}>Manage</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Manage locations</DialogTitle>
-                      <DialogDescription>Add or remove locations</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2 max-h-60 overflow-auto">
-                      {locations.map((l) => (
-                        <div key={l.id} className="flex items-center justify-between gap-2">
-                          <span className="text-sm">{l.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Input placeholder="Add new location" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
-                      <Button onClick={addOption}>Add</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="ghost" onClick={() => { setManageKind("location"); setManageOpen(true); }}>Manage</Button>
               )}
             </div>
             {canEdit ? (
@@ -265,7 +200,7 @@ export default function EmploymentDetailsPage({
                     </SelectItem>
                   ))}
                   <div className="px-2 py-2">
-                    <Button variant="ghost" onClick={() => setManageKind("location")}>+ Add new option</Button>
+                    <Button variant="ghost" onClick={() => { setManageKind("location"); setManageOpen(true); }}>+ Add new option</Button>
                   </div>
                 </SelectContent>
               </Select>
@@ -277,28 +212,7 @@ export default function EmploymentDetailsPage({
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium mb-1">Department</label>
               {canEdit && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" onClick={() => setManageKind("department")}>Manage</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Manage departments</DialogTitle>
-                      <DialogDescription>Add new departments</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2 max-h-60 overflow-auto">
-                      {departments.map((d) => (
-                        <div key={d.id} className="flex items-center justify-between gap-2">
-                          <span className="text-sm">{d.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Input placeholder="Add new department" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
-                      <Button onClick={addOption}>Add</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <Button variant="ghost" onClick={() => { setManageKind("department"); setManageOpen(true); }}>Manage</Button>
               )}
             </div>
             <Input
@@ -324,6 +238,63 @@ export default function EmploymentDetailsPage({
           </div>
         </div>
       </Card>
+
+      {/* Centralized manage modal */}
+      {canEdit && (
+        <Dialog open={manageOpen} onOpenChange={(o) => { setManageOpen(o); if (!o) setNewOption(""); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {manageKind === "employment" && "Manage employment types"}
+                {manageKind === "contract" && "Manage contract types"}
+                {manageKind === "location" && "Manage locations"}
+                {manageKind === "department" && "Manage departments"}
+              </DialogTitle>
+              <DialogDescription>Add or remove options</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-60 overflow-auto">
+              {manageKind === "employment" && employmentTypes.map((t) => (
+                <div key={t.id} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{t.label}</span>
+                  <Button variant="danger" onClick={() => deleteOption(t.id)}>Delete</Button>
+                </div>
+              ))}
+              {manageKind === "contract" && contractTypes.map((t) => (
+                <div key={t.id} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{t.label}</span>
+                  <Button variant="danger" onClick={() => deleteOption(t.id)}>Delete</Button>
+                </div>
+              ))}
+              {manageKind === "location" && locations.map((l) => (
+                <div key={l.id} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{l.name}</span>
+                  <Button variant="danger" onClick={() => deleteOption(l.id)}>Delete</Button>
+                </div>
+              ))}
+              {manageKind === "department" && departments.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{d.name}</span>
+                  <Button variant="danger" onClick={() => deleteOption(d.id)}>Delete</Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Input
+                placeholder={
+                  manageKind === "location"
+                    ? "Add new location"
+                    : manageKind === "department"
+                    ? "Add new department"
+                    : "Add new option"
+                }
+                value={newOption}
+                onChange={(e) => setNewOption(e.target.value)}
+              />
+              <Button onClick={addOption}>Add</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Card>
         <div className="border-b p-4">

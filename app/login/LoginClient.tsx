@@ -3,8 +3,18 @@
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+
+const MicrosoftIcon = () => (
+  <span className="grid h-5 w-5 grid-cols-2 gap-[2px]">
+    <span className="bg-[#F35325]" />
+    <span className="bg-[#81BC06]" />
+    <span className="bg-[#05A6F0]" />
+    <span className="bg-[#FFBA08]" />
+  </span>
+);
 
 export default function LoginClient() {
   const router = useRouter();
@@ -95,6 +105,31 @@ export default function LoginClient() {
             Sign In
           </Button>
         </form>
+
+        <div className="my-6 flex items-center">
+          <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">Or</span>
+          <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+        </div>
+
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            className="w-full gap-2 bg-white dark:bg-gray-800"
+            onClick={() => signIn("azure-ad")}
+          >
+            <MicrosoftIcon />
+            Log in with Microsoft
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2 bg-white dark:bg-gray-800"
+            onClick={() => signIn("google")}
+          >
+            <FcGoogle className="h-5 w-5" />
+            Log in with Google
+          </Button>
+        </div>
       </div>
     </div>
   );

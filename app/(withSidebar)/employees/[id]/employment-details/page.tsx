@@ -13,6 +13,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/Select";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function EmploymentDetailsPage({
   params,
@@ -25,9 +33,26 @@ export default function EmploymentDetailsPage({
   const [employmentTypes, setEmploymentTypes] = useState<Array<{ id: string; label: string }>>([]);
   const [contractTypes, setContractTypes] = useState<Array<{ id: string; label: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+
+  const [newOption, setNewOption] = useState("");
+  const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
 
   const canEdit = session?.user?.role === "ADMIN";
   const canViewComp = session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
+
+  const reloadOptions = async () => {
+    const [et, ct, loc, deps] = await Promise.all([
+      fetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
+      fetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
+      fetch(`/api/locations`).then((r) => r.json()).catch(() => []),
+      fetch(`/api/departments`).then((r) => r.json()).catch(() => []),
+    ]);
+    setEmploymentTypes(et);
+    setContractTypes(ct);
+    setLocations(loc);
+    setDepartments(deps);
+  };
 
   useEffect(() => {
     (async () => {
@@ -35,14 +60,7 @@ export default function EmploymentDetailsPage({
       if (!res.ok) return;
       const data = await res.json();
       setForm(data);
-      const [et, ct, loc] = await Promise.all([
-        fetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
-        fetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
-        fetch(`/api/locations`).then((r) => r.json()).catch(() => []),
-      ]);
-      setEmploymentTypes(et);
-      setContractTypes(ct);
-      setLocations(loc);
+      await reloadOptions();
     })();
   }, [params.id]);
 
@@ -62,6 +80,35 @@ export default function EmploymentDetailsPage({
     }
   };
 
+  const addOption = async () => {
+    if (!newOption.trim()) return;
+    const label = newOption.trim();
+    if (manageKind === "employment") {
+      await fetch(`/api/employment-type-options`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
+    } else if (manageKind === "contract") {
+      await fetch(`/api/contract-type-options`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
+    } else if (manageKind === "location") {
+      await fetch(`/api/locations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
+    } else if (manageKind === "department") {
+      await fetch(`/api/departments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
+    }
+    setNewOption("");
+    await reloadOptions();
+  };
+
+  const deleteOption = async (id: string) => {
+    if (manageKind === "employment") {
+      await fetch(`/api/employment-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    } else if (manageKind === "contract") {
+      await fetch(`/api/contract-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    } else if (manageKind === "location") {
+      // add DELETE for locations if needed; skipping destructive ops if not supported
+    } else if (manageKind === "department") {
+      // departments deletion may have constraints; skipping here
+    }
+    await reloadOptions();
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-semibold">Employment details</h1>
@@ -72,7 +119,34 @@ export default function EmploymentDetailsPage({
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Employment type</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Employment type</label>
+              {canEdit && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" onClick={() => setManageKind("employment")}>Manage</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Manage employment types</DialogTitle>
+                      <DialogDescription>Add, remove, or edit options</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-60 overflow-auto">
+                      {employmentTypes.map((t) => (
+                        <div key={t.id} className="flex items-center justify-between gap-2">
+                          <span className="text-sm">{t.label}</span>
+                          <Button variant="danger" onClick={() => deleteOption(t.id)}>Delete</Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Input placeholder="Add new option" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
+                      <Button onClick={addOption}>Add</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
             {canEdit ? (
               <Select
                 value={form.employmentType || undefined}
@@ -87,6 +161,9 @@ export default function EmploymentDetailsPage({
                       {t.label}
                     </SelectItem>
                   ))}
+                  <div className="px-2 py-2">
+                    <Button variant="ghost" onClick={() => setManageKind("employment")}>+ Add new option</Button>
+                  </div>
                 </SelectContent>
               </Select>
             ) : (
@@ -94,7 +171,34 @@ export default function EmploymentDetailsPage({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Contract type</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Contract type</label>
+              {canEdit && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" onClick={() => setManageKind("contract")}>Manage</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Manage contract types</DialogTitle>
+                      <DialogDescription>Add, remove, or edit options</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-60 overflow-auto">
+                      {contractTypes.map((t) => (
+                        <div key={t.id} className="flex items-center justify-between gap-2">
+                          <span className="text-sm">{t.label}</span>
+                          <Button variant="danger" onClick={() => deleteOption(t.id)}>Delete</Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Input placeholder="Add new option" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
+                      <Button onClick={addOption}>Add</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
             {canEdit ? (
               <Select
                 value={form.contractType || undefined}
@@ -109,6 +213,9 @@ export default function EmploymentDetailsPage({
                       {t.label}
                     </SelectItem>
                   ))}
+                  <div className="px-2 py-2">
+                    <Button variant="ghost" onClick={() => setManageKind("contract")}>+ Add new option</Button>
+                  </div>
                 </SelectContent>
               </Select>
             ) : (
@@ -116,7 +223,33 @@ export default function EmploymentDetailsPage({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Site location</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Site location</label>
+              {canEdit && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" onClick={() => setManageKind("location")}>Manage</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Manage locations</DialogTitle>
+                      <DialogDescription>Add or remove locations</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-60 overflow-auto">
+                      {locations.map((l) => (
+                        <div key={l.id} className="flex items-center justify-between gap-2">
+                          <span className="text-sm">{l.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Input placeholder="Add new location" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
+                      <Button onClick={addOption}>Add</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
             {canEdit ? (
               <Select
                 value={form.siteLocation || undefined}
@@ -131,11 +264,47 @@ export default function EmploymentDetailsPage({
                       {l.name}
                     </SelectItem>
                   ))}
+                  <div className="px-2 py-2">
+                    <Button variant="ghost" onClick={() => setManageKind("location")}>+ Add new option</Button>
+                  </div>
                 </SelectContent>
               </Select>
             ) : (
               <Input readOnly value={form.siteLocation || ""} />
             )}
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium mb-1">Department</label>
+              {canEdit && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" onClick={() => setManageKind("department")}>Manage</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Manage departments</DialogTitle>
+                      <DialogDescription>Add new departments</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-60 overflow-auto">
+                      {departments.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between gap-2">
+                          <span className="text-sm">{d.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Input placeholder="Add new department" value={newOption} onChange={(e) => setNewOption(e.target.value)} />
+                      <Button onClick={addOption}>Add</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+            <Input
+              readOnly
+              value={form?.department?.name || ""}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Start date</label>
@@ -144,13 +313,6 @@ export default function EmploymentDetailsPage({
               readOnly={!canEdit}
               value={form.startDate ? String(form.startDate).substring(0, 10) : ""}
               onChange={(e) => setForm((f: any) => ({ ...f, startDate: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Department</label>
-            <Input
-              readOnly
-              value={form?.department?.name || ""}
             />
           </div>
           <div>

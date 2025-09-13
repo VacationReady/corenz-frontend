@@ -497,6 +497,11 @@ export default function AddEmployeeModal({
                           {d.name}
                         </SelectItem>
                       ))}
+                      <div className="px-2 py-2">
+                        <Button type="button" variant="ghost" onClick={() => setDeptModalOpen(true)}>
+                          + Add new department
+                        </Button>
+                      </div>
                     </SelectContent>
                   </Select>
                   <Button
@@ -524,6 +529,11 @@ export default function AddEmployeeModal({
                           {j.name}
                         </SelectItem>
                       ))}
+                      <div className="px-2 py-2">
+                        <Button type="button" variant="ghost" onClick={() => setRoleModalOpen(true)}>
+                          + Add new job role
+                        </Button>
+                      </div>
                     </SelectContent>
                   </Select>
                   <Button

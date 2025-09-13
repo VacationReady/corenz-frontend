@@ -4,14 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
-import ManageGenderInline from "@/components/shared/ManageGenderInline";
+import GenderSelectWithManage from "@/components/shared/GenderSelectWithManage";
 
 interface PageProps {
   params: { id: string };
@@ -83,18 +76,11 @@ export default async function DemographicPage({ params }: PageProps) {
             <div className="relative">
               <label className="block text-sm font-medium mb-1">Gender</label>
               {canEdit ? (
-                <Select name="genderOptionId" value={user.genderOptionId ?? undefined}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {genderOptions.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        {g.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GenderSelectWithManage
+                  value={user.genderOptionId ?? undefined}
+                  options={genderOptions}
+                  onChange={() => {}}
+                />
               ) : (
                 <Input
                   readOnly
@@ -103,7 +89,6 @@ export default async function DemographicPage({ params }: PageProps) {
                   }
                 />
               )}
-              {canEdit && <ManageGenderInline />}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Residency / Visa status</label>

@@ -52,6 +52,7 @@ export default function AddEmployeeModal({
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [managerSearch, setManagerSearch] = useState("");
   const [permissionProfiles, setPermissionProfiles] = useState<any[]>([]);
   interface OnboardingTemplate {
     id: string;
@@ -527,27 +528,38 @@ export default function AddEmployeeModal({
                   </SelectContent>
                 </Select>
 
-                <Select
-                  value={formData.managerId || undefined}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, managerId: value })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Line Manager (Optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map(
-                      (emp) =>
-                        emp.user && (
+                <div>
+                  <div className="mb-2">
+                    <Input
+                      placeholder="Search employees..."
+                      value={managerSearch}
+                      onChange={(e) => setManagerSearch(e.target.value)}
+                    />
+                  </div>
+                  <Select
+                    value={formData.managerId || undefined}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, managerId: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Line Manager (Optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees
+                        .filter((emp) =>
+                          `${emp.user.firstName ?? ""} ${emp.user.lastName ?? ""}`
+                            .toLowerCase()
+                            .includes(managerSearch.toLowerCase()),
+                        )
+                        .map((emp) => (
                           <SelectItem key={emp.id} value={emp.id}>
-                            {emp.user.firstName} {emp.user.lastName} ({emp.role}
-                            )
+                            {emp.user.firstName} {emp.user.lastName}
                           </SelectItem>
-                        ),
-                    )}
-                  </SelectContent>
-                </Select>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <div className="flex items-center gap-2">
                   <Switch

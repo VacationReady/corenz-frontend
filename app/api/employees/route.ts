@@ -229,6 +229,24 @@ export async function POST(req: Request) {
       },
     });
 
+    // After creating employee, auto-promote manager to MANAGER role if provided
+    if (managerId && managerId.trim() !== "") {
+      try {
+        const mgr = await prisma.employee.findUnique({
+          where: { id: managerId },
+          select: { userId: true },
+        });
+        if (mgr?.userId) {
+          await prisma.user.update({
+            where: { id: mgr.userId },
+            data: { role: "MANAGER" },
+          });
+        }
+      } catch (e) {
+        console.warn("Failed to auto-promote manager role:", e);
+      }
+    }
+
     // Create activation token now; email optionally sent now or later
     await prisma.activationToken.create({
       data: {

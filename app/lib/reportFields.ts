@@ -27,13 +27,6 @@ export const reportFields: ReportField[] = [
   },
   {
     model: "User",
-    field: "User.password",
-    label: "password",
-    type: "string",
-    filterable: true,
-  },
-  {
-    model: "User",
     field: "User.createdAt",
     label: "createdAt",
     type: "date",

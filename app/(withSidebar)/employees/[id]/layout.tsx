@@ -125,12 +125,25 @@ export default async function EmployeeLayout({
       href: `/employees/${params.id}/personal-information`,
       label: "Personal information",
     },
+    {
+      href: `/employees/${params.id}/contact-info`,
+      label: "Contact Info",
+    },
+    {
+      href: `/employees/${params.id}/demographic`,
+      label: "Demographic",
+    },
     { href: `/employees/${params.id}/leave`, label: "Leave" },
     { href: `/employees/${params.id}/documents`, label: "Documents" },
     ...forms.map((form) => ({
       href: `/employees/${params.id}/${form.slug}`,
       label: form.name,
     })),
+    { href: `/employees/${params.id}/contact-info`, label: "Contact Info" },
+    { href: `/employees/${params.id}/demographic`, label: "Demographic" },
+    { href: `/employees/${params.id}/employment-details`, label: "Employment Details" },
+    { href: `/employees/${params.id}/emergency-contacts`, label: "Emergency Contacts" },
+    { href: `/employees/${params.id}/bank-payroll`, label: "Bank & Payroll" },
     { href: `/employees/${params.id}/performance`, label: "Performance" },
     { href: `/employees/${params.id}/onboarding`, label: "Onboarding History" },
     // Show offboarding tab for archived employees or if they have an offboarding record

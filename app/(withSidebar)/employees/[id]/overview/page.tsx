@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
-import PersonalInfoPanel from "@/components/PersonalInfoPanel";
+import Link from "next/link";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import {
   Dialog,
@@ -78,32 +78,56 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Personal Info Panel */}
+        {/* Summary cards */}
         <Card>
           <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Personal Info</h2>
+            <h2 className="text-lg font-semibold">Contact Info</h2>
           </div>
-          <div className="p-4">
-            <PersonalInfoPanel
-              employee={{
-                firstName: employee.user.firstName ?? "",
-                lastName: employee.user.lastName ?? "",
-                email: employee.user.email ?? "",
-                phone: employee.user.phone ?? undefined,
-                jobTitle: employee.user.jobRole?.name ?? undefined,
-                department: employee.user.department?.name ?? undefined,
-                startDate: employee.user.createdAt,
-                employmentStatus: employee.isActive ? "Active" : "Inactive",
-                accessLevel: employee.user.role ?? undefined,
-                permissionProfile: employee.user.permissionProfile ?? undefined,
-                manager: employee.user.manager
-                  ? {
-                      firstName: employee.user.manager.firstName ?? "",
-                      lastName: employee.user.manager.lastName ?? "",
-                    }
-                  : undefined,
-              }}
-            />
+          <div className="p-4 space-y-1 text-sm">
+            <p><strong>Email:</strong> {employee.user.email}</p>
+            <p><strong>Phone:</strong> {employee.user.phone || "N/A"}</p>
+            <Link href={`/employees/${employee.id}/contact-info`} className="text-blue-600 underline text-sm">Manage</Link>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="border-b p-4">
+            <h2 className="text-lg font-semibold">Demographic</h2>
+          </div>
+          <div className="p-4 space-y-1 text-sm">
+            <p><strong>Start date:</strong> {employee.user.createdAt.toDateString()}</p>
+            <Link href={`/employees/${employee.id}/demographic`} className="text-blue-600 underline text-sm">Manage</Link>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="border-b p-4">
+            <h2 className="text-lg font-semibold">Bank & Payroll</h2>
+          </div>
+          <div className="p-4 space-y-1 text-sm">
+            <p><strong>Bank:</strong> Hidden</p>
+            <Link href={`/employees/${employee.id}/bank-payroll`} className="text-blue-600 underline text-sm">Manage</Link>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="border-b p-4">
+            <h2 className="text-lg font-semibold">Emergency Contacts</h2>
+          </div>
+          <div className="p-4 space-y-1 text-sm">
+            <p className="text-muted-foreground">Manage next-of-kin and contacts</p>
+            <Link href={`/employees/${employee.id}/emergency-contacts`} className="text-blue-600 underline text-sm">Manage</Link>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="border-b p-4">
+            <h2 className="text-lg font-semibold">Employment Details</h2>
+          </div>
+          <div className="p-4 space-y-1 text-sm">
+            <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
+            <p><strong>Department:</strong> {employee.user.department?.name || "N/A"}</p>
+            <Link href={`/employees/${employee.id}/employment-details`} className="text-blue-600 underline text-sm">Manage</Link>
           </div>
         </Card>
 

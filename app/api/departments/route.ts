@@ -84,3 +84,19 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const body = await req.json();
+    if (!body?.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+    await prisma.department.delete({ where: { id: String(body.id) } });
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Failed to delete" }, { status: 400 });
+  }
+}

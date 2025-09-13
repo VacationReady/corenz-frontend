@@ -128,6 +128,12 @@ export default function LoginClient() {
           >
             <FcGoogle className="h-5 w-5" />
             Log in with Google
+        <div className="mt-4 space-y-2">
+          <Button className="w-full" onClick={() => signIn("google")}>
+            Sign in with Google
+          </Button>
+          <Button className="w-full" onClick={() => signIn("azure-ad")}>
+            Sign in with Azure AD
           </Button>
         </div>
       </div>

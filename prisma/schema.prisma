@@ -319,6 +319,32 @@ model Company {
   ssoConfiguration       SSOConfiguration?
   scimConfiguration      SCIMConfiguration?
   brandingConfiguration  BrandingConfiguration?
+  employmentTypeOptions EmploymentTypeOption[]
+  contractTypeOptions   ContractTypeOption[]
+}
+
+model EmploymentTypeOption {
+  id        String   @id @default(cuid())
+  companyId String
+  label     String
+  order     Int      @default(0)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, label])
+  @@index([companyId, order])
+}
+
+model ContractTypeOption {
+  id        String   @id @default(cuid())
+  companyId String
+  label     String
+  order     Int      @default(0)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, label])
+  @@index([companyId, order])
 }
 
 model JobRole {

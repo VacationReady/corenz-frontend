@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/Select";
 
 export default function EmploymentDetailsPage({
   params,
@@ -15,6 +22,9 @@ export default function EmploymentDetailsPage({
   const { data: session } = useSession();
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const [employmentTypes, setEmploymentTypes] = useState<Array<{ id: string; label: string }>>([]);
+  const [contractTypes, setContractTypes] = useState<Array<{ id: string; label: string }>>([]);
+  const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
 
   const canEdit = session?.user?.role === "ADMIN";
   const canViewComp = session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
@@ -25,6 +35,14 @@ export default function EmploymentDetailsPage({
       if (!res.ok) return;
       const data = await res.json();
       setForm(data);
+      const [et, ct, loc] = await Promise.all([
+        fetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
+        fetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
+        fetch(`/api/locations`).then((r) => r.json()).catch(() => []),
+      ]);
+      setEmploymentTypes(et);
+      setContractTypes(ct);
+      setLocations(loc);
     })();
   }, [params.id]);
 
@@ -55,27 +73,69 @@ export default function EmploymentDetailsPage({
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Employment type</label>
-            <Input
-              readOnly={!canEdit}
-              value={form.employmentType || ""}
-              onChange={(e) => setForm((f: any) => ({ ...f, employmentType: e.target.value }))}
-            />
+            {canEdit ? (
+              <Select
+                value={form.employmentType || undefined}
+                onValueChange={(v) => setForm((f: any) => ({ ...f, employmentType: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select employment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employmentTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.label}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input readOnly value={form.employmentType || ""} />
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Contract type</label>
-            <Input
-              readOnly={!canEdit}
-              value={form.contractType || ""}
-              onChange={(e) => setForm((f: any) => ({ ...f, contractType: e.target.value }))}
-            />
+            {canEdit ? (
+              <Select
+                value={form.contractType || undefined}
+                onValueChange={(v) => setForm((f: any) => ({ ...f, contractType: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select contract type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contractTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.label}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input readOnly value={form.contractType || ""} />
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Site location</label>
-            <Input
-              readOnly={!canEdit}
-              value={form.siteLocation || ""}
-              onChange={(e) => setForm((f: any) => ({ ...f, siteLocation: e.target.value }))}
-            />
+            {canEdit ? (
+              <Select
+                value={form.siteLocation || undefined}
+                onValueChange={(v) => setForm((f: any) => ({ ...f, siteLocation: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select site location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((l) => (
+                    <SelectItem key={l.id} value={l.name}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input readOnly value={form.siteLocation || ""} />
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Start date</label>

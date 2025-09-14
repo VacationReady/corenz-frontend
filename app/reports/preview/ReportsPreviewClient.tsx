@@ -38,16 +38,53 @@ export default function ReportsPreviewClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
-  const selectedFields = fieldsParam ? fieldsParam.split(",") : [];
+  const reportIdParam = searchParams?.get("reportId");
+  
+  const [selectedFields, setSelectedFields] = useState<string[]>(
+    fieldsParam ? fieldsParam.split(",") : []
+  );
+  const [reportConfig, setReportConfig] = useState<any>(null);
 
   console.log("🔍 useSearchParams:", searchParams?.toString());
   console.log("🔍 fieldsParam:", fieldsParam);
+  console.log("🔍 reportIdParam:", reportIdParam);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
 
+  // Load report configuration if reportId is provided
   useEffect(() => {
-    if (!fieldsParam) return;
+    if (!reportIdParam) return;
+    
+    const loadReport = async () => {
+      setLoadingReport(true);
+      try {
+        console.log("🔄 Loading report with ID:", reportIdParam);
+        const res = await fetch(`/api/reports/${reportIdParam}`);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to load report: ${res.status}`);
+        }
+        
+        const report = await res.json();
+        console.log("📄 Loaded report:", report);
+        
+        setReportConfig(report);
+        setSelectedFields(report.fields || []);
+      } catch (error) {
+        console.error("❌ Error loading report:", error);
+      } finally {
+        setLoadingReport(false);
+      }
+    };
+    
+    loadReport();
+  }, [reportIdParam]);
+
+  // Load report data when fields are available
+  useEffect(() => {
+    if (selectedFields.length === 0) return;
 
     const fetchData = async () => {
       setLoading(true);
@@ -80,7 +117,7 @@ export default function ReportsPreviewClient() {
     };
 
     fetchData();
-  }, [fieldsParam]);
+  }, [selectedFields]);
 
   const handleSaveReport = async () => {
     const reportName = prompt("Enter a name for this report:");
@@ -107,7 +144,15 @@ export default function ReportsPreviewClient() {
     }
   };
 
-  if (!selectedFields.length) {
+  if (loadingReport) {
+    return (
+      <main className="flex flex-col items-center justify-center p-10">
+        <p className="text-lg">Loading report configuration...</p>
+      </main>
+    );
+  }
+
+  if (!selectedFields.length && !loadingReport) {
     return (
       <main className="flex flex-col items-center justify-center p-10">
         <p className="text-lg">

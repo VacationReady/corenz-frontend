@@ -22,18 +22,30 @@ export async function POST(req: Request) {
 
     console.log("📝 Received save request:", { 
       name, 
-      selectedFields, 
-      fields, 
+      selectedFields: selectedFields ? `${selectedFields.length} fields: [${selectedFields.slice(0,3).join(', ')}${selectedFields.length > 3 ? '...' : ''}]` : "no selectedFields", 
+      fields: fields ? `${fields.length} legacy fields` : "no legacy fields", 
       category, 
-      filters: filters ? `${filters.length} filters` : "no filters", 
-      sort: sort ? `sort by ${sort.field}` : "no sorting", 
+      filters: Array.isArray(filters) ? `${filters.length} filters` : `filters type: ${typeof filters}`, 
+      sort: sort ? `sort by ${sort.field || 'unknown field'}` : "no sorting", 
       templateId 
     });
+
+    console.log("🔍 Raw request data:", JSON.stringify({ selectedFields, fields }, null, 2));
 
     // Support both new format (selectedFields) and legacy format (fields)
     const reportFields = selectedFields || fields;
     
+    console.log("🔍 Final reportFields:", reportFields);
+    console.log("🔍 reportFields type:", typeof reportFields);
+    console.log("🔍 reportFields isArray:", Array.isArray(reportFields));
+    console.log("🔍 reportFields length:", reportFields?.length);
+    
     if (!reportFields || !Array.isArray(reportFields) || reportFields.length === 0) {
+      console.error("❌ Field validation failed:", {
+        reportFields,
+        isArray: Array.isArray(reportFields),
+        length: reportFields?.length
+      });
       return NextResponse.json(
         { error: "No fields selected." },
         { status: 400 },

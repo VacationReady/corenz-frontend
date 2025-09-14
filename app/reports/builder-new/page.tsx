@@ -14,20 +14,25 @@ export default function NewReportBuilderPage() {
     try {
       console.log("🚀 Saving report with config:", config);
       
+      const requestBody = {
+        name: config.name,
+        category: config.template?.category || "custom",
+        selectedFields: config.selectedFields,
+        filters: config.filters,
+        sort: config.sort,
+        templateId: config.template?.id,
+      };
+      
+      console.log("📤 Request body being sent:", requestBody);
+      console.log("📊 Selected fields:", config.selectedFields);
+      
       // Save the report configuration
       const response = await fetch("/api/reports/save", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: config.name,
-          category: config.template?.category || "custom",
-          selectedFields: config.selectedFields,
-          filters: config.filters,
-          sort: config.sort,
-          templateId: config.template?.id,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();

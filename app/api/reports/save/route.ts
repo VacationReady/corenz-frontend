@@ -52,11 +52,11 @@ export async function POST(req: Request) {
         name: name.trim(),
         category: category || "custom",
         fields: reportFields, // Store fields array
-        filters: filters ? JSON.stringify(filters) : null, // Store filters as JSON
-        sort: sort ? JSON.stringify(sort) : null, // Store sort config as JSON
+        filters: filters && filters.length > 0 ? filters : undefined, // Store filters as JSON object
+        sort: sort ? sort : undefined, // Store sort config as JSON object
         createdBy: session.user.id,
         companyId: session.user.companyId,
-        description: templateId ? `Created from template: ${templateId}` : null,
+        description: templateId ? `Created from template: ${templateId}` : undefined,
       },
     });
 

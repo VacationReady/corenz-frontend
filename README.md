@@ -6,7 +6,11 @@ This update introduces a basic exit interview workflow for employee offboarding.
 
 ### Environment
 
-- No new environment variables are required.
+- Set `RESEND_API_KEY` with your Resend API key to use the email testing script:
+
+```bash
+export RESEND_API_KEY=your_api_key
+```
 
 ### Testing locally
 

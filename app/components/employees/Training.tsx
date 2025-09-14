@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageShell } from "@/components/ui/PageShell";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { GraduationCap } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -35,35 +38,88 @@ export default function Training({ employeeId }: { employeeId: string }) {
   const router = useRouter();
   const [records, setRecords] = useState<TrainingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [employeeName, setEmployeeName] = useState<string>("Employee");
 
   useEffect(() => {
-    const fetchRecords = async () => {
-      const res = await fetch(
-        `/api/training-records/list?employeeId=${employeeId}`,
-      );
-      const data = await res.json();
-      setRecords(data);
-      setLoading(false);
+    const fetchData = async () => {
+      try {
+        const [recordsRes, employeeRes] = await Promise.all([
+          fetch(`/api/training-records/list?employeeId=${employeeId}`),
+          fetch(`/api/employees/${employeeId}`),
+        ]);
+
+        if (recordsRes.ok) {
+          const recordsData = await recordsRes.json();
+          setRecords(recordsData);
+        }
+
+        if (employeeRes.ok) {
+          const employee = await employeeRes.json();
+          const name = `${employee.user?.firstName || ""} ${employee.user?.lastName || ""}`.trim();
+          setEmployeeName(name || "Employee");
+        }
+      } catch (error) {
+        console.error("Error fetching training data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (employeeId) fetchRecords();
+    if (employeeId) fetchData();
   }, [employeeId]);
 
+  if (loading) {
+    return (
+      <PageShell
+        title="Training Records"
+        description="Employee training and certification records"
+        icon={<GraduationCap className="w-6 h-6" />}
+        breadcrumbs={{
+          items: [
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Employees", href: "/employees" },
+            { label: employeeName, href: `/employees/${employeeId}/overview` },
+            { label: "Training", isCurrentPage: true },
+          ],
+        }}
+      >
+        <PageLoader text="Loading training records..." />
+      </PageShell>
+    );
+  }
+
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Training Records</h1>
+    <PageShell
+      title="Training Records"
+      description="Employee training and certification records"
+      icon={<GraduationCap className="w-6 h-6" />}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Employees", href: "/employees" },
+          { label: employeeName, href: `/employees/${employeeId}/overview` },
+          { label: "Training", isCurrentPage: true },
+        ],
+      }}
+      action={
         <Button
           onClick={() => router.push(`/employees/${employeeId}/training/add`)}
         >
           Add Training
         </Button>
-      </div>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : records.length === 0 ? (
-        <p>No training records found for this employee.</p>
+      }
+    >
+      {records.length === 0 ? (
+        <div className="text-center py-16">
+          <GraduationCap className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <p className="text-lg font-medium text-foreground mb-2">No training records found</p>
+          <p className="text-muted-foreground mb-6">No training records have been added for this employee yet.</p>
+          <Button
+            onClick={() => router.push(`/employees/${employeeId}/training/add`)}
+          >
+            Add First Training Record
+          </Button>
+        </div>
       ) : (
         <Table>
           <TableHeader>
@@ -114,6 +170,6 @@ export default function Training({ employeeId }: { employeeId: string }) {
           </TableBody>
         </Table>
       )}
-    </div>
+    </PageShell>
   );
 }

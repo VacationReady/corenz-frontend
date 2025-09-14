@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
+import { PageShell } from "@/components/ui/PageShell";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { FileText } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import {
@@ -65,6 +68,7 @@ export default function EmployeeDocumentsPage() {
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [employeeName, setEmployeeName] = useState<string>("Employee");
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -102,6 +106,19 @@ export default function EmployeeDocumentsPage() {
     setLoading(false);
   };
 
+  const fetchEmployeeName = async () => {
+    try {
+      const res = await fetch(`/api/employees/${employeeId}`);
+      if (res.ok) {
+        const employee = await res.json();
+        const name = `${employee.user?.firstName || ""} ${employee.user?.lastName || ""}`.trim();
+        setEmployeeName(name || "Employee");
+      }
+    } catch (error) {
+      console.error("Error fetching employee name:", error);
+    }
+  };
+
   useEffect(() => {
     if (selectedDoc?.id) {
       fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
@@ -122,6 +139,7 @@ export default function EmployeeDocumentsPage() {
     if (employeeId) {
       fetchDocuments();
       fetchUserRole();
+      fetchEmployeeName();
     }
   }, [employeeId]);
 
@@ -219,23 +237,56 @@ export default function EmployeeDocumentsPage() {
     toast("Document acknowledged");
   };
 
-  return (
-    <TooltipProvider>
-      <div className="max-w-4xl mx-auto p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Employee Documents</h1>
-          {userRole === "ADMIN" && (
-            <Button onClick={() => setIsUploadModalOpen(true)}>
-              Add Document
-            </Button>
-          )}
-        </div>
+  if (loading) {
+    return (
+      <PageShell
+        title="Documents"
+        description="Employee documents and files"
+        icon={<FileText className="w-6 h-6" />}
+        breadcrumbs={{
+          items: [
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Employees", href: "/employees" },
+            { label: employeeName, href: `/employees/${employeeId}/overview` },
+            { label: "Documents", isCurrentPage: true },
+          ],
+        }}
+      >
+        <PageLoader text="Loading documents..." />
+      </PageShell>
+    );
+  }
 
-        {loading ? (
-          <p>Loading documents...</p>
-        ) : documents.length === 0 ? (
-          <p>No documents for this employee yet.</p>
-        ) : (
+  return (
+    <PageShell
+      title="Documents"
+      description="Employee documents and files"
+      icon={<FileText className="w-6 h-6" />}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Employees", href: "/employees" },
+          { label: employeeName, href: `/employees/${employeeId}/overview` },
+          { label: "Documents", isCurrentPage: true },
+        ],
+      }}
+      action={
+        userRole === "ADMIN" ? (
+          <Button onClick={() => setIsUploadModalOpen(true)}>
+            Add Document
+          </Button>
+        ) : undefined
+      }
+    >
+      <TooltipProvider>
+        <div className="max-w-4xl mx-auto space-y-4">
+          {documents.length === 0 ? (
+            <div className="text-center py-16">
+              <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-lg font-medium text-foreground mb-2">No documents found</p>
+              <p className="text-muted-foreground">No documents have been uploaded for this employee yet.</p>
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -348,9 +399,9 @@ export default function EmployeeDocumentsPage() {
               })}
             </TableBody>
           </Table>
-        )}
+          )}
 
-        {/* Upload Modal */}
+          {/* Upload Modal */}
         {userRole === "ADMIN" && (
           <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
             <DialogContent>
@@ -493,7 +544,8 @@ export default function EmployeeDocumentsPage() {
             isEmployeeDocument
           />
         )}
-      </div>
-    </TooltipProvider>
+        </div>
+      </TooltipProvider>
+    </PageShell>
   );
 }

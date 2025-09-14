@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { PageShell } from "@/components/ui/PageShell";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import {
@@ -65,13 +67,15 @@ export default function EmployeeFormsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedForm, setSelectedForm] = useState<FormAssignment | null>(null);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [employeeName, setEmployeeName] = useState<string>("Employee");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [assignmentsRes, submissionsRes] = await Promise.all([
+        const [assignmentsRes, submissionsRes, employeeRes] = await Promise.all([
           fetch(`/api/employees/${employeeId}/form-assignments`),
           fetch(`/api/employees/${employeeId}/form-submissions`),
+          fetch(`/api/employees/${employeeId}`),
         ]);
 
         if (assignmentsRes.ok) {
@@ -82,6 +86,12 @@ export default function EmployeeFormsPage() {
         if (submissionsRes.ok) {
           const submissionsData = await submissionsRes.json();
           setSubmissions(Array.isArray(submissionsData) ? submissionsData : []);
+        }
+
+        if (employeeRes.ok) {
+          const employee = await employeeRes.json();
+          const name = `${employee.user?.firstName || ""} ${employee.user?.lastName || ""}`.trim();
+          setEmployeeName(name || "Employee");
         }
       } catch (error) {
         console.error("Failed to fetch forms data:", error);
@@ -177,14 +187,39 @@ export default function EmployeeFormsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <PageShell
+        title="Forms"
+        description="Employee forms and assignments"
+        icon={<FileText className="w-6 h-6" />}
+        breadcrumbs={{
+          items: [
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Employees", href: "/employees" },
+            { label: employeeName, href: `/employees/${employeeId}/overview` },
+            { label: "Forms", isCurrentPage: true },
+          ],
+        }}
+      >
+        <PageLoader text="Loading forms..." />
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell
+      title="Forms"
+      description="Employee forms and assignments"
+      icon={<FileText className="w-6 h-6" />}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Employees", href: "/employees" },
+          { label: employeeName, href: `/employees/${employeeId}/overview` },
+          { label: "Forms", isCurrentPage: true },
+        ],
+      }}
+    >
+      <div className="space-y-6">
       {/* Pending Forms */}
       <Card>
         <CardHeader>
@@ -311,6 +346,7 @@ export default function EmployeeFormsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { uploadToSupabase } from "@/lib/supabase";
 
 interface DynamicFormRendererProps {
@@ -135,8 +136,8 @@ export function DynamicFormRenderer({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-gray-500">
-        <Loader2 className="h-6 w-6 mr-2 animate-spin" /> Loading form...
+      <div className="flex items-center justify-center py-16">
+        <PageLoader text="Loading form..." />
       </div>
     );
   }

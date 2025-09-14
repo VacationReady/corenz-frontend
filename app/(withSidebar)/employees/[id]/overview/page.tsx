@@ -2,6 +2,9 @@ import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import Link from "next/link";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
+import { PageShell } from "@/components/ui/PageShell";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
+import { User } from "lucide-react";
 import {
   Dialog,
   DialogTrigger,
@@ -63,19 +66,30 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     return <div className="p-6">Employee not found.</div>;
   }
 
+  const employeeName = `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim();
+
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col items-center gap-3">
-        <ProfileAvatarUploader
-          userId={employee.userId}
-          name={`${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim()}
-          initialUrl={employee.user.profileImageUrl}
-        />
-        <h1 className="text-2xl font-semibold text-center">
-          {employee.user.firstName ?? ""} {employee.user.lastName ?? ""} -
-          Overview
-        </h1>
-      </div>
+    <PageShell
+      title={`${employeeName} - Overview`}
+      description="Employee overview and key information"
+      icon={<User className="w-6 h-6" />}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Employees", href: "/employees" },
+          { label: employeeName, href: `/employees/${employeeId}/overview` },
+          { label: "Overview", isCurrentPage: true },
+        ],
+      }}
+    >
+      <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="flex flex-col items-center gap-3">
+          <ProfileAvatarUploader
+            userId={employee.userId}
+            name={employeeName}
+            initialUrl={employee.user.profileImageUrl}
+          />
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Summary cards */}
@@ -170,6 +184,6 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           </div>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

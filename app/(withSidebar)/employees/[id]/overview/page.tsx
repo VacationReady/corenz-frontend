@@ -3,7 +3,6 @@ import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import Link from "next/link";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import { PageShell } from "@/components/ui/PageShell";
-import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { User } from "lucide-react";
 import {
   Dialog,
@@ -184,6 +183,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           </div>
         </Card>
       </div>
-    </PageShell>
+    </div>
+  </PageShell>
   );
 }

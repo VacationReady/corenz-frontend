@@ -100,11 +100,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
-  // ✅ Retrieve public URL after upload
-  const { data: urlData } = supabase.storage
+  const { data: signed, error: signErr } = await supabase.storage
     .from("documents")
-    .getPublicUrl(path);
-  const fileUrl = urlData.publicUrl;
+    .createSignedUrl(path, 60 * 5);
+  if (signErr) {
+    return NextResponse.json({ error: signErr.message }, { status: 500 });
+  }
+  const fileUrl = signed?.signedUrl ?? null;
 
   // ✅ Create document record in Prisma with access flags
   const document = await prisma.document.create({
@@ -112,7 +114,7 @@ export async function POST(req: NextRequest) {
       name,
       category,
       path,
-      url: fileUrl,
+      url: path,
       size: file.size,
       type: file.type,
       uploaderId: uploaderId,
@@ -172,7 +174,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     document: {
       id: document.id,
-      url: document.url,
+      url: fileUrl,
       name: document.name,
       category: document.category,
       size: document.size,

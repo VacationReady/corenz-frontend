@@ -24,6 +24,7 @@ export async function PATCH(
   const file = formData.get("file") as File | null;
 
   let documentUrl: string | undefined = undefined;
+  let signedUrl: string | undefined = undefined;
 
   if (file) {
     const fileExt = file.name.split(".").pop();
@@ -37,10 +38,11 @@ export async function PATCH(
       console.error(error);
       return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }
-    const { data: urlData } = supabase.storage
+    documentUrl = data.path;
+    const { data: signed } = await supabase.storage
       .from("documents")
-      .getPublicUrl(data.path);
-    documentUrl = urlData.publicUrl;
+      .createSignedUrl(data.path, 60 * 5);
+    signedUrl = signed?.signedUrl;
   }
 
   const updated = await prisma.employmentCheck.update({
@@ -54,5 +56,12 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json(updated);
+  if (!signedUrl && updated.documentUrl) {
+    const { data: signedExisting } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(updated.documentUrl, 60 * 5);
+    signedUrl = signedExisting?.signedUrl;
+  }
+
+  return NextResponse.json({ ...updated, documentUrl: signedUrl ?? null });
 }

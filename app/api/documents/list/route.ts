@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import supabase from "@/lib/supabase-admin";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -51,13 +52,15 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // ✅ Include requiresAck explicitly
-    return NextResponse.json(
-      adminDocs.map((doc) => ({
-        ...doc,
-        requiresAck: doc.requiresAck,
-      })),
+    const withUrls = await Promise.all(
+      adminDocs.map(async (doc) => {
+        const { data: signed } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(doc.path, 60 * 5);
+        return { ...doc, url: signed?.signedUrl ?? null, requiresAck: doc.requiresAck };
+      }),
     );
+    return NextResponse.json(withUrls);
   }
 
   // ✅ Role flag - fallback to basic access if no admin permissions
@@ -96,11 +99,13 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  // ✅ Include requiresAck explicitly
-  return NextResponse.json(
-    documents.map((doc) => ({
-      ...doc,
-      requiresAck: doc.requiresAck,
-    })),
+  const withUrls = await Promise.all(
+    documents.map(async (doc) => {
+      const { data: signed } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(doc.path, 60 * 5);
+      return { ...doc, url: signed?.signedUrl ?? null, requiresAck: doc.requiresAck };
+    }),
   );
+  return NextResponse.json(withUrls);
 }

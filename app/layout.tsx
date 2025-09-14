@@ -6,6 +6,8 @@ import { Toaster } from "sonner";
 import { SessionProvider } from "next-auth/react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ChunkErrorHandler from "./components/ChunkErrorHandler";
+import React from "react";
+import { CommandPaletteMount } from "./components/CommandPaletteMount";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -36,6 +38,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             },
           }}
         />
+
+        {/* Command Palette (Cmd/Ctrl+K) */}
+        <CommandPaletteMount />
       </body>
     </html>
   );

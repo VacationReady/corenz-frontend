@@ -28,6 +28,12 @@ interface FilterBarProps {
   sortOptions?: FilterOption[];
   className?: string;
   onExport?: () => void;
+  showChips?: boolean;
+  savedViewsEnabled?: boolean;
+  savedViews?: Array<{ id: string; name: string; filters: Partial<ReturnType<typeof useFilters>["filters"]> }>;
+  onSaveView?: (name: string, filters: ReturnType<typeof useFilters>["filters"]) => void;
+  onSelectView?: (viewId: string) => void;
+  onDeleteView?: (viewId: string) => void;
 }
 
 export function FilterBar({
@@ -41,6 +47,12 @@ export function FilterBar({
   sortOptions = [],
   className,
   onExport,
+  showChips = true,
+  savedViewsEnabled = false,
+  savedViews = [],
+  onSaveView,
+  onSelectView,
+  onDeleteView,
 }: FilterBarProps) {
   const { filters, updateFilter, clearFilters, isFiltered } = useFilters();
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -128,6 +140,45 @@ export function FilterBar({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {savedViewsEnabled && (
+            <>
+              {savedViews.length > 0 && (
+                <Select
+                  value={""}
+                  onValueChange={(value) => {
+                    if (value.startsWith("delete:")) {
+                      const id = value.replace("delete:", "");
+                      onDeleteView?.(id);
+                    } else {
+                      onSelectView?.(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Saved views" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedViews.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const name = typeof window !== "undefined" ? window.prompt("Save current view as:") : "";
+                  if (name) {
+                    onSaveView?.(name, filters);
+                  }
+                }}
+              >
+                Save view
+              </Button>
+            </>
+          )}
+
           {hasAdvancedFilters && (
             <Button
               variant="outline"
@@ -164,6 +215,114 @@ export function FilterBar({
           )}
         </div>
       </div>
+
+      {/* Filter Chips */}
+      {showChips && (
+        <div className="flex flex-wrap gap-2">
+          {/* Search Chip */}
+          {filters.search && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-full px-3"
+              onClick={() => updateFilter("search", "")}
+            >
+              Search: "{filters.search}" <span className="ml-2">×</span>
+            </Button>
+          )}
+
+          {/* Array filter chips per item */}
+          {filters.departments.map((val) => {
+            const label = departmentOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`dept-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() => updateFilter("departments", filters.departments.filter((v) => v !== val))}
+              >
+                Department: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+
+          {filters.jobRoles.map((val) => {
+            const label = jobRoleOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`job-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() => updateFilter("jobRoles", filters.jobRoles.filter((v) => v !== val))}
+              >
+                Job: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+
+          {filters.status.map((val) => {
+            const label = statusOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`status-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() => updateFilter("status", filters.status.filter((v) => v !== val))}
+              >
+                Status: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+
+          {filters.documentTypes.map((val) => {
+            const label = documentTypeOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`doctype-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() => updateFilter("documentTypes", filters.documentTypes.filter((v) => v !== val))}
+              >
+                Doc: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+
+          {filters.authors.map((val) => {
+            const label = authorOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`author-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() => updateFilter("authors", filters.authors.filter((v) => v !== val))}
+              >
+                Author: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+
+          {filters.categories.map((val) => {
+            const label = categoryOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`cat-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() => updateFilter("categories", filters.categories.filter((v) => v !== val))}
+              >
+                Category: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Advanced Filters */}
       {showAdvanced && hasAdvancedFilters && (

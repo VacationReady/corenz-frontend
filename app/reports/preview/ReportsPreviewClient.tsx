@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { DataTable } from "@/components/ui/data-table";
+import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
 import Papa from "papaparse";
 
@@ -50,6 +51,7 @@ export default function ReportsPreviewClient() {
   console.log("🔍 reportIdParam:", reportIdParam);
 
   const [data, setData] = useState<any[]>([]);
+  const [filteredData, setFilteredData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
 
@@ -109,6 +111,7 @@ export default function ReportsPreviewClient() {
         console.log("🔥 Raw results:", results);
 
         setData([...results]);
+        setFilteredData([...results]); // Initialize filtered data
       } catch (error) {
         console.error("❌ Error fetching report data:", error);
       } finally {
@@ -223,10 +226,16 @@ export default function ReportsPreviewClient() {
         needed.
       </p>
       <div className="flex gap-2 mb-4">
-        <Button onClick={() => downloadCSV(data, columns)}>Download CSV</Button>
+        <Button onClick={() => downloadCSV(filteredData, columns)}>
+          Download CSV ({filteredData.length} rows)
+        </Button>
         <Button onClick={handleSaveReport}>Save Report</Button>
       </div>
-      <DataTable columns={columns} data={data} />
+      <FilterableDataTable 
+        columns={columns} 
+        data={data} 
+        onFilteredDataChange={setFilteredData}
+      />
     </main>
   );
 }

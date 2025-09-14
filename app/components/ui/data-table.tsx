@@ -10,7 +10,7 @@ import {
   ColumnFiltersState,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { Input } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 
@@ -19,7 +19,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   enableRowSelection?: boolean;
   getRowId?: (row: TData, index: number) => string;
-  selectionActionBar?: (selectedRows: TData[]) => React.ReactNode;
+  selectionActionBar?: (selectedRows: TData[]) => ReactNode;
   onSelectionChange?: (selectedRows: TData[]) => void;
 }
 
@@ -89,7 +89,7 @@ export function DataTable<TData, TValue>({
   const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original as TData);
 
   // Notify consumer when selection changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (onSelectionChange) onSelectionChange(selectedRows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(table.getState().rowSelection)]);

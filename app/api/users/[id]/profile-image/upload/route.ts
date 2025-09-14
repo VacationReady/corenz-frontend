@@ -34,18 +34,11 @@ export async function POST(
     if (uploadError)
       return NextResponse.json({ error: uploadError.message }, { status: 400 });
 
-    const { data: signed, error: signErr } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(objectPath, 60 * 5);
-    if (signErr)
-      return NextResponse.json({ error: signErr.message }, { status: 500 });
-
     await prisma.user.update({
       where: { id: userId },
       data: { profileImageUrl: objectPath },
     });
-
-    return NextResponse.json({ url: signed?.signedUrl ?? null, path: objectPath });
+    return NextResponse.json({ path: objectPath });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || "Server error" },

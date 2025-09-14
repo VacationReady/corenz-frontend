@@ -48,7 +48,7 @@ export async function sendLeaveStatusUpdate({
     `;
 
     const data = await resend.emails.send({
-      from: "PeopleCore Notifications <onboarding@resend.dev>",
+      from: "PeopleCore Notifications <noreply@peoplecore.co.nz>",
       to,
       subject,
       html,

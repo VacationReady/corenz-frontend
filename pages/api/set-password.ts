@@ -88,7 +88,7 @@ export default async function handler(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "onboarding@resend.dev",
+            from: "noreply@peoplecore.co.nz",
             to: recipients,
             subject: "User activated their account",
             html: `<p>${user.firstName || ""} ${user.lastName || ""} (${user.email}) has activated their account.</p>`,

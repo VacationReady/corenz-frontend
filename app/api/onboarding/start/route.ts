@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
         const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
         const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
         await resend.emails.send({
-          from: "PeopleCore Notifications <onboarding@resend.dev>",
+          from: "PeopleCore Notifications <noreply@peoplecore.co.nz>",
           to: user.email,
           subject: "Welcome to PeopleCore – Your onboarding is ready",
           html: `

@@ -12,6 +12,8 @@ export default function NewReportBuilderPage() {
 
   const handleCreateReport = async (config: ReportConfig) => {
     try {
+      console.log("🚀 Saving report with config:", config);
+      
       // Save the report configuration
       const response = await fetch("/api/reports/save", {
         method: "POST",
@@ -28,17 +30,26 @@ export default function NewReportBuilderPage() {
         }),
       });
 
-      if (response.ok) {
-        const savedReport = await response.json();
+      const result = await response.json();
+      console.log("📄 Save response:", result);
+
+      if (response.ok && result.success) {
+        console.log("✅ Report saved successfully, navigating to preview");
         // Navigate to the preview page with the saved report
-        router.push(`/reports/preview?reportId=${savedReport.id}`);
+        const reportId = result.id || result.data?.id;
+        if (reportId) {
+          router.push(`/reports/preview?reportId=${reportId}`);
+        } else {
+          // Fallback to field-based preview
+          router.push(`/reports/preview?fields=${config.selectedFields.join(",")}`);
+        }
       } else {
-        console.error("Failed to save report");
-        // Handle error - show toast or modal
+        console.error("❌ Failed to save report:", result.error || "Unknown error");
+        alert(`Failed to save report: ${result.error || result.details || "Unknown error"}`);
       }
     } catch (error) {
-      console.error("Error saving report:", error);
-      // Handle error - show toast or modal
+      console.error("💥 Error saving report:", error);
+      alert(`Error saving report: ${error instanceof Error ? error.message : "Network error"}`);
     }
     
     setShowWizard(false);

@@ -10,7 +10,7 @@ const resend = new Resend(apiKey);
 async function testSend() {
   try {
     const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "noreply@peoplecore.co.nz",
       to: "michael.dowdle@hotmail.com",
       subject: "✅ Resend Test Email",
       html: "<strong>This is a Resend test email.</strong>",

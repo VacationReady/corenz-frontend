@@ -107,7 +107,7 @@ async function processCompany(companyId: string) {
 
       for (const recipient of recipients) {
         await resend.emails.send({
-          from: "onboarding@resend.dev",
+          from: "noreply@peoplecore.co.nz",
           to: recipient,
           subject: `Expiry Alert: ${item.type} for ${employeeName}`,
           html: `

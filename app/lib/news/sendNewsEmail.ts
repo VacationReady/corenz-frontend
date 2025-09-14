@@ -17,7 +17,7 @@ export async function sendNewsEmail({
 
   try {
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "noreply@peoplecore.co.nz",
       to: recipients,
       subject: "New News Post",
       html: `

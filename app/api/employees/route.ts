@@ -286,7 +286,7 @@ export async function POST(req: Request) {
 
     if (sendInviteNow) {
       await resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "noreply@peoplecore.co.nz",
         to: email,
         subject: "Activate Your PeopleCore Account",
         html: `

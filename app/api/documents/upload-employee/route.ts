@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "onboarding@resend.dev",
+            from: "noreply@peoplecore.co.nz",
             to: user.email,
             subject: "New Document Requires Your Acknowledgement",
             html: `

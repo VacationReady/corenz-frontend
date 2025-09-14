@@ -135,7 +135,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
 
     // ✅ Batch send logic
     const batchRecipients = users.map((user) => ({
-      from: "onboarding@resend.dev",
+      from: "noreply@peoplecore.co.nz",
       to: user.email,
       subject: `New News Post: ${title}`,
       html: `
@@ -161,7 +161,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
     for (const user of users) {
       console.log(`📨 Sending Resend email to ${user.email}`)
       await resend.emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'noreply@peoplecore.co.nz',
         to: user.email,
         subject: `New News Post: ${title}`,
         html: `

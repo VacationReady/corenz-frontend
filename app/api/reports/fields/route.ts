@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { reportFields } from "@/lib/reportFields";
+import { hrReportFields } from "@/lib/hrReportFields";
 
 export async function GET() {
-  return NextResponse.json(reportFields);
+  // Return only HR-curated fields
+  return NextResponse.json(hrReportFields);
 }

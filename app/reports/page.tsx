@@ -70,9 +70,17 @@ export default function ReportsPage() {
       icon={<FileText className="w-6 h-6" />}
       breadcrumbs={breadcrumbs}
       action={
-        <Button onClick={() => router.push("/reports/builder")}>
-          + Create Report
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => router.push("/reports/builder-new")}>
+            + New Report Builder
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => router.push("/reports/builder")}
+          >
+            Legacy Builder
+          </Button>
+        </div>
       }
     >
       {reports.length === 0 ? (
@@ -80,7 +88,7 @@ export default function ReportsPage() {
           <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <p className="text-lg font-medium text-foreground mb-2">No saved reports found</p>
           <p className="text-muted-foreground mb-6">Create your first report to get started</p>
-          <Button onClick={() => router.push("/reports/builder")}>
+          <Button onClick={() => router.push("/reports/builder-new")}>
             Create Report
           </Button>
         </div>

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { reportFields } from "@/lib/reportFields";
+import { hrReportFields } from "@/lib/hrReportFields";
 
 export async function POST(req: Request) {
   try {
@@ -27,8 +27,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Restrict selectedFields to allowed reportFields list
-    const allowedFieldSet = new Set(reportFields.map((f) => f.field));
+    // Restrict selectedFields to allowed hrReportFields list
+    const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));
     const sanitizedSelectedFields = (selectedFields as string[]).filter((f) =>
       allowedFieldSet.has(f),
     );

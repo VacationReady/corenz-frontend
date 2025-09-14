@@ -186,11 +186,28 @@ export default function ReportsPreviewClient() {
 
   const columns = selectedFields.map((field) => {
     const keys = field.split(".");
-    const flatKey = keys[1] || keys[0];
+    
+    // Handle nested field access like User.department.name
+    let accessorKey: string;
+    let header: string;
+    
+    if (keys.length === 3) {
+      // For fields like "User.department.name"
+      accessorKey = `${keys[1]}.${keys[2]}`;
+      header = keys[2];
+    } else if (keys.length === 2) {
+      // For fields like "User.firstName"
+      accessorKey = keys[1];
+      header = keys[1];
+    } else {
+      // Fallback
+      accessorKey = keys[keys.length - 1];
+      header = keys[keys.length - 1];
+    }
 
     return {
-      header: flatKey,
-      accessorKey: flatKey, // ✅ simpler, faster, and works
+      header: header.charAt(0).toUpperCase() + header.slice(1), // Capitalize first letter
+      accessorKey,
     };
   });
 

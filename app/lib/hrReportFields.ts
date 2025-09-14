@@ -137,25 +137,23 @@ export const hrReportFields: HRReportField[] = [
     description: "Whether the employee is currently active",
   },
   {
-    model: "Department",
-    field: "Department.name",
+    model: "User",
+    field: "User.department.name",
     label: "Department",
     type: "string",
     category: "employment",
     filterable: true,
     sortable: true,
-    join: "User.departmentId = Department.id",
     description: "Employee's department",
   },
   {
-    model: "JobRole",
-    field: "JobRole.name",
+    model: "User",
+    field: "User.jobRole.name",
     label: "Job Role",
     type: "string",
     category: "employment",
     filterable: true,
     sortable: true,
-    join: "User.jobRoleId = JobRole.id",
     description: "Employee's job role/title",
   },
   {
@@ -400,8 +398,8 @@ export const hrReportTemplates: ReportTemplate[] = [
       "User.lastName", 
       "User.email",
       "User.phone",
-      "Department.name",
-      "JobRole.name",
+      "User.department.name",
+      "User.jobRole.name",
       "Employee.isActive"
     ],
     suggestedFilters: [
@@ -417,7 +415,7 @@ export const hrReportTemplates: ReportTemplate[] = [
     defaultFields: [
       "User.firstName",
       "User.lastName",
-      "Department.name",
+      "User.department.name",
       "LeaveEntitlement.totalDays",
       "LeaveEntitlement.usedDays",
       "LeaveEntitlement.carryoverDays"
@@ -460,10 +458,10 @@ export const hrReportTemplates: ReportTemplate[] = [
     category: "employment",
     icon: "🏢",
     defaultFields: [
-      "Department.name",
+      "User.department.name",
       "User.firstName",
       "User.lastName",
-      "JobRole.name",
+      "User.jobRole.name",
       "Employee.isActive",
       "WorkingPattern.name"
     ],

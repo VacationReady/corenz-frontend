@@ -22,6 +22,7 @@ function buildSelect(selectedFields: string[]) {
     }
   }
 
+  console.log("🔍 Built select object:", JSON.stringify(select, null, 2));
   return select;
 }
 
@@ -77,6 +78,7 @@ function groupFieldsByModel(selectedFields: string[]) {
     modelMap[model].push(actualField);
   }
 
+  console.log("🔍 Grouped fields by model:", modelMap);
   return modelMap;
 }
 

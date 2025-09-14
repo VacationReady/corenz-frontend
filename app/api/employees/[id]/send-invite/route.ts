@@ -41,7 +41,7 @@ export async function POST(
     const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
 
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "noreply@peoplecore.co.nz",
       to: employee.user.email,
       subject: "Activate Your PeopleCore Account",
       html: `

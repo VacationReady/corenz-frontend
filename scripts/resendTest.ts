@@ -1,11 +1,16 @@
 import { Resend } from "resend";
 
-const resend = new Resend("re_Gic3qrtA_6KuAigMGZ8h2YGKZfMHAoG8E");
+const apiKey = process.env.RESEND_API_KEY;
+if (!apiKey) {
+  throw new Error("RESEND_API_KEY environment variable is not set");
+}
+
+const resend = new Resend(apiKey);
 
 async function testSend() {
   try {
     const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "noreply@peoplecore.co.nz",
       to: "michael.dowdle@hotmail.com",
       subject: "✅ Resend Test Email",
       html: "<strong>This is a Resend test email.</strong>",

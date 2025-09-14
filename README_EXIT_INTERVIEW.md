@@ -126,7 +126,7 @@ Add these to your `.env.local`:
 ```bash
 # Email Configuration
 RESEND_API_KEY=your_resend_api_key
-FROM_EMAIL=noreply@yourcompany.com
+FROM_EMAIL=noreply@peoplecore.co.nz
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app

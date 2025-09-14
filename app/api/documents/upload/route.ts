@@ -69,14 +69,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Generate public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: signedUrlData, error: signErr } = await supabase.storage
       .from("documents")
-      .getPublicUrl(data.path);
-    const publicUrl = publicUrlData?.publicUrl;
-    if (!publicUrl) {
+      .createSignedUrl(data.path, 60 * 5);
+    if (signErr) {
       return NextResponse.json(
-        { error: "Failed to generate public URL" },
+        { error: signErr.message },
         { status: 500 },
       );
     }
@@ -89,7 +87,7 @@ export async function POST(req: Request) {
         path: data.path,
         size: file.size,
         type: file.type,
-        url: publicUrl,
+        url: data.path,
         uploaderId: session.user.id,
         companyId: session.user.companyId,
         employeeId: type === "employee" && employeeId ? employeeId : null,
@@ -243,7 +241,10 @@ export async function POST(req: Request) {
     // --- END: Send Resend emails for company docs with requiresAck ---
 
     console.log("✅ Document uploaded:", document);
-    return NextResponse.json(document);
+    return NextResponse.json({
+      ...document,
+      url: signedUrlData?.signedUrl ?? null,
+    });
   } catch (error) {
     console.error("❌ Document upload error:", error);
     return NextResponse.json(

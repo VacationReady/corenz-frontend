@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
   let documentSize: number | null = null;
   let documentType: string | null = null;
   let documentPath: string | null = null;
+  let documentSignedUrl: string | null = null;
 
   try {
     if (file) {
@@ -48,14 +49,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Upload failed" }, { status: 500 });
       }
 
-      const { data: urlData } = supabase.storage
-        .from("documents")
-        .getPublicUrl(data.path);
-      documentUrl = urlData.publicUrl;
+      documentUrl = data.path;
       documentName = file.name;
       documentSize = file.size;
       documentType = file.type;
       documentPath = data.path;
+
+      const { data: signed } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(data.path, 60 * 5);
+      documentSignedUrl = signed?.signedUrl ?? null;
     }
 
     const employmentCheck = await prisma.employmentCheck.create({
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
         data: {
           name: documentName,
           path: documentPath,
-          url: documentUrl,
+          url: documentPath,
           size: documentSize ?? 0,
           type: documentType ?? "",
           category: "Employment Checks",
@@ -86,7 +89,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(employmentCheck);
+    return NextResponse.json({
+      ...employmentCheck,
+      documentUrl: documentSignedUrl,
+    });
   } catch (error) {
     console.error("Employment Check creation error:", error);
     return NextResponse.json(

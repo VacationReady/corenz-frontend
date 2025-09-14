@@ -16,16 +16,16 @@ export async function uploadFileToSupabase(file: File) {
 
   if (error) throw new Error(error.message);
 
-  const publicUrlResponse = supabase.storage
+  const { data: signed, error: signErr } = await supabase.storage
     .from("documents")
-    .getPublicUrl(filePath);
+    .createSignedUrl(filePath, 60 * 5);
 
-  if (!publicUrlResponse.data?.publicUrl) {
-    throw new Error("Failed to get public URL from Supabase");
+  if (signErr || !signed?.signedUrl) {
+    throw new Error("Failed to get signed URL from Supabase");
   }
 
   return {
-    url: publicUrlResponse.data.publicUrl,
+    url: signed.signedUrl,
     path: filePath,
   };
 }

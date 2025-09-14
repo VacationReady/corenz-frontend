@@ -34,28 +34,18 @@ export async function POST(
     if (uploadError)
       return NextResponse.json({ error: uploadError.message }, { status: 400 });
 
-    // Try public URL first
-    const { data: pub } = supabase.storage
+    const { data: signed, error: signErr } = await supabase.storage
       .from("documents")
-      .getPublicUrl(objectPath);
-    let url = pub?.publicUrl;
-
-    // If not public, create a long-lived signed URL
-    if (!url) {
-      const { data: signed, error: signErr } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(objectPath, 60 * 60 * 24 * 365 * 10); // ~10 years
-      if (signErr)
-        return NextResponse.json({ error: signErr.message }, { status: 500 });
-      url = signed?.signedUrl;
-    }
+      .createSignedUrl(objectPath, 60 * 5);
+    if (signErr)
+      return NextResponse.json({ error: signErr.message }, { status: 500 });
 
     await prisma.user.update({
       where: { id: userId },
-      data: { profileImageUrl: url || null },
+      data: { profileImageUrl: objectPath },
     });
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url: signed?.signedUrl ?? null, path: objectPath });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || "Server error" },

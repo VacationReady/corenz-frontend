@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const department = searchParams.get("department");
   const departmentId = searchParams.get("departmentId");
@@ -13,6 +20,7 @@ export async function GET(req: Request) {
   try {
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
+        companyId: session.user.companyId,
         approvalStatus: "APPROVED",
         employee: {
           ...(department ? { department: { name: department } } : {}),

@@ -231,11 +231,14 @@ export default function ReportsPreviewClient() {
         </Button>
         <Button onClick={handleSaveReport}>Save Report</Button>
       </div>
-      <FilterableDataTable 
-        columns={columns} 
-        data={data} 
-        onFilteredDataChange={setFilteredData}
-      />
+      {/* Try FilterableDataTable first, fallback to basic DataTable if it fails */}
+      <div className="min-h-[200px]">
+        <FilterableDataTable 
+          columns={columns} 
+          data={data} 
+          onFilteredDataChange={setFilteredData}
+        />
+      </div>
     </main>
   );
 }

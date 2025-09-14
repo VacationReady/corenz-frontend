@@ -19,10 +19,49 @@ interface ColumnFilter {
   [columnKey: string]: string[];
 }
 
+// Helper function to get nested values (e.g., department.name)
+const getNestedValue = (obj: any, path: string): any => {
+  return path.split('.').reduce((current, key) => {
+    return current && current[key] !== undefined ? current[key] : null;
+  }, obj);
+};
+
 export default function FilterableDataTable({ columns, data, onFilteredDataChange }: FilterableDataTableProps) {
   const [columnFilters, setColumnFilters] = useState<ColumnFilter>({});
   const [openFilters, setOpenFilters] = useState<Set<string>>(new Set());
+  const [hasError, setHasError] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = () => setHasError(true);
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  // Reset error state when data changes
+  useEffect(() => {
+    setHasError(false);
+  }, [data, columns]);
+
+  // Simple fallback if there's an error
+  if (hasError || !columns || !data) {
+    return (
+      <div className="border border-gray-200 rounded-lg p-8 text-center">
+        <p className="text-gray-500 mb-4">
+          {hasError ? "Something went wrong with the table filters." : "Loading table..."}
+        </p>
+        {hasError && (
+          <button 
+            onClick={() => setHasError(false)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -40,15 +79,23 @@ export default function FilterableDataTable({ columns, data, onFilteredDataChang
 
   // Get unique values for each column
   const columnValues = useMemo(() => {
+    if (!columns || !data || data.length === 0) {
+      return {};
+    }
+
     const values: Record<string, string[]> = {};
     
     columns.forEach(column => {
       const uniqueValues = new Set<string>();
       
       data.forEach(row => {
-        const value = getNestedValue(row, column.accessorKey);
-        if (value !== null && value !== undefined && value !== '') {
-          uniqueValues.add(String(value));
+        try {
+          const value = getNestedValue(row, column.accessorKey);
+          if (value !== null && value !== undefined && value !== '') {
+            uniqueValues.add(String(value));
+          }
+        } catch (error) {
+          console.warn(`Error accessing ${column.accessorKey}:`, error);
         }
       });
       
@@ -58,15 +105,12 @@ export default function FilterableDataTable({ columns, data, onFilteredDataChang
     return values;
   }, [columns, data]);
 
-  // Helper function to get nested values (e.g., department.name)
-  const getNestedValue = (obj: any, path: string): any => {
-    return path.split('.').reduce((current, key) => {
-      return current && current[key] !== undefined ? current[key] : null;
-    }, obj);
-  };
-
   // Filter the data based on active column filters
   const filteredData = useMemo(() => {
+    if (!data || data.length === 0) {
+      return [];
+    }
+
     let result;
     if (Object.keys(columnFilters).length === 0) {
       result = data;
@@ -75,19 +119,26 @@ export default function FilterableDataTable({ columns, data, onFilteredDataChang
         return Object.entries(columnFilters).every(([columnKey, selectedValues]) => {
           if (selectedValues.length === 0) return true;
           
-          const rowValue = getNestedValue(row, columnKey);
-          return selectedValues.includes(String(rowValue));
+          try {
+            const rowValue = getNestedValue(row, columnKey);
+            return selectedValues.includes(String(rowValue));
+          } catch (error) {
+            console.warn(`Error filtering ${columnKey}:`, error);
+            return false;
+          }
         });
       });
     }
     
-    // Notify parent component of filtered data changes
-    if (onFilteredDataChange) {
-      onFilteredDataChange(result);
-    }
-    
     return result;
-  }, [data, columnFilters, onFilteredDataChange]);
+  }, [data, columnFilters]);
+
+  // Notify parent component of filtered data changes
+  useEffect(() => {
+    if (onFilteredDataChange && filteredData) {
+      onFilteredDataChange(filteredData);
+    }
+  }, [filteredData, onFilteredDataChange]);
 
   const toggleFilter = (columnKey: string) => {
     setOpenFilters(prev => {

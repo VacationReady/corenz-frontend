@@ -232,7 +232,8 @@ export default function CalendarPage() {
         title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
         start: b.date,
         allDay: true,
-        backgroundColor: "#f87171",
+        display: "background",
+        backgroundColor: "#fecaca",
         borderColor: "#ef4444",
         extendedProps: {
           isBlackout: true,

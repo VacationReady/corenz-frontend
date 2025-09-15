@@ -1,4 +1,4 @@
-// Simple in-memory rate limiter with optional Vercel KV backing.
+// Simple in-memory rate limiter with optional KV backing via REST calls.
 // Returns true if the provided key has exceeded the rate limit.
 
 export interface RateLimitOptions {
@@ -14,29 +14,39 @@ interface Entry {
 }
 
 const memoryStore = new Map<string, Entry>();
-let kvClient:
-  | {
-      incr(key: string): Promise<number>;
-      expire(key: string, ttl: number): Promise<void>;
-    }
-  | null = null;
+interface KVClient {
+  incr(key: string): Promise<number>;
+  expire(key: string, ttl: number): Promise<void>;
+}
 
-async function getKV() {
+let kvClient: KVClient | null = null;
+
+async function getKV(): Promise<KVClient | null> {
   if (kvClient) return kvClient;
 
-  const url =
+  const baseUrl =
     process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token =
     process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  if (!baseUrl || !token) return null;
 
-  try {
-    // @ts-ignore - optional dependency
-    const { createClient } = await import("@vercel/kv");
-    kvClient = createClient({ url, token });
-  } catch {
-    kvClient = null;
-  }
+  const headers = { Authorization: `Bearer ${token}` };
+  const fetchJson = async (path: string) => {
+    const res = await fetch(`${baseUrl}/${path}`, { headers, cache: "no-store" });
+    if (!res.ok) throw new Error("KV request failed");
+    return res.json();
+  };
+
+  kvClient = {
+    async incr(key: string) {
+      const data = await fetchJson(`incr/${encodeURIComponent(key)}`);
+      return typeof data.result === "number" ? data.result : parseInt(data.result, 10);
+    },
+    async expire(key: string, ttl: number) {
+      await fetchJson(`expire/${encodeURIComponent(key)}/${ttl}`);
+    },
+  };
+
   return kvClient;
 }
 

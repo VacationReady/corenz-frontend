@@ -34,5 +34,5 @@ To keep APIs responsive in a multi-tenant environment:
 - Set `RATE_LIMIT_MAX` and `RATE_LIMIT_WINDOW_MS` in your environment.
 - To share limits across Vercel instances, add `KV_REST_API_URL` and `KV_REST_API_TOKEN` (or Upstash equivalents).
 - Send an `x-company-id` header with each request so limits are tracked per tenant.
-- Restart the server after changing these variables or installing `@vercel/kv`.
+- Restart the server after changing these variables.
 

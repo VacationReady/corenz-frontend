@@ -44,6 +44,7 @@ export default function CalendarPage() {
   const [presentCategories, setPresentCategories] = useState<string[]>([]);
   const [leaveEventsInRange, setLeaveEventsInRange] = useState<any[]>([]);
   const [inspectorDate, setInspectorDate] = useState<Date | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [bankHolidaysOn, setBankHolidaysOn] = useState(false);
   const bankHolidayCacheRef = useRef<any | null>(null);
   const router = useRouter();
@@ -312,6 +313,16 @@ export default function CalendarPage() {
       el.style.position = el.style.position || 'relative';
       el.appendChild(ring);
     }
+
+    // Selected day highlight (soft yellow)
+    const prevSelect = el.querySelector('.selected-day-ring');
+    if (prevSelect && prevSelect.parentElement) prevSelect.parentElement.removeChild(prevSelect);
+    if (selectedDay && selectedDay.toDateString() === d.toDateString()) {
+      const sel = document.createElement('div');
+      sel.className = 'selected-day-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-yellow-300 bg-yellow-50/40';
+      el.style.position = el.style.position || 'relative';
+      el.appendChild(sel);
+    }
   };
 
   const renderEventContent = (content: EventContentArg) => {
@@ -454,25 +465,32 @@ export default function CalendarPage() {
             >
               <List className="h-4 w-4 mr-2" /> List
             </Button>
+            <div className="ml-2 text-sm text-gray-700 font-medium">
+              {(() => {
+                const api = calendarRef.current?.getApi();
+                const date = api?.getDate ? api.getDate() : new Date();
+                return date.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+              })()}
+            </div>
             <div className="ml-2 flex items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => calendarRef.current?.getApi().today()}
+                onClick={() => { calendarRef.current?.getApi().today(); setRefreshTrigger((p)=>!p);} }
               >
                 Today
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => calendarRef.current?.getApi().prev()}
+                onClick={() => { calendarRef.current?.getApi().prev(); setRefreshTrigger((p)=>!p);} }
               >
                 Prev
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => calendarRef.current?.getApi().next()}
+                onClick={() => { calendarRef.current?.getApi().next(); setRefreshTrigger((p)=>!p);} }
               >
                 Next
               </Button>
@@ -543,6 +561,9 @@ export default function CalendarPage() {
               ]}
               dateClick={(arg) => {
                 setInspectorDate(arg.date);
+                setSelectedDay(arg.date);
+                // Force re-render day cells to show selection highlight
+                setRefreshTrigger((prev) => !prev);
               }}
               eventClick={handleEventClick}
               eventContent={renderEventContent}

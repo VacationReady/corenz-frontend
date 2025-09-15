@@ -71,8 +71,8 @@ model User {
   personalInfoAuditsChangedBy PersonalInfoAudit[] @relation("PersonalInfoAuditChangedBy")
 
   // New HR product feature relations
-  automationRulesCreated      AutomationRule[]    @relation("AutomationRuleCreator")
-  globalAuditLogsAsActor      GlobalAuditLog[]    @relation("GlobalAuditLogActor")
+  automationRulesCreated AutomationRule[] @relation("AutomationRuleCreator")
+  globalAuditLogsAsActor GlobalAuditLog[] @relation("GlobalAuditLogActor")
 
   // Gender option relation
   genderOption GenderOption? @relation(fields: [genderOptionId], references: [id])
@@ -96,9 +96,9 @@ model ActivationToken {
 }
 
 model Employee {
-  id                   String  @id @default(cuid())
-  userId               String  @unique
-  isActive             Boolean @default(true)
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  isActive             Boolean   @default(true)
   workingPatternId     String?
   departmentId         String?
   jobRoleId            String?
@@ -146,12 +146,12 @@ model Employee {
   employmentType        String?
   contractType          String?
   siteLocation          String?
-  salaryAmount          Decimal?  @db.Decimal(10, 2)
-  hourlyRate            Decimal?  @db.Decimal(10, 2)
+  salaryAmount          Decimal? @db.Decimal(10, 2)
+  hourlyRate            Decimal? @db.Decimal(10, 2)
 }
 
 model EmergencyContact {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   employeeId   String
   name         String
   relationship String?
@@ -177,23 +177,23 @@ model EmployeeWorkingPatternAssignment {
 }
 
 model EventCategory {
-  id               String             @id @default(cuid())
-  name             String
-  requiresApproval Boolean
-  adminOnly        Boolean
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  categoryType     String
-  color            String?
-  systemDefined    Boolean            @default(false)
-  companyId        String
-  company          Company            @relation(fields: [companyId], references: [id])
-  eventRules       EventRule[]
-  subcategories    EventSubcategory[]
-  LeaveEntitlement LeaveEntitlement[]
-  leaveRequests    LeaveRequest[]
-  leavePolicies    LeavePolicy[]
+  id                 String              @id @default(cuid())
+  name               String
+  requiresApproval   Boolean
+  adminOnly          Boolean
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  categoryType       String
+  color              String?
+  systemDefined      Boolean             @default(false)
+  companyId          String
+  company            Company             @relation(fields: [companyId], references: [id])
+  eventRules         EventRule[]
+  subcategories      EventSubcategory[]
+  LeaveEntitlement   LeaveEntitlement[]
+  leaveRequests      LeaveRequest[]
+  leavePolicies      LeavePolicy[]
   eventRuleOverrides EventRuleOverride[]
 
   @@unique([companyId, name])
@@ -280,12 +280,12 @@ model Department {
 }
 
 model Company {
-  id                     String               @id @default(cuid())
-  name                   String               @unique
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  id                     String                  @id @default(cuid())
+  name                   String                  @unique
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
   address                String?
-  code                   String?              @unique
+  code                   String?                 @unique
   industry               String?
   phone                  String?
   size                   Int?
@@ -301,33 +301,34 @@ model Company {
   permissionProfiles     PermissionProfile[]
   genderOptions          GenderOption[]
   workingPatterns        WorkingPattern[]
+  locations              Location[]
   eventCategories        EventCategory[]
   eventSubcategories     EventSubcategory[]
   leaveRequests          LeaveRequest[]
   leaveEntitlements      LeaveEntitlement[]
   leavePolicies          LeavePolicy[]
   leavePolicyAssignments LeavePolicyAssignment[]
-  
+
   // New HR product feature relations
-  automationRules        AutomationRule[]
-  automationExecutions   AutomationExecution[]
-  automationJobs         AutomationJob[]
-  eventRuleOverrides     EventRuleOverride[]
-  globalAuditLogs        GlobalAuditLog[]
-  notificationChannels   NotificationChannel[]
-  notificationSettings   NotificationSettings?
-  ssoConfiguration       SSOConfiguration?
-  scimConfiguration      SCIMConfiguration?
-  brandingConfiguration  BrandingConfiguration?
+  automationRules       AutomationRule[]
+  automationExecutions  AutomationExecution[]
+  automationJobs        AutomationJob[]
+  eventRuleOverrides    EventRuleOverride[]
+  globalAuditLogs       GlobalAuditLog[]
+  notificationChannels  NotificationChannel[]
+  notificationSettings  NotificationSettings?
+  ssoConfiguration      SSOConfiguration?
+  scimConfiguration     SCIMConfiguration?
+  brandingConfiguration BrandingConfiguration?
   employmentTypeOptions EmploymentTypeOption[]
   contractTypeOptions   ContractTypeOption[]
 }
 
 model EmploymentTypeOption {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   companyId String
   label     String
-  order     Int      @default(0)
+  order     Int    @default(0)
 
   company Company @relation(fields: [companyId], references: [id])
 
@@ -336,10 +337,10 @@ model EmploymentTypeOption {
 }
 
 model ContractTypeOption {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   companyId String
   label     String
-  order     Int      @default(0)
+  order     Int    @default(0)
 
   company Company @relation(fields: [companyId], references: [id])
 
@@ -401,14 +402,14 @@ model WorkingPatternWeek {
 }
 
 model EventRule {
-  id                    String        @id @default(cuid())
+  id                    String          @id @default(cuid())
   companyId             String
   eventCategoryId       String
-  enforceEntitlement    Boolean       @default(true)
-  noticePeriodDays      Int           @default(0)
+  enforceEntitlement    Boolean         @default(true)
+  noticePeriodDays      Int             @default(0)
   maxConcurrent         Int?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
   maxBookingLength      Int?
   maxCarryoverDays      Int?
   carryoverExpiryMonths Int?
@@ -417,43 +418,43 @@ model EventRule {
   maxBookingLengthMode  EnforcementMode @default(HARD_BLOCK)
   // Help/Notes - NEW
   notes                 String?
-  eventCategory         EventCategory @relation(fields: [eventCategoryId], references: [id])
+  eventCategory         EventCategory   @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([companyId, eventCategoryId])
 }
 
 // Leave Policies - Accrual Engine Only
 model LeavePolicy {
-  id                    String   @id @default(cuid())
-  companyId             String
-  name                  String
-  description           String?
-  eventCategoryId       String
-  isActive              Boolean  @default(true)
-  effectiveFrom         DateTime
-  effectiveTo           DateTime?
-  
+  id              String    @id @default(cuid())
+  companyId       String
+  name            String
+  description     String?
+  eventCategoryId String
+  isActive        Boolean   @default(true)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+
   // Accrual Configuration
-  accrualRate           Float    // days/hours per period
-  accrualPeriod         AccrualPeriod @default(MONTHLY)
-  accrualUnit           AccrualUnit   @default(DAYS)
-  
+  accrualRate   Float // days/hours per period
+  accrualPeriod AccrualPeriod @default(MONTHLY)
+  accrualUnit   AccrualUnit   @default(DAYS)
+
   // Proration Rules
-  enableProration       Boolean  @default(true)
-  prorationMethod       ProrationMethod @default(DAILY)
-  
+  enableProration Boolean         @default(true)
+  prorationMethod ProrationMethod @default(DAILY)
+
   // Service-length tiers
-  serviceLengthTiers    Json?    // Array of { minYears: number, maxYears?: number, accrualRate: number }
-  
+  serviceLengthTiers Json? // Array of { minYears: number, maxYears?: number, accrualRate: number }
+
   // Negative balance
-  allowNegativeBalance  Boolean  @default(false)
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  company               Company       @relation(fields: [companyId], references: [id])
-  eventCategory         EventCategory @relation(fields: [eventCategoryId], references: [id])
-  assignments           LeavePolicyAssignment[]
+  allowNegativeBalance Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company       Company                 @relation(fields: [companyId], references: [id])
+  eventCategory EventCategory           @relation(fields: [eventCategoryId], references: [id])
+  assignments   LeavePolicyAssignment[]
 
   @@unique([companyId, name])
   @@index([companyId, eventCategoryId])
@@ -462,27 +463,27 @@ model LeavePolicy {
 
 // Leave Policy Assignments
 model LeavePolicyAssignment {
-  id              String   @id @default(cuid())
-  leavePolicyId   String
-  companyId       String
-  
+  id            String @id @default(cuid())
+  leavePolicyId String
+  companyId     String
+
   // Assignment targets (at least one must be specified)
-  departmentIds   String[] @default([])
-  jobRoleIds      String[] @default([])
-  locationIds     String[] @default([])
-  employeeIds     String[] @default([]) // Specific employee overrides
-  
+  departmentIds String[] @default([])
+  jobRoleIds    String[] @default([])
+  locationIds   String[] @default([])
+  employeeIds   String[] @default([]) // Specific employee overrides
+
   // Priority for overlapping assignments (higher = more specific)
-  priority        Int      @default(0)
-  
-  effectiveFrom   DateTime
-  effectiveTo     DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  leavePolicy     LeavePolicy @relation(fields: [leavePolicyId], references: [id], onDelete: Cascade)
-  company         Company     @relation(fields: [companyId], references: [id])
+  priority Int @default(0)
+
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leavePolicy LeavePolicy @relation(fields: [leavePolicyId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@index([effectiveFrom, effectiveTo])
@@ -697,11 +698,11 @@ model OnboardingStep {
   instruction             String?
   formId                  String? // <-- Already correctly defined
   // New fields for step library & SLAs (optional, backward compatible)
-  taskOwnerId             String?  // For CREATE_TASK type
-  trainingId              String?  // For TRAINING_ASSIGNMENT type  
-  slaDays                 Int?     // Due X days from start date
-  dependencies            String[] @default([]) // Array of step IDs that must complete first
-  metadata                Json?    // Additional step-specific configuration
+  taskOwnerId             String? // For CREATE_TASK type
+  trainingId              String? // For TRAINING_ASSIGNMENT type  
+  slaDays                 Int? // Due X days from start date
+  dependencies            String[]                 @default([]) // Array of step IDs that must complete first
+  metadata                Json? // Additional step-specific configuration
   document                Document?                @relation(fields: [documentId], references: [id])
   form                    Form?                    @relation(fields: [formId], references: [id])
   template                OnboardingTemplate       @relation(fields: [templateId], references: [id])
@@ -815,22 +816,22 @@ model FormDataRecord {
 }
 
 model PermissionProfile {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   companyId   String
   name        String
   description String?
   permissions Json // JSON object mapping screens to permission actions
-  builtIn     Boolean  @default(false)
+  builtIn     Boolean          @default(false)
   // New scope and constraints - nullable for backward compatibility
-  scope       PermissionScope? 
+  scope       PermissionScope?
   constraints Json? // { departmentIds?: string[], jobRoles?: string[] }
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  company      Company           @relation(fields: [companyId], references: [id])
+  company      Company                  @relation(fields: [companyId], references: [id])
   users        User[]
-  oldAuditLogs PermissionAudit[] @relation("PermissionAuditOldProfile")
-  newAuditLogs PermissionAudit[] @relation("PermissionAuditNewProfile")
+  oldAuditLogs PermissionAudit[]        @relation("PermissionAuditOldProfile")
+  newAuditLogs PermissionAudit[]        @relation("PermissionAuditNewProfile")
   auditLogs    PermissionProfileAudit[]
 
   @@unique([companyId, name])
@@ -877,13 +878,13 @@ model PersonalInfoAudit {
 model PermissionProfileAudit {
   id        String   @id @default(cuid())
   profileId String
-  action    String   // "created", "updated", "deleted"
-  changes   Json?    // Detailed change log
+  action    String // "created", "updated", "deleted"
+  changes   Json? // Detailed change log
   changedBy String
   changedAt DateTime @default(now())
-  
-  profile   PermissionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  
+
+  profile PermissionProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
   @@index([profileId])
   @@index([changedAt])
 }
@@ -1213,81 +1214,81 @@ enum PermissionScope {
 
 // Automation Rules System
 model AutomationRule {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   companyId   String
   name        String
   description String?
-  isActive    Boolean  @default(false) // Inactive by default
-  
+  isActive    Boolean @default(false) // Inactive by default
+
   // Trigger configuration
-  triggerType AutomationTriggerType
+  triggerType   AutomationTriggerType
   triggerConfig Json // Trigger-specific configuration
-  
+
   // Conditions configuration
   conditions Json? // Array of condition objects
-  
+
   // Actions configuration  
   actions Json // Array of action objects
-  
+
   // Metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
-  creator     User     @relation("AutomationRuleCreator", fields: [createdBy], references: [id])
-  executions  AutomationExecution[]
-  jobs        AutomationJob[] @relation("AutomationRuleJobs")
-  
+  company    Company               @relation(fields: [companyId], references: [id])
+  creator    User                  @relation("AutomationRuleCreator", fields: [createdBy], references: [id])
+  executions AutomationExecution[]
+  jobs       AutomationJob[]       @relation("AutomationRuleJobs")
+
   @@unique([companyId, name])
   @@index([companyId, isActive])
 }
 
 model AutomationExecution {
-  id            String   @id @default(cuid())
-  ruleId        String
-  companyId     String
-  triggeredAt   DateTime @default(now())
-  status        AutomationExecutionStatus
-  triggerData   Json     // Data that triggered the rule
-  executionLog  Json?    // Detailed execution log
-  errorMessage  String?
-  
+  id           String                    @id @default(cuid())
+  ruleId       String
+  companyId    String
+  triggeredAt  DateTime                  @default(now())
+  status       AutomationExecutionStatus
+  triggerData  Json // Data that triggered the rule
+  executionLog Json? // Detailed execution log
+  errorMessage String?
+
   // Relations
   rule    AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
   company Company        @relation(fields: [companyId], references: [id])
-  
+
   @@index([ruleId, triggeredAt])
   @@index([companyId, status])
 }
 
 // Automation Job Queue System
 model AutomationJob {
-  id            String   @id @default(cuid())
-  ruleId        String
-  companyId     String
-  triggerData   Json     // Data that triggered the rule
-  status        AutomationJobStatus @default(PENDING)
-  priority      Int      @default(0) // Higher number = higher priority
-  attempts      Int      @default(0)
-  maxAttempts   Int      @default(3)
-  scheduledAt   DateTime @default(now())
-  startedAt     DateTime?
-  completedAt   DateTime?
-  errorMessage  String?
-  executionLog  Json?    // Detailed execution log
-  
+  id           String              @id @default(cuid())
+  ruleId       String
+  companyId    String
+  triggerData  Json // Data that triggered the rule
+  status       AutomationJobStatus @default(PENDING)
+  priority     Int                 @default(0) // Higher number = higher priority
+  attempts     Int                 @default(0)
+  maxAttempts  Int                 @default(3)
+  scheduledAt  DateTime            @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+  executionLog Json? // Detailed execution log
+
   // Retry configuration
-  nextRetryAt   DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  nextRetryAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  rule          AutomationRule @relation("AutomationRuleJobs", fields: [ruleId], references: [id], onDelete: Cascade)
-  company       Company        @relation(fields: [companyId], references: [id])
-  
+  rule    AutomationRule @relation("AutomationRuleJobs", fields: [ruleId], references: [id], onDelete: Cascade)
+  company Company        @relation(fields: [companyId], references: [id])
+
   @@index([companyId, status, scheduledAt])
   @@index([status, scheduledAt])
   @@index([ruleId])
@@ -1295,60 +1296,60 @@ model AutomationJob {
 
 // Event Rules Extensions - Hierarchical Overrides
 model EventRuleOverride {
-  id              String   @id @default(cuid())
+  id              String @id @default(cuid())
   companyId       String
   eventCategoryId String
-  
+
   // Override scope (hierarchical)
-  departmentId    String?  // Department-level override
-  teamId          String?  // Team-level override (if teams exist)
-  
+  departmentId String? // Department-level override
+  teamId       String? // Team-level override (if teams exist)
+
   // Override values (nullable = use parent/default)
-  enforceEntitlement      Boolean?
-  noticePeriodDays        Int?
-  maxConcurrent           Int?
-  maxBookingLength        Int?
-  maxConcurrentMode       EnforcementMode?
-  maxBookingLengthMode    EnforcementMode?
-  
+  enforceEntitlement   Boolean?
+  noticePeriodDays     Int?
+  maxConcurrent        Int?
+  maxBookingLength     Int?
+  maxConcurrentMode    EnforcementMode?
+  maxBookingLengthMode EnforcementMode?
+
   // Staffing density constraints
-  staffingDensityEnabled  Boolean  @default(false)
-  staffingDensityThreshold Float?  // 0.0-1.0 (percentage)
-  staffingDensityBehavior StaffingDensityBehavior @default(DENY)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  staffingDensityEnabled   Boolean                 @default(false)
+  staffingDensityThreshold Float? // 0.0-1.0 (percentage)
+  staffingDensityBehavior  StaffingDensityBehavior @default(DENY)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  company         Company       @relation(fields: [companyId], references: [id])
-  eventCategory   EventCategory @relation(fields: [eventCategoryId], references: [id])
-  department      Department?   @relation(fields: [departmentId], references: [id])
-  
+  company       Company       @relation(fields: [companyId], references: [id])
+  eventCategory EventCategory @relation(fields: [eventCategoryId], references: [id])
+  department    Department?   @relation(fields: [departmentId], references: [id])
+
   @@unique([companyId, eventCategoryId, departmentId, teamId])
   @@index([companyId, eventCategoryId])
 }
 
 // Global Audit Log System
 model GlobalAuditLog {
-  id          String   @id @default(cuid())
-  companyId   String
-  entityType  AuditEntityType
-  entityId    String
-  action      AuditAction
-  actorId     String
-  actorType   AuditActorType @default(USER)
-  
+  id         String          @id @default(cuid())
+  companyId  String
+  entityType AuditEntityType
+  entityId   String
+  action     AuditAction
+  actorId    String
+  actorType  AuditActorType  @default(USER)
+
   // Change details
-  changes     Json?    // Before/after values
-  metadata    Json?    // Additional context
-  
+  changes  Json? // Before/after values
+  metadata Json? // Additional context
+
   // Timestamps
-  timestamp   DateTime @default(now())
-  
+  timestamp DateTime @default(now())
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
-  actor       User?    @relation("GlobalAuditLogActor", fields: [actorId], references: [id])
-  
+  company Company @relation(fields: [companyId], references: [id])
+  actor   User?   @relation("GlobalAuditLogActor", fields: [actorId], references: [id])
+
   @@index([companyId, timestamp])
   @@index([companyId, entityType, entityId])
   @@index([companyId, actorId])
@@ -1356,118 +1357,118 @@ model GlobalAuditLog {
 
 // Notification Channels & Settings
 model NotificationChannel {
-  id          String   @id @default(cuid())
-  companyId   String
-  type        NotificationChannelType
-  name        String
-  
+  id        String                  @id @default(cuid())
+  companyId String
+  type      NotificationChannelType
+  name      String
+
   // Channel configuration
-  config      Json     // Channel-specific settings (webhooks, etc.)
-  isActive    Boolean  @default(true)
-  
+  config   Json // Channel-specific settings (webhooks, etc.)
+  isActive Boolean @default(true)
+
   // Fallback behavior
   fallbackToEmail Boolean @default(true)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
-  
+  company Company @relation(fields: [companyId], references: [id])
+
   @@unique([companyId, name])
   @@index([companyId, type, isActive])
 }
 
 model NotificationSettings {
-  id          String   @id @default(cuid())
-  companyId   String   @unique
-  
+  id        String @id @default(cuid())
+  companyId String @unique
+
   // Digest settings
-  dailyDigestEnabled    Boolean @default(false)
-  weeklyDigestEnabled   Boolean @default(false)
-  digestRecipients      String[] @default([])
-  
+  dailyDigestEnabled  Boolean  @default(false)
+  weeklyDigestEnabled Boolean  @default(false)
+  digestRecipients    String[] @default([])
+
   // Email template settings
-  emailTemplateEnabled  Boolean @default(false)
-  emailTemplateConfig   Json?
-  
+  emailTemplateEnabled Boolean @default(false)
+  emailTemplateConfig  Json?
+
   // Default channels for different notification types
-  defaultChannels       Json    // Map of notification types to channel IDs
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  defaultChannels Json // Map of notification types to channel IDs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 // SSO/SCIM Configuration
 model SSOConfiguration {
-  id          String   @id @default(cuid())
-  companyId   String   @unique
-  
+  id        String @id @default(cuid())
+  companyId String @unique
+
   // OIDC/SAML settings
-  provider    SSOProvider
-  enabled     Boolean  @default(false)
-  
+  provider SSOProvider
+  enabled  Boolean     @default(false)
+
   // Provider configuration
-  config      Json     // Provider-specific settings
-  
+  config Json // Provider-specific settings
+
   // Metadata
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 model SCIMConfiguration {
-  id          String   @id @default(cuid())
-  companyId   String   @unique
-  
+  id        String @id @default(cuid())
+  companyId String @unique
+
   // SCIM settings
-  enabled     Boolean  @default(false)
-  endpoint    String?
-  token       String?  // Encrypted
-  
+  enabled  Boolean @default(false)
+  endpoint String?
+  token    String? // Encrypted
+
   // Provisioning settings
-  autoProvisionEnabled Boolean @default(false)
+  autoProvisionEnabled   Boolean @default(false)
   autoDeprovisionEnabled Boolean @default(false)
-  
+
   // Attribute mapping
   attributeMapping Json?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 // Branding Configuration
 model BrandingConfiguration {
-  id          String   @id @default(cuid())
-  companyId   String   @unique
-  
+  id        String @id @default(cuid())
+  companyId String @unique
+
   // Branding toggle
-  enabled     Boolean  @default(false)
-  
+  enabled Boolean @default(false)
+
   // Visual settings
-  logoUrl     String?
-  primaryColor String? // Hex color
+  logoUrl        String?
+  primaryColor   String? // Hex color
   secondaryColor String? // Hex color
-  accentColor String?  // Hex color
-  
+  accentColor    String? // Hex color
+
   // Email template branding
   emailHeaderEnabled Boolean @default(false)
   emailFooterEnabled Boolean @default(false)
   emailFooterText    String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  company     Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 }
 
 // =============================================================================
@@ -1476,7 +1477,7 @@ model BrandingConfiguration {
 
 enum AutomationTriggerType {
   DOCUMENT_EXPIRING
-  FORM_SUBMITTED  
+  FORM_SUBMITTED
   ONBOARDING_STEP_COMPLETED
   EMPLOYEE_CREATED
 }

@@ -240,6 +240,8 @@ export async function POST(req: Request) {
     });
 
     // ✅ Auto-promote manager and apply Manager permission profile within company
+    //    - Only elevate EMPLOYEE to MANAGER
+    //    - Never downgrade an ADMIN to MANAGER
     if (managerId && managerId.trim() !== "") {
       try {
         const mgr = await prisma.employee.findUnique({
@@ -247,21 +249,27 @@ export async function POST(req: Request) {
           select: { userId: true, companyId: true },
         });
         if (mgr?.userId && mgr.companyId === companyId) {
-          const managerProfile = await prisma.permissionProfile.findFirst({
-            where: {
-              companyId,
-              name: { equals: "Manager", mode: "insensitive" },
-            },
-            select: { id: true },
-          });
-
-          await prisma.user.update({
+          const mgrUser = await prisma.user.findUnique({
             where: { id: mgr.userId },
-            data: {
-              role: "MANAGER",
-              ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
-            },
+            select: { role: true },
           });
+          if (mgrUser?.role === "EMPLOYEE") {
+            const managerProfile = await prisma.permissionProfile.findFirst({
+              where: {
+                companyId,
+                name: { equals: "Manager", mode: "insensitive" },
+              },
+              select: { id: true },
+            });
+
+            await prisma.user.update({
+              where: { id: mgr.userId },
+              data: {
+                role: "MANAGER",
+                ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
+              },
+            });
+          }
         }
       } catch (e) {
         console.warn("Failed to auto-promote manager role:", e);

@@ -130,6 +130,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (initializedFromUrl.current) return;
+    if (!searchParams) return;
     const dep = searchParams.get("department") || "";
     const view = (searchParams.get("view") as any) || "";
     if (dep) setSelectedDepartment(dep);

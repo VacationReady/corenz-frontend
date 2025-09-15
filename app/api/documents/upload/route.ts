@@ -3,6 +3,88 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
+import { z } from "zod";
+
+const optionalStringFromForm = z.preprocess(
+  (val) => {
+    if (val === null || val === undefined) {
+      return undefined;
+    }
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed === "" ? undefined : trimmed;
+    }
+    return val;
+  },
+  z.string().optional(),
+);
+
+const booleanFromForm = (defaultValue: boolean) =>
+  z
+    .union([z.string(), z.boolean(), z.null(), z.undefined()])
+    .transform((val) => {
+      if (val === null || val === undefined || val === "") {
+        return defaultValue;
+      }
+      if (typeof val === "boolean") {
+        return val;
+      }
+      if (typeof val === "string") {
+        const normalized = val.trim().toLowerCase();
+        if (normalized === "true") return true;
+        if (normalized === "false") return false;
+      }
+      return defaultValue;
+    });
+
+const jsonArrayFromForm = z.preprocess(
+  (val) => {
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      if (!trimmed) {
+        return [];
+      }
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return trimmed;
+      }
+    }
+    if (Array.isArray(val)) {
+      return val;
+    }
+    if (val === null || val === undefined) {
+      return [];
+    }
+    return val;
+  },
+  z.array(z.string()),
+);
+
+const documentUploadSchema = z.object({
+  file: z.instanceof(File, { message: "File is required" }),
+  name: z
+    .string({ required_error: "Document name is required" })
+    .trim()
+    .min(1, "Document name is required"),
+  category: optionalStringFromForm,
+  employeeId: optionalStringFromForm,
+  type: z
+    .preprocess((val) => {
+      if (typeof val === "string") {
+        const trimmed = val.trim();
+        return trimmed === "" ? undefined : trimmed;
+      }
+      return undefined;
+    }, z.enum(["employee", "company"]).optional()),
+  canViewAdmin: booleanFromForm(true),
+  canViewManager: booleanFromForm(true),
+  canViewEmployee: booleanFromForm(true),
+  requiresAck: booleanFromForm(false),
+  requireAckFromNewStarters: booleanFromForm(false),
+  departments: jsonArrayFromForm,
+  jobRoles: jsonArrayFromForm,
+});
 
 export async function POST(req: Request) {
   console.log("DOC UPLOAD API HIT:", new Date().toISOString());
@@ -13,47 +95,36 @@ export async function POST(req: Request) {
   }
 
   const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  const name = formData.get("name") as string;
-  const category = formData.get("category") as string;
-
-  const employeeId = formData.get("employeeId") as string | null;
-  const type = formData.get("type") as string | null;
-
-  // ✅ Access control flags default to visible
-  const canViewAdmin =
-    formData.get("canViewAdmin") === "true" ||
-    formData.get("canViewAdmin") === null;
-  const canViewManager =
-    formData.get("canViewManager") === "true" ||
-    formData.get("canViewManager") === null;
-  const canViewEmployee =
-    formData.get("canViewEmployee") === "true" ||
-    formData.get("canViewEmployee") === null;
-
-  // ✅ Requires Acknowledgement toggle
-  const requiresAck = formData.get("requiresAck") === "true";
-
-  // ✅ NEW: Require Acknowledgement for New Starters
-  // Accepts "true" or "false" string, default false
-  const requireAckFromNewStarters =
-    formData.get("requireAckFromNewStarters") === "true";
-
-  // ✅ Department & Job Role restrictions
-  const rawDepartments = formData.get("departments") as string | null;
-  const rawJobRoles = formData.get("jobRoles") as string | null;
-
-  const departments = rawDepartments ? JSON.parse(rawDepartments) : [];
-  const jobRoles = rawJobRoles ? JSON.parse(rawJobRoles) : [];
-
-  if (!file || !name) {
-    return NextResponse.json(
-      { error: "File and name are required" },
-      { status: 400 },
-    );
-  }
 
   try {
+    const {
+      file,
+      name,
+      category,
+      employeeId,
+      type,
+      canViewAdmin,
+      canViewManager,
+      canViewEmployee,
+      requiresAck,
+      requireAckFromNewStarters,
+      departments,
+      jobRoles,
+    } = documentUploadSchema.parse({
+      file: formData.get("file"),
+      name: formData.get("name"),
+      category: formData.get("category"),
+      employeeId: formData.get("employeeId"),
+      type: formData.get("type"),
+      canViewAdmin: formData.get("canViewAdmin"),
+      canViewManager: formData.get("canViewManager"),
+      canViewEmployee: formData.get("canViewEmployee"),
+      requiresAck: formData.get("requiresAck"),
+      requireAckFromNewStarters: formData.get("requireAckFromNewStarters"),
+      departments: formData.get("departments"),
+      jobRoles: formData.get("jobRoles"),
+    });
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${Date.now()}-${file.name}`;
 
@@ -79,11 +150,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const fileUrl = signedUrlData?.signedUrl ?? null;
+
     // ✅ Save document in DB
     const document = await prisma.document.create({
       data: {
         name,
-        category: category || null,
+        category: category ?? null,
         path: data.path,
         size: file.size,
         type: file.type,
@@ -91,20 +164,20 @@ export async function POST(req: Request) {
         uploaderId: session.user.id,
         companyId: session.user.companyId,
         employeeId: type === "employee" && employeeId ? employeeId : null,
-        canViewAdmin: canViewAdmin ?? true,
-        canViewManager: canViewManager ?? true,
-        canViewEmployee: canViewEmployee ?? true,
+        canViewAdmin,
+        canViewManager,
+        canViewEmployee,
         requiresAck, // ✅ Persist toggle!
         requireAckFromNewStarters, // ✅ Persist new field!
         ...(departments.length > 0 && departments[0] !== "all"
           ? {
               departments: {
-                connect: departments.map((d: string) => ({ id: d })),
+                connect: departments.map((d) => ({ id: d })),
               },
             }
           : {}),
         ...(jobRoles.length > 0 && jobRoles[0] !== "all"
-          ? { jobRoles: { connect: jobRoles.map((j: string) => ({ id: j })) } }
+          ? { jobRoles: { connect: jobRoles.map((j) => ({ id: j })) } }
           : {}),
       },
       include: {
@@ -243,11 +316,24 @@ export async function POST(req: Request) {
 
     console.log("✅ Document uploaded:", document);
     return NextResponse.json({
-      ...document,
-      url: signedUrlData?.signedUrl ?? null,
+      document: {
+        id: document.id,
+        url: fileUrl,
+        name: document.name,
+        category: document.category,
+        size: document.size,
+        type: document.type,
+        createdAt: document.createdAt,
+      },
     });
   } catch (error) {
     console.error("❌ Document upload error:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid form data", details: error.flatten() },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },

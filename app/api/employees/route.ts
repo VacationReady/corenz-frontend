@@ -7,6 +7,71 @@ import type { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { canAccessEmployee } from "@/lib/permissions";
+import { z } from "zod";
+
+const optionalTrimmedString = z.preprocess(
+  (val) => {
+    if (val === null || val === undefined) {
+      return undefined;
+    }
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed === "" ? undefined : trimmed;
+    }
+    return val;
+  },
+  z.string().optional(),
+);
+
+const createEmployeeSchema = z.object({
+  firstName: z
+    .string({ required_error: "First name is required" })
+    .trim()
+    .min(1, "First name is required"),
+  lastName: z
+    .string({ required_error: "Last name is required" })
+    .trim()
+    .min(1, "Last name is required"),
+  email: z
+    .string({ required_error: "Email is required" })
+    .trim()
+    .email("Invalid email address"),
+  phone: optionalTrimmedString,
+  dateOfBirth: optionalTrimmedString,
+  startDate: z
+    .string({ required_error: "Start date is required" })
+    .trim()
+    .min(1, "Start date is required"),
+  role: z.enum(["ADMIN", "MANAGER", "EMPLOYEE"], {
+    required_error: "Role is required",
+  }),
+  jobRoleId: optionalTrimmedString,
+  departmentId: optionalTrimmedString,
+  managerId: optionalTrimmedString,
+  sendInviteNow: z.boolean().optional(),
+  onboardingTemplateId: z
+    .string({ required_error: "Need to select onboarding template" })
+    .trim()
+    .min(1, "Need to select onboarding template"),
+  holidayYear: optionalTrimmedString,
+  workingPatternId: optionalTrimmedString,
+  entitlementDays: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") {
+        return undefined;
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        return Number.isFinite(parsed) ? parsed : undefined;
+      }
+      if (typeof val === "number") {
+        return Number.isFinite(val) ? val : undefined;
+      }
+      return undefined;
+    },
+    z.number().nonnegative().optional(),
+  ),
+});
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -135,26 +200,12 @@ export async function POST(req: Request) {
       jobRoleId,
       departmentId,
       managerId,
-      sendInviteNow,
+      sendInviteNow = false,
       onboardingTemplateId,
       holidayYear,
       workingPatternId,
       entitlementDays,
-    } = await req.json();
-
-    if (!firstName || !lastName || !email || !startDate || !role) {
-      return NextResponse.json(
-        { success: false, error: "Missing required fields." },
-        { status: 400 },
-      );
-    }
-
-    if (!onboardingTemplateId) {
-      return NextResponse.json(
-        { success: false, error: "Need to select onboarding template" },
-        { status: 400 },
-      );
-    }
+    } = createEmployeeSchema.parse(await req.json());
 
     const existingUser = await prisma.user.findUnique({
       where: { email_companyId: { email, companyId } },
@@ -396,6 +447,16 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Error creating employee:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request body",
+          details: error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       {
         success: false,

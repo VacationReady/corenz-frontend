@@ -4,6 +4,44 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
+import { z } from "zod";
+
+const optionalTrimmedString = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((val) => {
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed === "" ? undefined : trimmed;
+    }
+    return undefined;
+  });
+
+const leaveRequestCreateSchema = z.object({
+  eventCategoryId: z
+    .string({ required_error: "eventCategoryId is required" })
+    .trim()
+    .min(1, "eventCategoryId is required"),
+  startDate: z
+    .string({ required_error: "startDate is required" })
+    .trim()
+    .min(1, "startDate is required"),
+  endDate: z
+    .string({ required_error: "endDate is required" })
+    .trim()
+    .min(1, "endDate is required"),
+  reason: optionalTrimmedString,
+  sickReason: optionalTrimmedString,
+  paidStatus: z
+    .enum(["PAID", "UNPAID"])
+    .or(z.null())
+    .or(z.undefined())
+    .transform((val) => (typeof val === "string" ? val : undefined)),
+  dayType: z
+    .enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"])
+    .or(z.null())
+    .or(z.undefined())
+    .transform((val) => (typeof val === "string" ? val : undefined)),
+});
 
 export async function GET(
   req: Request,
@@ -81,7 +119,6 @@ export async function POST(
 
     const userId = session.user.id;
     const employeeId = params.id;
-    const body = await req.json();
     const {
       eventCategoryId,
       startDate,
@@ -90,15 +127,7 @@ export async function POST(
       sickReason,
       paidStatus,
       dayType,
-    } = body;
-
-    if (!eventCategoryId || !startDate || !endDate) {
-      console.log("❌ Missing required leave request fields");
-      return NextResponse.json(
-        { success: false, error: "Missing required fields." },
-        { status: 400 },
-      );
-    }
+    } = leaveRequestCreateSchema.parse(await req.json());
 
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
@@ -197,6 +226,16 @@ export async function POST(
     return NextResponse.json({ success: true, data: newLeaveRequest });
   } catch (error: any) {
     console.error("❌ Error submitting leave request:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request body",
+          details: error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       {
         success: false,

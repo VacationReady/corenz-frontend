@@ -42,11 +42,13 @@ export async function GET(req: Request) {
           include: {
             user: true,
             department: true,
+            company: false,
           },
         },
         eventCategory: {
           select: {
             name: true,
+            id: true,
           },
         },
       },
@@ -76,10 +78,13 @@ export async function GET(req: Request) {
           end: req.endDate,
           allDay: true,
           reason: req.reason ?? null,
+          categoryName: req.eventCategory?.name ?? null,
+          eventCategoryId: req.eventCategory?.id ?? null,
           employee: {
             id: req.employee.id,
             name: displayName,
             department: req.employee.department?.name ?? null,
+            locationId: req.employee.locationId ?? null,
             profileImageUrl,
           },
         };

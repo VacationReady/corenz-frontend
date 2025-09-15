@@ -65,7 +65,7 @@ export default function BlockDayModal({
           date: selectedDate,
           allEvents: blockAll,
           eventCategoryIds,
-          companyId: "default-company-id",
+          note,
         }),
       });
       if (!res.ok) throw new Error("Failed to block day.");

@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 // GET: Fetch all event rules for the company
 export async function GET(req: Request) {
   try {
-    const companyId = "default-company-id"; // Replace with actual logic later
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const rules = await prisma.eventRule.findMany({
-      where: { companyId },
+      where: { companyId: session.user.companyId },
       include: { eventCategory: true },
     });
 
@@ -24,10 +29,14 @@ export async function GET(req: Request) {
 // POST: Create or update an event rule
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
 
     const {
-      companyId = "default-company-id", // Replace with actual logic later
       eventCategoryId,
       enforceEntitlement,
       noticePeriodDays,
@@ -43,7 +52,7 @@ export async function POST(req: Request) {
     const rule = await prisma.eventRule.upsert({
       where: {
         companyId_eventCategoryId: {
-          companyId,
+          companyId: session.user.companyId,
           eventCategoryId,
         },
       },
@@ -59,7 +68,7 @@ export async function POST(req: Request) {
         notes,
       },
       create: {
-        companyId,
+        companyId: session.user.companyId,
         eventCategoryId,
         enforceEntitlement,
         noticePeriodDays,

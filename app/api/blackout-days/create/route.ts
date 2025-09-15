@@ -1,12 +1,19 @@
 // 1️⃣ /app/api/blackout-days/create/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export async function POST(req: Request) {
   try {
-    const { date, allEvents, eventCategoryIds, companyId } = await req.json();
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!date || !companyId) {
+    const { date, allEvents, eventCategoryIds, note } = await req.json();
+
+    if (!date) {
       return NextResponse.json(
         { error: "Missing required fields." },
         { status: 400 },
@@ -22,7 +29,9 @@ export async function POST(req: Request) {
         date: blackoutDate,
         allEvents: allEvents ?? false,
         eventCategoryIds: eventCategoryIds ?? [],
-        companyId,
+        note: note ?? null,
+        companyId: session.user.companyId,
+        createdById: session.user.id,
       },
     });
 

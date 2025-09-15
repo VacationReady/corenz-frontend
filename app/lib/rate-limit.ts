@@ -28,6 +28,7 @@ async function getKV(): Promise<KVClient | null> {
     process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token =
     process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+<<<<<<< HEAD
   if (!baseUrl || !token) {
     console.warn("KV credentials not found, falling back to memory store");
     return null;
@@ -57,6 +58,15 @@ async function getKV(): Promise<KVClient | null> {
       }
       throw error;
     }
+=======
+  if (!baseUrl || !token) return null;
+
+  const headers = { Authorization: `Bearer ${token}` };
+  const fetchJson = async (path: string) => {
+    const res = await fetch(`${baseUrl}/${path}`, { headers, cache: "no-store" });
+    if (!res.ok) throw new Error("KV request failed");
+    return res.json();
+>>>>>>> f03bf9ff6adacaf74b91d523efc0a5fe02d2d299
   };
 
   kvClient = {
@@ -76,6 +86,7 @@ export async function rateLimit(
   key: string,
   { limit, windowMs }: RateLimitOptions,
 ): Promise<boolean> {
+<<<<<<< HEAD
   try {
     const kv = await getKV();
     if (kv) {
@@ -108,4 +119,26 @@ export async function rateLimit(
     // In case of any error, allow the request (fail open)
     return false;
   }
+=======
+  const kv = await getKV();
+  if (kv) {
+    const count = await kv.incr(key);
+    if (count === 1) {
+      await kv.expire(key, Math.ceil(windowMs / 1000));
+    }
+    return count > limit;
+  }
+
+  const now = Date.now();
+  const entry = memoryStore.get(key);
+  if (!entry || entry.expires < now) {
+    memoryStore.set(key, { count: 1, expires: now + windowMs });
+    return false;
+  }
+  if (entry.count >= limit) {
+    return true;
+  }
+  entry.count += 1;
+  return false;
+>>>>>>> f03bf9ff6adacaf74b91d523efc0a5fe02d2d299
 }

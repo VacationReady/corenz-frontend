@@ -19,20 +19,25 @@ export async function GET(req: Request) {
   const to = searchParams.get("to");
 
   try {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    const hasValidFrom = fromDate instanceof Date && !isNaN(fromDate.getTime());
+    const hasValidTo = toDate instanceof Date && !isNaN(toDate.getTime());
+
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
         companyId: session.user.companyId,
         approvalStatus: "APPROVED",
         employee: {
-          ...(department ? { department: { name: department } } : {}),
+          ...(department ? { department: { is: { name: department } } } : {}),
           ...(departmentId ? { departmentId } : {}),
         },
-        ...(from || to
+        ...(hasValidFrom || hasValidTo
           ? {
               // overlap where (start <= to) AND (end >= from)
               AND: [
-                to ? { startDate: { lte: new Date(to) } } : {},
-                from ? { endDate: { gte: new Date(from) } } : {},
+                hasValidTo ? { startDate: { lte: toDate! } } : {},
+                hasValidFrom ? { endDate: { gte: fromDate! } } : {},
               ],
             }
           : {}),
@@ -42,7 +47,6 @@ export async function GET(req: Request) {
           include: {
             user: true,
             department: true,
-            company: false,
           },
         },
         eventCategory: {
@@ -65,10 +69,14 @@ export async function GET(req: Request) {
 
         let profileImageUrl: string | null = null;
         if (user.profileImageUrl) {
-          const { data: signed } = await supabase.storage
-            .from("documents")
-            .createSignedUrl(user.profileImageUrl, 60 * 5);
-          profileImageUrl = signed?.signedUrl ?? null;
+          try {
+            const { data: signed } = await supabase.storage
+              .from("documents")
+              .createSignedUrl(user.profileImageUrl, 60 * 5);
+            profileImageUrl = signed?.signedUrl ?? null;
+          } catch (_err) {
+            profileImageUrl = null;
+          }
         }
 
         return {

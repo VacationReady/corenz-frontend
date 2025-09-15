@@ -131,7 +131,7 @@ export default async function EmployeeSettingsPage({
               <p className="text-sm text-gray-600">No direct reports.</p>
             ) : (
               <ul className="list-disc pl-5 space-y-1">
-                {subordinates.map((s) => {
+                {subordinates.map((s: any) => {
                   const display = (s.firstName || s.lastName)
                     ? `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim()
                     : s.email;

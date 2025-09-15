@@ -85,7 +85,7 @@ export default async function DemographicPage({ params }: PageProps) {
                 <Input
                   readOnly
                   defaultValue={
-                    genderOptions.find((g) => g.id === user.genderOptionId)?.label || ""
+                    genderOptions.find((g: any) => g.id === user.genderOptionId)?.label || ""
                   }
                 />
               )}

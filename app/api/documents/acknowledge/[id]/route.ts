@@ -33,8 +33,8 @@ export async function GET(
 
     // ✅ Handle company-level documents (no employee link)
     if (!doc.employee) {
-      const deptIds = doc.departments.map((d) => d.id);
-      const jobRoleIds = doc.jobRoles.map((jr) => jr.id);
+      const deptIds = doc.departments.map((d: any) => d.id);
+      const jobRoleIds = doc.jobRoles.map((jr: any) => jr.id);
 
       // ✅ Fetch all employees in scope (filtered by dept/role if present)
       const employeesInScope = await prisma.employee.findMany({
@@ -66,8 +66,8 @@ export async function GET(
       });
 
       // ✅ Split acknowledged vs pending
-      const acknowledgedIds = acknowledgements.map((ack) => ack.employeeId);
-      const acknowledged = acknowledgements.map((ack) => ({
+      const acknowledgedIds = acknowledgements.map((ack: any) => ack.employeeId);
+      const acknowledged = acknowledgements.map((ack: any) => ({
         name: ack.employee.user.name,
         email: ack.employee.user.email,
         department: ack.employee.department?.name || "—",

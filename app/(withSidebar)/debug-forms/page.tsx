@@ -90,7 +90,7 @@ export default async function DebugFormsPage() {
               <h3 className="font-semibold mb-2">
                 Users without Employee records:
               </h3>
-              {usersWithoutEmployees.map((user) => (
+              {usersWithoutEmployees.map((user: any) => (
                 <div key={user.id} className="text-sm">
                   • {user.firstName} {user.lastName} ({user.email}) - Role:{" "}
                   {user.role}
@@ -134,7 +134,7 @@ export default async function DebugFormsPage() {
           <p>No forms found</p>
         ) : (
           <div className="space-y-4">
-            {allForms.map((form) => (
+            {allForms.map((form: any) => (
               <div key={form.id} className="border p-4 rounded">
                 <h3 className="font-semibold">{form.name}</h3>
                 <p>

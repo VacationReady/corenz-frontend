@@ -58,7 +58,7 @@ export default async function EmployeeLayout({
     },
   });
 
-  allForms.forEach((form) => {
+  allForms.forEach((form: any) => {
     const roleMatch = form.visibleToRoles.includes(userRole);
     const deptMatch =
       form.visibleToDepartments.length === 0 ||
@@ -135,7 +135,7 @@ export default async function EmployeeLayout({
     },
     { href: `/employees/${params.id}/leave`, label: "Leave" },
     { href: `/employees/${params.id}/documents`, label: "Documents" },
-    ...forms.map((form) => ({
+    ...forms.map((form: any) => ({
       href: `/employees/${params.id}/${form.slug}`,
       label: form.name,
     })),

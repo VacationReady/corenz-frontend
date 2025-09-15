@@ -28,7 +28,7 @@ async function processCompany(companyId: string) {
         include: { employee: { include: { user: true } } },
       });
       expiringItems.push(
-        ...items.map((item) => ({
+        ...items.map((item: any) => ({
           employee: item.employee,
           expiryDate: item.expiryDate,
           type: "Driver Licence",
@@ -46,7 +46,7 @@ async function processCompany(companyId: string) {
         include: { employee: { include: { user: true } }, course: true },
       });
       expiringItems.push(
-        ...items.map((item) => ({
+        ...items.map((item: any) => ({
           employee: item.employee,
           expiryDate: item.expiryDate,
           type: "Training",
@@ -64,7 +64,7 @@ async function processCompany(companyId: string) {
         include: { employee: { include: { user: true } } },
       });
       expiringItems.push(
-        ...items.map((item) => ({
+        ...items.map((item: any) => ({
           employee: item.employee,
           expiryDate: item.expiryDate,
           type: "Employment Check",
@@ -91,7 +91,7 @@ async function processCompany(companyId: string) {
             companyId: item.employee.companyId,
           },
         });
-        recipients.push(...admins.map((admin) => admin.email));
+        recipients.push(...admins.map((admin: any) => admin.email));
       }
 
       if (rule.notifyManager && item.employee.managerId) {
@@ -133,7 +133,7 @@ async function processCompany(companyId: string) {
 
   // Handle Exit Interview Form scheduling
   const exitInterviewRule = expiryRules.find(
-    (rule) => rule.category === "Exit Interview Forms",
+    (rule: any) => rule.category === "Exit Interview Forms",
   );
   if (exitInterviewRule) {
     console.log("Processing Exit Interview Form scheduling...");
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
 
     if (companyIds.length === 0) {
       const companies = await prisma.company.findMany({ select: { id: true } });
-      companyIds = companies.map((c) => c.id);
+      companyIds = companies.map((c: any) => c.id);
     }
 
     for (const id of companyIds) {

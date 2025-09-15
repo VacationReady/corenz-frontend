@@ -94,7 +94,7 @@ export async function GET(req: Request) {
       "Metadata",
     ].join(",");
 
-    const csvRows = logs.map((log) =>
+    const csvRows = logs.map((log: any) =>
       [
         log.timestamp.toISOString(),
         log.entityType,

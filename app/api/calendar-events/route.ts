@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     });
 
     const events = await Promise.all(
-      leaveRequests.map(async (req) => {
+      leaveRequests.map(async (req: any) => {
         const user = req.employee.user;
         const displayName =
           user.name ||

@@ -51,7 +51,7 @@ export default async function NewsDetailPage({ params }: Props) {
         <div className="mb-6">
           <h2 className="font-semibold text-lg mb-2">Attachments</h2>
           <ul className="list-disc pl-5">
-            {post.attachments.map((url, i) => (
+            {post.attachments.map((url: any, i: number) => (
               <li key={i}>
                 <a
                   href={url}

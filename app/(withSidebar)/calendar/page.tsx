@@ -218,7 +218,12 @@ export default function CalendarPage() {
         to: fetchInfo.endStr,
       });
       const res = await fetch(`/api/blackout-days/get?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch blackout days");
+      if (!res.ok) {
+        // Soft-fail: do not spam toasts; just return empty
+        console.warn("Blackout fetch non-OK status", res.status);
+        successCallback([]);
+        return;
+      }
       const blackoutData = await res.json();
       const blackoutEvents = blackoutData.map((b: any) => ({
         id: b.id,
@@ -234,9 +239,9 @@ export default function CalendarPage() {
       }));
       successCallback(blackoutEvents);
     } catch (error) {
-      console.error(error);
-      toast.error("Error loading blackout days");
-      failureCallback(error);
+      console.error("Blackout fetch error", error);
+      // Soft-fail without toast storm
+      successCallback([]);
     }
   };
 

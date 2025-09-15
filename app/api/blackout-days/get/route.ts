@@ -8,7 +8,7 @@ export const revalidate = 0; // 🚩 disables Vercel caching for this API route
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const headerCompanyId = (new Headers(req.headers)).get("x-company-id");
+    const headerCompanyId = req.headers.get("x-company-id");
     const companyId = session?.user?.companyId || headerCompanyId || null;
     if (!companyId) {
       // Graceful no-op for unauthenticated/unknown tenant to avoid UI toast storms
@@ -43,9 +43,7 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Error fetching blackout days:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch blackout days." },
-      { status: 500 },
-    );
+    // Return empty list on transient errors to avoid front-end toast storms
+    return NextResponse.json([]);
   }
 }

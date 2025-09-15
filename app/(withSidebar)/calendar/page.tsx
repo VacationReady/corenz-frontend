@@ -58,6 +58,7 @@ export default function CalendarPage() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
   const calendarRef = useRef<FullCalendar | null>(null);
+  const blackoutKeyHashRef = useRef<string>("");
 
   const fetchDepartments = async () => {
     try {
@@ -247,7 +248,13 @@ export default function CalendarPage() {
           },
         };
       });
+      // Update blackout key set and trigger a one-time rerender of day cells
+      const nextHash = Array.from(keys).sort().join(',');
       setBlackoutDateKeys(keys);
+      if (nextHash !== blackoutKeyHashRef.current) {
+        blackoutKeyHashRef.current = nextHash;
+        setRefreshTrigger((prev) => !prev);
+      }
       successCallback(blackoutEvents);
     } catch (error) {
       console.error("Blackout fetch error", error);
@@ -310,6 +317,13 @@ export default function CalendarPage() {
       badge.textContent = 'Blocked';
       el.style.position = el.style.position || 'relative';
       el.appendChild(badge);
+      // Add small lock icon overlay (bottom-left)
+      const prevLock = el.querySelector('.blackout-lock');
+      if (prevLock && prevLock.parentElement) prevLock.parentElement.removeChild(prevLock as any);
+      const lock = document.createElement('div');
+      lock.className = 'blackout-lock absolute bottom-1 left-1 text-[12px]';
+      lock.textContent = '🔒';
+      el.appendChild(lock);
     } else if (count > 0) {
       // Heat color by tiers
       let alpha = getHeatAlpha(count);

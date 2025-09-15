@@ -25,8 +25,8 @@ const sortSchema = z
     field: z.string().trim().min(1, "Sort field is required"),
     direction: z.enum(["asc", "desc"]).optional(),
   })
-  .optional()
-  .passthrough();
+  .passthrough()
+  .optional();
 
 const reportQuerySchema = z.object({
   selectedFields: z

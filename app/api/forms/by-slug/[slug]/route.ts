@@ -11,7 +11,6 @@ export async function GET(
   const session = await getServerSession(authOptions);
 
   console.log("📡 Incoming request to /api/forms/by-slug/[slug]");
-  console.log("🧑 Session:", JSON.stringify(session, null, 2));
 
   if (!session?.user?.companyId) {
     console.warn("⛔ No companyId found in session.");

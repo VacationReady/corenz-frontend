@@ -7,7 +7,6 @@ import { hasPermission } from "@/lib/permissions";
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    console.log("SESSION OBJECT:", session);
 
     if (!session?.user?.id) {
       console.log("❌ Unauthenticated");
@@ -17,7 +16,6 @@ export async function GET(req: Request) {
       );
     }
 
-    console.log("✅ Authenticated User ID:", session.user.id);
 
     // Fetch user with permission profile
     const user = await prisma.user.findUnique({

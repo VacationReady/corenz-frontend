@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { JSX } from "react";
+import DOMPurify from "isomorphic-dompurify";
 
 type ContentBlock =
   | { type: "heading"; level?: number; text: string }
@@ -35,7 +36,7 @@ export default function NewsContentRenderer({ content }: Props) {
               <p
                 key={index}
                 className="text-base"
-                dangerouslySetInnerHTML={{ __html: block.text }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.text) }}
               />
             );
           case "bullet_list":

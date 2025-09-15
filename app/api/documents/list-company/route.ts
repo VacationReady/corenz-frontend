@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import supabase from "@/lib/supabase-admin";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -52,5 +53,14 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(documents);
+  const withUrls = await Promise.all(
+    documents.map(async (doc) => {
+      const { data: signed } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(doc.path, 60 * 5);
+      return { ...doc, url: signed?.signedUrl ?? null };
+    }),
+  );
+
+  return NextResponse.json(withUrls);
 }

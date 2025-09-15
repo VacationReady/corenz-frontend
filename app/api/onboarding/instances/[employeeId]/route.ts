@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import supabase from "@/lib/supabase-admin";
 
 const mapStepType = (type: string) => {
   switch (type) {
@@ -53,28 +54,37 @@ export async function GET(
     }
 
     // ✅ Merge template steps with instance step info
-    const mergedSteps = instance.template.steps.map((tStep) => {
-      const instStep = instance.steps.find((i) => i.stepId === tStep.id);
-      return {
-        id: tStep.id, // template step ID
-        instanceStepId: instStep?.id || null, // ✅ onboardingStepInstance ID
-        type: mapStepType(tStep.type),
-        label: tStep.label,
-        instruction: tStep.instruction ?? undefined,
-        uploadType: tStep.uploadType ?? undefined,
-        documentId: tStep.documentId ?? undefined,
-        document: tStep.document
-          ? {
-              id: tStep.document.id,
-              name: tStep.document.name,
-              url: tStep.document.url,
-            }
-          : undefined,
-        formId: tStep.formId ?? undefined,
-        order: tStep.order,
-        status: instStep?.status || "pending",
-      };
-    });
+    const mergedSteps = await Promise.all(
+      instance.template.steps.map(async (tStep) => {
+        const instStep = instance.steps.find((i) => i.stepId === tStep.id);
+        let url: string | null = null;
+        if (tStep.document?.url) {
+          const { data: signed } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(tStep.document.url, 60 * 5);
+          url = signed?.signedUrl ?? null;
+        }
+        return {
+          id: tStep.id, // template step ID
+          instanceStepId: instStep?.id || null, // ✅ onboardingStepInstance ID
+          type: mapStepType(tStep.type),
+          label: tStep.label,
+          instruction: tStep.instruction ?? undefined,
+          uploadType: tStep.uploadType ?? undefined,
+          documentId: tStep.documentId ?? undefined,
+          document: tStep.document
+            ? {
+                id: tStep.document.id,
+                name: tStep.document.name,
+                url,
+              }
+            : undefined,
+          formId: tStep.formId ?? undefined,
+          order: tStep.order,
+          status: instStep?.status || "pending",
+        };
+      }),
+    );
 
     const normalized = {
       id: instance.id,

@@ -36,7 +36,9 @@ export async function middleware(request: NextRequest) {
     // Origin checking for restricted methods
     if (RESTRICTED_METHODS.includes(request.method)) {
       const origin = request.headers.get("origin");
-      if (!isAllowedOrigin(origin)) {
+      const selfOrigin = request.nextUrl.origin;
+      // Allow same-origin and no-origin requests; enforce allowlist only for true cross-origin
+      if (origin && origin !== selfOrigin && !isAllowedOrigin(origin)) {
         return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
       }
     }

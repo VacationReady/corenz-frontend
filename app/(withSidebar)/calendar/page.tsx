@@ -89,7 +89,7 @@ export default function CalendarPage() {
             setThresholds({ defaultMaxConcurrent: Math.min(...maxes) });
           }
         }
-      } catch {}
+      } catch (_err) {}
     })();
   }, []);
 
@@ -100,6 +100,7 @@ export default function CalendarPage() {
     }
     return base;
   };
+  useEffect(() => {
     // Load categories for filter drawer
     (async () => {
       try {
@@ -110,7 +111,7 @@ export default function CalendarPage() {
             (cats || []).map((c: any) => ({ label: c.name, value: c.id }))
           );
         }
-      } catch {}
+      } catch (_err) {}
     })();
   }, []);
 
@@ -123,7 +124,7 @@ export default function CalendarPage() {
           const items = await res.json();
           setLocationOptions((items || []).map((l: any) => ({ label: l.name, value: l.id })));
         }
-      } catch {}
+      } catch (_err) {}
     })();
   }, []);
 
@@ -144,7 +145,7 @@ export default function CalendarPage() {
       else url.searchParams.delete("department");
       url.searchParams.set("view", currentView === "listMonth" ? "list" : "month");
       router.replace(url.pathname + "?" + url.searchParams.toString(), { scroll: false });
-    } catch {}
+    } catch (_err) {}
   }, [selectedDepartment, currentView, router]);
 
   const fetchLeaveEvents = async (

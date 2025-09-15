@@ -31,7 +31,6 @@ export async function POST(req: Request) {
         eventCategoryIds: eventCategoryIds ?? [],
         note: note ?? null,
         companyId: session.user.companyId,
-        createdById: session.user.id,
       },
     });
 

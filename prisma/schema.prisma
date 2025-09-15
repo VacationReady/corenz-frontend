@@ -495,6 +495,7 @@ model BlackoutDay {
   companyId        String
   allEvents        Boolean  @default(false)
   eventCategoryIds String[]
+  note             String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

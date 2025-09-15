@@ -56,6 +56,7 @@ export default function CalendarPage() {
   const [nameQuery, setNameQuery] = useState("");
   const [locationOptions, setLocationOptions] = useState<{label: string; value: string}[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
   const calendarRef = useRef<FullCalendar | null>(null);
 
   const fetchDepartments = async () => {
@@ -227,7 +228,12 @@ export default function CalendarPage() {
         return;
       }
       const blackoutData = await res.json();
-      const blackoutEvents = blackoutData.map((b: any) => ({
+      const keys = new Set<string>();
+      const blackoutEvents = blackoutData.map((b: any) => {
+        const d = new Date(b.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        keys.add(key);
+        return ({
         id: b.id,
         title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
         start: b.date,
@@ -239,7 +245,8 @@ export default function CalendarPage() {
           isBlackout: true,
           note: b.note ?? null,
         },
-      }));
+      });
+      setBlackoutDateKeys(keys);
       successCallback(blackoutEvents);
     } catch (error) {
       console.error("Blackout fetch error", error);
@@ -294,7 +301,15 @@ export default function CalendarPage() {
     // Weekend subtle shading if no capacity shading
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
     const isToday = (() => { const t = new Date(); return t.toDateString() === d.toDateString(); })();
-    if (count > 0) {
+    // Blackout day gets highest priority visual
+    if (blackoutDateKeys.has(key)) {
+      el.style.backgroundColor = 'rgba(239,68,68,0.18)'; // red-500 at low alpha
+      const badge = document.createElement('div');
+      badge.className = 'capacity-badge absolute top-1 right-1 text-[10px] leading-none rounded-full bg-red-600 text-white px-1.5 py-0.5';
+      badge.textContent = 'Blocked';
+      el.style.position = el.style.position || 'relative';
+      el.appendChild(badge);
+    } else if (count > 0) {
       // Heat color by tiers
       let alpha = getHeatAlpha(count);
       el.style.backgroundColor = `rgba(59, 130, 246, ${alpha})`; // blue-500 with varying alpha

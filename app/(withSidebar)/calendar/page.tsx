@@ -233,18 +233,19 @@ export default function CalendarPage() {
         const d = new Date(b.date);
         const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         keys.add(key);
-        return ({
-        id: b.id,
-        title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
-        start: b.date,
-        allDay: true,
-        display: "background",
-        backgroundColor: "#fecaca",
-        borderColor: "#ef4444",
-        extendedProps: {
-          isBlackout: true,
-          note: b.note ?? null,
-        },
+        return {
+          id: b.id,
+          title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
+          start: b.date,
+          allDay: true,
+          display: "background",
+          backgroundColor: "#fecaca",
+          borderColor: "#ef4444",
+          extendedProps: {
+            isBlackout: true,
+            note: b.note ?? null,
+          },
+        };
       });
       setBlackoutDateKeys(keys);
       successCallback(blackoutEvents);

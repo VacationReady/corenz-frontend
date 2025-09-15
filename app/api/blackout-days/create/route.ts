@@ -35,29 +35,15 @@ export async function POST(req: Request) {
       ? (eventCategoryIdsInput as any[]).map((v) => String(v))
       : [];
 
-    let blackout;
-    try {
-      blackout = await prisma.blackoutDay.create({
-        data: {
-          date: blackoutDate,
-          allEvents,
-          eventCategoryIds,
-          note: note ?? null,
-          companyId,
-        },
-      });
-    } catch (err: any) {
-      console.warn("Blackout create with note failed, retrying without note", err?.message);
-      // Fallback for environments where migration hasn't applied yet
-      blackout = await prisma.blackoutDay.create({
-        data: {
-          date: blackoutDate,
-          allEvents,
-          eventCategoryIds,
-          companyId,
-        },
-      });
-    }
+    const blackout = await prisma.blackoutDay.create({
+      data: {
+        date: blackoutDate,
+        allEvents,
+        eventCategoryIds,
+        note: note ?? null,
+        companyId,
+      },
+    });
 
     return NextResponse.json({ success: true, blackout });
   } catch (error) {

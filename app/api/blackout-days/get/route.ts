@@ -34,6 +34,17 @@ export async function GET(req: Request) {
     const blackouts = await prisma.blackoutDay.findMany({
       where,
       orderBy: { date: "asc" },
+      select: {
+        id: true,
+        date: true,
+        companyId: true,
+        allEvents: true,
+        eventCategoryIds: true,
+        note: true,
+        createdAt: true,
+        updatedAt: true,
+        // note is intentionally omitted for backwards-compat DBs without the column
+      },
     });
 
     return NextResponse.json(blackouts, {

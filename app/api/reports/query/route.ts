@@ -4,6 +4,38 @@ import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { hrReportFields } from "@/lib/hrReportFields";
+import { z } from "zod";
+
+const filterSchema = z
+  .object({
+    field: z.string().trim().min(1, "Filter field is required"),
+    value: z.any(),
+  })
+  .passthrough();
+
+const paginationSchema = z
+  .object({
+    limit: z.number().int().positive().optional(),
+    page: z.number().int().positive().optional(),
+  })
+  .optional();
+
+const sortSchema = z
+  .object({
+    field: z.string().trim().min(1, "Sort field is required"),
+    direction: z.enum(["asc", "desc"]).optional(),
+  })
+  .optional()
+  .passthrough();
+
+const reportQuerySchema = z.object({
+  selectedFields: z
+    .array(z.string().trim().min(1, "Field name is required"))
+    .min(1, "At least one field must be selected"),
+  filters: z.array(filterSchema).optional(),
+  pagination: paginationSchema,
+  sort: sortSchema,
+});
 
 export async function POST(req: Request) {
   try {
@@ -12,20 +44,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { selectedFields, filters, pagination, sort } = await req.json();
+    const parsedBody = reportQuerySchema.parse(await req.json());
+    const { selectedFields, filters = [], pagination, sort } = {
+      ...parsedBody,
+      filters: parsedBody.filters ?? [],
+    };
 
     console.log("🟡 Selected fields:", selectedFields);
     console.log("🟡 Filters:", filters);
     console.log("🟡 Pagination:", pagination);
     console.log("🟡 Sort:", sort);
-
-    if (!selectedFields || selectedFields.length === 0) {
-      console.warn("❌ No fields selected in report request.");
-      return NextResponse.json(
-        { status: "error", message: "No fields selected", data: [] },
-        { status: 400 },
-      );
-    }
 
     // Restrict selectedFields to allowed hrReportFields list
     const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));
@@ -91,6 +119,12 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("🔥 Error in report query API:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { status: "error", message: "Invalid request body", details: error.flatten(), data: [] },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       { status: "error", message: "Internal server error", data: [] },
       { status: 500 },

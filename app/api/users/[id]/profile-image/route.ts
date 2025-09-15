@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
+import { z } from "zod";
+
+const profileImageUpdateSchema = z.object({
+  path: z
+    .string({ required_error: "path is required" })
+    .trim()
+    .min(1, "path is required"),
+});
 
 export async function GET(
   req: Request,
@@ -50,16 +58,7 @@ export async function PATCH(
     }
 
     const userId = params.id;
-    const body = await req.json();
-    const path: string | undefined =
-      typeof body?.path === "string" ? body.path : undefined;
-
-    if (!path) {
-      return NextResponse.json(
-        { error: "Invalid path" },
-        { status: 400 },
-      );
-    }
+    const { path } = profileImageUpdateSchema.parse(await req.json());
 
     // Allow self-update or admin
     if (session.user.id !== userId && session.user.role !== "ADMIN") {
@@ -77,6 +76,12 @@ export async function PATCH(
 
     return NextResponse.json({ id: updated.id, path: updated.profileImageUrl });
   } catch (e: any) {
+    if (e instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: e.flatten() },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       { error: e?.message || "Server error" },
       { status: 500 },

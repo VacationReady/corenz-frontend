@@ -3,6 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
+import { z } from "zod";
+
+const documentDeleteSchema = z.object({
+  documentId: z
+    .string({ required_error: "documentId is required" })
+    .trim()
+    .min(1, "documentId is required"),
+});
 
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
@@ -10,13 +18,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const { documentId } = await req.json();
-
-  if (!documentId) {
-    return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
-  }
-
   try {
+    const { documentId } = documentDeleteSchema.parse(await req.json());
+
     // Fetch doc to get file path and enforce company scoping
     const doc = await prisma.document.findFirst({
       where: { id: documentId, companyId: session.user.companyId },
@@ -36,6 +40,12 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Delete Error:", err);
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: err.flatten() },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to delete document" },
       { status: 500 },

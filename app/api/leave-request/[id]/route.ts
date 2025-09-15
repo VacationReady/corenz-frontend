@@ -4,6 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { z } from "zod";
+
+const leaveRequestActionSchema = z.object({
+  action: z.enum(["approve", "decline"], {
+    required_error: "action is required",
+  }),
+});
 
 export async function PATCH(
   req: Request,
@@ -19,9 +26,9 @@ export async function PATCH(
   }
 
   const leaveId = params.id;
-  const { action } = await req.json();
 
   try {
+    const { action } = leaveRequestActionSchema.parse(await req.json());
     const leave = await prisma.leaveRequest.findUnique({
       where: { id: leaveId },
       include: {
@@ -136,6 +143,16 @@ export async function PATCH(
     );
   } catch (error: any) {
     console.error("[Leave Request Approval Error]", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid request body",
+          details: error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
       { success: false, error: error.message || "Internal server error." },
       { status: 500 },

@@ -14,26 +14,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { date, allEvents, eventCategoryIds, note } = await req.json();
+    const body = await req.json();
+    const date = body?.date;
+    const allEvents = Boolean(body?.allEvents);
+    const eventCategoryIdsInput = body?.eventCategoryIds;
+    const note = body?.note;
 
     if (!date) {
-      return NextResponse.json(
-        { error: "Missing required fields." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing date" }, { status: 400 });
     }
 
     // 🚩 Force blackout date to 00:01 UTC on the selected date to prevent previous day blocking
     const blackoutDate = new Date(date);
     blackoutDate.setUTCHours(0, 1, 0, 0); // 00:01 UTC
+    if (isNaN(blackoutDate.getTime())) {
+      return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+    }
+
+    const eventCategoryIds = Array.isArray(eventCategoryIdsInput)
+      ? (eventCategoryIdsInput as any[]).map((v) => String(v))
+      : [];
 
     let blackout;
     try {
       blackout = await prisma.blackoutDay.create({
         data: {
           date: blackoutDate,
-          allEvents: allEvents ?? false,
-          eventCategoryIds: eventCategoryIds ?? [],
+          allEvents,
+          eventCategoryIds,
           note: note ?? null,
           companyId,
         },
@@ -44,8 +52,8 @@ export async function POST(req: Request) {
       blackout = await prisma.blackoutDay.create({
         data: {
           date: blackoutDate,
-          allEvents: allEvents ?? false,
-          eventCategoryIds: eventCategoryIds ?? [],
+          allEvents,
+          eventCategoryIds,
           companyId,
         },
       });

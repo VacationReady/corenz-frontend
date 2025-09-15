@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [inspectorDate, setInspectorDate] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [bankHolidaysOn, setBankHolidaysOn] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState("");
   const bankHolidayCacheRef = useRef<any | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -465,32 +466,26 @@ export default function CalendarPage() {
             >
               <List className="h-4 w-4 mr-2" /> List
             </Button>
-            <div className="ml-2 text-sm text-gray-700 font-medium">
-              {(() => {
-                const api = calendarRef.current?.getApi();
-                const date = api?.getDate ? api.getDate() : new Date();
-                return date.toLocaleString(undefined, { month: 'long', year: 'numeric' });
-              })()}
-            </div>
+            <div className="ml-2 text-sm text-gray-700 font-medium">{currentTitle}</div>
             <div className="ml-2 flex items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => { calendarRef.current?.getApi().today(); setRefreshTrigger((p)=>!p);} }
+                onClick={() => { calendarRef.current?.getApi().today(); }}
               >
                 Today
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => { calendarRef.current?.getApi().prev(); setRefreshTrigger((p)=>!p);} }
+                onClick={() => { calendarRef.current?.getApi().prev(); }}
               >
                 Prev
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => { calendarRef.current?.getApi().next(); setRefreshTrigger((p)=>!p);} }
+                onClick={() => { calendarRef.current?.getApi().next(); }}
               >
                 Next
               </Button>
@@ -554,6 +549,9 @@ export default function CalendarPage() {
               plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
               initialView="dayGridMonth"
               headerToolbar={false}
+              datesSet={(arg: any) => {
+                setCurrentTitle(arg.view?.title || "");
+              }}
               eventSources={[
                 { id: "leave", events: fetchLeaveEvents },
                 { id: "blackout", events: fetchBlackoutEvents },

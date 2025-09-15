@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma"; // ← named import
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
 // Validate name, optional description, and multi-week data
@@ -26,8 +28,21 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
     const { name, description, weeks } = await req.json();
     await WorkingPatternUpdateSchema.parseAsync({ name, description, weeks });
+
+    // Ensure pattern belongs to the same company
+    const existing = await prisma.workingPattern.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
 
     const updatedPattern = await prisma.workingPattern.update({
       where: { id: params.id },
@@ -75,6 +90,17 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    const existing = await prisma.workingPattern.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
     await prisma.workingPattern.update({
       where: { id: params.id },
       data: { active: false },

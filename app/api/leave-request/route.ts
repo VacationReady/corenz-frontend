@@ -71,6 +71,7 @@ export async function GET(req: Request) {
 
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: {
+        companyId: session.user.companyId,
         approvalStatus: status,
         employee:
           Object.keys(employeeFilter).length > 0 ? employeeFilter : undefined,

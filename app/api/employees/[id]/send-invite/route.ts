@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
@@ -8,17 +8,17 @@ import { randomBytes } from "crypto";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(
-  _req: NextRequest,
+  _req: NextResponse extends never ? never : any,
   { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user)
+  if (!session?.user?.companyId)
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { id: employeeId } = params;
   try {
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, companyId: session.user.companyId },
       include: { user: true },
     });
     if (!employee?.user)

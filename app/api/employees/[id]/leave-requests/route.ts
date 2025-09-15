@@ -100,8 +100,8 @@ export async function POST(
       );
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, companyId: session.user.companyId },
       include: {
         user: {
           select: {
@@ -173,8 +173,8 @@ export async function POST(
     });
 
     if (employee.user.managerId) {
-      const manager = await prisma.user.findUnique({
-        where: { id: employee.user.managerId },
+      const manager = await prisma.user.findFirst({
+        where: { id: employee.user.managerId, companyId: session.user.companyId },
         select: { email: true, name: true },
       });
 

@@ -14,6 +14,13 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userId = params.id;
+    if (session.user.companyId) {
+      const target = await prisma.user.findFirst({
+        where: { id: userId, companyId: session.user.companyId },
+        select: { id: true },
+      });
+      if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     if (session.user.id !== userId && session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

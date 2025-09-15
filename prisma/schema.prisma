@@ -656,8 +656,12 @@ model TrainingProvider {
 }
 
 model Location {
-  id   String @id @default(uuid())
-  name String @unique
+  id        String  @id @default(uuid())
+  name      String
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, name])
 }
 
 model OnboardingTemplate {

@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     const users = await prisma.user.findMany({
       where: {
         isActivated: true,
+        companyId: session.user.companyId,
       },
       select: {
         id: true,

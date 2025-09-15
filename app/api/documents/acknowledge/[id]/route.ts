@@ -14,9 +14,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Fetch the document, including departments & jobRoles
-    const doc = await prisma.document.findUnique({
-      where: { id: params.id },
+    // ✅ Fetch the document, including departments & jobRoles, scoped by company
+    const doc = await prisma.document.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
       include: {
         departments: true,
         jobRoles: true,

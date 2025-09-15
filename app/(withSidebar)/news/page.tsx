@@ -7,8 +7,9 @@ import NewsPageClient from "@/components/news/NewsPageClient"; // ✅ Missing im
 export const dynamic = "force-dynamic";
 
 export default async function NewsPage() {
-  // Fetch all posts server-side
-  const posts = await getAllNewsPosts();
+  // Fetch all posts server-side, scoped to company
+  const session = await getServerSession(authOptions);
+  const posts = await getAllNewsPosts(session?.user?.companyId);
 
   // ✅ Transform posts minimally to ensure correct types
   const transformedPosts = posts.map((post: any) => ({
@@ -29,8 +30,7 @@ export default async function NewsPage() {
     createdAt: new Date(post.createdAt).toISOString(),
   }));
 
-  // Fetch session and determine permissions
-  const session = await getServerSession(authOptions);
+  // Determine permissions
   let canPost = false;
 
   if (session?.user?.email && session?.user?.companyId) {

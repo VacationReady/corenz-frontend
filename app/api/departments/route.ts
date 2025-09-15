@@ -93,8 +93,13 @@ export async function DELETE(req: Request) {
     }
     const body = await req.json();
     if (!body?.id) return NextResponse.json({ error: "id required" }, { status: 400 });
-
-    await prisma.department.delete({ where: { id: String(body.id) } });
+    // Scope delete to the current company to avoid cross-tenant access
+    const result = await prisma.department.deleteMany({
+      where: { id: String(body.id), companyId: session.user.companyId },
+    });
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Failed to delete" }, { status: 400 });

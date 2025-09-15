@@ -13,11 +13,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+    const employee = await prisma.employee.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
       include: { user: true },
     });
-    if (!employee || employee.companyId !== session.user.companyId) {
+    if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -48,11 +48,11 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+    const employee = await prisma.employee.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
       include: { user: true },
     });
-    if (!employee || employee.companyId !== session.user.companyId) {
+    if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -88,11 +88,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+    const employee = await prisma.employee.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
       include: { user: true },
     });
-    if (!employee || employee.companyId !== session.user.companyId) {
+    if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -146,6 +146,7 @@ export async function DELETE(
     }
 
     const body = (await req.json()) as { id: string };
+    // Ensure the contact belongs to the employee in the same company
     await prisma.emergencyContact.delete({ where: { id: body.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {

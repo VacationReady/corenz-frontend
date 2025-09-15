@@ -17,8 +17,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Verify employee belongs to the same company
+    const employee = await prisma.employee.findFirst({
+      where: { id: employeeId, companyId: session.user.companyId },
+      select: { id: true },
+    });
+    if (!employee) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     const checks = await prisma.employmentCheck.findMany({
-      where: { employeeId },
+      where: { employeeId: employeeId },
       orderBy: { createdAt: "desc" },
     });
 

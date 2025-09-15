@@ -98,8 +98,13 @@ export async function DELETE(req: Request) {
     }
     const body = await req.json();
     if (!body?.id) return NextResponse.json({ success: false, error: "id required" }, { status: 400 });
-
-    await prisma.jobRole.delete({ where: { id: String(body.id) } });
+    // Scope delete to the current company to avoid cross-tenant access
+    const result = await prisma.jobRole.deleteMany({
+      where: { id: String(body.id), companyId: session.user.companyId },
+    });
+    if (result.count === 0) {
+      return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message || "Failed to delete" }, { status: 400 });

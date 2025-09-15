@@ -29,11 +29,17 @@ export async function PATCH(req: Request) {
   if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await req.json();
-  const updated = await prisma.contractTypeOption.update({
-    where: { id: body.id },
+  // Ensure update is constrained to the company
+  const updated = await prisma.contractTypeOption.updateMany({
+    where: { id: body.id, companyId: session.user.companyId },
     data: { label: body.label, order: body.order },
   });
-  return NextResponse.json(updated);
+  if (updated.count === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  // Refetch to return the updated record
+  const item = await prisma.contractTypeOption.findUnique({ where: { id: body.id } });
+  return NextResponse.json(item);
 }
 
 export async function DELETE(req: Request) {
@@ -41,7 +47,11 @@ export async function DELETE(req: Request) {
   if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await req.json();
-  await prisma.contractTypeOption.delete({ where: { id: body.id } });
+  // Scope delete to the current company
+  const result = await prisma.contractTypeOption.deleteMany({ where: { id: body.id, companyId: session.user.companyId } });
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }
 

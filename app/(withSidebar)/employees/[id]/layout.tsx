@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 interface EmployeeLayoutProps {
   children: ReactNode;
@@ -11,8 +13,9 @@ export default async function EmployeeLayout({
   children,
   params,
 }: EmployeeLayoutProps) {
-  const employee = await prisma.employee.findUnique({
-    where: { id: params.id },
+  const session = await getServerSession(authOptions);
+  const employee = await prisma.employee.findFirst({
+    where: { id: params.id, companyId: session?.user?.companyId || "" },
     include: {
       user: {
         include: {

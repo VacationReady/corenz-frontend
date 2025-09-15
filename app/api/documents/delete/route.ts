@@ -6,7 +6,7 @@ import supabase from "@/lib/supabase-admin";
 
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -17,8 +17,10 @@ export async function DELETE(req: Request) {
   }
 
   try {
-    // Fetch doc to get file path
-    const doc = await prisma.document.findUnique({ where: { id: documentId } });
+    // Fetch doc to get file path and enforce company scoping
+    const doc = await prisma.document.findFirst({
+      where: { id: documentId, companyId: session.user.companyId },
+    });
     if (!doc)
       return NextResponse.json(
         { error: "Document not found" },
@@ -28,8 +30,8 @@ export async function DELETE(req: Request) {
     // Delete file from Supabase using `path`
     await supabase.storage.from("documents").remove([doc.path]);
 
-    // Delete DB record
-    await prisma.document.delete({ where: { id: documentId } });
+    // Delete DB record (scoped)
+    await prisma.document.delete({ where: { id: doc.id } });
 
     return NextResponse.json({ success: true });
   } catch (err) {

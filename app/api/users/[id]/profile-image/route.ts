@@ -14,8 +14,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: params.id },
+    const user = await prisma.user.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
       select: { profileImageUrl: true },
     });
 

@@ -201,6 +201,7 @@ export async function POST(req: Request) {
         where: {
           id: { in: employees.map((e) => e.userId) },
           email: { not: "" },
+          companyId: document.companyId,
         },
         select: { id: true, email: true, name: true },
       });

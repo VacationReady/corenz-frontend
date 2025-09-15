@@ -11,7 +11,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) throw new Error("User not authenticated");
+    if (!session?.user?.id || !session.user.companyId) throw new Error("User not authenticated");
     const userId = session.user.id;
 
     const body = await req.json();
@@ -53,7 +53,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limit = parseInt(searchParams.get("limit") || "5", 10);
 
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const posts = await prisma.newsPost.findMany({
+    where: { author: { companyId: session.user.companyId } },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

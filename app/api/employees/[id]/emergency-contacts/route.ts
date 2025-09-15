@@ -137,16 +137,23 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+    const employee = await prisma.employee.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
       include: { user: true },
     });
-    if (!employee || employee.companyId !== session.user.companyId) {
+    if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const body = (await req.json()) as { id: string };
     // Ensure the contact belongs to the employee in the same company
+    const belongs = await prisma.emergencyContact.findFirst({
+      where: { id: body.id, employee: { id: employee.id, companyId: session.user.companyId } },
+      select: { id: true },
+    });
+    if (!belongs) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     await prisma.emergencyContact.delete({ where: { id: body.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {

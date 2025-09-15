@@ -37,7 +37,7 @@ export async function PATCH(req: Request) {
   if (updated.count === 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  const item = await prisma.employmentTypeOption.findUnique({ where: { id: body.id } });
+  const item = await prisma.employmentTypeOption.findFirst({ where: { id: body.id, companyId: session.user.companyId } });
   return NextResponse.json(item);
 }
 

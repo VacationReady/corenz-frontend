@@ -38,7 +38,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   // Refetch to return the updated record
-  const item = await prisma.contractTypeOption.findUnique({ where: { id: body.id } });
+  const item = await prisma.contractTypeOption.findFirst({ where: { id: body.id, companyId: session.user.companyId } });
   return NextResponse.json(item);
 }
 

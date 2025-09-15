@@ -190,14 +190,14 @@ export async function POST(req: Request) {
     if (managerId && managerId.trim() !== "") {
       const managerEmployee = await prisma.employee.findUnique({
         where: { id: managerId },
-        select: { userId: true },
+        select: { userId: true, companyId: true },
       });
 
-      if (managerEmployee?.userId) {
+      if (managerEmployee?.userId && managerEmployee.companyId === companyId) {
         managerConnect = { connect: { id: managerEmployee.userId } };
       } else {
         console.warn(
-          `Manager Employee ID ${managerId} provided, but no Employee found. Skipping manager connect.`,
+          `Manager Employee ID ${managerId} missing or cross-company. Skipping manager connect.`,
         );
       }
     }
@@ -239,15 +239,14 @@ export async function POST(req: Request) {
       },
     });
 
-    // After creating employee, auto-promote manager to MANAGER role and apply Manager permission profile if provided
+    // ✅ Auto-promote manager and apply Manager permission profile within company
     if (managerId && managerId.trim() !== "") {
       try {
         const mgr = await prisma.employee.findUnique({
           where: { id: managerId },
-          select: { userId: true },
+          select: { userId: true, companyId: true },
         });
-        if (mgr?.userId) {
-          // Try to find a Manager permission profile for this company
+        if (mgr?.userId && mgr.companyId === companyId) {
           const managerProfile = await prisma.permissionProfile.findFirst({
             where: {
               companyId,

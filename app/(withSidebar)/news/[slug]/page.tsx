@@ -15,8 +15,11 @@ interface Props {
 export default async function NewsDetailPage({ params }: Props) {
   const session = await getServerSession(authOptions);
 
-  const post = await prisma.newsPost.findUnique({
-    where: { slug: params.slug },
+  const post = await prisma.newsPost.findFirst({
+    where: {
+      slug: params.slug,
+      ...(session?.user?.companyId ? { author: { companyId: session.user.companyId } } : {}),
+    },
     include: { author: true },
   });
 

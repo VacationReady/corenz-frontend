@@ -115,15 +115,15 @@ export async function POST(req: Request) {
 
     // --- BEGIN: Send Resend email for employee docs with requiresAck ---
     if (requiresAck && document.employeeId) {
-      const employee = await prisma.employee.findUnique({
-        where: { id: document.employeeId },
+      const employee = await prisma.employee.findFirst({
+        where: { id: document.employeeId, companyId: document.companyId },
         select: { userId: true },
       });
       console.log("Employee found:", employee);
 
       if (employee?.userId) {
-        const user = await prisma.user.findUnique({
-          where: { id: employee.userId },
+        const user = await prisma.user.findFirst({
+          where: { id: employee.userId, companyId: document.companyId },
           select: { email: true, name: true },
         });
         console.log("User found for notification:", user);

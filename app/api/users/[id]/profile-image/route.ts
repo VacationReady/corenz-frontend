@@ -66,6 +66,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Ensure target is in same company
+    const target = await prisma.user.findFirst({ where: { id: userId, companyId: session.user.companyId }, select: { id: true } });
+    if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const updated = await prisma.user.update({
       where: { id: userId },
       data: { profileImageUrl: path },

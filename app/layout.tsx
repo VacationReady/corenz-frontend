@@ -8,11 +8,18 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ChunkErrorHandler from "./components/ChunkErrorHandler";
 import React from "react";
 import { CommandPaletteMount } from "./components/CommandPaletteMount";
+import { Inter } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
+});
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen font-sans text-foreground antialiased relative">
+      <body className={`${inter.className} min-h-screen font-sans text-foreground antialiased relative`}>
         {/* Gradient Background Layer */}
         <div className="fixed inset-0 bg-gradient-landscape pointer-events-none z-0" />
 

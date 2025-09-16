@@ -31,10 +31,10 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     where: { id: employeeId },
     include: {
       // 👇 include nested eventCategory on each entitlement
-      leaveEntitlements: {
-        include: { eventCategory: true },
+      LeaveEntitlement: {
+        include: { EventCategory: true },
       },
-      user: {
+      User: {
         select: {
           firstName: true,
           lastName: true,
@@ -43,8 +43,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           role: true,
           createdAt: true,
           profileImageUrl: true,
-          jobRole: { select: { name: true } },
-          department: { select: { name: true } },
+          JobRole: { select: { name: true } },
+          Department_User_departmentIdToDepartment: { select: { name: true } },
           manager: {
             select: { firstName: true, lastName: true },
           },
@@ -65,7 +65,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     return <div className="p-6">Employee not found.</div>;
   }
 
-  const employeeName = `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim();
+  const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim();
 
   return (
     <PageShell
@@ -86,7 +86,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           <ProfileAvatarUploader
             userId={employee.userId}
             name={employeeName}
-            initialUrl={employee.user.profileImageUrl}
+            initialUrl={employee.User.profileImageUrl}
           />
         </div>
 
@@ -97,8 +97,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold">Contact Info</h2>
           </div>
           <div className="p-4 space-y-1 text-sm">
-            <p><strong>Email:</strong> {employee.user.email}</p>
-            <p><strong>Phone:</strong> {employee.user.phone || "N/A"}</p>
+            <p><strong>Email:</strong> {employee.User.email}</p>
+            <p><strong>Phone:</strong> {employee.User.phone || "N/A"}</p>
             <Link href={`/employees/${employee.id}/contact-info`} className="text-blue-600 underline text-sm">Manage</Link>
           </div>
         </Card>
@@ -108,7 +108,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold">Demographic</h2>
           </div>
           <div className="p-4 space-y-1 text-sm">
-            <p><strong>Start date:</strong> {employee.user.createdAt.toDateString()}</p>
+            <p><strong>Start date:</strong> {employee.User.createdAt.toDateString()}</p>
             <Link href={`/employees/${employee.id}/demographic`} className="text-blue-600 underline text-sm">Manage</Link>
           </div>
         </Card>
@@ -139,7 +139,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           </div>
           <div className="p-4 space-y-1 text-sm">
             <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
-            <p><strong>Department:</strong> {employee.user.department?.name || "N/A"}</p>
+            <p><strong>Department:</strong> {employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}</p>
             <Link href={`/employees/${employee.id}/employment-details`} className="text-blue-600 underline text-sm">Manage</Link>
           </div>
         </Card>
@@ -151,7 +151,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           </div>
           <div className="p-4 space-y-4">
             <LeaveBalancePanel
-              leaveEntitlements={employee.leaveEntitlements}
+              leaveEntitlements={employee.LeaveEntitlement}
               employeeId={employee.id}
             />
 

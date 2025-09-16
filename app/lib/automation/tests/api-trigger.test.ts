@@ -22,7 +22,7 @@ const mockPrismaClient = {
 
 // Mock NextAuth
 const mockSession = {
-  user: {
+  User: {
     id: "user-123",
     email: "admin@example.com",
     companyId: "company-123",
@@ -345,3 +345,4 @@ test("Automation Trigger API", async (t) => {
     (Module as any)._load = originalLoad;
   });
 });
+

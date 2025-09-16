@@ -5,8 +5,8 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
 const EventRuleOverrideUpdateSchema = z.object({
-  eventCategoryId: z.string().cuid("Invalid event category ID").optional(),
-  departmentId: z.string().cuid("Invalid department ID").optional(),
+  EventCategoryId: z.string().cuid("Invalid event category ID").optional(),
+  DepartmentId: z.string().cuid("Invalid Department ID").optional(),
   teamId: z.string().cuid("Invalid team ID").optional(),
   enforceEntitlement: z.boolean().optional(),
   noticePeriodDays: z.number().int().min(0).optional(),
@@ -36,14 +36,14 @@ export async function GET(
         companyId: session.user.companyId,
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: {
             id: true,
             name: true,
             color: true,
           },
         },
-        department: {
+        Department: {
           select: {
             id: true,
             name: true,
@@ -90,7 +90,7 @@ export async function PUT(
         companyId: session.user.companyId,
       },
       include: {
-        eventCategory: true,
+        EventCategory: true,
       },
     });
 
@@ -103,18 +103,18 @@ export async function PUT(
 
     // Check for duplicate overrides if category or scope is being changed
     if (
-      validatedData.eventCategoryId ||
-      validatedData.departmentId !== undefined
+      validatedData.EventCategoryId ||
+      validatedData.DepartmentId !== undefined
     ) {
       const duplicateOverride = await prisma.eventRuleOverride.findFirst({
         where: {
           companyId: session.user.companyId,
           eventCategoryId:
-            validatedData.eventCategoryId || existingOverride.eventCategoryId,
+            validatedData.EventCategoryId || existingOverride.EventCategoryId,
           departmentId:
-            validatedData.departmentId !== undefined
-              ? validatedData.departmentId
-              : existingOverride.departmentId,
+            validatedData.DepartmentId !== undefined
+              ? validatedData.DepartmentId
+              : existingOverride.DepartmentId,
           teamId:
             validatedData.teamId !== undefined
               ? validatedData.teamId
@@ -133,8 +133,8 @@ export async function PUT(
 
     // Store old values for audit log
     const oldValues = {
-      eventCategoryId: existingOverride.eventCategoryId,
-      departmentId: existingOverride.departmentId,
+      EventCategoryId: existingOverride.EventCategoryId,
+      DepartmentId: existingOverride.DepartmentId,
       staffingDensityEnabled: existingOverride.staffingDensityEnabled,
       staffingDensityThreshold: existingOverride.staffingDensityThreshold,
     };
@@ -144,14 +144,14 @@ export async function PUT(
       where: { id: params.id },
       data: validatedData,
       include: {
-        eventCategory: {
+        EventCategory: {
           select: {
             id: true,
             name: true,
             color: true,
           },
         },
-        department: {
+        Department: {
           select: {
             id: true,
             name: true,
@@ -171,8 +171,8 @@ export async function PUT(
         changes: {
           old: oldValues,
           new: {
-            eventCategoryId: updatedOverride.eventCategoryId,
-            departmentId: updatedOverride.departmentId,
+            EventCategoryId: updatedOverride.EventCategoryId,
+            DepartmentId: updatedOverride.DepartmentId,
             staffingDensityEnabled: updatedOverride.staffingDensityEnabled,
             staffingDensityThreshold: updatedOverride.staffingDensityThreshold,
           },
@@ -220,8 +220,8 @@ export async function DELETE(
         companyId: session.user.companyId,
       },
       include: {
-        eventCategory: true,
-        department: true,
+        EventCategory: true,
+        Department: true,
       },
     });
 
@@ -246,8 +246,8 @@ export async function DELETE(
         action: "DELETED",
         actorId: session.user.id,
         changes: {
-          eventCategory: existingOverride.eventCategory.name,
-          department: existingOverride.department?.name,
+          EventCategory: existingOverride.EventCategory.name,
+          Department: existingOverride.Department?.name,
           staffingDensityEnabled: existingOverride.staffingDensityEnabled,
         },
         metadata: {

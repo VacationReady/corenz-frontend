@@ -9,3 +9,4 @@ export function isAllowedOrigin(origin: string | null) {
 }
 
 export { originAllowList };
+

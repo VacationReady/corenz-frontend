@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
         include: {
           leavePolicy: {
             include: {
-              eventCategory: {
+              EventCategory: {
                 select: { id: true, name: true, color: true },
               },
             },
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
       include: {
         leavePolicy: {
           include: {
-            eventCategory: {
+            EventCategory: {
               select: { id: true, name: true, color: true },
             },
           },
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
       include: {
         leavePolicy: {
           include: {
-            eventCategory: {
+            EventCategory: {
               select: { id: true, name: true, color: true },
             },
           },
@@ -248,3 +248,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

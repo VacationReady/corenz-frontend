@@ -133,7 +133,7 @@ const mockPrismaClient = {
       return Promise.resolve(checks);
     }),
   },
-  employee: {
+  Employee: {
     findUnique: test.mock.fn((args: any) => {
       const employee = mockDatabase.employees.find(
         (e: any) => e.id === args.where.id,
@@ -154,7 +154,7 @@ const mockPrismaClient = {
       return Promise.resolve(employees);
     }),
   },
-  user: {
+  User: {
     findMany: test.mock.fn((args: any) => {
       let users = mockDatabase.users.filter((u: any) => {
         if (args.where.companyId && u.companyId !== args.where.companyId)
@@ -215,7 +215,7 @@ test("Automation Workflow Integration Tests", async (t) => {
       companyId,
       isActive: true,
       userId: "user-456",
-      user: {
+      User: {
         id: "user-456",
         email: "employee@example.com",
         managerId: "manager-789",
@@ -238,10 +238,10 @@ test("Automation Workflow Integration Tests", async (t) => {
       employeeId,
       typeOfCheck: "Passport",
       expiryDate,
-      employee: {
+      Employee: {
         companyId,
         isActive: true,
-        user: { id: "user-456", email: "employee@example.com" },
+        User: { id: "user-456", email: "employee@example.com" },
       },
     });
 
@@ -338,9 +338,9 @@ test("Automation Workflow Integration Tests", async (t) => {
         companyId,
         triggerData: triggerResult.matchingEntities[0],
         employeeId,
-        employee: {
+        Employee: {
           ...employee,
-          user: { ...employee.user, role: "EMPLOYEE" }, // Set role for condition evaluation
+          User: { ...employee.user, role: "EMPLOYEE" }, // Set role for condition evaluation
         },
       },
     );
@@ -394,7 +394,7 @@ test("Automation Workflow Integration Tests", async (t) => {
       isActive: true,
       departmentId: "dept-engineering",
       userId: "user-789",
-      user: {
+      User: {
         id: "user-789",
         email: "engineer@example.com",
         role: "EMPLOYEE",
@@ -560,7 +560,7 @@ test("Automation Workflow Integration Tests", async (t) => {
       companyId,
       isActive: true,
       userId: "user-audit",
-      user: {
+      User: {
         id: "user-audit",
         email: "audit@example.com",
         role: "EMPLOYEE",
@@ -632,3 +632,4 @@ test("Automation Workflow Integration Tests", async (t) => {
     resetMockDatabase();
   });
 });
+

@@ -38,7 +38,7 @@ export async function sendExitInterviewConfirmation(
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
       include: {
-        employee: {
+        Employee: {
           include: { user: true },
         },
         interviewerUser: true,
@@ -217,7 +217,7 @@ export async function sendExitInterviewFormInvite(
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
       include: {
-        employee: {
+        Employee: {
           include: { user: true },
         },
         formTemplate: true,
@@ -303,7 +303,7 @@ export async function sendExitInterviewCancellation(
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
       include: {
-        employee: {
+        Employee: {
           include: { user: true },
         },
         interviewerUser: true,
@@ -386,3 +386,4 @@ export async function sendExitInterviewCancellation(
     return false;
   }
 }
+

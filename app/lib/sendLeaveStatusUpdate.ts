@@ -60,3 +60,4 @@ export async function sendLeaveStatusUpdate({
     console.error("❌ Failed to send leave status update:", error);
   }
 }
+

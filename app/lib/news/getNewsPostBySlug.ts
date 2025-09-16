@@ -8,3 +8,4 @@ export async function getNewsPostBySlug(slug: string, companyId?: string) {
     },
   });
 }
+

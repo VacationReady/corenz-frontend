@@ -33,14 +33,14 @@ export async function GET() {
         companyId: session.user.companyId,
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: {
             id: true,
             name: true,
             color: true,
           },
         },
-        department: {
+        Department: {
           select: {
             id: true,
             name: true,
@@ -48,8 +48,8 @@ export async function GET() {
         },
       },
       orderBy: [
-        { eventCategory: { name: "asc" } },
-        { department: { name: "asc" } },
+        { EventCategory: { name: "asc" } },
+        { Department: { name: "asc" } },
       ],
     });
 
@@ -130,14 +130,14 @@ export async function POST(req: Request) {
         companyId: session.user.companyId,
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: {
             id: true,
             name: true,
             color: true,
           },
         },
-        department: {
+        Department: {
           select: {
             id: true,
             name: true,
@@ -183,3 +183,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

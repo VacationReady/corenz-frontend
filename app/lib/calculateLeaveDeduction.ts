@@ -20,7 +20,7 @@ export async function calculateLeaveDeduction(
     },
     orderBy: { effectiveDate: "desc" },
     include: {
-      workingPattern: {
+      WorkingPattern: {
         include: {
           WorkingPatternWeek: {
             include: {
@@ -97,3 +97,4 @@ export async function calculateLeaveDeduction(
       return 0;
   }
 }
+

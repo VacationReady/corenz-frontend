@@ -446,3 +446,4 @@ export function getAutomationScheduler(): AutomationScheduler {
   }
   return schedulerInstance;
 }
+

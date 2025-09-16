@@ -30,3 +30,4 @@ export async function sendNewsEmail({
     console.error("Failed to send news email:", err);
   }
 }
+

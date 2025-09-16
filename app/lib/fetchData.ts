@@ -11,3 +11,4 @@ export async function fetchDepartments() {
   if (!res.ok) throw new Error("Failed to fetch departments");
   return res.json();
 }
+

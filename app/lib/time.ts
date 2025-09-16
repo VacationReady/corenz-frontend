@@ -79,3 +79,4 @@ export function addMinutesInLondon(
   const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
   return new Date(date.getTime() + minutes * 60 * 1000);
 }
+

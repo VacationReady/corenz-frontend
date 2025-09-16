@@ -63,12 +63,14 @@ export async function POST(req: NextRequest) {
 
     const employmentCheck = await prisma.employmentCheck.create({
       data: {
+        id: crypto.randomUUID(),
         typeOfCheck,
         documentNumber,
         dateOfIssue: new Date(dateOfIssue),
         expiryDate: new Date(expiryDate),
         employeeId,
         documentUrl,
+        updatedAt: new Date(),
       },
     });
 
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
     if (documentUrl && documentName && documentPath) {
       await prisma.document.create({
         data: {
+          id: crypto.randomUUID(),
           name: documentName,
           path: documentPath,
           url: documentPath,
@@ -101,3 +104,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

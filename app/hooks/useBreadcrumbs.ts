@@ -142,3 +142,4 @@ export function useBreadcrumbs(
     }
   }, [pathname, dynamicData, customConfig]);
 }
+

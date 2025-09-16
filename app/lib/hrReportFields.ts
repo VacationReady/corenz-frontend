@@ -467,3 +467,4 @@ export const hrReportTemplates: ReportTemplate[] = [
     ],
   },
 ];
+

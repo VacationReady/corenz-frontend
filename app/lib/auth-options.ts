@@ -106,3 +106,4 @@ export const authOptions: AuthOptions = {
     signIn: "/login",
   },
 };
+

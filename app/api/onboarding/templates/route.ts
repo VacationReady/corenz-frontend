@@ -37,13 +37,13 @@ export async function GET(req: Request) {
       isActive: true, // ✅ Boolean field replaces status
       updatedAt: true,
       updatedBy: { select: { id: true, name: true, email: true } },
-      departments: { select: { id: true, name: true } },
-      jobRoles: { select: { id: true, name: true } },
+      Department: { select: { id: true, name: true } },
+      JobRole: { select: { id: true, name: true } },
       steps: {
         orderBy: { order: "asc" },
         include: {
-          document: { select: { id: true, name: true } },
-          form: { select: { id: true, name: true } },
+          Document: { select: { id: true, name: true } },
+          Form: { select: { id: true, name: true } },
         },
       },
     },
@@ -147,3 +147,4 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 }
+

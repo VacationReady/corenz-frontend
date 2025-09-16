@@ -29,3 +29,4 @@ export async function uploadFileToSupabase(file: File) {
     path: filePath,
   };
 }
+

@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
   // --- END: Send Resend email for employee docs with requiresAck ---
 
   return NextResponse.json({
-    document: {
+    Document: {
       id: document.id,
       url: fileUrl,
       name: document.name,
@@ -184,3 +184,4 @@ export async function POST(req: NextRequest) {
     },
   });
 }
+

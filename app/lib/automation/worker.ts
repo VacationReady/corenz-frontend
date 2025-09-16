@@ -598,3 +598,4 @@ export function getAutomationWorker(): AutomationWorker {
   }
   return workerInstance;
 }
+

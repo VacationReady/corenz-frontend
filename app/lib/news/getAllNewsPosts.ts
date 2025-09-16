@@ -12,3 +12,4 @@ export async function getAllNewsPosts(companyId?: string) {
     },
   });
 }
+

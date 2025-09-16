@@ -17,3 +17,4 @@ export interface DynamicBreadcrumbData {
   departmentName?: string;
   jobRoleName?: string;
 }
+

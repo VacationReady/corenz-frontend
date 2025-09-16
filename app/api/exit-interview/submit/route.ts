@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const offboarding = await prisma.employeeOffboarding.findFirst({
       where: { completionTokenHash: token },
       include: {
-        employee: {
+        Employee: {
           include: { User: true },
         },
         formTemplate: true,
@@ -94,3 +94,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

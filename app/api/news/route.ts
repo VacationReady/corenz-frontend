@@ -227,3 +227,4 @@ function generateSlug(title: string) {
     .replace(/[^a-z0-9\-]/g, "")
     .slice(0, 50);
 }
+

@@ -18,3 +18,4 @@ export const sessionOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+

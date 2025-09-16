@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const policies = await prisma.leavePolicy.findMany({
       where,
       include: {
-        eventCategory: {
+        EventCategory: {
           select: { id: true, name: true, color: true },
         },
         assignments: true,
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
         isActive,
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: { id: true, name: true, color: true },
         },
       },
@@ -181,3 +181,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

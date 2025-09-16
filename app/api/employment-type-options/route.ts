@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await req.json();
   const created = await prisma.employmentTypeOption.create({
-    data: { companyId: session.user.companyId, label: body.label, order: body.order ?? 0 },
+    data: { id: crypto.randomUUID(), companyId: session.user.companyId, label: body.label, order: body.order ?? 0 },
   });
   return NextResponse.json(created, { status: 201 });
 }
@@ -53,5 +53,6 @@ export async function DELETE(req: Request) {
   }
   return NextResponse.json({ ok: true });
 }
+
 
 

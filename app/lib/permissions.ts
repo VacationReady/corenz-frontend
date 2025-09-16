@@ -43,7 +43,7 @@ export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
     onboarding: ["read"],
     offboarding: ["read"],
   },
-  EMPLOYEE: {
+  Employee: {
     dashboard: ["read"],
     calendar: ["read"],
     documents: ["read"],
@@ -248,7 +248,7 @@ export async function canAccessEmployee(
 
   const target = await prisma.employee.findUnique({
     where: { id: targetEmployeeId, companyId: requestor.companyId },
-    select: { userId: true, user: { select: { managerId: true } } },
+    select: { userId: true, User: { select: { managerId: true } } },
   });
 
   if (!target) return false;
@@ -259,3 +259,4 @@ export async function canAccessEmployee(
   // Manager access (only if they directly manage the target)
   return target.user?.managerId === requestor.id;
 }
+

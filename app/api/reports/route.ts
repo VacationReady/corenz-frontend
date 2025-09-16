@@ -13,7 +13,7 @@ export async function GET() {
     const reports = await prisma.savedReport.findMany({
       where: { companyId: session.user.companyId },
       include: {
-        user: { select: { email: true } },
+        User: { select: { email: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -73,3 +73,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

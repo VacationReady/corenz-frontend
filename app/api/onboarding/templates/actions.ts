@@ -33,8 +33,8 @@ export async function createTemplate(
       steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
     include: {
-      departments: { select: { id: true, name: true } },
-      jobRoles: { select: { id: true, name: true } },
+      Department: { select: { id: true, name: true } },
+      JobRole: { select: { id: true, name: true } },
       steps: true,
       updatedBy: { select: { id: true, name: true, email: true } },
     },
@@ -73,14 +73,14 @@ export async function updateTemplate(
       description: description || "",
       isActive: Boolean(isActive),
       updatedById: session.user.id,
-      departments: {
+      Department: {
         set: [],
         connect:
           departments.length > 0
             ? departments.map((id: string) => ({ id }))
             : [],
       },
-      jobRoles: {
+      JobRole: {
         set: [],
         connect:
           jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
@@ -88,10 +88,11 @@ export async function updateTemplate(
       steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
     include: {
-      departments: { select: { id: true, name: true } },
-      jobRoles: { select: { id: true, name: true } },
+      Department: { select: { id: true, name: true } },
+      JobRole: { select: { id: true, name: true } },
       steps: true,
       updatedBy: { select: { id: true, name: true, email: true } },
     },
   });
 }
+

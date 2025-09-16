@@ -5,3 +5,4 @@ export async function GET() {
   // Return only HR-curated fields
   return NextResponse.json(hrReportFields);
 }
+

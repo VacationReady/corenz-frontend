@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
       include: {
-        employee: {
+        Employee: {
           include: { User: true },
         },
         interviewerUser: true,
@@ -97,3 +97,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

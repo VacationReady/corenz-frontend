@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         },
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: { name: true, color: true },
         },
       },
@@ -54,17 +54,17 @@ export async function POST(req: NextRequest) {
       employee = await prisma.employee.findFirst({
         where: { id: employeeId, companyId },
         include: {
-          user: {
+          User: {
             select: {
               firstName: true,
               lastName: true,
               email: true,
             },
           },
-          department: {
+          Department: {
             select: { name: true },
           },
-          jobRole: {
+          JobRole: {
             select: { name: true },
           },
         },
@@ -219,3 +219,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

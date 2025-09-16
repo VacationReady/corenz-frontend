@@ -14,3 +14,4 @@ export async function getDownloadUrl(path: string) {
 
   return data?.signedUrl ?? null;
 }
+

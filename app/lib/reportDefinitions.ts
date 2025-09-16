@@ -13,12 +13,12 @@ export const reportDefinitions = {
           ...(filters.employeeId && { employeeId: filters.employeeId }),
         },
         include: {
-          employee: {
+          Employee: {
             select: {
-              user: {
+              User: {
                 select: { name: true, email: true },
               },
-              department: {
+              Department: {
                 select: { name: true },
               },
             },
@@ -37,3 +37,4 @@ export const reportDefinitions = {
   },
   // Add more report types here
 };
+

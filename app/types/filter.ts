@@ -52,3 +52,4 @@ export interface FilterContextType {
   clearFilter: (key: keyof FilterState) => void;
   isFiltered: boolean;
 }
+

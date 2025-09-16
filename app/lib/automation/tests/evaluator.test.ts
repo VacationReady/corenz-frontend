@@ -16,7 +16,7 @@ const mockPrismaClient = {
     findMany: test.mock.fn(),
     count: test.mock.fn(),
   },
-  employee: {
+  Employee: {
     findMany: test.mock.fn(),
     count: test.mock.fn(),
   },
@@ -48,8 +48,8 @@ test("AutomationRuleEvaluator", async (t) => {
           employeeId: "emp-1",
           typeOfCheck: "Passport",
           expiryDate: new Date("2024-02-01"),
-          employee: {
-            user: { id: "user-1", email: "test@example.com" },
+          Employee: {
+            User: { id: "user-1", email: "test@example.com" },
           },
         },
         {
@@ -57,8 +57,8 @@ test("AutomationRuleEvaluator", async (t) => {
           employeeId: "emp-2",
           typeOfCheck: "Visa",
           expiryDate: new Date("2024-01-15"),
-          employee: {
-            user: { id: "user-2", email: "test2@example.com" },
+          Employee: {
+            User: { id: "user-2", email: "test2@example.com" },
           },
         },
       ];
@@ -134,10 +134,10 @@ test("AutomationRuleEvaluator", async (t) => {
           employeeId: "emp-1",
           submittedAt: new Date(),
           data: { field1: "value1" },
-          employee: {
-            user: { id: "user-1", email: "test@example.com" },
+          Employee: {
+            User: { id: "user-1", email: "test@example.com" },
           },
-          form: { id: "form-123", name: "Test Form" },
+          Form: { id: "form-123", name: "Test Form" },
         },
       ];
 
@@ -185,13 +185,13 @@ test("AutomationRuleEvaluator", async (t) => {
           userId: "user-1",
           departmentId: "dept-1",
           jobRoleId: "role-1",
-          user: {
+          User: {
             id: "user-1",
             email: "newbie@example.com",
             createdAt: new Date(),
           },
-          department: { id: "dept-1", name: "Engineering" },
-          jobRole: { id: "role-1", name: "Developer" },
+          Department: { id: "dept-1", name: "Engineering" },
+          JobRole: { id: "role-1", name: "Developer" },
         },
       ];
 
@@ -233,7 +233,7 @@ test("AutomationRuleEvaluator", async (t) => {
       const evaluator = new AutomationRuleEvaluator();
 
       const employee = {
-        user: { role: "MANAGER" },
+        User: { role: "MANAGER" },
       };
 
       // Test "equals" operator
@@ -306,7 +306,7 @@ test("AutomationRuleEvaluator", async (t) => {
 
       const employee = {
         departmentId: "dept-engineering",
-        user: { role: "EMPLOYEE" },
+        User: { role: "EMPLOYEE" },
       };
 
       const result = await evaluator.evaluateConditions(
@@ -371,7 +371,7 @@ test("AutomationRuleEvaluator", async (t) => {
 
       const employee = {
         departmentId: "dept-engineering",
-        user: { role: "MANAGER" },
+        User: { role: "MANAGER" },
       };
 
       // Both conditions should pass
@@ -435,3 +435,4 @@ test("AutomationRuleEvaluator", async (t) => {
     (Module as any)._load = originalLoad;
   });
 });
+

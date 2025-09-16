@@ -7,7 +7,7 @@ async function findBestOnboardingTemplate(employee: any) {
   // 1. By Job Role
   if (employee.jobRoleId) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
-      where: { jobRoles: { some: { id: employee.jobRoleId } } },
+      where: { JobRole: { some: { id: employee.jobRoleId } } },
       include: { steps: true },
     });
     if (byJobRole) return byJobRole;
@@ -15,7 +15,7 @@ async function findBestOnboardingTemplate(employee: any) {
   // 2. By Department
   if (employee.departmentId) {
     const byDept = await prisma.onboardingTemplate.findFirst({
-      where: { departments: { some: { id: employee.departmentId } } },
+      where: { Department: { some: { id: employee.departmentId } } },
       include: { steps: true },
     });
     if (byDept) return byDept;
@@ -107,3 +107,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

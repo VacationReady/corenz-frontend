@@ -64,3 +64,4 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
         .filter(isStep) as Prisma.OnboardingStepCreateInput[])
     : [];
 }
+

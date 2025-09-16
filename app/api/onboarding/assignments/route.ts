@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       userId: session.user.id,
       completedAt: null,
       template: { companyId: session.user.companyId },
-      user: { companyId: session.user.companyId },
+      User: { companyId: session.user.companyId },
     },
     include: { template: { include: { steps: true } } },
   });
@@ -121,12 +121,12 @@ export async function PATCH(req: NextRequest) {
   const instance = await prisma.onboardingInstance.findFirst({
     where: {
       id: onboardingInstanceId,
-      employee: { companyId: session.user.companyId },
+      Employee: { companyId: session.user.companyId },
       template: { companyId: session.user.companyId },
     },
     include: {
       steps: true,
-      employee: { include: { User: true } },
+      Employee: { include: { User: true } },
     },
   });
 
@@ -148,7 +148,7 @@ export async function PATCH(req: NextRequest) {
         templateId: instance.templateId,
         completedAt: null,
         template: { companyId: session.user.companyId },
-        user: { companyId: session.user.companyId },
+        User: { companyId: session.user.companyId },
       },
       data: { completedAt: new Date() },
     });
@@ -161,3 +161,4 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ success: true, completed: allCompleted });
 }
+

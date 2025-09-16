@@ -317,7 +317,7 @@ export async function POST(req: Request) {
 
     console.log("✅ Document uploaded:", document);
     return NextResponse.json({
-      document: {
+      Document: {
         id: document.id,
         url: fileUrl,
         name: document.name,
@@ -341,3 +341,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

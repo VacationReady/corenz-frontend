@@ -158,7 +158,7 @@ async function findApplicableLeavePolicies({
   employeeId: string;
   eventCategoryId: string;
   companyId: string;
-  employee: {
+  Employee: {
     departmentId: string | null;
     jobRoleId: string | null;
     locationId: string | null;
@@ -295,3 +295,4 @@ export async function checkNegativeBalanceAllowed({
   // Default to false for legacy behavior
   return false;
 }
+

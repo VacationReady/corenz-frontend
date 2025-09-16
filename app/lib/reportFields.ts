@@ -1286,3 +1286,4 @@ export const reportFields: ReportField[] = [
     filterable: true,
   },
 ];
+

@@ -156,7 +156,7 @@ export class AutomationActionExecutor {
             // Get the employee's manager
             const employee = await prisma.employee.findUnique({
               where: { id: context.employeeId },
-              include: { user: { include: { manager: true } } },
+              include: { User: { include: { manager: true } } },
             });
             resolvedAssigneeId = employee?.user.managerId || null;
           } else if (assigneeType === "hr") {
@@ -264,7 +264,7 @@ export class AutomationActionExecutor {
           } else if (recipientType === "manager" && context.employeeId) {
             const employee = await prisma.employee.findUnique({
               where: { id: context.employeeId },
-              include: { user: { include: { manager: true } } },
+              include: { User: { include: { manager: true } } },
             });
             if (employee?.user.manager?.email) {
               resolvedRecipients = [employee.user.manager.email];
@@ -572,3 +572,4 @@ export class AutomationActionExecutor {
     };
   }
 }
+

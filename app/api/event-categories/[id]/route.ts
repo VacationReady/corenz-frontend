@@ -24,7 +24,7 @@ export async function GET(
 
     const category = await prisma.eventCategory.findUnique({
       where: { id },
-      include: { subcategories: true },
+      include: { EventSubcategory: true },
     });
 
     if (!category) {

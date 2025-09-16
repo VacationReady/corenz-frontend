@@ -21,14 +21,14 @@ export async function GET() {
         OR: [
           { isActive: false },
           {
-            subcategories: {
+            EventSubcategory: {
               some: { isActive: false, companyId: session.user.companyId },
             },
           },
         ],
       },
       include: {
-        subcategories: {
+        EventSubcategory: {
           where: { isActive: false, companyId: session.user.companyId },
         },
       },
@@ -54,3 +54,4 @@ export async function GET() {
     );
   }
 }
+

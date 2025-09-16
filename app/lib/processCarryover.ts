@@ -15,7 +15,7 @@ export async function processCarryover() {
 
   const entitlements = await prisma.leaveEntitlement.findMany({
     where: {
-      eventCategory: {
+      EventCategory: {
         eventRules: {
           some: {
             maxCarryoverDays: { gt: 0 },
@@ -24,9 +24,9 @@ export async function processCarryover() {
       },
     },
     include: {
-      employee: {
+      Employee: {
         include: {
-          department: {
+          Department: {
             select: { companyId: true },
           },
         },
@@ -120,3 +120,4 @@ export async function processCarryover() {
 
   console.log("🎉 Carryover processing complete.");
 }
+

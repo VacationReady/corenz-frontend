@@ -402,3 +402,4 @@ export class AutomationJobQueue {
 
 // Singleton instance for the application
 export const automationJobQueue = new AutomationJobQueue();
+

@@ -10,7 +10,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
   if (employee.jobRoleId) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
       where: {
-        jobRoles: { some: { id: employee.jobRoleId } },
+        JobRole: { some: { id: employee.jobRoleId } },
         isActive: true,
         companyId,
       },
@@ -23,7 +23,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
   if (employee.departmentId) {
     const byDept = await prisma.onboardingTemplate.findFirst({
       where: {
-        departments: { some: { id: employee.departmentId } },
+        Department: { some: { id: employee.departmentId } },
         isActive: true,
         companyId,
       },
@@ -186,3 +186,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

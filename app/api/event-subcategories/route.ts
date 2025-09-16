@@ -89,8 +89,8 @@ export async function POST(req: Request) {
         name,
         defaultPaidStatus,
         isActive,
-        eventCategory: { connect: { id: eventCategoryId } },
-        company: { connect: { id: session.user.companyId } },
+        EventCategory: { connect: { id: eventCategoryId } },
+        Company: { connect: { id: session.user.companyId } },
       },
     });
 
@@ -106,3 +106,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

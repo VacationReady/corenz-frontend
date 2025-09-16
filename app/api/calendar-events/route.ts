@@ -88,7 +88,7 @@ export async function GET(req: Request) {
           reason: req.reason ?? null,
           categoryName: req.eventCategory?.name ?? null,
           eventCategoryId: req.eventCategory?.id ?? null,
-          employee: {
+          Employee: {
             id: req.employee.id,
             name: displayName,
             department: req.employee.department?.name ?? null,
@@ -112,3 +112,4 @@ export async function GET(req: Request) {
     } catch (_) {}
   }
 }
+

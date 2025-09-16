@@ -60,3 +60,4 @@ export async function sendLeaveNotification({
     console.error("❌ Failed to send leave notification:", error);
   }
 }
+

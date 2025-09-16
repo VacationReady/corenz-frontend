@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
       prisma.employeeOffboarding.findMany({
         where,
         include: {
-          employee: {
+          Employee: {
             include: {
-              user: {
+              User: {
                 select: {
                   id: true,
                   firstName: true,
@@ -36,13 +36,13 @@ export async function GET(req: NextRequest) {
                   email: true,
                 },
               },
-              department: {
+              Department: {
                 select: {
                   id: true,
                   name: true,
                 },
               },
-              jobRole: {
+              JobRole: {
                 select: {
                   id: true,
                   name: true,
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
               email: true,
             },
           },
-          tasks: {
+          OffboardingTask: {
             select: {
               id: true,
               title: true,
@@ -195,3 +195,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

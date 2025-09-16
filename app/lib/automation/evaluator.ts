@@ -149,7 +149,7 @@ export class AutomationRuleEvaluator {
         expiryDate.setDate(expiryDate.getDate() + daysBefore);
 
         const whereClause: any = {
-          employee: {
+          Employee: {
             companyId,
             isActive: true,
           },
@@ -167,7 +167,7 @@ export class AutomationRuleEvaluator {
         const expiringDocs = await prisma.employmentCheck.findMany({
           where: whereClause,
           include: {
-            employee: {
+            Employee: {
               include: {
                 user: true,
               },
@@ -211,7 +211,7 @@ export class AutomationRuleEvaluator {
         const recentSubmissions = await prisma.formSubmission.findMany({
           where: {
             formId,
-            employee: {
+            Employee: {
               companyId,
             },
             submittedAt: {
@@ -219,7 +219,7 @@ export class AutomationRuleEvaluator {
             },
           },
           include: {
-            employee: {
+            Employee: {
               include: {
                 user: true,
               },
@@ -264,7 +264,7 @@ export class AutomationRuleEvaluator {
         const whereClause: any = {
           status: "completed",
           onboardingInstance: {
-            employee: {
+            Employee: {
               companyId,
               isActive: true,
             },
@@ -287,7 +287,7 @@ export class AutomationRuleEvaluator {
             step: true,
             onboardingInstance: {
               include: {
-                employee: {
+                Employee: {
                   include: {
                     user: true,
                   },
@@ -334,7 +334,7 @@ export class AutomationRuleEvaluator {
           where: {
             companyId,
             isActive: true,
-            user: {
+            User: {
               createdAt: {
                 gte: since,
               },
@@ -567,3 +567,4 @@ export class AutomationRuleEvaluator {
     };
   }
 }
+

@@ -65,7 +65,7 @@ export async function GET(req: Request) {
     const employeeFilter: any = {
       ...(departmentId ? { departmentId } : {}),
       ...(!isAdminEditor || (isAdminEditor && scope === "my")
-        ? { user: { managerId: session.user.id } }
+        ? { User: { managerId: session.user.id } }
         : {}),
     };
 
@@ -83,15 +83,15 @@ export async function GET(req: Request) {
         dayType: true,
         approvalStatus: true,
         reason: true,
-        eventCategory: {
+        EventCategory: {
           select: {
             id: true,
             name: true,
           },
         },
-        employee: {
+        Employee: {
           select: {
-            user: {
+            User: {
               select: {
                 name: true,
                 email: true,
@@ -127,3 +127,4 @@ export async function GET(req: Request) {
 }
 
 export const dynamic = "force-dynamic"; // ensures fresh data, disables ISR for this route
+

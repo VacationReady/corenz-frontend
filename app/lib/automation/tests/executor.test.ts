@@ -4,11 +4,11 @@ import Module from "module";
 
 // Mock Prisma client
 const mockPrismaClient = {
-  employee: {
+  Employee: {
     findUnique: test.mock.fn(),
     update: test.mock.fn(),
   },
-  user: {
+  User: {
     findMany: test.mock.fn(),
     update: test.mock.fn(),
   },
@@ -100,7 +100,7 @@ test("AutomationActionExecutor", async (t) => {
       const mockEmployee = {
         id: "emp-123",
         userId: "user-123",
-        user: { id: "user-123", email: "employee@example.com" },
+        User: { id: "user-123", email: "employee@example.com" },
       };
 
       mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
@@ -136,7 +136,7 @@ test("AutomationActionExecutor", async (t) => {
       const mockEmployee = {
         id: "emp-123",
         userId: "user-123",
-        user: {
+        User: {
           id: "user-123",
           email: "employee@example.com",
           managerId: "manager-456",
@@ -263,7 +263,7 @@ test("AutomationActionExecutor", async (t) => {
       const mockEmployee = {
         id: "emp-123",
         userId: "user-123",
-        user: { id: "user-123", email: "employee@example.com" },
+        User: { id: "user-123", email: "employee@example.com" },
       };
 
       mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
@@ -301,7 +301,7 @@ test("AutomationActionExecutor", async (t) => {
 
     await t.test("handles multiple channels correctly", async () => {
       const mockEmployee = {
-        user: { email: "employee@example.com" },
+        User: { email: "employee@example.com" },
       };
 
       mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
@@ -491,7 +491,7 @@ test("AutomationActionExecutor", async (t) => {
         id: "emp-123",
         userId: "user-123",
         departmentId: "old-dept",
-        user: { id: "user-123" },
+        User: { id: "user-123" },
       };
 
       mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
@@ -535,7 +535,7 @@ test("AutomationActionExecutor", async (t) => {
       const mockEmployee = {
         id: "emp-123",
         userId: "user-123",
-        user: { id: "user-123", managerId: "old-manager" },
+        User: { id: "user-123", managerId: "old-manager" },
       };
 
       mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
@@ -577,7 +577,7 @@ test("AutomationActionExecutor", async (t) => {
       const mockEmployee = {
         id: "emp-123",
         userId: "user-123",
-        user: { id: "user-123" },
+        User: { id: "user-123" },
       };
 
       mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
@@ -615,7 +615,7 @@ test("AutomationActionExecutor", async (t) => {
       const mockEmployee = {
         id: "emp-123",
         userId: "user-123",
-        user: { id: "user-123", email: "test@example.com" },
+        User: { id: "user-123", email: "test@example.com" },
       };
 
       mockPrismaClient.employee.findUnique.mock
@@ -684,3 +684,4 @@ test("AutomationActionExecutor", async (t) => {
     (Module as any)._load = originalLoad;
   });
 });
+

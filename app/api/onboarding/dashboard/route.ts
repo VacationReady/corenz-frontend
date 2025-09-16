@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest) {
     const companyId = session.user.companyId || undefined;
 
     const whereCompanyScoped = companyId
-      ? { employee: { companyId } as any }
+      ? { Employee: { companyId } as any }
       : {};
 
     const instances = await prisma.onboardingInstance.findMany({
@@ -22,9 +22,9 @@ export async function GET(_req: NextRequest) {
       orderBy: { startedAt: "desc" },
       include: {
         template: { select: { name: true } },
-        employee: {
+        Employee: {
           include: {
-            user: { select: { firstName: true, lastName: true, email: true } },
+            User: { select: { firstName: true, lastName: true, email: true } },
           },
         },
         steps: true,
@@ -63,3 +63,4 @@ export async function GET(_req: NextRequest) {
     );
   }
 }
+

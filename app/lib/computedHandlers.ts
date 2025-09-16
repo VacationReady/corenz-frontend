@@ -78,7 +78,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Document
   // ===========================
-  document: {
+  Document: {
     "_computed.daysSinceUpload": (item) => {
       const uploaded = new Date(item.uploadedAt);
       const today = new Date();
@@ -91,7 +91,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Employee
   // ===========================
-  employee: {
+  Employee: {
     "_computed.fullName": (item) =>
       `${item.firstName || ""} ${item.lastName || ""}`.trim(),
     "_computed.serviceYears": (item) => {
@@ -106,7 +106,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // User
   // ===========================
-  user: {
+  User: {
     "_computed.initials": (item) => {
       const name = item.name || "";
       return name
@@ -120,28 +120,29 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Department
   // ===========================
-  department: {
+  Department: {
     "_computed.normalisedName": (item) => item.name?.toLowerCase() || "",
   },
 
   // ===========================
   // Working Pattern
   // ===========================
-  workingPattern: {
+  WorkingPattern: {
     "_computed.description": (item) => `Pattern: ${item.name}`,
   },
 
   // ===========================
   // Company
   // ===========================
-  company: {
+  Company: {
     "_computed.label": (item) => `${item.name} (${item.code || "N/A"})`,
   },
 
   // ===========================
   // Event Category
   // ===========================
-  eventCategory: {
+  EventCategory: {
     "_computed.normalisedName": (item) => item.name?.toLowerCase() || "",
   },
 };
+

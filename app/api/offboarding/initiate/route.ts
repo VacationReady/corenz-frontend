@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     const offboarding = await prisma.employeeOffboarding.create({
       data: offboardingData,
       include: {
-        employee: {
+        Employee: {
           include: { User: true },
         },
         interviewerUser: true,
@@ -227,3 +227,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

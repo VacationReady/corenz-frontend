@@ -254,6 +254,7 @@ export async function POST(req: Request) {
     // ✅ Create User with company linkage
     const user = await prisma.user.create({
       data: {
+        id: crypto.randomUUID(),
         email,
         password: hashedPassword,
         firstName,
@@ -262,11 +263,7 @@ export async function POST(req: Request) {
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         role,
         Company: { connect: { id: companyId } },
-        Department: departmentId
-          ? { connect: { id: departmentId } }
-          : undefined,
-        JobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
-        User: managerConnect,
+        updatedAt: new Date(),
       },
     });
 
@@ -276,13 +273,17 @@ export async function POST(req: Request) {
 
     const employee = await prisma.employee.create({
       data: {
-        user: { connect: { id: user.id } },
+        id: crypto.randomUUID(),
+        User: { connect: { id: user.id } },
         isActive: true,
-        department: departmentId
+        Department: departmentId
           ? { connect: { id: departmentId } }
           : undefined,
-        company: { connect: { id: companyId! } }, // ✅ use relation connect
-        onboardingTemplate: normalizedTemplateId
+        JobRole: jobRoleId
+          ? { connect: { id: jobRoleId } }
+          : undefined,
+        Company: { connect: { id: companyId! } }, // ✅ use relation connect
+        OnboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }
           : undefined,
       },
@@ -328,8 +329,9 @@ export async function POST(req: Request) {
     // Create activation token now; email optionally sent now or later
     await prisma.activationToken.create({
       data: {
+        id: crypto.randomUUID(),
         token: activationToken,
-        user: { connect: { id: user.id } },
+        User: { connect: { id: user.id } },
       },
     });
 
@@ -383,9 +385,11 @@ export async function POST(req: Request) {
       try {
         await prisma.employeeWorkingPatternAssignment.create({
           data: {
+            id: crypto.randomUUID(),
             employeeId: employee.id,
             workingPatternId,
             effectiveDate: new Date(), // Use current date, not start date
+            updatedAt: new Date(),
           },
         });
       } catch (e) {
@@ -410,6 +414,7 @@ export async function POST(req: Request) {
         if (!holidayCategory) {
           holidayCategory = await prisma.eventCategory.create({
             data: {
+              id: crypto.randomUUID(),
               name: "Holiday",
               categoryType: "TIME_OFF",
               requiresApproval: true,
@@ -417,6 +422,7 @@ export async function POST(req: Request) {
               color: "#10B981", // Green color
               isActive: true,
               companyId,
+              updatedAt: new Date(),
             },
           });
         }
@@ -424,11 +430,13 @@ export async function POST(req: Request) {
         if (holidayCategory) {
           await prisma.leaveEntitlement.create({
             data: {
+              id: crypto.randomUUID(),
               employeeId: employee.id,
               eventCategoryId: holidayCategory.id,
               totalDays: entitlementDays,
               usedDays: 0,
               companyId,
+              updatedAt: new Date(),
             },
           });
         }
@@ -464,3 +472,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

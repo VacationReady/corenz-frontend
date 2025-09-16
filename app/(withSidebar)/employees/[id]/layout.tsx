@@ -23,7 +23,7 @@ export default async function EmployeeLayout({
           Department_User_departmentIdToDepartment: true,
         },
       },
-      offboardingRecord: true,
+      EmployeeOffboarding: true,
     },
   });
 
@@ -148,7 +148,7 @@ export default async function EmployeeLayout({
     { href: `/employees/${params.id}/performance`, label: "Performance" },
     { href: `/employees/${params.id}/onboarding`, label: "Onboarding History" },
     // Show offboarding tab for archived employees or if they have an offboarding record
-    ...(employee.offboardingRecord || !employee.isActive
+    ...(employee.EmployeeOffboarding || !employee.isActive
       ? [{ href: `/employees/${params.id}/offboarding`, label: "Offboarding" }]
       : []),
     {

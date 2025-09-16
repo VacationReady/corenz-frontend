@@ -14,7 +14,12 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
     kiwiSaverEnrolled: "",
     kiwiSaverContribution: "",
   });
-  const [initialValues, setInitialValues] = useState({
+  const [initialValues, setInitialValues] = useState<{
+    bankAccountNumber: string | null;
+    taxCode: string | null;
+    kiwiSaverEnrolled: boolean | null;
+    kiwiSaverContribution: number | null;
+  }>({
     bankAccountNumber: null,
     taxCode: null,
     kiwiSaverEnrolled: null,

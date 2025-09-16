@@ -45,7 +45,7 @@ export async function GET(
             email: true,
           },
         },
-        executions: {
+        AutomationExecution: {
           take: 10,
           orderBy: {
             triggeredAt: "desc",

@@ -25,10 +25,10 @@ export default async function EmployeeSettingsPage({
   // Get the employee with user information
   const employee = await prisma.employee.findUnique({
     where: { id: params.id },
-    include: { user: true },
+    include: { User: true },
   });
 
-  if (!employee || !employee.user) {
+  if (!employee || !employee.User) {
     return <div>Employee not found</div>;
   }
 
@@ -48,7 +48,7 @@ export default async function EmployeeSettingsPage({
 
   // Fetch subordinates for the employee being viewed (if they are a manager)
   const subordinates = await prisma.user.findMany({
-    where: { managerId: employee.user.id, companyId: employee.companyId },
+    where: { managerId: employee.User.id, companyId: employee.companyId },
     select: {
       id: true,
       firstName: true,
@@ -121,10 +121,10 @@ export default async function EmployeeSettingsPage({
             <div className="text-sm text-gray-600">Loading permissions...</div>
           }
         >
-          <PermissionProfileManagement employeeId={employee.user.id} />
+          <PermissionProfileManagement employeeId={employee.User.id} />
         </Suspense>
 
-        {employee.user.role === "MANAGER" && (
+        {employee.User.role === "MANAGER" && (
           <div className="mt-6">
             <h3 className="text-md font-semibold mb-2">Line Manager For</h3>
             {subordinates.length === 0 ? (

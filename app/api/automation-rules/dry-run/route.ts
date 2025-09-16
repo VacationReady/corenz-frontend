@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         const daysBefore = triggerConfig?.daysBefore || 30;
         const expiringDocs = await prisma.employmentCheck.count({
           where: {
-            employee: {
+            Employee: {
               companyId: session.user.companyId,
               isActive: true,
             },
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
           const recentSubmissions = await prisma.formSubmission.count({
             where: {
               formId,
-              employee: {
+              Employee: {
                 companyId: session.user.companyId,
               },
               submittedAt: {
@@ -92,8 +92,8 @@ export async function POST(req: Request) {
         const completedSteps = await prisma.onboardingStepInstance.count({
           where: {
             status: "completed",
-            onboardingInstance: {
-              employee: {
+            OnboardingInstance: {
+              Employee: {
                 companyId: session.user.companyId,
                 isActive: true,
               },

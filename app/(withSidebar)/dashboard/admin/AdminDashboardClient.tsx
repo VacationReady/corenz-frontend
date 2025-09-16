@@ -490,6 +490,7 @@ export default function AdminDashboardClient({
                     </Link>
                     <Button
                       size="sm"
+                      className="whitespace-nowrap"
                       onClick={async () => {
                         try {
                           const qs = new URLSearchParams({ status: "PENDING" });

@@ -35,7 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, X } from "lucide-react";
 
 interface AddEmployeeModalProps {
   open: boolean;
@@ -361,18 +361,30 @@ export default function AddEmployeeModal({
         <Card className="w-full max-w-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Add Employee</h2>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <span
-                className={`px-2 py-1 rounded ${currentStep === 1 ? "bg-blue-100 text-blue-800" : "bg-gray-100"}`}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span
+                  className={`px-2 py-1 rounded ${currentStep === 1 ? "bg-blue-100 text-blue-800" : "bg-gray-100"}`}
+                >
+                  Step 1: Basic Details
+                </span>
+                <span className="text-gray-400">→</span>
+                <span
+                  className={`px-2 py-1 rounded ${currentStep === 2 ? "bg-blue-100 text-blue-800" : "bg-gray-100"}`}
+                >
+                  Step 2: Holiday Settings
+                </span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="Close"
+                onClick={onClose}
+                className="h-8 w-8 p-0 rounded-full"
               >
-                Step 1: Basic Details
-              </span>
-              <span className="text-gray-400">→</span>
-              <span
-                className={`px-2 py-1 rounded ${currentStep === 2 ? "bg-blue-100 text-blue-800" : "bg-gray-100"}`}
-              >
-                Step 2: Holiday Settings
-              </span>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
           {error && <p className="text-red-600">{error}</p>}

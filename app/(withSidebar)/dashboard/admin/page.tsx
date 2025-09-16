@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
     where: { id: session.user.id },
     include: {
       Employee: {
-        include: { leaveEntitlements: { include: { eventCategory: true } } },
+        include: { LeaveEntitlement: { include: { EventCategory: true } } },
       },
     },
   });

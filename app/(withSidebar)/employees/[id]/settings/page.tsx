@@ -34,7 +34,7 @@ export default async function EmployeeSettingsPage({
 
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
     where: { employeeId: params.id },
-    include: { workingPattern: true },
+    include: { WorkingPattern: true },
     orderBy: { effectiveDate: "asc" },
   });
 
@@ -73,7 +73,7 @@ export default async function EmployeeSettingsPage({
           <h2 className="text-lg font-semibold">Current Working Pattern</h2>
           {current ? (
             <div>
-              <p className="font-medium">{current.workingPattern.name}</p>
+              <p className="font-medium">{current.WorkingPattern.name}</p>
               <p className="text-sm text-gray-600">
                 Effective from: {format(new Date(current.effectiveDate), "PPP")}
               </p>
@@ -99,7 +99,7 @@ export default async function EmployeeSettingsPage({
           </h2>
           {upcoming ? (
             <div>
-              <p className="font-medium">{upcoming.workingPattern.name}</p>
+              <p className="font-medium">{upcoming.WorkingPattern.name}</p>
               <p className="text-sm text-gray-600">
                 Effective from:{" "}
                 {format(new Date(upcoming.effectiveDate), "PPP")}

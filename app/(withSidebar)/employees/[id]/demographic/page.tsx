@@ -15,7 +15,7 @@ export default async function DemographicPage({ params }: PageProps) {
   const employee = await prisma.employee.findUnique({
     where: { id: params.id },
     include: {
-      user: {
+      User: {
         select: {
           id: true,
           dateOfBirth: true,
@@ -27,23 +27,23 @@ export default async function DemographicPage({ params }: PageProps) {
     },
   });
 
-  if (!employee?.user) {
+  if (!employee?.User) {
     return <div className="p-6">Employee not found.</div>;
   }
 
-  const genderOptions = employee?.user?.companyId
+  const genderOptions = employee?.User?.companyId
     ? await prisma.genderOption.findMany({
-        where: { companyId: employee.user.companyId as string, active: true },
+        where: { companyId: employee.User.companyId as string, active: true },
         orderBy: { order: "asc" },
         select: { id: true, label: true },
       })
     : [];
 
-  const user = employee.user;
+  const user = employee.User;
   const canEdit = Boolean(
     session?.user &&
       session.user.role === "ADMIN" &&
-      session.user.companyId === employee.user.companyId,
+      session.user.companyId === employee.User.companyId,
   );
 
   return (

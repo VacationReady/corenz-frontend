@@ -17,10 +17,10 @@ export default async function EmployeeLayout({
   const employee = await prisma.employee.findFirst({
     where: { id: params.id, companyId: session?.user?.companyId || "" },
     include: {
-      user: {
+      User: {
         include: {
-          jobRole: true,
-          department: true,
+          JobRole: true,
+          Department_User_departmentIdToDepartment: true,
         },
       },
       offboardingRecord: true,
@@ -31,9 +31,9 @@ export default async function EmployeeLayout({
     return <div>Employee not found.</div>;
   }
 
-  const userRole = employee.user?.role || "EMPLOYEE";
-  const userDepartmentId = employee.user?.department?.id?.trim();
-  const userJobRole = employee.user?.jobRole?.name;
+  const userRole = employee.User?.role || "EMPLOYEE";
+  const userDepartmentId = employee.User?.Department_User_departmentIdToDepartment?.id?.trim();
+  const userJobRole = employee.User?.JobRole?.name;
 
   // DEBUG: log user context
   console.log("=== FORM DEBUG INFO ===");
@@ -167,7 +167,7 @@ export default async function EmployeeLayout({
     <div className="flex min-h-screen">
       {/* Profile sidebar */}
       <aside className="w-64 bg-white p-4 border-r">
-        <h2 className="text-lg font-bold mb-4">{employee.user?.name}</h2>
+        <h2 className="text-lg font-bold mb-4">{employee.User?.name}</h2>
         <nav className="space-y-2">
           {menu.map((item) => (
             <Link

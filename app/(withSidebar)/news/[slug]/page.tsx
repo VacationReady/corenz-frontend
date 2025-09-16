@@ -18,9 +18,9 @@ export default async function NewsDetailPage({ params }: Props) {
   const post = await prisma.newsPost.findFirst({
     where: {
       slug: params.slug,
-      ...(session?.user?.companyId ? { author: { companyId: session.user.companyId } } : {}),
+      ...(session?.user?.companyId ? { User: { companyId: session.user.companyId } } : {}),
     },
-    include: { author: true },
+    include: { User: true },
   });
 
   if (!post) return notFound();
@@ -32,7 +32,7 @@ export default async function NewsDetailPage({ params }: Props) {
     <div className="max-w-3xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
       <p className="text-sm text-muted-foreground mb-4">
-        Posted by {post.author.name || "Unknown"} on{" "}
+        Posted by {post.User.name || "Unknown"} on{" "}
         {new Date(post.publishedAt ?? post.createdAt).toLocaleDateString()}
       </p>
 

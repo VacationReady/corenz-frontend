@@ -34,10 +34,10 @@ export async function GET(
         templateId: params.id,
       },
       include: {
-        document: {
+        Document: {
           select: { id: true, name: true },
         },
-        form: {
+        Form: {
           select: { id: true, name: true, slug: true },
         },
       },
@@ -182,6 +182,7 @@ export async function POST(
 
     const step = await prisma.onboardingStep.create({
       data: {
+        id: crypto.randomUUID(),
         templateId: params.id,
         type,
         label,
@@ -197,10 +198,10 @@ export async function POST(
         metadata: metadata || null,
       },
       include: {
-        document: {
+        Document: {
           select: { id: true, name: true },
         },
-        form: {
+        Form: {
           select: { id: true, name: true, slug: true },
         },
       },

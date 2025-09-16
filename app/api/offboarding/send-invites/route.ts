@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         Employee: {
           include: { User: true },
         },
-        interviewerUser: true,
+        User_EmployeeOffboarding_interviewerUserIdToUser: true,
       },
     });
 

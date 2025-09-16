@@ -19,7 +19,7 @@ export async function PATCH(
 
     const task = await prisma.offboardingTask.findUnique({
       where: { id: taskId },
-      include: { offboarding: true },
+      include: { EmployeeOffboarding: true },
     });
 
     if (!task) {
@@ -47,7 +47,7 @@ export async function PATCH(
       where: { id: taskId },
       data: updateData,
       include: {
-        assignedToUser: {
+        User_OffboardingTask_assignedToToUser: {
           select: {
             id: true,
             firstName: true,
@@ -55,7 +55,7 @@ export async function PATCH(
             email: true,
           },
         },
-        completedByUser: {
+        User_OffboardingTask_completedByToUser: {
           select: {
             id: true,
             firstName: true,
@@ -87,7 +87,7 @@ export async function PATCH(
 
         // Update employee status to fully offboarded
         await prisma.employee.update({
-          where: { id: task.offboarding.employeeId },
+          where: { id: task.EmployeeOffboarding.employeeId },
           data: {
             offboardingStatus: "COMPLETED",
           },

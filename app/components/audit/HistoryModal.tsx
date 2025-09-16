@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import Button from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { ChevronLeft, ChevronRight, Clock, User, FileText } from "lucide-react";
 import { toast } from "sonner";
 

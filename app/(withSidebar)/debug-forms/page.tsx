@@ -49,7 +49,7 @@ export default async function DebugFormsPage() {
   const usersWithoutEmployees = await prisma.user.findMany({
     where: {
       companyId: session.user.companyId,
-      employee: null, // Users who don't have an employee record
+      Employee: null, // Users who don't have an employee record
     },
     select: {
       id: true,

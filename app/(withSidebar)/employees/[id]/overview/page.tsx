@@ -150,10 +150,25 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold">Leave Balances</h2>
           </div>
           <div className="p-4 space-y-4">
-            <LeaveBalancePanel
-              leaveEntitlements={employee.LeaveEntitlement}
-              employeeId={employee.id}
-            />
+            {(() => {
+              const leaveEntitlementsForPanel = employee.LeaveEntitlement.map((e: any) => ({
+                id: e.id,
+                totalDays: e.totalDays,
+                usedDays: e.usedDays,
+                carryoverDays: e.carryoverDays ?? 0,
+                eventCategory: {
+                  id: e.EventCategory.id,
+                  name: e.EventCategory.name,
+                  color: e.EventCategory.color,
+                },
+              }));
+              return (
+                <LeaveBalancePanel
+                  leaveEntitlements={leaveEntitlementsForPanel}
+                  employeeId={employee.id}
+                />
+              );
+            })()}
 
             {/* ✅ Leave Booking Button */}
             <AddLeaveRequestDialog

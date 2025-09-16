@@ -54,7 +54,7 @@ export default async function EmployeeSettingsPage({
       firstName: true,
       lastName: true,
       email: true,
-      employee: { select: { id: true } },
+      Employee: { select: { id: true } },
     },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
@@ -135,7 +135,7 @@ export default async function EmployeeSettingsPage({
                   const display = (s.firstName || s.lastName)
                     ? `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim()
                     : s.email;
-                  const empId = s.employee?.id;
+                  const empId = s.Employee?.id;
                   return (
                     <li key={s.id} className="text-sm">
                       {empId ? (

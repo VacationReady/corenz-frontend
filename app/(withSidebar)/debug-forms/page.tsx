@@ -180,7 +180,7 @@ export default async function DebugFormsPage() {
                       {form.visibleToDepartments.length === 0 ||
                       (sampleEmployee.User?.Department_User_departmentIdToDepartment?.name &&
                         form.visibleToDepartments.includes(
-                          sampleEmployee.User.department.name,
+                          sampleEmployee.User.Department_User_departmentIdToDepartment.name,
                         ))
                         ? "Yes"
                         : "No"}
@@ -190,7 +190,7 @@ export default async function DebugFormsPage() {
                       {form.visibleToJobRoles.length === 0 ||
                       (sampleEmployee.User?.JobRole?.name &&
                         form.visibleToJobRoles.includes(
-                          sampleEmployee.User.jobRole.name,
+                          sampleEmployee.User.JobRole.name,
                         ))
                         ? "Yes"
                         : "No"}

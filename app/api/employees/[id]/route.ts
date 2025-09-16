@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { canAccessEmployee } from "@/lib/permissions";
+import supabase from "@/lib/supabase-admin";
 
 // ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
@@ -116,7 +117,9 @@ export async function DELETE(
     const companyId =
       employee.companyId ?? employee.user?.companyId ?? undefined;
 
-    const result = await prisma.$transaction(async (tx) => {
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      const pathsToRemove: string[] = [];
+
       // Onboarding instances and nested data
       await tx.onboardingStepResponse.deleteMany({
         where: {
@@ -155,6 +158,13 @@ export async function DELETE(
       await tx.employeeOffboarding.deleteMany({ where: { employeeId } });
 
       // Documents: delete only those attached to this employee
+      const employeeDocs = await tx.document.findMany({
+        where: { employeeId },
+        select: { path: true },
+      });
+      if (employeeDocs.length) {
+        pathsToRemove.push(...employeeDocs.map((doc) => doc.path));
+      }
       await tx.document.deleteMany({ where: { employeeId } });
 
       // Onboarding assignments for this user
@@ -179,11 +189,25 @@ export async function DELETE(
             data: { uploaderId: fallbackAdmin.id },
           });
         } else {
+          const companyDocs = await tx.document.findMany({
+            where: { uploaderId: userId, employeeId: null },
+            select: { path: true },
+          });
+          if (companyDocs.length) {
+            pathsToRemove.push(...companyDocs.map((doc) => doc.path));
+          }
           await tx.document.deleteMany({
             where: { uploaderId: userId, employeeId: null },
           });
         }
       } else {
+        const companyDocs = await tx.document.findMany({
+          where: { uploaderId: userId, employeeId: null },
+          select: { path: true },
+        });
+        if (companyDocs.length) {
+          pathsToRemove.push(...companyDocs.map((doc) => doc.path));
+        }
         await tx.document.deleteMany({
           where: { uploaderId: userId, employeeId: null },
         });
@@ -198,8 +222,29 @@ export async function DELETE(
       await tx.employee.delete({ where: { id: employeeId } });
       await tx.user.delete({ where: { id: userId } });
 
-      return { deleted: true };
+      return { deleted: true, pathsToRemove };
     });
+
+    const { pathsToRemove, ...result } = transactionResult;
+    const uniquePaths = Array.from(
+      new Set(pathsToRemove.filter((path): path is string => Boolean(path))),
+    );
+
+    if (uniquePaths.length) {
+      const { error: storageError } = await supabase.storage
+        .from("documents")
+        .remove(uniquePaths);
+      if (storageError) {
+        console.error("Supabase remove error:", storageError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to delete associated document files.",
+          },
+          { status: 500 },
+        );
+      }
+    }
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {

@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     where: { id: session.user.id },
     select: {
       role: true,
-      permissionProfile: true,
+      PermissionProfile: true,
     },
   });
 
@@ -36,10 +36,10 @@ export async function GET(req: Request) {
       description: true,
       isActive: true, // ✅ Boolean field replaces status
       updatedAt: true,
-      updatedBy: { select: { id: true, name: true, email: true } },
+      User: { select: { id: true, name: true, email: true } },
       Department: { select: { id: true, name: true } },
       JobRole: { select: { id: true, name: true } },
-      steps: {
+      OnboardingStep: {
         orderBy: { order: "asc" },
         include: {
           Document: { select: { id: true, name: true } },
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     where: { id: session.user.id },
     select: {
       role: true,
-      permissionProfile: true,
+      PermissionProfile: true,
     },
   });
 
@@ -99,7 +99,7 @@ export async function PUT(req: Request) {
     where: { id: session.user.id },
     select: {
       role: true,
-      permissionProfile: true,
+      PermissionProfile: true,
     },
   });
 
@@ -133,10 +133,10 @@ export async function DELETE(req: Request) {
 
     // Remove step responses and instances before deleting steps
     await prisma.onboardingStepResponse.deleteMany({
-      where: { onboardingStepInstance: { step: { templateId: id } } },
+      where: { OnboardingStepInstance: { OnboardingStep: { templateId: id } } },
     });
     await prisma.onboardingStepInstance.deleteMany({
-      where: { step: { templateId: id } },
+      where: { OnboardingStep: { templateId: id } },
     });
     await prisma.onboardingStep.deleteMany({ where: { templateId: id } });
     await prisma.onboardingTemplate.delete({ where: { id } });

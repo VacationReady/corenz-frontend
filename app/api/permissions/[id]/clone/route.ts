@@ -56,6 +56,7 @@ export async function POST(
     // Create the cloned profile
     const clonedProfile = await prisma.permissionProfile.create({
       data: {
+        id: `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         companyId: session.user.companyId,
         name: cloneName,
         description: originalProfile.description
@@ -63,6 +64,7 @@ export async function POST(
           : `Copy of ${originalProfile.name}`,
         permissions: originalProfile.permissions as any,
         builtIn: false, // Cloned profiles are never built-in
+        updatedAt: new Date(),
       },
     });
 

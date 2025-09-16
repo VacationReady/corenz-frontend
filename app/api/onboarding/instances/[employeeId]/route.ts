@@ -32,13 +32,13 @@ export async function GET(
       where: { employeeId, status: { in: ["active", "in_progress"] } },
       orderBy: { startedAt: "desc" },
       include: {
-        steps: true, // OnboardingStepInstance records (instance-specific status)
-        template: {
+        OnboardingStepInstance: true, // OnboardingStepInstance records (instance-specific status)
+        OnboardingTemplate: {
           include: {
-            steps: {
+            OnboardingStep: {
               include: {
-                document: true,
-                form: { select: { id: true, name: true } },
+                Document: true,
+                Form: { select: { id: true, name: true } },
               }, // include linked document for ACK steps
             },
           },
@@ -55,13 +55,13 @@ export async function GET(
 
     // ✅ Merge template steps with instance step info
     const mergedSteps = await Promise.all(
-      instance.template.steps.map(async (tStep) => {
-        const instStep = instance.steps.find((i) => i.stepId === tStep.id);
+      instance.OnboardingTemplate.OnboardingStep.map(async (tStep) => {
+        const instStep = instance.OnboardingStepInstance.find((i) => i.stepId === tStep.id);
         let url: string | null = null;
-        if (tStep.document?.url) {
+        if (tStep.Document?.url) {
           const { data: signed } = await supabase.storage
             .from("documents")
-            .createSignedUrl(tStep.document.url, 60 * 5);
+            .createSignedUrl(tStep.Document.url, 60 * 5);
           url = signed?.signedUrl ?? null;
         }
         return {
@@ -72,10 +72,10 @@ export async function GET(
           instruction: tStep.instruction ?? undefined,
           uploadType: tStep.uploadType ?? undefined,
           documentId: tStep.documentId ?? undefined,
-          document: tStep.document
+          document: tStep.Document
             ? {
-                id: tStep.document.id,
-                name: tStep.document.name,
+                id: tStep.Document.id,
+                name: tStep.Document.name,
                 url,
               }
             : undefined,
@@ -88,7 +88,7 @@ export async function GET(
 
     const normalized = {
       id: instance.id,
-      template: { name: instance.template.name },
+      template: { name: instance.OnboardingTemplate.name },
       steps: mergedSteps,
     };
 

@@ -10,7 +10,10 @@ export async function POST(req: Request) {
     }
 
     const provider = await prisma.trainingProvider.create({
-      data: { name },
+      data: {
+        id: `provider_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name
+      },
     });
 
     return NextResponse.json(provider);

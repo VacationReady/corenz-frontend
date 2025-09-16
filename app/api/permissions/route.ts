@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
       orderBy,
@@ -159,11 +159,13 @@ export async function POST(request: NextRequest) {
 
     const profile = await prisma.permissionProfile.create({
       data: {
+        id: `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         companyId: session.user.companyId,
         name: name.trim(),
         description: description?.trim(),
         permissions,
         builtIn: false,
+        updatedAt: new Date(),
       },
     });
 

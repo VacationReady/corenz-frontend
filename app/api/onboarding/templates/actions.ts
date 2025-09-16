@@ -17,26 +17,28 @@ export async function createTemplate(
   const filteredSteps = mapSteps(steps);
   return prismaClient.onboardingTemplate.create({
     data: {
+      id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name,
       description: description || "",
       companyId: session.user.companyId,
       isActive: Boolean(isActive),
       updatedById: session.user.id,
-      departments:
+      updatedAt: new Date(),
+      Department:
         departments.length > 0
           ? { connect: departments.map((id: string) => ({ id })) }
           : undefined,
-      jobRoles:
+      JobRole:
         jobRoles.length > 0
           ? { connect: jobRoles.map((id: string) => ({ id })) }
           : undefined,
-      steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
+      OnboardingStep: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
     include: {
       Department: { select: { id: true, name: true } },
       JobRole: { select: { id: true, name: true } },
-      steps: true,
-      updatedBy: { select: { id: true, name: true, email: true } },
+      OnboardingStep: true,
+      User: { select: { id: true, name: true, email: true } },
     },
   });
 }
@@ -59,10 +61,10 @@ export async function updateTemplate(
 
   // Remove existing step data with cascading order
   await prismaClient.onboardingStepResponse.deleteMany({
-    where: { onboardingStepInstance: { step: { templateId: id } } },
+    where: { OnboardingStepInstance: { OnboardingStep: { templateId: id } } },
   });
   await prismaClient.onboardingStepInstance.deleteMany({
-    where: { step: { templateId: id } },
+    where: { OnboardingStep: { templateId: id } },
   });
   await prismaClient.onboardingStep.deleteMany({ where: { templateId: id } });
 
@@ -85,13 +87,13 @@ export async function updateTemplate(
         connect:
           jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
       },
-      steps: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
+      OnboardingStep: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
     include: {
       Department: { select: { id: true, name: true } },
       JobRole: { select: { id: true, name: true } },
-      steps: true,
-      updatedBy: { select: { id: true, name: true, email: true } },
+      OnboardingStep: true,
+      User: { select: { id: true, name: true, email: true } },
     },
   });
 }

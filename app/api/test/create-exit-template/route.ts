@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
           ],
         },
         isActive: true,
+        id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        updatedAt: new Date(),
       },
     });
 

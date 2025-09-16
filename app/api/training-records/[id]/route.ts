@@ -43,6 +43,7 @@ export async function PUT(
 
       const doc = await prisma.document.create({
         data: {
+          id: `document_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
           path: data.path,
           size: file.size,
@@ -85,7 +86,7 @@ export async function GET(
   try {
     const record = await prisma.trainingRecord.findUnique({
       where: { id: params.id },
-      include: { document: true, course: true, provider: true },
+      include: { Document: true, Course: true, TrainingProvider: true },
     });
     return NextResponse.json(record);
   } catch (error) {

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
       orderBy: [
@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
 
     const profile = await prisma.permissionProfile.create({
       data: {
+        id: `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         companyId: session.user.companyId,
         name,
         description,
@@ -115,12 +116,14 @@ export async function POST(req: NextRequest) {
         scope: scope || null,
         constraints: constraints || null,
         builtIn: false,
+        updatedAt: new Date(),
       },
     });
 
     // Create audit log entry
     await prisma.permissionProfileAudit.create({
       data: {
+        id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         profileId: profile.id,
         action: "created",
         changes: {

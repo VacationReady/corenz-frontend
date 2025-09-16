@@ -29,7 +29,7 @@ export async function GET(
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
     });
@@ -173,7 +173,7 @@ export async function DELETE(
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
     });
@@ -191,7 +191,7 @@ export async function DELETE(
     }
 
     // Check if profile is in use
-    if (existingProfile._count.users > 0) {
+    if (existingProfile._count.User > 0) {
       return NextResponse.json(
         {
           error:

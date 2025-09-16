@@ -18,8 +18,8 @@ export async function GET(
       where: { employeeId },
       orderBy: { startedAt: "desc" },
       include: {
-        template: { select: { name: true } },
-        steps: {
+        OnboardingTemplate: { select: { name: true } },
+        OnboardingStepInstance: {
           orderBy: { order: "asc" },
         },
       },

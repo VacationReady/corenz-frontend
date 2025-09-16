@@ -17,9 +17,9 @@ export async function GET(req: Request) {
         employeeId: employeeId ?? undefined,
       },
       include: {
-        document: true,
-        course: true, // ✅ Include course details
-        provider: true, // ✅ Include provider details
+        Document: true,
+        Course: true, // ✅ Include course details
+        TrainingProvider: true, // ✅ Include provider details
       },
       orderBy: { createdAt: "desc" },
     });

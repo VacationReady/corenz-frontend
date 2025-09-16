@@ -69,6 +69,7 @@ export async function POST(req: Request) {
         createdBy: session.user.id,
         companyId: session.user.companyId,
         description: templateId ? `Created from template: ${templateId}` : undefined,
+        updatedAt: new Date(),
       },
     });
 

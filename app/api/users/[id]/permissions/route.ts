@@ -29,7 +29,7 @@ export async function GET(
         companyId: session.user.companyId,
       },
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
@@ -49,13 +49,13 @@ export async function GET(
         note: true,
         oldPermissions: true,
         newPermissions: true,
-        changedBy: {
+        User_PermissionAudit_changedByIdToUser: {
           select: { id: true, name: true, email: true },
         },
-        oldProfile: {
+        PermissionProfile_PermissionAudit_oldProfileIdToPermissionProfile: {
           select: { id: true, name: true, description: true, builtIn: true },
         },
-        newProfile: {
+        PermissionProfile_PermissionAudit_newProfileIdToPermissionProfile: {
           select: { id: true, name: true, description: true, builtIn: true },
         },
       },
@@ -69,7 +69,7 @@ export async function GET(
         name: user.name,
         email: user.email,
         role: user.role,
-        permissionProfile: user.permissionProfile,
+        permissionProfile: user.PermissionProfile,
       },
       effectivePermissions,
       auditTrail,
@@ -111,7 +111,7 @@ export async function PATCH(
         companyId: session.user.companyId,
       },
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
@@ -137,10 +137,10 @@ export async function PATCH(
     }
 
     // Get old permissions for audit
-    const oldPermissions = user.permissionProfile
-      ? typeof user.permissionProfile.permissions === "string"
-        ? JSON.parse(user.permissionProfile.permissions as unknown as string)
-        : (user.permissionProfile.permissions as any)
+    const oldPermissions = user.PermissionProfile
+      ? typeof user.PermissionProfile.permissions === "string"
+        ? JSON.parse(user.PermissionProfile.permissions as unknown as string)
+        : (user.PermissionProfile.permissions as any)
       : null;
 
     // Update user's permission profile
@@ -150,22 +150,23 @@ export async function PATCH(
         permissionProfileId: permissionProfileId || null,
       },
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
     // Get new permissions for audit
-    const newPermissions = updatedUser.permissionProfile
-      ? typeof updatedUser.permissionProfile.permissions === "string"
+    const newPermissions = updatedUser.PermissionProfile
+      ? typeof updatedUser.PermissionProfile.permissions === "string"
         ? JSON.parse(
-            updatedUser.permissionProfile.permissions as unknown as string,
+            updatedUser.PermissionProfile.permissions as unknown as string,
           )
-        : (updatedUser.permissionProfile.permissions as any)
+        : (updatedUser.PermissionProfile.permissions as any)
       : null;
 
     // Create audit log entry
     await prisma.permissionAudit.create({
       data: {
+        id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         employeeId: params.id,
         changedById: session.user.id,
         oldProfileId: user.permissionProfileId,
@@ -192,13 +193,13 @@ export async function PATCH(
         note: true,
         oldPermissions: true,
         newPermissions: true,
-        changedBy: {
+        User_PermissionAudit_changedByIdToUser: {
           select: { id: true, name: true, email: true },
         },
-        oldProfile: {
+        PermissionProfile_PermissionAudit_oldProfileIdToPermissionProfile: {
           select: { id: true, name: true, description: true, builtIn: true },
         },
-        newProfile: {
+        PermissionProfile_PermissionAudit_newProfileIdToPermissionProfile: {
           select: { id: true, name: true, description: true, builtIn: true },
         },
       },
@@ -212,7 +213,7 @@ export async function PATCH(
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
-        permissionProfile: updatedUser.permissionProfile,
+        permissionProfile: updatedUser.PermissionProfile,
       },
       effectivePermissions,
       auditTrail,

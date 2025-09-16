@@ -8,7 +8,7 @@ async function findBestOnboardingTemplate(employee: any) {
   if (employee.jobRoleId) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
       where: { JobRole: { some: { id: employee.jobRoleId } } },
-      include: { steps: true },
+      include: { OnboardingStep: true },
     });
     if (byJobRole) return byJobRole;
   }
@@ -16,14 +16,14 @@ async function findBestOnboardingTemplate(employee: any) {
   if (employee.departmentId) {
     const byDept = await prisma.onboardingTemplate.findFirst({
       where: { Department: { some: { id: employee.departmentId } } },
-      include: { steps: true },
+      include: { OnboardingStep: true },
     });
     if (byDept) return byDept;
   }
   // 3. Default (fallback)
   return await prisma.onboardingTemplate.findFirst({
     where: { isDefault: true },
-    include: { steps: true },
+    include: { OnboardingStep: true },
   });
 }
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     // Fetch employee with dept/role
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      include: { department: true, jobRole: true },
+      include: { Department: true, JobRole: true },
     });
     if (!employee) {
       return NextResponse.json(
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Use related steps
-    const steps = template.steps;
+    const steps = template.OnboardingStep;
     if (!steps || !steps.length) {
       return NextResponse.json(
         { error: "Onboarding template has no steps" },
@@ -82,20 +82,21 @@ export async function POST(req: NextRequest) {
     // Create instance and step instances atomically
     const onboardingInstance = await prisma.onboardingInstance.create({
       data: {
+        id: `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         employeeId,
         templateId: template.id,
         status: "active",
-        steps: {
+        OnboardingStepInstance: {
           // <-- this matches your Prisma model
           create: steps.map((step, idx) => ({
+            id: `step_instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${step.id}`,
             stepId: step.id,
-            type: step.type,
             status: "pending",
             order: idx,
           })),
         },
       },
-      include: { steps: true },
+      include: { OnboardingStepInstance: true },
     });
 
     return NextResponse.json(onboardingInstance, { status: 201 });

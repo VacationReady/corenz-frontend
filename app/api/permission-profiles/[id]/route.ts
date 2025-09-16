@@ -21,9 +21,9 @@ export async function GET(
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
-        users: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -189,7 +189,7 @@ export async function PUT(
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
     });
@@ -198,6 +198,7 @@ export async function PUT(
     if (Object.keys(changes).length > 0) {
       await prisma.permissionProfileAudit.create({
         data: {
+          id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           profileId: updatedProfile.id,
           action: "updated",
           changes,
@@ -235,7 +236,7 @@ export async function DELETE(
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
     });
@@ -256,10 +257,10 @@ export async function DELETE(
     }
 
     // Check if profile is in use
-    if (existingProfile._count.users > 0) {
+    if (existingProfile._count.User > 0) {
       return NextResponse.json(
         {
-          error: `Cannot delete permission profile that is assigned to ${existingProfile._count.users} user(s)`,
+          error: `Cannot delete permission profile that is assigned to ${existingProfile._count.User} user(s)`,
         },
         { status: 400 },
       );
@@ -268,6 +269,7 @@ export async function DELETE(
     // Create audit log entry before deletion
     await prisma.permissionProfileAudit.create({
       data: {
+        id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         profileId: existingProfile.id,
         action: "deleted",
         changes: {

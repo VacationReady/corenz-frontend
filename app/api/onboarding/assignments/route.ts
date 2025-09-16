@@ -15,10 +15,10 @@ export async function GET(req: NextRequest) {
     where: {
       userId: session.user.id,
       completedAt: null,
-      template: { companyId: session.user.companyId },
+      OnboardingTemplate: { companyId: session.user.companyId },
       User: { companyId: session.user.companyId },
     },
-    include: { template: { include: { steps: true } } },
+    include: { OnboardingTemplate: { include: { OnboardingStep: true } } },
   });
 
   return NextResponse.json({ assignment });
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // Ensure template belongs to company
   const template = await prisma.onboardingTemplate.findFirst({
     where: { id: templateId, companyId: session.user.companyId },
-    include: { steps: true },
+    include: { OnboardingStep: true },
   });
   if (!template) {
     return NextResponse.json({ error: "Template not found" }, { status: 404 });
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     // 1. Create onboarding assignment
     const assignment = await tx.onboardingAssignment.create({
       data: {
+        id: `assignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: employee.userId,
         templateId: template.id,
         progress: [],
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
     // 2. Create onboarding instance
     const onboardingInstance = await tx.onboardingInstance.create({
       data: {
+        id: `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         employeeId: employee.id,
         templateId: template.id,
         status: "active",
@@ -88,7 +90,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Seed step instances for this onboarding instance
     await tx.onboardingStepInstance.createMany({
-      data: template.steps.map((step) => ({
+      data: template.OnboardingStep.map((step) => ({
+        id: `step_instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${step.id}`,
         onboardingInstanceId: onboardingInstance.id,
         stepId: step.id,
         status: "pending",
@@ -122,10 +125,10 @@ export async function PATCH(req: NextRequest) {
     where: {
       id: onboardingInstanceId,
       Employee: { companyId: session.user.companyId },
-      template: { companyId: session.user.companyId },
+      OnboardingTemplate: { companyId: session.user.companyId },
     },
     include: {
-      steps: true,
+      OnboardingStepInstance: true,
       Employee: { include: { User: true } },
     },
   });
@@ -137,17 +140,17 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
-  const allCompleted = instance.steps.every(
+  const allCompleted = instance.OnboardingStepInstance.every(
     (step) => step.status === "completed",
   );
 
   if (allCompleted) {
     await prisma.onboardingAssignment.updateMany({
       where: {
-        userId: instance.employee.userId,
+        userId: instance.Employee.userId,
         templateId: instance.templateId,
         completedAt: null,
-        template: { companyId: session.user.companyId },
+        OnboardingTemplate: { companyId: session.user.companyId },
         User: { companyId: session.user.companyId },
       },
       data: { completedAt: new Date() },

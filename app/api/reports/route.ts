@@ -24,7 +24,7 @@ export async function GET() {
         name: report.name,
         category: report.category,
         createdAt: report.createdAt,
-        createdBy: { email: report.user?.email || "Unknown" },
+        createdBy: { email: report.User?.email || "Unknown" },
         fields: report.fields, // ✅ ADD THIS LINE
       })),
     );
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
         fields: fields,
         createdBy: session.user.id,
         companyId: session.user.companyId,
+        updatedAt: new Date(),
       },
     });
 

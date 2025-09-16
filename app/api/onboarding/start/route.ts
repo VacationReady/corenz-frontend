@@ -14,7 +14,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
         isActive: true,
         companyId,
       },
-      include: { steps: true },
+      include: { OnboardingStep: true },
     });
     if (byJobRole) return byJobRole;
   }
@@ -27,7 +27,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
         isActive: true,
         companyId,
       },
-      include: { steps: true },
+      include: { OnboardingStep: true },
     });
     if (byDept) return byDept;
   }
@@ -35,7 +35,7 @@ async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 3. Default (fallback)
   return prisma.onboardingTemplate.findFirst({
     where: { isDefault: true, isActive: true, companyId },
-    include: { steps: true },
+    include: { OnboardingStep: true },
   });
 }
 
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     // Fetch employee with related user, dept, role scoped to company
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
-      include: { user: true, department: true, jobRole: true },
+      include: { User: true, Department: true, JobRole: true },
     });
 
     if (!employee) {
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch related user for email notification and template resolution
-    const user = employee.user;
+    const user = employee.User;
 
     // Find a template to use
     let template: any;
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
           isActive: true,
           companyId: session.user.companyId,
         },
-        include: { steps: true },
+        include: { OnboardingStep: true },
       });
     }
     if (!template) {
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    if (!template.steps?.length) {
+    if (!template.OnboardingStep?.length) {
       return NextResponse.json(
         { error: "Selected template has no steps" },
         { status: 400 },
@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const assignment = await tx.onboardingAssignment.create({
         data: {
+          id: `assignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           userId: employee.userId,
           templateId: template.id,
           progress: [],
@@ -133,6 +134,7 @@ export async function POST(req: NextRequest) {
 
       const onboardingInstance = await tx.onboardingInstance.create({
         data: {
+          id: `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           employeeId,
           templateId: template.id,
           status: "active",
@@ -141,7 +143,8 @@ export async function POST(req: NextRequest) {
       });
 
       await tx.onboardingStepInstance.createMany({
-        data: template.steps.map((step: any, index: number) => ({
+        data: template.OnboardingStep.map((step: any, index: number) => ({
+          id: `step_instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${step.id}`,
           onboardingInstanceId: onboardingInstance.id,
           stepId: step.id,
           status: "pending",

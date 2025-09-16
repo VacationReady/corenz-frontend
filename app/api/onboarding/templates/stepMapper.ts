@@ -38,6 +38,7 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
           const mappedType = typeMap[step.type];
           if (!mappedType) return undefined;
           const base = {
+            id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
             type: mappedType,
             label: step.label || step.title || "",
             order: i + 1,

@@ -41,6 +41,7 @@ export async function POST(req: Request) {
 
     const doc = await prisma.document.create({
       data: {
+        id: `document_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: file.name,
         path: data.path,
         size: file.size,
@@ -58,12 +59,14 @@ export async function POST(req: Request) {
 
   const trainingRecord = await prisma.trainingRecord.create({
     data: {
+      id: `record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       employeeId: employeeId as string,
       courseId,
       providerId,
       dateCompleted,
       expiryDate,
       documentId,
+      updatedAt: new Date(),
     },
   });
 

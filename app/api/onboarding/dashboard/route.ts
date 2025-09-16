@@ -21,19 +21,19 @@ export async function GET(_req: NextRequest) {
       where: whereCompanyScoped,
       orderBy: { startedAt: "desc" },
       include: {
-        template: { select: { name: true } },
+        OnboardingTemplate: { select: { name: true } },
         Employee: {
           include: {
             User: { select: { firstName: true, lastName: true, email: true } },
           },
         },
-        steps: true,
+        OnboardingStepInstance: true,
       },
     });
 
     const items = instances.map((inst) => {
-      const stepsTotal = inst.steps.length;
-      const stepsCompleted = inst.steps.filter(
+      const stepsTotal = inst.OnboardingStepInstance.length;
+      const stepsCompleted = inst.OnboardingStepInstance.filter(
         (s) => s.status === "completed",
       ).length;
       return {
@@ -43,8 +43,8 @@ export async function GET(_req: NextRequest) {
         completedAt: inst.completedAt,
         stepsTotal,
         stepsCompleted,
-        template: inst.template,
-        employee: inst.employee,
+        template: inst.OnboardingTemplate,
+        employee: inst.Employee,
       };
     });
 

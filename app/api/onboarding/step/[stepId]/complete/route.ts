@@ -27,16 +27,16 @@ export async function POST(
     const stepInstance = await prisma.onboardingStepInstance.findUnique({
       where: { id: stepId },
       include: {
-        onboardingInstance: {
+        OnboardingInstance: {
           include: {
-            employee: {
+            Employee: {
               include: {
-                user: true, // This gets you employee.user.companyId
+                User: true, // This gets you employee.user.companyId
               },
             },
           },
         },
-        step: true,
+        OnboardingStep: true,
       },
     });
 
@@ -45,7 +45,7 @@ export async function POST(
     }
 
     // Optionally: Ensure only assigned employee can complete this step!
-    // e.g. check session.user.id === stepInstance.onboardingInstance.employee.userId
+    // e.g. check session.user.id === stepInstance.OnboardingInstance.Employee.User.id
 
     // 2. Mark step as completed
     await prisma.onboardingStepInstance.update({
@@ -60,6 +60,7 @@ export async function POST(
     if (body.formResponse) {
       await prisma.onboardingStepResponse.create({
         data: {
+          id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           onboardingStepInstanceId: stepId,
           response: body.formResponse, // must be JSON-serializable
         },
@@ -69,8 +70,8 @@ export async function POST(
     // 4. (Optional) Handle uploaded file - link to Document table if you have fileUrl
     if (body.fileUrl) {
       // You already have Document model; insert a new document and associate it to this step
-      const employee = stepInstance.onboardingInstance.employee;
-      const user = employee.user;
+      const employee = stepInstance.OnboardingInstance.Employee;
+      const user = employee.User;
 
       if (!user.companyId) {
         throw new Error(
@@ -80,6 +81,7 @@ export async function POST(
 
       await prisma.document.create({
         data: {
+          id: `document_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: body.fileName || "Uploaded Document",
           url: body.fileUrl,
           path: body.filePath || body.fileUrl,

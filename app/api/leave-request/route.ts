@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       where: { id: session.user.id },
       select: {
         role: true,
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
@@ -73,7 +73,7 @@ export async function GET(req: Request) {
       where: {
         companyId: session.user.companyId,
         approvalStatus: status,
-        employee:
+        Employee:
           Object.keys(employeeFilter).length > 0 ? employeeFilter : undefined,
       },
       select: {

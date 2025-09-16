@@ -121,9 +121,9 @@ export async function PUT(
         effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
       },
       include: {
-        leavePolicy: {
+        LeavePolicy: {
           include: {
-            eventCategory: {
+            EventCategory: {
               select: { id: true, name: true, color: true },
             },
           },

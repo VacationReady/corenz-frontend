@@ -27,14 +27,14 @@ export async function GET(
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { employeeId },
       include: {
-        employee: {
+        Employee: {
           include: {
-            user: true,
-            department: true,
-            jobRole: true,
+            User: true,
+            Department: true,
+            JobRole: true,
           },
         },
-        initiatedBy: {
+        User_EmployeeOffboarding_initiatedByIdToUser: {
           select: {
             id: true,
             firstName: true,
@@ -42,7 +42,7 @@ export async function GET(
             email: true,
           },
         },
-        formTemplate: {
+        ExitInterviewFormTemplate: {
           select: {
             id: true,
             name: true,
@@ -50,9 +50,9 @@ export async function GET(
             schemaJson: true,
           },
         },
-        exitInterviewSubmissions: {
+        ExitInterviewSubmission: {
           include: {
-            template: {
+            ExitInterviewFormTemplate: {
               select: {
                 id: true,
                 name: true,
@@ -83,20 +83,20 @@ export async function GET(
 
       // Employee details
       employee: {
-        id: offboarding.employee.id,
-        firstName: offboarding.employee.user.firstName,
-        lastName: offboarding.employee.user.lastName,
-        email: offboarding.employee.user.email,
-        department: offboarding.employee.department?.name,
-        jobRole: offboarding.employee.jobRole?.name,
-        isActive: offboarding.employee.isActive,
+        id: offboarding.Employee.id,
+        firstName: offboarding.Employee.User.firstName,
+        lastName: offboarding.Employee.User.lastName,
+        email: offboarding.Employee.User.email,
+        department: offboarding.Employee.Department?.name,
+        jobRole: offboarding.Employee.JobRole?.name,
+        isActive: offboarding.Employee.isActive,
       },
 
       // Initiated by
       initiatedBy: {
-        id: offboarding.initiatedBy.id,
-        name: `${offboarding.initiatedBy.firstName} ${offboarding.initiatedBy.lastName}`,
-        email: offboarding.initiatedBy.email,
+        id: offboarding.User_EmployeeOffboarding_initiatedByIdToUser.id,
+        name: `${offboarding.User_EmployeeOffboarding_initiatedByIdToUser.firstName} ${offboarding.User_EmployeeOffboarding_initiatedByIdToUser.lastName}`,
+        email: offboarding.User_EmployeeOffboarding_initiatedByIdToUser.email,
       },
 
       // Exit interview details
@@ -116,7 +116,7 @@ export async function GET(
         location: offboarding.location,
         notes: offboarding.exitInterviewNotes,
         sendForm: offboarding.sendForm,
-        formTemplate: offboarding.formTemplate,
+        formTemplate: offboarding.ExitInterviewFormTemplate,
         formTiming: offboarding.formTiming,
         completionStatus: offboarding.completionStatus,
         inviteLastSentAt: offboarding.inviteLastSentAt,
@@ -124,11 +124,11 @@ export async function GET(
       },
 
       // Form submissions
-      formSubmissions: offboarding.exitInterviewSubmissions.map(
+      formSubmissions: offboarding.ExitInterviewSubmission.map(
         (submission) => ({
           id: submission.id,
-          templateName: submission.template.name,
-          templateSchema: submission.template.schemaJson,
+          templateName: submission.ExitInterviewFormTemplate.name,
+          templateSchema: submission.ExitInterviewFormTemplate.schemaJson,
           submittedAt: submission.submittedAt,
           submittedBy: submission.submittedBy,
           answersJson: submission.answersJson,

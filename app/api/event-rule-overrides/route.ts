@@ -126,6 +126,8 @@ export async function POST(req: Request) {
     // Create the override
     const override = await prisma.eventRuleOverride.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         ...validatedData,
         companyId: session.user.companyId,
       },
@@ -149,6 +151,7 @@ export async function POST(req: Request) {
     // Log the creation in audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "EVENT_RULE",
         entityId: override.id,

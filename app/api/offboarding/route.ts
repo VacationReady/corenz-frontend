@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
               },
             },
           },
-          initiatedBy: {
+          User_EmployeeOffboarding_initiatedByIdToUser: {
             select: {
               id: true,
               firstName: true,
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate completion percentage for each record
     const recordsWithProgress = offboardingRecords.map((record) => {
-      const requiredTasks = record.tasks.filter((task) => task.isRequired);
+      const requiredTasks = record.OffboardingTask.filter((task) => task.isRequired);
       const completedRequiredTasks = requiredTasks.filter(
         (task) => task.completedAt !== null,
       );
@@ -91,8 +91,8 @@ export async function GET(req: NextRequest) {
       return {
         ...record,
         completionPercentage,
-        totalTasks: record.tasks.length,
-        completedTasks: record.tasks.filter((task) => task.completedAt !== null)
+        totalTasks: record.OffboardingTask.length,
+        completedTasks: record.OffboardingTask.filter((task) => task.completedAt !== null)
           .length,
       };
     });
@@ -162,7 +162,8 @@ export async function POST(req: NextRequest) {
 
     const task = await prisma.offboardingTask.create({
       data: {
-        offboardingId,
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         title,
         description,
         category,
@@ -170,9 +171,10 @@ export async function POST(req: NextRequest) {
         dueDate: dueDate ? new Date(dueDate) : null,
         isRequired: isRequired ?? false,
         order: newOrder,
+        EmployeeOffboarding: { connect: { id: offboardingId } },
       },
       include: {
-        assignedToUser: {
+        User_OffboardingTask_assignedToToUser: {
           select: {
             id: true,
             firstName: true,

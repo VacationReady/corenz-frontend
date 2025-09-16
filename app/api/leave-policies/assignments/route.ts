@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
           ],
         },
         include: {
-          leavePolicy: {
+          LeavePolicy: {
             include: {
               EventCategory: {
                 select: { id: true, name: true, color: true },
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     const assignments = await prisma.leavePolicyAssignment.findMany({
       where,
       include: {
-        leavePolicy: {
+        LeavePolicy: {
           include: {
             EventCategory: {
               select: { id: true, name: true, color: true },
@@ -218,6 +218,8 @@ export async function POST(req: NextRequest) {
 
     const assignment = await prisma.leavePolicyAssignment.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         companyId: session.user.companyId,
         leavePolicyId,
         departmentIds,
@@ -229,7 +231,7 @@ export async function POST(req: NextRequest) {
         effectiveTo: effectiveTo ? new Date(effectiveTo) : null,
       },
       include: {
-        leavePolicy: {
+        LeavePolicy: {
           include: {
             EventCategory: {
               select: { id: true, name: true, color: true },

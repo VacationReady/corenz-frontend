@@ -66,7 +66,7 @@ export async function PATCH(
         const entitlement = await tx.leaveEntitlement.findFirst({
           where: {
             employeeId: leave.employeeId,
-            EventCategoryId: leave.EventCategoryId,
+            eventCategoryId: leave.eventCategoryId,
           },
         });
 
@@ -85,7 +85,7 @@ export async function PATCH(
           where: { id: leaveId },
           data: {
             approvalStatus: "APPROVED",
-            approvedBy: { connect: { id: session.user.id } },
+            approvedById: session.user.id,
           },
           include: {
             Employee: { include: { User: true } },
@@ -114,7 +114,7 @@ export async function PATCH(
         where: { id: leaveId },
         data: {
           approvalStatus: "DECLINED",
-          approvedBy: { connect: { id: session.user.id } },
+          approvedById: session.user.id,
         },
         include: {
           Employee: { include: { User: true } },

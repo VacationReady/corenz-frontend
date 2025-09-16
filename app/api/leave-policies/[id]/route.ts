@@ -20,10 +20,10 @@ export async function GET(
         companyId: session.user.companyId,
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: { id: true, name: true, color: true },
         },
-        assignments: true,
+        LeavePolicyAssignment: true,
       },
     });
 
@@ -183,10 +183,10 @@ export async function PUT(
         isActive,
       },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: { id: true, name: true, color: true },
         },
-        assignments: true,
+        LeavePolicyAssignment: true,
       },
     });
 
@@ -219,7 +219,7 @@ export async function DELETE(
       },
       include: {
         _count: {
-          select: { assignments: true },
+          select: { LeavePolicyAssignment: true },
         },
       },
     });
@@ -232,7 +232,7 @@ export async function DELETE(
     }
 
     // Check if policy has assignments (soft delete approach)
-    if (existingPolicy._count.assignments > 0) {
+    if (existingPolicy._count.LeavePolicyAssignment > 0) {
       // Instead of hard delete, deactivate the policy
       const deactivatedPolicy = await prisma.leavePolicy.update({
         where: { id: params.id },

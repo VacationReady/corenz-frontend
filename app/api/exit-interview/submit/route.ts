@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         Employee: {
           include: { User: true },
         },
-        formTemplate: true,
+        ExitInterviewFormTemplate: true,
       },
     });
 
@@ -52,9 +52,10 @@ export async function POST(req: NextRequest) {
     // Create submission record
     const submission = await prisma.exitInterviewSubmission.create({
       data: {
+        id: crypto.randomUUID(),
         offboardingId: offboarding.id,
         templateId: offboarding.formTemplateId,
-        submittedBy: offboarding.employee.user.email,
+        submittedBy: offboarding.Employee.User.email,
         submittedAt: new Date(),
         answersJson: answersJson || {},
       },

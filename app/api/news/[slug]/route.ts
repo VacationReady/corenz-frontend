@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const post = await prisma.newsPost.findUnique({
     where: { slug: params.slug },
-    include: { author: true },
+    include: { User: true },
   });
 
   if (!post) {

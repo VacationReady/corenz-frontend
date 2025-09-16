@@ -26,7 +26,7 @@ export default async function LeaveBalanceWidget({
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    include: { leaveEntitlements: { include: { eventCategory: true } } },
+    include: { leaveEntitlements: { include: { EventCategory: true } } },
   });
 
   if (!employee) {
@@ -41,9 +41,9 @@ export default async function LeaveBalanceWidget({
       usedDays: entitlement.usedDays,
       carryoverDays: entitlement.carryoverDays ?? 0,
       eventCategory: {
-        id: entitlement.eventCategory.id,
-        name: entitlement.eventCategory.name,
-        color: entitlement.eventCategory.color ?? null,
+        id: entitlement.EventCategory.id,
+        name: entitlement.EventCategory.name,
+        color: entitlement.EventCategory.color ?? null,
       },
     }),
   );

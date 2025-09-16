@@ -28,6 +28,8 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
 
   const cloned = await prisma.form.create({
     data: {
+      id: crypto.randomUUID(),
+      updatedAt: new Date(),
       name: baseName,
       slug: uniqueSlug,
       description: original.description,

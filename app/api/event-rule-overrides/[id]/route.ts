@@ -5,8 +5,8 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
 const EventRuleOverrideUpdateSchema = z.object({
-  EventCategoryId: z.string().cuid("Invalid event category ID").optional(),
-  DepartmentId: z.string().cuid("Invalid Department ID").optional(),
+  eventCategoryId: z.string().cuid("Invalid event category ID").optional(),
+  departmentId: z.string().cuid("Invalid Department ID").optional(),
   teamId: z.string().cuid("Invalid team ID").optional(),
   enforceEntitlement: z.boolean().optional(),
   noticePeriodDays: z.number().int().min(0).optional(),
@@ -103,18 +103,18 @@ export async function PUT(
 
     // Check for duplicate overrides if category or scope is being changed
     if (
-      validatedData.EventCategoryId ||
-      validatedData.DepartmentId !== undefined
+      validatedData.eventCategoryId ||
+      validatedData.departmentId !== undefined
     ) {
       const duplicateOverride = await prisma.eventRuleOverride.findFirst({
         where: {
           companyId: session.user.companyId,
           eventCategoryId:
-            validatedData.EventCategoryId || existingOverride.EventCategoryId,
+            validatedData.eventCategoryId || existingOverride.eventCategoryId,
           departmentId:
-            validatedData.DepartmentId !== undefined
-              ? validatedData.DepartmentId
-              : existingOverride.DepartmentId,
+            validatedData.departmentId !== undefined
+              ? validatedData.departmentId
+              : existingOverride.departmentId,
           teamId:
             validatedData.teamId !== undefined
               ? validatedData.teamId
@@ -133,8 +133,8 @@ export async function PUT(
 
     // Store old values for audit log
     const oldValues = {
-      EventCategoryId: existingOverride.EventCategoryId,
-      DepartmentId: existingOverride.DepartmentId,
+      eventCategoryId: existingOverride.eventCategoryId,
+      departmentId: existingOverride.departmentId,
       staffingDensityEnabled: existingOverride.staffingDensityEnabled,
       staffingDensityThreshold: existingOverride.staffingDensityThreshold,
     };
@@ -163,6 +163,7 @@ export async function PUT(
     // Log the update in audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "EVENT_RULE",
         entityId: params.id,
@@ -171,8 +172,8 @@ export async function PUT(
         changes: {
           old: oldValues,
           new: {
-            EventCategoryId: updatedOverride.EventCategoryId,
-            DepartmentId: updatedOverride.DepartmentId,
+            eventCategoryId: updatedOverride.eventCategoryId,
+            departmentId: updatedOverride.departmentId,
             staffingDensityEnabled: updatedOverride.staffingDensityEnabled,
             staffingDensityThreshold: updatedOverride.staffingDensityThreshold,
           },
@@ -240,6 +241,7 @@ export async function DELETE(
     // Log the deletion in audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "EVENT_RULE",
         entityId: params.id,

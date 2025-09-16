@@ -43,8 +43,8 @@ export async function GET(
       include: {
         _count: {
           select: {
-            offboardings: true,
-            submissions: true,
+            EmployeeOffboarding: true,
+            ExitInterviewSubmission: true,
           },
         },
       },
@@ -166,8 +166,8 @@ export async function DELETE(
       include: {
         _count: {
           select: {
-            offboardings: true,
-            submissions: true,
+            EmployeeOffboarding: true,
+            ExitInterviewSubmission: true,
           },
         },
       },
@@ -181,7 +181,10 @@ export async function DELETE(
     }
 
     // Check if template is in use
-    if (template._count.offboardings > 0 || template._count.submissions > 0) {
+    if (
+      template._count.EmployeeOffboarding > 0 ||
+      template._count.ExitInterviewSubmission > 0
+    ) {
       return NextResponse.json(
         {
           error:

@@ -143,6 +143,8 @@ export async function POST(
         data: data,
       },
       create: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         formId: params.id,
         employeeId: employeeId,
         data: data,

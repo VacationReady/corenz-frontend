@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     // Check if employee exists
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      include: { user: true, offboardingRecord: true },
+      include: { User: true, EmployeeOffboarding: true },
     });
 
     if (!employee) {
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (employee.offboardingRecord) {
+    if (employee.EmployeeOffboarding) {
       return NextResponse.json(
         { error: "Employee is already being offboarded" },
         { status: 400 },
@@ -173,13 +173,13 @@ export async function POST(req: NextRequest) {
     };
 
     const offboarding = await prisma.employeeOffboarding.create({
-      data: offboardingData,
+      data: { id: crypto.randomUUID(), updatedAt: new Date(), ...offboardingData },
       include: {
         Employee: {
           include: { User: true },
         },
-        interviewerUser: true,
-        formTemplate: true,
+        User_EmployeeOffboarding_interviewerUserIdToUser: true,
+        ExitInterviewFormTemplate: true,
       },
     });
 

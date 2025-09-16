@@ -75,6 +75,8 @@ export async function POST(req: Request) {
     // ✅ Create job role linked to company
     const jobRole = await prisma.jobRole.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         name: name.trim(),
         companyId: session.user.companyId,
       },

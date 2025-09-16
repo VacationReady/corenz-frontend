@@ -32,10 +32,10 @@ export async function GET(
           companyId: session.user.companyId,
         },
         include: {
-          user: {
+          User: {
             include: {
-              jobRole: true,
-              department: true,
+              JobRole: true,
+              Department_User_departmentIdToDepartment: true,
             },
           },
         },
@@ -47,11 +47,11 @@ export async function GET(
     // Build visibility filter
     let visibilityFilter = {};
     if (employee) {
-      const user = employee.user;
+      const user = employee.User;
 
       const userRole = user?.role || "EMPLOYEE";
-      const userDepartmentId = user?.department?.id?.trim(); // ✅ trim for safety
-      const userJobRole = user?.jobRole?.name;
+      const userDepartmentId = user?.Department_User_departmentIdToDepartment?.id?.trim(); // ✅ trim for safety
+      const userJobRole = user?.JobRole?.name;
 
       console.log("🔍 Role:", userRole);
       console.log("🏢 Department ID:", userDepartmentId);

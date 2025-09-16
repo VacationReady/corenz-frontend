@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
     const rules = await prisma.eventRule.findMany({
       where: { companyId: session.user.companyId },
-      include: { eventCategory: true },
+      include: { EventCategory: true },
     });
 
     return NextResponse.json(rules);
@@ -68,6 +68,8 @@ export async function POST(req: Request) {
         notes,
       },
       create: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         companyId: session.user.companyId,
         eventCategoryId,
         enforceEntitlement,

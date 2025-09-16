@@ -180,16 +180,16 @@ export async function POST(req: NextRequest) {
       eventRule: eventRule
         ? {
             ...eventRule,
-            eventCategory: eventRule.eventCategory,
+            eventCategory: eventRule.EventCategory,
           }
         : null,
       employee: employee
         ? {
             id: employee.id,
-            name: `${employee.user.firstName} ${employee.user.lastName}`,
-            email: employee.user.email,
-            department: employee.department?.name,
-            jobRole: employee.jobRole?.name,
+            name: `${employee.User.firstName} ${employee.User.lastName}`,
+            email: employee.User.email,
+            department: employee.Department?.name,
+            jobRole: employee.JobRole?.name,
             startDate: employee.startDate,
           }
         : null,

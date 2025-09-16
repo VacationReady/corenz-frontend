@@ -169,7 +169,7 @@ export class AutomationRuleEvaluator {
           include: {
             Employee: {
               include: {
-                user: true,
+                User: true,
               },
             },
           },
@@ -221,10 +221,10 @@ export class AutomationRuleEvaluator {
           include: {
             Employee: {
               include: {
-                user: true,
+                User: true,
               },
             },
-            form: true,
+            Form: true,
           },
         });
 
@@ -341,9 +341,9 @@ export class AutomationRuleEvaluator {
             },
           },
           include: {
-            user: true,
-            department: true,
-            jobRole: true,
+            User: true,
+            Department: true,
+            JobRole: true,
           },
         });
 
@@ -356,7 +356,7 @@ export class AutomationRuleEvaluator {
               userId: employee.userId,
               departmentId: employee.departmentId,
               jobRoleId: employee.jobRoleId,
-              createdAt: employee.user.createdAt,
+              createdAt: employee.User.createdAt,
             } as EmployeeCreatedTriggerData,
           })),
           metadata: {

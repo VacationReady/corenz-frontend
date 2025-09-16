@@ -27,7 +27,7 @@ export async function GET() {
     const subcategories = await prisma.eventSubcategory.findMany({
       where: { companyId: session.user.companyId },
       include: {
-        eventCategory: true,
+        EventCategory: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -86,6 +86,8 @@ export async function POST(req: Request) {
 
     const newSubcategory = await prisma.eventSubcategory.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         name,
         defaultPaidStatus,
         isActive,

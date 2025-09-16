@@ -13,7 +13,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const submissions = await prisma.formSubmission.findMany({
     where: {
       formId: params.id,
-      form: { companyId: session.user.companyId },
+      Form: { companyId: session.user.companyId },
     },
     include: { Employee: true },
     orderBy: { submittedAt: "desc" },
@@ -52,6 +52,7 @@ export async function POST(
   // Create the submission
   const submission = await prisma.formSubmission.create({
     data: {
+      id: crypto.randomUUID(),
       formId: params.id,
       employeeId: targetEmployeeId,
       data,

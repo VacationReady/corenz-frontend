@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
 
     const newsPost = await prisma.newsPost.create({
       data: {
+        id: crypto.randomUUID(),
         title,
         slug: generateSlug(title),
         content,
@@ -31,7 +32,8 @@ export async function POST(req: NextRequest) {
         sendEmail,
         audience,
         publishedAt: new Date(),
-        author: { connect: { id: userId } },
+        updatedAt: new Date(),
+        authorId: userId,
       },
     });
 
@@ -59,7 +61,7 @@ export async function GET(req: NextRequest) {
   }
 
   const posts = await prisma.newsPost.findMany({
-    where: { author: { companyId: session.user.companyId } },
+    where: { User: { companyId: session.user.companyId } },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

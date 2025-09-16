@@ -100,6 +100,8 @@ export async function POST(req: Request) {
   // Create form
   const form = await prisma.form.create({
     data: {
+      id: crypto.randomUUID(),
+      updatedAt: new Date(),
       name,
       slug,
       description,

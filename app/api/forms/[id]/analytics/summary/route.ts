@@ -39,7 +39,7 @@ export async function GET(
     const submissions = await prisma.formSubmission.findMany({
       where: {
         formId,
-        form: {
+        Form: {
           companyId: session.user.companyId,
         },
       },
@@ -47,10 +47,10 @@ export async function GET(
         id: true,
         employeeId: true,
         submittedAt: true,
-        employee: {
+        Employee: {
           select: {
             id: true,
-            user: {
+            User: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -59,12 +59,12 @@ export async function GET(
                 jobRoleId: true,
               },
             },
-            department: {
+            Department: {
               select: {
                 name: true,
               },
             },
-            jobRole: {
+            JobRole: {
               select: {
                 name: true,
               },
@@ -81,7 +81,7 @@ export async function GET(
     const assignments = await prisma.formAssignment.findMany({
       where: {
         formId,
-        form: {
+        Form: {
           companyId: session.user.companyId,
         },
       },
@@ -133,7 +133,7 @@ export async function GET(
     // Department breakdown
     const departmentBreakdown = submissions.reduce(
       (acc, submission) => {
-        const dept = submission.employee?.department?.name || "No Department";
+        const dept = submission.Employee?.Department?.name || "No Department";
         acc[dept] = (acc[dept] || 0) + 1;
         return acc;
       },
@@ -143,7 +143,7 @@ export async function GET(
     // Job role breakdown
     const jobRoleBreakdown = submissions.reduce(
       (acc, submission) => {
-        const role = submission.employee?.jobRole?.name || "No Job Role";
+        const role = submission.Employee?.JobRole?.name || "No Job Role";
         acc[role] = (acc[role] || 0) + 1;
         return acc;
       },
@@ -154,11 +154,11 @@ export async function GET(
     const recentActivity = submissions.slice(0, 10).map((submission) => ({
       id: submission.id,
       submitterName:
-        `${submission.employee?.user?.firstName || ""} ${submission.employee?.user?.lastName || ""}`.trim() ||
+        `${submission.Employee?.User?.firstName || ""} ${submission.Employee?.User?.lastName || ""}`.trim() ||
         "Unknown",
-      submitterEmail: submission.employee?.user?.email,
-      department: submission.employee?.department?.name,
-      jobRole: submission.employee?.jobRole?.name,
+      submitterEmail: submission.Employee?.User?.email,
+      department: submission.Employee?.Department?.name,
+      jobRole: submission.Employee?.JobRole?.name,
       submittedAt: submission.submittedAt,
     }));
 

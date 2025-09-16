@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         Employee: {
           include: { User: true },
         },
-        formTemplate: true,
+        ExitInterviewFormTemplate: true,
       },
     });
 
@@ -54,10 +54,10 @@ export async function POST(req: NextRequest) {
     // Return form template data
     return NextResponse.json({
       success: true,
-      formTemplate: offboarding.formTemplate,
+      formTemplate: offboarding.ExitInterviewFormTemplate,
       Employee: {
-        firstName: offboarding.employee.user.firstName,
-        lastName: offboarding.employee.user.lastName,
+        firstName: offboarding.Employee.User.firstName,
+        lastName: offboarding.Employee.User.lastName,
       },
       offboardingId: offboarding.id,
     });

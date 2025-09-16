@@ -91,12 +91,14 @@ export async function POST(
         updatedAt: new Date(),
       },
       create: {
+        id: crypto.randomUUID(),
         offboardingId: offboarding.id,
         scheduledAt: scheduledDate,
         interviewerId: data.interviewerId ?? null,
         location: data.location ?? null,
         notes: data.notes ?? null,
         completed: data.completed ?? false,
+        updatedAt: new Date(),
       },
     });
 

@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
         updatedAt: true,
         _count: {
           select: {
-            offboardings: true,
-            submissions: true,
+            EmployeeOffboarding: true,
+            ExitInterviewSubmission: true,
           },
         },
       },
@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
 
     const template = await prisma.exitInterviewFormTemplate.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         name: validatedData.name,
         description: validatedData.description,
         schemaJson: validatedData.schemaJson,

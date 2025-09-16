@@ -27,9 +27,9 @@ export async function GET(req: NextRequest) {
         EventCategory: {
           select: { id: true, name: true, color: true },
         },
-        assignments: true,
+        LeavePolicyAssignment: true,
         _count: {
-          select: { assignments: true },
+          select: { LeavePolicyAssignment: true },
         },
       },
       orderBy: [{ effectiveFrom: "desc" }, { name: "asc" }],
@@ -150,6 +150,8 @@ export async function POST(req: NextRequest) {
 
     const policy = await prisma.leavePolicy.create({
       data: {
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
         companyId: session.user.companyId,
         name,
         description,

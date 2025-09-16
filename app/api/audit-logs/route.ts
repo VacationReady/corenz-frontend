@@ -68,8 +68,8 @@ export async function GET(req: Request) {
       const searchTerm = validatedParams.search.toLowerCase();
       whereClause.OR = [
         { entityId: { contains: searchTerm, mode: "insensitive" } },
-        { actor: { email: { contains: searchTerm, mode: "insensitive" } } },
-        { actor: { name: { contains: searchTerm, mode: "insensitive" } } },
+        { User: { email: { contains: searchTerm, mode: "insensitive" } } },
+        { User: { name: { contains: searchTerm, mode: "insensitive" } } },
         { changes: { path: [], string_contains: searchTerm } },
         { metadata: { path: [], string_contains: searchTerm } },
       ];
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
     const logs = await prisma.globalAuditLog.findMany({
       where: whereClause,
       include: {
-        actor: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -175,7 +175,7 @@ export async function POST(req: Request) {
         actorType: "USER",
       },
       include: {
-        actor: {
+        User: {
           select: {
             id: true,
             name: true,

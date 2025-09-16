@@ -45,10 +45,10 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           profileImageUrl: true,
           JobRole: { select: { name: true } },
           Department_User_departmentIdToDepartment: { select: { name: true } },
-          manager: {
+          User: {
             select: { firstName: true, lastName: true },
           },
-          permissionProfile: {
+          PermissionProfile: {
             select: {
               id: true,
               name: true,

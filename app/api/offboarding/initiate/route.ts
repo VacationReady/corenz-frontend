@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       data: offboardingData,
       include: {
         employee: {
-          include: { user: true },
+          include: { User: true },
         },
         interviewerUser: true,
         formTemplate: true,

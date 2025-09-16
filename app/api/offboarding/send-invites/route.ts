@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       where: { id: offboardingId },
       include: {
         employee: {
-          include: { user: true },
+          include: { User: true },
         },
         interviewerUser: true,
       },

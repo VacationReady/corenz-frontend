@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       ...accessFilter, // ✅ Enforce access rights
     },
     include: {
-      uploader: {
+      User: {
         select: {
           name: true,
           email: true,

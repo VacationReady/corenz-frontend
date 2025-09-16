@@ -119,7 +119,7 @@ export async function GET(req: Request) {
     const employees = await prisma.employee.findMany({
       where: whereCondition,
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -128,15 +128,15 @@ export async function GET(req: Request) {
             phone: true,
             role: true,
             createdAt: true,
-            jobRole: {
-              select: { id: true, name: true },
-            },
           },
         },
-        department: {
+        Department: {
           select: { id: true, name: true },
         },
-        offboardingRecord: {
+        JobRole: {
+          select: { id: true, name: true },
+        },
+        EmployeeOffboarding: {
           select: {
             id: true,
             status: true,
@@ -151,21 +151,21 @@ export async function GET(req: Request) {
 
     const flattened = employees.map((emp) => ({
       id: emp.id,
-      userId: emp.user.id,
-      firstName: emp.user.firstName,
-      lastName: emp.user.lastName,
-      email: emp.user.email,
-      phone: emp.user.phone,
-      role: emp.user.role,
-      createdAt: emp.user.createdAt,
-      departmentId: emp.department?.id ?? null,
-      departmentName: emp.department?.name ?? null,
-      jobRoleId: emp.user.jobRole?.id ?? null,
-      jobRoleName: emp.user.jobRole?.name ?? null,
+      userId: emp.User.id,
+      firstName: emp.User.firstName,
+      lastName: emp.User.lastName,
+      email: emp.User.email,
+      phone: emp.User.phone,
+      role: emp.User.role,
+      createdAt: emp.User.createdAt,
+      departmentId: emp.Department?.id ?? null,
+      departmentName: emp.Department?.name ?? null,
+      jobRoleId: emp.JobRole?.id ?? null,
+      jobRoleName: emp.JobRole?.name ?? null,
       isActive: emp.isActive,
       offboardingStatus: emp.offboardingStatus,
       lastWorkingDate: emp.lastWorkingDate,
-      offboardingRecord: emp.offboardingRecord,
+      offboardingRecord: emp.EmployeeOffboarding,
     }));
 
     return NextResponse.json(flattened);
@@ -235,9 +235,7 @@ export async function POST(req: Request) {
     const hashedPassword = ""; // Leave blank for activation
 
     // ✅ Handle manager linking safely
-    let managerConnect:
-      | Prisma.UserCreateNestedOneWithoutSubordinatesInput
-      | undefined = undefined;
+    let managerConnect: any = undefined;
     if (managerId && managerId.trim() !== "") {
       const managerEmployee = await prisma.employee.findUnique({
         where: { id: managerId },
@@ -263,12 +261,12 @@ export async function POST(req: Request) {
         phone,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         role,
-        company: { connect: { id: companyId } },
-        department: departmentId
+        Company: { connect: { id: companyId } },
+        Department: departmentId
           ? { connect: { id: departmentId } }
           : undefined,
-        jobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
-        manager: managerConnect,
+        JobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
+        User: managerConnect,
       },
     });
 

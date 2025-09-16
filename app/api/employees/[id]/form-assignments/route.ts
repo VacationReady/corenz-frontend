@@ -27,18 +27,18 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       );
     }
 
-    // Get form assignments for this employee
+    // Get Form assignments for this employee
     const assignments = await prisma.formAssignment.findMany({
       where: { employeeId },
       include: {
-        form: {
+        Form: {
           select: {
             id: true,
             name: true,
             description: true,
           },
         },
-        assignedBy: {
+        User: {
           select: {
             name: true,
             firstName: true,
@@ -72,7 +72,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
     return NextResponse.json(assignmentsWithStatus);
   } catch (error) {
-    console.error("Error fetching form assignments:", error);
+    console.error("Error fetching Form assignments:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

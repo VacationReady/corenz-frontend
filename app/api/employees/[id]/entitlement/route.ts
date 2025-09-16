@@ -24,7 +24,7 @@ export async function GET(
     const entitlements = await prisma.leaveEntitlement.findMany({
       where: { employeeId, companyId },
       include: {
-        eventCategory: {
+        EventCategory: {
           select: {
             id: true,
             name: true,
@@ -40,10 +40,10 @@ export async function GET(
       totalDays: entitlement.totalDays,
       usedDays: entitlement.usedDays,
       carryoverDays: entitlement.carryoverDays ?? 0,
-      eventCategory: {
-        id: entitlement.eventCategory.id,
-        name: entitlement.eventCategory.name,
-        color: entitlement.eventCategory.color,
+      EventCategory: {
+        id: entitlement.EventCategory.id,
+        name: entitlement.EventCategory.name,
+        color: entitlement.EventCategory.color,
       },
     }));
 
@@ -73,13 +73,13 @@ export async function POST(
     const employeeId = params.id;
     const companyId = session.user.companyId;
     const entitlements: {
-      eventCategoryId: string;
+      EventCategoryId: string;
       totalDays: number;
       daysAllocated?: number;
     }[] = await req.json();
 
     for (const entitlement of entitlements) {
-      if (!entitlement.eventCategoryId || entitlement.totalDays === undefined) {
+      if (!entitlement.EventCategoryId || entitlement.totalDays === undefined) {
         return NextResponse.json(
           { error: "Missing required fields in entitlement." },
           { status: 400 },
@@ -90,19 +90,21 @@ export async function POST(
         where: {
           employeeId_eventCategoryId: {
             employeeId,
-            eventCategoryId: entitlement.eventCategoryId,
+            eventCategoryId: entitlement.EventCategoryId,
           },
         },
         update: {
           totalDays: entitlement.totalDays,
         },
         create: {
+          id: crypto.randomUUID(),
           employeeId,
-          eventCategoryId: entitlement.eventCategoryId,
+          eventCategoryId: entitlement.EventCategoryId,
           totalDays: entitlement.totalDays,
           usedDays: 0, // adjust if needed
           daysAllocated: entitlement.daysAllocated ?? 0,
           companyId,
+          updatedAt: new Date(),
         },
       });
     }

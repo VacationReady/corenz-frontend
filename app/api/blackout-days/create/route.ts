@@ -37,11 +37,13 @@ export async function POST(req: Request) {
 
     const blackout = await prisma.blackoutDay.create({
       data: {
+        id: crypto.randomUUID(),
         date: blackoutDate,
         allEvents,
         eventCategoryIds,
         note: note ?? null,
         companyId,
+        updatedAt: new Date(),
       },
     });
 

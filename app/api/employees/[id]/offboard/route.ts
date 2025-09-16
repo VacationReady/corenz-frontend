@@ -43,7 +43,7 @@ export async function POST(
     // Check if employee exists and is active
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      include: { user: true, offboardingRecord: true },
+      include: { User: true, EmployeeOffboarding: true },
     });
 
     if (!employee) {
@@ -53,7 +53,7 @@ export async function POST(
       );
     }
 
-    if (employee.offboardingRecord) {
+    if (employee.EmployeeOffboarding) {
       return NextResponse.json(
         { error: "Employee is already being offboarded" },
         { status: 400 },
@@ -81,6 +81,7 @@ export async function POST(
     // Create offboarding record
     const offboardingRecord = await prisma.employeeOffboarding.create({
       data: {
+        id: crypto.randomUUID(),
         employeeId,
         initiatedById: session.user.id,
         lastWorkingDate: new Date(lastWorkingDate),
@@ -98,6 +99,7 @@ export async function POST(
         // Set access removal time if immediate
         accessRemovedAt: removeAccessImmediately ? new Date() : null,
         accessRemovedBy: removeAccessImmediately ? session.user.id : null,
+        updatedAt: new Date(),
       },
     });
 
@@ -177,6 +179,8 @@ export async function POST(
             ? handoverAssigneeUserId
             : null,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
       })),
     });
 
@@ -221,14 +225,14 @@ export async function GET(
     const offboardingRecord = await prisma.employeeOffboarding.findUnique({
       where: { employeeId },
       include: {
-        employee: {
+        Employee: {
           include: {
-            user: true,
-            department: true,
-            jobRole: true,
+            User: true,
+            Department: true,
+            JobRole: true,
           },
         },
-        initiatedBy: {
+        User_EmployeeOffboarding_initiatedByIdToUser: {
           select: {
             id: true,
             firstName: true,
@@ -236,7 +240,7 @@ export async function GET(
             email: true,
           },
         },
-        handoverAssignedToUser: {
+        User_EmployeeOffboarding_handoverAssignedToToUser: {
           select: {
             id: true,
             firstName: true,
@@ -244,10 +248,10 @@ export async function GET(
             email: true,
           },
         },
-        exitInterview: true,
-        tasks: {
+        ExitInterview: true,
+        OffboardingTask: {
           include: {
-            assignedToUser: {
+            User_OffboardingTask_assignedToToUser: {
               select: {
                 id: true,
                 firstName: true,
@@ -255,7 +259,7 @@ export async function GET(
                 email: true,
               },
             },
-            completedByUser: {
+            User_OffboardingTask_completedByToUser: {
               select: {
                 id: true,
                 firstName: true,
@@ -277,17 +281,17 @@ export async function GET(
     }
 
     let interviewer = null;
-    if (offboardingRecord.exitInterview?.interviewerId) {
+    if (offboardingRecord.ExitInterview?.interviewerId) {
       interviewer = await prisma.user.findUnique({
-        where: { id: offboardingRecord.exitInterview.interviewerId },
+        where: { id: offboardingRecord.ExitInterview.interviewerId },
         select: { id: true, firstName: true, lastName: true, email: true },
       });
     }
 
     const response = {
       ...offboardingRecord,
-      exitInterview: offboardingRecord.exitInterview
-        ? { ...offboardingRecord.exitInterview, interviewer }
+      exitInterview: offboardingRecord.ExitInterview
+        ? { ...offboardingRecord.ExitInterview, interviewer }
         : null,
     };
 

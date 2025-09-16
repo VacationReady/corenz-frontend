@@ -19,7 +19,7 @@ export async function GET() {
         description: true,
         active: true,
         code: true,
-        head: {
+        User_Department_headIdToUser: {
           select: { id: true, name: true },
         },
       },
@@ -70,8 +70,10 @@ export async function POST(req: Request) {
 
     const department = await prisma.department.create({
       data: {
+        id: crypto.randomUUID(),
         name: name.trim(),
         companyId: session.user.companyId,
+        updatedAt: new Date(),
       },
     });
 

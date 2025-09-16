@@ -32,10 +32,10 @@ export async function PATCH(
     const leave = await prisma.leaveRequest.findUnique({
       where: { id: leaveId },
       include: {
-        employee: {
-          include: { user: true },
+        Employee: {
+          include: { User: true },
         },
-        eventCategory: true,
+        EventCategory: true,
       },
     });
 
@@ -66,7 +66,7 @@ export async function PATCH(
         const entitlement = await tx.leaveEntitlement.findFirst({
           where: {
             employeeId: leave.employeeId,
-            eventCategoryId: leave.eventCategoryId,
+            EventCategoryId: leave.EventCategoryId,
           },
         });
 
@@ -88,20 +88,20 @@ export async function PATCH(
             approvedBy: { connect: { id: session.user.id } },
           },
           include: {
-            employee: { include: { user: true } },
-            eventCategory: true,
+            Employee: { include: { User: true } },
+            EventCategory: true,
           },
         });
       });
 
       await sendLeaveStatusUpdate({
-        to: updatedLeaveRequest.employee.user.email,
-        subject: `Your ${updatedLeaveRequest.eventCategory?.name ?? "leave"} request has been approved`,
+        to: updatedLeaveRequest.Employee.User.email,
+        subject: `Your ${updatedLeaveRequest.EventCategory?.name ?? "leave"} request has been approved`,
         employeeName:
-          updatedLeaveRequest.employee.user.name ||
-          `${updatedLeaveRequest.employee.user.firstName ?? ""} ${updatedLeaveRequest.employee.user.lastName ?? ""}`.trim(),
+          updatedLeaveRequest.Employee.User.name ||
+          `${updatedLeaveRequest.Employee.User.firstName ?? ""} ${updatedLeaveRequest.Employee.User.lastName ?? ""}`.trim(),
         status: "APPROVED",
-        type: updatedLeaveRequest.eventCategory?.name ?? "Leave",
+        type: updatedLeaveRequest.EventCategory?.name ?? "Leave",
         startDate: updatedLeaveRequest.startDate.toISOString(),
         endDate: updatedLeaveRequest.endDate.toISOString(),
       });
@@ -117,19 +117,19 @@ export async function PATCH(
           approvedBy: { connect: { id: session.user.id } },
         },
         include: {
-          employee: { include: { user: true } },
-          eventCategory: true,
+          Employee: { include: { User: true } },
+          EventCategory: true,
         },
       });
 
       await sendLeaveStatusUpdate({
-        to: updatedLeaveRequest.employee.user.email,
-        subject: `Your ${updatedLeaveRequest.eventCategory?.name ?? "leave"} request has been declined`,
+        to: updatedLeaveRequest.Employee.User.email,
+        subject: `Your ${updatedLeaveRequest.EventCategory?.name ?? "leave"} request has been declined`,
         employeeName:
-          updatedLeaveRequest.employee.user.name ||
-          `${updatedLeaveRequest.employee.user.firstName ?? ""} ${updatedLeaveRequest.employee.user.lastName ?? ""}`.trim(),
+          updatedLeaveRequest.Employee.User.name ||
+          `${updatedLeaveRequest.Employee.User.firstName ?? ""} ${updatedLeaveRequest.Employee.User.lastName ?? ""}`.trim(),
         status: "DECLINED",
-        type: updatedLeaveRequest.eventCategory?.name ?? "Leave",
+        type: updatedLeaveRequest.EventCategory?.name ?? "Leave",
         startDate: updatedLeaveRequest.startDate.toISOString(),
         endDate: updatedLeaveRequest.endDate.toISOString(),
       });

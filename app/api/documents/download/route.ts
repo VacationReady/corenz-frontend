@@ -38,8 +38,8 @@ export async function GET(req: Request) {
     const document = await prisma.document.findFirst({
       where: { path, companyId: session.user.companyId },
       include: {
-        departments: { select: { id: true } },
-        jobRoles: { select: { id: true } },
+        Department: { select: { id: true } },
+        JobRole: { select: { id: true } },
       },
     });
     if (!document) {
@@ -58,12 +58,12 @@ export async function GET(req: Request) {
 
     // Department and job role restrictions
     const unrestricted =
-      document.departments.length === 0 && document.jobRoles.length === 0;
+      document.Department.length === 0 && document.JobRole.length === 0;
     const departmentMatch = user.departmentId
-      ? document.departments.some((d) => d.id === user.departmentId)
+      ? document.Department.some((d) => d.id === user.departmentId)
       : false;
     const jobRoleMatch = user.jobRoleId
-      ? document.jobRoles.some((j) => j.id === user.jobRoleId)
+      ? document.JobRole.some((j) => j.id === user.jobRoleId)
       : false;
 
     if (!unrestricted && !departmentMatch && !jobRoleMatch) {

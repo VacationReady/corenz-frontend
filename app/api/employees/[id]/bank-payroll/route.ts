@@ -19,7 +19,7 @@ export async function PATCH(
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee || employee.companyId !== session.user.companyId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -100,7 +100,7 @@ export async function GET(
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee || employee.companyId !== session.user.companyId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

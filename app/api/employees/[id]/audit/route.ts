@@ -16,7 +16,7 @@ export async function GET(
     // Check if user can access this employee
     const employee = await prisma.employee.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
@@ -26,7 +26,7 @@ export async function GET(
     const canAccess = 
       session.user.role === "ADMIN" ||
       session.user.id === employee.userId ||
-      session.user.id === employee.user.managerId;
+      session.user.id === employee.User.managerId;
     
     if (!canAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -58,7 +58,7 @@ export async function GET(
       prisma.employeeAuditLog.findMany({
         where,
         include: {
-          changedBy: {
+          User: {
             select: {
               id: true,
               firstName: true,

@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       // Log the manual trigger in audit log
       await prisma.globalAuditLog.create({
         data: {
+          id: crypto.randomUUID(),
           companyId: session.user.companyId,
           entityType: "AUTOMATION_RULE",
           entityId: validatedData.ruleId,
@@ -134,7 +135,7 @@ export async function GET(req: Request) {
           companyId: session.user.companyId,
         },
         include: {
-          executions: {
+          AutomationExecution: {
             take: 10,
             orderBy: { triggeredAt: "desc" },
             select: {
@@ -145,7 +146,7 @@ export async function GET(req: Request) {
               errorMessage: true,
             },
           },
-          jobs: {
+          AutomationJob: {
             take: 10,
             orderBy: { createdAt: "desc" },
             select: {
@@ -172,12 +173,12 @@ export async function GET(req: Request) {
           isActive: rule.isActive,
           triggerType: rule.triggerType,
         },
-        recentExecutions: rule.executions,
-        recentJobs: rule.jobs,
+        recentExecutions: rule.AutomationExecution,
+        recentJobs: rule.AutomationJob,
         summary: {
-          totalExecutions: rule.executions.length,
-          totalJobs: rule.jobs.length,
-          lastTriggered: rule.executions[0]?.triggeredAt || null,
+          totalExecutions: rule.AutomationExecution.length,
+          totalJobs: rule.AutomationJob.length,
+          lastTriggered: rule.AutomationExecution[0]?.triggeredAt || null,
         },
       });
     } else {
@@ -189,7 +190,7 @@ export async function GET(req: Request) {
             take: 20,
             orderBy: { triggeredAt: "desc" },
             include: {
-              rule: {
+              AutomationRule: {
                 select: { id: true, name: true, triggerType: true },
               },
             },
@@ -199,7 +200,7 @@ export async function GET(req: Request) {
             take: 20,
             orderBy: { createdAt: "desc" },
             include: {
-              rule: {
+              AutomationRule: {
                 select: { id: true, name: true, triggerType: true },
               },
             },

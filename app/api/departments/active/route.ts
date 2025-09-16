@@ -22,7 +22,7 @@ export async function GET() {
         id: true,
         name: true,
         code: true, // ✅ Useful for ERP sync in dropdown metadata
-        head: {
+        User_Department_headIdToUser: {
           // ✅ Optional: show department head in UI if needed
           select: { id: true, name: true },
         },

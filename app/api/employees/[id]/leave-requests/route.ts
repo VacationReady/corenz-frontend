@@ -17,10 +17,10 @@ const optionalTrimmedString = z
   });
 
 const leaveRequestCreateSchema = z.object({
-  eventCategoryId: z
-    .string({ required_error: "eventCategoryId is required" })
+  EventCategoryId: z
+    .string({ required_error: "EventCategoryId is required" })
     .trim()
-    .min(1, "eventCategoryId is required"),
+    .min(1, "EventCategoryId is required"),
   startDate: z
     .string({ required_error: "startDate is required" })
     .trim()
@@ -88,7 +88,7 @@ export async function GET(
         startDate: true,
         endDate: true,
         dayType: true,
-        eventCategory: { select: { id: true, name: true } },
+        EventCategory: { select: { id: true, name: true } },
         approvalStatus: true,
       },
     });
@@ -120,7 +120,7 @@ export async function POST(
     const userId = session.user.id;
     const employeeId = params.id;
     const {
-      eventCategoryId,
+      EventCategoryId,
       startDate,
       endDate,
       reason,
@@ -132,7 +132,7 @@ export async function POST(
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -153,7 +153,7 @@ export async function POST(
       );
     }
 
-    if (employee.user.id !== userId && session.user.role !== "ADMIN") {
+    if (employee.User.id !== userId && session.user.role !== "ADMIN") {
       console.log("❌ Unauthorized leave request submission attempt");
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -162,7 +162,7 @@ export async function POST(
     }
 
     const eventCategory = await prisma.eventCategory.findFirst({
-      where: { id: eventCategoryId, companyId: session.user.companyId },
+      where: { id: EventCategoryId, companyId: session.user.companyId },
       select: { name: true },
     });
 
@@ -174,12 +174,12 @@ export async function POST(
       );
     }
 
-    const eventCategoryName = eventCategory.name;
+    const EventCategoryName = eventCategory.name;
 
     // Validate entitlement and overlap using the updated validateLeaveRequest
     await validateLeaveRequest({
       employeeId,
-      eventCategoryId,
+      eventCategoryId: EventCategoryId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       isAdmin: session.user.role === "ADMIN",
@@ -188,34 +188,36 @@ export async function POST(
 
     const newLeaveRequest = await prisma.leaveRequest.create({
       data: {
-        employee: { connect: { id: employeeId } },
-        requester: { connect: { id: userId } },
-        eventCategory: { connect: { id: eventCategoryId } },
-        company: { connect: { id: session.user.companyId } },
+        id: crypto.randomUUID(),
+        Employee: { connect: { id: employeeId } },
+        User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+        EventCategory: { connect: { id: EventCategoryId } },
+        Company: { connect: { id: session.user.companyId } },
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         dayType: dayType ?? "FULL_DAY",
         reason: reason ?? "",
         paidStatus:
-          eventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+          EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+        updatedAt: new Date(),
       },
     });
 
-    if (employee.user.managerId) {
+    if (employee.User.managerId) {
       const manager = await prisma.user.findFirst({
-        where: { id: employee.user.managerId, companyId: session.user.companyId },
+        where: { id: employee.User.managerId, companyId: session.user.companyId },
         select: { email: true, name: true },
       });
 
       if (manager?.email) {
         const employeeFullName =
-          `${employee.user.firstName ?? ""} ${employee.user.lastName ?? ""}`.trim() ||
+          `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
           "Employee";
         await sendLeaveNotification({
           to: manager.email,
           subject: `New Leave Request from ${employeeFullName}`,
           employeeName: employeeFullName,
-          type: eventCategoryName,
+          type: EventCategoryName,
           startDate,
           endDate,
         });

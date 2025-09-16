@@ -25,7 +25,7 @@ export async function GET(
         companyId: session.user.companyId,
       },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -33,12 +33,12 @@ export async function GET(
             email: true,
             phone: true,
             role: true,
-            department: { select: { id: true, name: true } },
-            jobRole: { select: { id: true, name: true } },
           },
         },
-        leaveEntitlements: true,
-        leaveRequests: true,
+        Department: { select: { id: true, name: true } },
+        JobRole: { select: { id: true, name: true } },
+        LeaveEntitlement: true,
+        LeaveRequest: true,
       },
     });
 
@@ -94,7 +94,7 @@ export async function DELETE(
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
 
     if (!employee) {
@@ -115,7 +115,7 @@ export async function DELETE(
     const employeeId = employee.id;
     const userId = employee.userId;
     const companyId =
-      employee.companyId ?? employee.user?.companyId ?? undefined;
+      employee.companyId ?? employee.User?.companyId ?? undefined;
 
     const transactionResult = await prisma.$transaction(async (tx) => {
       const pathsToRemove: string[] = [];
@@ -123,11 +123,11 @@ export async function DELETE(
       // Onboarding instances and nested data
       await tx.onboardingStepResponse.deleteMany({
         where: {
-          onboardingStepInstance: { onboardingInstance: { employeeId } },
+          OnboardingStepInstance: { OnboardingInstance: { employeeId } },
         },
       });
       await tx.onboardingStepInstance.deleteMany({
-        where: { onboardingInstance: { employeeId } },
+        where: { OnboardingInstance: { employeeId } },
       });
       await tx.onboardingInstance.deleteMany({ where: { employeeId } });
 

@@ -21,9 +21,9 @@ export async function PATCH(
 
     const employee = await prisma.employee.findUnique({
       where: { id: params.id },
-      include: { user: true },
+      include: { User: true },
     });
-    if (!employee || employee.user.companyId !== session.user.companyId) {
+    if (!employee || employee.User.companyId !== session.user.companyId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -59,7 +59,7 @@ export async function PATCH(
       return NextResponse.json({ ok: true });
     }
 
-    const before = employee.user;
+    const before = employee.User;
 
     // Compute diffs before update
     const diffs = computeDiffs(before, { ...before, ...updates }, allowed);

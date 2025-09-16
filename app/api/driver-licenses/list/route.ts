@@ -17,7 +17,7 @@ export async function GET(req: Request) {
         employeeId: employeeId ?? undefined,
       },
       include: {
-        document: true,
+        Document: true,
       },
       orderBy: { createdAt: "desc" },
     });

@@ -28,8 +28,8 @@ export async function GET(req: Request) {
       where: {
         companyId: session.user.companyId,
         approvalStatus: "APPROVED",
-        employee: {
-          ...(department ? { department: { is: { name: department } } } : {}),
+        Employee: {
+          ...(department ? { Department: { is: { name: department } } } : {}),
           ...(departmentId ? { departmentId } : {}),
         },
         ...(hasValidFrom || hasValidTo
@@ -43,13 +43,13 @@ export async function GET(req: Request) {
           : {}),
       },
       include: {
-        employee: {
+        Employee: {
           include: {
-            user: true,
-            department: true,
+            User: true,
+            Department: true,
           },
         },
-        eventCategory: {
+        EventCategory: {
           select: {
             name: true,
             id: true,

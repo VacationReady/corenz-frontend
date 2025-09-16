@@ -45,6 +45,7 @@ export async function POST(req: Request) {
     // ✅ Create acknowledgement entry
     await prisma.documentAcknowledgement.create({
       data: {
+        id: crypto.randomUUID(),
         documentId,
         employeeId: employee.id,
         acknowledgedAt: new Date(),

@@ -11,7 +11,7 @@ export async function GET(
 
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
     where: { employeeId: params.id },
-    include: { workingPattern: true },
+    include: { WorkingPattern: true },
     orderBy: { effectiveDate: "desc" },
   });
 
@@ -45,9 +45,11 @@ export async function POST(
 
     const assignment = await prisma.employeeWorkingPatternAssignment.create({
       data: {
+        id: crypto.randomUUID(),
         employeeId: params.id,
         workingPatternId,
         effectiveDate: new Date(effectiveDate),
+        updatedAt: new Date(),
       },
     });
 

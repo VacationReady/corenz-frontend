@@ -37,6 +37,7 @@ export async function POST(req: Request) {
 
     const doc = await prisma.document.create({
       data: {
+        id: crypto.randomUUID(),
         name: file.name,
         path: data.path,
         size: file.size,
@@ -54,12 +55,14 @@ export async function POST(req: Request) {
 
   const licence = await prisma.driverLicence.create({
     data: {
+      id: crypto.randomUUID(),
       employeeId,
       type,
       licenceNumber,
       issueDate,
       expiryDate,
       documentId,
+      updatedAt: new Date(),
     },
   });
 

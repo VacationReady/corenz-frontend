@@ -32,16 +32,16 @@ export async function PATCH(req: Request) {
         canViewManager,
         canViewEmployee,
         requiresAck: requiresAck ?? false, // ✅ NEW: Toggle for acknowledgement
-        departments: {
+        Department: {
           set: departmentIds?.map((id: string) => ({ id })) || [], // Clear if empty
         },
-        jobRoles: {
+        JobRole: {
           set: jobRoleIds?.map((id: string) => ({ id })) || [], // Clear if empty
         },
       },
       include: {
-        departments: true,
-        jobRoles: true,
+        Department: true,
+        JobRole: true,
       },
     });
 

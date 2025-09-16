@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     select: {
       userId: true,
       companyId: true,
-      user: { select: { companyId: true } },
+      User: { select: { companyId: true } },
     },
   });
   if (!employeeForContext) {
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   }
   // Ensure companyId present (session -> employee -> employee.user)
   if (!companyId) companyId = employeeForContext.companyId || undefined;
-  if (!companyId) companyId = employeeForContext.user?.companyId || undefined;
+  if (!companyId) companyId = employeeForContext.User?.companyId || undefined;
   if (!companyId)
     return NextResponse.json(
       { error: "Missing company context" },
@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
   // ✅ Create document record in Prisma with access flags
   const document = await prisma.document.create({
     data: {
+      id: crypto.randomUUID(),
       name,
       category,
       path,

@@ -16,7 +16,7 @@ export async function GET(
 
     const employee = await prisma.employee.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -51,7 +51,7 @@ export async function POST(
 
     const employee = await prisma.employee.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -75,7 +75,7 @@ export async function POST(
     }
 
     const contact = await prisma.emergencyContact.create({
-      data: { employeeId: employee.id, ...contactData },
+      data: { id: crypto.randomUUID(), employeeId: employee.id, ...contactData },
     });
 
     // Create audit log for contact creation
@@ -117,7 +117,7 @@ export async function PATCH(
 
     const employee = await prisma.employee.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -145,10 +145,10 @@ export async function PATCH(
 
     const allowed = ["name", "relationship", "phone", "email"] as const;
     const updates: Record<string, any> = {};
-    
+
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(updateFields, key)) {
-        updates[key] = updateFields[key as string];
+        updates[key] = (updateFields as any)[key];
       }
     }
 
@@ -213,7 +213,7 @@ export async function DELETE(
 
     const employee = await prisma.employee.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
     if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -230,7 +230,7 @@ export async function DELETE(
 
     // Get the contact to be deleted for audit logging
     const contactToDelete = await prisma.emergencyContact.findFirst({
-      where: { id: body.id, employee: { id: employee.id, companyId: session.user.companyId } },
+      where: { id: body.id, Employee: { id: employee.id, companyId: session.user.companyId } },
     });
     
     if (!contactToDelete) {

@@ -90,9 +90,11 @@ export async function POST(req: Request) {
     // Create the automation rule
     const rule = await prisma.automationRule.create({
       data: {
+        id: crypto.randomUUID(),
         ...validatedData,
         companyId: session.user.companyId,
         createdBy: session.user.id,
+        updatedAt: new Date(),
       },
       include: {
         User: {

@@ -19,9 +19,9 @@ export async function POST(
   try {
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
-      include: { user: true },
+      include: { User: true },
     });
-    if (!employee?.user)
+    if (!employee?.User)
       return NextResponse.json(
         { error: "Employee not found" },
         { status: 404 },
@@ -30,9 +30,9 @@ export async function POST(
     // Create or rotate activation token
     const activationToken = randomBytes(32).toString("hex");
     await prisma.activationToken.upsert({
-      where: { userId: employee.user.id },
+      where: { userId: employee.User.id },
       update: { token: activationToken },
-      create: { userId: employee.user.id, token: activationToken },
+      create: { id: crypto.randomUUID(), userId: employee.User.id, token: activationToken },
     });
 
     const redirectPath = employee.onboardingTemplateId
@@ -42,10 +42,10 @@ export async function POST(
 
     await resend.emails.send({
       from: "noreply@peoplecore.co.nz",
-      to: employee.user.email,
+      to: employee.User.email,
       subject: "Activate Your PeopleCore Account",
       html: `
-        <p>Hi ${employee.user.firstName || ""},</p>
+        <p>Hi ${employee.User.firstName || ""},</p>
         <p>Welcome to PeopleCore! Please click the link below to activate your account and get started:</p>
         <p><a href="${activationLink}">Activate Your Account</a></p>
       `,

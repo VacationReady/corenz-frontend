@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       role: true,
       departmentId: true,
       jobRoleId: true,
-      permissionProfile: true,
+      PermissionProfile: true,
     },
   });
 
@@ -45,9 +45,9 @@ export async function GET(req: Request) {
     const adminDocs = await prisma.document.findMany({
       where: baseFilter,
       include: {
-        uploader: { select: { name: true, email: true } },
-        departments: { select: { id: true, name: true } },
-        jobRoles: { select: { id: true, name: true } },
+        User: { select: { name: true, email: true } },
+        Department: { select: { id: true, name: true } },
+        JobRole: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -70,14 +70,14 @@ export async function GET(req: Request) {
 
   // ✅ Build OR conditions safely
   const orConditions: Prisma.DocumentWhereInput[] = [
-    { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // unrestricted
+    { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // unrestricted
   ];
 
   if (user?.departmentId) {
-    orConditions.push({ departments: { some: { id: user.departmentId } } });
+    orConditions.push({ Department: { some: { id: user.departmentId } } });
   }
   if (user?.jobRoleId) {
-    orConditions.push({ jobRoles: { some: { id: user.jobRoleId } } });
+    orConditions.push({ JobRole: { some: { id: user.jobRoleId } } });
   }
 
   // ✅ Final query
@@ -92,9 +92,9 @@ export async function GET(req: Request) {
       ],
     },
     include: {
-      uploader: { select: { name: true, email: true } },
-      departments: { select: { id: true, name: true } },
-      jobRoles: { select: { id: true, name: true } },
+      User: { select: { name: true, email: true } },
+      Department: { select: { id: true, name: true } },
+      JobRole: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });

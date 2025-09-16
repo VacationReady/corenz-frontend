@@ -18,9 +18,9 @@ export async function GET(
     const doc = await prisma.document.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
       include: {
-        departments: true,
-        jobRoles: true,
-        employee: { include: { user: true } }, // for employee-specific docs
+        Department: true,
+        JobRole: true,
+        Employee: { include: { User: true } }, // for employee-specific docs
       },
     });
 
@@ -32,22 +32,22 @@ export async function GET(
     }
 
     // ✅ Handle company-level documents (no employee link)
-    if (!doc.employee) {
-      const deptIds = doc.departments.map((d: any) => d.id);
-      const jobRoleIds = doc.jobRoles.map((jr: any) => jr.id);
+    if (!doc.Employee) {
+      const deptIds = doc.Department.map((d: any) => d.id);
+      const jobRoleIds = doc.JobRole.map((jr: any) => jr.id);
 
       // ✅ Fetch all employees in scope (filtered by dept/role if present)
       const employeesInScope = await prisma.employee.findMany({
         where: {
-          user: { companyId: session.user.companyId },
+          User: { companyId: session.user.companyId },
           ...(deptIds.length > 0 ? { departmentId: { in: deptIds } } : {}),
           ...(jobRoleIds.length > 0
-            ? { user: { jobRoleId: { in: jobRoleIds } } }
+            ? { User: { jobRoleId: { in: jobRoleIds } } }
             : {}),
         },
         include: {
-          user: { include: { jobRole: true } },
-          department: true,
+          User: { include: { JobRole: true } },
+          Department: true,
         },
       });
 
@@ -55,10 +55,10 @@ export async function GET(
       const acknowledgements = await prisma.documentAcknowledgement.findMany({
         where: { documentId: doc.id },
         include: {
-          employee: {
+          Employee: {
             include: {
-              user: { include: { jobRole: true } },
-              department: true,
+              User: { include: { JobRole: true } },
+              Department: true,
             },
           },
         },
@@ -78,10 +78,10 @@ export async function GET(
       const pending = employeesInScope
         .filter((emp) => !acknowledgedIds.includes(emp.id))
         .map((emp) => ({
-          name: emp.user.name,
-          email: emp.user.email,
-          department: emp.department?.name || "—",
-          jobRole: emp.user.jobRole?.name || "—",
+          name: emp.User.name,
+          email: emp.User.email,
+          department: emp.Department?.name || "—",
+          jobRole: emp.User.JobRole?.name || "—",
         }));
 
       return NextResponse.json({
@@ -92,13 +92,13 @@ export async function GET(
 
     // ✅ Handle employee-specific documents
     const ack = await prisma.documentAcknowledgement.findFirst({
-      where: { documentId: doc.id, employeeId: doc.employee.id },
+      where: { documentId: doc.id, employeeId: doc.Employee.id },
     });
 
     return NextResponse.json({
       employee: {
-        name: doc.employee.user.name,
-        email: doc.employee.user.email,
+        name: doc.Employee.User.name,
+        email: doc.Employee.User.email,
       },
       acknowledged: !!ack,
       acknowledgedAt: ack?.acknowledgedAt || null,

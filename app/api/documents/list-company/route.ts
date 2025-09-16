@@ -40,15 +40,15 @@ export async function GET(req: Request) {
       ...(employeeId ? { employeeId } : { employeeId: null }),
       ...roleFilter,
       OR: [
-        { departments: { some: { id: user.departmentId || "" } } },
-        { jobRoles: { some: { id: user.jobRoleId || "" } } },
-        { AND: [{ departments: { none: {} } }, { jobRoles: { none: {} } }] }, // ✅ Unrestricted (global) docs
+        { Department: { some: { id: user.departmentId || "" } } },
+        { JobRole: { some: { id: user.jobRoleId || "" } } },
+        { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // ✅ Unrestricted (global) docs
       ],
     },
     include: {
-      uploader: true,
-      departments: { select: { id: true, name: true } },
-      jobRoles: { select: { id: true, name: true } },
+      User: true,
+      Department: { select: { id: true, name: true } },
+      JobRole: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });

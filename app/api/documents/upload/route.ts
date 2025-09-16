@@ -155,6 +155,7 @@ export async function POST(req: Request) {
     // ✅ Save document in DB
     const document = await prisma.document.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         category: category ?? null,
         path: data.path,
@@ -171,18 +172,18 @@ export async function POST(req: Request) {
         requireAckFromNewStarters, // ✅ Persist new field!
         ...(departments.length > 0 && departments[0] !== "all"
           ? {
-              departments: {
+              Department: {
                 connect: departments.map((d) => ({ id: d })),
               },
             }
           : {}),
         ...(jobRoles.length > 0 && jobRoles[0] !== "all"
-          ? { jobRoles: { connect: jobRoles.map((j) => ({ id: j })) } }
+          ? { JobRole: { connect: jobRoles.map((j) => ({ id: j })) } }
           : {}),
       },
       include: {
-        departments: true,
-        jobRoles: true,
+        Department: true,
+        JobRole: true,
       },
     });
 
@@ -233,8 +234,8 @@ export async function POST(req: Request) {
       requiresAck &&
       !document.employeeId // Company doc (not employee-specific)
     ) {
-      const departmentIds = document.departments.map((d) => d.id);
-      const jobRoleIds = document.jobRoles.map((j) => j.id);
+      const departmentIds = document.Department.map((d) => d.id);
+      const jobRoleIds = document.JobRole.map((j) => j.id);
 
       let employees: { id: string; userId: string }[] = [];
       if (
@@ -244,7 +245,7 @@ export async function POST(req: Request) {
         employees = await prisma.employee.findMany({
           where: {
             isActive: true,
-            user: { companyId: document.companyId },
+            User: { companyId: document.companyId },
           },
           select: { id: true, userId: true },
         });
@@ -252,7 +253,7 @@ export async function POST(req: Request) {
         employees = await prisma.employee.findMany({
           where: {
             isActive: true,
-            user: { companyId: document.companyId },
+            User: { companyId: document.companyId },
             OR: [
               departmentIds && departmentIds.length > 0
                 ? { departmentId: { in: departmentIds } }

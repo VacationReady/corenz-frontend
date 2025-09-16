@@ -16,11 +16,13 @@ export async function GET(
     const employee = await prisma.employee.findFirst({
       where: { id: params.id, companyId: session.user.companyId },
       include: {
-        user: {
+        User: {
           select: {
-            manager: { select: { id: true, firstName: true, lastName: true } },
-            department: { select: { id: true, name: true } },
+            User: { select: { id: true, firstName: true, lastName: true } },
           },
+        },
+        Department: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -33,8 +35,8 @@ export async function GET(
       contractType: employee.contractType,
       siteLocation: employee.siteLocation,
       startDate: employee.startDate,
-      department: employee.user?.department,
-      manager: employee.user?.manager,
+      department: employee.Department,
+      manager: employee.User?.User,
       salaryAmount: employee.salaryAmount,
       hourlyRate: employee.hourlyRate,
       isActive: employee.isActive,
@@ -91,9 +93,9 @@ export async function PATCH(
       where: { id: employee.id },
       data: {
         ...updates,
-        ...(updates.managerId ? { user: { update: { managerId: updates.managerId } } } : {}),
+        ...(updates.managerId ? { User: { update: { managerId: updates.managerId } } } : {}),
         ...(updates.departmentId
-          ? { user: { update: { departmentId: updates.departmentId } } }
+          ? { User: { update: { departmentId: updates.departmentId } } }
           : {}),
       },
     });

@@ -17,7 +17,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     const employee = await prisma.employee.findFirst({
       where: {
         id: employeeId,
-        user: {
+        User: {
           companyId: session.user.companyId,
         },
       },
@@ -30,11 +30,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       );
     }
 
-    // Get form submissions for this employee
+    // Get Form submissions for this employee
     const submissions = await prisma.formSubmission.findMany({
       where: { employeeId },
       include: {
-        form: {
+        Form: {
           select: {
             id: true,
             name: true,
@@ -47,7 +47,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
     return NextResponse.json(submissions);
   } catch (error) {
-    console.error("Error fetching form submissions:", error);
+    console.error("Error fetching Form submissions:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

@@ -23,7 +23,7 @@ async function processCompany(companyId: string) {
       const items = await prisma.driverLicence.findMany({
         where: {
           expiryDate: { lte: targetDate, gte: today },
-          employee: { companyId },
+          Employee: { companyId },
         },
         include: { Employee: { include: { User: true } } },
       });
@@ -41,9 +41,9 @@ async function processCompany(companyId: string) {
       const items = await prisma.trainingRecord.findMany({
         where: {
           expiryDate: { lte: targetDate, gte: today },
-          employee: { companyId },
+          Employee: { companyId },
         },
-        include: { Employee: { include: { User: true } }, course: true },
+        include: { Employee: { include: { User: true } }, Course: true },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
@@ -59,7 +59,7 @@ async function processCompany(companyId: string) {
       const items = await prisma.employmentCheck.findMany({
         where: {
           expiryDate: { lte: targetDate, gte: today },
-          employee: { companyId },
+          Employee: { companyId },
         },
         include: { Employee: { include: { User: true } } },
       });
@@ -150,13 +150,13 @@ async function processCompany(companyId: string) {
           gte: new Date(new Date().setHours(0, 0, 0, 0)), // Start of today UTC
           lt: new Date(new Date().setHours(23, 59, 59, 999)), // End of today UTC
         },
-        employee: { companyId },
+        Employee: { companyId },
       },
       include: {
-        employee: {
-          include: { user: true },
+        Employee: {
+          include: { User: true },
         },
-        formTemplate: true,
+        ExitInterviewFormTemplate: true,
       },
     });
 
@@ -183,7 +183,7 @@ async function processCompany(companyId: string) {
 
         if (emailSent) {
           console.log(
-            `✅ Sent form invitation for offboarding ${offboarding.id} to ${offboarding.employee.user.email}`,
+            `✅ Sent form invitation for offboarding ${offboarding.id} to ${offboarding.Employee.User.email}`,
           );
         } else {
           console.log(

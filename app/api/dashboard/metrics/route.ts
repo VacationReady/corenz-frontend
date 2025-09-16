@@ -19,7 +19,7 @@ export async function GET(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, role: true, permissionProfile: true },
+      select: { id: true, role: true, PermissionProfile: true },
     });
 
     if (!user) {
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
         where: {
           companyId,
           createdAt: { gte: startOfMonth, lt: startOfNextMonth },
-          employee: {
+          Employee: {
             isActive: true,
             ...(departmentId ? { departmentId } : {}),
           },
@@ -67,8 +67,8 @@ export async function GET(req: Request) {
       prisma.leaveRequest.count({
         where: {
           approvalStatus: "PENDING",
-          employee: {
-            user: { managerId: session.user.id },
+          Employee: {
+            User: { managerId: session.user.id },
             companyId,
             ...(departmentId ? { departmentId } : {}),
           },
@@ -77,7 +77,7 @@ export async function GET(req: Request) {
       prisma.leaveRequest.count({
         where: {
           approvalStatus: "PENDING",
-          employee: { companyId, ...(departmentId ? { departmentId } : {}) },
+          Employee: { companyId, ...(departmentId ? { departmentId } : {}) },
         },
       }),
     ]);

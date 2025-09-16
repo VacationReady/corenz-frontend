@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       where: { completionTokenHash: token },
       include: {
         employee: {
-          include: { user: true },
+          include: { User: true },
         },
         formTemplate: true,
       },

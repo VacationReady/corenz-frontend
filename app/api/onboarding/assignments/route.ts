@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   // Ensure employee belongs to company
   const employee = await prisma.employee.findFirst({
     where: { id: employeeId, companyId: session.user.companyId },
-    include: { user: true },
+    include: { User: true },
   });
   if (!employee) {
     return NextResponse.json({ error: "Employee not found" }, { status: 404 });
@@ -126,7 +126,7 @@ export async function PATCH(req: NextRequest) {
     },
     include: {
       steps: true,
-      employee: { include: { user: true } },
+      employee: { include: { User: true } },
     },
   });
 

@@ -33,7 +33,7 @@ export async function GET() {
         companyId: session.user.companyId,
       },
       include: {
-        creator: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -42,7 +42,7 @@ export async function GET() {
         },
         _count: {
           select: {
-            executions: true,
+            AutomationExecution: true,
           },
         },
       },
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         createdBy: session.user.id,
       },
       include: {
-        creator: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -108,6 +108,7 @@ export async function POST(req: Request) {
     // Log the creation in audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "AUTOMATION_RULE",
         entityId: rule.id,

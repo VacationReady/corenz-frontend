@@ -137,6 +137,7 @@ export async function PUT(
     // Log the update in audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "AUTOMATION_RULE",
         entityId: params.id,
@@ -226,6 +227,7 @@ export async function PATCH(
     if ("isActive" in updateData) {
       await prisma.globalAuditLog.create({
         data: {
+          id: crypto.randomUUID(),
           companyId: session.user.companyId,
           entityType: "AUTOMATION_RULE",
           entityId: params.id,
@@ -282,6 +284,7 @@ export async function DELETE(
     // Log the deletion in audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "AUTOMATION_RULE",
         entityId: params.id,

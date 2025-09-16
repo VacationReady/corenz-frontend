@@ -118,7 +118,7 @@ export async function POST(req: Request) {
           where: {
             companyId: session.user.companyId,
             isActive: true,
-            user: {
+            User: {
               createdAt: {
                 gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
               },

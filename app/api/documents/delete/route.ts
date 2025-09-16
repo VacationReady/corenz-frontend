@@ -32,7 +32,16 @@ export async function DELETE(req: Request) {
       );
 
     // Delete file from Supabase using `path`
-    await supabase.storage.from("documents").remove([doc.path]);
+    const { error: storageError } = await supabase.storage
+      .from("documents")
+      .remove([doc.path]);
+    if (storageError) {
+      console.error("Supabase remove error:", storageError);
+      return NextResponse.json(
+        { error: "Failed to delete document file" },
+        { status: 500 },
+      );
+    }
 
     // Delete DB record (scoped)
     await prisma.document.delete({ where: { id: doc.id } });

@@ -25,11 +25,11 @@ async function processCompany(companyId: string) {
           expiryDate: { lte: targetDate, gte: today },
           employee: { companyId },
         },
-        include: { employee: { include: { user: true } } },
+        include: { Employee: { include: { User: true } } },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
-          employee: item.employee,
+          employee: item.Employee,
           expiryDate: item.expiryDate,
           type: "Driver Licence",
           itemName: item.type || "Driver Licence",
@@ -43,11 +43,11 @@ async function processCompany(companyId: string) {
           expiryDate: { lte: targetDate, gte: today },
           employee: { companyId },
         },
-        include: { employee: { include: { user: true } }, course: true },
+        include: { Employee: { include: { User: true } }, course: true },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
-          employee: item.employee,
+          employee: item.Employee,
           expiryDate: item.expiryDate,
           type: "Training",
           itemName: item.course?.name || "Training",
@@ -61,11 +61,11 @@ async function processCompany(companyId: string) {
           expiryDate: { lte: targetDate, gte: today },
           employee: { companyId },
         },
-        include: { employee: { include: { user: true } } },
+        include: { Employee: { include: { User: true } } },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
-          employee: item.employee,
+          employee: item.Employee,
           expiryDate: item.expiryDate,
           type: "Employment Check",
           itemName: item.typeOfCheck || "Employment Check",

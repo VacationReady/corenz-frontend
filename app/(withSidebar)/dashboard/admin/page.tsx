@@ -19,13 +19,13 @@ export default async function AdminDashboardPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      employee: {
+      Employee: {
         include: { leaveEntitlements: { include: { eventCategory: true } } },
       },
     },
   });
 
-  if (!user?.employee) redirect("/dashboard/employee");
+  if (!user?.Employee) redirect("/dashboard/employee");
 
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden">
@@ -76,25 +76,25 @@ export default async function AdminDashboardPage() {
           {/* Top Row - 4 cards with flexible height */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-[18rem]">
             {/* Holiday Balance Card - Compact */}
-            <LeaveSummaryCard employeeId={user.employee.id} />
+            <LeaveSummaryCard employeeId={user.Employee.id} />
 
             {/* Quick Actions */}
             <AdminDashboardClient
-              employeeId={user.employee.id}
+              employeeId={user.Employee.id}
               firstName={user.firstName ?? ""}
               section="quick-actions"
             />
 
             {/* Calendar */}
             <AdminDashboardClient
-              employeeId={user.employee.id}
+              employeeId={user.Employee.id}
               firstName={user.firstName ?? ""}
               section="calendar"
             />
 
             {/* People Metrics */}
             <AdminDashboardClient
-              employeeId={user.employee.id}
+              employeeId={user.Employee.id}
               firstName={user.firstName ?? ""}
               section="people-metrics"
             />
@@ -105,7 +105,7 @@ export default async function AdminDashboardPage() {
             {/* Action Items - Fixed height container */}
             <div className="flex flex-col min-h-0">
               <AdminDashboardClient
-                employeeId={user.employee.id}
+                employeeId={user.Employee.id}
                 firstName={user.firstName ?? ""}
                 section="action-items"
               />
@@ -114,7 +114,7 @@ export default async function AdminDashboardPage() {
             {/* News Widget - spans 3 columns with fixed height container */}
             <div className="lg:col-span-3 flex flex-col min-h-0">
               <AdminDashboardClient
-                employeeId={user.employee.id}
+                employeeId={user.Employee.id}
                 firstName={user.firstName ?? ""}
                 section="news"
               />

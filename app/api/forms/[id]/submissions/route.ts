@@ -15,7 +15,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       formId: params.id,
       form: { companyId: session.user.companyId },
     },
-    include: { employee: true },
+    include: { Employee: true },
     orderBy: { submittedAt: "desc" },
   });
 

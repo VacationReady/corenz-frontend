@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
 
 export async function GET(
   _req: Request,
@@ -61,10 +62,36 @@ export async function POST(
       relationship?: string;
       phone?: string;
       email?: string;
+      reason?: string;
     };
+    
+    const { reason, ...contactData } = body;
+    
+    if (!reason) {
+      return NextResponse.json(
+        { error: "Reason required for creating emergency contact" },
+        { status: 400 }
+      );
+    }
+
     const contact = await prisma.emergencyContact.create({
-      data: { employeeId: employee.id, ...body },
+      data: { employeeId: employee.id, ...contactData },
     });
+
+    // Create audit log for contact creation
+    await createAuditLogs({
+      companyId: session.user.companyId!,
+      employeeId: employee.id,
+      section: "emergency-contacts",
+      diffs: [{
+        field: "__create__",
+        oldValue: null,
+        newValue: JSON.stringify(contactData),
+      }],
+      reasons: { "__create__": reason },
+      changedById: session.user.id,
+    });
+
     return NextResponse.json(contact, { status: 201 });
   } catch (e: any) {
     console.error("[emergency-contacts-post]", e);
@@ -102,18 +129,65 @@ export async function PATCH(
       relationship?: string;
       phone?: string;
       email?: string;
+      reasons?: Record<string, string>;
     };
+
+    const { reasons, ...updateFields } = body;
+
+    // Get the existing contact
+    const existingContact = await prisma.emergencyContact.findFirst({
+      where: { id: body.id, employeeId: employee.id },
+    });
+    
+    if (!existingContact) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+
+    const allowed = ["name", "relationship", "phone", "email"] as const;
+    const updates: Record<string, any> = {};
+    
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(updateFields, key)) {
+        updates[key] = updateFields[key as string];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Compute diffs
+    const diffs = computeDiffs(existingContact, { ...existingContact, ...updates }, allowed);
+    
+    // Check if reasons are required and provided
+    if (diffs.some(diff => diff.newValue)) {
+      if (!reasons) {
+        return NextResponse.json(
+          { error: "Reasons required for changes" },
+          { status: 400 }
+        );
+      }
+      
+      // Validate reasons
+      try {
+        await createAuditLogs({
+          companyId: session.user.companyId!,
+          employeeId: employee.id,
+          section: "emergency-contacts",
+          diffs,
+          reasons,
+          changedById: session.user.id,
+        });
+      } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+
     const updated = await prisma.emergencyContact.update({
       where: { id: body.id },
-      data: {
-        ...(body.name !== undefined ? { name: body.name } : {}),
-        ...(body.relationship !== undefined
-          ? { relationship: body.relationship }
-          : {}),
-        ...(body.phone !== undefined ? { phone: body.phone } : {}),
-        ...(body.email !== undefined ? { email: body.email } : {}),
-      },
+      data: updates,
     });
+    
     return NextResponse.json(updated);
   } catch (e: any) {
     console.error("[emergency-contacts-patch]", e);
@@ -145,15 +219,43 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const body = (await req.json()) as { id: string };
-    // Ensure the contact belongs to the employee in the same company
-    const belongs = await prisma.emergencyContact.findFirst({
-      where: { id: body.id, employee: { id: employee.id, companyId: session.user.companyId } },
-      select: { id: true },
-    });
-    if (!belongs) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const body = (await req.json()) as { id: string; reason?: string };
+    
+    if (!body.reason) {
+      return NextResponse.json(
+        { error: "Reason required for deleting emergency contact" },
+        { status: 400 }
+      );
     }
+
+    // Get the contact to be deleted for audit logging
+    const contactToDelete = await prisma.emergencyContact.findFirst({
+      where: { id: body.id, employee: { id: employee.id, companyId: session.user.companyId } },
+    });
+    
+    if (!contactToDelete) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+
+    // Create audit log before deletion
+    await createAuditLogs({
+      companyId: session.user.companyId!,
+      employeeId: employee.id,
+      section: "emergency-contacts",
+      diffs: [{
+        field: "__delete__",
+        oldValue: JSON.stringify({
+          name: contactToDelete.name,
+          relationship: contactToDelete.relationship,
+          phone: contactToDelete.phone,
+          email: contactToDelete.email,
+        }),
+        newValue: null,
+      }],
+      reasons: { "__delete__": body.reason },
+      changedById: session.user.id,
+    });
+
     await prisma.emergencyContact.delete({ where: { id: body.id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {

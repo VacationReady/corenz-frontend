@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
 import Link from "next/link";
-import { toast } from "sonner";
+import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
+import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
 
 export default function BankPayrollPage({ params }: { params: { id: string } }) {
   const [form, setForm] = useState({
@@ -14,7 +14,12 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
     kiwiSaverEnrolled: "",
     kiwiSaverContribution: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [initialValues, setInitialValues] = useState({
+    bankAccountNumber: null,
+    taxCode: null,
+    kiwiSaverEnrolled: null,
+    kiwiSaverContribution: null,
+  });
 
   useEffect(() => {
     (async () => {
@@ -22,6 +27,15 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
         const res = await fetch(`/api/employees/${params.id}/bank-payroll`);
         if (!res.ok) return;
         const data = await res.json();
+        
+        // Store initial values for audit comparison
+        setInitialValues({
+          bankAccountNumber: data.bankAccountNumber,
+          taxCode: data.taxCode,
+          kiwiSaverEnrolled: data.kiwiSaverEnrolled,
+          kiwiSaverContribution: data.kiwiSaverContribution,
+        });
+        
         setForm({
           bankAccountNumber: data.bankAccountNumber ?? "",
           taxCode: data.taxCode ?? "",
@@ -32,42 +46,34 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
     })();
   }, [params.id]);
 
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      const payload: any = {
-        bankAccountNumber: form.bankAccountNumber || null,
-        taxCode: form.taxCode || null,
-        kiwiSaverEnrolled:
-          form.kiwiSaverEnrolled === "yes"
-            ? true
-            : form.kiwiSaverEnrolled === "no"
-            ? false
-            : null,
-        kiwiSaverContribution: form.kiwiSaverContribution
-          ? Number(form.kiwiSaverContribution)
-          : null,
-      };
-      const res = await fetch(`/api/employees/${params.id}/bank-payroll`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to save");
-      }
-      toast.success("Saved");
-    } catch (e: any) {
-      toast.error(e?.message || "Save failed");
-    } finally {
-      setLoading(false);
-    }
+  // Convert form values to API format
+  const getCurrentValues = () => ({
+    bankAccountNumber: form.bankAccountNumber || null,
+    taxCode: form.taxCode || null,
+    kiwiSaverEnrolled:
+      form.kiwiSaverEnrolled === "yes"
+        ? true
+        : form.kiwiSaverEnrolled === "no"
+        ? false
+        : null,
+    kiwiSaverContribution: form.kiwiSaverContribution
+      ? Number(form.kiwiSaverContribution)
+      : null,
+  });
+
+  const handleSaveSuccess = () => {
+    // Update initial values to current values after successful save
+    const currentValues = getCurrentValues();
+    setInitialValues(currentValues);
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-semibold">Bank & Payroll</h1>
+      <HeaderWithHistory 
+        title="Bank & Payroll" 
+        employeeId={params.id} 
+        section="bank-payroll" 
+      />
 
       <Card>
         <div className="border-b p-4">
@@ -127,9 +133,13 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
         >
           View payslip history
         </Link>
-        <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? "Saving..." : "Save changes"}
-        </Button>
+        <EmployeeSaveButton
+          employeeId={params.id}
+          endpoint="bank-payroll"
+          initialValues={initialValues}
+          currentValues={getCurrentValues()}
+          onSaveSuccess={handleSaveSuccess}
+        />
       </div>
     </div>
   );

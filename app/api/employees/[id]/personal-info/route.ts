@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { computeDiffs, createAuditLogs, serialize } from "@/lib/audit-helpers";
 
 export async function PATCH(
   req: Request,
@@ -27,6 +28,7 @@ export async function PATCH(
     }
 
     const body = (await req.json()) as Record<string, any>;
+    const { reasons, ...updateFields } = body;
     const allowed = [
       "firstName",
       "lastName",
@@ -48,8 +50,8 @@ export async function PATCH(
 
     const updates: Record<string, any> = {};
     for (const key of allowed) {
-      if (Object.prototype.hasOwnProperty.call(body, key)) {
-        updates[key] = body[key as string];
+      if (Object.prototype.hasOwnProperty.call(updateFields, key)) {
+        updates[key] = updateFields[key as string];
       }
     }
 
@@ -59,25 +61,37 @@ export async function PATCH(
 
     const before = employee.user;
 
+    // Compute diffs before update
+    const diffs = computeDiffs(before, { ...before, ...updates }, allowed);
+    
+    // Check if reasons are required and provided
+    if (diffs.some(diff => diff.newValue)) {
+      if (!reasons) {
+        return NextResponse.json(
+          { error: "Reasons required for changes" },
+          { status: 400 }
+        );
+      }
+      
+      // Validate reasons (will throw if missing)
+      try {
+        await createAuditLogs({
+          companyId: session.user.companyId!,
+          employeeId: employee.id,
+          section: "personal-info",
+          diffs,
+          reasons: reasons as Record<string, string>,
+          changedById: session.user.id,
+        });
+      } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { id: before.id },
       data: updates,
     });
-
-    // Audit per field
-    const changedFields = Object.keys(updates) as Array<keyof typeof updates>;
-    if (changedFields.length > 0) {
-      await prisma.personalInfoAudit.createMany({
-        data: changedFields.map((field) => ({
-          companyId: session.user.companyId!,
-          subjectUserId: before.id,
-          changedById: session.user.id,
-          field,
-          oldValue: serialize(before as any, field as string),
-          newValue: serialize(updated as any, field as string),
-        })),
-      });
-    }
 
     return NextResponse.json({ ok: true, user: updated });
   } catch (e: any) {
@@ -87,12 +101,4 @@ export async function PATCH(
       { status: 500 },
     );
   }
-}
-
-function serialize(obj: any, key: string): string | null {
-  const val = obj?.[key];
-  if (val === null || val === undefined) return null;
-  if (val instanceof Date) return val.toISOString();
-  if (typeof val === "object") return JSON.stringify(val);
-  return String(val);
 }

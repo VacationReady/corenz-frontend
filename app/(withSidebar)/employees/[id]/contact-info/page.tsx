@@ -14,7 +14,7 @@ export default async function ContactInfoPage({ params }: PageProps) {
   const employee = await prisma.employee.findUnique({
     where: { id: params.id },
     include: {
-      user: {
+      User: {
         select: {
           id: true,
           email: true,
@@ -29,15 +29,15 @@ export default async function ContactInfoPage({ params }: PageProps) {
     },
   });
 
-  if (!employee?.user) {
+  if (!employee?.User) {
     return <div className="p-6">Employee not found.</div>;
   }
 
-  const user = employee.user;
+  const user = employee.User;
   const canEdit = Boolean(
     session?.user &&
       session.user.role === "ADMIN" &&
-      session.user.companyId === employee.user.companyId,
+      session.user.companyId === employee.User.companyId,
   );
 
   return (

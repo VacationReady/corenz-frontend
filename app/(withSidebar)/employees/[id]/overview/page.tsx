@@ -152,10 +152,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           <div className="p-4 space-y-4">
             {(() => {
               const leaveEntitlementsForPanel = employee.LeaveEntitlement.map((e: any) => ({
-                id: e.id,
-                totalDays: e.totalDays,
-                usedDays: e.usedDays,
-                carryoverDays: e.carryoverDays ?? 0,
+                ...e,
                 eventCategory: {
                   id: e.EventCategory.id,
                   name: e.EventCategory.name,

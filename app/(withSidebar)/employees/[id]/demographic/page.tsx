@@ -79,7 +79,6 @@ export default async function DemographicPage({ params }: PageProps) {
                 <GenderSelectWithManage
                   value={user.genderOptionId ?? undefined}
                   options={genderOptions}
-                  onChange={() => {}}
                 />
               ) : (
                 <Input

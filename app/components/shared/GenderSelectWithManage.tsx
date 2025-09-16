@@ -17,19 +17,26 @@ export default function GenderSelectWithManage({
   value,
   options,
   onChange,
+  name = "genderOptionId",
   placeholder = "Select gender",
 }: {
   value?: string;
   options: GenderOption[];
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
+  name?: string;
   placeholder?: string;
 }) {
   const [openManage, setOpenManage] = useState(false);
   const [items, setItems] = useState<GenderOption[]>(options);
+  const [selected, setSelected] = useState<string | undefined>(value);
 
   useEffect(() => {
     setItems(options);
   }, [options]);
+
+  useEffect(() => {
+    setSelected(value);
+  }, [value]);
 
   const refresh = async () => {
     try {
@@ -42,7 +49,16 @@ export default function GenderSelectWithManage({
 
   return (
     <>
-      <Select value={value} onValueChange={onChange}>
+      {/* Hidden input to integrate with surrounding HTML form submissions */}
+      <input type="hidden" name={name} value={selected ?? ""} />
+
+      <Select
+        value={selected}
+        onValueChange={(val) => {
+          setSelected(val);
+          onChange?.(val);
+        }}
+      >
         <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

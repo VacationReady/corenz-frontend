@@ -38,7 +38,7 @@ export async function GET(
         companyId: session.user.companyId,
       },
       include: {
-        creator: {
+        User: {
           select: {
             id: true,
             name: true,
@@ -124,7 +124,7 @@ export async function PUT(
       where: { id: params.id },
       data: validatedData,
       include: {
-        creator: {
+        User: {
           select: {
             id: true,
             name: true,

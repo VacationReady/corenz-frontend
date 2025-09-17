@@ -21,7 +21,7 @@
       "@/components/*": ["app/components/*"],
       "@/lib/*": ["app/lib/*"],
       "@/types/*": ["app/types/*"],
-      "@/hooks/*": ["hooks/*"]
+      "@/hooks/*": ["app/hooks/*"]
     },
     "types": ["next-auth"],
     "plugins": [

@@ -7,8 +7,10 @@ import ChangeReasonModal, { ChangeInfo } from "../audit/ChangeReasonModal";
 
 export default function PersonalInfoSaveButton({
   employeeId,
+  section,
 }: {
   employeeId: string;
+  section?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [initialValues, setInitialValues] = useState<Record<string, any>>({});
@@ -92,7 +94,7 @@ export default function PersonalInfoSaveButton({
       const res = await fetch(`/api/employees/${employeeId}/personal-info`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, reasons }),
+        body: JSON.stringify({ ...payload, reasons, section }),
       });
       
       if (!res.ok) {

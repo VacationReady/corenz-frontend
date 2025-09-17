@@ -196,7 +196,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
         </div>
       </Card>
 
-      {canEdit && <PersonalInfoSaveButton employeeId={params.id} />}
+      {canEdit && <PersonalInfoSaveButton employeeId={params.id} section="personal-info" />}
       {/* Portal handled in client-only ManageGenderInline */}
     </div>
   );

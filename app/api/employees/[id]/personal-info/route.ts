@@ -28,7 +28,7 @@ export async function PATCH(
     }
 
     const body = (await req.json()) as Record<string, any>;
-    const { reasons, ...updateFields } = body;
+    const { reasons, section: _section, ...updateFields } = body;
     const allowed = [
       "firstName",
       "lastName",

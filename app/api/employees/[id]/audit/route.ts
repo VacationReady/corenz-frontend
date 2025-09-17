@@ -74,8 +74,19 @@ export async function GET(
       prisma.employeeAuditLog.count({ where }),
     ]);
 
+    const serialized = auditLogs.map((log: any) => ({
+      id: log.id,
+      section: log.section,
+      field: log.field,
+      oldValue: log.oldValue,
+      newValue: log.newValue,
+      reason: log.reason,
+      changedAt: log.changedAt,
+      changedBy: log.User,
+    }));
+
     return NextResponse.json({
-      auditLogs,
+      auditLogs: serialized,
       pagination: {
         page,
         limit,

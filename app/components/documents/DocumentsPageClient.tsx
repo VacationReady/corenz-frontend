@@ -88,11 +88,22 @@ function DocumentsContent() {
   const [ackDate, setAckDate] = useState<Date | null>(null);
 
   const fetchDocuments = async () => {
-    setLoading(true);
-    const res = await fetch(`/api/documents/list`);
-    const data = await res.json();
-    setDocuments(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/documents/list`);
+      if (!res.ok) {
+        setDocuments([]);
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setDocuments(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Failed to load documents", e);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchDropdownData = async () => {

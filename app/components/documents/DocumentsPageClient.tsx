@@ -101,8 +101,10 @@ function DocumentsContent() {
         fetch("/api/departments/active"),
         fetch("/api/job-roles/active"),
       ]);
-      const deptData = await deptRes.json();
-      const roleData = await roleRes.json();
+      const deptDataRaw = await deptRes.json();
+      const roleDataRaw = await roleRes.json();
+      const deptData = Array.isArray(deptDataRaw) ? deptDataRaw : [];
+      const roleData = Array.isArray(roleDataRaw) ? roleDataRaw : [];
       setDepartmentsList([
         { label: "All Departments", value: "all" },
         ...deptData.map((d: any) => ({ label: d.name, value: d.id })),
@@ -251,8 +253,8 @@ function DocumentsContent() {
         doc.type,
         `${(doc.size / 1024).toFixed(2)} KB`,
         new Date(doc.createdAt).toLocaleDateString(),
-        doc.departments.map((d) => d.name).join("; "),
-        doc.jobRoles.map((jr) => jr.name).join("; "),
+        (doc.departments ?? []).map((d) => d.name).join("; "),
+        (doc.jobRoles ?? []).map((jr) => jr.name).join("; "),
       ]),
     ]
       .map((row) => row.map((field) => `"${field}"`).join(","))
@@ -416,12 +418,14 @@ function DocumentsContent() {
             </TableHeader>
             <TableBody>
               {filteredDocuments.map((doc) => {
+                const docDepartments = Array.isArray(doc.departments) ? doc.departments : [];
+                const docJobRoles = Array.isArray(doc.jobRoles) ? doc.jobRoles : [];
                 const accessList = [
                   doc.canViewAdmin ? "Admin" : null,
                   doc.canViewManager ? "Manager" : null,
                   doc.canViewEmployee ? "Employee" : null,
-                  ...doc.departments.map((d) => d.name),
-                  ...doc.jobRoles.map((jr) => jr.name),
+                  ...docDepartments.map((d) => d.name),
+                  ...docJobRoles.map((jr) => jr.name),
                 ].filter(Boolean);
                 return (
                   <TableRow
@@ -434,28 +438,28 @@ function DocumentsContent() {
                     </TableCell>
                     <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
                     <TableCell>
-                      {doc.departments.length > 0
-                        ? doc.departments.map((d) => d.name).join(", ")
+                      {docDepartments.length > 0
+                        ? docDepartments.map((d) => d.name).join(", ")
                         : "All Departments"}
                     </TableCell>
                     <TableCell>
-                      {doc.jobRoles.length > 0
-                        ? doc.jobRoles.map((jr) => jr.name).join(", ")
+                      {docJobRoles.length > 0
+                        ? docJobRoles.map((jr) => jr.name).join(", ")
                         : "All Job Roles"}
                     </TableCell>
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="underline cursor-pointer">
-                            {doc.departments.length === 0 &&
-                            doc.jobRoles.length === 0
+                            {docDepartments.length === 0 &&
+                            docJobRoles.length === 0
                               ? "All"
                               : accessList.join(", ")}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="text-xs max-w-xs">
-                          {doc.departments.length === 0 &&
-                          doc.jobRoles.length === 0
+                          {docDepartments.length === 0 &&
+                          docJobRoles.length === 0
                             ? "All (Unrestricted)"
                             : accessList.map((item, idx) => (
                                 <div key={idx}>{item}</div>

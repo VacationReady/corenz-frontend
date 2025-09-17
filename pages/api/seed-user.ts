@@ -22,7 +22,9 @@ export default async function handler(
         password: hashedPassword,
         name: "Test User",
         role: "ADMIN",
-        company: { connect: { id: company.id } },
+        companyId: company.id,
+        id: crypto.randomUUID(),
+        updatedAt: new Date(),
       },
     });
 

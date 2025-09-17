@@ -39,10 +39,10 @@ export async function sendExitInterviewConfirmation(
       where: { id: offboardingId },
       include: {
         Employee: {
-          include: { user: true },
+          include: { User: true },
         },
-        interviewerUser: true,
-        formTemplate: true,
+        User_EmployeeOffboarding_interviewerUserIdToUser: true,
+        ExitInterviewFormTemplate: true,
       },
     });
 
@@ -57,11 +57,11 @@ export async function sendExitInterviewConfirmation(
     console.log("Offboarding found:", {
       id: offboarding.id,
       exitInterviewDate: offboarding.exitInterviewDate,
-      employeeEmail: offboarding.employee.user.email,
+      employeeEmail: offboarding.Employee.User.email,
     });
 
-    const employee = offboarding.employee;
-    const interviewer = offboarding.interviewerUser || {
+    const employee = offboarding.Employee;
+    const interviewer = offboarding.User_EmployeeOffboarding_interviewerUserIdToUser || {
       name: offboarding.interviewerName,
       email: offboarding.interviewerEmail,
       firstName: offboarding.interviewerName?.split(" ")[0] || "",
@@ -70,7 +70,7 @@ export async function sendExitInterviewConfirmation(
     };
 
     console.log("Interviewer data:", {
-      hasInterviewerUser: !!offboarding.interviewerUser,
+      hasInterviewerUser: !!offboarding.User_EmployeeOffboarding_interviewerUserIdToUser,
       interviewerName: interviewer.name,
       interviewerEmail: interviewer.email,
     });
@@ -94,7 +94,7 @@ export async function sendExitInterviewConfirmation(
     const interviewTime = formatLondon(offboarding.exitInterviewDate, "HH:mm");
     const location = offboarding.location || "Online/Office";
 
-    const subject = `Exit Interview — ${employee.user.firstName} ${employee.user.lastName} on ${interviewDate} at ${interviewTime}`;
+    const subject = `Exit Interview — ${employee.User.firstName} ${employee.User.lastName} on ${interviewDate} at ${interviewTime}`;
 
     let formLink = "";
     if (
@@ -108,9 +108,9 @@ export async function sendExitInterviewConfirmation(
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Exit Interview Confirmation</h2>
-        
-        <p>Dear ${employee.user.firstName} ${employee.user.lastName},</p>
-        
+
+        <p>Dear ${employee.User.firstName} ${employee.User.lastName},</p>
+
         <p>Your exit interview has been scheduled with the following details:</p>
         
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -143,7 +143,7 @@ export async function sendExitInterviewConfirmation(
 
     console.log("Sending email to employee:", {
       from: FROM_EMAIL,
-      to: employee.user.email,
+      to: employee.User.email,
       subject: subject.substring(0, 50) + "...",
       hasAttachments: true,
     });
@@ -151,7 +151,7 @@ export async function sendExitInterviewConfirmation(
     // Send email to employee
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: employee.user.email,
+      to: employee.User.email,
       subject,
       html: htmlContent,
       attachments: [
@@ -218,9 +218,9 @@ export async function sendExitInterviewFormInvite(
       where: { id: offboardingId },
       include: {
         Employee: {
-          include: { user: true },
+          include: { User: true },
         },
-        formTemplate: true,
+        ExitInterviewFormTemplate: true,
       },
     });
 
@@ -239,12 +239,12 @@ export async function sendExitInterviewFormInvite(
     }
 
     console.log("Form invitation setup:", {
-      employeeEmail: offboarding.employee.user.email,
+      employeeEmail: offboarding.Employee.User.email,
       hasToken: !!offboarding.completionTokenHash,
       formTiming: offboarding.formTiming,
     });
 
-    const employee = offboarding.employee;
+    const employee = offboarding.Employee;
     const formLink = `${process.env.NEXT_PUBLIC_APP_URL}/exit-interview/${offboarding.completionTokenHash}`;
     const today = formatLondon(new Date(), "dd MMMM yyyy");
 
@@ -253,9 +253,9 @@ export async function sendExitInterviewFormInvite(
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Exit Interview Form</h2>
-        
-        <p>Dear ${employee.user.firstName} ${employee.user.lastName},</p>
-        
+
+        <p>Dear ${employee.User.firstName} ${employee.User.lastName},</p>
+
         <p>As part of your exit process, please complete your exit interview form today.</p>
         
         <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
@@ -273,7 +273,7 @@ export async function sendExitInterviewFormInvite(
 
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: employee.user.email,
+      to: employee.User.email,
       subject,
       html: htmlContent,
     });
@@ -304,9 +304,9 @@ export async function sendExitInterviewCancellation(
       where: { id: offboardingId },
       include: {
         Employee: {
-          include: { user: true },
+          include: { User: true },
         },
-        interviewerUser: true,
+        User_EmployeeOffboarding_interviewerUserIdToUser: true,
       },
     });
 
@@ -314,8 +314,8 @@ export async function sendExitInterviewCancellation(
       throw new Error("Offboarding record not found or no ICS UID");
     }
 
-    const employee = offboarding.employee;
-    const interviewer = offboarding.interviewerUser || {
+    const employee = offboarding.Employee;
+    const interviewer = offboarding.User_EmployeeOffboarding_interviewerUserIdToUser || {
       name: offboarding.interviewerName,
       email: offboarding.interviewerEmail,
       firstName: offboarding.interviewerName?.split(" ")[0] || "",
@@ -330,13 +330,13 @@ export async function sendExitInterviewCancellation(
       interviewer,
     );
 
-    const subject = `Exit Interview Cancelled — ${employee.user.firstName} ${employee.user.lastName}`;
+    const subject = `Exit Interview Cancelled — ${employee.User.firstName} ${employee.User.lastName}`;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #d32f2f;">Exit Interview Cancelled</h2>
         
-        <p>Dear ${employee.user.firstName} ${employee.user.lastName},</p>
+        <p>Dear ${employee.User.firstName} ${employee.User.lastName},</p>
         
         <p>Your scheduled exit interview has been cancelled.</p>
         
@@ -351,7 +351,7 @@ export async function sendExitInterviewCancellation(
     // Send cancellation to employee
     await resend.emails.send({
       from: FROM_EMAIL,
-      to: employee.user.email,
+      to: employee.User.email,
       subject,
       html: htmlContent,
       attachments: [

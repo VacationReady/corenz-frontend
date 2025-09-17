@@ -39,7 +39,7 @@ export class AutomationJobQueue {
           maxAttempts: options.maxAttempts || 3,
           scheduledAt: options.scheduledAt || new Date(),
           status: AutomationJobStatus.PENDING,
-        },
+        } as any,
       });
 
       this.logger.info(`Job enqueued: ${job.id}`, {
@@ -245,8 +245,8 @@ export class AutomationJobQueue {
     try {
       const job = await prisma.automationJob.findUnique({
         where: { id: jobId },
-        include: {
-          rule: {
+          include: {
+            AutomationRule: {
             select: {
               id: true,
               name: true,

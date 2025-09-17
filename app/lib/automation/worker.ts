@@ -325,9 +325,9 @@ export class AutomationWorker {
         employee = await prisma.employee.findUnique({
           where: { id: employeeId },
           include: {
-            user: true,
-            department: true,
-            jobRole: true,
+            User: true,
+            Department: true,
+            JobRole: true,
           },
         });
       }
@@ -389,7 +389,7 @@ export class AutomationWorker {
             })),
             executedAt: new Date().toISOString(),
           },
-        },
+        } as any,
       });
 
       const allSucceeded = actionResults.every((result) => result.success);

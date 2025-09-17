@@ -257,6 +257,6 @@ export async function canAccessEmployee(
   if (target.userId === requestor.id) return true;
 
   // Manager access (only if they directly manage the target)
-  return target.user?.managerId === requestor.id;
+  return target.User?.managerId === requestor.id;
 }
 

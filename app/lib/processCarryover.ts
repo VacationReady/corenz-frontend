@@ -16,7 +16,7 @@ export async function processCarryover() {
   const entitlements = await prisma.leaveEntitlement.findMany({
     where: {
       EventCategory: {
-        eventRules: {
+        EventRule: {
           some: {
             maxCarryoverDays: { gt: 0 },
           },
@@ -31,7 +31,7 @@ export async function processCarryover() {
           },
         },
       },
-      eventCategory: true,
+      EventCategory: true,
     },
   });
 
@@ -39,7 +39,7 @@ export async function processCarryover() {
 
   for (const entitlement of entitlements) {
     try {
-      const companyId = entitlement.employee.department?.companyId;
+      const companyId = entitlement.Employee.Department?.companyId;
       if (!companyId) {
         console.log(`⚠️ Skipping ${entitlement.id} - No companyId found.`);
         continue;

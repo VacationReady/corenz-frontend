@@ -2,9 +2,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function getNewsPostBySlug(slug: string, companyId?: string) {
   return prisma.newsPost.findFirst({
-    where: { slug, ...(companyId ? { author: { companyId } } : {}) },
+    where: { slug, ...(companyId ? { authorId: companyId } : {}) },
     include: {
-      author: { select: { name: true, email: true, companyId: true } },
+      User: { select: { name: true, email: true, companyId: true } },
     },
   });
 }

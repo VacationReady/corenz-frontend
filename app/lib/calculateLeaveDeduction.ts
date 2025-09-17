@@ -32,14 +32,14 @@ export async function calculateLeaveDeduction(
     },
   });
 
-  if (!assignment || !assignment.workingPattern) {
+  if (!assignment || !assignment.WorkingPattern) {
     console.log(
       `[Deduction] No pattern assigned for ${leaveDate.toISOString()}. Returning 1.`,
     );
     return 1;
   }
 
-  const workingPattern = assignment.workingPattern;
+  const workingPattern = assignment.WorkingPattern;
   const firstEffectiveDate = assignment.effectiveDate;
   const diffInDays = Math.floor(
     (leaveDate.getTime() - firstEffectiveDate.getTime()) /

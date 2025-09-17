@@ -284,15 +284,15 @@ export class AutomationRuleEvaluator {
         const completedSteps = await prisma.onboardingStepInstance.findMany({
           where: whereClause,
           include: {
-            step: true,
-            onboardingInstance: {
+            OnboardingStep: true,
+            OnboardingInstance: {
               include: {
                 Employee: {
                   include: {
-                    user: true,
+                    User: true,
                   },
                 },
-                template: true,
+                OnboardingTemplate: true,
               },
             },
           },
@@ -305,9 +305,9 @@ export class AutomationRuleEvaluator {
             data: {
               stepInstanceId: stepInstance.id,
               stepId: stepInstance.stepId,
-              employeeId: stepInstance.onboardingInstance.employeeId,
-              templateId: stepInstance.onboardingInstance.templateId,
-              stepType: stepInstance.step.type,
+              employeeId: stepInstance.OnboardingInstance.employeeId,
+              templateId: stepInstance.OnboardingInstance.templateId,
+              stepType: stepInstance.OnboardingStep.type,
               completedAt: stepInstance.completedAt!,
             } as OnboardingStepCompletedTriggerData,
           })),

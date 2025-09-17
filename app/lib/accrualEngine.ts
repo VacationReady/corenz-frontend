@@ -191,7 +191,7 @@ async function findApplicableLeavePolicies({
           ],
         },
         {
-          leavePolicy: {
+          LeavePolicy: {
             is: {
               eventCategoryId,
               isActive: true,
@@ -205,7 +205,7 @@ async function findApplicableLeavePolicies({
         },
       ],
     },
-    include: { leavePolicy: true },
+    include: { LeavePolicy: true },
     orderBy: [
       { priority: "desc" }, // Higher priority first
       { effectiveFrom: "desc" },
@@ -214,8 +214,8 @@ async function findApplicableLeavePolicies({
 
   // Filter out assignments where the leave policy doesn't match or is inactive
   return assignments
-    .filter((assignment) => assignment.leavePolicy)
-    .map((assignment) => assignment.leavePolicy!);
+    .filter((assignment) => assignment.LeavePolicy)
+    .map((assignment) => assignment.LeavePolicy!);
 }
 
 /**

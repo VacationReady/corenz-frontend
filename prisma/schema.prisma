@@ -146,6 +146,13 @@ model Company {
   TransactionalNotificationPreference TransactionalNotificationPreference[]
   User                                User[]
   WorkingPattern                      WorkingPattern[]
+  // Added back-relations for tenant scoping added to models
+  NewsPost                            NewsPost[]
+  Location                            Location[]
+  TrainingProvider                    TrainingProvider[]
+  Course                              Course[]
+  ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
+  ExpiryRule                          ExpiryRule[]
 }
 
 model ContractTypeOption {

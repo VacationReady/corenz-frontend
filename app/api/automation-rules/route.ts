@@ -69,6 +69,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Restrict creation to ADMIN users for now (can be relaxed to permission profile later)
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const validatedData = AutomationRuleSchema.parse(body);
 

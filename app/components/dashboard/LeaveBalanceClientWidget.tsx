@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
+import { useSession } from "next-auth/react";
 
 interface LeaveBalanceClientWidgetProps {
   employeeId: string;
@@ -13,6 +14,9 @@ export default function LeaveBalanceClientWidget({
   employeeId,
   leaveEntitlements,
 }: LeaveBalanceClientWidgetProps) {
+  const { data: session } = useSession();
+  const isAdminOrManager =
+    session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
   return (
     <Card>
       <div className="border-b p-4">
@@ -25,7 +29,7 @@ export default function LeaveBalanceClientWidget({
         />
         <AddLeaveRequestDialog
           employeeId={employeeId}
-          isAdminOrManager={true}
+          isAdminOrManager={Boolean(isAdminOrManager)}
         />
       </div>
     </Card>

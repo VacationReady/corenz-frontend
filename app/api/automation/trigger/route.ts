@@ -24,6 +24,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Restrict manual triggering to ADMIN users (prevents non-admins from enqueuing jobs across tenants)
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const validatedData = TriggerSchema.parse(body);
     const scheduler = getAutomationScheduler();

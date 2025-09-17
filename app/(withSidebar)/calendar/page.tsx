@@ -281,7 +281,9 @@ export default function CalendarPage() {
         if (!res.ok) throw new Error("Failed to load bank holidays");
         bankHolidayCacheRef.current = await res.json();
       }
-      const region = bankHolidayCacheRef.current["england-and-wales"]; // TODO: make configurable
+      const defaultRegion = "england-and-wales";
+      const configuredRegion = process.env.NEXT_PUBLIC_BANK_HOLIDAY_REGION || defaultRegion;
+      const region = bankHolidayCacheRef.current[configuredRegion];
       const events: EventInput[] = (region?.events || [])
         .map((e: any) => ({
           id: `bank-${e.date}`,

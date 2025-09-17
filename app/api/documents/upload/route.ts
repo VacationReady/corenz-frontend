@@ -203,7 +203,8 @@ export async function POST(req: Request) {
         console.log("User found for notification:", user);
 
         if (user?.email) {
-          const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${document.employeeId}/documents`;
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+          const docLink = `${baseUrl}/employees/${document.employeeId}/documents`;
           const resendRes = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -285,7 +286,8 @@ export async function POST(req: Request) {
         const chunk = users.slice(i, i + chunkSize);
         await Promise.all(
           chunk.map(async (user) => {
-            const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/documents`;
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+            const docLink = `${baseUrl}/documents`;
             const resendRes = await fetch("https://api.resend.com/emails", {
               method: "POST",
               headers: {

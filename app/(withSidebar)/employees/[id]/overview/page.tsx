@@ -2,6 +2,8 @@ import { Card } from "@/components/ui/Card";
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
 import Link from "next/link";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { PageShell } from "@/components/ui/PageShell";
 import { User } from "lucide-react";
 import {
@@ -25,6 +27,7 @@ interface PageProps {
 }
 
 export default async function EmployeeOverviewPage({ params }: PageProps) {
+  const session = await getServerSession(authOptions);
   const employeeId = params.id;
 
   const employee = await prisma.employee.findUnique({
@@ -64,6 +67,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   if (!employee) {
     return <div className="p-6">Employee not found.</div>;
   }
+  const isAdminOrManager =
+    session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
 
   const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim();
 
@@ -170,7 +175,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             {/* ✅ Leave Booking Button */}
             <AddLeaveRequestDialog
               employeeId={employee.id}
-              isAdminOrManager={true}
+              isAdminOrManager={Boolean(isAdminOrManager)}
             />
 
             {/* ✅ Test Modal for Debugging */}

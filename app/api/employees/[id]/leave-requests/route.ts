@@ -17,10 +17,17 @@ const optionalTrimmedString = z
   });
 
 const leaveRequestCreateSchema = z.object({
-  EventCategoryId: z
-    .string({ required_error: "EventCategoryId is required" })
+  // Accept both keys for compatibility; prefer lowerCamel in code
+  eventCategoryId: z
+    .string({ required_error: "eventCategoryId is required" })
     .trim()
-    .min(1, "EventCategoryId is required"),
+    .min(1, "eventCategoryId is required")
+    .optional(),
+  EventCategoryId: z
+    .string()
+    .trim()
+    .min(1, "EventCategoryId is required")
+    .optional(),
   startDate: z
     .string({ required_error: "startDate is required" })
     .trim()
@@ -119,15 +126,15 @@ export async function POST(
 
     const userId = session.user.id;
     const employeeId = params.id;
-    const {
-      EventCategoryId,
-      startDate,
-      endDate,
-      reason,
-      sickReason,
-      paidStatus,
-      dayType,
-    } = leaveRequestCreateSchema.parse(await req.json());
+  const body = leaveRequestCreateSchema.parse(await req.json());
+  const EventCategoryId = body.eventCategoryId || body.EventCategoryId;
+  const { startDate, endDate, reason, sickReason, paidStatus, dayType } = body;
+  if (!EventCategoryId) {
+    return NextResponse.json(
+      { success: false, error: "Event category is required" },
+      { status: 400 },
+    );
+  }
 
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },

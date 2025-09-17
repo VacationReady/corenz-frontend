@@ -43,7 +43,7 @@ export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
     onboarding: ["read"],
     offboarding: ["read"],
   },
-  Employee: {
+  EMPLOYEE: {
     dashboard: ["read"],
     calendar: ["read"],
     documents: ["read"],

@@ -61,9 +61,9 @@ export function getCurrentLondonTime(): Date {
  */
 export function isTodayInLondon(utcDate: string | Date): boolean {
   const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
-  const now = new Date();
-
-  return format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd");
+  const londonDate = formatInTimeZone(date, LONDON_TIMEZONE, "yyyy-MM-dd");
+  const londonNow = formatInTimeZone(new Date(), LONDON_TIMEZONE, "yyyy-MM-dd");
+  return londonDate === londonNow;
 }
 
 /**

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { CalendarCheck2 } from "lucide-react";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
+import { useSession } from "next-auth/react";
 
 type LeaveEntitlement = {
   id: string;
@@ -22,8 +23,11 @@ export default function LeaveSummaryCard({
 }: {
   employeeId: string;
 }) {
+  const { data: session } = useSession();
   const [entitlements, setEntitlements] = useState<LeaveEntitlement[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const isAdminOrManager =
+    session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
 
   useEffect(() => {
     const fetchEntitlements = async () => {
@@ -69,7 +73,7 @@ export default function LeaveSummaryCard({
 
         <AddLeaveRequestDialog
           employeeId={employeeId}
-          isAdminOrManager={true}
+          isAdminOrManager={Boolean(isAdminOrManager)}
           open={modalOpen}
           setOpen={setModalOpen}
         />

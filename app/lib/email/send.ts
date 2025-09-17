@@ -102,7 +102,8 @@ export async function sendExitInterviewConfirmation(
       offboarding.formTiming === "NOW" &&
       offboarding.completionTokenHash
     ) {
-      formLink = `${process.env.NEXT_PUBLIC_APP_URL}/exit-interview/${offboarding.completionTokenHash}`;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+      formLink = `${baseUrl}/exit-interview/${offboarding.completionTokenHash}`;
     }
 
     const htmlContent = `
@@ -245,7 +246,8 @@ export async function sendExitInterviewFormInvite(
     });
 
     const employee = offboarding.Employee;
-    const formLink = `${process.env.NEXT_PUBLIC_APP_URL}/exit-interview/${offboarding.completionTokenHash}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+    const formLink = `${baseUrl}/exit-interview/${offboarding.completionTokenHash}`;
     const today = formatLondon(new Date(), "dd MMMM yyyy");
 
     const subject = `Please complete your Exit Interview — ${today}`;

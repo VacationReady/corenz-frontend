@@ -62,16 +62,17 @@ export default function EmploymentDetailsPage({
       if (!res.ok) return;
       const data = await res.json();
       setForm(data);
+      setInitialValues(data);
       await reloadOptions();
     })();
   }, [params.id]);
 
   const [initialValues, setInitialValues] = useState<any | null>(null);
   useEffect(() => {
-    if (form && Object.keys(form).length) {
+    if (!initialValues && form && Object.keys(form).length) {
       setInitialValues(form);
     }
-  }, [form]);
+  }, [form, initialValues]);
 
   const addOption = async () => {
     if (!newOption.trim()) return;

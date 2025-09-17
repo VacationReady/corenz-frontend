@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
 import { BASE_TRANSACTIONAL_SECTIONS, SectionConfig } from "@/lib/transactional-notifications";
 import { z } from "zod";
 

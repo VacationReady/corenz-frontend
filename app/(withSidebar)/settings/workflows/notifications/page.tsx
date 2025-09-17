@@ -5,8 +5,8 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import { Bell, UserCircle, Shield, Users, FileText, ClipboardList, ExternalLink } from "lucide-react";
 import {
@@ -167,11 +167,13 @@ export default function TransactionalNotificationsPage() {
     }
   };
 
-  const breadcrumbs = [
-    { label: "Settings", href: "/settings" },
-    { label: "Workflows", href: "/settings" },
-    { label: "Transactional Notifications", href: "/settings/workflows/notifications" },
-  ];
+  const breadcrumbs = {
+    items: [
+      { label: "Settings", href: "/settings" },
+      { label: "Workflows", href: "/settings" },
+      { label: "Transactional Notifications", href: "/settings/workflows/notifications" },
+    ]
+  };
 
   if (loading) {
     return (
@@ -213,7 +215,7 @@ export default function TransactionalNotificationsPage() {
       title="Transactional Notifications"
       description="Configure who receives email notifications when employee records are updated"
       breadcrumbs={breadcrumbs}
-      actions={
+      action={
         <div className="flex items-center space-x-4">
           <div className="flex space-x-2">
             <Button
@@ -337,21 +339,21 @@ export default function TransactionalNotificationsPage() {
                               <label className="text-xs text-gray-500 mb-2">Admin</label>
                               <Switch
                                 checked={section.notifyAdmin}
-                                onCheckedChange={(value) => updateSection(group.id, section.section, 'notifyAdmin', value)}
+                                onChange={(value) => updateSection(group.id, section.section, 'notifyAdmin', value)}
                               />
                             </div>
                             <div className="flex flex-col items-center">
                               <label className="text-xs text-gray-500 mb-2">Manager</label>
                               <Switch
                                 checked={section.notifyManager}
-                                onCheckedChange={(value) => updateSection(group.id, section.section, 'notifyManager', value)}
+                                onChange={(value) => updateSection(group.id, section.section, 'notifyManager', value)}
                               />
                             </div>
                             <div className="flex flex-col items-center">
                               <label className="text-xs text-gray-500 mb-2">Employee</label>
                               <Switch
                                 checked={section.notifyEmployee}
-                                onCheckedChange={(value) => updateSection(group.id, section.section, 'notifyEmployee', value)}
+                                onChange={(value) => updateSection(group.id, section.section, 'notifyEmployee', value)}
                               />
                             </div>
                           </div>

@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Employee, User, Department, TransactionalNotificationPreference } from "@prisma/client";
@@ -124,7 +124,7 @@ export function buildTransactionalEmail({
   diffs: AuditDiff[];
   reasons: Record<string, string>;
 }): { html: string; text: string } {
-  const employeeName = `${employee.firstName} ${employee.lastName}`;
+  const employeeName = employee.User ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email : 'Employee';
   const actorName = actor.name || actor.email;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://peoplecore.vercel.app';
   const sectionUrl = `${appUrl}/employees/${employee.id}/${sectionConfig.route}`;
@@ -401,10 +401,11 @@ export async function dispatchTransactionalNotifications({
 
     // Send email
     const recipientList = Array.from(recipients);
+    const employeeName = employee.User ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email : 'Employee';
     await resend.emails.send({
       from: FROM_EMAIL,
       to: recipientList,
-      subject: `Employee Record Updated: ${employee.firstName} ${employee.lastName} - ${sectionConfig.label}`,
+      subject: `Employee Record Updated: ${employeeName} - ${sectionConfig.label}`,
       html,
       text
     });

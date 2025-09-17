@@ -39,6 +39,7 @@ export async function PATCH(
       "addressPostcode",
       "addressCountry",
       "nationalId",
+      "pronouns",
     ] as const;
 
     const updates: Record<string, any> = {};

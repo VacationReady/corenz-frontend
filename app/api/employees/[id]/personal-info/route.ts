@@ -34,18 +34,11 @@ export async function PATCH(
       "lastName",
       "email",
       "phone",
-      "dateOfBirth",
       "addressStreet",
       "addressCity",
       "addressPostcode",
       "addressCountry",
-      "emergencyContactName",
-      "emergencyContactRelationship",
-      "emergencyContactPhone",
       "nationalId",
-      "residencyStatus",
-      "pronouns",
-      "genderOptionId",
     ] as const;
 
     const updates: Record<string, any> = {};

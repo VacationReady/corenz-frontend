@@ -9,6 +9,7 @@ export interface AuditDiff {
 export function serialize(obj: any, key: string): string | null {
   const val = obj?.[key];
   if (val === null || val === undefined) return null;
+  if (typeof val === "string" && val.trim() === "") return null;
   if (val instanceof Date) return val.toISOString();
   if (typeof val === "object") return JSON.stringify(val);
   return String(val);
@@ -16,6 +17,7 @@ export function serialize(obj: any, key: string): string | null {
 
 export function serializeValue(val: any): string | null {
   if (val === null || val === undefined) return null;
+  if (typeof val === "string" && val.trim() === "") return null;
   if (val instanceof Date) return val.toISOString();
   if (typeof val === "object") return JSON.stringify(val);
   return String(val);

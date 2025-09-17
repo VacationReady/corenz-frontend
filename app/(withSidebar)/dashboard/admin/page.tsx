@@ -22,6 +22,8 @@ export default async function AdminDashboardPage() {
       Employee: {
         include: { LeaveEntitlement: { include: { EventCategory: true } } },
       },
+      JobRole: { select: { name: true } },
+      Department_User_departmentIdToDepartment: { select: { name: true } },
     },
   });
 
@@ -43,18 +45,16 @@ export default async function AdminDashboardPage() {
               {/* Profile Info */}
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-1">
-                  {user.firstName || "User"}
+                  {user.firstName || user.name || "User"}
                 </h1>
-                <p className="text-sm text-muted-foreground mb-1">Co-Founder</p>
-                <div className="flex items-center space-x-3 text-xs text-muted-foreground">
-                  <span>📍 London</span>
-                  <div className="flex items-center space-x-1">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600 font-medium">
-                      Up to date
-                    </span>
-                  </div>
-                </div>
+                {/* Replace hardcoded role/location/status with actual data when present */}
+                {(user.JobRole?.name || user.Department_User_departmentIdToDepartment?.name) && (
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {[user.JobRole?.name, user.Department_User_departmentIdToDepartment?.name]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
               </div>
             </div>
 

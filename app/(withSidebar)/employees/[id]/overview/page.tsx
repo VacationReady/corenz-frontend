@@ -4,6 +4,7 @@ import Link from "next/link";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { isAdminOrManager as isAdminOrManagerHelper } from "@/lib/roles";
 import { PageShell } from "@/components/ui/PageShell";
 import { User } from "lucide-react";
 import {
@@ -67,8 +68,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   if (!employee) {
     return <div className="p-6">Employee not found.</div>;
   }
-  const isAdminOrManager =
-    session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
+  const isAdminOrManager = isAdminOrManagerHelper(session);
 
   const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim();
 

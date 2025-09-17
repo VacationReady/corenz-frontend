@@ -142,10 +142,22 @@ export async function POST(
       },
     });
 
-    const before = existing?.data || {};
-    const after = data || {};
-    const allowed = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])) as readonly string[];
-    const diffs = computeDiffs(before, after, allowed);
+    // Ensure we only diff plain object maps (ignore primitives/arrays)
+    const beforeRaw: any = existing?.data ?? {};
+    const afterRaw: any = data ?? {};
+    const beforeObj: Record<string, any> =
+      beforeRaw && typeof beforeRaw === "object" && !Array.isArray(beforeRaw)
+        ? (beforeRaw as Record<string, any>)
+        : {};
+    const afterObj: Record<string, any> =
+      afterRaw && typeof afterRaw === "object" && !Array.isArray(afterRaw)
+        ? (afterRaw as Record<string, any>)
+        : {};
+
+    const allowed = Array.from(
+      new Set([...Object.keys(beforeObj), ...Object.keys(afterObj)]),
+    ) as readonly string[];
+    const diffs = computeDiffs(beforeObj, afterObj, allowed);
 
     if (diffs.some((d) => d.newValue)) {
       try {

@@ -26,7 +26,7 @@ export default async function LeaveBalanceWidget({
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    include: { leaveEntitlements: { include: { EventCategory: true } } },
+    include: { LeaveEntitlement: { include: { EventCategory: true } } },
   });
 
   if (!employee) {
@@ -34,7 +34,7 @@ export default async function LeaveBalanceWidget({
   }
 
   // Fully serialize leaveEntitlements precisely for LeaveBalancePanel
-  const serializedEntitlements = employee.leaveEntitlements.map(
+  const serializedEntitlements = employee.LeaveEntitlement.map(
     (entitlement) => ({
       id: entitlement.id,
       totalDays: entitlement.totalDays,

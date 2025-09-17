@@ -10,7 +10,7 @@ interface HistoryButtonProps {
   section?: string;
   field?: string;
   title?: string;
-  variant?: "default" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   className?: string;
 }

@@ -98,7 +98,7 @@ export async function POST(req: Request) {
             },
           })),
         },
-      },
+      } as any,
       include: {
         WorkingPatternWeek: {
           include: { WorkingPatternDay: true },

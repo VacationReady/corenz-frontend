@@ -62,7 +62,7 @@ export async function calculateLeaveEntitlement({
     employeeId,
     eventCategoryId,
     companyId,
-    employee,
+    Employee: employee,
     calculationDate,
   });
 
@@ -152,7 +152,7 @@ async function findApplicableLeavePolicies({
   employeeId,
   eventCategoryId,
   companyId,
-  employee,
+  Employee,
   calculationDate,
 }: {
   employeeId: string;
@@ -172,14 +172,14 @@ async function findApplicableLeavePolicies({
         {
           OR: [
             { employeeIds: { has: employeeId } },
-            ...(employee.departmentId
-              ? [{ departmentIds: { has: employee.departmentId } }]
+            ...(Employee.departmentId
+              ? [{ departmentIds: { has: Employee.departmentId } }]
               : []),
-            ...(employee.jobRoleId
-              ? [{ jobRoleIds: { has: employee.jobRoleId } }]
+            ...(Employee.jobRoleId
+              ? [{ jobRoleIds: { has: Employee.jobRoleId } }]
               : []),
-            ...(employee.locationId
-              ? [{ locationIds: { has: employee.locationId } }]
+            ...(Employee.locationId
+              ? [{ locationIds: { has: Employee.locationId } }]
               : []),
           ],
         },

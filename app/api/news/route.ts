@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) throw new Error("User not authenticated");
     const userId = session.user.id;
+    const companyId = session.user.companyId;
 
     const body = await req.json();
 
@@ -34,11 +35,12 @@ export async function POST(req: NextRequest) {
         publishedAt: new Date(),
         updatedAt: new Date(),
         authorId: userId,
+        companyId,
       },
     });
 
     if (sendEmail) {
-      await sendNewsEmails(audience, title, content);
+      await sendNewsEmails(audience, title, content, companyId);
     }
 
     return NextResponse.json(newsPost);
@@ -92,7 +94,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ✅ Resend Email Handler with Batch Sending and Logging
-async function sendNewsEmails(audience: any, title: string, content: any) {
+async function sendNewsEmails(audience: any, title: string, content: any, companyId: string) {
   try {
     console.log(
       "🚀 sendNewsEmails called with audience:",
@@ -103,15 +105,15 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
 
     if (audience.departments?.length) {
       filters.departmentId = {
-        in: await getDepartmentIdsByName(audience.departments),
+        in: await getDepartmentIdsByName(audience.departments, companyId),
       };
     }
     if (audience.roles?.length) {
-      filters.jobRoleId = { in: await getJobRoleIdsByName(audience.roles) };
+      filters.jobRoleId = { in: await getJobRoleIdsByName(audience.roles, companyId) };
     }
     if (audience.locations?.length) {
       filters.locationId = {
-        in: await getLocationIdsByName(audience.locations),
+        in: await getLocationIdsByName(audience.locations, companyId),
       };
     }
 
@@ -119,6 +121,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
       audience?.type === "all"
         ? await prisma.user.findMany({
             where: {
+              companyId,
               email: { not: "" },
             },
             select: { email: true, firstName: true },
@@ -126,6 +129,7 @@ async function sendNewsEmails(audience: any, title: string, content: any) {
         : await prisma.user.findMany({
             where: {
               ...filters,
+              companyId,
               email: { not: "" },
             },
             select: { email: true, firstName: true },
@@ -197,25 +201,25 @@ function renderContentPreview(content: any) {
 }
 
 // ✅ Helper Functions — unchanged
-async function getDepartmentIdsByName(names: string[]) {
+async function getDepartmentIdsByName(names: string[], companyId: string) {
   const deps = await prisma.department.findMany({
-    where: { name: { in: names } },
+    where: { name: { in: names }, companyId },
     select: { id: true },
   });
   return deps.map((d) => d.id);
 }
 
-async function getJobRoleIdsByName(names: string[]) {
+async function getJobRoleIdsByName(names: string[], companyId: string) {
   const roles = await prisma.jobRole.findMany({
-    where: { name: { in: names } },
+    where: { name: { in: names }, companyId },
     select: { id: true },
   });
   return roles.map((r) => r.id);
 }
 
-async function getLocationIdsByName(names: string[]) {
+async function getLocationIdsByName(names: string[], companyId: string) {
   const locs = await prisma.location.findMany({
-    where: { name: { in: names } },
+    where: { name: { in: names }, companyId },
     select: { id: true },
   });
   return locs.map((l) => l.id);

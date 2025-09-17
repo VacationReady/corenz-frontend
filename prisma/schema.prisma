@@ -163,6 +163,8 @@ model Course {
   id             String           @id
   name           String           @unique
   TrainingRecord TrainingRecord[]
+  companyId      String?
+  Company        Company?         @relation(fields: [companyId], references: [id])
 }
 
 model Department {
@@ -170,7 +172,7 @@ model Department {
   name                               String
   companyId                          String
   active                             Boolean              @default(true)
-  code                               String?              @unique
+  code                               String?
   createdAt                          DateTime             @default(now())
   description                        String?
   headId                             String?
@@ -184,6 +186,7 @@ model Department {
   OnboardingTemplate                 OnboardingTemplate[] @relation("OnboardingTemplateDepartments")
 
   @@unique([companyId, name])
+  @@unique([companyId, code])
 }
 
 model Document {
@@ -529,6 +532,8 @@ model ExitInterviewFormTemplate {
   updatedAt               DateTime
   EmployeeOffboarding     EmployeeOffboarding[]
   ExitInterviewSubmission ExitInterviewSubmission[]
+  companyId               String?
+  Company                 Company?                  @relation(fields: [companyId], references: [id])
 
   @@index([isActive])
 }
@@ -556,6 +561,8 @@ model ExpiryRule {
   notifyEmployee Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime
+  companyId      String?
+  Company        Company? @relation(fields: [companyId], references: [id])
 }
 
 model FieldMetadata {
@@ -776,6 +783,8 @@ model LeaveRequest {
 model Location {
   id   String @id
   name String @unique
+  companyId String?
+  Company   Company? @relation(fields: [companyId], references: [id])
 }
 
 model NewsPost {
@@ -794,6 +803,8 @@ model NewsPost {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime
   User          User      @relation(fields: [authorId], references: [id])
+  companyId     String?
+  Company       Company?  @relation(fields: [companyId], references: [id])
 }
 
 model NotificationChannel {
@@ -1087,6 +1098,8 @@ model TrainingProvider {
   id             String           @id
   name           String           @unique
   TrainingRecord TrainingRecord[]
+  companyId      String?
+  Company        Company?         @relation(fields: [companyId], references: [id])
 }
 
 model TrainingRecord {

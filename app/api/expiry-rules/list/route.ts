@@ -5,12 +5,13 @@ import { authOptions } from "@/lib/auth-options";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const rules = await prisma.expiryRule.findMany({
+      where: { OR: [{ companyId: session.user.companyId }, { companyId: null }] },
       orderBy: { category: "asc" },
     });
     return NextResponse.json(rules);

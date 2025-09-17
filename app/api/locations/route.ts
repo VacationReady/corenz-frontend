@@ -9,6 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const items = await prisma.location.findMany({
+    where: { companyId: session.user.companyId },
     orderBy: { name: "asc" },
   });
   return NextResponse.json(items);
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Name required" }, { status: 400 });
   }
   const created = await prisma.location.create({
-    data: { id: crypto.randomUUID(), name: String(body.name).trim() },
+    data: { id: crypto.randomUUID(), name: String(body.name).trim(), companyId: session.user.companyId },
   });
   return NextResponse.json(created, { status: 201 });
 }
@@ -44,7 +45,7 @@ export async function DELETE(req: Request) {
   if (!body?.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   try {
     const result = await prisma.location.deleteMany({
-      where: { id: String(body.id) },
+      where: { id: String(body.id), companyId: session.user.companyId },
     });
     if (result.count === 0) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

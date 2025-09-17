@@ -20,7 +20,8 @@
       "@/*": ["app/*"],
       "@/components/*": ["app/components/*"],
       "@/lib/*": ["app/lib/*"],
-      "@/types/*": ["app/types/*"]
+      "@/types/*": ["app/types/*"],
+      "@/hooks/*": ["hooks/*"]
     },
     "types": ["next-auth"],
     "plugins": [

@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
+import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
 interface PageProps {
@@ -63,6 +64,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
         section="personal-info" 
       />
 
+      <UnsavedChangesGuard>
       <Card>
         <div className="border-b p-4">
           <h2 className="text-lg font-semibold">Basic details</h2>
@@ -73,6 +75,25 @@ export default async function PersonalInformationPage({ params }: PageProps) {
             method="PATCH"
             className="contents"
           >
+            {/* Client-only unsaved changes tracking */}
+            {/* Using a small inline client side marker to set dirty when inputs change */}
+            {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+            <script dangerouslySetInnerHTML={{ __html: `
+              (function(){
+                try{
+                  var root = document.currentScript && document.currentScript.parentElement;
+                  if(!root) return;
+                  var form = root.closest('form');
+                  if(!form) return;
+                  var dirty = false;
+                  var onChange = function(){ dirty = true; };
+                  form.addEventListener('input', onChange, { passive: true });
+                  window.__markUnsaved = function(){ dirty = true; };
+                  window.__clearUnsaved = function(){ dirty = false; };
+                  window.addEventListener('beforeunload', function(e){ if(dirty){ e.preventDefault(); e.returnValue=''; }});
+                }catch(_){}
+              })();
+            ` }} />
             <div>
               <label className="block text-sm font-medium mb-1">
                 First name
@@ -176,6 +197,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
           </form>
         </div>
       </Card>
+      </UnsavedChangesGuard>
 
       <Card>
         <div className="border-b p-4">

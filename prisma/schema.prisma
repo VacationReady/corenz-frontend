@@ -106,45 +106,46 @@ model BrandingConfiguration {
 }
 
 model Company {
-  id                    String                  @id
-  name                  String                  @unique
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime
-  address               String?
-  code                  String?                 @unique
-  industry              String?
-  phone                 String?
-  size                  Int?
-  website               String?
-  AutomationExecution   AutomationExecution[]
-  AutomationJob         AutomationJob[]
-  AutomationRule        AutomationRule[]
-  BrandingConfiguration BrandingConfiguration?
-  ContractTypeOption    ContractTypeOption[]
-  Department            Department[]
-  Document              Document[]
-  Employee              Employee[]
-  EmploymentTypeOption  EmploymentTypeOption[]
-  EventCategory         EventCategory[]
-  EventRuleOverride     EventRuleOverride[]
-  EventSubcategory      EventSubcategory[]
-  Form                  Form[]
-  GenderOption          GenderOption[]
-  GlobalAuditLog        GlobalAuditLog[]
-  JobRole               JobRole[]
-  LeaveEntitlement      LeaveEntitlement[]
-  LeavePolicy           LeavePolicy[]
-  LeavePolicyAssignment LeavePolicyAssignment[]
-  LeaveRequest          LeaveRequest[]
-  NotificationChannel   NotificationChannel[]
-  NotificationSettings  NotificationSettings?
-  OnboardingTemplate    OnboardingTemplate[]
-  PermissionProfile     PermissionProfile[]
-  SCIMConfiguration     SCIMConfiguration?
-  SSOConfiguration      SSOConfiguration?
-  SavedReport           SavedReport[]
-  User                  User[]
-  WorkingPattern        WorkingPattern[]
+  id                                  String                                @id
+  name                                String                                @unique
+  createdAt                           DateTime                              @default(now())
+  updatedAt                           DateTime
+  address                             String?
+  code                                String?                               @unique
+  industry                            String?
+  phone                               String?
+  size                                Int?
+  website                             String?
+  AutomationExecution                 AutomationExecution[]
+  AutomationJob                       AutomationJob[]
+  AutomationRule                      AutomationRule[]
+  BrandingConfiguration               BrandingConfiguration?
+  ContractTypeOption                  ContractTypeOption[]
+  Department                          Department[]
+  Document                            Document[]
+  Employee                            Employee[]
+  EmploymentTypeOption                EmploymentTypeOption[]
+  EventCategory                       EventCategory[]
+  EventRuleOverride                   EventRuleOverride[]
+  EventSubcategory                    EventSubcategory[]
+  Form                                Form[]
+  GenderOption                        GenderOption[]
+  GlobalAuditLog                      GlobalAuditLog[]
+  JobRole                             JobRole[]
+  LeaveEntitlement                    LeaveEntitlement[]
+  LeavePolicy                         LeavePolicy[]
+  LeavePolicyAssignment               LeavePolicyAssignment[]
+  LeaveRequest                        LeaveRequest[]
+  NotificationChannel                 NotificationChannel[]
+  NotificationSettings                NotificationSettings?
+  OnboardingTemplate                  OnboardingTemplate[]
+  PermissionProfile                   PermissionProfile[]
+  SCIMConfiguration                   SCIMConfiguration?
+  SSOConfiguration                    SSOConfiguration?
+  SavedReport                         SavedReport[]
+  TransactionalNotificationPreference TransactionalNotificationPreference[]
+  User                                User[]
+  WorkingPattern                      WorkingPattern[]
 }
 
 model ContractTypeOption {
@@ -1020,6 +1021,22 @@ model EmployeeAuditLog {
   User      User     @relation("EmployeeAuditLog_changedByIdToUser", fields: [changedById], references: [id])
 
   @@index([employeeId, section, changedAt])
+}
+
+model TransactionalNotificationPreference {
+  id               String   @id @default(cuid())
+  companyId        String
+  section          String   // e.g. "personal-info", "forms", "forms:abc123"
+  notifyAdmin      Boolean  @default(true)
+  notifyManager    Boolean  @default(false)
+  notifyEmployee   Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  Company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, section])
+  @@index([companyId, section])
 }
 
 model SCIMConfiguration {

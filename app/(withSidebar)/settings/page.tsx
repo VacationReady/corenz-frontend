@@ -89,6 +89,11 @@ const workflowSettings = [
     href: "/settings/automation-rules",
     icon: <Repeat className="h-5 w-5 text-primary" />,
   },
+  {
+    title: "Transactional Notifications",
+    href: "/settings/workflows/notifications",
+    icon: <Bell className="h-5 w-5 text-primary" />,
+  },
 ];
 
 const systemSettings = [

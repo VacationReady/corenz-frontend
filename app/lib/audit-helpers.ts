@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { dispatchTransactionalNotifications } from "@/lib/transactional-notifications";
 
 export interface AuditDiff {
   field: string;
@@ -46,21 +47,28 @@ export function computeDiffs(
   return diffs;
 }
 
-export async function createAuditLogs({
-  companyId,
-  employeeId,
-  section,
-  diffs,
-  reasons,
-  changedById,
-}: {
-  companyId: string;
-  employeeId: string;
-  section: string;
-  diffs: AuditDiff[];
-  reasons: Record<string, string>;
-  changedById: string;
-}): Promise<void> {
+export interface CreateAuditLogsOptions {
+  skipNotifications?: boolean;
+}
+
+export async function createAuditLogs(
+  {
+    companyId,
+    employeeId,
+    section,
+    diffs,
+    reasons,
+    changedById,
+  }: {
+    companyId: string;
+    employeeId: string;
+    section: string;
+    diffs: AuditDiff[];
+    reasons: Record<string, string>;
+    changedById: string;
+  },
+  options: CreateAuditLogsOptions = {}
+): Promise<void> {
   if (diffs.length === 0) return;
 
   // Validate that all required reasons are provided
@@ -85,6 +93,23 @@ export async function createAuditLogs({
       changedById,
     })),
   });
+
+  // Dispatch transactional notifications unless skipped
+  if (!options.skipNotifications) {
+    try {
+      await dispatchTransactionalNotifications({
+        companyId,
+        employeeId,
+        section,
+        diffs,
+        reasons,
+        changedById
+      });
+    } catch (error) {
+      // Log but don't throw - we don't want notification failures to break audit logging
+      console.error('Failed to dispatch transactional notifications:', error);
+    }
+  }
 }
 
 export function validateReasons(

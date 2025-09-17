@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
+import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 export default function AddDriverLicence() {
   const router = useRouter();
@@ -15,32 +16,32 @@ export default function AddDriverLicence() {
     : employeeIdRaw;
 
   const [loading, setLoading] = useState(false);
+  const [isReasonOpen, setIsReasonOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
-
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
     formData.append("employeeId", employeeId);
 
-    try {
-      const res = await fetch("/api/driver-licenses/create", {
-        method: "POST",
-        body: formData,
-      });
+    // Build change summary for modal
+    const summary: Record<string, string> = {
+      type: String(formData.get("type") || ""),
+      licenceNumber: String(formData.get("licenceNumber") || ""),
+      issueDate: String(formData.get("issueDate") || ""),
+      expiryDate: String(formData.get("expiryDate") || ""),
+    };
+    const changes: ChangeInfo[] = Object.entries(summary).map(([field, value]) => ({
+      field,
+      oldValue: "",
+      newValue: String(value || ""),
+    }));
 
-      if (res.ok) {
-        router.push(`/employees/${employeeId}/driver-licenses`);
-      } else {
-        const error = await res.json();
-        alert("Error: " + error.error);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Upload failed.");
-    } finally {
-      setLoading(false);
-    }
+    setPendingFormData(formData);
+    setPendingChanges(changes);
+    setIsReasonOpen(true);
   };
 
   return (
@@ -86,6 +87,42 @@ export default function AddDriverLicence() {
           {loading ? "Uploading..." : "Add Licence"}
         </Button>
       </form>
+
+      <ChangeReasonModal
+        isOpen={isReasonOpen}
+        onClose={() => {
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingFormData(null);
+          setLoading(false);
+        }}
+        changes={pendingChanges}
+        onSubmit={async (reasons) => {
+          if (!pendingFormData) return;
+          try {
+            setLoading(true);
+            pendingFormData.append("reasons", JSON.stringify(reasons));
+            const res = await fetch("/api/driver-licenses/create", {
+              method: "POST",
+              body: pendingFormData,
+            });
+            if (res.ok) {
+              router.push(`/employees/${employeeId}/driver-licenses`);
+            } else {
+              const error = await res.json().catch(() => ({}));
+              alert("Error: " + (error.error || "Failed"));
+            }
+          } catch (error) {
+            console.error(error);
+            alert("Upload failed.");
+          } finally {
+            setLoading(false);
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingFormData(null);
+          }
+        }}
+      />
     </div>
   );
 }

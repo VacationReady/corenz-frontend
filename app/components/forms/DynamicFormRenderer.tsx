@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { uploadToSupabase } from "@/lib/supabase";
+import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 interface DynamicFormRendererProps {
   formId: string;
@@ -35,6 +36,9 @@ export function DynamicFormRenderer({
 }: DynamicFormRendererProps) {
   const [fields, setFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isReasonOpen, setIsReasonOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const [pendingData, setPendingData] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -83,7 +87,7 @@ export function DynamicFormRenderer({
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(formSchema) });
 
-  const submitForm = async (data: Record<string, any>) => {
+  const submitForm = async (data: Record<string, any>, reasons?: Record<string, string>) => {
     try {
       const processedData = { ...data };
       for (const field of fields) {
@@ -121,7 +125,7 @@ export function DynamicFormRenderer({
       const res = await fetch(`/api/forms/${formId}/submissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, data: processedData }),
+        body: JSON.stringify({ employeeId, data: processedData, reasons: reasons || {} }),
       });
       if (res.ok) {
         toast.success("Form submitted successfully");
@@ -144,7 +148,12 @@ export function DynamicFormRenderer({
 
   return (
     <form
-      onSubmit={handleSubmit(submitForm)}
+      onSubmit={handleSubmit(async (data) => {
+        const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
+        setPendingData(data);
+        setPendingChanges(changes);
+        setIsReasonOpen(true);
+      })}
       className="space-y-6 bg-white p-6 rounded-lg shadow-md"
     >
       {fields.map((field) => {
@@ -173,6 +182,23 @@ export function DynamicFormRenderer({
           "Submit"
         )}
       </Button>
+
+      <ChangeReasonModal
+        isOpen={isReasonOpen}
+        onClose={() => {
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingData(null);
+        }}
+        changes={pendingChanges}
+        onSubmit={async (reasons) => {
+          if (!pendingData) return;
+          await submitForm(pendingData, reasons);
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingData(null);
+        }}
+      />
     </form>
   );
 }

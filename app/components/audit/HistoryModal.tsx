@@ -77,9 +77,44 @@ const fieldLabels: Record<string, string> = {
   isActive: "Active status",
   name: "Name",
   relationship: "Relationship",
+  // Employment checks, driver licences, training, offboarding, settings
+  typeOfCheck: "Type of check",
+  documentNumber: "Document number",
+  dateOfIssue: "Issue date",
+  issueDate: "Issue date",
+  expiryDate: "Expiry date",
+  courseId: "Course",
+  providerId: "Provider",
+  assetsToReturn: "Assets to return",
+  workingPatternId: "Working pattern",
+  workingPatternAssignment: "Working pattern assignment",
+  effectiveDate: "Effective date",
+  exitInterviewInvite: "Exit interview invite",
+  exitInterviewFormInvite: "Exit interview form invite",
+  type: "Type",
+  licenceNumber: "Licence number",
   __create__: "Record created",
   __delete__: "Record deleted",
 };
+
+function titleCaseFromKey(key: string): string {
+  if (!key) return "";
+  if (key === "__create__") return "Record created";
+  if (key === "__delete__") return "Record deleted";
+  const spaced = key
+    .replace(/__/g, " ")
+    .replace(/[_.-]/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .trim();
+  return spaced
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function labelForField(key: string): string {
+  return fieldLabels[key] || titleCaseFromKey(key);
+}
 
 function formatValue(value: string | null): string {
   if (!value || value === "null") return "(empty)";
@@ -93,6 +128,13 @@ function formatValue(value: string | null): string {
   if (value === "true") return "Yes";
   if (value === "false") return "No";
   
+  // Handle JSON payloads for create/delete or complex diffs
+  try {
+    const parsed = JSON.parse(value);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    // Not JSON
+  }
   return value;
 }
 
@@ -203,7 +245,7 @@ export default function HistoryModal({
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">
-                            {fieldLabels[log.field] || log.field}
+                            {labelForField(log.field)}
                           </Badge>
                           <span className="text-sm text-gray-500">
                             {formatDateTime(log.changedAt)}

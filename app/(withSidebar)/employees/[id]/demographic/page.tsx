@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
 import GenderSelectWithManage from "@/components/shared/GenderSelectWithManage";
+import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
 interface PageProps {
   params: { id: string };
@@ -48,7 +49,11 @@ export default async function DemographicPage({ params }: PageProps) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-semibold">Demographic</h1>
+      <HeaderWithHistory
+        title="Demographic"
+        employeeId={params.id}
+        section="personal-info"
+      />
 
       <Card>
         <div className="border-b p-4">

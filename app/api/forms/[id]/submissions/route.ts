@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 
 // GET: List submissions (HR/admin view)
 export async function GET(_: Request, { params }: { params: { id: string } }) {
@@ -32,7 +33,7 @@ export async function POST(
   if (!session?.user?.companyId || !session?.user?.id)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, employeeId, assignmentId } = await req.json();
+  const { data, employeeId, assignmentId, reasons } = await req.json();
 
   // Determine which employee is submitting
   const targetEmployeeId = employeeId || session.user.id;
@@ -68,6 +69,21 @@ export async function POST(
         completedAt: new Date(),
       },
     });
+  }
+
+  // Write audit logs: treat each submitted field as a new value
+  try {
+    const diffs = formatDiffsForFormData(data || {});
+    await createAuditLogs({
+      companyId: session.user.companyId!,
+      employeeId: targetEmployeeId,
+      section: `forms:${params.id}`,
+      diffs,
+      reasons: reasons || {},
+      changedById: session.user.id!,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
   return NextResponse.json(submission, { status: 201 });

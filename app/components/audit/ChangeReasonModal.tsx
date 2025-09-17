@@ -53,7 +53,47 @@ const fieldLabels: Record<string, string> = {
   isActive: "Active status",
   name: "Name",
   relationship: "Relationship",
+  // Employment checks, driver licences, training, offboarding, settings
+  typeOfCheck: "Type of check",
+  documentNumber: "Document number",
+  dateOfIssue: "Issue date",
+  issueDate: "Issue date",
+  expiryDate: "Expiry date",
+  courseId: "Course",
+  providerId: "Provider",
+  assetsToReturn: "Assets to return",
+  workingPatternId: "Working pattern",
+  workingPatternAssignment: "Working pattern assignment",
+  effectiveDate: "Effective date",
+  exitInterviewInvite: "Exit interview invite",
+  exitInterviewFormInvite: "Exit interview form invite",
+  type: "Type",
+  licenceNumber: "Licence number",
+  // Synthetic
+  __create__: "Record created",
+  __delete__: "Record deleted",
 };
+
+function titleCaseFromKey(key: string): string {
+  if (!key) return "";
+  // Handle synthetic keys
+  if (key === "__create__") return "Record created";
+  if (key === "__delete__") return "Record deleted";
+  // Replace common separators and split camelCase
+  const spaced = key
+    .replace(/__/g, " ")
+    .replace(/[_.-]/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .trim();
+  return spaced
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function labelForField(key: string): string {
+  return fieldLabels[key] || titleCaseFromKey(key);
+}
 
 function formatValue(value: string): string {
   if (!value || value === "null") return "(empty)";
@@ -92,8 +132,9 @@ export default function ChangeReasonModal({
     
     for (const change of changes) {
       // Only require reason if new value is non-empty
-      if (change.newValue && (!reasons[change.field] || reasons[change.field].trim() === "")) {
-        missingReasons.push(fieldLabels[change.field] || change.field);
+      const requiresReason = Boolean(change.newValue);
+      if (requiresReason && (!reasons[change.field] || reasons[change.field].trim() === "")) {
+        missingReasons.push(labelForField(change.field));
       }
     }
 
@@ -123,7 +164,7 @@ export default function ChangeReasonModal({
             <div key={index} className="border rounded-lg p-4">
               <div className="mb-3">
                 <h4 className="font-medium text-gray-900">
-                  {fieldLabels[change.field] || change.field}
+                  {labelForField(change.field)}
                 </h4>
                 <div className="text-sm text-gray-600 mt-1">
                   <span className="font-medium">From:</span> {formatValue(change.oldValue)} 

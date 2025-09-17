@@ -14,6 +14,13 @@ export function serialize(obj: any, key: string): string | null {
   return String(val);
 }
 
+export function serializeValue(val: any): string | null {
+  if (val === null || val === undefined) return null;
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val);
+}
+
 export function computeDiffs(
   before: Record<string, any>,
   after: Record<string, any>,
@@ -56,8 +63,9 @@ export async function createAuditLogs({
 
   // Validate that all required reasons are provided
   for (const diff of diffs) {
-    // Only require reason if new value is non-empty (allow clearing fields without reason)
-    if (diff.newValue && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
+    const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
+    const requiresReason = isSynthetic || Boolean(diff.newValue);
+    if (requiresReason && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
       throw new Error(`Reason required for field: ${diff.field}`);
     }
   }
@@ -84,12 +92,26 @@ export function validateReasons(
   const errors: string[] = [];
   
   for (const diff of diffs) {
-    // Only require reason if new value is non-empty
-    if (diff.newValue && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
+    const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
+    const requiresReason = isSynthetic || Boolean(diff.newValue);
+    if (requiresReason && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
       errors.push(`Reason required for field: ${diff.field}`);
     }
   }
   
   return errors;
+}
+
+// Helper to build diffs for simple create flows (e.g., FormData-based creates)
+export function formatDiffsForFormData(values: Record<string, any>): AuditDiff[] {
+  const diffs: AuditDiff[] = [];
+  for (const [field, value] of Object.entries(values)) {
+    diffs.push({
+      field,
+      oldValue: null,
+      newValue: serializeValue(value),
+    });
+  }
+  return diffs;
 }
 

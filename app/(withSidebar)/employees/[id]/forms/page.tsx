@@ -30,6 +30,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
+import HistoryButton from "@/components/audit/HistoryButton";
 
 interface FormAssignment {
   id: string;
@@ -218,6 +219,7 @@ export default function EmployeeFormsPage() {
           { label: "Forms", isCurrentPage: true },
         ],
       }}
+      action={<HistoryButton employeeId={employeeId} section="forms" />}
     >
       <div className="space-y-6">
       {/* Pending Forms */}

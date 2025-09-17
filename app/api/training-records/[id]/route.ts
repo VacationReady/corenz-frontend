@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
+import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
 
 export async function PUT(
   req: Request,
@@ -21,6 +22,15 @@ export async function PUT(
   const expiryDateRaw = formData.get("expiryDate") as string;
   const expiryDate = expiryDateRaw ? new Date(expiryDateRaw) : null;
   const file = formData.get("file") as File | null;
+  const reasonsRaw = formData.get("reasons") as string | null;
+  let reasons: Record<string, string> | undefined = undefined;
+  if (reasonsRaw) {
+    try {
+      reasons = JSON.parse(reasonsRaw);
+    } catch {
+      return NextResponse.json({ error: "Invalid reasons payload" }, { status: 400 });
+    }
+  }
 
   try {
     let documentId: string | null = null;
@@ -58,6 +68,7 @@ export async function PUT(
       documentId = doc.id;
     }
 
+    const existing = await prisma.trainingRecord.findUnique({ where: { id: trainingId } });
     const updatedRecord = await prisma.trainingRecord.update({
       where: { id: trainingId },
       data: {
@@ -68,6 +79,32 @@ export async function PUT(
         ...(documentId && { documentId }),
       },
     });
+
+    // Audit logs
+    try {
+      if (existing) {
+        const diffs = computeDiffs(
+          existing,
+          { ...existing, courseId, providerId, dateCompleted, expiryDate, ...(documentId && { documentId }) },
+          ["courseId", "providerId", "dateCompleted", "expiryDate", "documentId"] as const,
+        );
+        if (diffs.some((d) => d.newValue)) {
+          if (!reasons) {
+            return NextResponse.json({ error: "Reasons required" }, { status: 400 });
+          }
+          await createAuditLogs({
+            companyId: session.user.companyId!,
+            employeeId: existing.employeeId,
+            section: "training",
+            diffs,
+            reasons,
+            changedById: session.user.id,
+          });
+        }
+      }
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
 
     return NextResponse.json(updatedRecord);
   } catch (error) {

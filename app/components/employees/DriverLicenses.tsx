@@ -11,6 +11,7 @@ import {
   TableCell,
 } from "@/components/ui/Table";
 import Button from "@/components/ui/Button";
+import HistoryButton from "@/components/audit/HistoryButton";
 
 interface DriverLicence {
   id: string;
@@ -54,13 +55,16 @@ export default function DriverLicenses({ employeeId }: { employeeId: string }) {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Driver Licences</h1>
-        <Button
+        <div className="flex items-center gap-2">
+          <HistoryButton employeeId={employeeId} section="driver-licenses" />
+          <Button
           onClick={() =>
             router.push(`/employees/${employeeId}/driver-licenses/add`)
           }
         >
           Add Licence
         </Button>
+        </div>
       </div>
 
       {loading ? (

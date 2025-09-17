@@ -6,6 +6,7 @@ import supabase from "@/lib/supabase-admin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
+import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,6 +22,16 @@ export async function POST(req: NextRequest) {
   const expiryDate = formData.get("expiryDate") as string;
   const employeeId = formData.get("employeeId") as string;
   const file = formData.get("file") as File | null;
+  const reasonsRaw = formData.get("reasons") as string | null;
+  if (!reasonsRaw) {
+    return NextResponse.json({ error: "Reasons required" }, { status: 400 });
+  }
+  let reasons: Record<string, string>;
+  try {
+    reasons = JSON.parse(reasonsRaw);
+  } catch {
+    return NextResponse.json({ error: "Invalid reasons payload" }, { status: 400 });
+  }
 
   let documentUrl: string | null = null;
   let documentName: string | null = null;
@@ -90,6 +101,27 @@ export async function POST(req: NextRequest) {
           companyId: session.user.companyId ?? undefined,
         },
       });
+    }
+
+    // Audit logs
+    try {
+      const diffs = formatDiffsForFormData({
+        typeOfCheck,
+        documentNumber,
+        dateOfIssue: new Date(dateOfIssue),
+        expiryDate: new Date(expiryDate),
+        documentUrl,
+      });
+      await createAuditLogs({
+        companyId: session.user.companyId!,
+        employeeId,
+        section: "employment-checks",
+        diffs,
+        reasons,
+        changedById: session.user.id,
+      });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
     return NextResponse.json({

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
+import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
 interface PageProps {
   params: { id: string };
@@ -42,7 +43,11 @@ export default async function ContactInfoPage({ params }: PageProps) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-semibold">Contact information</h1>
+      <HeaderWithHistory
+        title="Contact information"
+        employeeId={params.id}
+        section="personal-info"
+      />
 
       <Card>
         <div className="border-b p-4">

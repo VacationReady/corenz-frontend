@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { computeDiffs, serialize } from '@/lib/audit-helpers';
+import { computeDiffs, serialize, validateReasons } from '@/lib/audit-helpers';
 
 describe('Audit Helpers', () => {
   describe('serialize function', () => {
@@ -75,6 +75,24 @@ describe('Audit Helpers', () => {
         oldValue: null,
         newValue: 'Doe',
       });
+    });
+  });
+
+  describe('validateReasons synthetic keys', () => {
+    it('requires reasons for __create__ even when newValue is null', () => {
+      const diffs = [
+        { field: '__create__', oldValue: null, newValue: null },
+      ];
+      const errors = validateReasons(diffs, {});
+      assert.ok(errors.length > 0);
+    });
+
+    it('passes when reasons provided for __delete__', () => {
+      const diffs = [
+        { field: '__delete__', oldValue: 'x', newValue: null },
+      ];
+      const errors = validateReasons(diffs, { '__delete__': 'Cleanup' });
+      assert.strictEqual(errors.length, 0);
     });
   });
 });

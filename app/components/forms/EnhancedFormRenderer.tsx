@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { FormField, TableColumn } from "@/api/forms/[id]/types";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
+import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 interface EnhancedFormRendererProps {
   formId: string;
@@ -36,6 +37,10 @@ export function EnhancedFormRenderer({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isReasonOpen, setIsReasonOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const [pendingAction, setPendingAction] = useState<"data" | "submit" | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<Record<string, any> | null>(null);
 
   const { register, handleSubmit, setValue, watch, reset } = useForm();
 
@@ -66,7 +71,7 @@ export function EnhancedFormRenderer({
       const res = await fetch(`/api/forms/${formId}/data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, data }),
+        body: JSON.stringify({ employeeId, data, reasons: pendingPayload?.reasons || {} }),
       });
       if (res.ok) {
         toast.success("Data saved successfully");
@@ -89,7 +94,7 @@ export function EnhancedFormRenderer({
       const res = await fetch(`/api/forms/${formId}/submissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, data }),
+        body: JSON.stringify({ employeeId, data, reasons: pendingPayload?.reasons || {} }),
       });
       if (res.ok) {
         toast.success("Form submitted successfully");
@@ -160,8 +165,32 @@ export function EnhancedFormRenderer({
       }
     }
 
-    if (formData?.form.formType === "DATA_SCREEN") saveData(data);
-    else submitForm(data);
+    // Build diffs for reason capture
+    if (formData?.form.formType === "DATA_SCREEN") {
+      const before = formData?.data || {};
+      const changes: ChangeInfo[] = [];
+      for (const [k, v] of Object.entries(data)) {
+        const oldVal = before[k];
+        if (JSON.stringify(oldVal) !== JSON.stringify(v)) {
+          changes.push({ field: k, oldValue: JSON.stringify(oldVal ?? ""), newValue: JSON.stringify(v ?? "") });
+        }
+      }
+      if (changes.length > 0) {
+        setPendingAction("data");
+        setPendingChanges(changes);
+        setPendingPayload({ data });
+        setIsReasonOpen(true);
+        return;
+      }
+      saveData(data);
+    } else {
+      // Treat as changes from empty -> value
+      const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
+      setPendingAction("submit");
+      setPendingChanges(changes);
+      setPendingPayload({ data });
+      setIsReasonOpen(true);
+    }
   };
 
   if (loading) {
@@ -230,6 +259,31 @@ export function EnhancedFormRenderer({
           </Button>
         </div>
       </form>
+
+      <ChangeReasonModal
+        isOpen={isReasonOpen}
+        onClose={() => {
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingAction(null);
+          setPendingPayload(null);
+        }}
+        changes={pendingChanges}
+        onSubmit={async (reasons) => {
+          if (!pendingPayload) return;
+          if (pendingAction === "data") {
+            setPendingPayload((p) => ({ ...(p || {}), reasons }));
+            await saveData(pendingPayload.data);
+          } else if (pendingAction === "submit") {
+            setPendingPayload((p) => ({ ...(p || {}), reasons }));
+            await submitForm(pendingPayload.data);
+          }
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingAction(null);
+          setPendingPayload(null);
+        }}
+      />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
+import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -64,21 +66,12 @@ export default function EmploymentDetailsPage({
     })();
   }, [params.id]);
 
-  const save = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/employees/${params.id}/employment-details`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-    } catch (e: any) {
-      // no-op toast infra here
-    } finally {
-      setLoading(false);
+  const [initialValues, setInitialValues] = useState<any | null>(null);
+  useEffect(() => {
+    if (form && Object.keys(form).length) {
+      setInitialValues(form);
     }
-  };
+  }, [form]);
 
   const addOption = async () => {
     if (!newOption.trim()) return;
@@ -111,7 +104,11 @@ export default function EmploymentDetailsPage({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-semibold">Employment details</h1>
+      <HeaderWithHistory
+        title="Employment details"
+        employeeId={params.id}
+        section="employment-details"
+      />
 
       <Card>
         <div className="border-b p-4">
@@ -334,11 +331,28 @@ export default function EmploymentDetailsPage({
         </div>
       </Card>
 
-      {canEdit && (
+      {canEdit && initialValues && (
         <div className="flex justify-end">
-          <Button onClick={save} disabled={loading}>
-            {loading ? "Saving..." : "Save changes"}
-          </Button>
+          <EmployeeSaveButton
+            employeeId={params.id}
+            endpoint="employment-details"
+            initialValues={initialValues}
+            currentValues={form}
+            onSaveSuccess={async () => {
+              try {
+                setLoading(true);
+                const res = await fetch(`/api/employees/${params.id}/employment-details`);
+                if (res.ok) {
+                  const latest = await res.json();
+                  setForm(latest);
+                  setInitialValues(latest);
+                }
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          />
         </div>
       )}
     </div>

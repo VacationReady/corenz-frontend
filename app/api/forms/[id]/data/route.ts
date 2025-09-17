@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
 
 // GET: Retrieve form data for an employee
 export async function GET(
@@ -93,7 +94,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { employeeId, data } = await req.json();
+  const { employeeId, data, reasons } = await req.json();
 
   if (!employeeId || !data) {
     return NextResponse.json(
@@ -132,6 +133,35 @@ export async function POST(
     }
 
     // Upsert the data record (create or update)
+    const existing = await prisma.formDataRecord.findUnique({
+      where: {
+        formId_employeeId: {
+          formId: params.id,
+          employeeId,
+        },
+      },
+    });
+
+    const before = existing?.data || {};
+    const after = data || {};
+    const allowed = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])) as readonly string[];
+    const diffs = computeDiffs(before, after, allowed);
+
+    if (diffs.some((d) => d.newValue)) {
+      try {
+        await createAuditLogs({
+          companyId: session.user.companyId!,
+          employeeId,
+          section: `forms:${params.id}`,
+          diffs,
+          reasons: reasons || {},
+          changedById: session.user.id,
+        });
+      } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+    }
+
     const dataRecord = await prisma.formDataRecord.upsert({
       where: {
         formId_employeeId: {

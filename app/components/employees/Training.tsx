@@ -14,6 +14,7 @@ import {
   TableCell,
 } from "@/components/ui/Table";
 import Button from "@/components/ui/Button";
+import HistoryButton from "@/components/audit/HistoryButton";
 
 interface TrainingRecord {
   id: string;
@@ -102,11 +103,14 @@ export default function Training({ employeeId }: { employeeId: string }) {
         ],
       }}
       action={
-        <Button
-          onClick={() => router.push(`/employees/${employeeId}/training/add`)}
-        >
-          Add Training
-        </Button>
+        <div className="flex items-center gap-2">
+          <HistoryButton employeeId={employeeId} section="training" />
+          <Button
+            onClick={() => router.push(`/employees/${employeeId}/training/add`)}
+          >
+            Add Training
+          </Button>
+        </div>
       }
     >
       {records.length === 0 ? (

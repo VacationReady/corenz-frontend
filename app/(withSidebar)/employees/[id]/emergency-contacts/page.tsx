@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
+import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
+import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 type Contact = {
   id: string;
@@ -20,13 +22,19 @@ export default function EmergencyContactsPage({
   params: { id: string };
 }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [originalContacts, setOriginalContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isReasonOpen, setIsReasonOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const [pendingAction, setPendingAction] = useState<"create" | "update" | "delete" | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const load = async () => {
     const res = await fetch(`/api/employees/${params.id}/emergency-contacts`);
     if (!res.ok) return;
     const data: Contact[] = await res.json();
     setContacts(data);
+    setOriginalContacts(data);
   };
 
   useEffect(() => {
@@ -40,31 +48,65 @@ export default function EmergencyContactsPage({
     ]);
   };
 
+  const openReasonForCreate = (contact: Contact) => {
+    const summary = {
+      name: contact.name,
+      relationship: contact.relationship || undefined,
+      phone: contact.phone || undefined,
+      email: contact.email || undefined,
+    };
+    const changes: ChangeInfo[] = [
+      { field: "__create__", oldValue: "", newValue: JSON.stringify(summary) },
+    ];
+    setPendingAction("create");
+    setPendingPayload(summary);
+    setPendingChanges(changes);
+    setIsReasonOpen(true);
+  };
+
+  const openReasonForUpdate = (contact: Contact) => {
+    const original = originalContacts.find((c) => c.id === contact.id);
+    if (!original) {
+      toast.error("Original contact not found");
+      return;
+    }
+    const allowed: Array<keyof Contact> = ["name", "relationship", "phone", "email"];
+    const changes: ChangeInfo[] = [];
+    for (const key of allowed) {
+      const oldValue = (original as any)[key] ?? "";
+      const newValue = (contact as any)[key] ?? "";
+      if (String(oldValue) !== String(newValue)) {
+        changes.push({ field: key as string, oldValue: String(oldValue), newValue: String(newValue) });
+      }
+    }
+    if (changes.length === 0) {
+      toast.success("No changes to save");
+      return;
+    }
+    setPendingAction("update");
+    setPendingPayload(contact);
+    setPendingChanges(changes);
+    setIsReasonOpen(true);
+  };
+
+  const openReasonForDelete = (contact: Contact) => {
+    const changes: ChangeInfo[] = [
+      { field: "__delete__", oldValue: JSON.stringify({ name: contact.name, relationship: contact.relationship, phone: contact.phone, email: contact.email }), newValue: "true" },
+    ];
+    setPendingAction("delete");
+    setPendingPayload({ id: contact.id });
+    setPendingChanges(changes);
+    setIsReasonOpen(true);
+  };
+
   const save = async (contact: Contact) => {
     try {
       setLoading(true);
       if (contact.id.startsWith("__new__")) {
-        const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: contact.name,
-            relationship: contact.relationship || undefined,
-            phone: contact.phone || undefined,
-            email: contact.email || undefined,
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to create");
+        openReasonForCreate(contact);
       } else {
-        const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(contact),
-        });
-        if (!res.ok) throw new Error("Failed to update");
+        openReasonForUpdate(contact);
       }
-      toast.success("Saved");
-      await load();
     } catch (e: any) {
       toast.error(e?.message || "Save failed");
     } finally {
@@ -75,14 +117,9 @@ export default function EmergencyContactsPage({
   const remove = async (id: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Removed");
-      await load();
+      const contact = contacts.find((c) => c.id === id);
+      if (!contact) throw new Error("Contact not found");
+      openReasonForDelete(contact);
     } catch (e: any) {
       toast.error(e?.message || "Remove failed");
     } finally {
@@ -92,7 +129,7 @@ export default function EmergencyContactsPage({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <h1 className="text-2xl font-semibold">Emergency contacts</h1>
+      <HeaderWithHistory title="Emergency contacts" employeeId={params.id} section="emergency-contacts" />
 
       <div className="flex justify-end">
         <Button onClick={addEmpty}>Add contact</Button>
@@ -164,6 +201,54 @@ export default function EmergencyContactsPage({
           </Card>
         ))}
       </div>
+
+      <ChangeReasonModal
+        isOpen={isReasonOpen}
+        onClose={() => {
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingAction(null);
+          setPendingPayload(null);
+        }}
+        changes={pendingChanges}
+        onSubmit={async (reasons) => {
+          try {
+            setLoading(true);
+            if (pendingAction === "create") {
+              const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...pendingPayload, reason: reasons["__create__"] }),
+              });
+              if (!res.ok) throw new Error("Failed to create");
+            } else if (pendingAction === "update") {
+              const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...pendingPayload, reasons }),
+              });
+              if (!res.ok) throw new Error("Failed to update");
+            } else if (pendingAction === "delete") {
+              const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: pendingPayload.id, reason: reasons["__delete__"] }),
+              });
+              if (!res.ok) throw new Error("Failed to delete");
+            }
+            toast.success("Saved");
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingAction(null);
+            setPendingPayload(null);
+            await load();
+          } catch (e: any) {
+            toast.error(e?.message || "Action failed");
+          } finally {
+            setLoading(false);
+          }
+        }}
+      />
     </div>
   );
 }

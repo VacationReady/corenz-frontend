@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
 
 export async function GET(
   _req: Request,
@@ -86,6 +87,36 @@ export async function PATCH(
     for (const key of keys) {
       if (Object.prototype.hasOwnProperty.call(body, key)) {
         updates[key] = body[key as string];
+      }
+    }
+    const reasons = (body as any).reasons as Record<string, string> | undefined;
+
+    // Compute diffs and enforce reasons
+    const allowed = keys;
+    const diffs = computeDiffs(
+      employee,
+      { ...employee, ...updates },
+      allowed,
+    );
+
+    if (diffs.some((d) => d.newValue)) {
+      if (!reasons) {
+        return NextResponse.json(
+          { error: "Reasons required for changes" },
+          { status: 400 },
+        );
+      }
+      try {
+        await createAuditLogs({
+          companyId: session.user.companyId!,
+          employeeId: employee.id,
+          section: "employment-details",
+          diffs,
+          reasons,
+          changedById: session.user.id,
+        });
+      } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
       }
     }
 

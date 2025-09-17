@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
+import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -20,6 +21,16 @@ export async function POST(req: Request) {
   const expiryDateRaw = formData.get("expiryDate") as string;
   const expiryDate = expiryDateRaw ? new Date(expiryDateRaw) : null;
   const file = formData.get("file") as File | null;
+  const reasonsRaw = formData.get("reasons") as string | null;
+  if (!reasonsRaw) {
+    return NextResponse.json({ error: "Reasons required" }, { status: 400 });
+  }
+  let reasons: Record<string, string>;
+  try {
+    reasons = JSON.parse(reasonsRaw);
+  } catch {
+    return NextResponse.json({ error: "Invalid reasons payload" }, { status: 400 });
+  }
 
   let documentId: string | null = null;
 
@@ -69,6 +80,21 @@ export async function POST(req: Request) {
       updatedAt: new Date(),
     },
   });
+
+  // Audit logs
+  try {
+    const diffs = formatDiffsForFormData({ courseId, providerId, dateCompleted, expiryDate, documentId });
+    await createAuditLogs({
+      companyId: session.user.companyId!,
+      employeeId: employeeId as string,
+      section: "training",
+      diffs,
+      reasons,
+      changedById: session.user.id,
+    });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
 
   return NextResponse.json(trainingRecord);
 }

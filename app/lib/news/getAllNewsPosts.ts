@@ -8,8 +8,22 @@ export async function getAllNewsPosts(companyId?: string) {
       ...(companyId ? { User: { companyId } } : {}),
     },
     orderBy: { publishedAt: "desc" },
-    include: {
-      User: { select: { name: true, email: true, companyId: true } },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      content: true,
+      authorId: true,
+      publishedAt: true,
+      pinned: true,
+      tags: true,
+      audience: true,
+      attachments: true,
+      videoEmbedUrl: true,
+      sendEmail: true,
+      createdAt: true,
+      updatedAt: true,
+      User: { select: { name: true, email: true, profileImageUrl: true, companyId: true } },
     },
   });
 }

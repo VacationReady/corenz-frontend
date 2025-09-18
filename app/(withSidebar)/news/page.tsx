@@ -28,7 +28,7 @@ export default async function NewsPage() {
       ? new Date(post.publishedAt).toISOString()
       : null,
     pinned: post.pinned,
-    tags: post.tags,
+    tags: Array.isArray(post.tags) ? post.tags : [],
     createdAt: new Date(post.createdAt).toISOString(),
   }));
 

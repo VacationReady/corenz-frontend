@@ -74,7 +74,8 @@ export async function GET(
 
     const where: any = {
       employeeId: params.id,
-      employee: { companyId: session.user.companyId },
+      // Use correct relation casing per Prisma schema: Employee
+      Employee: { companyId: session.user.companyId },
       approvalStatus: "APPROVED",
       ...(upcoming
         ? {

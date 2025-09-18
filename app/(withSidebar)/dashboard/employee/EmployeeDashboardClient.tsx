@@ -17,6 +17,8 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
     fetcher,
   );
 
+  const items = Array.isArray(data) ? data : [];
+
   return (
     <DashboardWidget
       title="Upcoming Leave"
@@ -31,11 +33,11 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
         <WidgetLoading />
       ) : error ? (
         <WidgetError message="Failed to load." />
-      ) : !data || data.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upcoming leave.</p>
       ) : (
         <ul className="space-y-2">
-          {data.map((lr: any) => (
+          {items.map((lr: any) => (
             <li key={lr.id} className="text-sm">
               <span className="font-medium">{lr.eventCategory?.name}</span>
               <span className="text-muted-foreground">

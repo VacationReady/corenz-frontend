@@ -22,7 +22,7 @@ export async function GET(
 
     // ✅ Fetch entitlements with related event category scoped by company
     const entitlements = await prisma.leaveEntitlement.findMany({
-      where: { employeeId, companyId },
+      where: { employeeId, companyId, EventCategory: { isActive: true } },
       include: {
         EventCategory: {
           select: {
@@ -34,13 +34,13 @@ export async function GET(
       },
     });
 
-    // ✅ Shape response to remove non-serializable fields
+    // ✅ Shape response to match client expectations (eventCategory, not EventCategory)
     const serialized = entitlements.map((entitlement) => ({
       id: entitlement.id,
       totalDays: entitlement.totalDays,
       usedDays: entitlement.usedDays,
       carryoverDays: entitlement.carryoverDays ?? 0,
-      EventCategory: {
+      eventCategory: {
         id: entitlement.EventCategory.id,
         name: entitlement.EventCategory.name,
         color: entitlement.EventCategory.color,
@@ -72,14 +72,17 @@ export async function POST(
 
     const employeeId = params.id;
     const companyId = session.user.companyId;
-    const entitlements: {
-      EventCategoryId: string;
-      totalDays: number;
-      daysAllocated?: number;
-    }[] = await req.json();
+    const entitlements: Array<
+      | { eventCategoryId: string; totalDays: number; daysAllocated?: number }
+      | { EventCategoryId: string; totalDays: number; daysAllocated?: number }
+    > = await req.json();
 
     for (const entitlement of entitlements) {
-      if (!entitlement.EventCategoryId || entitlement.totalDays === undefined) {
+      const eventCategoryId =
+        // accept either camelCase or PascalCase to be backwards compatible
+        (entitlement as any).eventCategoryId ?? (entitlement as any).EventCategoryId;
+
+      if (!eventCategoryId || (entitlement as any).totalDays === undefined) {
         return NextResponse.json(
           { error: "Missing required fields in entitlement." },
           { status: 400 },
@@ -90,19 +93,19 @@ export async function POST(
         where: {
           employeeId_eventCategoryId: {
             employeeId,
-            eventCategoryId: entitlement.EventCategoryId,
+            eventCategoryId,
           },
         },
         update: {
-          totalDays: entitlement.totalDays,
+          totalDays: (entitlement as any).totalDays,
         },
         create: {
           id: crypto.randomUUID(),
           employeeId,
-          eventCategoryId: entitlement.EventCategoryId,
-          totalDays: entitlement.totalDays,
+          eventCategoryId,
+          totalDays: (entitlement as any).totalDays,
           usedDays: 0, // adjust if needed
-          daysAllocated: entitlement.daysAllocated ?? 0,
+          daysAllocated: (entitlement as any).daysAllocated ?? 0,
           companyId,
           updatedAt: new Date(),
         },

@@ -37,6 +37,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
       // 👇 include nested eventCategory on each entitlement
       LeaveEntitlement: {
         include: { EventCategory: true },
+        where: { EventCategory: { isActive: true } },
       },
       User: {
         select: {

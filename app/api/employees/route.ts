@@ -400,39 +400,54 @@ export async function POST(req: Request) {
     // Create leave entitlement if provided
     if (entitlementDays && holidayYear) {
       try {
-        // Find or create the standard holiday event category
-        let holidayCategory = await prisma.eventCategory.findFirst({
+        // Prefer system-defined "Annual Leave"; fall back to existing "Holiday" if present
+        let annualCategory = await prisma.eventCategory.findFirst({
           where: {
-            name: "Holiday",
+            name: "Annual Leave",
             categoryType: "TIME_OFF",
             isActive: true,
             companyId,
           },
         });
 
-        // If Holiday category doesn't exist, create it
-        if (!holidayCategory) {
-          holidayCategory = await prisma.eventCategory.create({
-            data: {
-              id: crypto.randomUUID(),
+        // If Annual Leave doesn't exist, see if a legacy "Holiday" exists
+        if (!annualCategory) {
+          const legacyHoliday = await prisma.eventCategory.findFirst({
+            where: {
               name: "Holiday",
               categoryType: "TIME_OFF",
-              requiresApproval: true,
-              adminOnly: false,
-              color: "#10B981", // Green color
               isActive: true,
               companyId,
-              updatedAt: new Date(),
             },
           });
+
+          if (legacyHoliday) {
+            annualCategory = legacyHoliday;
+          } else {
+            // Create Annual Leave rather than Holiday to avoid duplication
+            annualCategory = await prisma.eventCategory.create({
+              data: {
+                id: crypto.randomUUID(),
+                name: "Annual Leave",
+                categoryType: "TIME_OFF",
+                requiresApproval: true,
+                adminOnly: false,
+                color: "#008000",
+                isActive: true,
+                companyId,
+                systemDefined: true,
+                updatedAt: new Date(),
+              },
+            });
+          }
         }
 
-        if (holidayCategory) {
+        if (annualCategory) {
           await prisma.leaveEntitlement.create({
             data: {
               id: crypto.randomUUID(),
               employeeId: employee.id,
-              eventCategoryId: holidayCategory.id,
+              eventCategoryId: annualCategory.id,
               totalDays: entitlementDays,
               usedDays: 0,
               companyId,

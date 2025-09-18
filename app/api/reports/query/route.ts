@@ -15,6 +15,16 @@ const allowedOperators = [
 
 type Operator = typeof allowedOperators[number];
 
+// Legacy-to-current field key mapping for backwards compatibility
+const legacyFieldMap: Record<string, string> = {
+	"User.department.name": "User.Department_User_departmentIdToDepartment.name",
+	"User.jobRole.name": "User.JobRole.name",
+};
+
+function translateFieldKey(field: string): string {
+	return legacyFieldMap[field] || field;
+}
+
 const filterSchema = z
 	.object({
 		field: z.string().trim().min(1, "Filter field is required"),
@@ -61,9 +71,14 @@ export async function POST(req: Request) {
 			filters: parsedBody.filters ?? [],
 		};
 
+		// Translate legacy keys first
+		const translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
+		const translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
+		const translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
+
 		// Restrict selectedFields to allowed hrReportFields list
 		const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));
-		const sanitizedSelectedFields = (selectedFields as string[]).filter((f) =>
+		const sanitizedSelectedFields = translatedSelectedFields.filter((f) =>
 			allowedFieldSet.has(f),
 		);
 
@@ -82,7 +97,7 @@ export async function POST(req: Request) {
 			"Document","EmploymentCheck","EmployeeOffboarding","SavedReport",
 		];
 
-		const enforcedFilters = Array.isArray(filters) ? [...filters] : [];
+		const enforcedFilters = Array.isArray(translatedFilters) ? [...translatedFilters] : [];
 		for (const model of modelsWithCompanyId) {
 			enforcedFilters.push({ field: `${model}.companyId`, operator: "equals", value: tenantCompanyId });
 		}
@@ -92,7 +107,7 @@ export async function POST(req: Request) {
 			selectedFields: sanitizedSelectedFields,
 			filters: enforcedFilters,
 			pagination,
-			sort,
+			sort: translatedSort,
 		});
 
 		if (queries.length === 0) {
@@ -120,7 +135,7 @@ export async function POST(req: Request) {
 			);
 		}
 		return NextResponse.json(
-			{ status: "error", message: "Internal server error", data: [] },
+			{ status: "error", message: error?.message || "Internal server error", data: [] },
 			{ status: 500 },
 		);
 	}

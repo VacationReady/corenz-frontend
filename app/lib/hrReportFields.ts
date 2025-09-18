@@ -162,7 +162,7 @@ export const hrReportFields: HRReportField[] = [
 	},
 	{
 		model: "User",
-		field: "User.department.name",
+		field: "User.Department_User_departmentIdToDepartment.name",
 		label: "Department",
 		type: "string",
 		category: "employment",
@@ -172,7 +172,7 @@ export const hrReportFields: HRReportField[] = [
 	},
 	{
 		model: "User",
-		field: "User.jobRole.name",
+		field: "User.JobRole.name",
 		label: "Job Role",
 		type: "string",
 		category: "employment",

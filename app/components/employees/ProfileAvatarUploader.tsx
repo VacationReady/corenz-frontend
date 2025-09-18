@@ -58,21 +58,20 @@ export default function ProfileAvatarUploader({
   // Useful if server-side signing failed or the URL expired between SSR and hydration
   useEffect(() => {
     let cancelled = false;
-    async function ensureSigned() {
-      if (!url && initialPath) {
-        try {
-          const res = await fetch(`/api/storage/sign?path=${encodeURIComponent(initialPath)}`, { cache: "no-store" });
-          if (!res.ok) return;
-          const json = await res.json();
-          if (!cancelled) setUrl(json.url || null);
-        } catch {}
-      }
+    async function signNow() {
+      if (!initialPath) return;
+      try {
+        const res = await fetch(`/api/storage/sign?path=${encodeURIComponent(initialPath)}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled) setUrl(json.url || null);
+      } catch {}
     }
-    ensureSigned();
+    signNow();
     return () => {
       cancelled = true;
     };
-  }, [url, initialPath]);
+  }, [initialPath]);
 
   return (
     <div className="flex flex-col items-center">

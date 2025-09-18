@@ -128,6 +128,7 @@ export async function GET(req: Request) {
             phone: true,
             role: true,
             createdAt: true,
+            profileImageUrl: true,
           },
         },
         Department: {
@@ -149,24 +150,41 @@ export async function GET(req: Request) {
       orderBy: { id: "desc" },
     });
 
-    const flattened = employees.map((emp) => ({
-      id: emp.id,
-      userId: emp.User.id,
-      firstName: emp.User.firstName,
-      lastName: emp.User.lastName,
-      email: emp.User.email,
-      phone: emp.User.phone,
-      role: emp.User.role,
-      createdAt: emp.User.createdAt,
-      departmentId: emp.Department?.id ?? null,
-      departmentName: emp.Department?.name ?? null,
-      jobRoleId: emp.JobRole?.id ?? null,
-      jobRoleName: emp.JobRole?.name ?? null,
-      isActive: emp.isActive,
-      offboardingStatus: emp.offboardingStatus,
-      lastWorkingDate: emp.lastWorkingDate,
-      offboardingRecord: emp.EmployeeOffboarding,
-    }));
+    const flattened = await Promise.all(
+      employees.map(async (emp) => {
+        let profileUrl: string | null = null;
+        if (emp.User.profileImageUrl) {
+          try {
+            const { data } = await supabase.storage
+              .from("documents")
+              .createSignedUrl(emp.User.profileImageUrl, 60 * 5);
+            profileUrl = data?.signedUrl ?? null;
+          } catch {
+            profileUrl = null;
+          }
+        }
+
+        return {
+          id: emp.id,
+          userId: emp.User.id,
+          firstName: emp.User.firstName,
+          lastName: emp.User.lastName,
+          email: emp.User.email,
+          phone: emp.User.phone,
+          role: emp.User.role,
+          createdAt: emp.User.createdAt,
+          departmentId: emp.Department?.id ?? null,
+          departmentName: emp.Department?.name ?? null,
+          jobRoleId: emp.JobRole?.id ?? null,
+          jobRoleName: emp.JobRole?.name ?? null,
+          isActive: emp.isActive,
+          offboardingStatus: emp.offboardingStatus,
+          lastWorkingDate: emp.lastWorkingDate,
+          offboardingRecord: emp.EmployeeOffboarding,
+          profileImageUrl: profileUrl,
+        } as const;
+      }),
+    );
 
     return NextResponse.json(flattened);
   } catch (error) {

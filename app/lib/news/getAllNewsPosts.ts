@@ -4,7 +4,7 @@ export async function getAllNewsPosts(companyId?: string) {
   return prisma.newsPost.findMany({
     where: {
       publishedAt: { not: null },
-      ...(companyId ? { authorId: companyId } : {}),
+      ...(companyId ? { User: { companyId } } : {}),
     },
     orderBy: { publishedAt: "desc" },
     include: {

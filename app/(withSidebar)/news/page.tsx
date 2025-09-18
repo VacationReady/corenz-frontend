@@ -19,8 +19,9 @@ export default async function NewsPage() {
     content: post.content,
     authorId: post.authorId,
     author: {
-      name: post.author.name,
-      email: post.author.email,
+      name: post.User?.name ?? null,
+      email: post.User?.email ?? "",
+      avatar: post.User?.profileImageUrl ?? undefined,
     },
     publishedAt: post.publishedAt
       ? new Date(post.publishedAt).toISOString()

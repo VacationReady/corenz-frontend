@@ -45,7 +45,19 @@ export async function POST(
       where: { id: userId },
       data: { profileImageUrl: objectPath },
     });
-    return NextResponse.json({ path: objectPath });
+
+    // Return a short-lived signed URL for immediate display
+    let signedUrl: string | null = null;
+    try {
+      const { data: signed } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(objectPath, 60 * 5);
+      signedUrl = signed?.signedUrl ?? null;
+    } catch (_) {
+      signedUrl = null;
+    }
+
+    return NextResponse.json({ path: objectPath, url: signedUrl });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || "Server error" },

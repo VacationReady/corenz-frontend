@@ -231,13 +231,6 @@ export async function PATCH(
   }
 }
 
-export function GET() {
-  return NextResponse.json(
-    { success: false, error: "Method Not Allowed" },
-    { status: 405 },
-  );
-}
-
 export function POST() {
   return NextResponse.json(
     { success: false, error: "Method Not Allowed" },

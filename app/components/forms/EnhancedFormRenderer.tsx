@@ -26,6 +26,7 @@ interface FormDataShape {
   };
   data: Record<string, any>;
   lastUpdated: string | null;
+  readOnly?: boolean;
 }
 
 export function EnhancedFormRenderer({
@@ -120,6 +121,10 @@ export function EnhancedFormRenderer({
   };
 
   const onSubmit = async (rawData: Record<string, any>) => {
+    if (formData?.readOnly) {
+      toast.error("This screen is read-only.");
+      return;
+    }
     const data = { ...rawData };
 
     for (const field of formData!.form.schema) {
@@ -182,7 +187,11 @@ export function EnhancedFormRenderer({
         setIsReasonOpen(true);
         return;
       }
-      saveData(data);
+      if (!formData?.readOnly) {
+        saveData(data);
+      } else {
+        toast.error("This screen is read-only.");
+      }
     } else {
       // Treat as changes from empty -> value
       const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
@@ -209,6 +218,8 @@ export function EnhancedFormRenderer({
     );
   }
 
+  const isReadOnly = Boolean(formData?.readOnly);
+
   return (
     <div className="space-y-6">
       <div className="border-b pb-4">
@@ -221,6 +232,11 @@ export function EnhancedFormRenderer({
               ? "Data Screen"
               : "Submission Form"}
           </span>
+          {isReadOnly && (
+            <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+              Read-only
+            </span>
+          )}
           {formData.lastUpdated && (
             <span>
               Last updated: {new Date(formData.lastUpdated).toLocaleString()}
@@ -236,14 +252,14 @@ export function EnhancedFormRenderer({
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
-            {renderField(field, register, watch, setValue)}
+            {renderField(field, register, watch, setValue, isReadOnly)}
           </div>
         ))}
 
         <div className="flex justify-end pt-4">
           <Button
             type="submit"
-            disabled={saving}
+            disabled={saving || isReadOnly}
             className="flex items-center gap-2"
           >
             {saving ? (
@@ -293,6 +309,7 @@ export function renderField(
   register: any,
   watch: any,
   setValue: any,
+  readOnly?: boolean,
 ) {
   const baseInput =
     "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
@@ -321,6 +338,7 @@ export function renderField(
           <input
             type="file"
             className="border rounded px-3 py-2 w-full text-sm"
+            disabled={readOnly}
             {...register(field.id, { required: field.required })}
           />
         </div>
@@ -334,6 +352,7 @@ export function renderField(
         <Input
           type={field.type}
           placeholder={field.placeholder}
+          disabled={readOnly}
           {...register(field.id, { required: field.required })}
         />
       );
@@ -343,6 +362,7 @@ export function renderField(
         <Input
           type="number"
           placeholder={field.placeholder}
+          disabled={readOnly}
           {...register(field.id, { required: field.required })}
         />
       );
@@ -352,6 +372,7 @@ export function renderField(
         <Textarea
           placeholder={field.placeholder}
           className="min-h-[80px]"
+          disabled={readOnly}
           {...register(field.id, { required: field.required })}
         />
       );
@@ -362,6 +383,7 @@ export function renderField(
       return (
         <select
           className={baseInput}
+          disabled={readOnly}
           {...register(field.id, { required: field.required })}
         >
           <option value="">{field.placeholder || "Select an option"}</option>
@@ -382,6 +404,7 @@ export function renderField(
               <input
                 type="radio"
                 value={opt}
+                disabled={readOnly}
                 {...register(field.id, { required: field.required })}
               />
               <span>{opt}</span>
@@ -400,6 +423,7 @@ export function renderField(
                 <input
                   type="checkbox"
                   value={opt}
+                  disabled={readOnly}
                   {...register(field.id, { required: field.required })}
                 />
                 <span>{opt}</span>
@@ -412,6 +436,7 @@ export function renderField(
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
+            disabled={readOnly}
             onChange={(e) =>
               setValue(field.id, e.target.checked, { shouldValidate: true })
             }
@@ -428,6 +453,7 @@ export function renderField(
           register={register}
           watch={watch}
           setValue={setValue}
+          readOnly={readOnly}
         />
       );
 
@@ -438,6 +464,7 @@ export function renderField(
           register={register}
           watch={watch}
           setValue={setValue}
+          readOnly={readOnly}
         />
       );
 
@@ -445,13 +472,14 @@ export function renderField(
       return (
         <Input
           placeholder={field.placeholder}
+          disabled={readOnly}
           {...register(field.id, { required: field.required })}
         />
       );
   }
 }
 
-function ListField({ field, register, watch, setValue }: any) {
+function ListField({ field, register, watch, setValue, readOnly }: any) {
   const currentValue = watch(field.id) || [];
 
   const addEntry = () => {
@@ -478,6 +506,7 @@ function ListField({ field, register, watch, setValue }: any) {
             onChange={(e) => updateEntry(index, e.target.value)}
             placeholder={`${field.label} ${index + 1}`}
             className="flex-1"
+            disabled={readOnly}
           />
           <Button
             type="button"
@@ -485,6 +514,7 @@ function ListField({ field, register, watch, setValue }: any) {
             size="sm"
             onClick={() => removeEntry(index)}
             className="px-2"
+            disabled={readOnly}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -496,6 +526,7 @@ function ListField({ field, register, watch, setValue }: any) {
         size="sm"
         onClick={addEntry}
         className="flex items-center gap-2"
+        disabled={readOnly}
       >
         <Plus className="h-4 w-4" /> Add {field.label}
       </Button>
@@ -503,7 +534,7 @@ function ListField({ field, register, watch, setValue }: any) {
   );
 }
 
-function TableField({ field, register, watch, setValue }: any) {
+function TableField({ field, register, watch, setValue, readOnly }: any) {
   const currentValue = watch(field.id) || [];
 
   const addRow = () => {
@@ -565,6 +596,7 @@ function TableField({ field, register, watch, setValue }: any) {
                             updateCell(rowIndex, col.id, e.target.value)
                           }
                           className="w-full border rounded px-2 py-1 text-sm"
+                          disabled={readOnly}
                         >
                           <option value="">Select...</option>
                           {col.options?.map((opt, i) => (
@@ -581,6 +613,7 @@ function TableField({ field, register, watch, setValue }: any) {
                             updateCell(rowIndex, col.id, e.target.value)
                           }
                           className="w-full text-sm"
+                          disabled={readOnly}
                         />
                       )}
                     </td>
@@ -592,6 +625,7 @@ function TableField({ field, register, watch, setValue }: any) {
                       size="sm"
                       onClick={() => removeRow(rowIndex)}
                       className="px-2"
+                      disabled={readOnly}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -609,6 +643,7 @@ function TableField({ field, register, watch, setValue }: any) {
         size="sm"
         onClick={addRow}
         className="flex items-center gap-2"
+        disabled={readOnly}
       >
         <Plus className="h-4 w-4" /> Add Row
       </Button>

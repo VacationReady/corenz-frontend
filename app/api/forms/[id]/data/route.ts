@@ -54,6 +54,27 @@ export async function GET(
       );
     }
 
+    // Determine read-only rules for EMPLOYEE role based on onboarding
+    let readOnly = false;
+    if (session.user.role === "EMPLOYEE") {
+      // If there is an active/in_progress onboarding instance AND it contains this form step
+      // that is not yet completed, then editable; otherwise read-only
+      const activeInstance = await prisma.onboardingInstance.findFirst({
+        where: { employeeId, status: { in: ["active", "in_progress"] } },
+        include: {
+          OnboardingStepInstance: { include: { OnboardingStep: true } },
+        },
+      });
+      if (!activeInstance) {
+        readOnly = true;
+      } else {
+        const stepForForm = activeInstance.OnboardingStepInstance.find(
+          (s) => s.OnboardingStep?.formId === params.id,
+        );
+        readOnly = !stepForForm || stepForForm.status === "completed";
+      }
+    }
+
     // Get the data record for this form and employee
     const dataRecord = await prisma.formDataRecord.findUnique({
       where: {
@@ -73,6 +94,7 @@ export async function GET(
       },
       data: dataRecord?.data || {},
       lastUpdated: dataRecord?.updatedAt || null,
+      readOnly,
     });
   } catch (error) {
     console.error("Error fetching form data:", error);

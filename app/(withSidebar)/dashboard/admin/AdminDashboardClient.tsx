@@ -41,6 +41,7 @@ export default function AdminDashboardClient({
 }: AdminDashboardClientProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
+  const [detail, setDetail] = useState<any | null>(null);
   const [metrics, setMetrics] = useState<{
     headcount: number;
     managers: number;
@@ -60,6 +61,47 @@ export default function AdminDashboardClient({
   );
 
   useEffect(() => {
+    const handler = (e: any) => setDetail(e.detail);
+    window.addEventListener("open-leave-detail", handler as any);
+    return () => window.removeEventListener("open-leave-detail", handler as any);
+  }, []);
+
+  const DetailModal = () =>
+    detail ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40" onClick={() => setDetail(null)} />
+        <div className="relative bg-card text-card-foreground rounded-2xl shadow-xl w-full max-w-md p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Leave request</h3>
+            <button className="text-sm underline" onClick={() => setDetail(null)}>Close</button>
+          </div>
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar size={36} name={detail.employee?.user?.name} src={detail.employee?.user?.profileImageUrl} />
+            <div>
+              <div className="font-medium">{detail.employee?.user?.name}</div>
+              <div className="text-xs text-muted-foreground">{detail.type}</div>
+            </div>
+          </div>
+          <div className="text-sm space-y-1 mb-4">
+            <div>
+              Dates: {new Date(detail.startDate).toLocaleDateString()} → {new Date(detail.endDate).toLocaleDateString()}
+            </div>
+            {detail.reason && <div>Reason: {detail.reason}</div>}
+            {detail.employee?.department && <div>Department: {detail.employee.department}</div>}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={async () => {
+              await fetch(`/api/leave-request/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+              setDetail(null);
+            }}>Decline</Button>
+            <Button onClick={async () => {
+              await fetch(`/api/leave-request/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+              setDetail(null);
+            }}>Approve</Button>
+          </div>
+        </div>
+      </div>
+    ) : null;
     let isMounted = true;
     const load = async () => {
       setLoadingMetrics(true);
@@ -219,7 +261,18 @@ export default function AdminDashboardClient({
           return (
             <li
               key={it.id}
-              className="flex items-center justify-between gap-3 text-left"
+              className="flex items-center justify-between gap-3 text-left hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/leave-request/${it.id}`);
+                  const data = await res.json();
+                  if (data?.success) {
+                    window.dispatchEvent(
+                      new CustomEvent("open-leave-detail", { detail: data.data }),
+                    );
+                  }
+                } catch {}
+              }}
             >
               <Avatar
                 size={28}
@@ -229,7 +282,7 @@ export default function AdminDashboardClient({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{name}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {it.eventCategory?.name} •{" "}
+                  {(it.eventCategory?.name || it.type)} •{" "}
                   {new Date(it.startDate).toLocaleDateString()} →{" "}
                   {new Date(it.endDate).toLocaleDateString()}
                 </p>
@@ -545,6 +598,7 @@ export default function AdminDashboardClient({
             )}
           </div>
         </DashboardWidget>
+        <DetailModal />
       </div>
     );
   }

@@ -99,6 +99,7 @@ export async function GET(req: Request) {
                 managerId: true,
                 firstName: true,
                 lastName: true,
+                profileImageUrl: true,
               },
             },
           },
@@ -123,10 +124,15 @@ export async function GET(req: Request) {
         endDate: lr.endDate,
         reason: lr.reason ?? null,
         approvalStatus: lr.approvalStatus,
+        dayType: lr.dayType,
+        eventCategory: lr.EventCategory
+          ? { id: lr.EventCategory.id, name: lr.EventCategory.name }
+          : null,
         employee: {
           user: {
             name: fullName,
             email: user?.email ?? null,
+            profileImageUrl: user?.profileImageUrl ?? null,
           },
         },
       } as const;

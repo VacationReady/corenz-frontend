@@ -54,11 +54,16 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
 }
 
 function PendingTasks({ employeeId }: { employeeId: string }) {
+  // Use employee-scoped onboarding instances endpoint
   const { data, error, isLoading } = useSWR(
-    `/api/onboarding/instances/${employeeId}`,
+    employeeId ? `/api/onboarding/instances/employee/${employeeId}` : null,
     fetcher,
   );
-  const steps = Array.isArray(data?.steps) ? data.steps : [];
+  // API returns a list of instances; each has OnboardingStepInstance
+  const instances = Array.isArray(data) ? data : [];
+  const steps = instances.flatMap((inst: any) =>
+    Array.isArray(inst?.OnboardingStepInstance) ? inst.OnboardingStepInstance : [],
+  );
 
   return (
     <DashboardWidget title="Pending Tasks" icon={Bell}>
@@ -95,6 +100,7 @@ function MyDocuments({ employeeId }: { employeeId: string }) {
     `/api/documents/list-employee?employeeId=${employeeId}`,
     fetcher,
   );
+  const docs = Array.isArray(data) ? data : [];
 
   return (
     <DashboardWidget
@@ -110,13 +116,13 @@ function MyDocuments({ employeeId }: { employeeId: string }) {
         <WidgetLoading />
       ) : error ? (
         <WidgetError message="Failed to load documents." />
-      ) : !data || data.length === 0 ? (
+      ) : docs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No documents awaiting action.
         </p>
       ) : (
         <ul className="space-y-2">
-          {data.slice(0, 5).map((d: any) => (
+          {docs.slice(0, 5).map((d: any) => (
             <li
               key={d.id}
               className="text-sm flex items-center justify-between"

@@ -253,8 +253,8 @@ export async function POST(req: Request) {
     const activationToken = randomBytes(32).toString("hex");
     const hashedPassword = ""; // Leave blank for activation
 
-    // ✅ Handle manager linking safely
-    let managerConnect: any = undefined;
+    // ✅ Handle manager linking safely (capture manager's User.id)
+    let managerUserId: string | null = null;
     if (managerId && managerId.trim() !== "") {
       const managerEmployee = await prisma.employee.findUnique({
         where: { id: managerId },
@@ -262,10 +262,10 @@ export async function POST(req: Request) {
       });
 
       if (managerEmployee?.userId && managerEmployee.companyId === companyId) {
-        managerConnect = { connect: { id: managerEmployee.userId } };
+        managerUserId = managerEmployee.userId;
       } else {
         console.warn(
-          `Manager Employee ID ${managerId} missing or cross-company. Skipping manager connect.`,
+          `Manager Employee ID ${managerId} missing or cross-company. Skipping manager link.`,
         );
       }
     }
@@ -281,6 +281,7 @@ export async function POST(req: Request) {
         phone,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         role,
+        managerId: managerUserId || undefined,
         Company: { connect: { id: companyId } },
         updatedAt: new Date(),
       },
@@ -318,6 +319,12 @@ export async function POST(req: Request) {
           select: { userId: true, companyId: true },
         });
         if (mgr?.userId && mgr.companyId === companyId) {
+          // Ensure the new employee points to this manager as their line manager
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { managerId: mgr.userId },
+          });
+
           const mgrUser = await prisma.user.findUnique({
             where: { id: mgr.userId },
             select: { role: true },

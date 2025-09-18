@@ -2,9 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import NewsContentRenderer from "@/components/news/NewsContentRenderer";
-import DeleteNewsButton from "@/components/news/DeleteNewsButton";
+import NewsDetailClient from "@/components/news/NewsDetailClient";
 
 export const dynamic = "force-dynamic";
 
@@ -18,88 +16,93 @@ export default async function NewsDetailPage({ params }: Props) {
   const post = await prisma.newsPost.findFirst({
     where: {
       slug: params.slug,
-      ...(session?.user?.companyId ? { User: { companyId: session.user.companyId } } : {}),
+      ...(session?.user?.companyId
+        ? { User: { companyId: session.user.companyId } }
+        : {}),
     },
-    include: { User: true },
+    include: {
+      User: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+        },
+      },
+    },
   });
 
   if (!post) return notFound();
 
+  // Fetch related posts
+  const relatedPosts = await prisma.newsPost.findMany({
+    where: {
+      id: { not: post.id },
+      ...(session?.user?.companyId
+        ? { User: { companyId: session.user.companyId } }
+        : {}),
+      OR: [
+        { tags: { hasSome: post.tags } },
+        { authorId: post.authorId },
+      ],
+    },
+    take: 3,
+    include: {
+      User: {
+        select: {
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
+    orderBy: { publishedAt: "desc" },
+  });
+
   const isAuthor = session?.user?.id === post.authorId;
   const isAdmin = session?.user?.role === "ADMIN";
+  const canEdit = isAuthor || isAdmin;
+
+  // Transform the post data to match client expectations
+  const transformedPost = {
+    ...post,
+    author: {
+      id: post.User.id,
+      name: post.User.name,
+      email: post.User.email,
+      avatar: post.User.image,
+      role: post.User.role,
+    },
+    content: post.content as any,
+    attachments: post.attachments as string[],
+    audience: post.audience as any,
+    readTime: Math.ceil(
+      JSON.stringify(post.content).split(" ").length / 200
+    ), // Estimate read time
+    reactions: {
+      likes: 0,
+      hearts: 0,
+      fire: 0,
+    }, // TODO: Implement reactions in database
+    views: 0, // TODO: Implement view tracking
+  };
+
+  const transformedRelated = relatedPosts.map((p) => ({
+    ...p,
+    author: {
+      name: p.User.name,
+      email: p.User.email,
+      avatar: p.User.image,
+    },
+  }));
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-2">{post.title}</h1>
-      <p className="text-sm text-muted-foreground mb-4">
-        Posted by {post.User.name || "Unknown"} on{" "}
-        {new Date(post.publishedAt ?? post.createdAt).toLocaleDateString()}
-      </p>
-
-      <div className="mb-6">
-        <NewsContentRenderer content={(post.content as any) || []} />
-      </div>
-
-      {post.videoEmbedUrl && (
-        <div className="mb-6">
-          <iframe
-            src={post.videoEmbedUrl}
-            className="w-full aspect-video rounded"
-            allowFullScreen
-          ></iframe>
-        </div>
-      )}
-
-      {post.attachments.length > 0 && (
-        <div className="mb-6">
-          <h2 className="font-semibold text-lg mb-2">Attachments</h2>
-          <ul className="list-disc pl-5">
-            {post.attachments.map((url: any, i: number) => (
-              <li key={i}>
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline"
-                >
-                  {url.split("/").pop()}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {(post.audience as any)?.type !== "all" && (
-        <div className="mb-6 text-sm text-muted-foreground">
-          <p>Targeted Audience:</p>
-          <ul className="list-disc pl-5">
-            {(post.audience as any)?.departments?.length > 0 && (
-              <li>
-                Departments: {(post.audience as any).departments.join(", ")}
-              </li>
-            )}
-            {(post.audience as any)?.roles?.length > 0 && (
-              <li>Roles: {(post.audience as any).roles.join(", ")}</li>
-            )}
-            {(post.audience as any)?.locations?.length > 0 && (
-              <li>Locations: {(post.audience as any).locations.join(", ")}</li>
-            )}
-          </ul>
-        </div>
-      )}
-      {(isAdmin || isAuthor) && (
-        <div className="mt-10 flex gap-3">
-          <Link
-            href={`/news/${params.slug}/edit`}
-            className="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Edit
-          </Link>
-
-          <DeleteNewsButton slug={params.slug} />
-        </div>
-      )}
-    </div>
+    <NewsDetailClient
+      post={transformedPost}
+      relatedPosts={transformedRelated}
+      canEdit={canEdit}
+      currentUserId={session?.user?.id}
+    />
   );
 }

@@ -1503,8 +1503,8 @@ video {
 @layer base {
   :root {
     /* Beautiful Vibrant Palette - Modern Professional */
-    --background: 220 25% 95%; /* #f1f3f7 - Cool light base */
-    --foreground: 220 15% 15%; /* #1f2937 - Deep slate text */
+    --background: 220 25% 98%; /* #f8f9fc - Premium light base */
+    --foreground: 220 20% 10%; /* Deep refined text */
 
     /* Card System - Glass Morphism */
     --card: 0 0% 100%; /* Pure white for glass effect base */
@@ -1520,6 +1520,20 @@ video {
     --popover-foreground: 220 15% 15%;
     --primary: 217 91% 60%; /* #3b82f6 - Beautiful blue primary */
     --primary-foreground: 0 0% 100%;
+    --primary-rgb: 59, 130, 246;
+    
+    /* Primary color scale */
+    --primary-50: 214 100% 97%;
+    --primary-100: 214 95% 93%;
+    --primary-200: 213 97% 87%;
+    --primary-300: 212 96% 78%;
+    --primary-400: 213 94% 68%;
+    --primary-500: 217 91% 60%;
+    --primary-600: 221 83% 53%;
+    --primary-700: 224 76% 48%;
+    --primary-800: 226 71% 40%;
+    --primary-900: 226 64% 33%;
+    
     --secondary: 220 15% 92%;
     --secondary-foreground: 220 15% 15%;
     --muted: 220 15% 92%;
@@ -1535,9 +1549,17 @@ video {
     --ring: 217 91% 60%;
 
     /* Beautiful Gradient Colors for Background */
-    --gradient-start: 260 100% 98%; /* #f8faff - Soft purple */
-    --gradient-mid: 220 100% 96%; /* #f0f9ff - Sky blue */
-    --gradient-end: 190 100% 95%; /* #f0fdfa - Mint green */
+    --gradient-start: 280 100% 99%; /* Soft lavender */
+    --gradient-mid: 217 100% 97%; /* Premium blue */
+    --gradient-end: 190 100% 98%; /* Mint fresh */
+
+    /* Editorial Accent Colors */
+    --editorial-purple: 280 100% 70%;
+    --editorial-blue: 217 91% 60%;
+    --editorial-teal: 180 60% 50%;
+    --editorial-pink: 340 82% 65%;
+    --editorial-orange: 25 95% 53%;
+    --editorial-yellow: 45 93% 47%;
 
     /* Vibrant Accent Colors */
     --sunset-1: 217 91% 60%; /* Beautiful blue */
@@ -1554,39 +1576,61 @@ video {
     --radius: 1rem; /* Increased for modern look */
   }
   .dark {
-    /* Dark mode with warm undertones */
-    --background: 20 10% 8%; /* #151411 - Dark warm brown */
-    --foreground: 35 30% 95%; /* #f7f5f2 - Warm white text */
-    --card: 20 15% 12%; /* #201e1a - Dark card base */
-    --card-foreground: 35 30% 95%;
-    --card-header: 20 20% 15%; /* #262219 - Dark header */
-    --content-panel: 20 15% 10%; /* #1a1815 - Dark panel */
-    --section-background: 20 10% 8%;
-    --popover: 20 15% 12%;
-    --popover-foreground: 35 30% 95%;
-    --primary: 25 95% 53%; /* Keep warm amber in dark mode */
-    --primary-foreground: 20 10% 8%;
-    --secondary: 20 15% 20%;
-    --secondary-foreground: 35 30% 95%;
-    --muted: 20 15% 20%;
-    --muted-foreground: 25 15% 65%;
-    --accent: 20 20% 25%;
-    --accent-foreground: 35 30% 95%;
+    /* Dark mode with modern depth */
+    --background: 222 47% 7%; /* Rich dark blue */
+    --foreground: 210 40% 98%; /* Clean white text */
+    --card: 222 47% 11%; /* Elevated dark card */
+    --card-foreground: 210 40% 98%;
+    --card-header: 222 47% 13%; /* Subtle header */
+    --content-panel: 222 47% 9%; /* Deep panel */
+    --section-background: 222 47% 8%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%; /* Keep vibrant blue in dark mode */
+    --primary-foreground: 210 40% 98%;
+    --primary-rgb: 59, 130, 246;
+    
+    /* Primary color scale - dark mode */
+    --primary-50: 222 47% 15%;
+    --primary-100: 221 50% 18%;
+    --primary-200: 220 55% 25%;
+    --primary-300: 218 60% 35%;
+    --primary-400: 217 75% 45%;
+    --primary-500: 217 91% 60%;
+    --primary-600: 217 91% 65%;
+    --primary-700: 217 91% 70%;
+    --primary-800: 216 90% 75%;
+    --primary-900: 215 88% 80%;
+    
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 50%;
-    --destructive-foreground: 35 30% 95%;
-    --border: 20 15% 25%;
-    --input: 20 15% 15%;
-    --ring: 25 95% 53%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 217 91% 60%;
 
     /* Dark mode gradients */
-    --gradient-start: 20 15% 12%;
-    --gradient-mid: 20 10% 10%;
-    --gradient-end: 20 8% 8%;
+    --gradient-start: 222 47% 12%;
+    --gradient-mid: 222 47% 10%;
+    --gradient-end: 222 47% 8%;
+
+    /* Editorial Accent Colors - Dark Mode */
+    --editorial-purple: 280 100% 75%;
+    --editorial-blue: 217 91% 65%;
+    --editorial-teal: 180 60% 55%;
+    --editorial-pink: 340 82% 70%;
+    --editorial-orange: 25 95% 58%;
+    --editorial-yellow: 45 93% 52%;
 
     /* Dark sunset accents */
-    --sunset-1: 25 80% 45%;
-    --sunset-2: 15 70% 40%;
-    --sunset-3: 5 60% 35%;
+    --sunset-1: 217 91% 65%;
+    --sunset-2: 267 84% 70%;
+    --sunset-3: 142 76% 60%;
 
     --chart-1: 25 80% 45%;
     --chart-2: 15 70% 40%;

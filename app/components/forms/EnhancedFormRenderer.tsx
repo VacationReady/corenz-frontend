@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
-import { FormField, TableColumn } from "@/api/forms/[id]/types";
+import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, FormSection } from "@/api/forms/[id]/types";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
@@ -22,7 +22,7 @@ interface FormDataShape {
     id: string;
     name: string;
     formType: "SUBMISSION" | "DATA_SCREEN";
-    schema: FormField[];
+    schema: AnyFormSchema;
   };
   data: Record<string, any>;
   lastUpdated: string | null;
@@ -44,6 +44,46 @@ export function EnhancedFormRenderer({
   const [pendingPayload, setPendingPayload] = useState<Record<string, any> | null>(null);
 
   const { register, handleSubmit, setValue, watch, reset } = useForm();
+
+  const evaluateCondition = (cond: any): boolean => {
+    if (!cond) return true;
+    const left = watch(cond.fieldId);
+    const op = cond.operator as string;
+    const right = cond.value;
+    switch (op) {
+      case "equals":
+        return left === right;
+      case "notEquals":
+        return left !== right;
+      case "contains":
+        return Array.isArray(left) ? left.includes(right) : String(left || "").includes(String(right ?? ""));
+      case "notContains":
+        return Array.isArray(left) ? !left.includes(right) : !String(left || "").includes(String(right ?? ""));
+      case "greaterThan":
+        return Number(left) > Number(right);
+      case "greaterOrEqual":
+        return Number(left) >= Number(right);
+      case "lessThan":
+        return Number(left) < Number(right);
+      case "lessOrEqual":
+        return Number(left) <= Number(right);
+      case "isEmpty":
+        return left === undefined || left === null || left === "" || (Array.isArray(left) && left.length === 0);
+      case "isNotEmpty":
+        return !(left === undefined || left === null || left === "" || (Array.isArray(left) && left.length === 0));
+      default:
+        return true;
+    }
+  };
+
+  const evaluateGroup = (group: any): boolean => {
+    if (!group) return true;
+    const ands = (group.all || []) as any[];
+    const ors = (group.any || []) as any[];
+    const andOk = ands.length ? ands.every(evaluateCondition) : true;
+    const orOk = ors.length ? ors.some(evaluateCondition) : true;
+    return andOk && orOk;
+  };
 
   useEffect(() => {
     const loadFormData = async () => {
@@ -220,6 +260,9 @@ export function EnhancedFormRenderer({
 
   const isReadOnly = Boolean(formData?.readOnly);
 
+  // Normalize schema to pages/sections for rendering
+  const pages: FormPage[] = normalizeToPages(formData.form.schema as any);
+
   return (
     <div className="space-y-6">
       <div className="border-b pb-4">
@@ -246,13 +289,61 @@ export function EnhancedFormRenderer({
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {formData.form.schema.map((field) => (
-          <div key={field.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {field.label}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            {renderField(field, register, watch, setValue, isReadOnly)}
+        {pages.map((page) => (
+          <div key={page.id} className="space-y-6">
+            {page.title && (
+              <h3 className="text-lg font-semibold">{page.title}</h3>
+            )}
+            {page.description && (
+              <p className="text-sm text-gray-600">{page.description}</p>
+            )}
+            {(page.sections || []).filter((s) => !s.hidden).map((section) => (
+              <div key={section.id} className="space-y-4">
+                {section.title && (
+                  <div>
+                    <h4 className="font-semibold">{section.title}</h4>
+                    {section.description && (
+                      <p className="text-sm text-gray-600">{section.description}</p>
+                    )}
+                  </div>
+                )}
+                <div className={section.columns ? (section.columns === 2 ? "grid grid-cols-2 gap-4" : section.columns === 3 ? "grid grid-cols-3 gap-4" : "grid grid-cols-1 gap-4") : "grid grid-cols-12 gap-4"}>
+                  {section.fields.map((field) => {
+                    const isVisible = evaluateGroup(field.logic?.visibleWhen);
+                    if (!isVisible) return null;
+                    const widthClass = !section.columns
+                      ? field.width === "half"
+                        ? "col-span-12 md:col-span-6"
+                        : field.width === "third"
+                        ? "col-span-12 md:col-span-4"
+                        : field.width === "auto"
+                        ? "col-span-12 md:col-span-3"
+                        : "col-span-12"
+                      : "";
+                    return (
+                    <div key={field.id} className={widthClass}>
+                      {field.type === "sectionHeader" && (
+                        <h5 className="text-base font-semibold">{field.label}</h5>
+                      )}
+                      {field.type === "description" && (
+                        <p className="text-sm text-gray-600">{field.helpText || field.placeholder || field.label}</p>
+                      )}
+                      {field.type === "divider" && <div className="border-t" />}
+                      {!["sectionHeader","description","divider","pageBreak"].includes(String(field.type)) && (
+                        <>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {field.label}
+                            {(field.required || field.validation?.required) && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          {renderField(field, register, watch, setValue, isReadOnly)}
+                        </>
+                      )}
+                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         ))}
 
@@ -315,6 +406,53 @@ export function renderField(
     "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
 
   switch (field.type) {
+    case "time":
+      return (
+        <Input
+          type="time"
+          placeholder={field.placeholder}
+          disabled={readOnly}
+          {...register(field.id, { required: field.required || field.validation?.required })}
+        />
+      );
+    case "dateRange":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <Input type="date" disabled={readOnly} {...register(`${field.id}.start`, { required: field.required })} />
+          <Input type="date" disabled={readOnly} {...register(`${field.id}.end`, { required: field.required })} />
+        </div>
+      );
+    case "switch":
+      return (
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" disabled={readOnly} onChange={(e) => setValue(field.id, e.target.checked)} defaultChecked={!!watch(field.id)} />
+          <span>{field.placeholder || field.label}</span>
+        </label>
+      );
+    case "rating":
+      return (
+        <input type="range" min={field.validation?.min ?? 1} max={field.validation?.max ?? 5} step={1} disabled={readOnly} {...register(field.id, { required: field.required })} />
+      );
+    case "slider":
+      return (
+        <input type="range" min={field.validation?.min ?? 0} max={field.validation?.max ?? 100} disabled={readOnly} {...register(field.id, { required: field.required })} />
+      );
+    case "currency":
+    case "percentage":
+      return (
+        <Input type="text" inputMode="decimal" placeholder={field.placeholder} disabled={readOnly} {...register(field.id, { required: field.required })} />
+      );
+    case "address":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <Input disabled={readOnly} {...register(`${field.id}.line1`, { required: field.required })} placeholder="Address line 1" />
+          <Input disabled={readOnly} {...register(`${field.id}.line2`)} placeholder="Address line 2" />
+          <Input disabled={readOnly} {...register(`${field.id}.city`, { required: field.required })} placeholder="City" />
+          <Input disabled={readOnly} {...register(`${field.id}.state`)} placeholder="State" />
+          <Input disabled={readOnly} {...register(`${field.id}.postalCode`, { required: field.required })} placeholder="Postal code" />
+          <Input disabled={readOnly} {...register(`${field.id}.country`, { required: field.required })} placeholder="Country" />
+        </div>
+      );
     case "file":
       const existing = watch(field.id);
       return (

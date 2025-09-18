@@ -13,7 +13,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { FormField } from "@/api/forms/[id]/types";
+import { FormField, FormSection, AnyFormSchema, isLegacySchema, upgradeLegacySchema } from "@/api/forms/[id]/types";
 
 function useSlug(initialName: string, initialSlug: string) {
   const [name, setName] = useState(initialName);
@@ -55,7 +55,7 @@ interface FormBuilderProps {
     slug: string;
     description?: string;
     formType: "SUBMISSION" | "DATA_SCREEN";
-    schema: FormField[];
+    schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
@@ -65,7 +65,7 @@ interface FormBuilderProps {
     slug?: string;
     description?: string;
     formType?: "SUBMISSION" | "DATA_SCREEN";
-    schema: FormField[];
+    schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
@@ -73,7 +73,25 @@ interface FormBuilderProps {
 }
 
 export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
-  const [fields, setFields] = useState<FormField[]>(initialData?.schema || []);
+  // Normalize incoming schema into sections (single page model in builder)
+  const initialSections: FormSection[] = (() => {
+    const incoming = initialData?.schema as any;
+    if (!incoming) return [{ id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: [] }];
+    if (Array.isArray(incoming)) {
+      return upgradeLegacySchema(incoming).sections || [
+        { id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: incoming as FormField[] },
+      ];
+    }
+    if (incoming.sections && Array.isArray(incoming.sections)) {
+      return incoming.sections as FormSection[];
+    }
+    if (incoming.pages && Array.isArray(incoming.pages) && incoming.pages.length) {
+      return (incoming.pages[0].sections || []) as FormSection[];
+    }
+    return [{ id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: [] }];
+  })();
+
+  const [sections, setSections] = useState<FormSection[]>(initialSections);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [activeDragField, setActiveDragField] = useState<FormField | null>(
     null,
@@ -107,33 +125,32 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
     // Add new field from palette
     const dragged = active.data?.current as
-      | { type: string; label: string }
+      | { type: string; label: string; defaults?: Partial<FormField> }
       | undefined;
     if (
-      over.id === "canvas" &&
       dragged &&
-      !fields.find((f) => f.id === active.id)
+      String(over.id).startsWith("section-")
     ) {
+      const defaults = (dragged as any)?.defaults || {};
       const newField: FormField = {
         id: uuidv4(),
         type: dragged.type,
         label: dragged.label || "Untitled Field",
         required: false,
-      };
-      setFields((prev) => [...prev, newField]);
+        ...defaults,
+      } as FormField;
+      const targetSectionId = String(over.id).replace("section-", "");
+      setSections((prev) =>
+        prev.map((s) =>
+          s.id === targetSectionId ? { ...s, fields: [...s.fields, newField] } : s,
+        ),
+      );
       setSelectedField(newField);
       toast.success(`Added ${newField.type} field`);
       return;
     }
 
-    // Reorder fields
-    if (active.id !== over.id) {
-      const activeIndex = fields.findIndex((f) => f.id === active.id);
-      const overIndex = fields.findIndex((f) => f.id === over.id);
-      if (activeIndex !== -1 && overIndex !== -1) {
-        setFields((prev) => arrayMove(prev, activeIndex, overIndex));
-      }
-    }
+    // Reordering within the same section is handled by each section's SortableContext directly via child
   };
 
   const saveForm = () => {
@@ -143,19 +160,24 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
       return toast.error(
         "Slug can only contain lowercase letters, numbers, and hyphens",
       );
-    if (!fields.length)
+    const allFields = sections.flatMap((s) => s.fields);
+    if (!allFields.length)
       return toast.error("Add at least one field before saving");
-    if (fields.some((f) => !f.label.trim()))
+    if (allFields.some((f) => !f.label.trim()))
       return toast.error("All fields must have labels");
     if (!vis.roles.length)
       return toast.error("At least one role must be selected for visibility");
+
+    // Choose schema shape: if single default section without layout metadata -> legacy array for compatibility; else V2
+    const shouldUseLegacy = sections.length === 1 && !sections[0].title && !sections[0].description && (sections[0].columns ?? 1) === 1;
+    const schema: AnyFormSchema = shouldUseLegacy ? (sections[0].fields as FormField[]) : ({ version: 2, sections } as any);
 
     onSave({
       name: formName,
       slug: formSlug,
       description: formDescription,
       formType,
-      schema: fields,
+      schema,
       visibleToRoles: vis.roles,
       visibleToDepartments: vis.departments,
       visibleToJobRoles: vis.jobRoles,
@@ -288,9 +310,9 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
       <DndContext
         onDragEnd={handleDragEnd}
         onDragStart={(e) => {
-          const dragged = e.active.data?.current as
-            | { type: string; label: string }
-            | undefined;
+      const dragged = e.active.data?.current as
+        | { type: string; label: string; defaults?: Partial<FormField> }
+        | undefined;
           if (!dragged) return;
           setActiveDragField({
             id: "temp",
@@ -303,20 +325,18 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
           <FieldPalette />
           <FormCanvas
-            fields={fields}
-            setFields={setFields}
+            sections={sections}
+            setSections={setSections}
             selectedField={selectedField}
             onSelectField={setSelectedField}
           />
-          <div className="xl:col-span-1">
+          <div className="xl:col-span-1 xl:sticky xl:top-4 self-start">
             {selectedField ? (
               <FieldEditor
                 key={selectedField.id}
                 field={selectedField}
                 onChange={(updated) => {
-                  setFields((prev) =>
-                    prev.map((f) => (f.id === updated.id ? updated : f)),
-                  );
+                  setSections((prev) => prev.map((s) => ({ ...s, fields: s.fields.map((f) => (f.id === updated.id ? updated : f)) })));
                   setSelectedField(updated);
                 }}
               />
@@ -326,7 +346,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               </p>
             )}
           </div>
-          <FormPreview fields={fields} />
+          <FormPreview fields={sections.flatMap((s) => s.fields)} />
         </div>
         <DragOverlay>
           {activeDragField ? (

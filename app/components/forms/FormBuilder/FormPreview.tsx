@@ -19,11 +19,28 @@ export function FormPreview({ fields }: { fields: FormField[] }) {
         <form className="space-y-5">
           {fields.map((field) => (
             <div key={field.id} className="flex flex-col gap-1">
-              <label className="block text-sm font-medium text-gray-700">
-                {field.label || "Untitled Field"}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              {renderPreviewField(field)}
+              {/* Structural elements */}
+              {field.type === "sectionHeader" && (
+                <h4 className="text-lg font-semibold pt-2">{field.label || "Section"}</h4>
+              )}
+              {field.type === "description" && (
+                <p className="text-sm text-gray-600">{field.helpText || field.placeholder || field.label}</p>
+              )}
+              {field.type === "divider" && <div className="border-t my-2" />}
+              {field.type === "pageBreak" && (
+                <div className="text-xs uppercase tracking-wide text-gray-400 pt-2">Page Break</div>
+              )}
+
+              {/* Controls */}
+              {!["sectionHeader","description","divider","pageBreak"].includes(String(field.type)) && (
+                <>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {field.label || "Untitled Field"}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  {renderPreviewField(field)}
+                </>
+              )}
             </div>
           ))}
         </form>
@@ -37,6 +54,51 @@ function renderPreviewField(field: FormField) {
     "border rounded w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
 
   switch (field.type) {
+    case "time":
+      return <input type="time" className={baseInput} />;
+    case "dateRange":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <input type="date" className={baseInput} placeholder="Start" />
+          <input type="date" className={baseInput} placeholder="End" />
+        </div>
+      );
+    case "switch":
+      return (
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" className="accent-blue-500" />
+          <span>{field.placeholder || "Toggle"}</span>
+        </label>
+      );
+    case "rating":
+      return (
+        <div className="flex gap-1">
+          {Array.from({ length: Math.max(5, Number(field.validation?.max || 5)) }).map((_, i) => (
+            <span key={i} className={`text-lg ${i < Number(field.defaultValue || 0) ? "text-yellow-500" : "text-gray-300"}`}>★</span>
+          ))}
+        </div>
+      );
+    case "slider":
+      return <input type="range" className="w-full" min={field.validation?.min ?? 0} max={field.validation?.max ?? 100} defaultValue={field.defaultValue ?? 50} />;
+    case "currency":
+      return <input type="text" inputMode="decimal" className={baseInput} placeholder={field.placeholder || "$0.00"} />;
+    case "percentage":
+      return <input type="text" inputMode="decimal" className={baseInput} placeholder={field.placeholder || "0%"} />;
+    case "address":
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          <input className={baseInput} placeholder="Address line 1" />
+          <input className={baseInput} placeholder="Address line 2" />
+          <input className={baseInput} placeholder="City" />
+          <input className={baseInput} placeholder="State" />
+          <input className={baseInput} placeholder="Postal code" />
+          <input className={baseInput} placeholder="Country" />
+        </div>
+      );
+    case "attachmentGallery":
+      return <div className="grid grid-cols-3 gap-2"><div className="h-14 bg-gray-100 rounded" /><div className="h-14 bg-gray-100 rounded" /><div className="h-14 bg-gray-100 rounded" /></div>;
+    case "signature":
+      return <div className="h-20 border rounded flex items-center justify-center text-xs text-gray-500">Signature pad</div>;
     case "text":
     case "email":
     case "phone":
@@ -107,6 +169,17 @@ function renderPreviewField(field: FormField) {
         <input
           type="file"
           className={`${baseInput} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+        />
+      );
+    case "computed":
+    case "readOnly":
+      return (
+        <input
+          type="text"
+          disabled
+          className={`${baseInput} bg-gray-50`}
+          placeholder={field.placeholder || "Auto-calculated"}
+          defaultValue={field.defaultValue}
         />
       );
 

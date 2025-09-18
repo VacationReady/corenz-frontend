@@ -281,7 +281,6 @@ export async function POST(req: Request) {
         phone,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         role,
-        managerId: managerUserId || undefined,
         Company: { connect: { id: companyId } },
         updatedAt: new Date(),
       },

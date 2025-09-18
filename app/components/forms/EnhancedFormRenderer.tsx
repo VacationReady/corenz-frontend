@@ -167,7 +167,10 @@ export function EnhancedFormRenderer({
     }
     const data = { ...rawData };
 
-    for (const field of formData!.form.schema) {
+    const allFields = normalizeToPages(formData!.form.schema as any)
+      .flatMap((p) => p.sections || [])
+      .flatMap((s) => s.fields);
+    for (const field of allFields) {
       if (field.type === "file") {
         const file = toFile(rawData[field.id]);
         if (file) {

@@ -30,7 +30,7 @@ interface NewsPost {
   author: {
     name: string | null;
     email: string;
-    avatar?: string;
+    avatar?: string | null;
   };
   publishedAt: string | null;
   tags: string[];

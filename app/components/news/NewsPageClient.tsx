@@ -240,19 +240,9 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
   return (
     <PageShell
-      title={
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-editorial-purple to-editorial-blue rounded-xl">
-            <Megaphone className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Company News Hub</h1>
-            <p className="text-sm text-muted-foreground">
-              Stay connected with the latest updates and announcements
-            </p>
-          </div>
-        </div>
-      }
+      title="Company News Hub"
+      description="Stay connected with the latest updates and announcements"
+      icon={<Megaphone className="w-6 h-6" />}
       breadcrumbs={breadcrumbs || undefined}
       action={
         canPost ? (

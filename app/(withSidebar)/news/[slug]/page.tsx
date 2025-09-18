@@ -26,7 +26,7 @@ export default async function NewsDetailPage({ params }: Props) {
           id: true,
           name: true,
           email: true,
-          image: true,
+          profileImageUrl: true,
           role: true,
         },
       },
@@ -53,7 +53,7 @@ export default async function NewsDetailPage({ params }: Props) {
         select: {
           name: true,
           email: true,
-          image: true,
+          profileImageUrl: true,
         },
       },
     },
@@ -71,7 +71,7 @@ export default async function NewsDetailPage({ params }: Props) {
       id: post.User.id,
       name: post.User.name,
       email: post.User.email,
-      avatar: post.User.image,
+      avatar: post.User.profileImageUrl,
       role: post.User.role,
     },
     content: post.content as any,
@@ -93,7 +93,7 @@ export default async function NewsDetailPage({ params }: Props) {
     author: {
       name: p.User.name,
       email: p.User.email,
-      avatar: p.User.image,
+      avatar: p.User.profileImageUrl,
     },
   }));
 

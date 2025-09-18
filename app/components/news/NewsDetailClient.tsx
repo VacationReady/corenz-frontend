@@ -570,9 +570,12 @@ export default function NewsDetailClient({
                   post={{
                     ...relatedPost,
                     content: null,
-                    authorId: "",
                     pinned: false,
-                    createdAt: relatedPost.publishedAt || new Date().toISOString(),
+                    publishedAt: relatedPost.publishedAt 
+                      ? typeof relatedPost.publishedAt === 'string' 
+                        ? relatedPost.publishedAt 
+                        : relatedPost.publishedAt.toISOString()
+                      : null,
                   }}
                   variant="compact"
                   showActions={false}

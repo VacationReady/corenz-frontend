@@ -45,7 +45,7 @@ export default function CreateNewsPostPage() {
   const [isDraft, setIsDraft] = useState(false);
   const [sendEmail, setSendEmail] = useState(false);
   const [audience, setAudience] = useState<{
-    type?: "all";
+    type?: "all" | "custom";
     departments?: string[];
     roles?: string[];
     locations?: string[];

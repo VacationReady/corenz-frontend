@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { uploadToSupabase } from "@/lib/supabase";
@@ -56,7 +56,7 @@ export default function ProfileAvatarUploader({
 
   // Client fallback: if we only have a storage path, request a signed URL
   // Useful if server-side signing failed or the URL expired between SSR and hydration
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     async function ensureSigned() {
       if (!url && initialPath) {

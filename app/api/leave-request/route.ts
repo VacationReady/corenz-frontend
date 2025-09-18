@@ -108,12 +108,31 @@ export async function GET(req: Request) {
       take,
     });
 
-    console.log(
-      "✅ Leave requests found:",
-      JSON.stringify(leaveRequests, null, 2),
-    );
+    // Normalize shape for UI expectations (employee.user.* and type)
+    const normalized = leaveRequests.map((lr) => {
+      const user = lr.Employee?.User;
+      const fullName = user
+        ? (user.name && user.name.trim().length > 0
+            ? user.name
+            : `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()) || null
+        : null;
+      return {
+        id: lr.id,
+        type: lr.EventCategory?.name ?? "",
+        startDate: lr.startDate,
+        endDate: lr.endDate,
+        reason: lr.reason ?? null,
+        approvalStatus: lr.approvalStatus,
+        employee: {
+          user: {
+            name: fullName,
+            email: user?.email ?? null,
+          },
+        },
+      } as const;
+    });
 
-    return NextResponse.json({ success: true, data: leaveRequests });
+    return NextResponse.json({ success: true, data: normalized });
   } catch (error: any) {
     console.error("API error fetching leave requests:", error);
     return NextResponse.json(

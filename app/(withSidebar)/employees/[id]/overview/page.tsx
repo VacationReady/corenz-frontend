@@ -99,6 +99,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             userId={employee.userId}
             name={employeeName}
             initialUrl={signedProfileUrl}
+            initialPath={employee.User.profileImageUrl}
           />
         </div>
 

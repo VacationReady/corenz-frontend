@@ -11,12 +11,14 @@ type Props = {
   userId: string;
   name: string;
   initialUrl?: string | null;
+  initialPath?: string | null;
 };
 
 export default function ProfileAvatarUploader({
   userId,
   name,
   initialUrl,
+  initialPath,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [url, setUrl] = useState<string | undefined | null>(initialUrl);
@@ -51,6 +53,26 @@ export default function ProfileAvatarUploader({
       if (inputRef.current) inputRef.current.value = "";
     }
   };
+
+  // Client fallback: if we only have a storage path, request a signed URL
+  // Useful if server-side signing failed or the URL expired between SSR and hydration
+  React.useEffect(() => {
+    let cancelled = false;
+    async function ensureSigned() {
+      if (!url && initialPath) {
+        try {
+          const res = await fetch(`/api/storage/sign?path=${encodeURIComponent(initialPath)}`, { cache: "no-store" });
+          if (!res.ok) return;
+          const json = await res.json();
+          if (!cancelled) setUrl(json.url || null);
+        } catch {}
+      }
+    }
+    ensureSigned();
+    return () => {
+      cancelled = true;
+    };
+  }, [url, initialPath]);
 
   return (
     <div className="flex flex-col items-center">

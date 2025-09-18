@@ -206,7 +206,12 @@ export default function AdminDashboardClient({
             cache: "no-store",
           });
           const data = await res.json();
-          if (active) setItems(data?.success ? data.data : []);
+          const parsed = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+          if (active) setItems(parsed);
         } catch {
           if (active) setItems([]);
         } finally {

@@ -229,7 +229,7 @@ export default function AddLeaveRequestDialog({
               </select>
             </div>
 
-            {selectedCategory && selectedCategory.subcategories.length > 0 && (
+                {selectedCategory && (selectedCategory.subcategories?.length ?? 0) > 0 && (
               <div>
                 <label className="block text-sm font-medium">
                   Subcategory (optional)

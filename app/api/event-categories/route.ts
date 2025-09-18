@@ -38,7 +38,16 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(categories);
+    // Normalize shape for consumers expecting `subcategories` while preserving original fields
+    const normalized = categories.map((c) => ({
+      ...c,
+      subcategories: (c as any).EventSubcategory?.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+      })) ?? [],
+    }));
+
+    return NextResponse.json(normalized);
   } catch (error: any) {
     console.error("[Event Categories GET]", error);
     return NextResponse.json(

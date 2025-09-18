@@ -44,33 +44,34 @@ export async function GET(req: Request) {
       pendingApprovalsAll,
     ] = await Promise.all([
       prisma.employee.count({
-        where: { isActive: true, companyId, departmentId },
-      }),
-      prisma.user.count({
         where: {
+          isActive: true,
           companyId,
-          role: "MANAGER",
           ...(departmentId ? { departmentId } : {}),
         },
       }),
       prisma.user.count({
         where: {
           companyId,
-          createdAt: { gte: startOfMonth, lt: startOfNextMonth },
-          Employee: {
-            isActive: true,
-            ...(departmentId ? { departmentId } : {}),
-          },
+          role: "MANAGER",
+          ...(departmentId ? { Department_User_departmentIdToDepartment: { id: departmentId } } : {} as any),
+        } as any,
+      }),
+      prisma.employee.count({
+        where: {
+          companyId,
+          isActive: true,
           ...(departmentId ? { departmentId } : {}),
+          User: { createdAt: { gte: startOfMonth, lt: startOfNextMonth } },
         },
       }),
       prisma.leaveRequest.count({
         where: {
           approvalStatus: "PENDING",
           Employee: {
-            User: { managerId: session.user.id },
             companyId,
             ...(departmentId ? { departmentId } : {}),
+            User: { managerId: session.user.id },
           },
         },
       }),

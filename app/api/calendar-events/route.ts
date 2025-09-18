@@ -65,7 +65,7 @@ export async function GET(req: Request) {
         const displayName =
           (user?.name ||
             `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
-          "Unknown";
+            "Unknown");
 
         let profileImageUrl: string | null = null;
         if (user?.profileImageUrl) {

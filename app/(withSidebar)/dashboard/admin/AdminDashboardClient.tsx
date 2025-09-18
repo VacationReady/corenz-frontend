@@ -102,6 +102,8 @@ export default function AdminDashboardClient({
         </div>
       </div>
     ) : null;
+  
+  useEffect(() => {
     let isMounted = true;
     const load = async () => {
       setLoadingMetrics(true);

@@ -1,3 +1,122 @@
+import { describe, it, beforeEach, mock } from "node:test";
+import assert from "node:assert";
+import { NextRequest } from "next/server";
+import { POST as ReportsQueryPOST } from "@/app/api/reports/query/route";
+
+// Mocks
+const mockGetServerSession = mock.fn();
+const mockPrismaFindMany = mock.fn();
+const mockPrisma = new Proxy(
+  {},
+  {
+    get: (_target, prop) => {
+      return { findMany: mockPrismaFindMany };
+    },
+  },
+);
+
+mock.module("next-auth", () => ({
+  getServerSession: mockGetServerSession,
+}));
+
+mock.module("@/lib/prisma", () => ({
+  prisma: mockPrisma,
+}));
+
+describe("/api/reports/query route", () => {
+  beforeEach(() => {
+    mockGetServerSession.mock.resetCalls();
+    mockPrismaFindMany.mock.resetCalls();
+  });
+
+  it("rejects unauthenticated users", async () => {
+    mockGetServerSession.mock.mockImplementationOnce(() => Promise.resolve(null));
+    const req = new NextRequest("http://localhost:3000/api/reports/query", {
+      method: "POST",
+      body: JSON.stringify({ selectedFields: ["User.email"] }),
+    });
+    const res = await ReportsQueryPOST(req);
+    assert.strictEqual(res.status, 401);
+  });
+
+  it("maps string contains filter and enforces tenant scoping", async () => {
+    mockGetServerSession.mock.mockImplementationOnce(() =>
+      Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
+    );
+    mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+
+    const req = new NextRequest("http://localhost:3000/api/reports/query", {
+      method: "POST",
+      body: JSON.stringify({
+        selectedFields: ["User.email"],
+        filters: [
+          { field: "User.email", operator: "contains", value: "@corp" },
+        ],
+        pagination: { page: 1, limit: 10 },
+        sort: { field: "User.email", direction: "asc" },
+      }),
+    });
+
+    const res = await ReportsQueryPOST(req);
+    assert.strictEqual(res.status, 200);
+    // Ensure Prisma called with expected where
+    const args = mockPrismaFindMany.mock.calls[0].arguments[0];
+    assert(args);
+    assert.deepStrictEqual(args.where.email, { contains: "@corp", mode: "insensitive" });
+  });
+
+  it("maps number and boolean operators and nested orderBy", async () => {
+    mockGetServerSession.mock.mockImplementationOnce(() =>
+      Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
+    );
+    mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+
+    const req = new NextRequest("http://localhost:3000/api/reports/query", {
+      method: "POST",
+      body: JSON.stringify({
+        selectedFields: ["Employee.salaryAmount", "User.department.name"],
+        filters: [
+          { field: "Employee.salaryAmount", operator: "greater_than", value: 50000 },
+          { field: "Employee.isActive", operator: "equals", value: true },
+        ],
+        sort: { field: "Employee.salaryAmount", direction: "desc" },
+      }),
+    });
+
+    const res = await ReportsQueryPOST(req);
+    assert.strictEqual(res.status, 200);
+    const args = mockPrismaFindMany.mock.calls[0].arguments[0];
+    assert(args);
+    assert.deepStrictEqual(args.where.salaryAmount, { gt: 50000 });
+    assert.deepStrictEqual(args.where.isActive, { equals: true });
+    assert.deepStrictEqual(args.orderBy, { salaryAmount: "desc" });
+  });
+
+  it("maps date_between operator correctly", async () => {
+    mockGetServerSession.mock.mockImplementationOnce(() =>
+      Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
+    );
+    mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+
+    const req = new NextRequest("http://localhost:3000/api/reports/query", {
+      method: "POST",
+      body: JSON.stringify({
+        selectedFields: ["LeaveRequest.startDate"],
+        filters: [
+          { field: "LeaveRequest.startDate", operator: "date_between", value: "2025-01-01", value2: "2025-12-31" },
+        ],
+      }),
+    });
+
+    const res = await ReportsQueryPOST(req);
+    assert.strictEqual(res.status, 200);
+    const args = mockPrismaFindMany.mock.calls[0].arguments[0];
+    assert(args);
+    assert(args.where.startDate.gte instanceof Date);
+    assert(args.where.startDate.lte instanceof Date);
+  });
+});
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";

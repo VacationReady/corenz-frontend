@@ -10,9 +10,12 @@ The HR Reporting System is a complete redesign of the reporting area specificall
 - Fields are organized into logical HR categories:
   - **People & Demographics**: Personal information, contact details
   - **Employment Details**: Job roles, departments, working patterns
+  - **Compensation & Payroll**: Salary, hourly rate, tax and benefits
   - **Time Off & Leave**: Leave requests, entitlements, balances
-  - **Documents & Compliance**: Employment checks, training records
-  - **Performance & Training**: Training completion, development tracking
+  - **Documents & Compliance**: Employment checks, licenses, training certificates
+  - **Offboarding**: Exit status, last working date, offboarding reasons
+  - **Performance & Training**: Training completion and providers
+  - **Forms**: Dynamic fields sourced from tenant-defined Forms
 
 ### 🧙‍♂️ Multi-Step Report Wizard
 1. **Choose Report Type**: Select from pre-built templates or start from scratch
@@ -26,6 +29,23 @@ The HR Reporting System is a complete redesign of the reporting area specificall
 - **Date Fields**: Before, after, between, in last/next X days
 - **Boolean Fields**: Is true/false, is empty/not empty
 - **Enum Fields**: Is one of, is not one of
+- Preview table now supports:
+  - Column search (strings)
+  - Number ranges (min/max)
+  - Date ranges (from/to)
+  - Boolean dropdown (All/True/False)
+  - Exact value multi-select (fallback)
+
+### 🧩 Dynamic Forms Integration
+- The system inspects each tenant’s `Form` definitions and creates synthetic reportable fields under the **Forms** category.
+- Shape: `FormSubmission.data.{formSlug}.{fieldSlug}` with inferred types (string/number/date/boolean/enum).
+- Endpoints reflecting this:
+  - `/api/fields`: grouped lists include Forms fields for the current tenant.
+  - `/api/reports/fields`: flat list merges HR fields with Forms-derived fields.
+
+### 🔐 Multi-Tenant Safety
+- All report queries are scoped to the authenticated `companyId` across supported models.
+- Saved report GET/DELETE routes enforce `companyId` checks.
 
 ### 🎨 Modern UX Design
 - Clean, accessible interface with ARIA labels
@@ -46,16 +66,16 @@ app/
 │       └── FilterConfiguration.tsx # Type-aware filter builder
 ├── reports/
 │   ├── builder-new/
-│   │   └── page.tsx              # New HR-focused report builder
-│   └── page.tsx                  # Updated reports listing page
+│   │   └── page.tsx               # New HR-focused report builder
+│   └── page.tsx                   # Updated reports listing page
 └── api/
     ├── fields/
-    │   └── route.ts              # HR-curated fields API
+    │   └── route.ts               # HR-curated fields API (with Forms)
     └── reports/
         ├── fields/
-        │   └── route.ts          # Report fields API
+        │   └── route.ts           # Report fields API (merged HR + Forms)
         └── query/
-            └── route.ts          # Updated query API
+            └── route.ts           # Operator-aware, tenant-scoped query API
 ```
 
 ## HR Field Categories
@@ -69,7 +89,12 @@ app/
 - Employment Status (Active/Inactive)
 - Department, Job Role
 - Working Pattern
-- Manager Information
+- Start Date, Manager ID
+
+### Compensation & Payroll
+- Salary Amount, Hourly Rate
+- Tax Code
+- KiwiSaver Enrolled, Contribution %
 
 ### Time Off & Leave
 - Leave Start/End Dates
@@ -78,14 +103,21 @@ app/
 - Carryover Days
 
 ### Documents & Compliance
-- Employment Check Types and Expiry
-- Driver License Information
-- Training Records and Certificates
+- Employment Check Types and Issue/Expiry
+- Driver License Type and Expiry
+
+### Offboarding
+- High-level Offboarding Status and Date
+- Exit Workflow Status, Last Working Date, Reason
+- Exit Interview Required
 
 ### Performance & Training
-- Training Completion Dates
-- Course Names and Providers
-- Training Expiry Tracking
+- Training Completion/Expiry Dates
+- Course Name, Training Provider
+
+### Forms
+- Dynamic per-tenant fields from `Form.schema`
+- Addressed by `FormSubmission.data.{formSlug}.{fieldSlug}`
 
 ## Report Templates
 
@@ -99,20 +131,20 @@ app/
 ## API Endpoints
 
 ### `/api/fields`
-Returns HR-curated fields grouped by category:
+Returns HR-curated fields grouped by category with Forms fields included:
 ```json
 {
   "categories": [...],
-  "fields": {...},
+  "fields": {"People & Demographics": [...], "Forms": [...]},
   "allFields": [...]
 }
 ```
 
 ### `/api/reports/fields`
-Returns the complete list of HR report fields with metadata.
+Returns the complete list of HR report fields with metadata, including Forms-derived fields.
 
 ### `/api/reports/query`
-Processes report queries with HR field validation and filtering.
+Processes report queries with HR field validation and filtering, mapping operators to Prisma conditions and returning a single coherent recordset.
 
 ## Usage Examples
 
@@ -137,31 +169,10 @@ Processes report queries with HR field validation and filtering.
 - **Data Filtering**: Automatic company-scoped data filtering
 - **Field Whitelisting**: Only HR-relevant fields are exposed
 
-## Technical Implementation
-
-### Field Metadata System
-Each field includes:
-- `model`: Data model name
-- `field`: Field identifier
-- `label`: Human-readable name
-- `type`: Data type for smart filtering
-- `category`: HR business area
-- `filterable`: Whether field can be filtered
-- `sortable`: Whether field can be sorted
-- `isPII`: Personal information flag
-
-### Filter System
-Type-aware operators automatically adapt based on field types:
-- String fields get text-based operators
-- Date fields get temporal operators
-- Number fields get numerical operators
-- Boolean fields get true/false options
-
-### Responsive Design
-- Mobile-first approach
-- Touch-friendly controls
-- Collapsible sections for small screens
-- Progressive enhancement
+## Technical Implementation Notes
+- Filters are operator-aware and validated server-side.
+- Sorting supports nested keys and produces Prisma-friendly `orderBy` objects.
+- CSV export in preview uses a nested-value accessor to correctly serialize relations.
 
 ## Future Enhancements
 

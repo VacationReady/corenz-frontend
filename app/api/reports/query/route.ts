@@ -6,129 +6,123 @@ import { authOptions } from "@/lib/auth-options";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { z } from "zod";
 
+const allowedOperators = [
+	"equals","not_equals","contains","not_contains","starts_with","ends_with",
+	"greater_than","less_than","greater_than_equal","less_than_equal","between",
+	"is_null","is_not_null","in","not_in",
+	"date_equals","date_before","date_after","date_between","date_in_last","date_in_next",
+] as const;
+
+type Operator = typeof allowedOperators[number];
+
 const filterSchema = z
-  .object({
-    field: z.string().trim().min(1, "Filter field is required"),
-    value: z.any(),
-  })
-  .passthrough();
+	.object({
+		field: z.string().trim().min(1, "Filter field is required"),
+		operator: z.enum(allowedOperators),
+		value: z.any().optional(),
+		value2: z.any().optional(),
+	})
+	.passthrough();
 
 const paginationSchema = z
-  .object({
-    limit: z.number().int().positive().optional(),
-    page: z.number().int().positive().optional(),
-  })
-  .optional();
+	.object({
+		limit: z.number().int().positive().optional(),
+		page: z.number().int().positive().optional(),
+	})
+	.optional();
 
 const sortSchema = z
-  .object({
-    field: z.string().trim().min(1, "Sort field is required"),
-    direction: z.enum(["asc", "desc"]).optional(),
-  })
-  .passthrough()
-  .optional();
+	.object({
+		field: z.string().trim().min(1, "Sort field is required"),
+		direction: z.enum(["asc", "desc"]).optional(),
+	})
+	.passthrough()
+	.optional();
 
 const reportQuerySchema = z.object({
-  selectedFields: z
-    .array(z.string().trim().min(1, "Field name is required"))
-    .min(1, "At least one field must be selected"),
-  filters: z.array(filterSchema).optional(),
-  pagination: paginationSchema,
-  sort: sortSchema,
+	selectedFields: z
+		.array(z.string().trim().min(1, "Field name is required"))
+		.min(1, "At least one field must be selected"),
+	filters: z.array(filterSchema).optional(),
+	pagination: paginationSchema,
+	sort: sortSchema,
 });
 
 export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.companyId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+	try {
+		const session = await getServerSession(authOptions);
+		if (!session?.user?.companyId) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
 
-    const parsedBody = reportQuerySchema.parse(await req.json());
-    const { selectedFields, filters = [], pagination, sort } = {
-      ...parsedBody,
-      filters: parsedBody.filters ?? [],
-    };
+		const parsedBody = reportQuerySchema.parse(await req.json());
+		const { selectedFields, filters = [], pagination, sort } = {
+			...parsedBody,
+			filters: parsedBody.filters ?? [],
+		};
 
-    console.log("🟡 Selected fields:", selectedFields);
-    console.log("🟡 Filters:", filters);
-    console.log("🟡 Pagination:", pagination);
-    console.log("🟡 Sort:", sort);
+		// Restrict selectedFields to allowed hrReportFields list
+		const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));
+		const sanitizedSelectedFields = (selectedFields as string[]).filter((f) =>
+			allowedFieldSet.has(f),
+		);
 
-    // Restrict selectedFields to allowed hrReportFields list
-    const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));
-    const sanitizedSelectedFields = (selectedFields as string[]).filter((f) =>
-      allowedFieldSet.has(f),
-    );
+		if (sanitizedSelectedFields.length === 0) {
+			return NextResponse.json(
+				{ status: "error", message: "No valid fields selected", data: [] },
+				{ status: 400 },
+			);
+		}
 
-    if (sanitizedSelectedFields.length === 0) {
-      return NextResponse.json(
-        { status: "error", message: "No valid fields selected", data: [] },
-        { status: 400 },
-      );
-    }
+		// Enforce tenant boundaries across common models by appending a hidden filter per model
+		const tenantCompanyId = session.user.companyId;
+		const modelsWithCompanyId = [
+			"User","Employee","Department","JobRole","LeaveRequest","LeaveEntitlement",
+			"EventCategory","EventSubcategory","TrainingRecord","Course","TrainingProvider",
+			"Document","EmploymentCheck","EmployeeOffboarding","SavedReport",
+		];
 
-    // Inject tenant filter for User model queries
-    const enforcedFilters = Array.isArray(filters) ? [...filters] : [];
-    enforcedFilters.push({ field: "User.companyId", value: session.user.companyId });
+		const enforcedFilters = Array.isArray(filters) ? [...filters] : [];
+		for (const model of modelsWithCompanyId) {
+			enforcedFilters.push({ field: `${model}.companyId`, operator: "equals", value: tenantCompanyId });
+		}
 
-    const { queries, computedFields } = buildDynamicQuery({
-      selectedFields: sanitizedSelectedFields,
-      filters: enforcedFilters,
-      pagination,
-      sort,
-    });
+		// Build and execute the constrained query
+		const { queries } = buildDynamicQuery({
+			selectedFields: sanitizedSelectedFields,
+			filters: enforcedFilters,
+			pagination,
+			sort,
+		});
 
-    const combinedResults: Record<string, any[]> = {};
+		if (queries.length === 0) {
+			return NextResponse.json({ status: "success", message: "No data", data: [] });
+		}
 
-    for (const { model, prismaQuery } of queries) {
-      const prismaModelKey = model; // Use model name as-is (case-sensitive)
+		// Single primary dataset
+		const primary = queries[0];
+		const model = primary.model as keyof typeof prisma;
+		// @ts-ignore dynamic access
+		let results = await (prisma[model] as any).findMany(primary.prismaQuery);
+		results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
 
-      console.log("🔵 Processing model:", model);
-      console.log("🔵 Prisma model resolved as:", prismaModelKey);
-      console.log(
-        "🔵 Prisma query payload:",
-        JSON.stringify(prismaQuery, null, 2),
-      );
-
-      if (!(prismaModelKey in prisma)) {
-        console.error("❌ Invalid model:", model);
-        console.error(
-          "✅ Available models in Prisma client:",
-          Object.keys(prisma),
-        );
-        return NextResponse.json(
-          { status: "error", message: `Invalid model '${model}'`, data: [] },
-          { status: 400 },
-        );
-      }
-
-      // @ts-ignore – dynamic model access is safe here
-      let results = await (
-        prisma[prismaModelKey as keyof typeof prisma] as any
-      ).findMany(prismaQuery);
-
-      results = await attachComputedFields(results, selectedFields, model);
-      combinedResults[model] = results;
-    }
-
-    return NextResponse.json({
-      status: "success",
-      message: "Report generated successfully",
-      data: combinedResults,
-    });
-  } catch (error: any) {
-    console.error("🔥 Error in report query API:", error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid request body", details: error.flatten(), data: [] },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json(
-      { status: "error", message: "Internal server error", data: [] },
-      { status: 500 },
-    );
-  }
+		return NextResponse.json({
+			status: "success",
+			message: "Report generated successfully",
+			data: results,
+		});
+	} catch (error: any) {
+		console.error("🔥 Error in report query API:", error);
+		if (error instanceof z.ZodError) {
+			return NextResponse.json(
+				{ status: "error", message: "Invalid request body", details: error.flatten(), data: [] },
+				{ status: 400 },
+			);
+		}
+		return NextResponse.json(
+			{ status: "error", message: "Internal server error", data: [] },
+			{ status: 500 },
+		);
+	}
 }
 

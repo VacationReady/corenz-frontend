@@ -659,7 +659,7 @@ export default function CalendarPage() {
                 return hasBlackout ? (
                   <Button
                     size="sm"
-                    variant="destructive"
+                    variant="danger"
                     onClick={() => deleteBlackoutForDate(inspectorDate)}
                     aria-label="Delete blackout day"
                   >

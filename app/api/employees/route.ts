@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { canAccessEmployee } from "@/lib/permissions";
 import { z } from "zod";
+import supabase from "@/lib/supabase-admin";
 
 const optionalTrimmedString = z.preprocess(
   (val) => {

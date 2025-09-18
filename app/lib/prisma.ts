@@ -11,3 +11,16 @@ export const prisma =
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
+// Simple connection guard to avoid "Engine is not yet connected" during hot reloads
+let prismaConnectPromise: Promise<void> | null = null;
+
+export async function ensurePrismaConnected() {
+  if (!prismaConnectPromise) {
+    prismaConnectPromise = prisma.$connect().catch((err) => {
+      prismaConnectPromise = null;
+      throw err;
+    });
+  }
+  await prismaConnectPromise;
+}
+

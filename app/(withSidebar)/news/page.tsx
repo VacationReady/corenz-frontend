@@ -1,7 +1,7 @@
 import { getAllNewsPosts } from "@/lib/news/getAllNewsPosts";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import NewsPageClient from "@/components/news/NewsPageClient"; // ✅ Missing import added
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function NewsPage() {
   // Fetch all posts server-side, scoped to company
   const session = await getServerSession(authOptions);
+  await ensurePrismaConnected();
   const posts = await getAllNewsPosts(session?.user?.companyId);
 
   // ✅ Transform posts minimally to ensure correct types

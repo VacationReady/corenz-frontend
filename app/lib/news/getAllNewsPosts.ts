@@ -1,6 +1,7 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 
 export async function getAllNewsPosts(companyId?: string) {
+  await ensurePrismaConnected();
   return prisma.newsPost.findMany({
     where: {
       publishedAt: { not: null },

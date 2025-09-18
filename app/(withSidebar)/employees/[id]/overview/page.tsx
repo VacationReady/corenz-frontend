@@ -18,6 +18,7 @@ import {
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 import dynamic from "next/dynamic";
+import { getDownloadUrl } from "@/lib/getDownloadUrl";
 const ProfileAvatarUploader = dynamic(
   () => import("@/components/employees/ProfileAvatarUploader"),
   { ssr: false },
@@ -73,6 +74,11 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
 
   const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim();
 
+  // Generate a signed URL for the profile image if a path is stored
+  const signedProfileUrl = employee.User.profileImageUrl
+    ? await getDownloadUrl(employee.User.profileImageUrl)
+    : null;
+
   return (
     <PageShell
       title={`${employeeName} - Overview`}
@@ -92,7 +98,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           <ProfileAvatarUploader
             userId={employee.userId}
             name={employeeName}
-            initialUrl={employee.User.profileImageUrl}
+            initialUrl={signedProfileUrl}
           />
         </div>
 

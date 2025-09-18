@@ -37,10 +37,23 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
         .map((step: any, i: number) => {
           const mappedType = typeMap[step.type];
           if (!mappedType) return undefined;
+          // Ensure each step has a unique, non-empty label per template to satisfy @@unique([templateId, label])
+          const safeTitle = String(step.title || step.label || "").trim();
+          const defaultLabelByType =
+            mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT
+              ? "Acknowledge Document"
+              : mappedType === OnboardingStepType.UPLOAD_DOCUMENT
+                ? "Upload Document"
+                : mappedType === OnboardingStepType.INSTRUCTION
+                  ? "Instructions"
+                  : mappedType === OnboardingStepType.FORM_FILL
+                    ? "Fill Form"
+                    : "Step";
+          const uniqueLabel = `${safeTitle || defaultLabelByType} ${i + 1}`;
           const base = {
             id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
             type: mappedType,
-            label: step.label || step.title || "",
+            label: uniqueLabel,
             order: i + 1,
           };
           if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {

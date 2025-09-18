@@ -11,7 +11,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { List, CalendarDays } from "lucide-react";
+import { List, CalendarDays, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
@@ -57,6 +57,7 @@ export default function CalendarPage() {
   const [locationOptions, setLocationOptions] = useState<{label: string; value: string}[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
+  const [blackoutIdsByDay, setBlackoutIdsByDay] = useState<Record<string, string[]>>({});
   const calendarRef = useRef<FullCalendar | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
 
@@ -233,10 +234,13 @@ export default function CalendarPage() {
       }
       const blackoutData = await res.json();
       const keys = new Set<string>();
+      const idMap: Record<string, string[]> = {};
       const blackoutEvents = blackoutData.map((b: any) => {
         const d = new Date(b.date);
         const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         keys.add(key);
+        if (!idMap[key]) idMap[key] = [];
+        idMap[key].push(b.id);
         return {
           id: b.id,
           title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
@@ -254,6 +258,7 @@ export default function CalendarPage() {
       // Update blackout key set and trigger a one-time rerender of day cells
       const nextHash = Array.from(keys).sort().join(',');
       setBlackoutDateKeys(keys);
+      setBlackoutIdsByDay(idMap);
       if (nextHash !== blackoutKeyHashRef.current) {
         blackoutKeyHashRef.current = nextHash;
         setRefreshTrigger((prev) => !prev);
@@ -483,6 +488,27 @@ export default function CalendarPage() {
     setRefreshTrigger((prev) => !prev); // 🚩 NEW: force re-render on refresh
   };
 
+  const deleteBlackoutForDate = async (date: Date) => {
+    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const ids = blackoutIdsByDay[key] || [];
+    if (ids.length === 0) return;
+    try {
+      for (const id of ids) {
+        const res = await fetch("/api/blackout-days/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ blackoutDayId: id }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+      }
+      toast.success("Blackout day removed");
+      refreshCalendar();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to remove blackout day");
+    }
+  };
+
   return (
     <PageShell title="Calendar">
       <Card title="Company Calendar">
@@ -627,6 +653,20 @@ export default function CalendarPage() {
               >
                 Block day
               </Button>
+              {(() => {
+                const key = `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth()+1).padStart(2,'0')}-${String(inspectorDate.getDate()).padStart(2,'0')}`;
+                const hasBlackout = blackoutDateKeys.has(key);
+                return hasBlackout ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => deleteBlackoutForDate(inspectorDate)}
+                    aria-label="Delete blackout day"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete blackout
+                  </Button>
+                ) : null;
+              })()}
               <Button size="sm" variant="ghost" onClick={() => setInspectorDate(null)}>Close</Button>
             </div>
           </div>

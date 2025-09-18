@@ -117,19 +117,74 @@ function FormDropdown({
   onChange: (id: string) => void;
 }) {
   const [forms, setForms] = useState<any[]>([]);
+  const [builtins, setBuiltins] = useState<any[]>([]);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    fetch("/api/forms")
-      .then((r) => r.json())
-      .then((data) => setForms(Array.isArray(data) ? data : []))
-      .catch(() => setForms([]));
+    const load = async () => {
+      try {
+        const [fRes, bRes] = await Promise.all([
+          fetch("/api/forms"),
+          fetch("/api/forms/defaults"),
+        ]);
+        const fJson = await fRes.json();
+        const bJson = await bRes.json();
+        setForms(Array.isArray(fJson) ? fJson : []);
+        setBuiltins(Array.isArray(bJson) ? bJson : []);
+      } catch {
+        setForms([]);
+        setBuiltins([]);
+      }
+    };
+    load();
   }, []);
+
+  const handleChange = async (raw: string) => {
+    if (!raw) return onChange("");
+    if (raw.startsWith("builtin:")) {
+      const slug = raw.replace("builtin:", "");
+      const def = builtins.find((b) => b.slug === slug);
+      if (!def) return;
+      try {
+        setCreating(true);
+        const res = await fetch("/api/forms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: def.name,
+            slug: def.slug,
+            description: def.description,
+            formType: def.formType,
+            schema: def.schema,
+            visibleToRoles: ["ADMIN", "MANAGER", "EMPLOYEE"],
+            visibleToDepartments: [],
+            visibleToJobRoles: [],
+          }),
+        });
+        if (!res.ok) {
+          toast.error("Failed to create built-in form");
+          setCreating(false);
+          return;
+        }
+        const created = await res.json();
+        setForms((prev) => [created, ...prev]);
+        onChange(created.id);
+      } catch {
+        toast.error("Failed to create built-in form");
+      } finally {
+        setCreating(false);
+      }
+      return;
+    }
+    onChange(raw);
+  };
 
   return (
     <select
       className="w-full border rounded-md p-2"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => handleChange(e.target.value)}
+      disabled={creating}
     >
       <option value="">Select a form…</option>
       {forms.map((f) => (
@@ -137,6 +192,15 @@ function FormDropdown({
           {f.name} {f.description && `(${f.description})`}
         </option>
       ))}
+      {builtins.length > 0 && (
+        <optgroup label="Built-in screens (create on select)">
+          {builtins.map((b) => (
+            <option key={b.slug} value={`builtin:${b.slug}`}>
+              {b.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
     </select>
   );
 }
@@ -382,18 +446,27 @@ export default function OnboardingTemplateEditor({
 
   useEffect(() => {
     const fetchDropdownData = async () => {
-      const [deptRes, roleRes] = await Promise.all([
-        fetch("/api/departments/active"),
-        fetch("/api/job-roles/active"),
-      ]);
-      const deptData = await deptRes.json();
-      const roleData = await roleRes.json();
-      setDepartmentsList(
-        deptData.map((d: any) => ({ label: d.name, value: d.id })),
-      );
-      setJobRolesList(
-        roleData.map((j: any) => ({ label: j.name, value: j.id })),
-      );
+      try {
+        const [deptRes, roleRes] = await Promise.all([
+          fetch("/api/departments/active"),
+          fetch("/api/job-roles/active"),
+        ]);
+        const deptData = await deptRes.json();
+        const roleData = await roleRes.json();
+        setDepartmentsList(
+          Array.isArray(deptData)
+            ? deptData.map((d: any) => ({ label: d.name, value: d.id }))
+            : [],
+        );
+        setJobRolesList(
+          Array.isArray(roleData)
+            ? roleData.map((j: any) => ({ label: j.name, value: j.id }))
+            : [],
+        );
+      } catch {
+        setDepartmentsList([]);
+        setJobRolesList([]);
+      }
     };
     fetchDropdownData();
   }, []);

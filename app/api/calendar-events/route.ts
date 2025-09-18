@@ -61,14 +61,14 @@ export async function GET(req: Request) {
 
     const events = await Promise.all(
       leaveRequests.map(async (req: any) => {
-        const user = req.employee.user;
+        const user = req.Employee?.User;
         const displayName =
-          user.name ||
-          `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+          (user?.name ||
+            `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
           "Unknown";
 
         let profileImageUrl: string | null = null;
-        if (user.profileImageUrl) {
+        if (user?.profileImageUrl) {
           try {
             const { data: signed } = await supabase.storage
               .from("documents")
@@ -81,18 +81,26 @@ export async function GET(req: Request) {
 
         return {
           id: req.id,
-          title: `${req.eventCategory.name} - ${displayName}`,
+          title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
           start: req.startDate,
           end: req.endDate,
           allDay: true,
           reason: req.reason ?? null,
-          categoryName: req.eventCategory?.name ?? null,
-          eventCategoryId: req.eventCategory?.id ?? null,
-          Employee: {
-            id: req.employee.id,
+          categoryName: req.EventCategory?.name ?? null,
+          eventCategoryId: req.EventCategory?.id ?? null,
+          // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
+          employee: {
+            id: req.Employee?.id,
             name: displayName,
-            department: req.employee.department?.name ?? null,
-            locationId: req.employee.locationId ?? null,
+            department: req.Employee?.Department?.name ?? null,
+            locationId: req.Employee?.locationId ?? null,
+            profileImageUrl,
+          },
+          Employee: {
+            id: req.Employee?.id,
+            name: displayName,
+            department: req.Employee?.Department?.name ?? null,
+            locationId: req.Employee?.locationId ?? null,
             profileImageUrl,
           },
         };

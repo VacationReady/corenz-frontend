@@ -12,6 +12,77 @@ const leaveRequestActionSchema = z.object({
   }),
 });
 
+export async function GET(
+  _req: Request,
+  { params }: { params: { id: string } },
+) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user || !session.user.companyId) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  try {
+    const leave = await prisma.leaveRequest.findUnique({
+      where: { id: params.id },
+      include: {
+        Employee: { include: { User: true, Department: true } },
+        EventCategory: true,
+        EventSubcategory: true,
+      },
+    });
+
+    if (!leave || leave.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Leave request not found" },
+        { status: 404 },
+      );
+    }
+
+    const user = leave.Employee?.User;
+    const displayName = user
+      ? (user.name && user.name.trim().length > 0
+          ? user.name
+          : `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()) || null
+      : null;
+
+    const data = {
+      id: leave.id,
+      type: leave.EventCategory?.name ?? "",
+      eventCategoryId: leave.eventCategoryId,
+      eventSubcategory: leave.EventSubcategory
+        ? { id: leave.EventSubcategory.id, name: leave.EventSubcategory.name }
+        : null,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      reason: leave.reason ?? null,
+      approvalStatus: leave.approvalStatus,
+      paidStatus: leave.paidStatus ?? null,
+      dayType: leave.dayType,
+      employee: {
+        id: leave.employeeId,
+        user: {
+          name: displayName,
+          email: user?.email ?? null,
+          id: user?.id ?? null,
+        },
+        department: leave.Employee?.Department?.name ?? null,
+      },
+    } as const;
+
+    return NextResponse.json({ success: true, data });
+  } catch (error: any) {
+    console.error("[LEAVE_REQUEST_GET]", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to fetch" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },

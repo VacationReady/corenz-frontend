@@ -51,6 +51,24 @@ export default function ReportsPreviewClient() {
 	const [filteredData, setFilteredData] = useState<any[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [loadingReport, setLoadingReport] = useState(false);
+	const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
+
+	// Build field label map from server (includes dynamic Forms)
+	useEffect(() => {
+		const load = async () => {
+			try {
+				const res = await fetch("/api/reports/fields", { cache: "no-store" });
+				if (!res.ok) throw new Error(String(res.status));
+				const list = await res.json();
+				const map: Record<string, string> = {};
+				if (Array.isArray(list)) list.forEach((f: any) => { if (f?.field && f?.label) map[f.field] = f.label; });
+				setFieldLabels(map);
+			} catch {
+				setFieldLabels({});
+			}
+		};
+		load();
+	}, []);
 
 	// Load report configuration if reportId is provided
 	useEffect(() => {
@@ -153,21 +171,34 @@ export default function ReportsPreviewClient() {
 		);
 	}
 
+	const translateLegacy = (f: string) => {
+		const map: Record<string, string> = {
+			"User.department.name": "User.Department_User_departmentIdToDepartment.name",
+			"User.Department.name": "User.Department_User_departmentIdToDepartment.name",
+			"User.jobRole.name": "User.JobRole.name",
+		};
+		return map[f] || f;
+	};
+
 	const columns = selectedFields.map((field) => {
 		const keys = field.split(".");
 		let accessorKey: string;
-		let header: string;
+		let headerFallback: string;
 		if (keys.length >= 3) {
 			accessorKey = `${keys.slice(1).join(".")}`; // support nested
-			header = keys[keys.length - 1];
+			headerFallback = keys[keys.length - 1];
 		} else if (keys.length === 2) {
 			accessorKey = keys[1];
-			header = keys[1];
+			headerFallback = keys[1];
 		} else {
 			accessorKey = keys[keys.length - 1];
-			header = keys[keys.length - 1];
+			headerFallback = keys[keys.length - 1];
 		}
-		return { header: header.charAt(0).toUpperCase() + header.slice(1), accessorKey };
+
+		const translated = translateLegacy(field);
+		const label = fieldLabels[field] || fieldLabels[translated] || headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
+
+		return { header: label, accessorKey };
 	});
 
 	return (

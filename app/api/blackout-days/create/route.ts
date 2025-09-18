@@ -8,11 +8,16 @@ export const revalidate = 0;
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const headerCompanyId = req.headers.get("x-company-id");
-    const companyId = session?.user?.companyId || headerCompanyId || null;
-    if (!companyId) {
+    const user = session?.user;
+    if (!user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const companyId = user.companyId;
 
     const body = await req.json();
     const date = body?.date;

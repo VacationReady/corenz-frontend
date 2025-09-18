@@ -8,12 +8,11 @@ export const revalidate = 0; // 🚩 disables Vercel caching for this API route
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const headerCompanyId = req.headers.get("x-company-id");
-    const companyId = session?.user?.companyId || headerCompanyId || null;
-    if (!companyId) {
-      // Graceful no-op for unauthenticated/unknown tenant to avoid UI toast storms
-      return NextResponse.json([]);
+    const user = session?.user;
+    if (!user?.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const companyId = user.companyId;
 
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");

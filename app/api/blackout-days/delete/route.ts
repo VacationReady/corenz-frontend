@@ -16,8 +16,13 @@ export const revalidate = 0;
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.companyId) {
+    const user = session?.user;
+    if (!user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { blackoutDayId } = await req.json();
@@ -30,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     const result = await prisma.blackoutDay.deleteMany({
-      where: { id: blackoutDayId, companyId: session.user.companyId },
+      where: { id: blackoutDayId, companyId: user.companyId },
     });
 
     if (result.count === 0) {

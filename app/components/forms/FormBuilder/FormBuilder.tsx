@@ -59,7 +59,7 @@ interface FormBuilderProps {
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
-  }) => void;
+  }) => void | Promise<void>;
   initialData?: {
     name: string;
     slug?: string;

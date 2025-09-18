@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import FormBuilder from "@/components/forms/FormBuilder/FormBuilder";
 import { toast } from "sonner";
-import { FormField } from "@/api/forms/[id]/types";
+import { AnyFormSchema } from "@/api/forms/[id]/types";
 
 interface FormData {
   id: string;
   name: string;
   slug: string;
   description?: string;
-  schema: FormField[];
+  schema: AnyFormSchema;
   isActive: boolean;
   visibleToRoles?: string[];
   visibleToDepartments?: string[];
@@ -61,8 +61,8 @@ export default function EditFormPage() {
     name: string;
     slug: string;
     description?: string;
-    formType?: "SUBMISSION" | "DATA_SCREEN";
-    schema: FormField[];
+    formType: "SUBMISSION" | "DATA_SCREEN";
+    schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];

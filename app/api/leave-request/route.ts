@@ -60,13 +60,12 @@ export async function GET(req: Request) {
 
     console.log("Fetching leave requests with status:", status);
 
-    const isAdminEditor = hasPermission(user as any, "leave-requests", "edit");
+    // Only ADMINs may view "all"; managers default to direct reports only
+    const canViewAll = session.user.role === "ADMIN";
 
     const employeeFilter: any = {
       ...(departmentId ? { departmentId } : {}),
-      ...(!isAdminEditor || (isAdminEditor && scope === "my")
-        ? { User: { managerId: session.user.id } }
-        : {}),
+      ...(!(canViewAll && scope === "all") ? { User: { managerId: session.user.id } } : {}),
     };
 
     const leaveRequests = await prisma.leaveRequest.findMany({

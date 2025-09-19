@@ -38,11 +38,10 @@ interface NewsPost {
   featured?: boolean;
   readTime?: number;
   views?: number;
-  reactions?: {
-    likes?: number;
-    hearts?: number;
-    fire?: number;
-  };
+  reactions?: Record<string, number>;
+  bookmarkCount?: number;
+  isBookmarked?: boolean;
+  userReaction?: string | null;
 }
 
 interface NewsSpotlightCardProps {
@@ -52,8 +51,8 @@ interface NewsSpotlightCardProps {
   showStats?: boolean;
   index?: number;
   onShare?: () => void;
-  onBookmark?: () => void;
-  onReact?: (type: string) => void;
+  onBookmark?: () => Promise<void> | void;
+  onReact?: (type: string) => Promise<void> | void;
 }
 
 export default function NewsSpotlightCard({
@@ -67,17 +66,17 @@ export default function NewsSpotlightCard({
   onReact,
 }: NewsSpotlightCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [userReaction, setUserReaction] = useState<string | null>(null);
 
   const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-    onBookmark?.();
+    if (onBookmark) {
+      void onBookmark();
+    }
   };
 
   const handleReact = (type: string) => {
-    setUserReaction(userReaction === type ? null : type);
-    onReact?.(type);
+    if (onReact) {
+      void onReact(type);
+    }
   };
 
   const getAuthorName = (author: NewsPost["author"]) =>
@@ -338,15 +337,18 @@ export default function NewsSpotlightCard({
                           {post.views}
                         </span>
                       )}
-                      {post.reactions && (
+                      {Object.keys(post.reactions ?? {}).length > 0 && (
                         <span className="flex items-center gap-1">
                           <Heart className="w-3.5 h-3.5" />
-                          {Object.values(post.reactions).reduce((a, b) => (a || 0) + (b || 0), 0)}
+                          {Object.values(post.reactions ?? {}).reduce(
+                            (a, b) => (a || 0) + (b || 0),
+                            0,
+                          )}
                         </span>
                       )}
                     </div>
                   )}
-                  
+
                   {showActions && (
                     <div className="flex items-center gap-1">
                       <button
@@ -356,7 +358,7 @@ export default function NewsSpotlightCard({
                         }}
                         className={cn(
                           "p-1.5 rounded-lg hover:bg-muted transition-colors",
-                          userReaction === "like" && "text-primary bg-primary/10"
+                          post.userReaction === "like" && "text-primary bg-primary/10"
                         )}
                         aria-label="Like"
                       >
@@ -379,11 +381,16 @@ export default function NewsSpotlightCard({
                         }}
                         className={cn(
                           "p-1.5 rounded-lg hover:bg-muted transition-colors",
-                          isBookmarked && "text-primary bg-primary/10"
+                          post.isBookmarked && "text-primary bg-primary/10"
                         )}
                         aria-label="Bookmark"
                       >
-                        <Bookmark className="w-4 h-4" />
+                        <span className="flex items-center gap-1">
+                          <Bookmark className="w-4 h-4" />
+                          {post.bookmarkCount ? (
+                            <span className="text-xs font-medium">{post.bookmarkCount}</span>
+                          ) : null}
+                        </span>
                       </button>
                     </div>
                   )}

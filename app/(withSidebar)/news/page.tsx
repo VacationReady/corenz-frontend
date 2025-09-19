@@ -10,7 +10,7 @@ export default async function NewsPage() {
   // Fetch all posts server-side, scoped to company
   const session = await getServerSession(authOptions);
   await ensurePrismaConnected();
-  const posts = await getAllNewsPosts(session?.user?.companyId);
+  const posts = await getAllNewsPosts(session?.user?.companyId, session?.user?.id);
 
   // ✅ Transform posts minimally to ensure correct types
   const transformedPosts = posts.map((post: any) => ({
@@ -30,6 +30,11 @@ export default async function NewsPage() {
     pinned: post.pinned,
     tags: Array.isArray(post.tags) ? post.tags : [],
     createdAt: new Date(post.createdAt).toISOString(),
+    views: post.views,
+    reactions: post.reactions,
+    bookmarkCount: post.bookmarkCount,
+    isBookmarked: post.isBookmarked,
+    userReaction: post.userReaction,
   }));
 
   // Determine permissions

@@ -87,6 +87,11 @@ export function EnhancedFormRenderer({
 
   useEffect(() => {
     const loadFormData = async () => {
+      if (!formId || !employeeId) {
+        setError("Missing form or employee context");
+        setLoading(false);
+        return;
+      }
       try {
         const res = await fetch(
           `/api/forms/${formId}/data?employeeId=${employeeId}`,

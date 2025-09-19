@@ -238,6 +238,10 @@ export default function LeavePage({
 
   const updateQuery = useCallback(
     (updates: Record<string, string | null | undefined>) => {
+      if (!pathname) {
+        return;
+      }
+
       const params = new URLSearchParams(searchParamsString);
       Object.entries(updates).forEach(([key, value]) => {
         if (value === undefined || value === null || value === "") {

@@ -56,9 +56,9 @@ export default function EmployeeFormPage() {
     fetchForm();
   }, [slug, employeeId]);
 
-  const handleFormSubmit = (data: any) => {
-    toast.success("Form submitted successfully");
-    router.push(`/employees/${employeeId}/overview`);
+  const handleFormSubmit = () => {
+    toast.success("Saved successfully");
+    // Stay on page; do not navigate
   };
 
   if (loading) {

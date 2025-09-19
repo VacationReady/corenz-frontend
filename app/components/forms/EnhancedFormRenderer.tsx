@@ -440,52 +440,105 @@ export function renderField(
     "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
 
   switch (field.type) {
-    case "signature":
+    case "signature": {
+      const mode: "typed" | "drawn" = (watch(`${field.id}.mode`) as any) || "typed";
+      const typedVal = watch(`${field.id}.typed`) || "";
+      const drawnVal = watch(`${field.id}.drawn`) || "";
+      const hiddenName = `${field.id}.__valid`;
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <input
-            type="text"
-            placeholder={field.placeholder || "Type your name"}
-            className={baseInput}
-            disabled={readOnly}
-            onChange={(e) => setValue(`${field.id}.typed`, e.target.value)}
+            type="hidden"
+            {...register(hiddenName, {
+              validate: () => {
+                if (!field.required && !field.validation?.required) return true;
+                if (mode === "typed") return Boolean(String(typedVal).trim()) || "Signature required";
+                return Boolean(drawnVal) || "Signature required";
+              },
+            })}
           />
-          <div className="border rounded p-3 bg-white">
-            <canvas
-              id={`sig-${field.id}`}
-              className="w-full h-32"
-              style={{ touchAction: "none" }}
-              onMouseDown={(e) => {
-                const c = e.currentTarget as HTMLCanvasElement;
-                const rect = c.getBoundingClientRect();
-                const ctx = c.getContext("2d");
-                if (!ctx) return;
-                let drawing = true;
-                ctx.strokeStyle = "#111827";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-                const move = (ev: MouseEvent) => {
-                  if (!drawing) return;
-                  ctx.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
-                  ctx.stroke();
-                };
-                const up = () => {
-                  drawing = false;
-                  window.removeEventListener("mousemove", move);
-                  window.removeEventListener("mouseup", up);
-                  try {
-                    setValue(`${field.id}.drawn`, c.toDataURL("image/png"));
-                  } catch {}
-                };
-                window.addEventListener("mousemove", move);
-                window.addEventListener("mouseup", up);
-              }}
-            />
-            <div className="text-xs text-gray-500 mt-1">Draw your signature above (mouse or touch).</div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={`px-2 py-1 text-xs rounded border ${mode === "typed" ? "bg-blue-50 border-blue-400 text-blue-700" : "border-gray-200 text-gray-700"}`}
+              onClick={() => setValue(`${field.id}.mode`, "typed", { shouldDirty: true })}
+              disabled={readOnly}
+            >
+              Typed
+            </button>
+            <button
+              type="button"
+              className={`px-2 py-1 text-xs rounded border ${mode === "drawn" ? "bg-blue-50 border-blue-400 text-blue-700" : "border-gray-200 text-gray-700"}`}
+              onClick={() => setValue(`${field.id}.mode`, "drawn", { shouldDirty: true })}
+              disabled={readOnly}
+            >
+              Drawn
+            </button>
           </div>
+          {mode === "typed" ? (
+            <input
+              type="text"
+              placeholder={field.placeholder || "Type your name"}
+              className={`${baseInput} font-[cursive]`}
+              disabled={readOnly}
+              defaultValue={typedVal}
+              onChange={(e) => setValue(`${field.id}.typed`, e.target.value, { shouldDirty: true })}
+            />
+          ) : (
+            <div className="border rounded p-3 bg-white">
+              <canvas
+                id={`sig-${field.id}`}
+                className="w-full h-32"
+                style={{ touchAction: "none" }}
+                onMouseDown={(e) => {
+                  const c = e.currentTarget as HTMLCanvasElement;
+                  const rect = c.getBoundingClientRect();
+                  const ctx = c.getContext("2d");
+                  if (!ctx) return;
+                  let drawing = true;
+                  ctx.strokeStyle = "#111827";
+                  ctx.lineWidth = 2;
+                  ctx.beginPath();
+                  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                  const move = (ev: MouseEvent) => {
+                    if (!drawing) return;
+                    ctx.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
+                    ctx.stroke();
+                  };
+                  const up = () => {
+                    drawing = false;
+                    window.removeEventListener("mousemove", move);
+                    window.removeEventListener("mouseup", up);
+                    try {
+                      setValue(`${field.id}.drawn`, c.toDataURL("image/png"), { shouldDirty: true });
+                    } catch {}
+                  };
+                  window.addEventListener("mousemove", move);
+                  window.addEventListener("mouseup", up);
+                }}
+              />
+              <div className="flex items-center justify-between mt-1">
+                <div className="text-xs text-gray-500">Draw your signature above (mouse or touch).</div>
+                <button
+                  type="button"
+                  className="text-xs text-blue-600 hover:underline"
+                  onClick={() => {
+                    const c = document.getElementById(`sig-${field.id}`) as HTMLCanvasElement | null;
+                    if (!c) return;
+                    const ctx = c.getContext("2d");
+                    if (!ctx) return;
+                    ctx.clearRect(0, 0, c.width, c.height);
+                    setValue(`${field.id}.drawn`, "", { shouldDirty: true });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
+    }
     case "time":
       return (
         <Input

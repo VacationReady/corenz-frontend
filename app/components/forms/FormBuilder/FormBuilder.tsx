@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { FormField, FormSection, AnyFormSchema, isLegacySchema, upgradeLegacySchema } from "@/api/forms/[id]/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 function useSlug(initialName: string, initialSlug: string) {
   const [name, setName] = useState(initialName);
@@ -191,6 +193,28 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Simple helper banner for HR authors */}
+      <TooltipProvider>
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-md p-3 flex items-start gap-3">
+          <Info className="h-5 w-5 mt-0.5" />
+          <div className="text-sm leading-5">
+            <p className="font-medium">How to build your form</p>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li>Drag fields from the left into a section. Use the “1/2/3 col” selector for multi-column layouts.</li>
+              <li>Click a field to edit its label, help text and options. Validation ensures required questions are answered.</li>
+              <li>Use Logic to show a field only when previous answers match your conditions (e.g. Department equals Sales).</li>
+            </ul>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className="ml-auto text-xs text-blue-700 underline">Tips</button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-xs">
+              Group related questions with Sections; keep pages short. Choose “Data Screen” for profile screens you’ll edit over time.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
       {/* Form Metadata */}
       <div className="bg-white border rounded-lg p-4 shadow-sm">
         <h3 className="font-semibold mb-3 text-lg">Form Details</h3>

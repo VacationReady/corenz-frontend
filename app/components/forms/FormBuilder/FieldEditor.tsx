@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Plus, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 export function FieldEditor({
   field,
@@ -72,12 +74,21 @@ export function FieldEditor({
           <TabsTrigger value="data">Data</TabsTrigger>
           <TabsTrigger value="logic">Logic</TabsTrigger>
         </TabsList>
+        <div className="text-xs text-gray-500 -mt-1 mb-2">Tip: Start with Basics for the label and help text. Use Data for options. Validation makes answers required. Logic shows fields only when conditions match.</div>
 
         <TabsContent value="basics">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Label <span className="text-red-500">*</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                    </TooltipTrigger>
+                    <TooltipContent>What users will see as the question title.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </label>
               <Input
                 value={field.label || ""}
@@ -97,6 +108,14 @@ export function FieldEditor({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Help text
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                    </TooltipTrigger>
+                    <TooltipContent>Short guidance shown under the label.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </label>
               <Textarea
                 value={field.helpText || ""}
@@ -121,6 +140,14 @@ export function FieldEditor({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Width
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>Controls how wide the field is within a row.</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </label>
                 <select
                   className="border rounded w-full px-2 py-2 text-sm"
@@ -148,6 +175,14 @@ export function FieldEditor({
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">
                     Options <span className="text-red-500">*</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                        </TooltipTrigger>
+                        <TooltipContent>Choices a user can pick from.</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </label>
                   <Button type="button" onClick={addOption} size="sm" variant="outline" className="h-8 px-2">
                     <Plus className="h-4 w-4 mr-1" /> Add Option

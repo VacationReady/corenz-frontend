@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, FormSection } from "@/api/forms/[id]/types";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
+import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 interface EnhancedFormRendererProps {
@@ -280,7 +281,14 @@ export function EnhancedFormRenderer({
   return (
     <div className="space-y-6">
       <div className="border-b pb-4">
-        <h2 className="text-xl font-semibold">{formData.form.name}</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">{formData.form.name}</h2>
+          <HistoryButton
+            employeeId={employeeId}
+            section={`forms:${formId}`}
+            title={`${formData.form.name} History`}
+          />
+        </div>
         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
           <span
             className={`px-2 py-1 rounded text-xs font-medium ${formData.form.formType === "DATA_SCREEN" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}

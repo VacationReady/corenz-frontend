@@ -74,7 +74,10 @@ export async function createAuditLogs(
   // Validate that all required reasons are provided
   for (const diff of diffs) {
     const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
-    const requiresReason = isSynthetic || Boolean(diff.newValue);
+    // Only require a reason when value changes from a non-null/meaningful previous value to a different one
+    const hadValue = diff.oldValue !== null && diff.oldValue !== "";
+    const changedToDifferent = diff.newValue !== diff.oldValue;
+    const requiresReason = isSynthetic || (hadValue && changedToDifferent);
     if (requiresReason && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
       throw new Error(`Reason required for field: ${diff.field}`);
     }
@@ -120,7 +123,9 @@ export function validateReasons(
   
   for (const diff of diffs) {
     const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
-    const requiresReason = isSynthetic || Boolean(diff.newValue);
+    const hadValue = diff.oldValue !== null && diff.oldValue !== "";
+    const changedToDifferent = diff.newValue !== diff.oldValue;
+    const requiresReason = isSynthetic || (hadValue && changedToDifferent);
     if (requiresReason && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
       errors.push(`Reason required for field: ${diff.field}`);
     }

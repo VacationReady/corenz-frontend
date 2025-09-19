@@ -362,7 +362,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         className="self-end mt-4"
         disabled={
           !formName.trim() ||
-          !fields.length ||
+          sections.flatMap((s) => s.fields).length === 0 ||
           !vis.roles.length ||
           !slugIsValid
         }

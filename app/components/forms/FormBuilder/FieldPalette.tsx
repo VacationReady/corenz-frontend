@@ -127,7 +127,7 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
     items: [
       { type: "file", label: "File Upload", hint: "Single file", icon: Upload, defaults: { ...DEFAULT_FIELD_BASE } },
       { type: "attachmentGallery", label: "Attachment Gallery", hint: "Multiple files", icon: Images, defaults: { ...DEFAULT_FIELD_BASE, allowMultiple: true, maxEntries: 10 } },
-      { type: "signature", label: "Signature", hint: "Draw or upload signature", icon: SignatureIcon, defaults: { ...DEFAULT_FIELD_BASE } },
+      { type: "signature", label: "Signature", hint: "Type or draw a signature", icon: SignatureIcon, defaults: { ...DEFAULT_FIELD_BASE } },
     ],
   },
   {

@@ -358,16 +358,18 @@ export function EnhancedFormRenderer({
                               {field.label}
                               {(field.required || field.validation?.required) && <span className="text-red-500 ml-1">*</span>}
                             </label>
-                            <HistoryButton
-                              employeeId={employeeId}
-                              section={`forms:${formId}`}
-                              field={field.id}
-                              title={`${field.label} History`}
-                              variant="ghost"
-                              size="sm"
-                              iconOnly
-                              className="text-gray-600 hover:text-gray-900"
-                            />
+                            <div className="-mr-2">
+                              <HistoryButton
+                                employeeId={employeeId}
+                                section={`forms:${formId}`}
+                                field={field.id}
+                                title={`${field.label} History`}
+                                variant="ghost"
+                                size="sm"
+                                iconOnly
+                                className="text-gray-600 hover:text-gray-900"
+                              />
+                            </div>
                           </div>
                           {renderField(field, register, watch, setValue, isReadOnly)}
                         </>
@@ -438,6 +440,52 @@ export function renderField(
     "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
 
   switch (field.type) {
+    case "signature":
+      return (
+        <div className="space-y-2">
+          <input
+            type="text"
+            placeholder={field.placeholder || "Type your name"}
+            className={baseInput}
+            disabled={readOnly}
+            onChange={(e) => setValue(`${field.id}.typed`, e.target.value)}
+          />
+          <div className="border rounded p-3 bg-white">
+            <canvas
+              id={`sig-${field.id}`}
+              className="w-full h-32"
+              style={{ touchAction: "none" }}
+              onMouseDown={(e) => {
+                const c = e.currentTarget as HTMLCanvasElement;
+                const rect = c.getBoundingClientRect();
+                const ctx = c.getContext("2d");
+                if (!ctx) return;
+                let drawing = true;
+                ctx.strokeStyle = "#111827";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                const move = (ev: MouseEvent) => {
+                  if (!drawing) return;
+                  ctx.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
+                  ctx.stroke();
+                };
+                const up = () => {
+                  drawing = false;
+                  window.removeEventListener("mousemove", move);
+                  window.removeEventListener("mouseup", up);
+                  try {
+                    setValue(`${field.id}.drawn`, c.toDataURL("image/png"));
+                  } catch {}
+                };
+                window.addEventListener("mousemove", move);
+                window.addEventListener("mouseup", up);
+              }}
+            />
+            <div className="text-xs text-gray-500 mt-1">Draw your signature above (mouse or touch).</div>
+          </div>
+        </div>
+      );
     case "time":
       return (
         <Input

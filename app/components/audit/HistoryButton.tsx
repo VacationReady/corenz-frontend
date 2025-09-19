@@ -33,7 +33,12 @@ export default function HistoryButton({
       <Button
         variant={variant}
         size={size}
-        onClick={() => setIsModalOpen(true)}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsModalOpen(true);
+        }}
         className={className}
       >
         <History className={`h-4 w-4 ${iconOnly ? "" : "mr-2"}`} />

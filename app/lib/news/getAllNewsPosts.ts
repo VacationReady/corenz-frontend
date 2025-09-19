@@ -13,6 +13,7 @@ export async function getAllNewsPosts(companyId?: string) {
       title: true,
       slug: true,
       content: true,
+      coverImage: true,
       authorId: true,
       publishedAt: true,
       pinned: true,

@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import test from "node:test";
+import assert from "node:assert/strict";
 
 // Minimal replica of the condition evaluation used in EnhancedFormRenderer
 function evaluateCondition(left: any, operator: string, right: any) {
@@ -28,18 +29,16 @@ function evaluateCondition(left: any, operator: string, right: any) {
   }
 }
 
-describe("logic evaluator", () => {
-  it("compares primitives", () => {
-    expect(evaluateCondition(5, "greaterThan", 3)).toBe(true);
-    expect(evaluateCondition(3, "lessOrEqual", 3)).toBe(true);
-    expect(evaluateCondition("abc", "contains", "b")).toBe(true);
-  });
+test("logic evaluator compares primitives", () => {
+  assert.equal(evaluateCondition(5, "greaterThan", 3), true);
+  assert.equal(evaluateCondition(3, "lessOrEqual", 3), true);
+  assert.equal(evaluateCondition("abc", "contains", "b"), true);
+});
 
-  it("handles emptiness", () => {
-    expect(evaluateCondition([], "isEmpty", null)).toBe(true);
-    expect(evaluateCondition([1], "isNotEmpty", null)).toBe(true);
-    expect(evaluateCondition("", "isEmpty", null)).toBe(true);
-  });
+test("logic evaluator handles emptiness", () => {
+  assert.equal(evaluateCondition([], "isEmpty", null), true);
+  assert.equal(evaluateCondition([1], "isNotEmpty", null), true);
+  assert.equal(evaluateCondition("", "isEmpty", null), true);
 });
 
 

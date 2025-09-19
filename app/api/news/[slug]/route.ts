@@ -67,6 +67,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     data: {
       title: body.title,
       content: body.content,
+      coverImage: body.coverImage ?? null,
       videoEmbedUrl: body.videoEmbedUrl,
       attachments: body.attachments,
       sendEmail: body.sendEmail,

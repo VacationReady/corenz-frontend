@@ -1,0 +1,1 @@
+ALTER TABLE "NewsPost" ADD COLUMN IF NOT EXISTS "coverImage" TEXT;

@@ -30,6 +30,7 @@ export default async function NewsPage() {
     pinned: post.pinned,
     tags: Array.isArray(post.tags) ? post.tags : [],
     createdAt: new Date(post.createdAt).toISOString(),
+    coverImage: post.coverImage ?? null,
     views: post.views,
     reactions: post.reactions,
     bookmarkCount: post.bookmarkCount,

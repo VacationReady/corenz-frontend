@@ -807,6 +807,7 @@ model NewsPost {
   tags          String[]
   audience      Json
   attachments   String[]
+  coverImage    String?
   videoEmbedUrl String?
   sendEmail     Boolean   @default(false)
   viewCount     Int       @default(0)

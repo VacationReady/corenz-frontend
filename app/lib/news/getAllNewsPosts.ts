@@ -50,6 +50,7 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
       tags: post.tags,
       audience: post.audience,
       attachments: post.attachments,
+      coverImage: post.coverImage,
       videoEmbedUrl: post.videoEmbedUrl,
       sendEmail: post.sendEmail,
       createdAt: post.createdAt,

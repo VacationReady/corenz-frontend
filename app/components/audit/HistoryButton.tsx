@@ -13,6 +13,7 @@ interface HistoryButtonProps {
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   className?: string;
+  iconOnly?: boolean;
 }
 
 export default function HistoryButton({
@@ -23,6 +24,7 @@ export default function HistoryButton({
   variant = "outline",
   size = "sm",
   className,
+  iconOnly = false,
 }: HistoryButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -34,8 +36,8 @@ export default function HistoryButton({
         onClick={() => setIsModalOpen(true)}
         className={className}
       >
-        <History className="h-4 w-4 mr-2" />
-        View History
+        <History className={`h-4 w-4 ${iconOnly ? "" : "mr-2"}`} />
+        {iconOnly ? null : "View History"}
       </Button>
       
       <HistoryModal

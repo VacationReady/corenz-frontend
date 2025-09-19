@@ -353,10 +353,22 @@ export function EnhancedFormRenderer({
                       {field.type === "divider" && <div className="border-t" />}
                       {!["sectionHeader","description","divider","pageBreak"].includes(String(field.type)) && (
                         <>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {field.label}
-                            {(field.required || field.validation?.required) && <span className="text-red-500 ml-1">*</span>}
-                          </label>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                              {field.label}
+                              {(field.required || field.validation?.required) && <span className="text-red-500 ml-1">*</span>}
+                            </label>
+                            <HistoryButton
+                              employeeId={employeeId}
+                              section={`forms:${formId}`}
+                              field={field.id}
+                              title={`${field.label} History`}
+                              variant="ghost"
+                              size="sm"
+                              iconOnly
+                              className="text-gray-600 hover:text-gray-900"
+                            />
+                          </div>
                           {renderField(field, register, watch, setValue, isReadOnly)}
                         </>
                       )}

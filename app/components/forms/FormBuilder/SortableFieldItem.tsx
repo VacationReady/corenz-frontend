@@ -106,7 +106,7 @@ export function SortableFieldItem({
         </div>
       </div>
 
-      <div className="action-buttons flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
+      <div className="action-buttons flex items-center gap-2 transition">
         <Tooltip>
           <TooltipTrigger asChild>
             <button type="button" className="p-1 hover:bg-gray-100 rounded" onClick={toggleRequired}>

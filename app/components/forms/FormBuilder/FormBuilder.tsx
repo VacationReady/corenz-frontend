@@ -155,7 +155,45 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
       }
     }
 
-    // Reordering within the same section is handled by each section's SortableContext directly via child
+    // Reorder/move existing fields (within or across sections)
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (!dragged && activeId) {
+      setSections((prev) => {
+        // Locate source section and index
+        const srcSectionIndex = prev.findIndex((s) => s.fields.some((f) => f.id === activeId));
+        if (srcSectionIndex === -1) return prev;
+        const srcFields = [...prev[srcSectionIndex].fields];
+        const srcIndex = srcFields.findIndex((f) => f.id === activeId);
+        const moving = srcFields[srcIndex];
+
+        // Destination: over a field or over a section container
+        let dstSectionIndex = prev.findIndex((s) => s.fields.some((f) => f.id === overId));
+        let dstIndex = -1;
+        if (overId.startsWith("section-")) {
+          const secId = overId.replace("section-", "");
+          dstSectionIndex = prev.findIndex((s) => s.id === secId);
+          dstIndex = prev[dstSectionIndex]?.fields.length ?? -1;
+        } else if (dstSectionIndex !== -1) {
+          dstIndex = prev[dstSectionIndex].fields.findIndex((f) => f.id === overId);
+        }
+
+        if (dstSectionIndex === -1) return prev;
+
+        const next = prev.map((s) => ({ ...s, fields: [...s.fields] }));
+
+        // Remove from source
+        next[srcSectionIndex].fields.splice(srcIndex, 1);
+
+        // Adjust dst index if moving within same section and removing before insert
+        if (srcSectionIndex === dstSectionIndex && dstIndex > srcIndex) dstIndex -= 1;
+
+        // Insert at destination
+        next[dstSectionIndex].fields.splice(dstIndex, 0, moving);
+        return next;
+      });
+      return;
+    }
   };
 
   const saveForm = () => {

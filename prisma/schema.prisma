@@ -799,6 +799,7 @@ model NewsPost {
   title         String
   slug          String    @unique
   content       Json
+  coverImage    String?
   authorId      String
   publishedAt   DateTime?
   pinned        Boolean   @default(false)

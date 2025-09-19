@@ -17,8 +17,15 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { title, content, coverImage, videoEmbedUrl, attachments, sendEmail, audience } =
-      body;
+    const {
+      title,
+      content,
+      coverImage,
+      videoEmbedUrl,
+      attachments,
+      sendEmail,
+      audience,
+    } = body;
 
     console.log("📝 Incoming news POST:", { title, sendEmail, audience });
 
@@ -28,7 +35,7 @@ export async function POST(req: NextRequest) {
         title,
         slug: generateSlug(title),
         content,
-        coverImage,
+        coverImage: coverImage ?? null,
         videoEmbedUrl,
         attachments,
         sendEmail,
@@ -72,6 +79,7 @@ export async function GET(req: NextRequest) {
       title: true,
       slug: true,
       createdAt: true,
+      coverImage: true,
       content: true, // ✅ Needed for preview tooltip
     },
   });

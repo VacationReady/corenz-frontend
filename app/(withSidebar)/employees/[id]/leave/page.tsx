@@ -130,12 +130,12 @@ export default function LeavePage({
   const [refreshToken, setRefreshToken] = useState(0);
 
   const searchParamsString = useMemo(
-    () => searchParams.toString(),
+    () => (searchParams ? searchParams.toString() : ""),
     [searchParams],
   );
 
-  const limitParam = searchParams.get("limit");
-  const upcomingParam = searchParams.get("upcoming");
+  const limitParam = searchParams?.get("limit") ?? null;
+  const upcomingParam = searchParams?.get("upcoming") ?? null;
 
   const limit = useMemo(() => {
     const parsed = Number.parseInt(limitParam ?? "", 10);

@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -36,6 +36,7 @@ export default function CreateNewsPostPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -53,6 +54,7 @@ export default function CreateNewsPostPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const coverFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -62,6 +64,26 @@ export default function CreateNewsPostPage() {
 
   const removeAttachment = (index: number) => {
     setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
+  const handleCoverFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingCover(true);
+    try {
+      const uploaded = await uploadFileToSupabase(file);
+      setCoverImage(uploaded.url);
+      toast.success("Cover image uploaded");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to upload cover image");
+    } finally {
+      setIsUploadingCover(false);
+      // reset input so the same file can be selected again if needed
+      e.currentTarget.value = "";
+    }
   };
 
   const handleAddTag = () => {
@@ -291,12 +313,25 @@ export default function CreateNewsPostPage() {
                 />
                 <button
                   type="button"
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-all flex items-center gap-2"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  disabled={isUploadingCover}
+                  className={cn(
+                    "px-4 py-2 rounded-lg transition-all flex items-center gap-2",
+                    "bg-muted hover:bg-muted/80",
+                    isUploadingCover && "opacity-60 cursor-not-allowed"
+                  )}
                 >
                   <Image className="w-4 h-4" />
-                  Upload
+                  {isUploadingCover ? "Uploading..." : "Upload"}
                 </button>
               </div>
+              <input
+                ref={coverFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverFileChange}
+                className="hidden"
+              />
               {coverImage && (
                 <div className="relative mt-2 rounded-lg overflow-hidden">
                   <img

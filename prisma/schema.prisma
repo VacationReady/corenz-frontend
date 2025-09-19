@@ -153,6 +153,8 @@ model Company {
   Course                              Course[]
   ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
   ExpiryRule                          ExpiryRule[]
+  NewsReaction                        NewsReaction[]
+  NewsBookmark                        NewsBookmark[]
 }
 
 model ContractTypeOption {
@@ -806,13 +808,47 @@ model NewsPost {
   tags          String[]
   audience      Json
   attachments   String[]
+  coverImage    String?
   videoEmbedUrl String?
   sendEmail     Boolean   @default(false)
+  viewCount     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime
   User          User      @relation(fields: [authorId], references: [id])
   companyId     String?
   Company       Company?  @relation(fields: [companyId], references: [id])
+  reactions     NewsReaction[]
+  bookmarks     NewsBookmark[]
+}
+
+model NewsReaction {
+  id        String   @id @default(cuid())
+  companyId String
+  postId    String
+  userId    String
+  reaction  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Company   Company  @relation(fields: [companyId], references: [id])
+  NewsPost  NewsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([companyId, postId])
+}
+
+model NewsBookmark {
+  id        String   @id @default(cuid())
+  companyId String
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  Company   Company  @relation(fields: [companyId], references: [id])
+  NewsPost  NewsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([companyId, postId])
 }
 
 model NotificationChannel {
@@ -1184,6 +1220,8 @@ model User {
   PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser           PersonalInfoAudit[]    @relation("PersonalInfoAudit_subjectUserIdToUser")
   EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser               EmployeeAuditLog[]     @relation("EmployeeAuditLog_changedByIdToUser")
   SavedReport                                                       SavedReport[]
+  NewsReactions                                                     NewsReaction[]
+  NewsBookmarks                                                     NewsBookmark[]
   Company                                                           Company                @relation(fields: [companyId], references: [id])
   Department_User_departmentIdToDepartment                          Department?            @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])
   GenderOption                                                      GenderOption?          @relation(fields: [genderOptionId], references: [id])

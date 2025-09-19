@@ -111,13 +111,13 @@ export function EnhancedFormRenderer({
     loadFormData();
   }, [formId, employeeId, setValue]);
 
-  const saveData = async (data: Record<string, any>) => {
+  const saveData = async (data: Record<string, any>, reasons?: Record<string, string>) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/forms/${formId}/data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, data, reasons: pendingPayload?.reasons || {} }),
+        body: JSON.stringify({ employeeId, data, reasons: reasons || {} }),
       });
       if (res.ok) {
         toast.success("Data saved successfully");
@@ -126,7 +126,10 @@ export function EnhancedFormRenderer({
           `/api/forms/${formId}/data?employeeId=${employeeId}`,
         );
         if (r.ok) setFormData(await r.json());
-      } else toast.error("Failed to save data");
+      } else {
+        const errText = await res.text().catch(() => "");
+        toast.error(errText || "Failed to save data");
+      }
     } catch {
       toast.error("Failed to save data");
     } finally {
@@ -134,19 +137,22 @@ export function EnhancedFormRenderer({
     }
   };
 
-  const submitForm = async (data: Record<string, any>) => {
+  const submitForm = async (data: Record<string, any>, reasons?: Record<string, string>) => {
     setSaving(true);
     try {
       const res = await fetch(`/api/forms/${formId}/submissions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, data, reasons: pendingPayload?.reasons || {} }),
+        body: JSON.stringify({ employeeId, data, reasons: reasons || {} }),
       });
       if (res.ok) {
         toast.success("Form submitted successfully");
         reset();
         onDataChange?.(data);
-      } else toast.error("Failed to submit form");
+      } else {
+        const errText = await res.text().catch(() => "");
+        toast.error(errText || "Failed to submit form");
+      }
     } catch {
       toast.error("Failed to submit form");
     } finally {
@@ -387,11 +393,9 @@ export function EnhancedFormRenderer({
         onSubmit={async (reasons) => {
           if (!pendingPayload) return;
           if (pendingAction === "data") {
-            setPendingPayload((p) => ({ ...(p || {}), reasons }));
-            await saveData(pendingPayload.data);
+            await saveData(pendingPayload.data, reasons);
           } else if (pendingAction === "submit") {
-            setPendingPayload((p) => ({ ...(p || {}), reasons }));
-            await submitForm(pendingPayload.data);
+            await submitForm(pendingPayload.data, reasons);
           }
           setIsReasonOpen(false);
           setPendingChanges([]);

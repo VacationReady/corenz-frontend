@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { title, content, videoEmbedUrl, attachments, sendEmail, audience } =
+    const { title, content, coverImage, videoEmbedUrl, attachments, sendEmail, audience } =
       body;
 
     console.log("📝 Incoming news POST:", { title, sendEmail, audience });
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
         title,
         slug: generateSlug(title),
         content,
+        coverImage,
         videoEmbedUrl,
         attachments,
         sendEmail,

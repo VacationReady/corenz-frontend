@@ -73,16 +73,25 @@ export default function CreateNewsPostPage() {
     if (!file) return;
     setIsUploadingCover(true);
     try {
-      const uploaded = await uploadFileToSupabase(file);
-      setCoverImage(uploaded.url);
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/news/cover-upload", {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(errText || "Upload failed");
+      }
+      const data = await res.json();
+      setCoverImage(data.url || "");
       toast.success("Cover image uploaded");
     } catch (err) {
       console.error(err);
       toast.error("Failed to upload cover image");
     } finally {
       setIsUploadingCover(false);
-      // reset input so the same file can be selected again if needed
-      e.currentTarget.value = "";
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
     }
   };
 

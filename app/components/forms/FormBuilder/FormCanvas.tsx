@@ -66,58 +66,100 @@ export function FormCanvas({
         ) : (
           <div className="space-y-6">
             {sections.map((section) => (
-              <div key={section.id} className="bg-white border rounded-md p-3">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      className="text-sm font-medium border rounded px-2 py-1"
-                      value={section.title || "Untitled section"}
-                      onChange={(e) => setSections((prev) => prev.map((s) => s.id === section.id ? { ...s, title: e.target.value } : s))}
-                    />
-                    <select
-                      className="text-xs border rounded px-2 py-1"
-                      value={String(section.columns || 1)}
-                      onChange={(e) => setSections((prev) => prev.map((s) => s.id === section.id ? { ...s, columns: Number(e.target.value) as 1|2|3 } : s))}
-                    >
-                      <option value="1">1 col</option>
-                      <option value="2">2 col</option>
-                      <option value="3">3 col</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div
-                  className={`min-h[120px] rounded-md p-3 ${section.fields.length ? "bg-gray-50" : "bg-gray-50"}`}
-                  id={`section-${section.id}`}
-                >
-                  {section.fields.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-gray-400 py-6">
-                      <PlusCircle className="h-6 w-6 mb-2 opacity-60" />
-                      <p className="italic text-xs">Drag fields here</p>
-                    </div>
-                  ) : (
-                    <SortableContext items={section.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-                      <div className="space-y-3">
-                        {section.fields.map((field) => (
-                          <SortableFieldItem
-                            key={field.id}
-                            field={field}
-                            selectedField={selectedField}
-                            onSelectField={onSelectField}
-                            onDeleteField={handleDeleteField}
-                            onUpdateField={handleUpdateField}
-                            onDuplicateField={handleDuplicateField}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  )}
-                </div>
-              </div>
+              <SectionBox
+                key={section.id}
+                section={section}
+                selectedField={selectedField}
+                onSelectField={onSelectField}
+                onTitleChange={(title) =>
+                  setSections((prev) => prev.map((s) => (s.id === section.id ? { ...s, title } : s)))
+                }
+                onColumnsChange={(cols: 1 | 2 | 3) =>
+                  setSections((prev) => prev.map((s) => (s.id === section.id ? { ...s, columns: cols } : s)))
+                }
+                onDeleteField={handleDeleteField}
+                onUpdateField={handleUpdateField}
+                onDuplicateField={handleDuplicateField}
+              />
             ))}
           </div>
         )}
       </div>
     </TooltipProvider>
+  );
+}
+
+function SectionBox({
+  section,
+  selectedField,
+  onSelectField,
+  onTitleChange,
+  onColumnsChange,
+  onDeleteField,
+  onUpdateField,
+  onDuplicateField,
+}: {
+  section: FormSection;
+  selectedField: FormField | null;
+  onSelectField: (field: FormField | null) => void;
+  onTitleChange: (title: string) => void;
+  onColumnsChange: (cols: 1 | 2 | 3) => void;
+  onDeleteField: (id: string) => void;
+  onUpdateField: (f: FormField) => void;
+  onDuplicateField: (f: FormField) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `section-${section.id}` });
+
+  return (
+    <div className="bg-white border rounded-md p-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <input
+            className="text-sm font-medium border rounded px-2 py-1"
+            value={section.title || "Untitled section"}
+            onChange={(e) => onTitleChange(e.target.value)}
+          />
+          <select
+            className="text-xs border rounded px-2 py-1"
+            value={String(section.columns || 1)}
+            onChange={(e) => onColumnsChange(Number(e.target.value) as 1 | 2 | 3)}
+          >
+            <option value="1">1 col</option>
+            <option value="2">2 col</option>
+            <option value="3">3 col</option>
+          </select>
+        </div>
+      </div>
+
+      <div
+        ref={setNodeRef}
+        className={`min-h-[120px] rounded-md p-3 ${isOver ? "ring-2 ring-blue-400" : ""} ${
+          section.fields.length ? "bg-gray-50" : "bg-gray-50"
+        }`}
+      >
+        {section.fields.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-gray-400 py-6">
+            <PlusCircle className="h-6 w-6 mb-2 opacity-60" />
+            <p className="italic text-xs">Drag fields here</p>
+          </div>
+        ) : (
+          <SortableContext items={section.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {section.fields.map((field) => (
+                <SortableFieldItem
+                  key={field.id}
+                  field={field}
+                  selectedField={selectedField}
+                  onSelectField={onSelectField}
+                  onDeleteField={onDeleteField}
+                  onUpdateField={onUpdateField}
+                  onDuplicateField={onDuplicateField}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        )}
+      </div>
+    </div>
   );
 }

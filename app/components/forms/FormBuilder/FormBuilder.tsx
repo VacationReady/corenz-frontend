@@ -127,10 +127,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     const dragged = active.data?.current as
       | { type: string; label: string; defaults?: Partial<FormField> }
       | undefined;
-    if (
-      dragged &&
-      String(over.id).startsWith("section-")
-    ) {
+    if (dragged) {
       const defaults = (dragged as any)?.defaults || {};
       const newField: FormField = {
         id: uuidv4(),
@@ -139,15 +136,21 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         required: false,
         ...defaults,
       } as FormField;
-      const targetSectionId = String(over.id).replace("section-", "");
-      setSections((prev) =>
-        prev.map((s) =>
-          s.id === targetSectionId ? { ...s, fields: [...s.fields, newField] } : s,
-        ),
-      );
-      setSelectedField(newField);
-      toast.success(`Added ${newField.type} field`);
-      return;
+      const overId = String(over.id || "");
+      const isSection = overId.startsWith("section-");
+      const targetSectionId = isSection
+        ? overId.replace("section-", "")
+        : sections[0]?.id;
+      if (targetSectionId) {
+        setSections((prev) =>
+          prev.map((s) =>
+            s.id === targetSectionId ? { ...s, fields: [...s.fields, newField] } : s,
+          ),
+        );
+        setSelectedField(newField);
+        toast.success(`Added ${newField.type} field`);
+        return;
+      }
     }
 
     // Reordering within the same section is handled by each section's SortableContext directly via child

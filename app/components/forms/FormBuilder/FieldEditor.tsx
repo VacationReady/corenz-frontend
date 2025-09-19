@@ -466,7 +466,16 @@ export function FieldEditor({
                     <select
                       className="border rounded w-full px-2 py-2 text-sm"
                       value={field.calculationConfig?.format || "number"}
-                      onChange={(e) => onChange({ ...field, calculationConfig: { ...(field.calculationConfig || {}), format: e.target.value as any } })}
+                      onChange={(e) =>
+                        onChange({
+                          ...field,
+                          calculationConfig: {
+                            expression: field.calculationConfig?.expression || field.calculation || "",
+                            ...(field.calculationConfig || {}),
+                            format: e.target.value as any,
+                          },
+                        })
+                      }
                     >
                       <option value="number">Number</option>
                       <option value="currency">Currency</option>
@@ -478,7 +487,16 @@ export function FieldEditor({
                     <Input
                       type="number"
                       value={field.calculationConfig?.precision ?? ""}
-                      onChange={(e) => onChange({ ...field, calculationConfig: { ...(field.calculationConfig || {}), precision: Number(e.target.value) } })}
+                      onChange={(e) =>
+                        onChange({
+                          ...field,
+                          calculationConfig: {
+                            expression: field.calculationConfig?.expression || field.calculation || "",
+                            ...(field.calculationConfig || {}),
+                            precision: Number(e.target.value),
+                          },
+                        })
+                      }
                       placeholder="e.g. 2"
                     />
                   </div>

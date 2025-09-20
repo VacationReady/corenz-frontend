@@ -9,9 +9,13 @@ function evaluateCondition(left: any, operator: string, right: any) {
     case "notEquals":
       return left !== right;
     case "contains":
-      return Array.isArray(left) ? left.includes(right) : String(left || "").includes(String(right ?? ""));
+      return Array.isArray(left)
+        ? left.includes(right)
+        : String(left || "").includes(String(right ?? ""));
     case "notContains":
-      return Array.isArray(left) ? !left.includes(right) : !String(left || "").includes(String(right ?? ""));
+      return Array.isArray(left)
+        ? !left.includes(right)
+        : !String(left || "").includes(String(right ?? ""));
     case "greaterThan":
       return Number(left) > Number(right);
     case "greaterOrEqual":
@@ -21,9 +25,19 @@ function evaluateCondition(left: any, operator: string, right: any) {
     case "lessOrEqual":
       return Number(left) <= Number(right);
     case "isEmpty":
-      return left === undefined || left === null || left === "" || (Array.isArray(left) && left.length === 0);
+      return (
+        left === undefined ||
+        left === null ||
+        left === "" ||
+        (Array.isArray(left) && left.length === 0)
+      );
     case "isNotEmpty":
-      return !(left === undefined || left === null || left === "" || (Array.isArray(left) && left.length === 0));
+      return !(
+        left === undefined ||
+        left === null ||
+        left === "" ||
+        (Array.isArray(left) && left.length === 0)
+      );
     default:
       return true;
   }
@@ -39,6 +53,11 @@ test("logic evaluator handles emptiness", () => {
   assert.equal(evaluateCondition([], "isEmpty", null), true);
   assert.equal(evaluateCondition([1], "isNotEmpty", null), true);
   assert.equal(evaluateCondition("", "isEmpty", null), true);
+  assert.equal(evaluateCondition("value", "isNotEmpty", null), true);
 });
 
-
+test("logic evaluator handles arrays for contains checks", () => {
+  assert.equal(evaluateCondition(["a", "b"], "contains", "a"), true);
+  assert.equal(evaluateCondition(["a", "b"], "notContains", "c"), true);
+  assert.equal(evaluateCondition(["a", "b"], "notContains", "a"), false);
+});

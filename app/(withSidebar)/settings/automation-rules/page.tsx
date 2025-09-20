@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "@/hooks/use-toast";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Settings,
   Plus,
@@ -380,6 +381,12 @@ export default function AutomationRulesPage() {
   const [usersOptions, setUsersOptions] = useState<{ value: string; label: string }[]>([]);
   const [documentTypeOptions, setDocumentTypeOptions] = useState<{ value: string; label: string }[]>([]);
 
+  // Validation and preflight states
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationHints, setValidationHints] = useState<string[]>([]);
+  const [preflightOpen, setPreflightOpen] = useState(false);
+  const [postSaveRunTest, setPostSaveRunTest] = useState(true);
+
   useEffect(() => {
     fetchRules();
     loadOptions();
@@ -460,7 +467,7 @@ export default function AutomationRulesPage() {
     }
   };
 
-  const saveRule = async () => {
+  const saveRuleAndMaybeTest = async (runTestAfter: boolean) => {
     try {
       const method = selectedRule?.id ? "PUT" : "POST";
       const url = selectedRule?.id
@@ -474,6 +481,7 @@ export default function AutomationRulesPage() {
       });
 
       if (response.ok) {
+        const saved = await response.json();
         toast({
           title: "Success",
           description: `Rule ${selectedRule?.id ? "updated" : "created"} successfully`,
@@ -482,6 +490,10 @@ export default function AutomationRulesPage() {
         setSelectedRule(null);
         resetForm();
         fetchRules();
+        if (runTestAfter && saved?.id) {
+          runDryTest(saved);
+        }
+        return saved;
       } else {
         const error = await response.json().catch(() => ({} as any));
         toast({
@@ -497,6 +509,7 @@ export default function AutomationRulesPage() {
         variant: "destructive",
       });
     }
+    return null;
   };
 
   const deleteRule = async (ruleId: string) => {
@@ -608,6 +621,171 @@ export default function AutomationRulesPage() {
     return field.options ?? [];
   };
 
+  // Validation helpers
+  const computeValidation = (data: AutomationRule) => {
+    const errors: Record<string, string> = {};
+    const hints: string[] = [];
+
+    if (!data.name?.trim()) {
+      errors["name"] = "Give your automation a clear, human-friendly name.";
+      hints.push("Add a descriptive name so your team recognizes this automation.");
+    }
+    if (!data.triggerType) {
+      errors["triggerType"] = "Select a trigger to start the automation.";
+      hints.push("Choose a trigger like Document Expiring or Form Submitted.");
+    }
+
+    if (data.triggerType === "FORM_SUBMITTED") {
+      if (!data.triggerConfig?.formId) {
+        errors["triggerConfig.formId"] = "Choose the form to watch for submissions.";
+      }
+    }
+    if (data.triggerType === "DOCUMENT_EXPIRING") {
+      const days = data.triggerConfig?.daysBefore;
+      if (typeof days !== "number" || days <= 0) {
+        errors["triggerConfig.daysBefore"] = "Enter days before expiry (e.g., 30).";
+      }
+    }
+    if (data.triggerType === "ONBOARDING_STEP_COMPLETED") {
+      if (!data.triggerConfig?.stepType) {
+        errors["triggerConfig.stepType"] = "Choose the onboarding step type.";
+      }
+    }
+
+    if (!Array.isArray(data.actions) || data.actions.length === 0) {
+      errors["actions"] = "Add at least one action (e.g., Send Notification).";
+      hints.push("Most automations send a notification or create a task.");
+    }
+    data.actions?.forEach((action: any, index: number) => {
+      const prefix = `actions.${index}`;
+      if (!action?.type) {
+        errors[`${prefix}.type`] = "Select an action type.";
+      }
+      if (action?.type === "create_task") {
+        if (!action.config?.title) errors[`${prefix}.title`] = "Add a task title.";
+        if (!action.config?.assigneeType) errors[`${prefix}.assigneeType`] = "Choose an assignee.";
+        if (action.config?.assigneeType === "specific" && !action.config?.assigneeId) {
+          errors[`${prefix}.assigneeId`] = "Choose a specific user to assign the task to.";
+        }
+      }
+      if (action?.type === "send_notification") {
+        if (!Array.isArray(action.config?.channels) || action.config.channels.length === 0) {
+          errors[`${prefix}.channels`] = "Select at least one channel (Email, Slack, Teams).";
+        }
+        if (!action.config?.recipientType) {
+          errors[`${prefix}.recipientType`] = "Choose who should receive the message.";
+        }
+        if (action.config?.recipientType === "specific" && (!Array.isArray(action.config?.recipients) || action.config.recipients.length === 0)) {
+          errors[`${prefix}.recipients`] = "Select at least one recipient.";
+        }
+        if (!action.config?.subject) errors[`${prefix}.subject`] = "Add a subject for the message.";
+        if (!action.config?.message) errors[`${prefix}.message`] = "Write a short message.";
+      }
+      if (action?.type === "start_onboarding") {
+        if (!action.config?.templateId) errors[`${prefix}.templateId`] = "Choose an onboarding template.";
+      }
+      if (action?.type === "update_field") {
+        if (!action.config?.field) errors[`${prefix}.field`] = "Choose a field to update.";
+        if (!action.config?.value) errors[`${prefix}.value`] = "Enter a new value.";
+      }
+    });
+
+    setValidationErrors(errors);
+    setValidationHints(hints);
+    return Object.keys(errors).length === 0;
+  };
+
+  const getError = (key: string) => validationErrors[key];
+  const isFormValid = computeValidation(formData);
+
+  // Presets
+  const usePreset = (preset: "expiry-30" | "welcome" | "form-followup") => {
+    if (preset === "expiry-30") {
+      setFormData({
+        ...formData,
+        name: "Document Expiry Reminder",
+        description: "Notify employees before key documents expire",
+        triggerType: "DOCUMENT_EXPIRING",
+        triggerConfig: { daysBefore: 30, documentTypes: [] },
+        actions: [
+          {
+            type: "send_notification",
+            config: {
+              channels: ["email"],
+              recipientType: "employee",
+              subject: "Your document is expiring soon",
+              message: "Please update your expiring document to stay compliant.",
+            },
+          },
+        ],
+      });
+      return;
+    }
+    if (preset === "welcome") {
+      setFormData({
+        ...formData,
+        name: "Welcome New Starter",
+        description: "Welcome email and manager task for new employees",
+        triggerType: "EMPLOYEE_CREATED",
+        triggerConfig: {},
+        actions: [
+          {
+            type: "send_notification",
+            config: {
+              channels: ["email"],
+              recipientType: "employee",
+              subject: "Welcome to the team!",
+              message: "We’re excited to have you onboard. Here’s what to expect in your first week.",
+            },
+          },
+          {
+            type: "create_task",
+            config: {
+              title: "Complete new starter setup",
+              description: "Set up accounts and schedule intro sessions",
+              assigneeType: "manager",
+              dueDays: 7,
+            },
+          },
+        ],
+      });
+      return;
+    }
+    if (preset === "form-followup") {
+      setFormData({
+        ...formData,
+        name: "Form Submission Follow-up",
+        description: "Create a task when a key form is submitted",
+        triggerType: "FORM_SUBMITTED",
+        triggerConfig: { formId: formsOptions[0]?.value || "" },
+        actions: [
+          {
+            type: "create_task",
+            config: {
+              title: "Review form submission",
+              description: "Check responses and follow up if needed",
+              assigneeType: "hr",
+              dueDays: 3,
+            },
+          },
+        ],
+      });
+    }
+  };
+
+  const attemptSave = () => {
+    const ok = computeValidation(formData);
+    if (!ok) {
+      toast({ title: "Check required fields", description: "Please fix the highlighted items before saving.", variant: "destructive" });
+      return;
+    }
+    if (formData.isActive) {
+      setPreflightOpen(true);
+      return;
+    }
+    saveRuleAndMaybeTest(false);
+  };
+
   const getStatusBadge = (rule: AutomationRule) => {
     if (rule.isActive) {
       return <Badge className="bg-green-100 text-green-800">Active</Badge>;
@@ -629,6 +807,17 @@ export default function AutomationRulesPage() {
       }
     >
       <div className="space-y-6">
+        {/* Helper banner */}
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-md p-3">
+          <div className="text-sm leading-5">
+            <p className="font-medium">How automations work</p>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li><span className="font-semibold">Trigger</span> starts the workflow (e.g., a form is submitted or a document is expiring).</li>
+              <li><span className="font-semibold">Conditions</span> narrow when it runs (e.g., department is Sales).</li>
+              <li><span className="font-semibold">Actions</span> define what happens (e.g., create a task, send a notification).</li>
+            </ul>
+          </div>
+        </div>
         {/* Rules List */}
         <div className="grid gap-4">
           {loading ? (
@@ -751,6 +940,31 @@ export default function AutomationRulesPage() {
             </DialogHeader>
 
             <div className="space-y-6">
+              {/* Quick Start Presets */}
+              <div>
+                <Label>Quick start</Label>
+                <div className="grid grid-cols-3 gap-3 mt-2">
+                  <Card className="cursor-pointer hover:border-primary/50" onClick={() => usePreset("expiry-30")}>
+                    <CardContent className="p-3">
+                      <div className="font-medium">Document Expiry Reminder</div>
+                      <div className="text-xs text-muted-foreground">Email employees 30 days before expiry</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="cursor-pointer hover:border-primary/50" onClick={() => usePreset("welcome")}>
+                    <CardContent className="p-3">
+                      <div className="font-medium">Welcome New Starter</div>
+                      <div className="text-xs text-muted-foreground">Welcome email + manager task</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="cursor-pointer hover:border-primary/50" onClick={() => usePreset("form-followup")}>
+                    <CardContent className="p-3">
+                      <div className="font-medium">Form Submission Follow-up</div>
+                      <div className="text-xs text-muted-foreground">Create task when a form is submitted</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
               {/* Basic Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -763,6 +977,9 @@ export default function AutomationRulesPage() {
                     }
                     placeholder="e.g., Document Expiry Reminder"
                   />
+                  {getError("name") && (
+                    <div className="text-xs text-destructive mt-1">{getError("name")}</div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="rule-description">Description</Label>
@@ -816,6 +1033,9 @@ export default function AutomationRulesPage() {
                         </Card>
                       ))}
                     </div>
+                {getError("triggerType") && (
+                  <div className="text-xs text-destructive mt-2">{getError("triggerType")}</div>
+                )}
                   </div>
 
                   {/* Trigger Configuration */}
@@ -826,10 +1046,24 @@ export default function AutomationRulesPage() {
                         formData.triggerType,
                       )?.configFields.map((field) => (
                         <div key={field.key}>
-                          <Label>
-                            {field.label}
-                            {field.required && " *"}
-                          </Label>
+                            <div className="flex items-center gap-2">
+                              <Label>
+                                {field.label}
+                                {field.required && " *"}
+                              </Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button type="button" aria-label="Help" className="text-muted-foreground">
+                                      <HelpCircle className="w-4 h-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Configure {field.label.toLowerCase()} for the selected trigger.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                           {field.type === "select" && (
                             <Select
                               value={formData.triggerConfig[field.key] || ""}
@@ -859,6 +1093,9 @@ export default function AutomationRulesPage() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          )}
+                          {getError(`triggerConfig.${field.key}`) && (
+                            <div className="text-xs text-destructive mt-1">{getError(`triggerConfig.${field.key}`)}</div>
                           )}
                           {field.type === "multiselect" && (
                             <MultiSelect
@@ -895,6 +1132,9 @@ export default function AutomationRulesPage() {
                               }
                               placeholder={field.placeholder}
                             />
+                          )}
+                          {getError(`triggerConfig.${field.key}`) && (
+                            <div className="text-xs text-destructive mt-1">{getError(`triggerConfig.${field.key}`)}</div>
                           )}
                         </div>
                       ))}
@@ -950,7 +1190,21 @@ export default function AutomationRulesPage() {
                         </div>
                         <div className="space-y-4">
                           <div>
-                            <Label>Condition Type</Label>
+                            <div className="flex items-center gap-2">
+                              <Label>Condition Type</Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button type="button" aria-label="Help" className="text-muted-foreground">
+                                      <HelpCircle className="w-4 h-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Choose what to filter by (e.g., department, job role).
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                             <Select
                               value={condition.type}
                               onValueChange={(value) => {
@@ -990,7 +1244,21 @@ export default function AutomationRulesPage() {
                               <div className="grid grid-cols-2 gap-4">
                                 {condMeta.configFields.map((field) => (
                                   <div key={field.key}>
-                                    <Label>{field.label}</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Label>{field.label}</Label>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button type="button" aria-label="Help" className="text-muted-foreground">
+                                              <HelpCircle className="w-4 h-4" />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Set {field.label.toLowerCase()} for this condition.
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
                                     {field.type === "select" && (
                                       <Select
                                         value={condition.config?.[field.key] || ""}
@@ -1200,7 +1468,21 @@ export default function AutomationRulesPage() {
                                   };
                                   return (
                                     <div key={field.key}>
-                                      <Label>{field.label}{field.required && " *"}</Label>
+                                      <div className="flex items-center gap-2">
+                                        <Label>{field.label}{field.required && " *"}</Label>
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <button type="button" aria-label="Help" className="text-muted-foreground">
+                                                <HelpCircle className="w-4 h-4" />
+                                              </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              Configure {field.label.toLowerCase()} for this action.
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      </div>
                                       {field.type === "select" && (
                                         <Select
                                           value={actionConfig[field.key] || ""}
@@ -1284,6 +1566,19 @@ export default function AutomationRulesPage() {
                 </TabsContent>
               </Tabs>
 
+              {/* Validation checklist */}
+              {(validationHints.length > 0 || getError("actions")) && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">
+                  <div className="text-sm font-medium mb-1">Before you save</div>
+                  <ul className="list-disc pl-5 text-sm space-y-1">
+                    {getError("actions") && <li>{getError("actions")}</li>}
+                    {validationHints.map((h, i) => (
+                      <li key={i}>{h}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-4 border-t">
                 <div className="flex items-center gap-2">
                   <Switch
@@ -1302,12 +1597,8 @@ export default function AutomationRulesPage() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={saveRule}
-                    disabled={
-                      !formData.name ||
-                      !formData.triggerType ||
-                      !formData.actions?.length
-                    }
+                    onClick={attemptSave}
+                    disabled={!isFormValid}
                   >
                     {selectedRule ? "Update" : "Create"} Rule
                   </Button>
@@ -1387,6 +1678,39 @@ export default function AutomationRulesPage() {
             )}
           </DialogContent>
         </Dialog>
+
+    {/* Preflight Confirmation Dialog */}
+    <Dialog open={preflightOpen} onOpenChange={setPreflightOpen}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Activate now or test first?</DialogTitle>
+          <DialogDescription>
+            You chose to activate this rule immediately. We recommend saving and running a quick test before rolling out.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 text-sm">
+          <div>
+            <div className="font-medium">Summary</div>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+              <li>Trigger: {getTriggerTypeInfo(formData.triggerType || "")?.name || "Not set"}</li>
+              <li>Conditions: {formData.conditions?.length || 0}</li>
+              <li>Actions: {formData.actions?.length || 0}</li>
+            </ul>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={postSaveRunTest} onChange={setPostSaveRunTest} />
+            <span>Run a test right after saving</span>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setPreflightOpen(false)}>Cancel</Button>
+          <Button onClick={async () => {
+            setPreflightOpen(false);
+            await saveRuleAndMaybeTest(Boolean(postSaveRunTest));
+          }}>Save{postSaveRunTest ? " & Test" : " Now"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
       </div>
     </PageShell>
   );

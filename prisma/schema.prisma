@@ -153,6 +153,7 @@ model Company {
   Course                              Course[]
   ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
   ExpiryRule                          ExpiryRule[]
+  EmployeePerformanceReview           EmployeePerformanceReview[]
 }
 
 model ContractTypeOption {
@@ -313,6 +314,28 @@ model Employee {
   OnboardingInstance               OnboardingInstance[]
   TrainingRecord                   TrainingRecord[]
   EmployeeAuditLog                 EmployeeAuditLog[]
+  PerformanceReviews               EmployeePerformanceReview[]
+}
+
+model EmployeePerformanceReview {
+  id                     String    @id
+  employeeId             String
+  companyId              String
+  reviewerId             String?
+  reviewDate             DateTime
+  rating                 Int?
+  summary                String?
+  strengths              String?
+  areasForImprovement    String?
+  goals                  Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  Employee               Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company                Company   @relation(fields: [companyId], references: [id])
+  Reviewer               User?     @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
+
+  @@index([employeeId, reviewDate])
+  @@index([companyId])
 }
 
 model EmployeeOffboarding {
@@ -1182,6 +1205,7 @@ model User {
   PersonalInfoAudit_PersonalInfoAudit_changedByIdToUser             PersonalInfoAudit[]    @relation("PersonalInfoAudit_changedByIdToUser")
   PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser           PersonalInfoAudit[]    @relation("PersonalInfoAudit_subjectUserIdToUser")
   EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser               EmployeeAuditLog[]     @relation("EmployeeAuditLog_changedByIdToUser")
+  EmployeePerformanceReviewsAuthored                               EmployeePerformanceReview[] @relation("EmployeePerformanceReviewReviewer")
   SavedReport                                                       SavedReport[]
   Company                                                           Company                @relation(fields: [companyId], references: [id])
   Department_User_departmentIdToDepartment                          Department?            @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])

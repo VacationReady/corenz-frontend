@@ -222,8 +222,8 @@ export async function POST(
     // Resolve workflow for this request
     const employeeLite = {
       id: employee.id,
-      departmentId: employee.Department?.id ?? employee.User?.departmentId ?? null,
-      jobRoleId: employee.JobRole?.id ?? employee.User?.jobRoleId ?? null,
+      departmentId: employee.departmentId ?? employee.User?.departmentId ?? null,
+      jobRoleId: employee.jobRoleId ?? employee.User?.jobRoleId ?? null,
       companyId: session.user.companyId,
     } as any;
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { Resend } from "resend";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
@@ -79,6 +79,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ✅ GET: Return employees with their user data for listing
 export async function GET(req: Request) {
   try {
+    await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -190,7 +191,10 @@ export async function GET(req: Request) {
     return NextResponse.json(flattened);
   } catch (error) {
     console.error("Failed to load employees:", error);
-    return new NextResponse("Error loading employees", { status: 500 });
+    return NextResponse.json(
+      { error: "Error loading employees" },
+      { status: 500 },
+    );
   }
 }
 

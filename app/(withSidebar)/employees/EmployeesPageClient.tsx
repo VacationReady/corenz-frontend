@@ -76,20 +76,54 @@ function EmployeesContent() {
   });
 
   const fetchData = async (status = "all") => {
+    setError("");
     try {
       const [empRes, deptRes, roleRes] = await Promise.all([
-        fetch(`/api/employees?status=${status}`).then((r) => r.json()),
-        fetch("/api/departments").then((r) => r.json()),
-        fetch("/api/job-roles").then((r) => r.json()),
+        fetch(`/api/employees?status=${status}`),
+        fetch("/api/departments"),
+        fetch("/api/job-roles"),
       ]);
 
-      setEmployees(empRes);
-      setDepartments(
-        Array.isArray(deptRes) ? deptRes : deptRes.departments || [],
-      );
-      setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-    } catch {
+      // Employees
+      if (empRes.ok) {
+        const data = await empRes.json();
+        setEmployees(Array.isArray(data) ? data : []);
+      } else {
+        const msg = await empRes.json().catch(() => ({}));
+        console.error("employees fetch failed", msg);
+        setEmployees([]);
+      }
+
+      // Departments
+      if (deptRes.ok) {
+        const data = await deptRes.json();
+        setDepartments(Array.isArray(data) ? data : data.departments || []);
+      } else {
+        const msg = await deptRes.json().catch(() => ({}));
+        console.error("departments fetch failed", msg);
+        setDepartments([]);
+      }
+
+      // Job roles
+      if (roleRes.ok) {
+        const data = await roleRes.json();
+        setJobRoles(Array.isArray(data) ? data : data.jobRoles || []);
+      } else {
+        const msg = await roleRes.json().catch(() => ({}));
+        console.error("job-roles fetch failed", msg);
+        setJobRoles([]);
+      }
+
+      // Only show a banner if at least one failed
+      if (!empRes.ok || !deptRes.ok || !roleRes.ok) {
+        setError("Some data failed to load. Showing partial results.");
+      }
+    } catch (e) {
+      console.error("fetchData error", e);
       setError("Failed to load data");
+      setEmployees([]);
+      setDepartments([]);
+      setJobRoles([]);
     }
   };
 

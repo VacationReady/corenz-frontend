@@ -15,7 +15,10 @@ const APP_URL =
   process.env.NEXT_PUBLIC_BASE_URL ||
   "";
 
-type MinimalUser = Pick<User, "id" | "email" | "firstName" | "lastName" | "name">;
+type MinimalUser = Pick<
+  User,
+  "id" | "email" | "firstName" | "lastName" | "name" | "managerId"
+>;
 
 type NotificationFlags = {
   notifyManagers: boolean;
@@ -268,6 +271,7 @@ export async function sendOnboardingKickoffNotifications({
             firstName: true,
             lastName: true,
             name: true,
+            managerId: true,
           },
         })
       : Promise.resolve([] as MinimalUser[]),
@@ -280,6 +284,7 @@ export async function sendOnboardingKickoffNotifications({
             firstName: true,
             lastName: true,
             name: true,
+            managerId: true,
           },
         })
       : Promise.resolve([] as MinimalUser[]),
@@ -484,6 +489,7 @@ export async function sendOnboardingStepStatusNotification({
             firstName: true,
             lastName: true,
             name: true,
+            managerId: true,
           },
         })
       : Promise.resolve([] as MinimalUser[]),
@@ -496,6 +502,7 @@ export async function sendOnboardingStepStatusNotification({
             firstName: true,
             lastName: true,
             name: true,
+            managerId: true,
           },
         })
       : Promise.resolve([] as MinimalUser[]),

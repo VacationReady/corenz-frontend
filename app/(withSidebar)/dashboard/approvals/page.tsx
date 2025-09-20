@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { StageTimeline } from "@/components/approvals/StageTimeline";
 import {
   Select,
   SelectContent,
@@ -13,6 +14,26 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 
+interface Decision {
+  id: string;
+  approverId: string;
+  approverName: string | null;
+  approverEmail: string | null;
+  order: number;
+  status: string;
+  isActive: boolean;
+}
+
+interface Stage {
+  id: string;
+  name: string | null;
+  order: number;
+  mode: string;
+  status: string;
+  isActive: boolean;
+  decisions: Decision[];
+}
+
 interface LeaveRequest {
   id: string;
   type: string;
@@ -20,12 +41,15 @@ interface LeaveRequest {
   endDate: string;
   reason: string | null;
   approvalStatus: string;
+  eventCategory?: { id: string; name: string } | null;
   employee: {
     user: {
       name: string | null;
       email: string | null;
     };
   };
+  approvalStages?: Stage[];
+  myDecision?: { id: string; stageId: string; mode: string } | null;
 }
 
 export default function ApprovalsPage() {
@@ -99,13 +123,19 @@ export default function ApprovalsPage() {
     };
   }, []);
 
-  const handleDecision = async (id: string, action: "approve" | "decline") => {
+  const handleDecision = async (
+    id: string,
+    decisionId: string | undefined,
+    action: "approve" | "decline",
+  ) => {
     setActionLoading(id);
     try {
       const res = await fetch(`/api/leave-request/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }), // sends lowercase as expected
+        body: JSON.stringify(
+          decisionId ? { action, decisionId } : { action },
+        ),
       });
 
       if (res.ok) {
@@ -124,6 +154,8 @@ export default function ApprovalsPage() {
       setActionLoading(null);
     }
   };
+
+  // StageTimeline now imported
 
   return (
     <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">
@@ -173,7 +205,7 @@ export default function ApprovalsPage() {
           <Skeleton className="h-20 w-full" />
         </div>
       ) : requests.length === 0 ? (
-        <p>No pending leave requests.</p>
+        <p>No pending approvals assigned to you.</p>
       ) : (
         <div className="space-y-4">
           {requests.map((req) => (
@@ -187,16 +219,17 @@ export default function ApprovalsPage() {
                 Employee: {req.employee.user.name} ({req.employee.user.email})
               </p>
               <p>Reason: {req.reason || "N/A"}</p>
+              <StageTimeline stages={req.approvalStages} />
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => handleDecision(req.id, "approve")}
+                  onClick={() => handleDecision(req.id, req.myDecision?.id, "approve")}
                   disabled={actionLoading === req.id}
                   className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 disabled:opacity-50"
                 >
                   {actionLoading === req.id ? "Approving..." : "Approve"}
                 </button>
                 <button
-                  onClick={() => handleDecision(req.id, "decline")}
+                  onClick={() => handleDecision(req.id, req.myDecision?.id, "decline")}
                   disabled={actionLoading === req.id}
                   className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700 disabled:opacity-50"
                 >

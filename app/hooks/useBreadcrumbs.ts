@@ -62,6 +62,7 @@ export function useBreadcrumbs(
           "bank-payroll": "Bank & Payroll",
           "emergency-contacts": "Emergency Contacts",
           "employment-details": "Employment Details",
+          "multi-stage-approvals": "Multi-stage Approvals",
         };
 
         return breadcrumbConfigs.employeeSection(

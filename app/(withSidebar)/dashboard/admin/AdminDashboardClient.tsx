@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import AddDocumentModal from "@/components/documents/AddDocumentModal";
+import { StageTimeline } from "@/components/approvals/StageTimeline";
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -89,13 +90,19 @@ export default function AdminDashboardClient({
             {detail.reason && <div>Reason: {detail.reason}</div>}
             {detail.employee?.department && <div>Department: {detail.employee.department}</div>}
           </div>
+          {/* Stage timeline */}
+          {Array.isArray(detail.approvalStages) && (
+            <div className="mb-4">
+              <StageTimeline stages={detail.approvalStages} />
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={async () => {
-              await fetch(`/api/leave-request/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+              await fetch(`/api/leave-request/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(detail?.myDecision?.id ? { action: "decline", decisionId: detail.myDecision.id } : { action: "decline" }) });
               setDetail(null);
             }}>Decline</Button>
             <Button onClick={async () => {
-              await fetch(`/api/leave-request/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+              await fetch(`/api/leave-request/${detail.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(detail?.myDecision?.id ? { action: "approve", decisionId: detail.myDecision.id } : { action: "approve" }) });
               setDetail(null);
             }}>Approve</Button>
           </div>
@@ -226,10 +233,11 @@ export default function AdminDashboardClient({
 
     const action = async (id: string, action: "approve" | "decline") => {
       try {
+        const item = items?.find((i) => i.id === id);
         const res = await fetch(`/api/leave-request/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action }),
+          body: JSON.stringify(item?.myDecision?.id ? { action, decisionId: item.myDecision.id } : { action }),
         });
         if (res.ok) {
           toast.success(action === "approve" ? "Approved" : "Declined");
@@ -570,7 +578,7 @@ export default function AdminDashboardClient({
                           await fetch(`/api/leave-request/${first.id}`, {
                             method: "PATCH",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ action: "approve" }),
+                            body: JSON.stringify(first?.myDecision?.id ? { action: "approve", decisionId: first.myDecision.id } : { action: "approve" }),
                           });
                           const metricsRes = await fetch(
                             `/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`,

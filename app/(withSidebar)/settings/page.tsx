@@ -57,6 +57,11 @@ const holidaySettings = [
     href: "/settings/leave-policies",
     icon: <FileText className="h-5 w-5 text-primary" />,
   },
+  {
+    title: "Multi-stage Approvals",
+    href: "/settings/multi-stage-approvals",
+    icon: <Share2 className="h-5 w-5 text-primary" />,
+  },
 ];
 
 const formSettings = [

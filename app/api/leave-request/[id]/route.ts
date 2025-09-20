@@ -5,11 +5,13 @@ import { authOptions } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { z } from "zod";
+import { processDecision } from "@/lib/advanceLeaveApproval";
 
 const leaveRequestActionSchema = z.object({
   action: z.enum(["approve", "decline"], {
     required_error: "action is required",
   }),
+  decisionId: z.string().optional(),
 });
 
 export async function GET(
@@ -32,6 +34,10 @@ export async function GET(
         Employee: { include: { User: true, Department: true } },
         EventCategory: true,
         EventSubcategory: true,
+        LeaveApprovalStage: {
+          orderBy: { order: "asc" },
+          include: { decisions: { include: { approver: true }, orderBy: { order: "asc" } } },
+        },
       },
     });
 
@@ -71,6 +77,29 @@ export async function GET(
         },
         department: leave.Employee?.Department?.name ?? null,
       },
+      approvalStages: (leave.LeaveApprovalStage || []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        order: s.order,
+        mode: s.mode,
+        status: s.status,
+        isActive: s.isActive,
+        decisions: s.decisions.map((d: any) => ({
+          id: d.id,
+          approverId: d.approverId,
+          approverName: d.approver?.name ?? null,
+          approverEmail: d.approver?.email ?? null,
+          order: d.order,
+          status: d.status,
+          isActive: d.isActive,
+        })),
+      })),
+      myDecision: (() => {
+        const active = (leave.LeaveApprovalStage || [])
+          .flatMap((s: any) => s.decisions.map((d: any) => ({ ...d, stageId: s.id, mode: s.mode })))
+          .find((d: any) => d.approverId === session.user.id && d.status === "PENDING" && d.isActive);
+        return active ? { id: active.id, stageId: active.stageId, mode: active.mode } : null;
+      })(),
     } as const;
 
     return NextResponse.json({ success: true, data });
@@ -99,7 +128,22 @@ export async function PATCH(
   const leaveId = params.id;
 
   try {
-    const { action } = leaveRequestActionSchema.parse(await req.json());
+    const { action, decisionId } = leaveRequestActionSchema.parse(await req.json());
+
+    if (decisionId) {
+      const result = await processDecision({ decisionId, action, actorUserId: session.user.id });
+      return NextResponse.json({ success: true, data: result.leaveRequest });
+    }
+
+    // If multi-stage workflow exists for this request, require decisionId to prevent bypassing stages
+    const multiCount = await prisma.leaveApprovalStage.count({ where: { leaveRequestId: leaveId } });
+    if (multiCount > 0) {
+      return NextResponse.json(
+        { success: false, error: "This request uses multi-stage approvals. You must act on your assigned decision." },
+        { status: 400 },
+      );
+    }
+
     const leave = await prisma.leaveRequest.findUnique({
       where: { id: leaveId },
       include: {
@@ -141,91 +185,45 @@ export async function PATCH(
           },
         });
 
-        if (!entitlement) {
-          throw new Error(
-            "Leave entitlement not found for this employee and event category.",
-          );
+        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+          throw new Error("Insufficient leave balance.");
         }
 
         await tx.leaveEntitlement.update({
           where: { id: entitlement.id },
-          data: { usedDays: { increment: totalDeduction } },
+          data: { usedDays: entitlement.usedDays + totalDeduction },
         });
 
-        return await tx.leaveRequest.update({
+        return tx.leaveRequest.update({
           where: { id: leaveId },
-          data: {
-            approvalStatus: "APPROVED",
-            approvedById: session.user.id,
-          },
-          include: {
-            Employee: { include: { User: true } },
-            EventCategory: true,
-          },
+          data: { approvalStatus: "APPROVED", approvedById: session.user.id },
         });
       });
 
-      await sendLeaveStatusUpdate({
-        to: updatedLeaveRequest.Employee.User.email,
-        subject: `Your ${updatedLeaveRequest.EventCategory?.name ?? "leave"} request has been approved`,
-        employeeName:
-          updatedLeaveRequest.Employee.User.name ||
-          `${updatedLeaveRequest.Employee.User.firstName ?? ""} ${updatedLeaveRequest.Employee.User.lastName ?? ""}`.trim(),
-        status: "APPROVED",
-        type: updatedLeaveRequest.EventCategory?.name ?? "Leave",
-        startDate: updatedLeaveRequest.startDate.toISOString(),
-        endDate: updatedLeaveRequest.endDate.toISOString(),
-      });
-
       return NextResponse.json({ success: true, data: updatedLeaveRequest });
     }
 
-    if (action === "decline") {
-      const updatedLeaveRequest = await prisma.leaveRequest.update({
-        where: { id: leaveId },
-        data: {
-          approvalStatus: "DECLINED",
-          approvedById: session.user.id,
-        },
-        include: {
-          Employee: { include: { User: true } },
-          EventCategory: true,
-        },
-      });
+    // Decline
+    const declined = await prisma.leaveRequest.update({
+      where: { id: leaveId },
+      data: { approvalStatus: "DECLINED", approvedById: session.user.id },
+    });
 
-      await sendLeaveStatusUpdate({
-        to: updatedLeaveRequest.Employee.User.email,
-        subject: `Your ${updatedLeaveRequest.EventCategory?.name ?? "leave"} request has been declined`,
-        employeeName:
-          updatedLeaveRequest.Employee.User.name ||
-          `${updatedLeaveRequest.Employee.User.firstName ?? ""} ${updatedLeaveRequest.Employee.User.lastName ?? ""}`.trim(),
-        status: "DECLINED",
-        type: updatedLeaveRequest.EventCategory?.name ?? "Leave",
-        startDate: updatedLeaveRequest.startDate.toISOString(),
-        endDate: updatedLeaveRequest.endDate.toISOString(),
-      });
+    await sendLeaveStatusUpdate({
+      to: leave.Employee.User.email ?? "",
+      subject: `Your ${leave.EventCategory?.name ?? "Leave"} request has been declined`,
+      employeeName: leave.Employee.User.firstName ?? leave.Employee.User.name ?? "",
+      type: leave.EventCategory?.name ?? "Leave",
+      startDate: String(leave.startDate),
+      endDate: String(leave.endDate),
+      status: "DECLINED",
+    });
 
-      return NextResponse.json({ success: true, data: updatedLeaveRequest });
-    }
-
-    return NextResponse.json(
-      { success: false, error: "Invalid action specified." },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: true, data: declined });
   } catch (error: any) {
-    console.error("[Leave Request Approval Error]", error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request body",
-          details: error.flatten(),
-        },
-        { status: 400 },
-      );
-    }
+    console.error("[LEAVE_REQUEST_PATCH]", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Internal server error." },
+      { success: false, error: error.message || "Failed to update leave request" },
       { status: 500 },
     );
   }

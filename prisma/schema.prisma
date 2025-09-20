@@ -156,6 +156,7 @@ model Company {
   EmployeePerformanceReview           EmployeePerformanceReview[]
   NewsReaction                        NewsReaction[]
   NewsBookmark                        NewsBookmark[]
+  ApprovalWorkflow                    ApprovalWorkflow[]
 }
 
 model ContractTypeOption {
@@ -474,6 +475,7 @@ model EventCategory {
   LeaveEntitlement  LeaveEntitlement[]
   LeavePolicy       LeavePolicy[]
   LeaveRequest      LeaveRequest[]
+  ApprovalWorkflow  ApprovalWorkflow[]
 
   @@unique([companyId, name])
 }
@@ -810,6 +812,7 @@ model LeaveRequest {
   EventCategory                        EventCategory     @relation(fields: [eventCategoryId], references: [id])
   User_LeaveRequest_requesterIdToUser  User              @relation("LeaveRequest_requesterIdToUser", fields: [requesterId], references: [id])
   EventSubcategory                     EventSubcategory? @relation(fields: [sickReasonId], references: [id])
+  LeaveApprovalStage                   LeaveApprovalStage[]
 }
 
 model Location {
@@ -1253,6 +1256,8 @@ model User {
   User                                                              User?                  @relation("UserToUser", fields: [managerId], references: [id])
   other_User                                                        User[]                 @relation("UserToUser")
   PermissionProfile                                                 PermissionProfile?     @relation(fields: [permissionProfileId], references: [id])
+  ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
+  LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser     LeaveApprovalDecision[] @relation("LeaveApprovalDecision_approverIdToUser")
 
   @@unique([email, companyId])
 }
@@ -1308,6 +1313,103 @@ enum ApprovalStatus {
   APPROVED
   DECLINED
   CANCELLED
+}
+
+// Approval workflow enums
+enum ApprovalScopeType {
+  COMPANY
+  DEPARTMENT
+  JOB_ROLE
+  EMPLOYEE
+}
+
+enum ApprovalStageMode {
+  SEQUENTIAL
+  FIRST_RESPONDER
+  UNANIMOUS
+}
+
+model ApprovalWorkflow {
+  id              String             @id @default(cuid())
+  companyId       String
+  name            String
+  eventCategoryId String
+  scopeType       ApprovalScopeType
+  departmentIds   String[]           @default([])
+  jobRoleIds      String[]           @default([])
+  employeeIds     String[]           @default([])
+  priority        Int                @default(0)
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  Company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  EventCategory   EventCategory      @relation(fields: [eventCategoryId], references: [id])
+  stages          ApprovalWorkflowStage[]
+
+  @@index([companyId, eventCategoryId])
+  @@unique([companyId, name])
+}
+
+model ApprovalWorkflowStage {
+  id         String        @id @default(cuid())
+  workflowId String
+  name       String?
+  order      Int
+  mode       ApprovalStageMode
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  workflow   ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  approvers  ApprovalWorkflowStageApprover[]
+
+  @@unique([workflowId, order])
+}
+
+model ApprovalWorkflowStageApprover {
+  id      String  @id @default(cuid())
+  stageId String
+  userId  String
+  order   Int
+  stage   ApprovalWorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  user    User    @relation("ApprovalWorkflowStageApprover_userIdToUser", fields: [userId], references: [id])
+
+  @@unique([stageId, order])
+  @@unique([stageId, userId])
+}
+
+model LeaveApprovalStage {
+  id              String            @id @default(cuid())
+  leaveRequestId  String
+  workflowStageId String?
+  name            String?
+  order           Int
+  mode            ApprovalStageMode
+  status          ApprovalStatus    @default(PENDING)
+  isActive        Boolean           @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  leaveRequest    LeaveRequest      @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  decisions       LeaveApprovalDecision[]
+
+  @@index([leaveRequestId, order])
+}
+
+model LeaveApprovalDecision {
+  id          String         @id @default(cuid())
+  stageId     String
+  approverId  String
+  order       Int
+  status      ApprovalStatus @default(PENDING)
+  isActive    Boolean        @default(false)
+  respondedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  stage       LeaveApprovalStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  approver    User           @relation("LeaveApprovalDecision_approverIdToUser", fields: [approverId], references: [id])
+
+  @@index([approverId, status, isActive])
+  @@unique([stageId, approverId])
+  @@unique([stageId, order])
 }
 
 enum AuditAction {

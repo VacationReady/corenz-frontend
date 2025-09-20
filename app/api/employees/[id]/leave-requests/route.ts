@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
+import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";
+import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
+import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import { z } from "zod";
 
@@ -211,29 +214,104 @@ export async function POST(
       },
     });
 
-    if (employee.User.managerId) {
-      const manager = await prisma.user.findFirst({
-        where: { id: employee.User.managerId, companyId: session.user.companyId },
-        select: { email: true, name: true },
+    // If fast-tracked by admin (immediate approval), keep legacy flow
+    if (newLeaveRequest.approvalStatus === "APPROVED") {
+      return NextResponse.json({ success: true, data: newLeaveRequest });
+    }
+
+    // Resolve workflow for this request
+    const employeeLite = {
+      id: employee.id,
+      departmentId: employee.Department?.id ?? employee.User?.departmentId ?? null,
+      jobRoleId: employee.JobRole?.id ?? employee.User?.jobRoleId ?? null,
+      companyId: session.user.companyId,
+    } as any;
+
+    const workflow = await resolveApprovalWorkflow({
+      companyId: session.user.companyId,
+      employee: employeeLite,
+      eventCategoryId: EventCategoryId,
+    });
+
+    if (workflow) {
+      const stages = await createLeaveApprovalPlan({
+        prismaTx: prisma,
+        leaveRequestId: newLeaveRequest.id,
+        workflow,
       });
 
-      if (manager?.email) {
-        const employeeFullName =
-          `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
-          "Employee";
-        await sendLeaveNotification({
-          to: manager.email,
-          subject: `New Leave Request from ${employeeFullName}`,
-          employeeName: employeeFullName,
-          type: EventCategoryName,
-          startDate,
-          endDate,
+      // Notify active approvers on first stage
+      const first = stages.find((s: any) => s.isActive);
+      if (first) {
+        const lrFull = await prisma.leaveRequest.findUnique({
+          where: { id: newLeaveRequest.id },
+          include: { Employee: { include: { User: true } } },
         });
+        await notifyApproversForStage({
+          stage: { ...first, decisions: await prisma.leaveApprovalDecision.findMany({ where: { stageId: first.id }, include: { approver: true } }) } as any,
+          leaveRequest: lrFull as any,
+          eventCategoryName: EventCategoryName,
+        });
+      }
+    } else {
+      // Fallback to manager email if no workflow
+      if (employee.User.managerId) {
+        const manager = await prisma.user.findFirst({
+          where: { id: employee.User.managerId, companyId: session.user.companyId },
+          select: { email: true, name: true },
+        });
+        if (manager?.email) {
+          const employeeFullName =
+            `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+            "Employee";
+          await sendLeaveNotification({
+            to: manager.email,
+            subject: `New Leave Request from ${employeeFullName}`,
+            employeeName: employeeFullName,
+            type: EventCategoryName,
+            startDate,
+            endDate,
+          });
+        }
       }
     }
 
     console.log("✅ Leave request submitted successfully");
-    return NextResponse.json({ success: true, data: newLeaveRequest });
+    // Return with approval stages when present
+    const full = await prisma.leaveRequest.findUnique({
+      where: { id: newLeaveRequest.id },
+      include: {
+        LeaveApprovalStage: {
+          orderBy: { order: "asc" },
+          include: { decisions: { orderBy: { order: "asc" }, include: { approver: true } } },
+        },
+      },
+    });
+
+    const response = full
+      ? {
+          ...newLeaveRequest,
+          approvalStages: (full.LeaveApprovalStage || []).map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            order: s.order,
+            mode: s.mode,
+            status: s.status,
+            isActive: s.isActive,
+            decisions: s.decisions.map((d: any) => ({
+              id: d.id,
+              approverId: d.approverId,
+              approverName: d.approver?.name ?? null,
+              approverEmail: d.approver?.email ?? null,
+              order: d.order,
+              status: d.status,
+              isActive: d.isActive,
+            })),
+          })),
+        }
+      : newLeaveRequest;
+
+    return NextResponse.json({ success: true, data: response });
   } catch (error: any) {
     console.error("❌ Error submitting leave request:", error);
     if (error instanceof z.ZodError) {

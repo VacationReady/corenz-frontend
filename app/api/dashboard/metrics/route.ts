@@ -26,11 +26,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const canViewAllApprovals = hasPermission(
-      user as any,
-      "leave-requests",
-      "edit",
-    );
+    const canViewAllApprovals = hasPermission(user as any, "leave-requests", "edit");
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -65,20 +61,25 @@ export async function GET(req: Request) {
           User: { createdAt: { gte: startOfMonth, lt: startOfNextMonth } },
         },
       }),
-      prisma.leaveRequest.count({
+      // my: count of active pending decisions for current user
+      prisma.leaveApprovalDecision.count({
         where: {
-          approvalStatus: "PENDING",
-          Employee: {
-            companyId,
-            ...(departmentId ? { departmentId } : {}),
-            User: { managerId: session.user.id },
-          },
+          approverId: session.user.id,
+          status: "PENDING",
+          isActive: true,
+          stage: { leaveRequest: { Employee: { companyId, ...(departmentId ? { departmentId } : {}) } } },
         },
       }),
-      prisma.leaveRequest.count({
+      // all: count of active pending decisions across company
+      prisma.leaveApprovalDecision.count({
         where: {
-          approvalStatus: "PENDING",
-          Employee: { companyId, ...(departmentId ? { departmentId } : {}) },
+          status: "PENDING",
+          isActive: true,
+          stage: {
+            leaveRequest: {
+              Employee: { companyId, ...(departmentId ? { departmentId } : {}) },
+            },
+          },
         },
       }),
     ]);

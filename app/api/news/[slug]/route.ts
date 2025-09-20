@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return NextResponse.json(post);
+  return NextResponse.json(mapNewsPost(post));
 }
 
 // ✅ PUT: Update a news post
@@ -67,6 +67,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     data: {
       title: body.title,
       content: body.content,
+      coverImageUrl: body.coverImage ?? null,
       videoEmbedUrl: body.videoEmbedUrl,
       attachments: body.attachments,
       sendEmail: body.sendEmail,
@@ -88,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     });
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json(mapNewsPost(updated));
 }
 
 // ✅ DELETE: Delete a news post
@@ -121,4 +122,16 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   });
 
   return new Response(null, { status: 204 });
+}
+
+type NewsPostRecord = {
+  coverImageUrl: string | null;
+} & Record<string, any>;
+
+function mapNewsPost<T extends NewsPostRecord>(post: T) {
+  const { coverImageUrl, ...rest } = post;
+  return {
+    ...rest,
+    coverImage: coverImageUrl ?? null,
+  } as Omit<T, "coverImageUrl"> & { coverImage: string | null };
 }

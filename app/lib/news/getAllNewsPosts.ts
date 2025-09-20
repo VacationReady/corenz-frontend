@@ -2,7 +2,7 @@ import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 
 export async function getAllNewsPosts(companyId?: string) {
   await ensurePrismaConnected();
-  return prisma.newsPost.findMany({
+  const posts = await prisma.newsPost.findMany({
     where: {
       publishedAt: { not: null },
       ...(companyId ? { User: { companyId } } : {}),
@@ -13,6 +13,7 @@ export async function getAllNewsPosts(companyId?: string) {
       title: true,
       slug: true,
       content: true,
+      coverImageUrl: true,
       authorId: true,
       publishedAt: true,
       pinned: true,
@@ -26,5 +27,19 @@ export async function getAllNewsPosts(companyId?: string) {
       User: { select: { name: true, email: true, profileImageUrl: true, companyId: true } },
     },
   });
+
+  return posts.map(mapNewsPost);
+}
+
+type NewsPostRecord = {
+  coverImageUrl: string | null;
+} & Record<string, any>;
+
+function mapNewsPost<T extends NewsPostRecord>(post: T) {
+  const { coverImageUrl, ...rest } = post;
+  return {
+    ...rest,
+    coverImage: coverImageUrl ?? null,
+  } as Omit<T, "coverImageUrl"> & { coverImage: string | null };
 }
 

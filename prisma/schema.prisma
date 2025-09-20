@@ -807,6 +807,7 @@ model NewsPost {
   attachments   String[]
   videoEmbedUrl String?
   sendEmail     Boolean   @default(false)
+  coverImageUrl String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime
   User          User      @relation(fields: [authorId], references: [id])

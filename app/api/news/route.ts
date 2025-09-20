@@ -17,8 +17,15 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { title, content, coverImage, videoEmbedUrl, attachments, sendEmail, audience } =
-      body;
+    const {
+      title,
+      content,
+      coverImage,
+      videoEmbedUrl,
+      attachments,
+      sendEmail,
+      audience,
+    } = body;
 
     console.log("📝 Incoming news POST:", { title, sendEmail, audience });
 
@@ -28,7 +35,7 @@ export async function POST(req: NextRequest) {
         title,
         slug: generateSlug(title),
         content,
-        coverImage,
+        coverImageUrl: coverImage ?? null,
         videoEmbedUrl,
         attachments,
         sendEmail,
@@ -44,7 +51,7 @@ export async function POST(req: NextRequest) {
       await sendNewsEmails(audience, title, content, companyId);
     }
 
-    return NextResponse.json(newsPost);
+    return NextResponse.json(mapNewsPost(newsPost));
   } catch (error) {
     console.error("Error creating news post:", error);
     return NextResponse.json(
@@ -72,6 +79,7 @@ export async function GET(req: NextRequest) {
       title: true,
       slug: true,
       createdAt: true,
+      coverImageUrl: true,
       content: true, // ✅ Needed for preview tooltip
     },
   });
@@ -84,7 +92,7 @@ export async function GET(req: NextRequest) {
     ) as { text?: string } | undefined;
 
     return {
-      ...post,
+      ...mapNewsPost(post),
       preview: firstParagraph?.text ?? "",
     };
   });
@@ -92,6 +100,18 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(postsWithPreview);
 
   return NextResponse.json(posts);
+}
+
+type NewsPostRecord = {
+  coverImageUrl: string | null;
+} & Record<string, any>;
+
+function mapNewsPost<T extends NewsPostRecord>(post: T) {
+  const { coverImageUrl, ...rest } = post;
+  return {
+    ...rest,
+    coverImage: coverImageUrl ?? null,
+  } as Omit<T, "coverImageUrl"> & { coverImage: string | null };
 }
 
 // ✅ Resend Email Handler with Batch Sending and Logging

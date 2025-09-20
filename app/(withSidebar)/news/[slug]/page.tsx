@@ -65,8 +65,10 @@ export default async function NewsDetailPage({ params }: Props) {
   const canEdit = isAuthor || isAdmin;
 
   // Transform the post data to match client expectations
+  const { coverImageUrl: coverImageFromPost, ...postRest } = post;
   const transformedPost = {
-    ...post,
+    ...postRest,
+    coverImage: coverImageFromPost ?? null,
     author: {
       id: post.User.id,
       name: post.User.name,
@@ -88,14 +90,18 @@ export default async function NewsDetailPage({ params }: Props) {
     views: 0, // TODO: Implement view tracking
   };
 
-  const transformedRelated = relatedPosts.map((p) => ({
-    ...p,
-    author: {
-      name: p.User.name,
-      email: p.User.email,
-      avatar: p.User.profileImageUrl,
-    },
-  }));
+  const transformedRelated = relatedPosts.map((p) => {
+    const { coverImageUrl, ...rest } = p;
+    return {
+      ...rest,
+      coverImage: coverImageUrl ?? null,
+      author: {
+        name: p.User.name,
+        email: p.User.email,
+        avatar: p.User.profileImageUrl,
+      },
+    };
+  });
 
   return (
     <NewsDetailClient

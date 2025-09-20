@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   }
 
   const posts = await prisma.newsPost.findMany({
-    where: { User: { companyId: session.user.companyId } },
+    where: { User: { is: { companyId: session.user.companyId } } },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

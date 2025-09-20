@@ -17,7 +17,7 @@ export default async function NewsDetailPage({ params }: Props) {
     where: {
       slug: params.slug,
       ...(session?.user?.companyId
-        ? { User: { companyId: session.user.companyId } }
+        ? { User: { is: { companyId: session.user.companyId } } }
         : {}),
     },
     include: {
@@ -51,7 +51,7 @@ export default async function NewsDetailPage({ params }: Props) {
     where: {
       id: { not: post.id },
       ...(session?.user?.companyId
-        ? { User: { companyId: session.user.companyId } }
+        ? { User: { is: { companyId: session.user.companyId } } }
         : {}),
       OR: [{ tags: { hasSome: post.tags } }, { authorId: post.authorId }],
     },

@@ -34,6 +34,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "@/hooks/use-toast";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import {
   Settings,
   Plus,
@@ -371,9 +372,74 @@ export default function AutomationRulesPage() {
     actions: [],
   });
 
+  // Dynamic select options
+  const [formsOptions, setFormsOptions] = useState<{ value: string; label: string }[]>([]);
+  const [templatesOptions, setTemplatesOptions] = useState<{ value: string; label: string }[]>([]);
+  const [departmentsOptions, setDepartmentsOptions] = useState<{ value: string; label: string }[]>([]);
+  const [jobRolesOptions, setJobRolesOptions] = useState<{ value: string; label: string }[]>([]);
+  const [usersOptions, setUsersOptions] = useState<{ value: string; label: string }[]>([]);
+  const [documentTypeOptions, setDocumentTypeOptions] = useState<{ value: string; label: string }[]>([]);
+
   useEffect(() => {
     fetchRules();
+    loadOptions();
   }, []);
+
+  const loadOptions = async () => {
+    try {
+      const [formsRes, templatesRes, departmentsRes, jobRolesRes, usersRes, docTypesRes] = await Promise.all([
+        fetch("/api/forms"),
+        fetch("/api/onboarding/templates"),
+        fetch("/api/departments"),
+        fetch("/api/job-roles"),
+        fetch("/api/users?limit=1000"),
+        fetch("/api/employment-checks/types"),
+      ]);
+
+      if (formsRes.ok) {
+        const forms = await formsRes.json();
+        setFormsOptions(forms.map((f: any) => ({ value: f.id, label: f.name })));
+      }
+
+      if (templatesRes.ok) {
+        const templates = await templatesRes.json();
+        setTemplatesOptions(
+          templates.map((t: any) => ({ value: t.id, label: t.name })),
+        );
+      }
+
+      if (departmentsRes.ok) {
+        const departments = await departmentsRes.json();
+        setDepartmentsOptions(
+          departments.map((d: any) => ({ value: d.id, label: d.name })),
+        );
+      }
+
+      if (jobRolesRes.ok) {
+        const jr = await jobRolesRes.json();
+        const roles = Array.isArray(jr) ? jr : jr.jobRoles || [];
+        setJobRolesOptions(roles.map((r: any) => ({ value: r.id, label: r.name })));
+      }
+
+      if (usersRes.ok) {
+        const users = await usersRes.json();
+        setUsersOptions(
+          users.map((u: any) => ({
+            value: u.id,
+            label: u.firstName || u.lastName ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() : u.email,
+          })),
+        );
+      }
+
+      if (docTypesRes.ok) {
+        const types = await docTypesRes.json();
+        setDocumentTypeOptions(types.map((t: string) => ({ value: t, label: t })));
+      }
+    } catch (e) {
+      // Non-blocking; options can be retried later
+      console.warn("Failed loading options for automation rules:", e);
+    }
+  };
 
   const fetchRules = async () => {
     try {
@@ -417,10 +483,10 @@ export default function AutomationRulesPage() {
         resetForm();
         fetchRules();
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({} as any));
         toast({
           title: "Error",
-          description: error.message || "Failed to save rule",
+          description: (error as any).error || (error as any).message || "Failed to save rule",
           variant: "destructive",
         });
       }
@@ -529,6 +595,17 @@ export default function AutomationRulesPage() {
 
   const getTriggerTypeInfo = (triggerType: string) => {
     return triggerTypes.find((t) => t.id === triggerType);
+  };
+
+  const getTriggerFieldOptions = (field: ConfigField) => {
+    // Provide dynamic options where defined; fall back to static field.options
+    if (formData.triggerType === "FORM_SUBMITTED" && field.key === "formId") {
+      return formsOptions;
+    }
+    if (formData.triggerType === "DOCUMENT_EXPIRING" && field.key === "documentTypes") {
+      return documentTypeOptions;
+    }
+    return field.options ?? [];
   };
 
   const getStatusBadge = (rule: AutomationRule) => {
@@ -772,7 +849,7 @@ export default function AutomationRulesPage() {
                                 />
                               </SelectTrigger>
                               <SelectContent>
-                                {field.options?.map((option) => (
+                                {getTriggerFieldOptions(field).map((option) => (
                                   <SelectItem
                                     key={option.value}
                                     value={option.value}
@@ -782,6 +859,26 @@ export default function AutomationRulesPage() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          )}
+                          {field.type === "multiselect" && (
+                            <MultiSelect
+                              options={getTriggerFieldOptions(field)}
+                              selected={
+                                Array.isArray(formData.triggerConfig[field.key])
+                                  ? (formData.triggerConfig[field.key] as string[])
+                                  : []
+                              }
+                              onChange={(values) =>
+                                setFormData({
+                                  ...formData,
+                                  triggerConfig: {
+                                    ...formData.triggerConfig,
+                                    [field.key]: values,
+                                  },
+                                })
+                              }
+                              placeholder={`Select ${field.label}`}
+                            />
                           )}
                           {field.type === "number" && (
                             <Input
@@ -886,6 +983,96 @@ export default function AutomationRulesPage() {
                             </Select>
                           </div>
                           {/* Condition configuration fields would go here */}
+                          {(() => {
+                            const condMeta = conditionTypes.find((c) => c.id === condition.type);
+                            if (!condMeta) return null;
+                            return (
+                              <div className="grid grid-cols-2 gap-4">
+                                {condMeta.configFields.map((field) => (
+                                  <div key={field.key}>
+                                    <Label>{field.label}</Label>
+                                    {field.type === "select" && (
+                                      <Select
+                                        value={condition.config?.[field.key] || ""}
+                                        onValueChange={(value) => {
+                                          const updated = [...(formData.conditions || [])];
+                                          updated[index] = {
+                                            ...condition,
+                                            config: { ...(condition.config || {}), [field.key]: value },
+                                          };
+                                          setFormData({ ...formData, conditions: updated });
+                                        }}
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder={`Select ${field.label}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {(field.options ?? []).map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                              {opt.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                    {field.type === "multiselect" && (
+                                      <MultiSelect
+                                        options={
+                                          condition.type === "department"
+                                            ? departmentsOptions
+                                            : condition.type === "jobRole"
+                                            ? jobRolesOptions
+                                            : field.options ?? []
+                                        }
+                                        selected={
+                                          Array.isArray(condition.config?.[field.key])
+                                            ? (condition.config?.[field.key] as string[])
+                                            : []
+                                        }
+                                        onChange={(values) => {
+                                          const updated = [...(formData.conditions || [])];
+                                          updated[index] = {
+                                            ...condition,
+                                            config: { ...(condition.config || {}), [field.key]: values },
+                                          };
+                                          setFormData({ ...formData, conditions: updated });
+                                        }}
+                                        placeholder={`Select ${field.label}`}
+                                      />
+                                    )}
+                                    {field.type === "text" && (
+                                      <Input
+                                        value={condition.config?.[field.key] || ""}
+                                        onChange={(e) => {
+                                          const updated = [...(formData.conditions || [])];
+                                          updated[index] = {
+                                            ...condition,
+                                            config: { ...(condition.config || {}), [field.key]: e.target.value },
+                                          };
+                                          setFormData({ ...formData, conditions: updated });
+                                        }}
+                                        placeholder={field.placeholder}
+                                      />
+                                    )}
+                                    {field.type === "date" && (
+                                      <Input
+                                        type="date"
+                                        value={condition.config?.[field.key] || ""}
+                                        onChange={(e) => {
+                                          const updated = [...(formData.conditions || [])];
+                                          updated[index] = {
+                                            ...condition,
+                                            config: { ...(condition.config || {}), [field.key]: e.target.value },
+                                          };
+                                          setFormData({ ...formData, conditions: updated });
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </CardContent>
                     </Card>
@@ -984,7 +1171,108 @@ export default function AutomationRulesPage() {
                               ))}
                             </div>
                           </div>
-                          {/* Action configuration fields would go here */}
+                          {(() => {
+                            const meta = actionTypes.find((a) => a.id === action.type);
+                            if (!meta) return null;
+                            const actionConfig = action.config || {};
+                            const showAssigneeId = action.type === "create_task" && actionConfig.assigneeType === "specific";
+                            const showRecipients = action.type === "send_notification" && actionConfig.recipientType === "specific";
+                            return (
+                              <div className="grid grid-cols-2 gap-4">
+                                {meta.configFields.map((field) => {
+                                  // Conditional visibility
+                                  if (field.key === "assigneeId" && !showAssigneeId) return null;
+                                  if (field.key === "recipients" && !showRecipients) return null;
+                                  const setActionField = (updater: (cfg: any) => any) => {
+                                    const updatedActions = [...(formData.actions || [])];
+                                    const current = updatedActions[index] || { type: action.type, config: {} };
+                                    updatedActions[index] = {
+                                      ...current,
+                                      config: updater(current.config || {}),
+                                    };
+                                    setFormData({ ...formData, actions: updatedActions });
+                                  };
+                                  const dynamicOptions = () => {
+                                    if (field.key === "assigneeId") return usersOptions;
+                                    if (field.key === "templateId") return templatesOptions;
+                                    if (field.key === "recipients") return usersOptions;
+                                    return field.options ?? [];
+                                  };
+                                  return (
+                                    <div key={field.key}>
+                                      <Label>{field.label}{field.required && " *"}</Label>
+                                      {field.type === "select" && (
+                                        <Select
+                                          value={actionConfig[field.key] || ""}
+                                          onValueChange={(value) =>
+                                            setActionField((cfg) => ({ ...cfg, [field.key]: value }))
+                                          }
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder={`Select ${field.label}`} />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {dynamicOptions().map((opt) => (
+                                              <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      )}
+                                      {field.type === "multiselect" && (
+                                        <MultiSelect
+                                          options={dynamicOptions()}
+                                          selected={
+                                            Array.isArray(actionConfig[field.key])
+                                              ? (actionConfig[field.key] as string[])
+                                              : []
+                                          }
+                                          onChange={(values) =>
+                                            setActionField((cfg) => ({ ...cfg, [field.key]: values }))
+                                          }
+                                          placeholder={`Select ${field.label}`}
+                                        />
+                                      )}
+                                      {field.type === "text" && (
+                                        <Input
+                                          value={actionConfig[field.key] || ""}
+                                          onChange={(e) =>
+                                            setActionField((cfg) => ({ ...cfg, [field.key]: e.target.value }))
+                                          }
+                                          placeholder={field.placeholder}
+                                        />
+                                      )}
+                                      {field.type === "number" && (
+                                        <Input
+                                          type="number"
+                                          value={actionConfig[field.key] ?? ""}
+                                          onChange={(e) =>
+                                            setActionField((cfg) => ({
+                                              ...cfg,
+                                              [field.key]: e.target.value === "" ? undefined : parseInt(e.target.value) || 0,
+                                            }))
+                                          }
+                                          placeholder={field.placeholder}
+                                        />
+                                      )}
+                                      {field.type === "boolean" && (
+                                        <div className="flex items-center gap-2">
+                                          <Switch
+                                            checked={Boolean(actionConfig[field.key])}
+                                            onChange={(checked) =>
+                                              setActionField((cfg) => ({ ...cfg, [field.key]: checked }))
+                                            }
+                                          />
+                                          <span className="text-sm">{field.label}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </CardContent>
                     </Card>

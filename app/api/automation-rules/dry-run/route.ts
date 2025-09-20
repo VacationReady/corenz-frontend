@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
 const DryRunSchema = z.object({
-  ruleId: z.string().cuid(),
+  // Accept both UUID and CUID since rules are created with UUIDs
+  ruleId: z.union([z.string().uuid(), z.string().cuid()]),
 });
 
 // POST: Run a dry test of an automation rule

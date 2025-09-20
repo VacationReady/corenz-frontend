@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -66,11 +66,10 @@ interface NewsDetailClientProps {
     createdAt: Date | string;
     readTime?: number;
     views?: number;
-    reactions?: {
-      likes?: number;
-      hearts?: number;
-      fire?: number;
-    };
+    reactions?: Record<string, number>;
+    bookmarkCount?: number;
+    isBookmarked?: boolean;
+    userReaction?: string | null;
   };
   relatedPosts?: Array<{
     id: string;
@@ -112,10 +111,39 @@ export default function NewsDetailClient({
   currentUserId,
 }: NewsDetailClientProps) {
   const router = useRouter();
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [userReaction, setUserReaction] = useState<string | null>(null);
+  const [viewCount, setViewCount] = useState(post.views ?? 0);
+  const [reactions, setReactions] = useState<Record<string, number>>(post.reactions ?? {});
+  const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount ?? 0);
+  const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked ?? false);
+  const [userReaction, setUserReaction] = useState<string | null>(post.userReaction ?? null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const trackView = async () => {
+      try {
+        const response = await fetch(`/api/news/${post.slug}/view`, {
+          method: "POST",
+        });
+
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!isCancelled && typeof data.viewCount === "number") {
+          setViewCount(data.viewCount);
+        }
+      } catch (error) {
+        // Silently ignore tracking failures
+      }
+    };
+
+    trackView();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [post.slug]);
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
@@ -159,14 +187,83 @@ export default function NewsDetailClient({
     setShowShareMenu(false);
   };
 
-  const handleReaction = (reactionId: string) => {
-    setUserReaction(userReaction === reactionId ? null : reactionId);
-    toast.success(
-      userReaction === reactionId
-        ? "Reaction removed"
-        : `You reacted with ${reactionEmojis.find((r) => r.id === reactionId)?.emoji}`
-    );
+  const handleReaction = async (reactionId: string) => {
+    const previousReaction = userReaction;
+    const previousReactions = reactions;
+    const isRemoving = previousReaction === reactionId;
+
+    const optimisticReactions = { ...previousReactions };
+    if (previousReaction) {
+      optimisticReactions[previousReaction] = Math.max(
+        (optimisticReactions[previousReaction] ?? 1) - 1,
+        0,
+      );
+    }
+    if (!isRemoving) {
+      optimisticReactions[reactionId] = (optimisticReactions[reactionId] ?? 0) + 1;
+    }
+
+    setUserReaction(isRemoving ? null : reactionId);
+    setReactions(optimisticReactions);
     setShowReactions(false);
+
+    try {
+      const response = await fetch(`/api/news/${post.slug}/reaction`, {
+        method: isRemoving ? "DELETE" : "POST",
+        headers: isRemoving ? undefined : { "Content-Type": "application/json" },
+        body: isRemoving ? undefined : JSON.stringify({ reaction: reactionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update reaction");
+      }
+
+      const data = await response.json();
+      setReactions(data.reactions ?? {});
+      setUserReaction(data.userReaction ?? null);
+
+      toast.success(
+        data.userReaction
+          ? `You reacted with ${
+              reactionEmojis.find((r) => r.id === data.userReaction)?.emoji ?? ""
+            }`
+          : "Reaction removed",
+      );
+    } catch (error) {
+      setUserReaction(previousReaction ?? null);
+      setReactions(previousReactions);
+      toast.error("Unable to update your reaction. Please try again.");
+    }
+  };
+
+  const handleBookmarkToggle = async () => {
+    const previousState = isBookmarked;
+    const previousCount = bookmarkCount;
+
+    setIsBookmarked(!previousState);
+    setBookmarkCount(previousState ? Math.max(previousCount - 1, 0) : previousCount + 1);
+
+    try {
+      const response = await fetch(`/api/news/${post.slug}/bookmark`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle bookmark");
+      }
+
+      const data = await response.json();
+      setIsBookmarked(Boolean(data.isBookmarked));
+      if (typeof data.bookmarkCount === "number") {
+        setBookmarkCount(data.bookmarkCount);
+      }
+
+      toast.success(data.isBookmarked ? "Added to bookmarks" : "Removed from bookmarks");
+    } catch (error) {
+      setIsBookmarked(previousState);
+      setBookmarkCount(previousCount);
+      toast.error("Unable to update bookmarks. Please try again.");
+    }
   };
 
   const getAuthorName = () =>
@@ -290,10 +387,10 @@ export default function NewsDetailClient({
                     <span>{post.readTime} min read</span>
                   </div>
                 )}
-                {post.views && (
+                {viewCount > 0 && (
                   <div className="flex items-center gap-1">
                     <Eye className="w-4 h-4" />
-                    <span>{post.views} views</span>
+                    <span>{viewCount} views</span>
                   </div>
                 )}
               </motion.div>
@@ -326,7 +423,7 @@ export default function NewsDetailClient({
                     <Heart className="w-4 h-4" />
                   )}
                   <span className="text-sm font-medium">
-                    {Object.values(post.reactions || {}).reduce(
+                    {Object.values(reactions || {}).reduce(
                       (a, b) => (a || 0) + (b || 0),
                       0
                     ) || 0}
@@ -408,10 +505,7 @@ export default function NewsDetailClient({
             {/* Bookmark */}
             <button
               onClick={() => {
-                setIsBookmarked(!isBookmarked);
-                toast.success(
-                  isBookmarked ? "Removed from bookmarks" : "Added to bookmarks"
-                );
+                void handleBookmarkToggle();
               }}
               className={cn(
                 "p-2 rounded-full transition-all",
@@ -420,7 +514,12 @@ export default function NewsDetailClient({
                   : "bg-muted/50 hover:bg-muted"
               )}
             >
-              <Bookmark className="w-4 h-4" />
+              <span className="flex items-center gap-1">
+                <Bookmark className="w-4 h-4" />
+                {bookmarkCount > 0 ? (
+                  <span className="text-xs font-medium">{bookmarkCount}</span>
+                ) : null}
+              </span>
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
@@ -12,6 +12,7 @@ import NewsChip from "../ui/NewsChip";
 import NewsTag from "../ui/NewsTag";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Megaphone,
   Plus,
@@ -49,11 +50,10 @@ interface NewsPost {
   createdAt: string;
   readTime?: number;
   views?: number;
-  reactions?: {
-    likes?: number;
-    hearts?: number;
-    fire?: number;
-  };
+  reactions?: Record<string, number>;
+  bookmarkCount?: number;
+  isBookmarked?: boolean;
+  userReaction?: string | null;
 }
 
 interface NewsPageClientProps {
@@ -81,6 +81,11 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
   const breadcrumbs = useBreadcrumbs();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeQuickFilter, setActiveQuickFilter] = useState("all");
+  const [postState, setPostState] = useState(posts);
+
+  useEffect(() => {
+    setPostState(posts);
+  }, [posts]);
 
   // ✅ Unified author name formatter
   const getAuthorName = (author: NewsPost["author"]) =>
@@ -89,21 +94,21 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
   // Filter options
   const authorOptions: FilterOption[] = useMemo(() => {
     const authors = [
-      ...new Set(posts.map((post) => getAuthorName(post.author))),
+      ...new Set(postState.map((post) => getAuthorName(post.author))),
     ];
     return [
       { label: "All Authors", value: "all" },
       ...authors.map((author) => ({ label: author, value: author })),
     ];
-  }, [posts]);
+  }, [postState]);
 
   const tagOptions: FilterOption[] = useMemo(() => {
-    const tags = [...new Set(posts.flatMap((post) => post.tags))];
+    const tags = [...new Set(postState.flatMap((post) => post.tags))];
     return [
       { label: "All Tags", value: "all" },
       ...tags.map((tag) => ({ label: tag, value: tag })),
     ];
-  }, [posts]);
+  }, [postState]);
 
   const sortOptions: FilterOption[] = [
     { label: "Latest First", value: "date-desc" },
@@ -115,7 +120,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
   // Filter & sort posts
   const filteredPosts = useMemo(() => {
-    let filtered = [...posts];
+    let filtered = [...postState];
 
     // Apply quick filter
     switch (activeQuickFilter) {
@@ -194,7 +199,134 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     return filtered.sort((a, b) =>
       a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1
     );
-  }, [posts, filters, activeQuickFilter]);
+  }, [postState, filters, activeQuickFilter]);
+
+  const handleReactionChange = async (targetPost: NewsPost, reactionId: string) => {
+    const current = postState.find((post) => post.id === targetPost.id);
+    if (!current) return;
+
+    const previousSnapshot: NewsPost = {
+      ...current,
+      reactions: { ...(current.reactions ?? {}) },
+    };
+
+    const isRemoving = current.userReaction === reactionId;
+    const optimisticReactions = { ...(current.reactions ?? {}) };
+
+    if (current.userReaction) {
+      optimisticReactions[current.userReaction] = Math.max(
+        (optimisticReactions[current.userReaction] ?? 1) - 1,
+        0,
+      );
+    }
+
+    if (!isRemoving) {
+      optimisticReactions[reactionId] = (optimisticReactions[reactionId] ?? 0) + 1;
+    }
+
+    setPostState((prev) =>
+      prev.map((post) =>
+        post.id === targetPost.id
+          ? {
+              ...post,
+              userReaction: isRemoving ? null : reactionId,
+              reactions: optimisticReactions,
+            }
+          : post,
+      ),
+    );
+
+    try {
+      const response = await fetch(`/api/news/${targetPost.slug}/reaction`, {
+        method: isRemoving ? "DELETE" : "POST",
+        headers: isRemoving ? undefined : { "Content-Type": "application/json" },
+        body: isRemoving ? undefined : JSON.stringify({ reaction: reactionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update reaction");
+      }
+
+      const data = await response.json();
+
+      setPostState((prev) =>
+        prev.map((post) =>
+          post.id === targetPost.id
+            ? {
+                ...post,
+                userReaction: data.userReaction ?? null,
+                reactions: data.reactions ?? {},
+              }
+            : post,
+        ),
+      );
+    } catch (error) {
+      setPostState((prev) =>
+        prev.map((post) => (post.id === targetPost.id ? previousSnapshot : post)),
+      );
+      toast.error("Unable to update reaction. Please try again.");
+    }
+  };
+
+  const handleBookmarkToggle = async (targetPost: NewsPost) => {
+    const current = postState.find((post) => post.id === targetPost.id);
+    if (!current) return;
+
+    const previousSnapshot: NewsPost = {
+      ...current,
+      reactions: { ...(current.reactions ?? {}) },
+    };
+
+    const nextState = !current.isBookmarked;
+    const currentCount = current.bookmarkCount ?? 0;
+    const optimisticCount = nextState
+      ? currentCount + 1
+      : Math.max(currentCount - 1, 0);
+
+    setPostState((prev) =>
+      prev.map((post) =>
+        post.id === targetPost.id
+          ? {
+              ...post,
+              isBookmarked: nextState,
+              bookmarkCount: optimisticCount,
+            }
+          : post,
+      ),
+    );
+
+    try {
+      const response = await fetch(`/api/news/${targetPost.slug}/bookmark`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle bookmark");
+      }
+
+      const data = await response.json();
+
+      setPostState((prev) =>
+        prev.map((post) =>
+          post.id === targetPost.id
+            ? {
+                ...post,
+                isBookmarked: Boolean(data.isBookmarked),
+                bookmarkCount:
+                  typeof data.bookmarkCount === "number"
+                    ? data.bookmarkCount
+                    : optimisticCount,
+              }
+            : post,
+        ),
+      );
+    } catch (error) {
+      setPostState((prev) =>
+        prev.map((post) => (post.id === targetPost.id ? previousSnapshot : post)),
+      );
+      toast.error("Unable to update bookmarks. Please try again.");
+    }
+  };
 
   // Export CSV
   const handleExport = () => {
@@ -228,10 +360,10 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
   // Get stats for the header
   const stats = {
-    total: posts.length,
-    published: posts.filter(p => p.publishedAt).length,
-    featured: posts.filter(p => p.featured || p.pinned).length,
-    thisWeek: posts.filter(p => {
+    total: postState.length,
+    published: postState.filter(p => p.publishedAt).length,
+    featured: postState.filter(p => p.featured || p.pinned).length,
+    thisWeek: postState.filter(p => {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       return new Date(p.publishedAt || p.createdAt) > oneWeekAgo;
@@ -442,6 +574,8 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                 index={index}
                 showActions
                 showStats
+                onBookmark={() => handleBookmarkToggle(post)}
+                onReact={(type) => handleReactionChange(post, type)}
               />
             ))}
           </motion.div>

@@ -15,6 +15,15 @@ export default function ActivateClient() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Derived validation flags
+  const hasMinLength = password.length >= 6;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const passwordsMatch = password.length > 0 && password === confirmPassword;
+  const meetsAllRequirements =
+    hasMinLength && hasUppercase && hasNumber && hasSpecial && passwordsMatch;
+
   useEffect(() => {
     if (!token) {
       setError("Activation token is missing. Please check your email link.");
@@ -27,10 +36,11 @@ export default function ActivateClient() {
     setSuccess("");
 
     if (!token) return setError("Missing activation token.");
-    if (password.length < 6)
-      return setError("Password must be at least 6 characters.");
-    if (password !== confirmPassword)
-      return setError("Passwords do not match.");
+    if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecial)
+      return setError(
+        "Password must be at least 6 characters and include an uppercase letter, a number, and a special character.",
+      );
+    if (!passwordsMatch) return setError("Passwords do not match.");
 
     try {
       setLoading(true);
@@ -102,12 +112,63 @@ export default function ActivateClient() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
+          {/* Real-time password requirements */}
+          <div className="text-sm">
+            <div className="mb-1 font-medium">Password requirements:</div>
+            <ul className="space-y-1">
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={hasMinLength ? "text-green-600" : "text-gray-400"}
+                >
+                  {hasMinLength ? "✓" : "○"}
+                </span>
+                At least 6 characters
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={hasUppercase ? "text-green-600" : "text-gray-400"}
+                >
+                  {hasUppercase ? "✓" : "○"}
+                </span>
+                Contains an uppercase letter (A–Z)
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={hasNumber ? "text-green-600" : "text-gray-400"}
+                >
+                  {hasNumber ? "✓" : "○"}
+                </span>
+                Contains a number (0–9)
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={hasSpecial ? "text-green-600" : "text-gray-400"}
+                >
+                  {hasSpecial ? "✓" : "○"}
+                </span>
+                Contains a special character (!@#$% etc.)
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={passwordsMatch ? "text-green-600" : "text-gray-400"}
+                >
+                  {passwordsMatch ? "✓" : "○"}
+                </span>
+                Passwords match
+              </li>
+            </ul>
+          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {success && <p className="text-green-600 text-sm">{success}</p>}
           <button
             type="submit"
             className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
-            disabled={loading}
+            disabled={loading || !meetsAllRequirements}
           >
             {loading ? "Submitting..." : "Set Password"}
           </button>

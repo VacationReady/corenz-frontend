@@ -10,10 +10,25 @@ export async function GET(req: Request) {
   }
 
   try {
-    const rules = await prisma.expiryRule.findMany({
-      where: { OR: [{ companyId: session.user.companyId }, { companyId: null }] },
-      orderBy: { category: "asc" },
-    });
+    let rules;
+    try {
+      // Primary query: scoped to company if column exists
+      rules = await prisma.expiryRule.findMany({
+        where: {
+          OR: [
+            { companyId: session.user.companyId },
+            { companyId: null as any },
+          ],
+        },
+        orderBy: { category: "asc" },
+      });
+    } catch (err) {
+      // Fallback: in case the database schema lacks companyId on ExpiryRule
+      console.error("ExpiryRule company-scoped query failed, falling back:", err);
+      rules = await prisma.expiryRule.findMany({
+        orderBy: { category: "asc" },
+      });
+    }
     return NextResponse.json(rules);
   } catch (error) {
     console.error("Error fetching expiry rules:", error);

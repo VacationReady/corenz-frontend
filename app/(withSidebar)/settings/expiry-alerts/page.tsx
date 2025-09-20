@@ -41,10 +41,20 @@ export default function ExpirySettingsPage() {
 
   useEffect(() => {
     const fetchRules = async () => {
-      const res = await fetch("/api/expiry-rules/list");
-      const data = await res.json();
-      setRules(data);
-      setLoading(false);
+      try {
+        const res = await fetch("/api/expiry-rules/list");
+        if (!res.ok) {
+          throw new Error(`Failed to load rules: ${res.status}`);
+        }
+        const data = await res.json();
+        setRules(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to fetch expiry rules", err);
+        toast("Failed to load expiry rules");
+        setRules([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchRules();
   }, []);

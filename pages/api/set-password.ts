@@ -19,6 +19,18 @@ export default async function handler(
   }
 
   try {
+    // Server-side password policy enforcement
+    const hasMinLength = typeof password === "string" && password.length >= 6;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecial) {
+      return res.status(400).json({
+        error:
+          "Password must be at least 6 characters and include an uppercase letter, a number, and a special character.",
+      });
+    }
+
     // 1. Validate token
     const storedToken = await prisma.activationToken.findUnique({
       where: { token },

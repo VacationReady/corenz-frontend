@@ -53,6 +53,11 @@ test("logic evaluator handles emptiness", () => {
   assert.equal(evaluateCondition([], "isEmpty", null), true);
   assert.equal(evaluateCondition([1], "isNotEmpty", null), true);
   assert.equal(evaluateCondition("", "isEmpty", null), true);
+  assert.equal(evaluateCondition("value", "isNotEmpty", null), true);
 });
 
-
+test("logic evaluator handles arrays for contains checks", () => {
+  assert.equal(evaluateCondition(["a", "b"], "contains", "a"), true);
+  assert.equal(evaluateCondition(["a", "b"], "notContains", "c"), true);
+  assert.equal(evaluateCondition(["a", "b"], "notContains", "a"), false);
+});

@@ -18,6 +18,7 @@ interface AddLeaveRequestDialogProps {
   isAdminOrManager: boolean;
   open?: boolean;
   setOpen?: (value: boolean) => void;
+  onSubmitted?: () => void;
 }
 
 type EventCategory = {
@@ -31,6 +32,7 @@ export default function AddLeaveRequestDialog({
   isAdminOrManager,
   open,
   setOpen,
+  onSubmitted,
 }: AddLeaveRequestDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isControlled = open !== undefined && setOpen !== undefined;
@@ -185,6 +187,7 @@ export default function AddLeaveRequestDialog({
       setPaidStatus("PAID");
       setTotalDays(0);
       setDeduction(0);
+      onSubmitted?.();
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
       toast.error(

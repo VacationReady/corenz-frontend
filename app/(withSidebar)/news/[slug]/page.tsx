@@ -30,6 +30,17 @@ export default async function NewsDetailPage({ params }: Props) {
           role: true,
         },
       },
+      reactions: {
+        select: {
+          reaction: true,
+          userId: true,
+        },
+      },
+      bookmarks: {
+        select: {
+          userId: true,
+        },
+      },
     },
   });
 
@@ -42,10 +53,7 @@ export default async function NewsDetailPage({ params }: Props) {
       ...(session?.user?.companyId
         ? { User: { companyId: session.user.companyId } }
         : {}),
-      OR: [
-        { tags: { hasSome: post.tags } },
-        { authorId: post.authorId },
-      ],
+      OR: [{ tags: { hasSome: post.tags } }, { authorId: post.authorId }],
     },
     take: 3,
     include: {
@@ -65,8 +73,19 @@ export default async function NewsDetailPage({ params }: Props) {
   const canEdit = isAuthor || isAdmin;
 
   // Transform the post data to match client expectations
+  const { coverImageUrl: coverImageFromPost, ...postRest } = post;
+
+  const reactionCounts = post.reactions.reduce<Record<string, number>>(
+    (acc, reaction) => {
+      acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
+      return acc;
+    },
+    {}
+  );
+
   const transformedPost = {
-    ...post,
+    ...postRest,
+    coverImage: coverImageFromPost ?? null,
     author: {
       id: post.User.id,
       name: post.User.name,
@@ -80,22 +99,29 @@ export default async function NewsDetailPage({ params }: Props) {
     readTime: Math.ceil(
       JSON.stringify(post.content).split(" ").length / 200
     ), // Estimate read time
-    reactions: {
-      likes: 0,
-      hearts: 0,
-      fire: 0,
-    }, // TODO: Implement reactions in database
-    views: 0, // TODO: Implement view tracking
+    reactions: reactionCounts,
+    views: post.viewCount,
+    bookmarkCount: post.bookmarks.length,
+    isBookmarked: post.bookmarks.some(
+      (bookmark) => bookmark.userId === session?.user?.id
+    ),
+    userReaction:
+      post.reactions.find((reaction) => reaction.userId === session?.user?.id)
+        ?.reaction ?? null,
   };
 
-  const transformedRelated = relatedPosts.map((p) => ({
-    ...p,
-    author: {
-      name: p.User.name,
-      email: p.User.email,
-      avatar: p.User.profileImageUrl,
-    },
-  }));
+  const transformedRelated = relatedPosts.map((p) => {
+    const { coverImageUrl, ...rest } = p;
+    return {
+      ...rest,
+      coverImage: coverImageUrl ?? null,
+      author: {
+        name: p.User.name,
+        email: p.User.email,
+        avatar: p.User.profileImageUrl,
+      },
+    };
+  });
 
   return (
     <NewsDetailClient

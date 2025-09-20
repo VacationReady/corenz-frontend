@@ -39,5 +39,3 @@ test("normalizes sections-only V2 schema into pages", () => {
   assert.equal(pages.length, 1);
   assert.equal(pages[0].sections.length, 1);
 });
-
-

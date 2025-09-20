@@ -153,6 +153,7 @@ model Company {
   Course                              Course[]
   ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
   ExpiryRule                          ExpiryRule[]
+  EmployeePerformanceReview           EmployeePerformanceReview[]
   NewsReaction                        NewsReaction[]
   NewsBookmark                        NewsBookmark[]
 }
@@ -315,6 +316,28 @@ model Employee {
   OnboardingInstance               OnboardingInstance[]
   TrainingRecord                   TrainingRecord[]
   EmployeeAuditLog                 EmployeeAuditLog[]
+  PerformanceReviews               EmployeePerformanceReview[]
+}
+
+model EmployeePerformanceReview {
+  id                     String    @id
+  employeeId             String
+  companyId              String
+  reviewerId             String?
+  reviewDate             DateTime
+  rating                 Int?
+  summary                String?
+  strengths              String?
+  areasForImprovement    String?
+  goals                  Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  Employee               Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company                Company   @relation(fields: [companyId], references: [id])
+  Reviewer               User?     @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
+
+  @@index([employeeId, reviewDate])
+  @@index([companyId])
 }
 
 model EmployeeOffboarding {
@@ -790,8 +813,8 @@ model LeaveRequest {
 }
 
 model Location {
-  id   String @id
-  name String @unique
+  id        String  @id
+  name      String  @unique
   companyId String?
   Company   Company? @relation(fields: [companyId], references: [id])
 }
@@ -1219,6 +1242,7 @@ model User {
   PersonalInfoAudit_PersonalInfoAudit_changedByIdToUser             PersonalInfoAudit[]    @relation("PersonalInfoAudit_changedByIdToUser")
   PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser           PersonalInfoAudit[]    @relation("PersonalInfoAudit_subjectUserIdToUser")
   EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser               EmployeeAuditLog[]     @relation("EmployeeAuditLog_changedByIdToUser")
+  EmployeePerformanceReviewsAuthored                                EmployeePerformanceReview[] @relation("EmployeePerformanceReviewReviewer")
   SavedReport                                                       SavedReport[]
   NewsReactions                                                     NewsReaction[]
   NewsBookmarks                                                     NewsBookmark[]

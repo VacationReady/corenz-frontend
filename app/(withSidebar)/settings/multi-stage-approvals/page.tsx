@@ -193,7 +193,7 @@ export default function MultiStageApprovalsSettingsPage() {
                 <div className="flex justify-between"><span>Priority</span><span className="font-medium">{w.priority ?? 0}</span></div>
                 <div className="pt-2 flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => openEdit(w)}>Edit</Button>
-                  <Button size="sm" variant="destructive" onClick={async () => {
+                  <Button size="sm" variant="danger" onClick={async () => {
                     const ok = confirm("Delete this workflow?");
                     if (!ok) return;
                     const res = await fetch(`/api/approval-workflows/${w.id}`, { method: "DELETE" });

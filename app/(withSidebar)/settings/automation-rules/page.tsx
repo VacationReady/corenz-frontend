@@ -621,8 +621,8 @@ export default function AutomationRulesPage() {
     return field.options ?? [];
   };
 
-  // Validation helpers
-  const computeValidation = (data: AutomationRule) => {
+  // Validation helpers (pure)
+  const computeErrors = (data: AutomationRule) => {
     const errors: Record<string, string> = {};
     const hints: string[] = [];
 
@@ -690,13 +690,17 @@ export default function AutomationRulesPage() {
       }
     });
 
-    setValidationErrors(errors);
-    setValidationHints(hints);
-    return Object.keys(errors).length === 0;
+    return { errors, hints, isValid: Object.keys(errors).length === 0 };
   };
 
+  useEffect(() => {
+    const { errors, hints } = computeErrors(formData);
+    setValidationErrors(errors);
+    setValidationHints(hints);
+  }, [formData]);
+
   const getError = (key: string) => validationErrors[key];
-  const isFormValid = computeValidation(formData);
+  const isFormValid = Object.keys(validationErrors).length === 0;
 
   // Presets
   const usePreset = (preset: "expiry-30" | "welcome" | "form-followup") => {
@@ -774,8 +778,7 @@ export default function AutomationRulesPage() {
   };
 
   const attemptSave = () => {
-    const ok = computeValidation(formData);
-    if (!ok) {
+    if (!isFormValid) {
       toast({ title: "Check required fields", description: "Please fix the highlighted items before saving.", variant: "destructive" });
       return;
     }

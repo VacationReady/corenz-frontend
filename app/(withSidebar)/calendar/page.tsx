@@ -323,7 +323,7 @@ export default function CalendarPage() {
     if (blackoutDateKeys.has(key)) {
       el.style.backgroundColor = 'rgba(239,68,68,0.18)'; // red-500 at low alpha
       const badge = document.createElement('div');
-      badge.className = 'capacity-badge absolute top-1 right-1 text-[10px] leading-none rounded-full bg-red-600 text-white px-1.5 py-0.5';
+      badge.className = 'capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-red-600 text-white px-1.5 py-0.5';
       badge.textContent = 'Blocked';
       el.style.position = el.style.position || 'relative';
       el.appendChild(badge);
@@ -339,7 +339,7 @@ export default function CalendarPage() {
       let alpha = getHeatAlpha(count);
       el.style.backgroundColor = `rgba(59, 130, 246, ${alpha})`; // blue-500 with varying alpha
       const badge = document.createElement('div');
-      badge.className = 'capacity-badge absolute top-1 right-1 text-[10px] leading-none rounded-full bg-blue-600 text-white px-1.5 py-0.5';
+      badge.className = 'capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-blue-600 text-white px-1.5 py-0.5';
       badge.textContent = String(count);
       el.style.position = el.style.position || 'relative';
       el.appendChild(badge);

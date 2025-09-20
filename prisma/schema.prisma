@@ -138,6 +138,7 @@ model Company {
   LeaveRequest                        LeaveRequest[]
   NotificationChannel                 NotificationChannel[]
   NotificationSettings                NotificationSettings?
+  OnboardingNotificationPreference    OnboardingNotificationPreference[]
   OnboardingTemplate                  OnboardingTemplate[]
   PermissionProfile                   PermissionProfile[]
   SCIMConfiguration                   SCIMConfiguration?
@@ -1011,12 +1012,34 @@ model OnboardingTemplate {
   OnboardingAssignment OnboardingAssignment[]
   OnboardingInstance   OnboardingInstance[]
   OnboardingStep       OnboardingStep[]
+  OnboardingNotificationPreference OnboardingNotificationPreference[]
   Company              Company                @relation(fields: [companyId], references: [id])
   User                 User?                  @relation(fields: [updatedById], references: [id])
   Department           Department[]           @relation("OnboardingTemplateDepartments")
   JobRole              JobRole[]              @relation("OnboardingTemplateJobRoles")
 
   @@unique([companyId, name])
+}
+
+model OnboardingNotificationPreference {
+  id                String                       @id @default(cuid())
+  companyId         String
+  templateId        String?
+  notificationType  OnboardingNotificationType
+  notifyManagers    Boolean                      @default(true)
+  notifyTaskOwners  Boolean                      @default(true)
+  notifyHiringManagers Boolean                   @default(false)
+  notifyEmployee    Boolean                      @default(false)
+  notifyAdmins      Boolean                      @default(false)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  Company           Company                      @relation(fields: [companyId], references: [id])
+  OnboardingTemplate OnboardingTemplate?         @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, notificationType])
+  @@index([companyId, templateId])
+  @@unique([companyId, templateId, notificationType])
 }
 
 model PermissionAudit {
@@ -1539,6 +1562,11 @@ enum OnboardingUploadType {
   DRIVER_LICENSE
   TRAINING_CERTIFICATE
   OTHER
+}
+
+enum OnboardingNotificationType {
+  KICKOFF
+  STEP_UPDATE
 }
 
 enum PaidStatus {

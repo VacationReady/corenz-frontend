@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
+import { sendOnboardingKickoffNotifications } from "@/lib/onboarding-notifications";
 
 async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 1. By Job Role
@@ -161,7 +162,6 @@ export async function POST(req: NextRequest) {
           process.env.NEXT_PUBLIC_APP_URL ||
           process.env.NEXT_PUBLIC_BASE_URL ||
           "";
-        const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
         const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
         await resend.emails.send({
           from: "PeopleCore Notifications <noreply@peoplecore.co.nz>",
@@ -178,6 +178,20 @@ export async function POST(req: NextRequest) {
         console.error("Failed to send onboarding email:", e);
         // continue without failing the request
       }
+    }
+
+    try {
+      await sendOnboardingKickoffNotifications({
+        employee,
+        template,
+        onboardingInstanceId: result.onboardingInstance.id,
+        companyId: session.user.companyId,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Failed to send onboarding kickoff notifications:",
+        notificationError,
+      );
     }
 
     return NextResponse.json(result, { status: 201 });

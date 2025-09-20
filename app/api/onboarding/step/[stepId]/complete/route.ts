@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendOnboardingStepStatusNotification } from "@/lib/onboarding-notifications";
 
 // Util: Parse JSON body (works for Next.js App Router POST)
 async function parseBody(request: NextRequest) {
@@ -34,6 +35,12 @@ export async function POST(
                 User: true, // This gets you employee.user.companyId
               },
             },
+            OnboardingTemplate: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         OnboardingStep: true,
@@ -48,11 +55,20 @@ export async function POST(
     // e.g. check session.user.id === stepInstance.OnboardingInstance.Employee.User.id
 
     // 2. Mark step as completed
+    const nextStatus =
+      typeof body.status === "string" && body.status.trim().length > 0
+        ? body.status.trim()
+        : "completed";
+
+    const shouldNotify =
+      stepInstance.status !== nextStatus ||
+      (nextStatus === "completed" && !stepInstance.completedAt);
+
     await prisma.onboardingStepInstance.update({
       where: { id: stepId },
       data: {
-        status: "completed",
-        completedAt: new Date(),
+        status: nextStatus,
+        completedAt: nextStatus === "completed" ? new Date() : null,
       },
     });
 
@@ -96,6 +112,29 @@ export async function POST(
     }
 
     // 5. (Optional) Log to audit table here
+
+    if (shouldNotify) {
+      try {
+        const onboardingTemplate =
+          stepInstance.OnboardingInstance.OnboardingTemplate || {
+            id: stepInstance.OnboardingInstance.templateId,
+            name: "Onboarding",
+          };
+
+        await sendOnboardingStepStatusNotification({
+          employee: stepInstance.OnboardingInstance.Employee,
+          template: onboardingTemplate,
+          step: stepInstance.OnboardingStep,
+          status: nextStatus,
+          companyId: stepInstance.OnboardingInstance.Employee.companyId,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Failed to send onboarding step status notification:",
+          notificationError,
+        );
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {

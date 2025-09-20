@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { createTemplate, updateTemplate } from "./actions";
+import {
+  createTemplate,
+  updateTemplate,
+  getTemplateNotificationPreferences,
+} from "./actions";
 import { hasPermission } from "@/lib/permissions";
 
 // ✅ GET - Fetch Templates
@@ -50,7 +54,17 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "asc" },
   });
 
-  return NextResponse.json(templates);
+  const templatesWithPreferences = await Promise.all(
+    templates.map(async (template) => ({
+      ...template,
+      notificationPreferences: await getTemplateNotificationPreferences(
+        session.user.companyId,
+        template.id,
+      ),
+    })),
+  );
+
+  return NextResponse.json(templatesWithPreferences);
 }
 
 // ✅ POST - Create Template

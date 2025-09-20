@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 
 type Workflow = any;
 
@@ -240,6 +241,36 @@ export default function MultiStageApprovalsSettingsPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">{(scopeHelp as any)[scopeType]}</p>
+              {scopeType === "DEPARTMENT" && (
+                <div className="mt-2">
+                  <MultiSelect
+                    options={departments.map((d) => ({ label: d.name, value: d.id }))}
+                    selected={deptIds}
+                    onChange={setDeptIds}
+                    placeholder="Select departments"
+                  />
+                </div>
+              )}
+              {scopeType === "JOB_ROLE" && (
+                <div className="mt-2">
+                  <MultiSelect
+                    options={jobRoles.map((r) => ({ label: r.name, value: r.id }))}
+                    selected={jobRoleIds}
+                    onChange={setJobRoleIds}
+                    placeholder="Select job roles"
+                  />
+                </div>
+              )}
+              {scopeType === "EMPLOYEE" && (
+                <div className="mt-2">
+                  <MultiSelect
+                    options={employees.map((e) => ({ label: e.name, value: e.id }))}
+                    selected={employeeIds}
+                    onChange={setEmployeeIds}
+                    placeholder="Select employees"
+                  />
+                </div>
+              )}
             </div>
             {/* Minimal stage builder */}
             <div className="space-y-2">

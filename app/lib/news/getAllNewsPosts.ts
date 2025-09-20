@@ -34,10 +34,13 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
   });
 
   return posts.map((post) => {
-    const reactionCounts = post.reactions.reduce<ReactionCounts>((acc, reaction) => {
-      acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
-      return acc;
-    }, {});
+    const reactionCounts = post.reactions.reduce<ReactionCounts>(
+      (acc, reaction) => {
+        acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
+        return acc;
+      },
+      {}
+    );
 
     return {
       id: post.id,
@@ -50,7 +53,7 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
       tags: post.tags,
       audience: post.audience,
       attachments: post.attachments,
-      coverImage: post.coverImage,
+      coverImage: post.coverImageUrl ?? null,
       videoEmbedUrl: post.videoEmbedUrl,
       sendEmail: post.sendEmail,
       createdAt: post.createdAt,
@@ -65,4 +68,3 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
     };
   });
 }
-

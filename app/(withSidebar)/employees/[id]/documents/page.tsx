@@ -399,7 +399,7 @@ export default function EmployeeDocumentsPage() {
                     </TableCell>
                     <TableCell>
                       {doc.requiresSignature ? (
-                        signed ? (
+                        (doc as any).SignatureArtifacts?.some?.((a: any) => a.employeeId === params?.id) || signed ? (
                           <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs">Signed</span>
                         ) : (
                           <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">Required</span>

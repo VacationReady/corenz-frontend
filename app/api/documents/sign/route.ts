@@ -197,14 +197,29 @@ export async function POST(req: NextRequest) {
 
     // If a drawn signature and a single field target, stamp the PDF visually and upload a new version
     try {
-      // Only stamp if we have a PDF and either a drawn image or typed text
       if (method === "DRAWN") {
-        // Download original PDF bytes using storage path to avoid signed URL complexity
         const download = await supabase.storage.from("documents").download(document.path);
         const origFile = download.data;
         if (origFile) {
           const origBytes = await origFile.arrayBuffer();
-          const pdfDoc = await PDFDocument.load(origBytes);
+          let pdfDoc: PDFDocument;
+          let isPdf = true;
+          try {
+            pdfDoc = await PDFDocument.load(origBytes);
+          } catch {
+            isPdf = false;
+            pdfDoc = await PDFDocument.create();
+            // Try embed original as image background
+            try {
+              const imgPng = await pdfDoc.embedPng(Buffer.from(origBytes));
+              const page = pdfDoc.addPage([imgPng.width, imgPng.height]);
+              page.drawImage(imgPng, { x: 0, y: 0, width: imgPng.width, height: imgPng.height });
+            } catch {
+              const imgJpg = await pdfDoc.embedJpg(Buffer.from(origBytes));
+              const page = pdfDoc.addPage([imgJpg.width, imgJpg.height]);
+              page.drawImage(imgJpg, { x: 0, y: 0, width: imgJpg.width, height: imgJpg.height });
+            }
+          }
 
           const fieldsForEmployeeAll = (document.SignatureFields || []).filter((f) => !f.assignedEmployeeId || f.assignedEmployeeId === employee.id);
           const fieldsForEmployee = fieldId

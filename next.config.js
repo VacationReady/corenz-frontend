@@ -2,7 +2,7 @@
 const csp = [
   "default-src 'self' https://*.supabase.co https://api.resend.com",
   "frame-src 'self' blob: https://*.supabase.co",
-  "object-src 'self' blob:",
+  "object-src 'self' blob: https://*.supabase.co data:",
   "img-src 'self' https: data: blob:",
   "media-src 'self' blob:",
   "connect-src 'self' https://*.supabase.co https://api.resend.com",

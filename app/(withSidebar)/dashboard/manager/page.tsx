@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
 import DashboardGrid from "@/components/ui/DashboardGrid";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
+import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import {
   CalendarCheck2,
@@ -337,6 +338,7 @@ export default function ManagerDashboardPage() {
         <TeamAbsenceOverview />
         <TeamInsights />
         <QuickLinks />
+        <NewsWidget limit={3} />
       </DashboardGrid>
     </PageShell>
   );

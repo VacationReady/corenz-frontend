@@ -48,6 +48,41 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
           </div>
         ) : error ? (
           <p className="text-center text-muted-foreground">{error}</p>
+        ) : items && items.length > 0 && limit === 1 ? (
+          <>
+            {(() => {
+              const post = items[0];
+              return (
+                <Link href={`/news/${post.slug}`} className="block group">
+                  <div className="relative overflow-hidden rounded-xl">
+                    {post.coverImage ? (
+                      <img
+                        src={post.coverImage}
+                        alt={post.title}
+                        className="w-full h-40 md:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-40 md:h-48 bg-gradient-to-br from-editorial-purple via-editorial-blue to-editorial-teal" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="text-white font-semibold text-lg leading-tight line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <p className="text-white/80 text-xs mt-1">
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </p>
+                      {post.preview && (
+                        <p className="text-white/90 text-sm mt-2 line-clamp-2">
+                          {post.preview}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })()}
+          </>
         ) : items && items.length > 0 ? (
           <ul className="space-y-4">
             {items.map((post) => (
@@ -62,7 +97,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
                       <img
                         src={post.coverImage}
                         alt={post.title}
-                        className="w-12 h-12 rounded object-cover border"
+                        className="w-16 h-16 rounded object-cover border"
                       />
                     ) : null}
                     <div className="min-w-0">

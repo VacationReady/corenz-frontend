@@ -46,15 +46,20 @@ export default function FieldPlacementModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    fetch(`/api/documents/signature-fields/${documentId}`)
-      .then((r) => r.json())
-      .then((data) => setFields(data || []))
-      .catch(() => setFields([]));
-    // Always fetch a fresh signed URL to guarantee preview
-    fetch(`/api/documents/signed-url/${documentId}`)
-      .then((r) => r.json())
-      .then((d) => setDocUrl(d?.url || url))
-      .catch(() => setDocUrl(url));
+    if (saveMode === "local") {
+      setDocUrl(url);
+      setFields((prev) => prev); // keep local edits
+    } else {
+      fetch(`/api/documents/signature-fields/${documentId}`)
+        .then((r) => r.json())
+        .then((data) => setFields(data || []))
+        .catch(() => setFields([]));
+      // Always fetch a fresh signed URL to guarantee preview
+      fetch(`/api/documents/signed-url/${documentId}`)
+        .then((r) => r.json())
+        .then((d) => setDocUrl(d?.url || url))
+        .catch(() => setDocUrl(url));
+    }
     // Load employee list for assignees
     fetch(`/api/employees/active`)
       .then((r) => r.json())
@@ -64,7 +69,7 @@ export default function FieldPlacementModal({
         ),
       )
       .catch(() => setAssignees([]));
-  }, [documentId, isOpen, url]);
+  }, [documentId, isOpen, url, saveMode]);
 
   const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE") => {
     const base = { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.08 } as Field;

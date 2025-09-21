@@ -759,6 +759,7 @@ function DocumentsContent() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{selectedDoc?.name}</DialogTitle>
+              <p className="text-sm text-muted-foreground">Preview and sign this document if required.</p>
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
@@ -805,6 +806,8 @@ function DocumentsContent() {
                               method: signatureValue.method,
                               typedText: signatureValue.typedText,
                               drawnDataUrl: signatureValue.dataUrl,
+                              // Optional activeFieldId support if you’re clicking field markers in this view
+                              fieldId: undefined,
                             }),
                           });
                           if (res.ok) {

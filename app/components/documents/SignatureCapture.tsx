@@ -75,7 +75,7 @@ export default function SignatureCapture({ value, onChange, disabled }: Signatur
               ref={sigRef as any}
               penColor="#111827"
               backgroundColor="#ffffff"
-              canvasProps={{ width: 600, height: 180, className: "w-full" }}
+              canvasProps={{ width: 600, height: 180, className: "w-full", "aria-label": "Signature input", "data-will-read-frequently": "true" as any }}
               onEnd={emitChange}
             />
           </div>

@@ -9,6 +9,7 @@ type SignRequestBody = {
   method: "DRAWN" | "TYPED";
   typedText?: string;
   drawnDataUrl?: string; // base64 data URL (image/png)
+  fieldId?: string; // optional: specific field being signed
 };
 
 export async function POST(req: NextRequest) {
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as SignRequestBody;
-    const { documentId, method, typedText, drawnDataUrl } = body;
+    const { documentId, method, typedText, drawnDataUrl, fieldId } = body;
 
     if (!documentId || !method) {
       return NextResponse.json(
@@ -92,6 +93,27 @@ export async function POST(req: NextRequest) {
       if (employee.jobRoleId && roleIds.has(employee.jobRoleId)) isEligible = true;
       // Fallback: if no explicit targets defined, allow any employee in the company
       if (!hasAnyTarget) isEligible = true;
+    }
+
+    // If a specific field is provided, validate assignment strictly against that field
+    if (fieldId) {
+      const field = await prisma.documentSignatureField.findFirst({
+        where: { id: fieldId, documentId },
+        select: { id: true, assignedEmployeeId: true },
+      });
+      if (field) {
+        if (!field.assignedEmployeeId) {
+          // Unassigned field: fall through to broader eligibility checks below
+        } else if (field.assignedEmployeeId === employee.id) {
+          isEligible = true;
+        } else {
+          // Field assigned to someone else
+          return NextResponse.json(
+            { error: "This field is assigned to a different signer" },
+            { status: 403 },
+          );
+        }
+      }
     }
 
     // Additionally, allow if the employee is explicitly assigned to any field

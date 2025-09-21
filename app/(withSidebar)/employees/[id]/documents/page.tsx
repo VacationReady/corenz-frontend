@@ -564,6 +564,7 @@ export default function EmployeeDocumentsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{selectedDoc?.name}</DialogTitle>
+              <p className="text-sm text-muted-foreground">Preview and sign this document if required.</p>
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
@@ -632,6 +633,7 @@ export default function EmployeeDocumentsPage() {
                               method: signatureValue.method,
                               typedText: signatureValue.typedText,
                               drawnDataUrl: signatureValue.dataUrl,
+                              fieldId: activeFieldIdx != null ? fields[activeFieldIdx]?.id : undefined,
                             }),
                           });
                           if (res.ok) {

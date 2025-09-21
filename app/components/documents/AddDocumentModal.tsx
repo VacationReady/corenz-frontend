@@ -24,6 +24,7 @@ import { fetchEmployees } from "@/lib/fetchData";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import SignatureCapture from "@/components/documents/SignatureCapture";
+import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
 
 export default function AddDocumentModal({
   open,
@@ -67,6 +68,8 @@ export default function AddDocumentModal({
   const [signerDepartments, setSignerDepartments] = useState<string[]>([]);
   const [signerJobRoles, setSignerJobRoles] = useState<string[]>([]);
   const [signerEmployees, setSignerEmployees] = useState<string[]>([]);
+  const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
+  const [pendingFields, setPendingFields] = useState<any[] | null>(null);
 
   const user = session?.user;
 
@@ -184,7 +187,18 @@ export default function AddDocumentModal({
         throw new Error(error || "API call failed");
       }
 
+      const payload = await res.json();
       toast.success("Document uploaded successfully");
+      if (requiresSignature && payload?.Document?.id) {
+        // If we have pre-placement fields, post them now (server save) to preserve pre-upload UX
+        if (pendingFields && pendingFields.length > 0) {
+          await fetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pendingFields),
+          });
+        }
+      }
       onClose();
     } catch (err) {
       toast.error((err as Error).message);
@@ -368,6 +382,12 @@ export default function AddDocumentModal({
                     onChange={(e) => setSignatureDueAt(e.target.value)}
                   />
                 </div>
+                {/* Open local placement before upload */}
+                <div>
+                  <Button variant="secondary" onClick={() => setIsPlacementBeforeSendOpen(true)}>
+                    Preview & Place Signature Fields
+                  </Button>
+                </div>
                 {type === "company" && (
                   <>
                     <div>
@@ -416,6 +436,15 @@ export default function AddDocumentModal({
           {loading ? "Uploading..." : "Upload Document"}
         </Button>
       </DialogContent>
+      {/* Placement before upload (local) */}
+      <FieldPlacementModal
+        isOpen={isPlacementBeforeSendOpen}
+        onClose={() => setIsPlacementBeforeSendOpen(false)}
+        documentId={"local"}
+        url={""}
+        saveMode="local"
+        onSaveFields={(f) => setPendingFields(f)}
+      />
     </Dialog>
   );
 }

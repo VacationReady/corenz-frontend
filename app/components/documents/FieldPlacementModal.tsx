@@ -26,11 +26,15 @@ export default function FieldPlacementModal({
   onClose,
   documentId,
   url,
+  saveMode = "server",
+  onSaveFields,
 }: {
   isOpen: boolean;
   onClose: () => void;
   documentId: string;
   url: string;
+  saveMode?: "server" | "local";
+  onSaveFields?: (fields: Field[]) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
@@ -72,6 +76,11 @@ export default function FieldPlacementModal({
   };
 
   const save = async () => {
+    if (saveMode === "local" && onSaveFields) {
+      onSaveFields(fields);
+      onClose();
+      return;
+    }
     await fetch(`/api/documents/signature-fields/${documentId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

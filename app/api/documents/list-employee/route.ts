@@ -47,6 +47,9 @@ export async function GET(req: NextRequest) {
           email: true,
         },
       },
+      SignatureEmployees: true,
+      SignatureDepartments: true,
+      SignatureJobRoles: true,
     },
     orderBy: {
       createdAt: "desc",

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-labelledby="title desc">
+  <title id="title">PeopleCore</title>
+  <desc id="desc">PeopleCore wordmark in brand colors</desc>
+  <defs>
+    <linearGradient id="pcGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="50%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+  <rect width="320" height="80" fill="white" rx="16" ry="16"/>
+  <g fill="url(#pcGradient)" font-family="'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-weight="700" font-size="40">
+    <text x="32" y="52">People</text>
+    <text x="184" y="52" fill="#0ea5e9">Core</text>
+  </g>
+  <circle cx="40" cy="28" r="10" fill="#38bdf8" opacity="0.4" />
+  <circle cx="60" cy="20" r="6" fill="#2563eb" opacity="0.6" />
+</svg>

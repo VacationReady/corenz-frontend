@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { Resend } from "resend";
 import { randomBytes } from "crypto";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 export async function POST(
   _req: NextResponse extends never ? never : any,
@@ -38,17 +37,37 @@ export async function POST(
     const redirectPath = employee.onboardingTemplateId
       ? `/${employee.id}/onboarding`
       : `/dashboard`;
-    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+    const baseUrl = getAppBaseUrl();
+    const activationLink = `${baseUrl}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+
+    const employeeName =
+      `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+      employee.User.email;
+
+    const { html, text } = renderPeopleCoreEmail({
+      preheader: "Activate your PeopleCore account",
+      title: "Activate Your PeopleCore Account",
+      intro: [
+        `Hi ${employeeName},`,
+        "Welcome to PeopleCore! Use the button below to activate your account and get started.",
+      ],
+      ctas: {
+        label: "Activate Account",
+        href: activationLink,
+      },
+      outro: [
+        "If you weren't expecting this email, please ignore it.",
+        "Thank you,",
+        "The PeopleCore Team",
+      ],
+    });
 
     await resend.emails.send({
       from: "noreply@peoplecore.co.nz",
       to: employee.User.email,
       subject: "Activate Your PeopleCore Account",
-      html: `
-        <p>Hi ${employee.User.firstName || ""},</p>
-        <p>Welcome to PeopleCore! Please click the link below to activate your account and get started:</p>
-        <p><a href="${activationLink}">Activate Your Account</a></p>
-      `,
+      html,
+      text,
     });
 
     return NextResponse.json({ ok: true });

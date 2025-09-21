@@ -2,12 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Resend } from "resend";
+import { resend } from "@/lib/resend";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function POST(req: NextRequest) {
   try {
@@ -217,24 +216,42 @@ async function sendNewsEmails(audience: any, title: string, content: any, compan
     }
 
     // ✅ Batch send logic
-    const batchRecipients = users.map((user) => ({
-      from: "noreply@peoplecore.co.nz",
-      to: user.email,
-      subject: `New News Post: ${title}`,
-      html: `
-        <p>Hi ${user.firstName || "there"},</p>
-        <p>There's a new news post on your portal.</p>
-        <p><strong>${title}</strong></p>
-        <p>${renderContentPreview(content)}</p>
-        <p>Log in to view the full post.</p>
-      `,
-    }));
+    const baseUrl = getAppBaseUrl();
+    const previewText = renderContentPreview(content);
 
-    console.log("📨 Sending batch of", batchRecipients.length, "emails");
+    console.log("📨 Sending batch of", users.length, "emails");
 
-    for (const emailData of batchRecipients) {
+    for (const user of users) {
+      const { html, text } = renderPeopleCoreEmail({
+        preheader: title,
+        title: "New PeopleCore News",
+        intro: [
+          `Hi ${user.firstName || "there"},`,
+          "There's a new news post on your portal.",
+        ],
+        sections: [
+          {
+            title,
+            description: previewText ? [previewText] : undefined,
+          },
+        ],
+        ctas: {
+          label: "View News Post",
+          href: `${baseUrl}/news`,
+        },
+        outro: [
+          "Log in to view the full post.",
+        ],
+      });
+
       await resend.emails
-        .send(emailData)
+        .send({
+          from: "noreply@peoplecore.co.nz",
+          to: user.email,
+          subject: `New News Post: ${title}`,
+          html,
+          text,
+        })
         .then((result) => console.log("✅ Resend success:", result))
         .catch((err) => console.error("❌ Resend failed:", err));
     }

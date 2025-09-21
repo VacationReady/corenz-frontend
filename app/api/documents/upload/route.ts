@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { z } from "zod";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl } from "@/lib/email/template";
+import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
 
 const optionalStringFromForm = z.preprocess(
   (val) => {
@@ -265,30 +268,24 @@ export async function POST(req: Request) {
         console.log("User found for notification:", user);
 
         if (user?.email) {
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+          const baseUrl = getAppBaseUrl();
           const docLink = `${baseUrl}/employees/${document.employeeId}/documents?open=${document.id}`;
-          const resendRes = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: "noreply@peoplecore.co.nz",
-              to: user.email,
-              subject: requiresSignature
-                ? "New Document Requires Your Signature"
-                : "New Document Requires Your Acknowledgement",
-              html: `
-                <p>Hi ${user.name || "there"},</p>
-                <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your ${requiresSignature ? "signature" : "acknowledgement"}.</p>
-                <p>${signatureDueAt ? `Due by: <b>${new Date(signatureDueAt).toLocaleString()}</b><br/>` : ""}<a href="${docLink}">View ${requiresSignature ? "& Sign" : "& Acknowledge"} Document</a></p>
-                <p>Thank you,<br/>HR Team</p>
-              `,
-            }),
+          const { subject, html, text } = buildDocumentNotificationEmail({
+            recipientName: user.name,
+            documentName: document.name,
+            category: document.category,
+            docLink,
+            requiresSignature,
+            signatureDueAt,
           });
-          const resendJson = await resendRes.json();
-          console.log("Resend API response:", resendJson);
+
+          await resend.emails.send({
+            from: "noreply@peoplecore.co.nz",
+            to: user.email,
+            subject,
+            html,
+            text,
+          });
         }
       }
     }
@@ -351,33 +348,24 @@ export async function POST(req: Request) {
         const chunk = users.slice(i, i + chunkSize);
         await Promise.all(
           chunk.map(async (user) => {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+            const baseUrl = getAppBaseUrl();
             const docLink = `${baseUrl}/documents?open=${document.id}`;
-            const resendRes = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: "noreply@peoplecore.co.nz",
-                to: user.email,
-                subject: requiresSignature
-                  ? "New Document Requires Your Signature"
-                  : "New Document Requires Your Acknowledgement",
-                html: `
-                  <p>Hi ${user.name || "there"},</p>
-                  <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your ${requiresSignature ? "signature" : "acknowledgement"}.</p>
-                  <p>${signatureDueAt ? `Due by: <b>${new Date(signatureDueAt).toLocaleString()}</b><br/>` : ""}<a href="${docLink}">View ${requiresSignature ? "& Sign" : "& Acknowledge"} Document</a></p>
-                  <p>Thank you,<br/>HR Team</p>
-                `,
-              }),
+            const { subject, html, text } = buildDocumentNotificationEmail({
+              recipientName: user.name,
+              documentName: document.name,
+              category: document.category,
+              docLink,
+              requiresSignature,
+              signatureDueAt,
             });
-            const resendJson = await resendRes.json();
-            console.log(
-              `Resend API response for user ${user.email}:`,
-              resendJson,
-            );
+
+            await resend.emails.send({
+              from: "noreply@peoplecore.co.nz",
+              to: user.email,
+              subject,
+              html,
+              text,
+            });
           }),
         );
       }

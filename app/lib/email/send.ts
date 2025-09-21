@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import {
   buildExitInterviewConfirmationICS,
@@ -6,9 +5,29 @@ import {
 } from "@/lib/calendar/ics";
 import { formatLondon } from "@/lib/time";
 import { createHash, randomBytes } from "crypto";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "./template";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@peoplecore.co.nz";
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return char;
+    }
+  });
+}
 
 export interface EmailRecipient {
   email: string;
@@ -93,54 +112,99 @@ export async function sendExitInterviewConfirmation(
     );
     const interviewTime = formatLondon(offboarding.exitInterviewDate, "HH:mm");
     const location = offboarding.location || "Online/Office";
+    const employeeName =
+      `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+      employee.User.email;
+    const interviewerName =
+      interviewer.name ||
+      `${interviewer.firstName ?? ""} ${interviewer.lastName ?? ""}`.trim();
 
-    const subject = `Exit Interview — ${employee.User.firstName} ${employee.User.lastName} on ${interviewDate} at ${interviewTime}`;
+    const subject = `Exit Interview — ${employeeName} on ${interviewDate} at ${interviewTime}`;
 
-    let formLink = "";
+    let formLink: string | null = null;
     if (
       offboarding.sendForm &&
       offboarding.formTiming === "NOW" &&
       offboarding.completionTokenHash
     ) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+      const baseUrl = getAppBaseUrl();
       formLink = `${baseUrl}/exit-interview/${offboarding.completionTokenHash}`;
     }
 
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Exit Interview Confirmation</h2>
-
-        <p>Dear ${employee.User.firstName} ${employee.User.lastName},</p>
-
-        <p>Your exit interview has been scheduled with the following details:</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Date:</strong> ${interviewDate}</p>
-          <p><strong>Time:</strong> ${interviewTime}</p>
-          <p><strong>Location:</strong> ${location}</p>
-          <p><strong>Interviewer:</strong> ${interviewer.name || `${interviewer.firstName} ${interviewer.lastName}`}</p>
-          ${offboarding.exitInterviewNotes ? `<p><strong>Notes:</strong> ${offboarding.exitInterviewNotes}</p>` : ""}
-        </div>
-        
-        <p>A calendar invitation has been attached to this email. Please add it to your calendar.</p>
-        
-        ${
-          formLink
-            ? `
-          <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Exit Interview Form</strong></p>
-            <p>Please complete your exit interview form before the interview:</p>
-            <a href="${formLink}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Complete Form</a>
-          </div>
-        `
-            : ""
-        }
-        
-        <p>If you have any questions or need to reschedule, please contact HR.</p>
-        
-        <p>Best regards,<br>HR Team</p>
-      </div>
+    const detailsHtml = `
+      <table style="width: 100%; border-collapse: collapse;">
+        <tbody>
+          <tr>
+            <td style="padding: 8px 0; font-weight: 600; color: #0f172a;">Date</td>
+            <td style="padding: 8px 0; color: #0f172a;">${escapeHtml(interviewDate)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: 600; color: #0f172a;">Time</td>
+            <td style="padding: 8px 0; color: #0f172a;">${escapeHtml(interviewTime)} (London)</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: 600; color: #0f172a;">Location</td>
+            <td style="padding: 8px 0; color: #0f172a;">${escapeHtml(location)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: 600; color: #0f172a;">Interviewer</td>
+            <td style="padding: 8px 0; color: #0f172a;">${escapeHtml(interviewerName)}</td>
+          </tr>
+          ${
+            offboarding.exitInterviewNotes
+              ? `<tr>
+                  <td style="padding: 8px 0; font-weight: 600; color: #0f172a; vertical-align: top;">Notes</td>
+                  <td style="padding: 8px 0; color: #0f172a; white-space: pre-line;">${escapeHtml(
+                    offboarding.exitInterviewNotes,
+                  )}</td>
+                </tr>`
+              : ""
+          }
+        </tbody>
+      </table>
     `;
+
+    const detailsText = [
+      `Date: ${interviewDate}`,
+      `Time: ${interviewTime} (London)`,
+      `Location: ${location}`,
+      `Interviewer: ${interviewerName}`,
+    ];
+    if (offboarding.exitInterviewNotes) {
+      detailsText.push(`Notes: ${offboarding.exitInterviewNotes}`);
+    }
+
+    const { html: htmlContent, text } = renderPeopleCoreEmail({
+      preheader: `Exit interview scheduled for ${employeeName} on ${interviewDate}`,
+      title: "Exit Interview Confirmation",
+      intro: [
+        `Hi ${employeeName},`,
+        "Your exit interview has been scheduled. The details are below.",
+      ],
+      sections: [
+        {
+          title: "Interview Details",
+          html: detailsHtml,
+          text: detailsText,
+        },
+        {
+          description: [
+            "A calendar invitation (.ics) has been attached to this email so you can add the interview to your diary.",
+          ],
+        },
+      ],
+      ctas: formLink
+        ? {
+            label: "Complete Exit Interview Form",
+            href: formLink,
+          }
+        : undefined,
+      outro: [
+        "If you have any questions or need to reschedule, please contact your HR team.",
+        "Thank you,",
+        "The PeopleCore Team",
+      ],
+    });
 
     console.log("Sending email to employee:", {
       from: FROM_EMAIL,
@@ -155,6 +219,7 @@ export async function sendExitInterviewConfirmation(
       to: employee.User.email,
       subject,
       html: htmlContent,
+      text,
       attachments: [
         {
           filename: ics.filename,
@@ -172,6 +237,7 @@ export async function sendExitInterviewConfirmation(
       to: interviewer.email,
       subject: `Copy: ${subject}`,
       html: htmlContent,
+      text,
       attachments: [
         {
           filename: ics.filename,
@@ -246,38 +312,46 @@ export async function sendExitInterviewFormInvite(
     });
 
     const employee = offboarding.Employee;
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+    const employeeName =
+      `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+      employee.User.email;
+    const baseUrl = getAppBaseUrl();
     const formLink = `${baseUrl}/exit-interview/${offboarding.completionTokenHash}`;
     const today = formatLondon(new Date(), "dd MMMM yyyy");
 
     const subject = `Please complete your Exit Interview — ${today}`;
 
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Exit Interview Form</h2>
-
-        <p>Dear ${employee.User.firstName} ${employee.User.lastName},</p>
-
-        <p>As part of your exit process, please complete your exit interview form today.</p>
-        
-        <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-          <p style="margin-bottom: 15px;"><strong>Exit Interview Form</strong></p>
-          <a href="${formLink}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Complete Form Now</a>
-        </div>
-        
-        <p>This form will help us understand your experience and gather feedback for improvement.</p>
-        
-        <p>If you have any issues accessing the form, please contact HR.</p>
-        
-        <p>Best regards,<br>HR Team</p>
-      </div>
-    `;
+    const { html, text } = renderPeopleCoreEmail({
+      preheader: "Your exit interview form is ready to complete",
+      title: "Exit Interview Form",
+      intro: [
+        `Hi ${employeeName},`,
+        "As part of your exit process, please complete your exit interview form today.",
+      ],
+      sections: [
+        {
+          description: [
+            "Your responses help us learn from your experience and continue improving the PeopleCore workplace.",
+          ],
+        },
+      ],
+      ctas: {
+        label: "Complete Form Now",
+        href: formLink,
+      },
+      outro: [
+        "If you have any issues accessing the form, please contact your HR team.",
+        "Thank you,",
+        "The PeopleCore Team",
+      ],
+    });
 
     await resend.emails.send({
       from: FROM_EMAIL,
       to: employee.User.email,
       subject,
-      html: htmlContent,
+      html,
+      text,
     });
 
     // Update completion status to STARTED
@@ -332,23 +406,31 @@ export async function sendExitInterviewCancellation(
       interviewer,
     );
 
-    const subject = `Exit Interview Cancelled — ${employee.User.firstName} ${employee.User.lastName}`;
+    const employeeName =
+      `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+      employee.User.email;
+    const subject = `Exit Interview Cancelled — ${employeeName}`;
 
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #d32f2f;">Exit Interview Cancelled</h2>
-        
-        <p>Dear ${employee.User.firstName} ${employee.User.lastName},</p>
-        
-        <p>Your scheduled exit interview has been cancelled.</p>
-        
-        <p>A cancellation notice has been attached to this email to remove the event from your calendar.</p>
-        
-        <p>If you have any questions, please contact HR.</p>
-        
-        <p>Best regards,<br>HR Team</p>
-      </div>
-    `;
+    const { html: htmlContent, text } = renderPeopleCoreEmail({
+      preheader: `Exit interview cancelled for ${employeeName}`,
+      title: "Exit Interview Cancelled",
+      intro: [
+        `Hi ${employeeName},`,
+        "Your scheduled exit interview has been cancelled.",
+      ],
+      sections: [
+        {
+          description: [
+            "We've attached an updated calendar notice (.ics) so you can remove the interview from your diary.",
+          ],
+        },
+      ],
+      outro: [
+        "If you have any questions, please contact your HR team.",
+        "Thank you,",
+        "The PeopleCore Team",
+      ],
+    });
 
     // Send cancellation to employee
     await resend.emails.send({
@@ -356,6 +438,7 @@ export async function sendExitInterviewCancellation(
       to: employee.User.email,
       subject,
       html: htmlContent,
+      text,
       attachments: [
         {
           filename: ics.filename,
@@ -372,6 +455,7 @@ export async function sendExitInterviewCancellation(
         to: interviewer.email,
         subject: `Copy: ${subject}`,
         html: htmlContent,
+        text,
         attachments: [
           {
             filename: ics.filename,

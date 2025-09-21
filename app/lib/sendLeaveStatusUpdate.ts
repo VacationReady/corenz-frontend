@@ -1,4 +1,5 @@
 import { resend } from "./resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "./email/template";
 
 interface LeaveStatusUpdateParams {
   to: string;
@@ -22,36 +23,40 @@ export async function sendLeaveStatusUpdate({
   try {
     const formattedStart = new Date(startDate).toLocaleDateString();
     const formattedEnd = new Date(endDate).toLocaleDateString();
+    const baseUrl = getAppBaseUrl();
 
-    const html = `
-      <div style="font-family: sans-serif; max-width: 500px; margin: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
-        <h2 style="color: #111827;">PeopleCore Leave Update</h2>
-        <p>Hello ${employeeName},</p>
-        <p>Your leave request has been <strong>${status.toLowerCase()}</strong>:</p>
-        <ul>
-          <li><strong>Type:</strong> ${type}</li>
-          <li><strong>Dates:</strong> ${formattedStart} to ${formattedEnd}</li>
-          <li><strong>Status:</strong> ${status}</li>
-        </ul>
-        <p>
-          <a 
-            href="https://peoplecore.vercel.app/profile" 
-            style="background-color:#1d4ed8;color:white;padding:10px 15px;text-decoration:none;border-radius:5px;display:inline-block;"
-            target="_blank"
-          >
-            Click here to view your leave in PeopleCore
-          </a>
-        </p>
-        <br/>
-        <p style="font-size: 12px; color: #6b7280;">PeopleCore HRIS System</p>
-      </div>
-    `;
+    const { html, text } = renderPeopleCoreEmail({
+      preheader: `Your ${type} leave request is ${status.toLowerCase()}`,
+      title: "Leave Request Update",
+      intro: [
+        `Hi ${employeeName},`,
+        `Your leave request has been ${status.toLowerCase()}.`,
+      ],
+      sections: [
+        {
+          title: "Leave Details",
+          description: [
+            `Type: ${type}`,
+            `Dates: ${formattedStart} to ${formattedEnd}`,
+            `Status: ${status}`,
+          ],
+        },
+      ],
+      ctas: {
+        label: "View Leave in PeopleCore",
+        href: `${baseUrl}/profile`,
+      },
+      outro: [
+        "PeopleCore HRIS System",
+      ],
+    });
 
     const data = await resend.emails.send({
       from: "PeopleCore Notifications <noreply@peoplecore.co.nz>",
       to,
       subject,
       html,
+      text,
     });
 
     console.log("✅ Leave status update email sent via Resend:", data);

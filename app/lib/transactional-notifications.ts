@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
+import { renderPeopleCoreEmail } from "@/lib/email/template";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Employee, User, Department, TransactionalNotificationPreference } from "@prisma/client";
 
@@ -199,81 +200,39 @@ export function buildTransactionalEmail({
 
   changesHtml += '</tbody></table>';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-      <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
-        <div style="border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
-          <h1 style="color: #1f2937; margin: 0 0 8px 0; font-size: 28px;">Employee Record Updated</h1>
-          <p style="color: #6b7280; margin: 0; font-size: 14px;">${currentDate}</p>
-        </div>
-        
-        <!-- Summary -->
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 30px;">
-          <p style="margin: 0 0 12px 0; font-size: 16px;">
-            <strong>${actorName}</strong> has updated
-          </p>
-          <h2 style="margin: 0 0 8px 0; font-size: 24px;">${employeeName}'s ${sectionConfig.label}</h2>
-          <p style="margin: 0; opacity: 0.9; font-size: 14px;">
-            ${changeCount} ${changeCount === 1 ? 'change' : 'changes'} made
-          </p>
-        </div>
-        
-        <!-- Changes Table -->
-        <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
-          <h3 style="color: #1f2937; margin: 0 0 16px 0; font-size: 18px;">Detailed Changes</h3>
-          ${changesHtml}
-        </div>
-        
-        <!-- Call to Action -->
-        <div style="text-align: center; margin: 40px 0;">
-          <a href="${sectionUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            View Employee Record →
-          </a>
-        </div>
-        
-        <!-- Footer -->
-        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 40px;">
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
-            This is an automated notification from PeopleCore HR System.<br>
-            Please do not reply to this email. For assistance, contact your HR administrator.
-          </p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  const summaryDescription = [
+    `Employee: ${employeeName}`,
+    `Updated by: ${actorName}`,
+    `Changes: ${changeCount}`,
+    `Date: ${currentDate}`,
+  ];
 
-  const text = `
-EMPLOYEE RECORD UPDATED
-========================
-${currentDate}
-
-${actorName} has updated ${employeeName}'s ${sectionConfig.label}
-
-SUMMARY
--------
-Total changes: ${changeCount}
-
-DETAILED CHANGES
-----------------
-${textChanges}
-
-VIEW RECORD
------------
-To view the complete employee record, visit:
-${sectionUrl}
-
----
-This is an automated notification from PeopleCore HR System.
-Please do not reply to this email. For assistance, contact your HR administrator.
-`;
+  const { html, text } = renderPeopleCoreEmail({
+    preheader: `${actorName} updated ${employeeName}'s ${sectionConfig.label}`,
+    title: "Employee Record Updated",
+    intro: [
+      `${actorName} has updated ${employeeName}'s ${sectionConfig.label}.`,
+    ],
+    sections: [
+      {
+        title: "Summary",
+        description: summaryDescription,
+      },
+      {
+        title: "Detailed Changes",
+        html: changesHtml,
+        text: textChanges.trim() ? textChanges.trim() : undefined,
+      },
+    ],
+    ctas: {
+      label: "View Employee Record",
+      href: sectionUrl,
+    },
+    outro: [
+      "This is an automated notification from PeopleCore HR System.",
+      "Please do not reply to this email. For assistance, contact your HR administrator.",
+    ],
+  });
 
   return { html, text };
 }

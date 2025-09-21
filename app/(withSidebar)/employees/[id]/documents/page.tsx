@@ -101,6 +101,7 @@ export default function EmployeeDocumentsPage() {
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
   const [signed, setSigned] = useState(false);
+  const [eligible, setEligible] = useState<boolean>(true);
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [signatureValue, setSignatureValue] = useState<any>(null);
 
@@ -147,8 +148,8 @@ export default function EmployeeDocumentsPage() {
         });
       fetch(`/api/documents/signatures/${selectedDoc.id}/me`)
         .then((res) => res.json())
-        .then((data) => setSigned(!!data.signed))
-        .catch(() => setSigned(false));
+        .then((data) => { setSigned(!!data.signed); setEligible(!!data.eligible); })
+        .catch(() => { setSigned(false); setEligible(false); });
       fetch(`/api/documents/signature-fields/${selectedDoc.id}`)
         .then((r) => r.json())
         .then((data) => setFields(Array.isArray(data) ? data : []))
@@ -568,10 +569,9 @@ export default function EmployeeDocumentsPage() {
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
-                <iframe
-                  src={selectedDoc.url}
-                  className="w-full h-[500px] rounded border"
-                ></iframe>
+                <div className="rounded border overflow-hidden">
+                  <embed src={selectedDoc.url} type="application/pdf" className="w-full h-[80vh]" />
+                </div>
                 <a
                   href={selectedDoc.url}
                   download={selectedDoc.name}
@@ -613,7 +613,7 @@ export default function EmployeeDocumentsPage() {
                     )}
                   </div>
                 )}
-                {(selectedDoc as any).requiresSignature && !signed && (
+                {(selectedDoc as any).requiresSignature && eligible && !signed && (
                   <div className="space-y-3">
                     <SignatureCapture
                       value={signatureValue}

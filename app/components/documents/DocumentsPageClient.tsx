@@ -763,10 +763,9 @@ function DocumentsContent() {
             </DialogHeader>
             {selectedDoc && (
               <div className="space-y-4">
-                <iframe
-                  src={selectedDoc.url}
-                  className="w-full h-[500px] rounded border"
-                ></iframe>
+                <div className="rounded border overflow-hidden">
+                  <embed src={selectedDoc.url} type="application/pdf" className="w-full h-[80vh]" />
+                </div>
                 <a
                   href={selectedDoc.url}
                   download={selectedDoc.name}

@@ -11,21 +11,59 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
-      return NextResponse.json({ signed: false });
+      return NextResponse.json({ signed: false, eligible: false });
     }
 
     const employee = await prisma.employee.findFirst({
       where: { userId: session.user.id, companyId: session.user.companyId },
       select: { id: true },
     });
-    if (!employee) return NextResponse.json({ signed: false });
+    if (!employee) return NextResponse.json({ signed: false, eligible: false });
 
     const artifact = await prisma.documentSignatureArtifact.findUnique({
       where: {
         documentId_employeeId: { documentId: params.id, employeeId: employee.id },
       },
     });
-    if (!artifact) return NextResponse.json({ signed: false });
+    // Determine eligibility (mirror sign route logic)
+    const document = await prisma.document.findFirst({
+      where: { id: params.id, companyId: session.user.companyId },
+      include: {
+        Employee: true,
+        Department: { select: { id: true } },
+        JobRole: { select: { id: true } },
+        SignatureDepartments: true,
+        SignatureJobRoles: true,
+        SignatureEmployees: true,
+      },
+    });
+
+    let eligible = false;
+    if (document?.requiresSignature) {
+      if (document.employeeId) {
+        eligible = document.employeeId === employee.id;
+      } else {
+        const explicitEmpIds = new Set(
+          (document.SignatureEmployees || []).map((s) => s.employeeId),
+        );
+        const deptIds = new Set((document.SignatureDepartments || []).map((d) => d.departmentId));
+        const roleIds = new Set((document.SignatureJobRoles || []).map((r) => r.jobRoleId));
+        const hasAnyTarget = explicitEmpIds.size > 0 || deptIds.size > 0 || roleIds.size > 0;
+        if (explicitEmpIds.has(employee.id)) eligible = true;
+        if (employee.departmentId && deptIds.has(employee.departmentId)) eligible = true;
+        if (employee.jobRoleId && roleIds.has(employee.jobRoleId)) eligible = true;
+        if (!hasAnyTarget) eligible = true;
+      }
+      if (!eligible) {
+        const assignedField = await prisma.documentSignatureField.findFirst({
+          where: { documentId: params.id, assignedEmployeeId: employee.id },
+          select: { id: true },
+        });
+        if (assignedField) eligible = true;
+      }
+    }
+
+    if (!artifact) return NextResponse.json({ signed: false, eligible });
 
     let artifactUrl: string | null = null;
     if (artifact.artifactPath) {
@@ -37,6 +75,7 @@ export async function GET(
 
     return NextResponse.json({
       signed: true,
+      eligible,
       method: artifact.method,
       typedText: artifact.typedText,
       artifactUrl,
@@ -44,7 +83,7 @@ export async function GET(
     });
   } catch (e) {
     console.error("Sign check error:", e);
-    return NextResponse.json({ signed: false });
+    return NextResponse.json({ signed: false, eligible: false });
   }
 }
 

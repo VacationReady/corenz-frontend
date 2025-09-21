@@ -60,12 +60,12 @@ export default function FieldPlacementModal({
         .then((d) => setDocUrl(d?.url || url))
         .catch(() => setDocUrl(url));
     }
-    // Load employee list for assignees
-    fetch(`/api/employees/active`)
-      .then((r) => r.json())
+    // Load employee list for assignees (supports server route: /api/employees?status=active)
+    fetch(`/api/employees?status=active`)
+      .then((r) => r.ok ? r.json() : [])
       .then((arr) =>
         setAssignees(
-          (arr || []).map((e: any) => ({ id: e.id, name: `${e.user?.firstName || ""} ${e.user?.lastName || ""}`.trim() })),
+          (arr || []).map((e: any) => ({ id: e.id, name: `${e.firstName || e.user?.firstName || ""} ${e.lastName || e.user?.lastName || ""}`.trim() })),
         ),
       )
       .catch(() => setAssignees([]));

@@ -810,7 +810,14 @@ function DocumentsContent() {
                             }),
                           });
                           if (res.ok) {
+                            const payload = await res.json();
                             setSigned(true);
+                            try {
+                              const u = await fetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
+                              if (u?.url) {
+                                setSelectedDoc({ ...selectedDoc, url: u.url });
+                              }
+                            } catch {}
                             toast("Signature submitted");
                           } else {
                             toast("Failed to submit signature");

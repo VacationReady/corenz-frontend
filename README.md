@@ -4,6 +4,28 @@
 
 This update introduces a basic exit interview workflow for employee offboarding. After initiating an offboarding you can optionally schedule an interview and assign an interviewer.
 
+## Password reset flow
+
+- End users can select **Forgot password?** from `/login` which opens `/forgot-password`.
+- The form posts to `POST /api/auth/password-reset`, which rate limits requests (defaults: 3 attempts per 15 minutes per email/IP pair – override with `PASSWORD_RESET_LIMIT` and `PASSWORD_RESET_WINDOW_MS`).
+- When an account is found, a new token is written to the existing `ActivationToken` table and an email is sent via Resend using the standard `FROM_EMAIL` identity.
+- Reset links point to `/activate?token=…` which reuses the current password set flow; tokens are single-use because they are replaced on every request.
+- Operations can pre-seed tokens during onboarding by inserting into `ActivationToken` with a generated UUID `id`, a random 64-character hex `token`, the `userId`, and `createdAt` timestamp. Example SQL:
+
+```sql
+insert into "ActivationToken" ("id", "token", "userId", "createdAt")
+values (
+  gen_random_uuid(),
+  encode(gen_random_bytes(32), 'hex'),
+  'USER_UUID_HERE',
+  now()
+)
+on conflict ("userId")
+do update set "token" = excluded."token", "createdAt" = now();
+```
+
+- Provide the resulting `token` to the employee (or let the API send the email) so they can complete `/activate?token=…` and choose a password.
+
 ### Environment
 
 - Set `RESEND_API_KEY` with your Resend API key to use the email testing script:

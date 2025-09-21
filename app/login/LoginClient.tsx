@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
@@ -105,6 +106,15 @@ export default function LoginClient() {
             Sign In
           </Button>
         </form>
+
+        <div className="mt-4 text-center">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-surface-dark"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
         <div className="my-6 flex items-center">
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />

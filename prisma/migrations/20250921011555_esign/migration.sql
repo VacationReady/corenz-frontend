@@ -16,8 +16,7 @@ CREATE TYPE "public"."ApprovalStageMode" AS ENUM ('SEQUENTIAL', 'FIRST_RESPONDER
 -- DropIndex
 DROP INDEX "public"."Department_code_key";
 
--- DropIndex
-DROP INDEX "public"."NewsPost_companyId_idx";
+DROP INDEX IF EXISTS "public"."NewsPost_companyId_idx";
 
 -- AlterTable
 ALTER TABLE "public"."Course" ADD COLUMN     "companyId" TEXT;

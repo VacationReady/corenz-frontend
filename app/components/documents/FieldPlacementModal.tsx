@@ -35,18 +35,38 @@ export default function FieldPlacementModal({
   const [fields, setFields] = useState<Field[]>([]);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
 
+  const [docUrl, setDocUrl] = useState<string>("");
+  const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("");
+
   useEffect(() => {
     if (!isOpen) return;
     fetch(`/api/documents/signature-fields/${documentId}`)
       .then((r) => r.json())
       .then((data) => setFields(data || []))
       .catch(() => setFields([]));
-  }, [documentId, isOpen]);
+    // Always fetch a fresh signed URL to guarantee preview
+    fetch(`/api/documents/signed-url/${documentId}`)
+      .then((r) => r.json())
+      .then((d) => setDocUrl(d?.url || url))
+      .catch(() => setDocUrl(url));
+    // Load employee list for assignees
+    fetch(`/api/employees/active`)
+      .then((r) => r.json())
+      .then((arr) =>
+        setAssignees(
+          (arr || []).map((e: any) => ({ id: e.id, name: `${e.user?.firstName || ""} ${e.user?.lastName || ""}`.trim() })),
+        ),
+      )
+      .catch(() => setAssignees([]));
+  }, [documentId, isOpen, url]);
 
-  const addField = () => {
+  const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE") => {
+    const base = { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.08 } as Field;
+    const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
     setFields((prev) => [
       ...prev,
-      { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.08, label: "Signature" },
+      { ...base, label } as any,
     ]);
   };
 
@@ -88,7 +108,7 @@ export default function FieldPlacementModal({
               onMouseMove={onMouseMove}
               onMouseUp={onMouseUp}
             >
-              <iframe src={url} className="w-full h-full" />
+              <iframe src={docUrl} className="w-full h-full" />
               {fields.map((f, idx) => (
                 <div
                   key={idx}
@@ -108,9 +128,28 @@ export default function FieldPlacementModal({
             </div>
           </div>
           <div className="col-span-3 space-y-3">
-            <Button onClick={addField} variant="secondary" className="w-full">
-              Add Field
-            </Button>
+            <div className="border rounded p-2">
+              <div className="font-medium mb-2">Palette</div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={() => addField("SIGNATURE")} variant="secondary">Signature</Button>
+                <Button onClick={() => addField("NAME")} variant="outline">Name</Button>
+                <Button onClick={() => addField("JOB_ROLE")} variant="outline">Job Role</Button>
+              </div>
+            </div>
+            <div className="border rounded p-2">
+              <div className="font-medium mb-2">Assign signer</div>
+              <select
+                className="w-full border rounded px-2 py-1 text-sm"
+                value={selectedAssignee}
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+              >
+                <option value="">Unassigned</option>
+                {assignees.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+              <div className="text-xs text-muted-foreground mt-1">New fields will be assigned to the selected signer.</div>
+            </div>
             <div className="space-y-2 max-h-[520px] overflow-auto">
               {fields.map((f, idx) => (
                 <div key={idx} className="border rounded p-2 space-y-1">

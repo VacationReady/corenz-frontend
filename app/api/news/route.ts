@@ -89,13 +89,28 @@ export async function GET(req: NextRequest) {
   const postsWithPreview = await Promise.all(
     posts.map(async (post) => {
       let coverUrl: string | null = post.coverImageUrl ?? null;
-      if (coverUrl && !/^https?:\/\//i.test(coverUrl)) {
-        try {
-          const { data, error } = await supabase.storage
-            .from("documents")
-            .createSignedUrl(coverUrl, 60 * 10);
-          if (!error) coverUrl = data?.signedUrl ?? null;
-        } catch {}
+      if (coverUrl) {
+        // If already a signed Supabase URL and likely expired, extract path and re-sign
+        if (/^https?:\/\//i.test(coverUrl) && coverUrl.includes("/object/sign/") && coverUrl.includes("/documents/")) {
+          try {
+            const after = coverUrl.split("/documents/")[1] || "";
+            const path = after.split("?")[0] || "";
+            if (path) {
+              const { data, error } = await supabase.storage
+                .from("documents")
+                .createSignedUrl(path, 60 * 10);
+              if (!error) coverUrl = data?.signedUrl ?? coverUrl;
+            }
+          } catch {}
+        } else if (!/^https?:\/\//i.test(coverUrl)) {
+          // Stored as a bare path; sign it
+          try {
+            const { data, error } = await supabase.storage
+              .from("documents")
+              .createSignedUrl(coverUrl, 60 * 10);
+            if (!error) coverUrl = data?.signedUrl ?? null;
+          } catch {}
+        }
       }
 
       const preview = extractPreview(post.content);

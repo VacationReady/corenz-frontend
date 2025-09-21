@@ -1,4 +1,18 @@
 /** @type {import('next').NextConfig} */
+const csp = [
+  "default-src 'self' https://*.supabase.co https://api.resend.com",
+  "frame-src 'self' blob: https://*.supabase.co",
+  "object-src 'self' blob:",
+  "img-src 'self' https: data: blob:",
+  "media-src 'self' blob:",
+  "connect-src 'self' https://*.supabase.co https://api.resend.com",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 const nextConfig = {
   reactStrictMode: true,
   // Most important: disables static export
@@ -8,6 +22,16 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "@heroicons/react"],
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "Content-Security-Policy", value: csp },
+        ],
+      },
+    ];
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Optimize bundle splitting

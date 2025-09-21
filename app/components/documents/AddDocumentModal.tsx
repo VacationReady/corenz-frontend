@@ -490,27 +490,28 @@ export default function AddDocumentModal({
           />
         </div>
 
-        {/* Primary action: Preview when requiresSignature, else Upload */}
-        {requiresSignature ? (
-          <div className="flex items-center justify-between">
-            <Button
-              variant="secondary"
-              disabled={!file}
-              onClick={() => setIsPlacementBeforeSendOpen(true)}
-            >
-              Preview & Place Signature Fields
+        {/* Only show preview/upload actions when a file is selected */}
+        {file && (
+          requiresSignature ? (
+            <div className="flex items-center justify-between">
+              <Button
+                variant="secondary"
+                onClick={() => setIsPlacementBeforeSendOpen(true)}
+              >
+                Preview & Place Signature Fields
+              </Button>
+              <Button
+                onClick={() => uploadWithPending(pendingFields)}
+                disabled={loading}
+              >
+                {loading ? "Uploading..." : "Upload"}
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? "Uploading..." : "Upload Document"}
             </Button>
-            <Button
-              onClick={() => uploadWithPending(pendingFields)}
-              disabled={loading || !file}
-            >
-              {loading ? "Uploading..." : "Upload"}
-            </Button>
-          </div>
-        ) : (
-          <Button onClick={handleSubmit} disabled={loading || !file}>
-            {loading ? "Uploading..." : "Upload Document"}
-          </Button>
+          )
         )}
       </DialogContent>
       {/* Placement before upload (local) */}

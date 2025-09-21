@@ -764,7 +764,7 @@ function DocumentsContent() {
             {selectedDoc && (
               <div className="space-y-4">
                 <div className="rounded border overflow-hidden">
-                  <embed src={selectedDoc.url} type="application/pdf" className="w-full h-[80vh]" />
+                  <embed src={(selectedDoc.url || "") + "#toolbar=0&navpanes=0&scrollbar=1"} type="application/pdf" className="w-full h-[80vh]" />
                 </div>
                 <a
                   href={selectedDoc.url}

@@ -240,11 +240,19 @@ export async function POST(req: NextRequest) {
           }
 
           const fieldsForEmployeeAll = (document.SignatureFields || []).filter((f) => !f.assignedEmployeeId || f.assignedEmployeeId === employee.id);
-          const fieldsForEmployee = fieldId
+          let fieldsForEmployee = fieldId
             ? fieldsForEmployeeAll.filter((f) => f.id === fieldId)
             : fieldsForEmployeeAll;
-
+          // Fallbacks for multi-page docs where fields lack correct page mapping
           const pages = pdfDoc.getPages();
+          if (fieldsForEmployee.length === 0) {
+            fieldsForEmployee = [
+              { pageNumber: pages.length, x: 0.5, y: 0.15, width: 0.25, height: 0.08 } as any,
+            ];
+          } else if (!fieldId && pages.length > 1 && fieldsForEmployee.every((f: any) => (f.pageNumber ?? 1) === 1)) {
+            fieldsForEmployee = fieldsForEmployee.map((f: any) => ({ ...f, pageNumber: pages.length }));
+          }
+
           const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
           let pngImage = null as any;
           if (drawnPngBuffer) {

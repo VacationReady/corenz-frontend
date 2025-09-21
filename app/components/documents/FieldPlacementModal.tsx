@@ -157,7 +157,7 @@ export default function FieldPlacementModal({
             >
               {/* Use embed to render files cross-origin where possible */}
               {docUrl ? (
-                <embed src={docUrl} type="application/pdf" className="w-full h-full" />
+                <embed src={docUrl + "#toolbar=0&navpanes=0&scrollbar=1"} type="application/pdf" className="w-full h-full" />
               ) : null}
               {fields.map((f, idx) => (
                 <div

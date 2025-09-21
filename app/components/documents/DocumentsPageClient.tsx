@@ -71,6 +71,8 @@ function DocumentsContent() {
   const [requiresAck, setRequiresAck] = useState(false);
   const [requireAckFromNewStarters, setRequireAckFromNewStarters] =
     useState(false);
+  const [requiresSignature, setRequiresSignature] = useState(false);
+  const [signatureDueAt, setSignatureDueAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -325,6 +327,8 @@ function DocumentsContent() {
     formData.append("canViewManager", "true");
     formData.append("canViewEmployee", "true");
     formData.append("requiresAck", requiresAck.toString());
+    formData.append("requiresSignature", requiresSignature.toString());
+    if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
     formData.append(
       "requireAckFromNewStarters",
       requireAckFromNewStarters.toString(),
@@ -641,16 +645,35 @@ function DocumentsContent() {
                   placeholder="Select job roles..."
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch checked={requiresAck} onChange={setRequiresAck} />
-                <Label>Requires Acknowledgement</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={requireAckFromNewStarters}
-                  onChange={setRequireAckFromNewStarters}
-                />
-                <Label>Require Acknowledgement from New Starters</Label>
+              <div className="mt-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Requires Acknowledgement</Label>
+                  <Switch checked={requiresAck} onChange={setRequiresAck} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label>Require Acknowledgement from New Starters</Label>
+                  <Switch
+                    checked={requireAckFromNewStarters}
+                    onChange={setRequireAckFromNewStarters}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label>Requires Signature</Label>
+                  <Switch
+                    checked={requiresSignature}
+                    onChange={setRequiresSignature}
+                  />
+                </div>
+                {requiresSignature && (
+                  <div>
+                    <Label>Signature Due (optional)</Label>
+                    <Input
+                      type="datetime-local"
+                      value={signatureDueAt}
+                      onChange={(e) => setSignatureDueAt(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button

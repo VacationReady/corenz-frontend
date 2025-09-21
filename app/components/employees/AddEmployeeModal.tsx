@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -37,6 +37,103 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle, X } from "lucide-react";
 
+const monthOptions = [
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+interface HolidayYearRange {
+  startMonth: number;
+  startDay: number;
+  endMonth: number;
+  endDay: number;
+}
+
+const getDaysInMonth = (month: number) => {
+  if (month < 1 || month > 12) {
+    return 31;
+  }
+  return new Date(2024, month, 0).getDate();
+};
+
+const calculateHolidayYearEnd = (startMonth: number, startDay: number) => {
+  const startDate = new Date(2024, startMonth - 1, startDay);
+  const endDate = new Date(startDate);
+  endDate.setFullYear(endDate.getFullYear() + 1);
+  endDate.setDate(endDate.getDate() - 1);
+
+  return {
+    endMonth: endDate.getMonth() + 1,
+    endDay: endDate.getDate(),
+  };
+};
+
+const parseHolidayYearValue = (value?: string): HolidayYearRange | null => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<HolidayYearRange>;
+    if (
+      typeof parsed.startMonth === "number" &&
+      typeof parsed.startDay === "number"
+    ) {
+      if (
+        typeof parsed.endMonth === "number" &&
+        typeof parsed.endDay === "number"
+      ) {
+        return {
+          startMonth: parsed.startMonth,
+          startDay: parsed.startDay,
+          endMonth: parsed.endMonth,
+          endDay: parsed.endDay,
+        };
+      }
+      const { endMonth, endDay } = calculateHolidayYearEnd(
+        parsed.startMonth,
+        parsed.startDay,
+      );
+      return {
+        startMonth: parsed.startMonth,
+        startDay: parsed.startDay,
+        endMonth,
+        endDay,
+      };
+    }
+  } catch {
+    // Ignore parsing errors and fall back to legacy string format
+  }
+
+  const parts = value.split("-");
+  if (parts.length === 2) {
+    const startMonth = parseInt(parts[0], 10);
+    const endMonth = parseInt(parts[1], 10);
+    if (!Number.isNaN(startMonth) && !Number.isNaN(endMonth)) {
+      const endDay = getDaysInMonth(endMonth);
+      return { startMonth, startDay: 1, endMonth, endDay };
+    }
+  }
+
+  return null;
+};
+
+const formatMonthDay = (month: number, day: number) =>
+  new Intl.DateTimeFormat("en-GB", {
+    month: "long",
+    day: "numeric",
+  }).format(new Date(2024, month - 1, day));
+
 interface AddEmployeeModalProps {
   open: boolean;
   onClose: () => void;
@@ -67,6 +164,9 @@ export default function AddEmployeeModal({
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [isCalculateModalOpen, setIsCalculateModalOpen] = useState(false);
+  const [holidayStartMonth, setHolidayStartMonth] = useState<string>("");
+  const [holidayStartDay, setHolidayStartDay] = useState<string>("");
+  const [holidayYearError, setHolidayYearError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -86,6 +186,11 @@ export default function AddEmployeeModal({
     workingPatternId: undefined as string | undefined,
     entitlementDays: "",
   });
+
+  const selectedHolidayRange = useMemo(
+    () => parseHolidayYearValue(formData.holidayYear),
+    [formData.holidayYear],
+  );
 
   // Toggle
   const [sendInviteNow, setSendInviteNow] = useState(true);
@@ -128,10 +233,106 @@ export default function AddEmployeeModal({
     if (open) fetchData();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) {
+      setHolidayStartMonth("");
+      setHolidayStartDay("");
+      setHolidayYearError(null);
+      return;
+    }
+
+    if (!formData.holidayYear) {
+      return;
+    }
+
+    const parsed = parseHolidayYearValue(formData.holidayYear);
+    if (parsed && holidayStartMonth === "" && holidayStartDay === "") {
+      setHolidayStartMonth(parsed.startMonth.toString());
+      setHolidayStartDay(parsed.startDay.toString());
+    }
+  }, [
+    open,
+    formData.holidayYear,
+    holidayStartMonth,
+    holidayStartDay,
+  ]);
+
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const updateHolidayYearSelection = (
+    monthValue: string,
+    dayValue: string,
+  ) => {
+    if (!monthValue) {
+      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setHolidayYearError(null);
+      return;
+    }
+
+    const month = parseInt(monthValue, 10);
+    if (Number.isNaN(month) || month < 1 || month > 12) {
+      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setHolidayYearError("Please choose a valid month.");
+      return;
+    }
+
+    if (!dayValue) {
+      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setHolidayYearError(null);
+      return;
+    }
+
+    const day = parseInt(dayValue, 10);
+    if (Number.isNaN(day)) {
+      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setHolidayYearError("Day must be a number.");
+      return;
+    }
+
+    if (day < 1 || day > 31) {
+      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setHolidayYearError("Day must be between 1 and 31.");
+      return;
+    }
+
+    const maxDay = getDaysInMonth(month);
+    if (day > maxDay) {
+      const monthName =
+        monthOptions.find((option) => option.value === monthValue)?.label ||
+        "The selected month";
+      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setHolidayYearError(
+        `${monthName} has only ${maxDay} days. Adjust the day to continue.`,
+      );
+      return;
+    }
+
+    const { endMonth, endDay } = calculateHolidayYearEnd(month, day);
+    const payload = JSON.stringify({
+      startMonth: month,
+      startDay: day,
+      endMonth,
+      endDay,
+    });
+
+    setFormData((prev) => ({ ...prev, holidayYear: payload }));
+    setHolidayYearError(null);
+  };
+
+  const handleHolidayMonthChange = (value: string) => {
+    setHolidayStartMonth(value);
+    updateHolidayYearSelection(value, holidayStartDay);
+  };
+
+  const handleHolidayDayChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const numericValue = rawValue.replace(/[^0-9]/g, "");
+    setHolidayStartDay(numericValue);
+    updateHolidayYearSelection(holidayStartMonth, numericValue);
   };
 
   // Calculate prorated entitlement
@@ -139,16 +340,24 @@ export default function AddEmployeeModal({
     const fullTimeHoursNum = parseFloat(fullTimeHours);
     const fullTimeEntitlementNum = parseFloat(fullTimeEntitlement);
     const startDate = new Date(formData.startDate);
+    const startDateValid = !Number.isNaN(startDate.getTime());
     const holidayYear = formData.holidayYear;
 
     if (
       !fullTimeHoursNum ||
       !fullTimeEntitlementNum ||
-      !startDate ||
+      !startDateValid ||
       !holidayYear ||
-      !formData.workingPatternId
+      !formData.workingPatternId ||
+      holidayYearError
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    const holidayConfig = parseHolidayYearValue(holidayYear);
+    if (!holidayConfig) {
+      toast.error("Please select a valid holiday year start date");
       return;
     }
 
@@ -180,17 +389,19 @@ export default function AddEmployeeModal({
     const annualEntitlement = (employeeDaysPerWeek / 5) * FULL_TIME_ENTITLEMENT;
 
     // Calculate holiday year dates
-    const [startMonth, endMonth] = holidayYear
-      .split("-")
-      .map((m) => parseInt(m) - 1);
+    const { startMonth, startDay, endMonth, endDay } = holidayConfig;
     const currentYear = startDate.getFullYear();
-    let holidayYearStart = new Date(currentYear, startMonth, 1);
-    let holidayYearEnd = new Date(currentYear, endMonth + 1, 0); // Last day of end month
+    let holidayYearStart = new Date(currentYear, startMonth - 1, startDay);
+    let holidayYearEnd = new Date(currentYear, endMonth - 1, endDay);
+
+    if (holidayYearEnd <= holidayYearStart) {
+      holidayYearEnd.setFullYear(holidayYearEnd.getFullYear() + 1);
+    }
 
     // If start date is before holiday year start, use previous year's holiday year
     if (startDate < holidayYearStart) {
-      holidayYearStart.setFullYear(currentYear - 1);
-      holidayYearEnd.setFullYear(currentYear - 1);
+      holidayYearStart.setFullYear(holidayYearStart.getFullYear() - 1);
+      holidayYearEnd.setFullYear(holidayYearEnd.getFullYear() - 1);
     }
 
     // Calculate total days in holiday year
@@ -200,12 +411,18 @@ export default function AddEmployeeModal({
           (1000 * 60 * 60 * 24),
       ) + 1;
 
+    if (totalDaysInHolidayYear <= 0) {
+      toast.error("Unable to calculate holiday year duration");
+      return;
+    }
+
     // Calculate days remaining from start date to end of holiday year
-    const daysRemaining =
+    const rawDaysRemaining =
       Math.ceil(
         (holidayYearEnd.getTime() - startDate.getTime()) /
           (1000 * 60 * 60 * 24),
       ) + 1;
+    const daysRemaining = Math.max(0, rawDaysRemaining);
 
     // Calculate pro-rated entitlement
     const proratedEntitlement =
@@ -254,9 +471,15 @@ export default function AddEmployeeModal({
       }
 
       // Validate step 2 fields
+      if (holidayYearError) {
+        toast.error(holidayYearError);
+        return;
+      }
+
       if (
         !formData.holidayYear ||
         formData.holidayYear === "" ||
+        !selectedHolidayRange ||
         !formData.workingPatternId ||
         formData.workingPatternId === "" ||
         !formData.entitlementDays ||
@@ -318,6 +541,9 @@ export default function AddEmployeeModal({
       setSendInviteNow(true);
       setIsAdminAccess(false);
       setCurrentStep(1);
+      setHolidayStartMonth("");
+      setHolidayStartDay("");
+      setHolidayYearError(null);
 
       onClose();
       if (onSuccess) onSuccess();
@@ -346,14 +572,6 @@ export default function AddEmployeeModal({
     }
     return unrestricted || matchesDept || matchesRole;
   });
-
-  // Holiday year options
-  const holidayYearOptions = [
-    { value: "1-12", label: "Jan-Dec" },
-    { value: "4-3", label: "Apr-Mar" },
-    { value: "7-6", label: "Jul-Jun" },
-    { value: "10-9", label: "Oct-Sep" },
-  ];
 
   return (
     <>
@@ -567,24 +785,63 @@ export default function AddEmployeeModal({
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-sm font-medium">Holiday Year</Label>
-                    <Select
-                      value={formData.holidayYear || undefined}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, holidayYear: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full mt-1">
-                        <SelectValue placeholder="Select holiday year period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {holidayYearOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-sm font-medium">
+                      Holiday Year Start
+                    </Label>
+                    <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <Select
+                        value={holidayStartMonth || undefined}
+                        onValueChange={handleHolidayMonthChange}
+                      >
+                        <SelectTrigger className="w-full sm:w-48">
+                          <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {monthOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={31}
+                        placeholder="Day"
+                        value={holidayStartDay}
+                        onChange={handleHolidayDayChange}
+                        className="w-full sm:w-24"
+                      />
+                    </div>
+                    {holidayYearError ? (
+                      <p className="text-xs text-red-600 mt-2">
+                        {holidayYearError}
+                      </p>
+                    ) : selectedHolidayRange ? (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Holiday year runs from{" "}
+                        <span className="font-medium">
+                          {formatMonthDay(
+                            selectedHolidayRange.startMonth,
+                            selectedHolidayRange.startDay,
+                          )}
+                        </span>{" "}
+                        to{" "}
+                        <span className="font-medium">
+                          {formatMonthDay(
+                            selectedHolidayRange.endMonth,
+                            selectedHolidayRange.endDay,
+                          )}
+                        </span>
+                        .
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Choose the first day of your company holiday year.
+                      </p>
+                    )}
                   </div>
 
                   <div>

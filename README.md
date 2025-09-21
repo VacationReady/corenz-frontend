@@ -40,6 +40,12 @@ export RESEND_API_KEY=your_api_key
 2. Start the dev server: `npm run dev`.
 3. Execute tests: `npm test`.
 
+## Holiday year configuration for HR admins
+
+- When adding a new employee, Step 2 of the wizard now asks for the **start month and day** of your company's holiday year. Use the month dropdown and day field to match the real-world policy.
+- The system automatically calculates the end of the period as the day before the next anniversary, so ranges like *1 April – 31 March* or *6 January – 5 January* are supported without additional setup.
+- Ensure the day you enter exists in the selected month (February supports up to the 29th). The UI flags invalid combinations so you can correct them before saving the employee.
+
 ## Offboarding Form Actions
 
 - **Remove access immediately** – revokes the employee's system access as soon as offboarding starts and creates an IT task for follow-up.

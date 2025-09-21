@@ -369,6 +369,7 @@ model Employee {
   locationId                       String?
   startDate                        DateTime?
   bankAccountNumber                String?
+  irdNumber                        String?
   contractType                     String?
   employmentType                   String?
   hourlyRate                       Decimal?                           @db.Decimal(10, 2)
@@ -376,7 +377,7 @@ model Employee {
   kiwiSaverEnrolled                Boolean?
   salaryAmount                     Decimal?                           @db.Decimal(10, 2)
   siteLocation                     String?
-  taxCode                          String?
+  taxCode                          TaxCode?
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
   DriverLicence                    DriverLicence[]
@@ -402,6 +403,8 @@ model Employee {
   DocumentSignatureArtifact        DocumentSignatureArtifact[]
   DocumentSignatureEmployee        DocumentSignatureEmployee[]
   DocumentSignatureField           DocumentSignatureField[]
+
+  @@unique([companyId, irdNumber])
 }
 
 model EmployeePerformanceReview {
@@ -1662,6 +1665,34 @@ enum SSOProvider {
 enum StaffingDensityBehavior {
   DENY
   REQUIRE_APPROVAL
+}
+
+enum TaxCode {
+  M
+  ME
+  M_SL   @map("M SL")
+  ME_SL  @map("ME SL")
+  SB
+  SB_SL  @map("SB SL")
+  S
+  S_SL   @map("S SL")
+  SH
+  SH_SL  @map("SH SL")
+  ST
+  ST_SL  @map("ST SL")
+  SA
+  SA_SL  @map("SA SL")
+  SL
+  SED
+  STC
+  CAE
+  EDW
+  ND
+  NS
+  NC
+  NCC
+  WT
+  P
 }
 
 enum TaskCategory {

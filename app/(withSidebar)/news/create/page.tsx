@@ -146,7 +146,7 @@ export default function CreateNewsPostPage() {
         body: JSON.stringify({
           title,
           content,
-          coverImage: coverImage || null,
+          coverImage: normalizeCoverForSave(coverImage) || null,
           videoEmbedUrl: videoUrl || null,
           attachments: uploadedUrls,
           sendEmail,
@@ -179,6 +179,19 @@ export default function CreateNewsPostPage() {
       setIsSubmitting(false);
     }
   };
+
+  function normalizeCoverForSave(input: string | null | undefined) {
+    if (!input) return "";
+    // If this is a Supabase signed URL, extract the object path after "documents/"
+    try {
+      if (input.startsWith("http") && input.includes("/object/sign/") && input.includes("documents/")) {
+        const after = input.split("documents/")[1] || "";
+        const pathOnly = after.split("?")[0] || "";
+        return pathOnly;
+      }
+    } catch {}
+    return input;
+  }
 
   const handleAudienceRefresh = () => {
     setRefreshKey((prev) => prev + 1);

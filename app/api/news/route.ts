@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Resend } from "resend";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import supabase from "@/lib/supabase-admin";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -84,18 +85,27 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const postsWithPreview = posts.map((post) => {
-    const contentArray = Array.isArray(post.content) ? post.content : [];
+  // Resolve signed cover URLs and extract a preview for both legacy and TipTap content
+  const postsWithPreview = await Promise.all(
+    posts.map(async (post) => {
+      let coverUrl: string | null = post.coverImageUrl ?? null;
+      if (coverUrl && !/^https?:\/\//i.test(coverUrl)) {
+        try {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(coverUrl, 60 * 10);
+          if (!error) coverUrl = data?.signedUrl ?? null;
+        } catch {}
+      }
 
-    const firstParagraph = contentArray.find(
-      (block: any) => block?.type === "paragraph",
-    ) as { text?: string } | undefined;
+      const preview = extractPreview(post.content);
 
-    return {
-      ...mapNewsPost(post),
-      preview: firstParagraph?.text ?? "",
-    };
-  });
+      return {
+        ...mapNewsPost({ ...post, coverImageUrl: coverUrl }),
+        preview,
+      };
+    }),
+  );
 
   return NextResponse.json(postsWithPreview);
 
@@ -112,6 +122,31 @@ function mapNewsPost<T extends NewsPostRecord>(post: T) {
     ...rest,
     coverImage: coverImageUrl ?? null,
   } as Omit<T, "coverImageUrl"> & { coverImage: string | null };
+}
+
+function extractPreview(content: any): string {
+  // Legacy array-of-blocks format
+  if (Array.isArray(content)) {
+    const para = content.find((b: any) => b && b.type === "paragraph");
+    return (para && (para.text || "")) || "";
+  }
+  // TipTap JSON format: { type: 'doc', content: [...] }
+  if (content && typeof content === "object" && content.type && content.content) {
+    try {
+      const firstParagraph = (content.content as any[]).find(
+        (node: any) => node?.type === "paragraph" && Array.isArray(node.content),
+      );
+      if (!firstParagraph) return "";
+      return (firstParagraph.content as any[])
+        .filter((n: any) => n?.type === "text" && typeof n.text === "string")
+        .map((n: any) => n.text)
+        .join("")
+        .slice(0, 240);
+    } catch {
+      return "";
+    }
+  }
+  return "";
 }
 
 // ✅ Resend Email Handler with Batch Sending and Logging

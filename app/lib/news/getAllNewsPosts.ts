@@ -1,4 +1,5 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+import supabase from "@/lib/supabase-admin";
 
 type ReactionCounts = Record<string, number>;
 
@@ -33,7 +34,7 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
     },
   });
 
-  return posts.map((post) => {
+  return await Promise.all(posts.map(async (post) => {
     const reactionCounts = post.reactions.reduce<ReactionCounts>(
       (acc, reaction) => {
         acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
@@ -41,6 +42,16 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
       },
       {}
     );
+    // Resolve cover image: prefer URL; if path, sign it
+    let cover: string | null = (post as any).coverImageUrl ?? (post as any).coverImage ?? null;
+    if (cover && !/^https?:\/\//i.test(cover)) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(cover, 60 * 10);
+        if (!error) cover = data?.signedUrl ?? cover;
+      } catch {}
+    }
 
     return {
       id: post.id,
@@ -53,7 +64,7 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
       tags: post.tags,
       audience: post.audience,
       attachments: post.attachments,
-      coverImage: post.coverImageUrl ?? null,
+      coverImage: cover,
       videoEmbedUrl: post.videoEmbedUrl,
       sendEmail: post.sendEmail,
       createdAt: post.createdAt,
@@ -66,5 +77,5 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
         post.reactions.find((reaction) => reaction.userId === userId)?.reaction ?? null,
       User: post.User,
     };
-  });
+  }));
 }

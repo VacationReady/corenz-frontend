@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import NewsDetailClient from "@/components/news/NewsDetailClient";
+import supabase from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,19 @@ export default async function NewsDetailPage({ params }: Props) {
   const canEdit = isAuthor || isAdmin;
 
   // Transform the post data to match client expectations
-  const { coverImageUrl: coverImageFromPost, ...postRest } = post;
+  let coverImageFromPost: string | null = (post as any).coverImageUrl ?? (post as any).coverImage ?? null;
+  // Sign Supabase storage path if not already a URL
+  if (coverImageFromPost && !/^https?:\/\//i.test(coverImageFromPost)) {
+    try {
+      const { data, error } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(coverImageFromPost, 60 * 10);
+      if (!error) {
+        coverImageFromPost = data?.signedUrl ?? coverImageFromPost;
+      }
+    } catch {}
+  }
+  const { coverImageUrl, coverImage, ...postRest } = post as any;
 
   const reactionCounts = post.reactions.reduce<Record<string, number>>(
     (acc, reaction) => {
@@ -110,18 +123,29 @@ export default async function NewsDetailPage({ params }: Props) {
         ?.reaction ?? null,
   };
 
-  const transformedRelated = relatedPosts.map((p) => {
-    const { coverImageUrl, ...rest } = p;
-    return {
-      ...rest,
-      coverImage: coverImageUrl ?? null,
-      author: {
-        name: p.User.name,
-        email: p.User.email,
-        avatar: p.User.profileImageUrl,
-      },
-    };
-  });
+  const transformedRelated = await Promise.all(
+    relatedPosts.map(async (p) => {
+      let ci: string | null = (p as any).coverImageUrl ?? (p as any).coverImage ?? null;
+      if (ci && !/^https?:\/\//i.test(ci)) {
+        try {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(ci, 60 * 10);
+          if (!error) ci = data?.signedUrl ?? ci;
+        } catch {}
+      }
+      const { coverImageUrl: _a, coverImage: _b, ...rest } = p as any;
+      return {
+        ...rest,
+        coverImage: ci ?? null,
+        author: {
+          name: p.User.name,
+          email: p.User.email,
+          avatar: p.User.profileImageUrl,
+        },
+      };
+    }),
+  );
 
   return (
     <NewsDetailClient

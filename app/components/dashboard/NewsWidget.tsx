@@ -10,6 +10,7 @@ interface NewsPost {
   title: string;
   slug: string;
   createdAt: string;
+  coverImage?: string | null;
   preview?: string; // ✅ Add this line
 }
 
@@ -56,18 +57,29 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
                   className="hover:underline block"
                   title={post.preview ?? ""}
                 >
-                  <h3 className="font-semibold text-base text-primary line-clamp-3">
-                    {post.title}
-                  </h3>
+                  <div className="flex items-start gap-3">
+                    {post.coverImage ? (
+                      <img
+                        src={post.coverImage}
+                        alt={post.title}
+                        className="w-12 h-12 rounded object-cover border"
+                      />
+                    ) : null}
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base text-primary line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </p>
+                      {post.preview && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {post.preview}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </Link>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(post.createdAt).toLocaleDateString()}
-                </p>
-                {post.preview && (
-                  <p className="text-sm text-muted-foreground line-clamp-4">
-                    {post.preview}
-                  </p>
-                )}
               </li>
             ))}
           </ul>

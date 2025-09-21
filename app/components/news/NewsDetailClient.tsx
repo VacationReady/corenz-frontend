@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import NewsContentRenderer from "./NewsContentRenderer";
+import NewsContentTipTapRenderer from "./NewsContentTipTapRenderer";
 import DeleteNewsButton from "./DeleteNewsButton";
 import NewsTag from "../ui/NewsTag";
 import NewsChip from "../ui/NewsChip";
@@ -528,7 +529,11 @@ export default function NewsDetailClient({
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Content */}
-        <NewsContentRenderer content={post.content || []} className="mb-12" />
+        {post?.content && typeof post.content === "object" && post.content?.type && post.content?.content ? (
+          <NewsContentTipTapRenderer content={post.content} className="mb-12" />
+        ) : (
+          <NewsContentRenderer content={post.content || []} className="mb-12" />
+        )}
 
         {/* Video Embed */}
         {post.videoEmbedUrl && (

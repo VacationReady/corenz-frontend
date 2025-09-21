@@ -84,6 +84,20 @@ const documentUploadSchema = z.object({
   requireAckFromNewStarters: booleanFromForm(false),
   departments: jsonArrayFromForm,
   jobRoles: jsonArrayFromForm,
+  requiresSignature: booleanFromForm(false),
+  signatureDueAt: z
+    .preprocess((val) => {
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (!t) return undefined;
+        const dt = new Date(t);
+        return isNaN(dt.getTime()) ? undefined : dt;
+      }
+      return undefined;
+    }, z.date().optional()),
+  signerDepartments: jsonArrayFromForm,
+  signerJobRoles: jsonArrayFromForm,
+  signerEmployees: jsonArrayFromForm,
 });
 
 export async function POST(req: Request) {
@@ -110,6 +124,11 @@ export async function POST(req: Request) {
       requireAckFromNewStarters,
       departments,
       jobRoles,
+      requiresSignature,
+      signatureDueAt,
+      signerDepartments,
+      signerJobRoles,
+      signerEmployees,
     } = documentUploadSchema.parse({
       file: formData.get("file"),
       name: formData.get("name"),
@@ -123,6 +142,11 @@ export async function POST(req: Request) {
       requireAckFromNewStarters: formData.get("requireAckFromNewStarters"),
       departments: formData.get("departments"),
       jobRoles: formData.get("jobRoles"),
+      requiresSignature: formData.get("requiresSignature"),
+      signatureDueAt: formData.get("signatureDueAt"),
+      signerDepartments: formData.get("signerDepartments"),
+      signerJobRoles: formData.get("signerJobRoles"),
+      signerEmployees: formData.get("signerEmployees"),
     });
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -170,6 +194,8 @@ export async function POST(req: Request) {
         canViewEmployee,
         requiresAck, // ✅ Persist toggle!
         requireAckFromNewStarters, // ✅ Persist new field!
+        requiresSignature,
+        signatureDueAt: signatureDueAt ?? null,
         ...(departments.length > 0 && departments[0] !== "all"
           ? {
               Department: {
@@ -187,8 +213,41 @@ export async function POST(req: Request) {
       },
     });
 
-    // --- BEGIN: Send Resend email for employee docs with requiresAck ---
-    if (requiresAck && document.employeeId) {
+    // --- BEGIN: Persist signature scopes if enabled ---
+    if (requiresSignature) {
+      if (Array.isArray(signerEmployees) && signerEmployees.length > 0) {
+        await prisma.documentSignatureEmployee.createMany({
+          data: signerEmployees.map((empId: string) => ({
+            documentId: document.id,
+            employeeId: empId,
+            dueAt: signatureDueAt ?? null,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      if (Array.isArray(signerDepartments) && signerDepartments.length > 0) {
+        await prisma.documentSignatureDepartment.createMany({
+          data: signerDepartments.map((deptId: string) => ({
+            documentId: document.id,
+            departmentId: deptId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      if (Array.isArray(signerJobRoles) && signerJobRoles.length > 0) {
+        await prisma.documentSignatureJobRole.createMany({
+          data: signerJobRoles.map((roleId: string) => ({
+            documentId: document.id,
+            jobRoleId: roleId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+    // --- END: Persist signature scopes if enabled ---
+
+    // --- BEGIN: Send Resend email for employee docs with requiresAck/Signature ---
+    if ((requiresAck || requiresSignature) && document.employeeId) {
       const employee = await prisma.employee.findFirst({
         where: { id: document.employeeId, companyId: document.companyId },
         select: { userId: true },
@@ -214,11 +273,13 @@ export async function POST(req: Request) {
             body: JSON.stringify({
               from: "noreply@peoplecore.co.nz",
               to: user.email,
-              subject: "New Document Requires Your Acknowledgement",
+              subject: requiresSignature
+                ? "New Document Requires Your Signature"
+                : "New Document Requires Your Acknowledgement",
               html: `
                 <p>Hi ${user.name || "there"},</p>
-                <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your acknowledgement.</p>
-                <p><a href="${docLink}">View & Acknowledge Document</a></p>
+                <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your ${requiresSignature ? "signature" : "acknowledgement"}.</p>
+                <p>${signatureDueAt ? `Due by: <b>${new Date(signatureDueAt).toLocaleString()}</b><br/>` : ""}<a href="${docLink}">View ${requiresSignature ? "& Sign" : "& Acknowledge"} Document</a></p>
                 <p>Thank you,<br/>HR Team</p>
               `,
             }),
@@ -230,9 +291,9 @@ export async function POST(req: Request) {
     }
     // --- END: Send Resend email for employee docs with requiresAck ---
 
-    // --- BEGIN: Send Resend emails for company docs with requiresAck ---
+    // --- BEGIN: Send Resend emails for company docs with requiresAck/Signature ---
     if (
-      requiresAck &&
+      (requiresAck || requiresSignature) &&
       !document.employeeId // Company doc (not employee-specific)
     ) {
       const departmentIds = document.Department.map((d) => d.id);
@@ -297,11 +358,13 @@ export async function POST(req: Request) {
               body: JSON.stringify({
                 from: "noreply@peoplecore.co.nz",
                 to: user.email,
-                subject: "New Document Requires Your Acknowledgement",
+                subject: requiresSignature
+                  ? "New Document Requires Your Signature"
+                  : "New Document Requires Your Acknowledgement",
                 html: `
                   <p>Hi ${user.name || "there"},</p>
-                  <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your acknowledgement.</p>
-                  <p><a href="${docLink}">View & Acknowledge Document</a></p>
+                  <p>A new document <b>${document.name}</b> (${document.category || "General"}) has been uploaded and requires your ${requiresSignature ? "signature" : "acknowledgement"}.</p>
+                  <p>${signatureDueAt ? `Due by: <b>${new Date(signatureDueAt).toLocaleString()}</b><br/>` : ""}<a href="${docLink}">View ${requiresSignature ? "& Sign" : "& Acknowledge"} Document</a></p>
                   <p>Thank you,<br/>HR Team</p>
                 `,
               }),
@@ -315,7 +378,7 @@ export async function POST(req: Request) {
         );
       }
     }
-    // --- END: Send Resend emails for company docs with requiresAck ---
+    // --- END: Send Resend emails for company docs with requiresAck/Signature ---
 
     console.log("✅ Document uploaded:", document);
     return NextResponse.json({

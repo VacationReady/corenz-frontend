@@ -21,6 +21,12 @@ export async function GET(
         Department: true,
         JobRole: true,
         Employee: { include: { User: true } }, // for employee-specific docs
+        SignatureArtifacts: {
+          include: { Employee: { include: { User: true } } },
+        },
+        SignatureEmployees: true,
+        SignatureDepartments: true,
+        SignatureJobRoles: true,
       },
     });
 
@@ -84,16 +90,39 @@ export async function GET(
           jobRole: emp.User.JobRole?.name || "—",
         }));
 
-      return NextResponse.json({
-        acknowledged,
-        pending,
-      });
+      // Signature metrics for admin review modal
+      let signature = null as any;
+      if (doc.requiresSignature) {
+        const artifacts = doc.SignatureArtifacts || [];
+        const explicitEmpIds = new Set(doc.SignatureEmployees.map((e) => e.employeeId));
+        const signedEmpIds = new Set(artifacts.map((a) => a.employeeId));
+        const outstandingEmployeeIds = [...explicitEmpIds].filter((id) => !signedEmpIds.has(id));
+        signature = {
+          completed: artifacts.length,
+          outstanding: outstandingEmployeeIds.length,
+        };
+      }
+
+      return NextResponse.json({ acknowledged, pending, signature });
     }
 
     // ✅ Handle employee-specific documents
     const ack = await prisma.documentAcknowledgement.findFirst({
       where: { documentId: doc.id, employeeId: doc.Employee.id },
     });
+
+    // Include signature info for employee-specific document
+    let mySignature: any = null;
+    if (doc.requiresSignature) {
+      const art = await prisma.documentSignatureArtifact.findUnique({
+        where: {
+          documentId_employeeId: { documentId: doc.id, employeeId: doc.Employee.id },
+        },
+      });
+      mySignature = art
+        ? { signedAt: art.signedAt, method: art.method, hasArtifact: !!art.artifactPath }
+        : null;
+    }
 
     return NextResponse.json({
       employee: {
@@ -102,6 +131,9 @@ export async function GET(
       },
       acknowledged: !!ack,
       acknowledgedAt: ack?.acknowledgedAt || null,
+      requiresSignature: doc.requiresSignature,
+      signatureDueAt: doc.signatureDueAt,
+      mySignature,
     });
   } catch (error) {
     console.error(error);

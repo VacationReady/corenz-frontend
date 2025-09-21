@@ -23,6 +23,7 @@ import { useSession } from "next-auth/react";
 import { fetchEmployees } from "@/lib/fetchData";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import SignatureCapture from "@/components/documents/SignatureCapture";
 
 export default function AddDocumentModal({
   open,
@@ -60,6 +61,11 @@ export default function AddDocumentModal({
 
   // --- ADDED: Requires Acknowledgement state ---
   const [requiresAck, setRequiresAck] = useState(false);
+  const [requiresSignature, setRequiresSignature] = useState(false);
+  const [signatureDueAt, setSignatureDueAt] = useState<string>("");
+  const [signerDepartments, setSignerDepartments] = useState<string[]>([]);
+  const [signerJobRoles, setSignerJobRoles] = useState<string[]>([]);
+  const [signerEmployees, setSignerEmployees] = useState<string[]>([]);
 
   const user = session?.user;
 
@@ -147,6 +153,25 @@ export default function AddDocumentModal({
 
       // --- ADDED: Requires Acknowledgement ---
       formData.append("requiresAck", String(requiresAck));
+
+      // --- ADDED: Signature requirements ---
+      formData.append("requiresSignature", String(requiresSignature));
+      if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
+      if (type === "company") {
+        formData.append(
+          "signerDepartments",
+          JSON.stringify(signerDepartments),
+        );
+        formData.append(
+          "signerJobRoles",
+          JSON.stringify(signerJobRoles),
+        );
+      }
+      if (type === "employee" && employeeId) {
+        formData.append("signerEmployees", JSON.stringify([employeeId]));
+      } else if (signerEmployees.length) {
+        formData.append("signerEmployees", JSON.stringify(signerEmployees));
+      }
 
       const res = await fetch("/api/documents/upload", {
         method: "POST",
@@ -309,6 +334,62 @@ export default function AddDocumentModal({
           <div>
             <Label>Requires Acknowledgement</Label>
             <Switch checked={requiresAck} onChange={setRequiresAck} />
+          </div>
+        )}
+
+        {/* --- ADDED: Signature requirements --- */}
+        {(type === "employee" || type === "company") && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Requires Signature</Label>
+              <Switch
+                checked={requiresSignature}
+                onChange={setRequiresSignature}
+              />
+            </div>
+            {requiresSignature && (
+              <div className="space-y-3">
+                <div>
+                  <Label>Signature due date (optional)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={signatureDueAt}
+                    onChange={(e) => setSignatureDueAt(e.target.value)}
+                  />
+                </div>
+                {type === "company" && (
+                  <>
+                    <div>
+                      <Label>Signers: Departments</Label>
+                      <MultiSelect
+                        options={departmentsList}
+                        selected={signerDepartments}
+                        onChange={setSignerDepartments}
+                        placeholder="Select departments required to sign"
+                      />
+                    </div>
+                    <div>
+                      <Label>Signers: Job Roles</Label>
+                      <MultiSelect
+                        options={jobRolesList}
+                        selected={signerJobRoles}
+                        onChange={setSignerJobRoles}
+                        placeholder="Select job roles required to sign"
+                      />
+                    </div>
+                    <div>
+                      <Label>Additional Individual Signers</Label>
+                      <MultiSelect
+                        options={employees.map((e:any)=>({label:`${e.firstName} ${e.lastName} (${e.email})`, value:e.id}))}
+                        selected={signerEmployees}
+                        onChange={setSignerEmployees}
+                        placeholder="Select specific employees"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 

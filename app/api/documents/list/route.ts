@@ -48,6 +48,9 @@ export async function GET(req: Request) {
         User: { select: { name: true, email: true } },
         Department: { select: { id: true, name: true } },
         JobRole: { select: { id: true, name: true } },
+        SignatureEmployees: true,
+        SignatureDepartments: true,
+        SignatureJobRoles: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -57,7 +60,61 @@ export async function GET(req: Request) {
         const { data: signed } = await supabase.storage
           .from("documents")
           .createSignedUrl(doc.path, 60 * 5);
-        return { ...doc, url: signed?.signedUrl ?? null, requiresAck: doc.requiresAck };
+
+        // Signature counts (only if enabled)
+        let signatureCompletedCount = 0;
+        let signatureTargetCount = 0;
+        let signatureOutstandingCount = 0;
+        if (doc.requiresSignature) {
+          signatureCompletedCount = await prisma.documentSignatureArtifact.count({
+            where: { documentId: doc.id },
+          });
+
+          if (doc.employeeId) {
+            signatureTargetCount = 1;
+          } else {
+            const explicitEmpIds = new Set(
+              (doc.SignatureEmployees || []).map((e) => e.employeeId),
+            );
+            const deptIds = (doc.SignatureDepartments || []).map((d) => d.departmentId);
+            const roleIds = (doc.SignatureJobRoles || []).map((r) => r.jobRoleId);
+            const hasAnyTarget =
+              explicitEmpIds.size > 0 || deptIds.length > 0 || roleIds.length > 0;
+
+            if (hasAnyTarget) {
+              const scopedCount = await prisma.employee.count({
+                where: {
+                  isActive: true,
+                  User: { companyId: session.user.companyId },
+                  OR: [
+                    deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
+                    roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
+                  ].filter(Boolean) as any,
+                },
+              });
+              signatureTargetCount = scopedCount + explicitEmpIds.size;
+            } else {
+              signatureTargetCount = await prisma.employee.count({
+                where: { isActive: true, User: { companyId: session.user.companyId } },
+              });
+            }
+          }
+          signatureOutstandingCount = Math.max(
+            signatureTargetCount - signatureCompletedCount,
+            0,
+          );
+        }
+
+        return {
+          ...doc,
+          url: signed?.signedUrl ?? null,
+          requiresAck: doc.requiresAck,
+          requiresSignature: doc.requiresSignature,
+          signatureDueAt: doc.signatureDueAt,
+          signatureCompletedCount,
+          signatureTargetCount,
+          signatureOutstandingCount,
+        } as any;
       }),
     );
     return NextResponse.json(withUrls);
@@ -95,6 +152,9 @@ export async function GET(req: Request) {
       User: { select: { name: true, email: true } },
       Department: { select: { id: true, name: true } },
       JobRole: { select: { id: true, name: true } },
+      SignatureEmployees: true,
+      SignatureDepartments: true,
+      SignatureJobRoles: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -104,7 +164,59 @@ export async function GET(req: Request) {
       const { data: signed } = await supabase.storage
         .from("documents")
         .createSignedUrl(doc.path, 60 * 5);
-      return { ...doc, url: signed?.signedUrl ?? null, requiresAck: doc.requiresAck };
+      let signatureCompletedCount = 0;
+      let signatureTargetCount = 0;
+      let signatureOutstandingCount = 0;
+      if (doc.requiresSignature) {
+        signatureCompletedCount = await prisma.documentSignatureArtifact.count({
+          where: { documentId: doc.id },
+        });
+
+        if (doc.employeeId) {
+          signatureTargetCount = 1;
+        } else {
+          const explicitEmpIds = new Set(
+            (doc.SignatureEmployees || []).map((e) => e.employeeId),
+          );
+          const deptIds = (doc.SignatureDepartments || []).map((d) => d.departmentId);
+          const roleIds = (doc.SignatureJobRoles || []).map((r) => r.jobRoleId);
+          const hasAnyTarget =
+            explicitEmpIds.size > 0 || deptIds.length > 0 || roleIds.length > 0;
+
+          if (hasAnyTarget) {
+            const scopedCount = await prisma.employee.count({
+              where: {
+                isActive: true,
+                User: { companyId: session.user.companyId },
+                OR: [
+                  deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
+                  roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
+                ].filter(Boolean) as any,
+              },
+            });
+            signatureTargetCount = scopedCount + explicitEmpIds.size;
+          } else {
+            signatureTargetCount = await prisma.employee.count({
+              where: { isActive: true, User: { companyId: session.user.companyId } },
+            });
+          }
+        }
+        signatureOutstandingCount = Math.max(
+          signatureTargetCount - signatureCompletedCount,
+          0,
+        );
+      }
+
+      return {
+        ...doc,
+        url: signed?.signedUrl ?? null,
+        requiresAck: doc.requiresAck,
+        requiresSignature: doc.requiresSignature,
+        signatureDueAt: doc.signatureDueAt,
+        signatureCompletedCount,
+        signatureTargetCount,
+        signatureOutstandingCount,
+      } as any;
     }),
   );
   return NextResponse.json(withUrls);

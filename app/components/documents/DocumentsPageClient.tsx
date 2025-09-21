@@ -31,6 +31,9 @@ import {
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+import ViewSignaturesModal from "@/components/documents/ViewSignaturesModal";
+import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
+import SignatureCapture from "@/components/documents/SignatureCapture";
 import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/ui/PageShell";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
@@ -53,6 +56,11 @@ type Document = {
   departments: { id: string; name: string }[];
   jobRoles: { id: string; name: string }[];
   requiresAck: boolean;
+  requiresSignature?: boolean;
+  signatureDueAt?: string | null;
+  signatureCompletedCount?: number;
+  signatureTargetCount?: number;
+  signatureOutstandingCount?: number;
 };
 
 function DocumentsContent() {
@@ -76,6 +84,10 @@ function DocumentsContent() {
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
   const [ackDocId, setAckDocId] = useState<string | null>(null);
   const [ackDocName, setAckDocName] = useState<string | null>(null);
+  const [isViewSignaturesOpen, setIsViewSignaturesOpen] = useState(false);
+  const [sigDocId, setSigDocId] = useState<string | null>(null);
+  const [sigDocName, setSigDocName] = useState<string | null>(null);
+  const [isFieldPlacementOpen, setIsFieldPlacementOpen] = useState(false);
   const [departmentsList, setDepartmentsList] = useState<
     { label: string; value: string }[]
   >([]);
@@ -86,6 +98,9 @@ function DocumentsContent() {
   const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
+  const [signed, setSigned] = useState(false);
+  const [signSubmitting, setSignSubmitting] = useState(false);
+  const [signatureValue, setSignatureValue] = useState<any>(null);
 
   const fetchDocuments = async () => {
     try {
@@ -149,6 +164,12 @@ function DocumentsContent() {
           setAcknowledged(data.acknowledged);
           setAckDate(data.acknowledged ? new Date(data.acknowledgedAt) : null);
         });
+    }
+    if (selectedDoc?.id && (selectedDoc as any).requiresSignature) {
+      fetch(`/api/documents/signatures/${selectedDoc.id}/me`)
+        .then((res) => res.json())
+        .then((data) => setSigned(!!data.signed))
+        .catch(() => setSigned(false));
     }
   }, [selectedDoc]);
 
@@ -420,6 +441,7 @@ function DocumentsContent() {
                 <TableHead>Department</TableHead>
                 <TableHead>Job Role</TableHead>
                 <TableHead>Access</TableHead>
+                <TableHead>Signatures</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
                 {userRole === "ADMIN" && (
@@ -479,6 +501,29 @@ function DocumentsContent() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
+                      {doc.requiresSignature ? (
+                        <div className="text-xs">
+                          <div>
+                            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+                              Required
+                            </span>
+                          </div>
+                          <div className="mt-1">
+                            {typeof doc.signatureOutstandingCount === "number" &&
+                            typeof doc.signatureTargetCount === "number" ? (
+                              <span>
+                                {doc.signatureTargetCount - (doc.signatureOutstandingCount || 0)} / {doc.signatureTargetCount}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>{formatFileSize(doc.size)}</TableCell>
@@ -510,6 +555,24 @@ function DocumentsContent() {
                             }}
                           >
                             View Acknowledgements
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSigDocId(doc.id);
+                              setSigDocName(doc.name);
+                              setIsViewSignaturesOpen(true);
+                            }}
+                          >
+                            View Signatures
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSigDocId(doc.id);
+                              setSigDocName(doc.name);
+                              setIsFieldPlacementOpen(true);
+                            }}
+                          >
+                            Place Signature Fields
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(doc.id)}
@@ -635,6 +698,46 @@ function DocumentsContent() {
                     ✅ Acknowledged on {ackDate?.toLocaleDateString()}
                   </p>
                 )}
+                {(selectedDoc as any).requiresSignature && !signed && (
+                  <div className="space-y-3">
+                    <SignatureCapture
+                      value={signatureValue}
+                      onChange={setSignatureValue}
+                    />
+                    <Button
+                      disabled={!signatureValue || signSubmitting}
+                      onClick={async () => {
+                        if (!selectedDoc) return;
+                        setSignSubmitting(true);
+                        try {
+                          const res = await fetch("/api/documents/sign", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              documentId: selectedDoc.id,
+                              method: signatureValue.method,
+                              typedText: signatureValue.typedText,
+                              drawnDataUrl: signatureValue.dataUrl,
+                            }),
+                          });
+                          if (res.ok) {
+                            setSigned(true);
+                            toast("Signature submitted");
+                          } else {
+                            toast("Failed to submit signature");
+                          }
+                        } finally {
+                          setSignSubmitting(false);
+                        }
+                      }}
+                    >
+                      {signSubmitting ? "Submitting..." : "Sign Document"}
+                    </Button>
+                  </div>
+                )}
+                {(selectedDoc as any).requiresSignature && signed && (
+                  <p className="text-green-600 text-sm">✅ Signed</p>
+                )}
               </div>
             )}
           </DialogContent>
@@ -650,6 +753,18 @@ function DocumentsContent() {
           onClose={() => setIsViewAckOpen(false)}
           documentId={ackDocId}
           documentName={ackDocName}
+        />
+        <ViewSignaturesModal
+          isOpen={isViewSignaturesOpen}
+          onClose={() => setIsViewSignaturesOpen(false)}
+          documentId={sigDocId}
+          documentName={sigDocName}
+        />
+        <FieldPlacementModal
+          isOpen={isFieldPlacementOpen}
+          onClose={() => setIsFieldPlacementOpen(false)}
+          documentId={sigDocId || ""}
+          url={selectedDoc?.url || ""}
         />
       </TooltipProvider>
     </PageShell>

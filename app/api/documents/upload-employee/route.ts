@@ -30,6 +30,9 @@ export async function POST(req: NextRequest) {
 
   // ✅ Requires Acknowledgement toggle
   const requiresAck = formData.get("requiresAck") === "true";
+  const requiresSignature = formData.get("requiresSignature") === "true";
+  const signatureDueAtStr = (formData.get("signatureDueAt") as string) || "";
+  const signatureDueAt = signatureDueAtStr ? new Date(signatureDueAtStr) : undefined;
 
   if (!file || !name || !category || !employeeId) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -125,11 +128,13 @@ export async function POST(req: NextRequest) {
       canViewManager,
       canViewEmployee,
       requiresAck, // <--- Save the requiresAck flag!
+      requiresSignature,
+      signatureDueAt: signatureDueAt || null,
     },
   });
 
-  // --- BEGIN: Send Resend email for employee docs with requiresAck ---
-  if (requiresAck && employeeId) {
+  // --- BEGIN: Send Resend email for employee docs with requiresAck/Signature ---
+  if ((requiresAck || requiresSignature) && employeeId) {
     // Find the Employee row for this document
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
@@ -156,11 +161,13 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             from: "noreply@peoplecore.co.nz",
             to: user.email,
-            subject: "New Document Requires Your Acknowledgement",
+            subject: requiresSignature
+              ? "New Document Requires Your Signature"
+              : "New Document Requires Your Acknowledgement",
             html: `
                           <p>Hi ${user.name || "there"},</p>
-                          <p>A new document <b>${name}</b> (${category || "General"}) has been uploaded and requires your acknowledgement.</p>
-                          <p><a href="${docLink}">View & Acknowledge Document</a></p>
+                          <p>A new document <b>${name}</b> (${category || "General"}) has been uploaded and requires your ${requiresSignature ? "signature" : "acknowledgement"}.</p>
+                          <p>${signatureDueAt ? `Due by: <b>${new Date(signatureDueAt).toLocaleString()}</b><br/>` : ""}<a href="${docLink}">View ${requiresSignature ? "& Sign" : "& Acknowledge"} Document</a></p>
                           <p>Thank you,<br/>HR Team</p>
                         `,
           }),
@@ -170,7 +177,7 @@ export async function POST(req: NextRequest) {
       }
     }
   }
-  // --- END: Send Resend email for employee docs with requiresAck ---
+  // --- END: Send Resend email for employee docs with requiresAck/Signature ---
 
   return NextResponse.json({
     Document: {

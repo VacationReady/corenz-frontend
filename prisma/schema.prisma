@@ -179,29 +179,31 @@ model Course {
 }
 
 model Department {
-  id                                 String               @id
+  id                                 String                        @id
   name                               String
   companyId                          String
-  active                             Boolean              @default(true)
+  active                             Boolean                       @default(true)
   code                               String?
-  createdAt                          DateTime             @default(now())
+  createdAt                          DateTime                      @default(now())
   description                        String?
   headId                             String?
   updatedAt                          DateTime
-  Company                            Company              @relation(fields: [companyId], references: [id])
-  User_Department_headIdToUser       User?                @relation("Department_headIdToUser", fields: [headId], references: [id])
+  Company                            Company                       @relation(fields: [companyId], references: [id])
+  User_Department_headIdToUser       User?                         @relation("Department_headIdToUser", fields: [headId], references: [id])
   Employee                           Employee[]
   EventRuleOverride                  EventRuleOverride[]
-  User_User_departmentIdToDepartment User[]               @relation("User_departmentIdToDepartment")
-  Document                           Document[]           @relation("DocumentDepartments")
-  OnboardingTemplate                 OnboardingTemplate[] @relation("OnboardingTemplateDepartments")
+  User_User_departmentIdToDepartment User[]                        @relation("User_departmentIdToDepartment")
+  Document                           Document[]                    @relation("DocumentDepartments")
+  OnboardingTemplate                 OnboardingTemplate[]          @relation("OnboardingTemplateDepartments")
+  DocumentSignatureDepartment        DocumentSignatureDepartment[]
+  DocumentSignatureField             DocumentSignatureField[]
 
   @@unique([companyId, name])
   @@unique([companyId, code])
 }
 
 model Document {
-  id                        String                    @id
+  id                        String                        @id
   name                      String
   category                  String?
   path                      String
@@ -209,25 +211,104 @@ model Document {
   type                      String
   uploaderId                String
   companyId                 String
-  createdAt                 DateTime                  @default(now())
+  createdAt                 DateTime                      @default(now())
   deletedAt                 DateTime?
   url                       String
   employeeId                String?
   description               String?
-  canViewAdmin              Boolean                   @default(true)
-  canViewEmployee           Boolean                   @default(true)
-  canViewManager            Boolean                   @default(false)
-  requiresAck               Boolean                   @default(false)
-  requireAckFromNewStarters Boolean                   @default(false)
-  Company                   Company                   @relation(fields: [companyId], references: [id])
-  Employee                  Employee?                 @relation(fields: [employeeId], references: [id])
-  User                      User                      @relation(fields: [uploaderId], references: [id])
+  canViewAdmin              Boolean                       @default(true)
+  canViewEmployee           Boolean                       @default(true)
+  canViewManager            Boolean                       @default(false)
+  requiresAck               Boolean                       @default(false)
+  requireAckFromNewStarters Boolean                       @default(false)
+  requiresSignature         Boolean                       @default(false)
+  signatureDueAt            DateTime?
+  Company                   Company                       @relation(fields: [companyId], references: [id])
+  Employee                  Employee?                     @relation(fields: [employeeId], references: [id])
+  User                      User                          @relation(fields: [uploaderId], references: [id])
   DocumentAcknowledgement   DocumentAcknowledgement[]
   DriverLicence             DriverLicence[]
   OnboardingStep            OnboardingStep[]
   TrainingRecord            TrainingRecord[]
-  Department                Department[]              @relation("DocumentDepartments")
-  JobRole                   JobRole[]                 @relation("DocumentJobRoles")
+  Department                Department[]                  @relation("DocumentDepartments")
+  JobRole                   JobRole[]                     @relation("DocumentJobRoles")
+  SignatureArtifacts        DocumentSignatureArtifact[]
+  SignatureDepartments      DocumentSignatureDepartment[]
+  SignatureJobRoles         DocumentSignatureJobRole[]
+  SignatureEmployees        DocumentSignatureEmployee[]
+  SignatureFields           DocumentSignatureField[]
+}
+
+enum SignatureMethod {
+  DRAWN
+  TYPED
+}
+
+model DocumentSignatureArtifact {
+  id           String          @id
+  documentId   String
+  employeeId   String
+  method       SignatureMethod
+  typedText    String?
+  artifactPath String?
+  signedAt     DateTime        @default(now())
+  ipAddress    String?
+  userAgent    String?
+  Document     Document        @relation(fields: [documentId], references: [id])
+  Employee     Employee        @relation(fields: [employeeId], references: [id])
+
+  @@unique([documentId, employeeId])
+}
+
+model DocumentSignatureDepartment {
+  documentId   String
+  departmentId String
+  Document     Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  Department   Department @relation(fields: [departmentId], references: [id])
+
+  @@id([documentId, departmentId])
+}
+
+model DocumentSignatureJobRole {
+  documentId String
+  jobRoleId  String
+  Document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  JobRole    JobRole  @relation(fields: [jobRoleId], references: [id])
+
+  @@id([documentId, jobRoleId])
+}
+
+model DocumentSignatureEmployee {
+  documentId String
+  employeeId String
+  dueAt      DateTime?
+  Document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  Employee   Employee  @relation(fields: [employeeId], references: [id])
+
+  @@id([documentId, employeeId])
+}
+
+model DocumentSignatureField {
+  id                   String      @id
+  documentId           String
+  pageNumber           Int         @default(1)
+  x                    Float // 0..1 relative X
+  y                    Float // 0..1 relative Y
+  width                Float // 0..1 relative width
+  height               Float // 0..1 relative height
+  label                String?
+  required             Boolean     @default(true)
+  assignedEmployeeId   String?
+  assignedDepartmentId String?
+  assignedJobRoleId    String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  Document             Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  Employee             Employee?   @relation(fields: [assignedEmployeeId], references: [id])
+  Department           Department? @relation(fields: [assignedDepartmentId], references: [id])
+  JobRole              JobRole?    @relation(fields: [assignedJobRoleId], references: [id])
+
+  @@index([documentId])
 }
 
 model DocumentAcknowledgement {
@@ -318,24 +399,27 @@ model Employee {
   TrainingRecord                   TrainingRecord[]
   EmployeeAuditLog                 EmployeeAuditLog[]
   PerformanceReviews               EmployeePerformanceReview[]
+  DocumentSignatureArtifact        DocumentSignatureArtifact[]
+  DocumentSignatureEmployee        DocumentSignatureEmployee[]
+  DocumentSignatureField           DocumentSignatureField[]
 }
 
 model EmployeePerformanceReview {
-  id                     String    @id
-  employeeId             String
-  companyId              String
-  reviewerId             String?
-  reviewDate             DateTime
-  rating                 Int?
-  summary                String?
-  strengths              String?
-  areasForImprovement    String?
-  goals                  Json?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  Employee               Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  Company                Company   @relation(fields: [companyId], references: [id])
-  Reviewer               User?     @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
+  id                  String   @id
+  employeeId          String
+  companyId           String
+  reviewerId          String?
+  reviewDate          DateTime
+  rating              Int?
+  summary             String?
+  strengths           String?
+  areasForImprovement String?
+  goals               Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  Employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company             Company  @relation(fields: [companyId], references: [id])
+  Reviewer            User?    @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
 
   @@index([employeeId, reviewDate])
   @@index([companyId])
@@ -706,20 +790,22 @@ model GlobalAuditLog {
 }
 
 model JobRole {
-  id                 String               @id
-  name               String
-  active             Boolean              @default(true)
-  createdAt          DateTime             @default(now())
-  description        String?
-  level              Int?
-  payGrade           String?
-  updatedAt          DateTime
-  companyId          String
-  Employee           Employee[]
-  Company            Company              @relation(fields: [companyId], references: [id])
-  User               User[]
-  Document           Document[]           @relation("DocumentJobRoles")
-  OnboardingTemplate OnboardingTemplate[] @relation("OnboardingTemplateJobRoles")
+  id                       String                     @id
+  name                     String
+  active                   Boolean                    @default(true)
+  createdAt                DateTime                   @default(now())
+  description              String?
+  level                    Int?
+  payGrade                 String?
+  updatedAt                DateTime
+  companyId                String
+  Employee                 Employee[]
+  Company                  Company                    @relation(fields: [companyId], references: [id])
+  User                     User[]
+  Document                 Document[]                 @relation("DocumentJobRoles")
+  OnboardingTemplate       OnboardingTemplate[]       @relation("OnboardingTemplateJobRoles")
+  DocumentSignatureJobRole DocumentSignatureJobRole[]
+  DocumentSignatureField   DocumentSignatureField[]
 
   @@unique([companyId, name])
 }
@@ -791,14 +877,14 @@ model LeavePolicyAssignment {
 }
 
 model LeaveRequest {
-  id                                   String            @id
+  id                                   String               @id
   startDate                            DateTime
   endDate                              DateTime
-  createdAt                            DateTime          @default(now())
+  createdAt                            DateTime             @default(now())
   updatedAt                            DateTime
   employeeId                           String
   reason                               String?
-  approvalStatus                       ApprovalStatus    @default(PENDING)
+  approvalStatus                       ApprovalStatus       @default(PENDING)
   approvedById                         String?
   sickReasonId                         String?
   paidStatus                           PaidStatus?
@@ -806,43 +892,43 @@ model LeaveRequest {
   eventCategoryId                      String
   requesterId                          String
   companyId                            String
-  User_LeaveRequest_approvedByIdToUser User?             @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
-  Company                              Company           @relation(fields: [companyId], references: [id])
-  Employee                             Employee          @relation(fields: [employeeId], references: [id])
-  EventCategory                        EventCategory     @relation(fields: [eventCategoryId], references: [id])
-  User_LeaveRequest_requesterIdToUser  User              @relation("LeaveRequest_requesterIdToUser", fields: [requesterId], references: [id])
-  EventSubcategory                     EventSubcategory? @relation(fields: [sickReasonId], references: [id])
+  User_LeaveRequest_approvedByIdToUser User?                @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
+  Company                              Company              @relation(fields: [companyId], references: [id])
+  Employee                             Employee             @relation(fields: [employeeId], references: [id])
+  EventCategory                        EventCategory        @relation(fields: [eventCategoryId], references: [id])
+  User_LeaveRequest_requesterIdToUser  User                 @relation("LeaveRequest_requesterIdToUser", fields: [requesterId], references: [id])
+  EventSubcategory                     EventSubcategory?    @relation(fields: [sickReasonId], references: [id])
   LeaveApprovalStage                   LeaveApprovalStage[]
 }
 
 model Location {
-  id        String  @id
-  name      String  @unique
+  id        String   @id
+  name      String   @unique
   companyId String?
   Company   Company? @relation(fields: [companyId], references: [id])
 }
 
 model NewsPost {
-  id            String    @id
+  id            String         @id
   title         String
-  slug          String    @unique
+  slug          String         @unique
   content       Json
   authorId      String
   publishedAt   DateTime?
-  pinned        Boolean   @default(false)
+  pinned        Boolean        @default(false)
   tags          String[]
   audience      Json
   attachments   String[]
   coverImage    String?
   videoEmbedUrl String?
-  sendEmail     Boolean   @default(false)
+  sendEmail     Boolean        @default(false)
   coverImageUrl String?
-  viewCount     Int       @default(0)
-  createdAt     DateTime  @default(now())
+  viewCount     Int            @default(0)
+  createdAt     DateTime       @default(now())
   updatedAt     DateTime
-  User          User      @relation(fields: [authorId], references: [id])
+  User          User           @relation(fields: [authorId], references: [id])
   companyId     String?
-  Company       Company?  @relation(fields: [companyId], references: [id])
+  Company       Company?       @relation(fields: [companyId], references: [id])
   reactions     NewsReaction[]
   bookmarks     NewsBookmark[]
 }
@@ -1090,29 +1176,29 @@ model EmployeeAuditLog {
   id          String   @id @default(cuid())
   companyId   String
   employeeId  String
-  section     String   // e.g. "personal-info", "bank-payroll"
+  section     String // e.g. "personal-info", "bank-payroll"
   field       String
   oldValue    String?
   newValue    String?
-  reason      String   // required
+  reason      String // required
   changedById String
   changedAt   DateTime @default(now())
 
-  Employee  Employee @relation(fields: [employeeId], references: [id])
-  User      User     @relation("EmployeeAuditLog_changedByIdToUser", fields: [changedById], references: [id])
+  Employee Employee @relation(fields: [employeeId], references: [id])
+  User     User     @relation("EmployeeAuditLog_changedByIdToUser", fields: [changedById], references: [id])
 
   @@index([employeeId, section, changedAt])
 }
 
 model TransactionalNotificationPreference {
-  id               String   @id @default(cuid())
-  companyId        String
-  section          String   // e.g. "personal-info", "forms", "forms:abc123"
-  notifyAdmin      Boolean  @default(true)
-  notifyManager    Boolean  @default(false)
-  notifyEmployee   Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id             String   @id @default(cuid())
+  companyId      String
+  section        String // e.g. "personal-info", "forms", "forms:abc123"
+  notifyAdmin    Boolean  @default(true)
+  notifyManager  Boolean  @default(false)
+  notifyEmployee Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   Company Company @relation(fields: [companyId], references: [id])
 
@@ -1189,75 +1275,75 @@ model TrainingRecord {
 }
 
 model User {
-  id                                                                String                 @id
-  email                                                             String
-  password                                                          String
-  role                                                              Role                   @default(EMPLOYEE)
-  createdAt                                                         DateTime               @default(now())
-  updatedAt                                                         DateTime
-  emailVerified                                                     DateTime?
-  name                                                              String?
-  departmentId                                                      String?
-  firstName                                                         String?
-  isActivated                                                       Boolean                @default(false)
-  jobRoleId                                                         String?
-  lastName                                                          String?
-  managerId                                                         String?
-  phone                                                             String?
-  companyId                                                         String
-  emailPreferences                                                  Json?
-  profileImageUrl                                                   String?
-  permissionProfileId                                               String?
-  dateOfBirth                                                       DateTime?
-  addressCity                                                       String?
-  addressCountry                                                    String?
-  addressPostcode                                                   String?
-  addressStreet                                                     String?
-  emergencyContactName                                              String?
-  emergencyContactPhone                                             String?
-  emergencyContactRelationship                                      String?
-  genderOptionId                                                    String?
-  nationalId                                                        String?
-  pronouns                                                          String?
-  residencyStatus                                                   String?
-  ActivationToken                                                   ActivationToken?
-  AutomationRule                                                    AutomationRule[]
-  Department_Department_headIdToUser                                Department[]           @relation("Department_headIdToUser")
-  Document                                                          Document[]
-  Employee                                                          Employee?
-  EmployeeOffboarding_EmployeeOffboarding_accessRemovedByToUser     EmployeeOffboarding[]  @relation("EmployeeOffboarding_accessRemovedByToUser")
-  EmployeeOffboarding_EmployeeOffboarding_assetsReturnedToToUser    EmployeeOffboarding[]  @relation("EmployeeOffboarding_assetsReturnedToToUser")
-  EmployeeOffboarding_EmployeeOffboarding_handoverAssignedToToUser  EmployeeOffboarding[]  @relation("EmployeeOffboarding_handoverAssignedToToUser")
-  EmployeeOffboarding_EmployeeOffboarding_hrReviewCompletedByToUser EmployeeOffboarding[]  @relation("EmployeeOffboarding_hrReviewCompletedByToUser")
-  EmployeeOffboarding_EmployeeOffboarding_initiatedByIdToUser       EmployeeOffboarding[]  @relation("EmployeeOffboarding_initiatedByIdToUser")
-  EmployeeOffboarding_EmployeeOffboarding_interviewerUserIdToUser   EmployeeOffboarding[]  @relation("EmployeeOffboarding_interviewerUserIdToUser")
-  FormAssignment                                                    FormAssignment[]
-  GlobalAuditLog                                                    GlobalAuditLog[]
-  LeaveRequest_LeaveRequest_approvedByIdToUser                      LeaveRequest[]         @relation("LeaveRequest_approvedByIdToUser")
-  LeaveRequest_LeaveRequest_requesterIdToUser                       LeaveRequest[]         @relation("LeaveRequest_requesterIdToUser")
-  NewsPost                                                          NewsPost[]
-  OffboardingTask_OffboardingTask_assignedToToUser                  OffboardingTask[]      @relation("OffboardingTask_assignedToToUser")
-  OffboardingTask_OffboardingTask_completedByToUser                 OffboardingTask[]      @relation("OffboardingTask_completedByToUser")
-  OnboardingAssignment                                              OnboardingAssignment[]
-  OnboardingTemplate                                                OnboardingTemplate[]
-  PermissionAudit_PermissionAudit_changedByIdToUser                 PermissionAudit[]      @relation("PermissionAudit_changedByIdToUser")
-  PermissionAudit_PermissionAudit_employeeIdToUser                  PermissionAudit[]      @relation("PermissionAudit_employeeIdToUser")
-  PersonalInfoAudit_PersonalInfoAudit_changedByIdToUser             PersonalInfoAudit[]    @relation("PersonalInfoAudit_changedByIdToUser")
-  PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser           PersonalInfoAudit[]    @relation("PersonalInfoAudit_subjectUserIdToUser")
-  EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser               EmployeeAuditLog[]     @relation("EmployeeAuditLog_changedByIdToUser")
-  EmployeePerformanceReviewsAuthored                                EmployeePerformanceReview[] @relation("EmployeePerformanceReviewReviewer")
-  SavedReport                                                       SavedReport[]
-  NewsReactions                                                     NewsReaction[]
-  NewsBookmarks                                                     NewsBookmark[]
-  Company                                                           Company                @relation(fields: [companyId], references: [id])
-  Department_User_departmentIdToDepartment                          Department?            @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])
-  GenderOption                                                      GenderOption?          @relation(fields: [genderOptionId], references: [id])
-  JobRole                                                           JobRole?               @relation(fields: [jobRoleId], references: [id])
-  User                                                              User?                  @relation("UserToUser", fields: [managerId], references: [id])
-  other_User                                                        User[]                 @relation("UserToUser")
-  PermissionProfile                                                 PermissionProfile?     @relation(fields: [permissionProfileId], references: [id])
+  id                                                                       String                          @id
+  email                                                                    String
+  password                                                                 String
+  role                                                                     Role                            @default(EMPLOYEE)
+  createdAt                                                                DateTime                        @default(now())
+  updatedAt                                                                DateTime
+  emailVerified                                                            DateTime?
+  name                                                                     String?
+  departmentId                                                             String?
+  firstName                                                                String?
+  isActivated                                                              Boolean                         @default(false)
+  jobRoleId                                                                String?
+  lastName                                                                 String?
+  managerId                                                                String?
+  phone                                                                    String?
+  companyId                                                                String
+  emailPreferences                                                         Json?
+  profileImageUrl                                                          String?
+  permissionProfileId                                                      String?
+  dateOfBirth                                                              DateTime?
+  addressCity                                                              String?
+  addressCountry                                                           String?
+  addressPostcode                                                          String?
+  addressStreet                                                            String?
+  emergencyContactName                                                     String?
+  emergencyContactPhone                                                    String?
+  emergencyContactRelationship                                             String?
+  genderOptionId                                                           String?
+  nationalId                                                               String?
+  pronouns                                                                 String?
+  residencyStatus                                                          String?
+  ActivationToken                                                          ActivationToken?
+  AutomationRule                                                           AutomationRule[]
+  Department_Department_headIdToUser                                       Department[]                    @relation("Department_headIdToUser")
+  Document                                                                 Document[]
+  Employee                                                                 Employee?
+  EmployeeOffboarding_EmployeeOffboarding_accessRemovedByToUser            EmployeeOffboarding[]           @relation("EmployeeOffboarding_accessRemovedByToUser")
+  EmployeeOffboarding_EmployeeOffboarding_assetsReturnedToToUser           EmployeeOffboarding[]           @relation("EmployeeOffboarding_assetsReturnedToToUser")
+  EmployeeOffboarding_EmployeeOffboarding_handoverAssignedToToUser         EmployeeOffboarding[]           @relation("EmployeeOffboarding_handoverAssignedToToUser")
+  EmployeeOffboarding_EmployeeOffboarding_hrReviewCompletedByToUser        EmployeeOffboarding[]           @relation("EmployeeOffboarding_hrReviewCompletedByToUser")
+  EmployeeOffboarding_EmployeeOffboarding_initiatedByIdToUser              EmployeeOffboarding[]           @relation("EmployeeOffboarding_initiatedByIdToUser")
+  EmployeeOffboarding_EmployeeOffboarding_interviewerUserIdToUser          EmployeeOffboarding[]           @relation("EmployeeOffboarding_interviewerUserIdToUser")
+  FormAssignment                                                           FormAssignment[]
+  GlobalAuditLog                                                           GlobalAuditLog[]
+  LeaveRequest_LeaveRequest_approvedByIdToUser                             LeaveRequest[]                  @relation("LeaveRequest_approvedByIdToUser")
+  LeaveRequest_LeaveRequest_requesterIdToUser                              LeaveRequest[]                  @relation("LeaveRequest_requesterIdToUser")
+  NewsPost                                                                 NewsPost[]
+  OffboardingTask_OffboardingTask_assignedToToUser                         OffboardingTask[]               @relation("OffboardingTask_assignedToToUser")
+  OffboardingTask_OffboardingTask_completedByToUser                        OffboardingTask[]               @relation("OffboardingTask_completedByToUser")
+  OnboardingAssignment                                                     OnboardingAssignment[]
+  OnboardingTemplate                                                       OnboardingTemplate[]
+  PermissionAudit_PermissionAudit_changedByIdToUser                        PermissionAudit[]               @relation("PermissionAudit_changedByIdToUser")
+  PermissionAudit_PermissionAudit_employeeIdToUser                         PermissionAudit[]               @relation("PermissionAudit_employeeIdToUser")
+  PersonalInfoAudit_PersonalInfoAudit_changedByIdToUser                    PersonalInfoAudit[]             @relation("PersonalInfoAudit_changedByIdToUser")
+  PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser                  PersonalInfoAudit[]             @relation("PersonalInfoAudit_subjectUserIdToUser")
+  EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser                      EmployeeAuditLog[]              @relation("EmployeeAuditLog_changedByIdToUser")
+  EmployeePerformanceReviewsAuthored                                       EmployeePerformanceReview[]     @relation("EmployeePerformanceReviewReviewer")
+  SavedReport                                                              SavedReport[]
+  NewsReactions                                                            NewsReaction[]
+  NewsBookmarks                                                            NewsBookmark[]
+  Company                                                                  Company                         @relation(fields: [companyId], references: [id])
+  Department_User_departmentIdToDepartment                                 Department?                     @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])
+  GenderOption                                                             GenderOption?                   @relation(fields: [genderOptionId], references: [id])
+  JobRole                                                                  JobRole?                        @relation(fields: [jobRoleId], references: [id])
+  User                                                                     User?                           @relation("UserToUser", fields: [managerId], references: [id])
+  other_User                                                               User[]                          @relation("UserToUser")
+  PermissionProfile                                                        PermissionProfile?              @relation(fields: [permissionProfileId], references: [id])
   ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
-  LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser     LeaveApprovalDecision[] @relation("LeaveApprovalDecision_approverIdToUser")
+  LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser             LeaveApprovalDecision[]         @relation("LeaveApprovalDecision_approverIdToUser")
 
   @@unique([email, companyId])
 }
@@ -1330,86 +1416,86 @@ enum ApprovalStageMode {
 }
 
 model ApprovalWorkflow {
-  id              String             @id @default(cuid())
+  id              String                  @id @default(cuid())
   companyId       String
   name            String
   eventCategoryId String
   scopeType       ApprovalScopeType
-  departmentIds   String[]           @default([])
-  jobRoleIds      String[]           @default([])
-  employeeIds     String[]           @default([])
-  priority        Int                @default(0)
-  isActive        Boolean            @default(true)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  Company         Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  EventCategory   EventCategory      @relation(fields: [eventCategoryId], references: [id])
+  departmentIds   String[]                @default([])
+  jobRoleIds      String[]                @default([])
+  employeeIds     String[]                @default([])
+  priority        Int                     @default(0)
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  Company         Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  EventCategory   EventCategory           @relation(fields: [eventCategoryId], references: [id])
   stages          ApprovalWorkflowStage[]
 
-  @@index([companyId, eventCategoryId])
   @@unique([companyId, name])
+  @@index([companyId, eventCategoryId])
 }
 
 model ApprovalWorkflowStage {
-  id         String        @id @default(cuid())
+  id         String                          @id @default(cuid())
   workflowId String
   name       String?
   order      Int
   mode       ApprovalStageMode
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  workflow   ApprovalWorkflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  createdAt  DateTime                        @default(now())
+  updatedAt  DateTime                        @updatedAt
+  workflow   ApprovalWorkflow                @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   approvers  ApprovalWorkflowStageApprover[]
 
   @@unique([workflowId, order])
 }
 
 model ApprovalWorkflowStageApprover {
-  id      String  @id @default(cuid())
+  id      String                @id @default(cuid())
   stageId String
   userId  String
   order   Int
   stage   ApprovalWorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  user    User    @relation("ApprovalWorkflowStageApprover_userIdToUser", fields: [userId], references: [id])
+  user    User                  @relation("ApprovalWorkflowStageApprover_userIdToUser", fields: [userId], references: [id])
 
   @@unique([stageId, order])
   @@unique([stageId, userId])
 }
 
 model LeaveApprovalStage {
-  id              String            @id @default(cuid())
+  id              String                  @id @default(cuid())
   leaveRequestId  String
   workflowStageId String?
   name            String?
   order           Int
   mode            ApprovalStageMode
-  status          ApprovalStatus    @default(PENDING)
-  isActive        Boolean           @default(false)
+  status          ApprovalStatus          @default(PENDING)
+  isActive        Boolean                 @default(false)
   completedAt     DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  leaveRequest    LeaveRequest      @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  leaveRequest    LeaveRequest            @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
   decisions       LeaveApprovalDecision[]
 
   @@index([leaveRequestId, order])
 }
 
 model LeaveApprovalDecision {
-  id          String         @id @default(cuid())
+  id          String             @id @default(cuid())
   stageId     String
   approverId  String
   order       Int
-  status      ApprovalStatus @default(PENDING)
-  isActive    Boolean        @default(false)
+  status      ApprovalStatus     @default(PENDING)
+  isActive    Boolean            @default(false)
   respondedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   stage       LeaveApprovalStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  approver    User           @relation("LeaveApprovalDecision_approverIdToUser", fields: [approverId], references: [id])
+  approver    User               @relation("LeaveApprovalDecision_approverIdToUser", fields: [approverId], references: [id])
 
-  @@index([approverId, status, isActive])
   @@unique([stageId, approverId])
   @@unique([stageId, order])
+  @@index([approverId, status, isActive])
 }
 
 enum AuditAction {

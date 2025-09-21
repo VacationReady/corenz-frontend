@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+import SignatureCapture from "@/components/documents/SignatureCapture";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -56,6 +57,8 @@ type Document = {
   canViewManager: boolean;
   canViewEmployee: boolean;
   requiresAck?: boolean;
+  requiresSignature?: boolean;
+  signatureDueAt?: string | null;
   departments: Department[];
   jobRoles: JobRole[];
 };
@@ -90,6 +93,9 @@ export default function EmployeeDocumentsPage() {
 
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
+  const [signed, setSigned] = useState(false);
+  const [signSubmitting, setSignSubmitting] = useState(false);
+  const [signatureValue, setSignatureValue] = useState<any>(null);
 
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
 
@@ -132,6 +138,10 @@ export default function EmployeeDocumentsPage() {
             setAckDate(null);
           }
         });
+      fetch(`/api/documents/signatures/${selectedDoc.id}/me`)
+        .then((res) => res.json())
+        .then((data) => setSigned(!!data.signed))
+        .catch(() => setSigned(false));
     }
   }, [selectedDoc]);
 
@@ -293,6 +303,7 @@ export default function EmployeeDocumentsPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Access</TableHead>
+                <TableHead>Signatures</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
                 {userRole === "ADMIN" && (
@@ -350,6 +361,13 @@ export default function EmployeeDocumentsPage() {
                           </div>
                         </TooltipContent>
                       </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      {doc.requiresSignature ? (
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">Required</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {new Date(doc.createdAt).toLocaleDateString()}
@@ -519,6 +537,46 @@ export default function EmployeeDocumentsPage() {
                   <p className="text-green-600 text-sm">
                     ✅ Acknowledged on {ackDate?.toLocaleDateString()}
                   </p>
+                )}
+                {(selectedDoc as any).requiresSignature && !signed && (
+                  <div className="space-y-3">
+                    <SignatureCapture
+                      value={signatureValue}
+                      onChange={setSignatureValue}
+                    />
+                    <Button
+                      disabled={!signatureValue || signSubmitting}
+                      onClick={async () => {
+                        if (!selectedDoc) return;
+                        setSignSubmitting(true);
+                        try {
+                          const res = await fetch("/api/documents/sign", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              documentId: selectedDoc.id,
+                              method: signatureValue.method,
+                              typedText: signatureValue.typedText,
+                              drawnDataUrl: signatureValue.dataUrl,
+                            }),
+                          });
+                          if (res.ok) {
+                            setSigned(true);
+                            toast("Signature submitted");
+                          } else {
+                            toast("Failed to submit signature");
+                          }
+                        } finally {
+                          setSignSubmitting(false);
+                        }
+                      }}
+                    >
+                      {signSubmitting ? "Submitting..." : "Sign Document"}
+                    </Button>
+                  </div>
+                )}
+                {(selectedDoc as any).requiresSignature && signed && (
+                  <p className="text-green-600 text-sm">✅ Signed</p>
                 )}
               </div>
             )}

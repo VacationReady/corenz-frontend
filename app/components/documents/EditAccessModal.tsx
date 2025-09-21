@@ -20,6 +20,8 @@ type Document = {
   canViewManager: boolean;
   canViewEmployee: boolean;
   requiresAck?: boolean; // ✅ NEW FIELD
+  requiresSignature?: boolean;
+  signatureDueAt?: string | null;
   departments?: Department[];
   jobRoles?: JobRole[];
 };
@@ -45,6 +47,10 @@ export default function EditAccessModal({
   const [canManager, setCanManager] = useState(false);
   const [canEmployee, setCanEmployee] = useState(false);
   const [requiresAck, setRequiresAck] = useState(false); // ✅ NEW STATE
+  const [requiresSignature, setRequiresSignature] = useState(false);
+  const [signatureDueAt, setSignatureDueAt] = useState<string>("");
+  const [signerDepartments, setSignerDepartments] = useState<string[]>([]);
+  const [signerJobRoles, setSignerJobRoles] = useState<string[]>([]);
   const [departmentsList, setDepartmentsList] = useState<
     { label: string; value: string }[]
   >([]);
@@ -91,6 +97,8 @@ export default function EditAccessModal({
       setCanManager(document.canViewManager);
       setCanEmployee(document.canViewEmployee);
       setRequiresAck(document.requiresAck || false); // ✅ Initialize toggle
+      setRequiresSignature(document.requiresSignature || false);
+      setSignatureDueAt(document.signatureDueAt || "");
     }
   }, [document]);
 
@@ -105,6 +113,10 @@ export default function EditAccessModal({
         canViewManager: canManager,
         canViewEmployee: canEmployee,
         requiresAck, // ✅ Send to API
+        requiresSignature,
+        signatureDueAt: signatureDueAt || null,
+        signerDepartments: isEmployeeDocument ? [] : signerDepartments,
+        signerJobRoles: isEmployeeDocument ? [] : signerJobRoles,
         departmentIds: isEmployeeDocument
           ? []
           : deptIds.includes("all")
@@ -185,6 +197,50 @@ export default function EditAccessModal({
           <p className="text-xs text-gray-500">
             Employees must confirm they’ve read this document.
           </p>
+
+          {/* Requires Signature Toggle */}
+          <div className="flex items-center justify-between border-t pt-4 mt-4">
+            <Label className="text-sm">Requires Signature</Label>
+            <Switch
+              checked={requiresSignature}
+              onChange={setRequiresSignature}
+            />
+          </div>
+          {requiresSignature && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm">Signature Due (optional)</Label>
+                <input
+                  type="datetime-local"
+                  className="w-full border rounded px-2 py-1"
+                  value={signatureDueAt}
+                  onChange={(e) => setSignatureDueAt(e.target.value)}
+                />
+              </div>
+              {!isEmployeeDocument && (
+                <>
+                  <div>
+                    <Label>Signer Departments</Label>
+                    <MultiSelect
+                      options={departmentsList}
+                      selected={signerDepartments}
+                      onChange={setSignerDepartments}
+                      placeholder="Select signer departments"
+                    />
+                  </div>
+                  <div>
+                    <Label>Signer Job Roles</Label>
+                    <MultiSelect
+                      options={jobRolesList}
+                      selected={signerJobRoles}
+                      onChange={setSignerJobRoles}
+                      placeholder="Select signer roles"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <Button onClick={handleSave} className="w-full mt-4">
             Save Changes

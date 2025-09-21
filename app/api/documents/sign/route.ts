@@ -94,6 +94,15 @@ export async function POST(req: NextRequest) {
       if (!hasAnyTarget) isEligible = true;
     }
 
+    // Additionally, allow if the employee is explicitly assigned to any field
+    if (!isEligible) {
+      const assignedField = await prisma.documentSignatureField.findFirst({
+        where: { documentId, assignedEmployeeId: employee.id },
+        select: { id: true },
+      });
+      if (assignedField) isEligible = true;
+    }
+
     if (!isEligible) {
       return NextResponse.json(
         { error: "You are not eligible to sign this document" },

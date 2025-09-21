@@ -42,7 +42,13 @@ export default function ViewSignaturesModal({
         a.artifactUrl || "",
       ]),
     ];
-    const csv = rows.map((r) => r.map((c) => `"${(c || "").toString().replaceAll('"', '""')}"`).join(",")).join("\n");
+    const escapeCsv = (value: unknown): string => {
+      const str = (value ?? "").toString();
+      return `"${str.replaceAll('"', '""')}"`;
+    };
+    const csv = rows
+      .map((r: unknown[]) => r.map((c: unknown) => escapeCsv(c)).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

@@ -1,9 +1,6 @@
 import "./globals.css";
 import { ReactNode } from "react";
-import { Toaster } from "sonner";
-import { SessionProvider } from "next-auth/react";
-import ErrorBoundary from "./components/ErrorBoundary";
-import ChunkErrorHandler from "./components/ChunkErrorHandler";
+import Providers from "./components/Providers";
 import React from "react";
 import { CommandPaletteMount } from "./components/CommandPaletteMount";
 import { Inter } from "next/font/google";
@@ -23,29 +20,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
         {/* Content Layer */}
         <div className="relative z-10">
-          <ErrorBoundary>
-            <ChunkErrorHandler />
-            <SessionProvider>{children}</SessionProvider>
-          </ErrorBoundary>
+          <Providers>{children}</Providers>
         </div>
-
-        <Toaster
-          position="bottom-right"
-          richColors
-          closeButton
-          toastOptions={{
-            className: "shadow-glass border-glass rounded-2xl",
-            style: {
-              background: "rgba(255, 255, 255, 0.8)",
-              backdropFilter: "blur(16px)",
-              color: "hsl(var(--card-foreground))",
-              border: "1px solid rgba(255, 255, 255, 0.4)",
-            },
-          }}
-        />
-
-        {/* Command Palette (Cmd/Ctrl+K) */}
-        <CommandPaletteMount />
       </body>
     </html>
   );

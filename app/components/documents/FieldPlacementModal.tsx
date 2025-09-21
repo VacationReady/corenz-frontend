@@ -123,7 +123,10 @@ export default function FieldPlacementModal({
               onMouseMove={onMouseMove}
               onMouseUp={onMouseUp}
             >
-              <iframe src={docUrl} className="w-full h-full" />
+              {/* Use embed to render files cross-origin where possible */}
+              {docUrl ? (
+                <embed src={docUrl} type="application/pdf" className="w-full h-full" />
+              ) : null}
               {fields.map((f, idx) => (
                 <div
                   key={idx}

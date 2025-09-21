@@ -446,12 +446,6 @@ export default function AddDocumentModal({
                     onChange={(e) => setSignatureDueAt(e.target.value)}
                   />
                 </div>
-                {/* Open local placement before upload */}
-                <div>
-                  <Button variant="secondary" onClick={() => setIsPlacementBeforeSendOpen(true)}>
-                    Preview & Place Signature Fields
-                  </Button>
-                </div>
                 {type === "company" && (
                   <>
                     <div>

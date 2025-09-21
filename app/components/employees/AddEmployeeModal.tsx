@@ -198,6 +198,7 @@ export default function AddEmployeeModal({
 
   // Calculate entitlement modal state
   const [fullTimeHours, setFullTimeHours] = useState("40");
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [fullTimeEntitlement, setFullTimeEntitlement] = useState("25");
   const [calculatedEntitlement, setCalculatedEntitlement] = useState(0);
 
@@ -238,6 +239,7 @@ export default function AddEmployeeModal({
       setHolidayStartMonth("");
       setHolidayStartDay("");
       setHolidayYearError(null);
+      setShowAllTemplates(false);
       return;
     }
 
@@ -544,6 +546,7 @@ export default function AddEmployeeModal({
       setHolidayStartMonth("");
       setHolidayStartDay("");
       setHolidayYearError(null);
+      setShowAllTemplates(false);
 
       onClose();
       if (onSuccess) onSuccess();
@@ -553,6 +556,15 @@ export default function AddEmployeeModal({
   };
 
   if (!open) return null;
+
+  const handleClearFilters = () => {
+    setFormData((prev) => ({
+      ...prev,
+      departmentId: undefined,
+      jobRoleId: undefined,
+    }));
+    setShowAllTemplates(false);
+  };
 
   // Filter templates by chosen department/job role.
   // If neither is selected, show all. Templates with no restrictions always show.
@@ -572,6 +584,12 @@ export default function AddEmployeeModal({
     }
     return unrestricted || matchesDept || matchesRole;
   });
+
+  const hasTemplateFilters = Boolean(
+    formData.departmentId || formData.jobRoleId,
+  );
+
+  const templatesToDisplay = showAllTemplates ? templates : filteredTemplates;
 
   return (
     <>
@@ -678,9 +696,10 @@ export default function AddEmployeeModal({
 
                 <Select
                   value={formData.departmentId || undefined}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, departmentId: value })
-                  }
+                  onValueChange={(value) => {
+                    setShowAllTemplates(false);
+                    setFormData({ ...formData, departmentId: value });
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Department" />
@@ -701,9 +720,10 @@ export default function AddEmployeeModal({
 
                 <Select
                   value={formData.jobRoleId || undefined}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, jobRoleId: value })
-                  }
+                  onValueChange={(value) => {
+                    setShowAllTemplates(false);
+                    setFormData({ ...formData, jobRoleId: value });
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Job Role" />
@@ -752,22 +772,56 @@ export default function AddEmployeeModal({
 
                 <Select
                   value={formData.onboardingTemplateId || undefined}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, onboardingTemplateId: value })
-                  }
+                  onValueChange={(value) => {
+                    if (value === "show_all_templates") {
+                      setShowAllTemplates(true);
+                      return;
+                    }
+
+                    if (value === "none") {
+                      setShowAllTemplates(false);
+                    }
+
+                    setFormData({
+                      ...formData,
+                      onboardingTemplateId: value,
+                    });
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Onboarding Template" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {filteredTemplates.map((t) => (
+                    {templatesToDisplay.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name}
                       </SelectItem>
                     ))}
+                    {!showAllTemplates && hasTemplateFilters && (
+                      <SelectItem value="show_all_templates">
+                        Show all templates
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!showAllTemplates && filteredTemplates.length === 0 && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    No onboarding templates match the selected department or
+                    job role. The list filters according to your choices.
+                    {" "}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto px-1 align-baseline text-primary underline-offset-2 hover:underline"
+                      onClick={handleClearFilters}
+                    >
+                      Clear filters
+                    </Button>
+                    {" "}to see everything.
+                  </p>
+                )}
 
                 <div className="flex justify-end">
                   <Button type="button" onClick={nextStep}>

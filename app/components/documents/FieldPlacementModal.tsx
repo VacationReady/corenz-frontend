@@ -39,6 +39,9 @@ export default function FieldPlacementModal({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const lastPointerEventRef = useRef<React.PointerEvent<HTMLDivElement> | null>(null);
 
   const [docUrl, setDocUrl] = useState<string>("");
   const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
@@ -94,17 +97,46 @@ export default function FieldPlacementModal({
     onClose();
   };
 
-  const onMouseDown = (idx: number) => setDraggingIdx(idx);
-  const onMouseUp = () => setDraggingIdx(null);
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (draggingIdx === null || !containerRef.current) return;
+  const onPointerDownField = (idx: number, e: React.PointerEvent<HTMLDivElement>) => {
+    setDraggingIdx(idx);
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setFields((prev) => {
-      const copy = [...prev];
-      copy[draggingIdx] = { ...copy[draggingIdx], x: Math.min(Math.max(0, x), 1), y: Math.min(Math.max(0, y), 1) };
-      return copy;
+    const f = fields[idx];
+    const centerX = rect.left + f.x * rect.width;
+    const centerY = rect.top + f.y * rect.height;
+    dragOffsetRef.current = { dx: e.clientX - centerX, dy: e.clientY - centerY };
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  };
+
+  const onPointerUpContainer = () => {
+    setDraggingIdx(null);
+    dragOffsetRef.current = null;
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = null;
+    lastPointerEventRef.current = null;
+  };
+
+  const onPointerMoveContainer = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (draggingIdx === null || !containerRef.current) return;
+    lastPointerEventRef.current = e;
+    if (rafIdRef.current) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const ev = lastPointerEventRef.current;
+      if (!ev) return;
+      const rect = containerRef.current!.getBoundingClientRect();
+      const offset = dragOffsetRef.current || { dx: 0, dy: 0 };
+      const centerClientX = ev.clientX - offset.dx;
+      const centerClientY = ev.clientY - offset.dy;
+      let x = (centerClientX - rect.left) / rect.width;
+      let y = (centerClientY - rect.top) / rect.height;
+      x = Math.min(Math.max(0, x), 1);
+      y = Math.min(Math.max(0, y), 1);
+      setFields((prev) => {
+        const copy = [...prev];
+        copy[draggingIdx] = { ...copy[draggingIdx], x, y };
+        return copy;
+      });
     });
   };
 
@@ -120,8 +152,8 @@ export default function FieldPlacementModal({
               ref={containerRef}
               className="relative border rounded overflow-hidden"
               style={{ height: 600 }}
-              onMouseMove={onMouseMove}
-              onMouseUp={onMouseUp}
+              onPointerMove={onPointerMoveContainer}
+              onPointerUp={onPointerUpContainer}
             >
               {/* Use embed to render files cross-origin where possible */}
               {docUrl ? (
@@ -130,17 +162,31 @@ export default function FieldPlacementModal({
               {fields.map((f, idx) => (
                 <div
                   key={idx}
-                  className="absolute bg-amber-200 border border-amber-500 text-amber-900 text-xs flex items-center justify-center cursor-move"
+                  className="absolute bg-amber-200 border border-amber-500 text-amber-900 text-xs flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
                   style={{
                     left: `${f.x * 100}%`,
                     top: `${f.y * 100}%`,
                     width: `${f.width * 100}%`,
                     height: `${f.height * 100}%`,
                     transform: "translate(-50%, -50%)",
+                    willChange: "left, top, transform",
                   }}
-                  onMouseDown={() => onMouseDown(idx)}
+                  onPointerDown={(e) => onPointerDownField(idx, e)}
                 >
-                  {f.label || "Signature"}
+                  <span className="pointer-events-none px-2 text-center truncate">
+                    {f.label || "Signature"}
+                  </span>
+                  <button
+                    type="button"
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-600 text-white leading-none flex items-center justify-center"
+                    aria-label="Remove field"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      setFields((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>

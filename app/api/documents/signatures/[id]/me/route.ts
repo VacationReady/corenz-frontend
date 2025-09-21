@@ -16,7 +16,7 @@ export async function GET(
 
     const employee = await prisma.employee.findFirst({
       where: { userId: session.user.id, companyId: session.user.companyId },
-      select: { id: true },
+      select: { id: true, departmentId: true, jobRoleId: true },
     });
     if (!employee) return NextResponse.json({ signed: false, eligible: false });
 

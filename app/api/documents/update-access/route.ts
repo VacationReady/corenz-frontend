@@ -70,7 +70,7 @@ export async function PATCH(req: Request) {
         });
       }
 
-      // Queue Resend emails to all targeted employees
+      // Queue Resend emails to all targeted employees (only when explicitly re-enabled via access update)
       const document = await prisma.document.findUnique({ where: { id: documentId } });
       if (document) {
         const departmentIds = signerDepartments || [];

@@ -76,6 +76,7 @@ function DocumentsContent() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
@@ -340,6 +341,8 @@ function DocumentsContent() {
     formData.append("requiresAck", requiresAck.toString());
     formData.append("requiresSignature", requiresSignature.toString());
     if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
+    // Defer notifications so admin can place fields first
+    formData.append("deferNotifications", requiresSignature ? "true" : "false");
     formData.append(
       "requireAckFromNewStarters",
       requireAckFromNewStarters.toString(),
@@ -350,16 +353,16 @@ function DocumentsContent() {
         body: formData,
       });
       if (res.ok) {
+        const payload = await res.json();
         toast("Document uploaded successfully!");
-        setFile(null);
-        setName("");
-        setCategory("");
-        setRequiresAck(false);
-        setRequireAckFromNewStarters(false);
-        setUploadDepartments(["all"]);
-        setUploadJobRoles(["all"]);
-        setIsUploadModalOpen(false);
-        fetchDocuments();
+        if (requiresSignature && payload?.Document?.id) {
+          setSigDocId(payload.Document.id);
+          setSigDocName(payload.Document.name);
+          setIsPlacementBeforeSendOpen(true);
+        } else {
+          setIsUploadModalOpen(false);
+          fetchDocuments();
+        }
       } else toast("Failed to upload document.");
     } catch {
       toast("Error uploading document.");
@@ -631,12 +634,27 @@ function DocumentsContent() {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                />
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__new__">+ Add new category</SelectItem>
+                  </SelectContent>
+                </Select>
+                {category === "__new__" && (
+                  <Input
+                    className="mt-2"
+                    placeholder="New category name"
+                    value={name}
+                    onChange={(e) => setCategory(e.target.value)}
+                  />
+                )}
               </div>
               <div>
                 <Label>Departments</Label>
@@ -701,6 +719,25 @@ function DocumentsContent() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Place before send (post-upload) */}
+        <FieldPlacementModal
+          isOpen={isPlacementBeforeSendOpen}
+          onClose={() => {
+            setIsPlacementBeforeSendOpen(false);
+            setIsUploadModalOpen(false);
+            setFile(null);
+            setName("");
+            setCategory("");
+            setRequiresAck(false);
+            setRequireAckFromNewStarters(false);
+            setUploadDepartments(["all"]);
+            setUploadJobRoles(["all"]);
+            fetchDocuments();
+          }}
+          documentId={sigDocId || ""}
+          url={selectedDoc?.url || ""}
+        />
 
         <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
           <DialogContent>

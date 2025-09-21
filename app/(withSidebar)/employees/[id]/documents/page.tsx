@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
+import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
 import SignatureCapture from "@/components/documents/SignatureCapture";
 
 type Department = { id: string; name: string };
@@ -80,6 +81,9 @@ export default function EmployeeDocumentsPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [requiresAck, setRequiresAck] = useState(false);
+  const [requiresSignature, setRequiresSignature] = useState(false);
+  const [signatureDueAt, setSignatureDueAt] = useState("");
+  const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
 
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
@@ -194,6 +198,9 @@ export default function EmployeeDocumentsPage() {
     formData.append("canViewManager", String(canViewManager));
     formData.append("canViewEmployee", String(canViewEmployee));
     formData.append("requiresAck", String(requiresAck));
+    formData.append("requiresSignature", String(requiresSignature));
+    if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
+    formData.append("deferNotifications", requiresSignature ? "true" : "false");
 
     try {
       const res = await fetch("/api/documents/upload", {
@@ -201,19 +208,28 @@ export default function EmployeeDocumentsPage() {
         body: formData,
       });
       if (res.ok) {
-        const newDoc = await res.json();
-        toast("Upload successful", {
-          description: `${name} has been uploaded.`,
-        });
-        setDocuments((prev) => [newDoc, ...prev]);
-        setIsUploadModalOpen(false);
-        setFile(null);
-        setName("");
-        setCategory("");
-        setCanViewAdmin(true);
-        setCanViewManager(false);
-        setCanViewEmployee(true);
-        setRequiresAck(false);
+        const payload = await res.json();
+        toast("Upload successful");
+        if (requiresSignature && payload?.Document?.id) {
+          setSelectedDoc({
+            ...(payload.Document as any),
+            canViewAdmin: true,
+            canViewManager: true,
+            canViewEmployee: true,
+            requiresAck,
+          });
+          setIsPlacementBeforeSendOpen(true);
+        } else {
+          setIsUploadModalOpen(false);
+          setFile(null);
+          setName("");
+          setCategory("");
+          setCanViewAdmin(true);
+          setCanViewManager(false);
+          setCanViewEmployee(true);
+          setRequiresAck(false);
+          fetchDocuments();
+        }
       } else {
         toast("Upload failed", { description: "Please try again." });
       }
@@ -467,12 +483,31 @@ export default function EmployeeDocumentsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Requires Acknowledgement</Label>
-                  <Switch
-                    checked={requiresAck}
-                    onChange={(checked) => setRequiresAck(checked)}
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Requires Acknowledgement</Label>
+                    <Switch
+                      checked={requiresAck}
+                      onChange={(checked) => setRequiresAck(checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Requires Signature</Label>
+                    <Switch
+                      checked={requiresSignature}
+                      onChange={setRequiresSignature}
+                    />
+                  </div>
+                  {requiresSignature && (
+                    <div>
+                      <Label>Signature Due (optional)</Label>
+                      <Input
+                        type="datetime-local"
+                        value={signatureDueAt}
+                        onChange={(e) => setSignatureDueAt(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>File</Label>
@@ -613,6 +648,16 @@ export default function EmployeeDocumentsPage() {
             isEmployeeDocument
           />
         )}
+        <FieldPlacementModal
+          isOpen={isPlacementBeforeSendOpen}
+          onClose={() => {
+            setIsPlacementBeforeSendOpen(false);
+            setIsUploadModalOpen(false);
+            fetchDocuments();
+          }}
+          documentId={selectedDoc?.id || ""}
+          url={selectedDoc?.url || ""}
+        />
         </div>
       </TooltipProvider>
     </PageShell>

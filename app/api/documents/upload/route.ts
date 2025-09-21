@@ -98,6 +98,7 @@ const documentUploadSchema = z.object({
   signerDepartments: jsonArrayFromForm,
   signerJobRoles: jsonArrayFromForm,
   signerEmployees: jsonArrayFromForm,
+  deferNotifications: booleanFromForm(false),
 });
 
 export async function POST(req: Request) {
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
       signerDepartments,
       signerJobRoles,
       signerEmployees,
+      deferNotifications,
     } = documentUploadSchema.parse({
       file: formData.get("file"),
       name: formData.get("name"),
@@ -147,6 +149,7 @@ export async function POST(req: Request) {
       signerDepartments: formData.get("signerDepartments"),
       signerJobRoles: formData.get("signerJobRoles"),
       signerEmployees: formData.get("signerEmployees"),
+      deferNotifications: formData.get("deferNotifications"),
     });
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -247,7 +250,7 @@ export async function POST(req: Request) {
     // --- END: Persist signature scopes if enabled ---
 
     // --- BEGIN: Send Resend email for employee docs with requiresAck/Signature ---
-    if ((requiresAck || requiresSignature) && document.employeeId) {
+    if (!deferNotifications && (requiresAck || requiresSignature) && document.employeeId) {
       const employee = await prisma.employee.findFirst({
         where: { id: document.employeeId, companyId: document.companyId },
         select: { userId: true },
@@ -293,6 +296,7 @@ export async function POST(req: Request) {
 
     // --- BEGIN: Send Resend emails for company docs with requiresAck/Signature ---
     if (
+      !deferNotifications &&
       (requiresAck || requiresSignature) &&
       !document.employeeId // Company doc (not employee-specific)
     ) {

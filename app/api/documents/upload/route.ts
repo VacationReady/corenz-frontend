@@ -263,7 +263,7 @@ export async function POST(req: Request) {
 
         if (user?.email) {
           const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
-          const docLink = `${baseUrl}/employees/${document.employeeId}/documents`;
+          const docLink = `${baseUrl}/employees/${document.employeeId}/documents?open=${document.id}`;
           const resendRes = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -348,7 +348,7 @@ export async function POST(req: Request) {
         await Promise.all(
           chunk.map(async (user) => {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
-            const docLink = `${baseUrl}/documents`;
+            const docLink = `${baseUrl}/documents?open=${document.id}`;
             const resendRes = await fetch("https://api.resend.com/emails", {
               method: "POST",
               headers: {

@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       console.log("User found for notification:", user);
 
       if (user?.email) {
-        const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${employeeId}/documents`;
+        const docLink = `${process.env.NEXT_PUBLIC_BASE_URL}/employees/${employeeId}/documents?open=${document.id}`;
         const resendRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {

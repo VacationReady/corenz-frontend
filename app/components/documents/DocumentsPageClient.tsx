@@ -179,6 +179,17 @@ function DocumentsContent() {
     fetchDocuments();
     fetchDropdownData();
     fetchUserRole();
+    const url = new URL(window.location.href);
+    const openId = url.searchParams.get("open");
+    if (openId) {
+      setTimeout(() => {
+        const doc = (documents || []).find((d) => d.id === openId);
+        if (doc) {
+          setSelectedDoc(doc);
+          setIsPreviewModalOpen(true);
+        }
+      }, 300);
+    }
   }, []);
 
   const { filters } = useFilters();

@@ -21,6 +21,7 @@ export async function PATCH(req: Request) {
     signatureDueAt,
     signerDepartments,
     signerJobRoles,
+    signerEmployees,
   } = await req.json();
 
   if (!documentId) {
@@ -66,6 +67,12 @@ export async function PATCH(req: Request) {
       if (Array.isArray(signerJobRoles) && signerJobRoles.length > 0) {
         await prisma.documentSignatureJobRole.createMany({
           data: signerJobRoles.map((roleId: string) => ({ documentId, jobRoleId: roleId })),
+          skipDuplicates: true,
+        });
+      }
+      if (Array.isArray(signerEmployees) && signerEmployees.length > 0) {
+        await prisma.documentSignatureEmployee.createMany({
+          data: signerEmployees.map((empId: string) => ({ documentId, employeeId: empId })),
           skipDuplicates: true,
         });
       }

@@ -37,6 +37,7 @@ export default function AddDocumentModal({
   const [employeeId, setEmployeeId] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [newCategory, setNewCategory] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -280,7 +281,7 @@ export default function AddDocumentModal({
 
         <div>
           <Label>Category</Label>
-          <Select onValueChange={setCategory}>
+          <Select onValueChange={(v) => { setCategory(v); if (v !== "__new__") setNewCategory(""); }}>
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
@@ -290,8 +291,18 @@ export default function AddDocumentModal({
                   {cat}
                 </SelectItem>
               ))}
+              <SelectItem value="__new__">+ Add new category</SelectItem>
             </SelectContent>
           </Select>
+          {category === "__new__" && (
+            <Input
+              className="mt-2"
+              placeholder="New category name"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onBlur={() => { if (newCategory.trim()) setCategory(newCategory.trim()); }}
+            />
+          )}
         </div>
 
         <div>

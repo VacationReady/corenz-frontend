@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
 import SignatureCapture from "@/components/documents/SignatureCapture";
+import SignatureCapture from "@/components/documents/SignatureCapture";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -84,6 +85,9 @@ export default function EmployeeDocumentsPage() {
   const [requiresSignature, setRequiresSignature] = useState(false);
   const [signatureDueAt, setSignatureDueAt] = useState("");
   const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
+  const [fields, setFields] = useState<any[]>([]);
+  const [showCapture, setShowCapture] = useState(false);
+  const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
 
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
@@ -146,6 +150,10 @@ export default function EmployeeDocumentsPage() {
         .then((res) => res.json())
         .then((data) => setSigned(!!data.signed))
         .catch(() => setSigned(false));
+      fetch(`/api/documents/signature-fields/${selectedDoc.id}`)
+        .then((r) => r.json())
+        .then((data) => setFields(Array.isArray(data) ? data : []))
+        .catch(() => setFields([]));
     }
   }, [selectedDoc]);
 
@@ -583,6 +591,27 @@ export default function EmployeeDocumentsPage() {
                   <p className="text-green-600 text-sm">
                     ✅ Acknowledged on {ackDate?.toLocaleDateString()}
                   </p>
+                )}
+                {(selectedDoc as any).requiresSignature && (
+                  <div className="relative">
+                    {!signed && fields.map((f, idx) => (
+                      <button
+                        key={idx}
+                        className="absolute bg-amber-200 border border-amber-500 text-amber-900 text-xs px-2 py-1 rounded"
+                        style={{
+                          left: `${Math.min(Math.max(f.x, 0), 1) * 100}%`,
+                          top: `${Math.min(Math.max(f.y, 0), 1) * 100}%`,
+                          transform: "translate(-50%, -50%)",
+                        }}
+                        onClick={() => { setActiveFieldIdx(idx); setShowCapture(true); }}
+                      >
+                        {f.label || "Sign"}
+                      </button>
+                    ))}
+                    {signed && (
+                      <p className="text-green-600 text-sm mt-2">✅ Signed</p>
+                    )}
+                  </div>
                 )}
                 {(selectedDoc as any).requiresSignature && !signed && (
                   <div className="space-y-3">

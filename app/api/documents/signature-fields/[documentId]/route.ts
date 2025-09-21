@@ -66,6 +66,10 @@ export async function POST(
     if (document?.requiresSignature) {
       // Build target employee list
       const explicitEmpIds = new Set((document.SignatureEmployees || []).map((e) => e.employeeId));
+      // Include any assignedEmployeeId from newly created fields
+      for (const f of created as any[]) {
+        if (f.assignedEmployeeId) explicitEmpIds.add(f.assignedEmployeeId);
+      }
       if (document.employeeId) explicitEmpIds.add(document.employeeId);
       const deptIds = (document.SignatureDepartments || []).map((d) => d.departmentId);
       const roleIds = (document.SignatureJobRoles || []).map((r) => r.jobRoleId);
@@ -98,6 +102,14 @@ export async function POST(
           });
           for (const e of explicit) if (!seen.has(e.id)) employees.push(e);
         }
+      }
+
+      // Ensure explicit assignees are stored as DocumentSignatureEmployee for future reference
+      if (explicitEmpIds.size > 0) {
+        await prisma.documentSignatureEmployee.createMany({
+          data: Array.from(explicitEmpIds).map((id) => ({ documentId: params.documentId, employeeId: id })),
+          skipDuplicates: true,
+        });
       }
 
       const users = await prisma.user.findMany({

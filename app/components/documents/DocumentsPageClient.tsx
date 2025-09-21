@@ -80,6 +80,7 @@ function DocumentsContent() {
     useState(false);
   const [requiresSignature, setRequiresSignature] = useState(false);
   const [signatureDueAt, setSignatureDueAt] = useState("");
+  const [newCategory, setNewCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -111,6 +112,9 @@ function DocumentsContent() {
   const [signed, setSigned] = useState(false);
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [signatureValue, setSignatureValue] = useState<any>(null);
+  const [fields, setFields] = useState<any[]>([]);
+  const [showCapture, setShowCapture] = useState(false);
+  const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
 
   const fetchDocuments = async () => {
     try {
@@ -180,6 +184,10 @@ function DocumentsContent() {
         .then((res) => res.json())
         .then((data) => setSigned(!!data.signed))
         .catch(() => setSigned(false));
+      fetch(`/api/documents/signature-fields/${selectedDoc.id}`)
+        .then((r) => r.json())
+        .then((data) => setFields(Array.isArray(data) ? data : []))
+        .catch(() => setFields([]));
     }
   }, [selectedDoc]);
 
@@ -641,7 +649,7 @@ function DocumentsContent() {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={(v) => { setCategory(v); if (v !== "__new__") setNewCategory(""); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -658,8 +666,9 @@ function DocumentsContent() {
                   <Input
                     className="mt-2"
                     placeholder="New category name"
-                    value={name}
-                    onChange={(e) => setCategory(e.target.value)}
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onBlur={() => { if (newCategory.trim()) setCategory(newCategory.trim()); }}
                   />
                 )}
               </div>

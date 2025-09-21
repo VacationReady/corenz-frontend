@@ -18,6 +18,7 @@ interface Field {
   width: number; // 0..1
   height: number; // 0..1
   label?: string;
+  assignedEmployeeId?: string;
 }
 
 export default function FieldPlacementModal({
@@ -66,7 +67,7 @@ export default function FieldPlacementModal({
     const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
     setFields((prev) => [
       ...prev,
-      { ...base, label } as any,
+      { ...base, label, assignedEmployeeId: selectedAssignee || undefined },
     ]);
   };
 
@@ -166,6 +167,24 @@ export default function FieldPlacementModal({
                       });
                     }}
                   />
+                  <div className="text-xs">Assigned to</div>
+                  <select
+                    className="w-full border rounded px-2 py-1 text-sm"
+                    value={f.assignedEmployeeId || ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setFields((prev) => {
+                        const copy = [...prev];
+                        copy[idx] = { ...copy[idx], assignedEmployeeId: v || undefined };
+                        return copy;
+                      });
+                    }}
+                  >
+                    <option value="">Unassigned</option>
+                    {assignees.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
                   <div className="text-xs text-muted-foreground">
                     x: {f.x.toFixed(2)} y: {f.y.toFixed(2)} w: {f.width.toFixed(2)} h: {f.height.toFixed(2)}
                   </div>

@@ -75,16 +75,27 @@ export default async function NewsDetailPage({ params }: Props) {
 
   // Transform the post data to match client expectations
   let coverImageFromPost: string | null = (post as any).coverImageUrl ?? (post as any).coverImage ?? null;
-  // Sign Supabase storage path if not already a URL
-  if (coverImageFromPost && !/^https?:\/\//i.test(coverImageFromPost)) {
-    try {
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(coverImageFromPost, 60 * 10);
-      if (!error) {
-        coverImageFromPost = data?.signedUrl ?? coverImageFromPost;
-      }
-    } catch {}
+  // Ensure we have a fresh signed URL regardless of how it was stored
+  if (coverImageFromPost) {
+    if (/^https?:\/\//i.test(coverImageFromPost) && coverImageFromPost.includes("/object/sign/") && coverImageFromPost.includes("/documents/")) {
+      try {
+        const after = coverImageFromPost.split("/documents/")[1] || "";
+        const path = after.split("?")[0] || "";
+        if (path) {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(path, 60 * 10);
+          if (!error) coverImageFromPost = data?.signedUrl ?? coverImageFromPost;
+        }
+      } catch {}
+    } else if (!/^https?:\/\//i.test(coverImageFromPost)) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(coverImageFromPost, 60 * 10);
+        if (!error) coverImageFromPost = data?.signedUrl ?? coverImageFromPost;
+      } catch {}
+    }
   }
   const { coverImageUrl, coverImage, ...postRest } = post as any;
 

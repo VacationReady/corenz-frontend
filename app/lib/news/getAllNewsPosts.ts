@@ -44,13 +44,26 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
     );
     // Resolve cover image: prefer URL; if path, sign it
     let cover: string | null = (post as any).coverImageUrl ?? (post as any).coverImage ?? null;
-    if (cover && !/^https?:\/\//i.test(cover)) {
-      try {
-        const { data, error } = await supabase.storage
-          .from("documents")
-          .createSignedUrl(cover, 60 * 10);
-        if (!error) cover = data?.signedUrl ?? cover;
-      } catch {}
+    if (cover) {
+      if (/^https?:\/\//i.test(cover) && cover.includes("/object/sign/") && cover.includes("/documents/")) {
+        try {
+          const after = cover.split("/documents/")[1] || "";
+          const path = after.split("?")[0] || "";
+          if (path) {
+            const { data, error } = await supabase.storage
+              .from("documents")
+              .createSignedUrl(path, 60 * 10);
+            if (!error) cover = data?.signedUrl ?? cover;
+          }
+        } catch {}
+      } else if (!/^https?:\/\//i.test(cover)) {
+        try {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(cover, 60 * 10);
+          if (!error) cover = data?.signedUrl ?? cover;
+        } catch {}
+      }
     }
 
     return {

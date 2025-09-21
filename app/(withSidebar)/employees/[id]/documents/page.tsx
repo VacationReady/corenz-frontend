@@ -399,7 +399,11 @@ export default function EmployeeDocumentsPage() {
                     </TableCell>
                     <TableCell>
                       {doc.requiresSignature ? (
-                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">Required</span>
+                        signed ? (
+                          <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs">Signed</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">Required</span>
+                        )
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
@@ -652,7 +656,7 @@ export default function EmployeeDocumentsPage() {
                   </div>
                 )}
                 {(selectedDoc as any).requiresSignature && signed && (
-                  <p className="text-green-600 text-sm">✅ Signed</p>
+                  <p className="text-green-600 text-sm">✅ Signed on {ackDate?.toLocaleString() || new Date().toLocaleString()}</p>
                 )}
               </div>
             )}

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 type SignRequestBody = {
   documentId: string;
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
         SignatureDepartments: true,
         SignatureJobRoles: true,
         SignatureEmployees: true,
+        SignatureFields: true,
       },
     });
     if (!document) {
@@ -141,10 +143,12 @@ export async function POST(req: NextRequest) {
     }
 
     let artifactPath: string | null = null;
+    let drawnPngBuffer: Buffer | null = null;
     if (method === "DRAWN" && drawnDataUrl) {
       const [meta, base64] = drawnDataUrl.split(",");
       const extension = meta.includes("image/png") ? "png" : "png";
       const buffer = Buffer.from(base64, "base64");
+      drawnPngBuffer = buffer;
       const fileName = `${companyId}/signatures/${documentId}/${employee.id}-${Date.now()}.${extension}`;
       const { error: uploadError } = await supabase.storage
         .from("documents")
@@ -162,7 +166,7 @@ export async function POST(req: NextRequest) {
     const ipAddress = req.headers.get("x-forwarded-for") || req.ip || undefined;
     const userAgent = req.headers.get("user-agent") || undefined;
 
-    await prisma.documentSignatureArtifact.create({
+    const createdArtifact = await prisma.documentSignatureArtifact.create({
       data: {
         id: crypto.randomUUID(),
         documentId,
@@ -191,6 +195,60 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // If a drawn signature and a single field target, stamp the PDF visually and upload a new version
+    try {
+      // Only stamp if we have a PDF and either a drawn image or typed text
+      if (method === "DRAWN") {
+        // Download original PDF bytes using storage path to avoid signed URL complexity
+        const download = await supabase.storage.from("documents").download(document.path);
+        const origFile = download.data;
+        if (origFile) {
+          const origBytes = await origFile.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(origBytes);
+
+          const fieldsForEmployeeAll = (document.SignatureFields || []).filter((f) => !f.assignedEmployeeId || f.assignedEmployeeId === employee.id);
+          const fieldsForEmployee = fieldId
+            ? fieldsForEmployeeAll.filter((f) => f.id === fieldId)
+            : fieldsForEmployeeAll;
+
+          const pages = pdfDoc.getPages();
+          const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          let pngImage = null as any;
+          if (drawnPngBuffer) {
+            pngImage = await pdfDoc.embedPng(drawnPngBuffer);
+          }
+
+          for (const f of fieldsForEmployee) {
+            const pageIndex = Math.max(0, Math.min(f.pageNumber - 1, pages.length - 1));
+            const page = pages[pageIndex];
+            const { width: pw, height: ph } = page.getSize();
+            const x = f.x * pw;
+            const y = ph - f.y * ph; // PDF coordinate space
+            const w = f.width * pw;
+            const h = f.height * ph;
+
+            if (pngImage) {
+              page.drawImage(pngImage, { x: x - w / 2, y: y - h / 2, width: w, height: h });
+            }
+            page.drawText(new Date().toLocaleString(), { x: x - w / 2 + 4, y: y - h / 2 + 4, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
+          }
+
+          const stampedBytes = await pdfDoc.save();
+          const stampedPath = `${companyId}/documents/${documentId}/stamped-${Date.now()}.pdf`;
+          const { error: stampedErr } = await supabase.storage
+            .from("documents")
+            .upload(stampedPath, Buffer.from(stampedBytes), { contentType: "application/pdf" });
+          if (!stampedErr) {
+            await prisma.document.update({ where: { id: documentId }, data: { path: stampedPath } });
+            const { data: signedUrlData } = await supabase.storage.from("documents").createSignedUrl(stampedPath, 60 * 5);
+            (document as any).stampedUrl = signedUrlData?.signedUrl;
+          }
+        }
+      }
+    } catch (stampErr) {
+      console.warn("PDF stamping failed (non-fatal):", stampErr);
+    }
+
     // Create a signed URL for the artifact (if any) for immediate preview
     let artifactUrl: string | null = null;
     if (artifactPath) {
@@ -209,6 +267,7 @@ export async function POST(req: NextRequest) {
         artifactUrl,
         signedAt: new Date().toISOString(),
       },
+      stampedUrl: (document as any).stampedUrl || null,
     });
   } catch (error) {
     console.error("Document sign error:", error);

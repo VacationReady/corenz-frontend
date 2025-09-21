@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend"; // assumes Resend configured
+import { renderPeopleCoreEmail } from "@/lib/email/template";
 import { sendExitInterviewFormInvite } from "@/lib/email/send";
 import { isTodayInLondon } from "@/lib/time";
 
@@ -106,23 +107,38 @@ async function processCompany(companyId: string) {
       }
 
       for (const recipient of recipients) {
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: `${item.type} for ${employeeName} expires soon`,
+          title: "Upcoming Expiry Alert",
+          intro: [
+            "Hello,",
+            "This is a reminder that the following item is expiring soon:",
+          ],
+          sections: [
+            {
+              title: "Expiry Details",
+              description: [
+                `Employee: ${employeeName}`,
+                `Type: ${item.type}`,
+                `Item: ${item.itemName}`,
+                `Expiry Date: ${item.expiryDate.toDateString()}`,
+                `Days Remaining: ${daysRemaining} day(s)`,
+              ],
+            },
+          ],
+          outro: [
+            "Please take action if required.",
+            "Regards,",
+            "PeopleCore HRIS",
+          ],
+        });
+
         await resend.emails.send({
           from: "noreply@peoplecore.co.nz",
           to: recipient,
           subject: `Expiry Alert: ${item.type} for ${employeeName}`,
-          html: `
-              <p>Hello,</p>
-              <p>This is a reminder that the following item is expiring soon:</p>
-              <ul>
-                <li><strong>Employee:</strong> ${employeeName}</li>
-                <li><strong>Type:</strong> ${item.type}</li>
-                <li><strong>Item:</strong> ${item.itemName}</li>
-                <li><strong>Expiry Date:</strong> ${item.expiryDate.toDateString()}</li>
-                <li><strong>Days Remaining:</strong> ${daysRemaining} day(s)</li>
-              </ul>
-              <p>Please take action if required.</p>
-              <p>Regards,<br/>PeopleCore HRIS</p>
-            `,
+          html,
+          text,
         });
         console.log(
           `✅ Sent expiry alert to ${recipient} for ${employeeName} (${item.type})`,

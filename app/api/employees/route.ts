@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { Resend } from "resend";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
@@ -9,6 +8,8 @@ import { authOptions } from "@/lib/auth-options";
 import { canAccessEmployee } from "@/lib/permissions";
 import { z } from "zod";
 import supabase from "@/lib/supabase-admin";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 const optionalTrimmedString = z.preprocess(
   (val) => {
@@ -73,8 +74,6 @@ const createEmployeeSchema = z.object({
     z.number().nonnegative().optional(),
   ),
 });
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ GET: Return employees with their user data for listing
 export async function GET(req: Request) {
@@ -211,6 +210,7 @@ export async function POST(req: Request) {
     }
 
     const companyId = session.user.companyId;
+    const appBaseUrl = getAppBaseUrl();
 
     const {
       firstName,
@@ -367,18 +367,33 @@ export async function POST(req: Request) {
     const redirectPath = normalizedTemplateId
       ? `/${employee.id}/onboarding`
       : `/dashboard`;
-    const activationLink = `${process.env.NEXT_PUBLIC_APP_URL}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+    const activationLink = `${appBaseUrl}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
 
     if (sendInviteNow) {
+      const { html, text } = renderPeopleCoreEmail({
+        preheader: "Activate your PeopleCore account",
+        title: "Activate Your PeopleCore Account",
+        intro: [
+          `Hi ${firstName},`,
+          "Welcome to PeopleCore! Use the link below to activate your account and get started.",
+        ],
+        ctas: {
+          label: "Activate Account",
+          href: activationLink,
+        },
+        outro: [
+          "If you weren't expecting this email, you can ignore it.",
+          "Thank you,",
+          "The PeopleCore Team",
+        ],
+      });
+
       await resend.emails.send({
         from: "noreply@peoplecore.co.nz",
         to: email,
         subject: "Activate Your PeopleCore Account",
-        html: `
-          <p>Hi ${firstName},</p>
-          <p>Welcome to PeopleCore! Please click the link below to activate your account and get started:</p>
-          <p><a href="${activationLink}">Activate Your Account</a></p>
-        `,
+        html,
+        text,
       });
     }
 

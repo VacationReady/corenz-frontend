@@ -3,6 +3,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { resend } from "@/lib/resend";
+import { renderPeopleCoreEmail } from "@/lib/email/template";
 
 export default async function handler(
   req: NextApiRequest,
@@ -93,18 +95,25 @@ export default async function handler(
         .map((u) => u.email)
         .filter(Boolean) as string[];
       if (recipients.length) {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "noreply@peoplecore.co.nz",
-            to: recipients,
-            subject: "User activated their account",
-            html: `<p>${user.firstName || ""} ${user.lastName || ""} (${user.email}) has activated their account.</p>`,
-          }),
+        const actorName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: `${actorName} activated their account`,
+          title: "Account Activation Notice",
+          intro: [
+            `Hello,`,
+            `${actorName} (${user.email}) has activated their PeopleCore account.`,
+          ],
+          outro: [
+            "You are receiving this notification because you are listed as an administrator.",
+          ],
+        });
+
+        await resend.emails.send({
+          from: "noreply@peoplecore.co.nz",
+          to: recipients,
+          subject: "User activated their account",
+          html,
+          text,
         });
       }
     } catch (e) {

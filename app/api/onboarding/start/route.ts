@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 1. By Job Role
@@ -157,22 +158,40 @@ export async function POST(req: NextRequest) {
 
     if (sendEmail) {
       try {
-        const baseUrl =
-          process.env.NEXT_PUBLIC_APP_URL ||
-          process.env.NEXT_PUBLIC_BASE_URL ||
-          "";
-        const onboardingLink = `${baseUrl}/${employee.id}/onboarding`;
+        const baseUrl = getAppBaseUrl();
         const loginWithNext = `${baseUrl}/login?next=/${employee.id}/onboarding`;
+
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: "Your PeopleCore onboarding is ready",
+          title: "Welcome to PeopleCore",
+          intro: [
+            `Hi ${user.firstName || "there"},`,
+            "Your onboarding journey has started. Log in to review your tasks and begin working through them.",
+          ],
+          sections: [
+            {
+              description: [
+                "You can access your personalised onboarding checklist at any time from PeopleCore.",
+              ],
+            },
+          ],
+          ctas: {
+            label: "Start Onboarding",
+            href: loginWithNext,
+          },
+          outro: [
+            "If you need any help, reach out to your HR team.",
+            "Thank you,",
+            "The PeopleCore Team",
+          ],
+        });
+
         await resend.emails.send({
           from: "PeopleCore Notifications <noreply@peoplecore.co.nz>",
           to: user.email,
           subject: "Welcome to PeopleCore – Your onboarding is ready",
-          html: `
-            <p>Hi ${user.firstName || "there"},</p>
-            <p>Your onboarding has been started. Please log in and complete your onboarding steps.</p>
-            <p><a href="${loginWithNext}">Login to start onboarding</a></p>
-            <p>Thank you,<br/>HR Team</p>
-          `,
+          html,
+          text,
         });
       } catch (e) {
         console.error("Failed to send onboarding email:", e);

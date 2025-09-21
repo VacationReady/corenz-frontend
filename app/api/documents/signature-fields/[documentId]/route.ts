@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl } from "@/lib/email/template";
+import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
 
 export async function GET(
   req: NextRequest,
@@ -120,7 +123,7 @@ export async function POST(
         select: { id: true, email: true, name: true },
       });
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
+      const baseUrl = getAppBaseUrl();
       const link = document.employeeId
         ? `${baseUrl}/employees/${document.employeeId}/documents?open=${document.id}`
         : `${baseUrl}/documents?open=${document.id}`;
@@ -132,25 +135,22 @@ export async function POST(
         await Promise.all(
           chunk.map(async (u) => {
             try {
-              const resp = await fetch("https://api.resend.com/emails", {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  from: "noreply@peoplecore.co.nz",
-                  to: u.email,
-                  subject: "Document Requires Your Signature",
-                  html: `
-                    <p>Hi ${u.name || "there"},</p>
-                    <p>The document <b>${document.name}</b> requires your signature.</p>
-                    ${document.signatureDueAt ? `<p>Due by: <b>${new Date(document.signatureDueAt).toLocaleString()}</b></p>` : ""}
-                    <p><a href="${link}">Open Document</a></p>
-                  `,
-                }),
+              const { subject, html, text } = buildDocumentNotificationEmail({
+                recipientName: u.name,
+                documentName: document.name,
+                category: document.category,
+                docLink: link,
+                requiresSignature: true,
+                signatureDueAt: document.signatureDueAt,
               });
-              await resp.json();
+
+              await resend.emails.send({
+                from: "noreply@peoplecore.co.nz",
+                to: u.email,
+                subject,
+                html,
+                text,
+              });
             } catch (err) {
               console.error("Resend (placement notify) error:", err);
             }

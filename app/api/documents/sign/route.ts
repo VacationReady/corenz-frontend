@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -198,10 +199,27 @@ export async function POST(req: NextRequest) {
     // If a drawn signature and a single field target, stamp the PDF visually and upload a new version
     try {
       if (method === "DRAWN") {
-        const download = await supabase.storage.from("documents").download(document.path);
-        const origFile = download.data;
-        if (origFile) {
-          const origBytes = await origFile.arrayBuffer();
+        let origArrayBuffer: ArrayBuffer | null = null;
+        try {
+          const download = await supabase.storage.from("documents").download(document.path);
+          const origFile = download.data;
+          if (origFile) {
+            origArrayBuffer = await origFile.arrayBuffer();
+          }
+        } catch {}
+        if (!origArrayBuffer) {
+          try {
+            const { data: signed } = await supabase.storage
+              .from("documents")
+              .createSignedUrl(document.path, 60);
+            if (signed?.signedUrl) {
+              const resp = await fetch(signed.signedUrl);
+              origArrayBuffer = await resp.arrayBuffer();
+            }
+          } catch {}
+        }
+        if (origArrayBuffer) {
+          const origBytes = origArrayBuffer;
           let pdfDoc: PDFDocument;
           let isPdf = true;
           try {

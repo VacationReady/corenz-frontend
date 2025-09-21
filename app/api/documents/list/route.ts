@@ -156,6 +156,7 @@ export async function GET(req: Request) {
       SignatureEmployees: true,
       SignatureDepartments: true,
       SignatureJobRoles: true,
+      SignatureArtifacts: true,
     },
     orderBy: { createdAt: "desc" },
   });

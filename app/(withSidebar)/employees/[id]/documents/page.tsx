@@ -43,7 +43,6 @@ import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
 import SignatureCapture from "@/components/documents/SignatureCapture";
-import SignatureCapture from "@/components/documents/SignatureCapture";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };

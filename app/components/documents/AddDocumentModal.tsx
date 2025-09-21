@@ -70,6 +70,7 @@ export default function AddDocumentModal({
   const [signerEmployees, setSignerEmployees] = useState<string[]>([]);
   const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
   const [pendingFields, setPendingFields] = useState<any[] | null>(null);
+  const [objectUrl, setObjectUrl] = useState<string>("");
 
   const user = session?.user;
 
@@ -202,6 +203,69 @@ export default function AddDocumentModal({
       onClose();
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create a local object URL for preview when a file is selected
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file as any);
+      setObjectUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setObjectUrl("");
+    }
+  }, [file]);
+
+  // Upload routine that can be triggered after local placement save
+  const uploadWithPending = async (fields: any[] | null) => {
+    if (!file || !title || !session?.user?.id) return;
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", title);
+      formData.append("category", category || "");
+      formData.append("description", description || "");
+      formData.append("employeeId", type === "employee" ? employeeId : "");
+      formData.append("type", type || "");
+      formData.append("canViewAdmin", String(canViewAdmin));
+      formData.append("canViewManager", String(canViewManager));
+      formData.append("canViewEmployee", String(canViewEmployee));
+      formData.append("requiresAck", String(requiresAck));
+      formData.append("requiresSignature", String(requiresSignature));
+      if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
+      if (type === "company") {
+        formData.append("departments", JSON.stringify(selectedDepartments.includes("all") ? [] : selectedDepartments));
+        formData.append("jobRoles", JSON.stringify(selectedJobRoles.includes("all") ? [] : selectedJobRoles));
+        formData.append("signerDepartments", JSON.stringify(signerDepartments));
+        formData.append("signerJobRoles", JSON.stringify(signerJobRoles));
+      }
+      if (type === "employee" && employeeId) {
+        formData.append("signerEmployees", JSON.stringify([employeeId]));
+      } else if (signerEmployees.length) {
+        formData.append("signerEmployees", JSON.stringify(signerEmployees));
+      }
+      // No defer here; local placement happens pre-upload
+      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || "Upload failed");
+      }
+      const payload = await res.json();
+      if (requiresSignature && fields && fields.length > 0 && payload?.Document?.id) {
+        await fetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(fields),
+        });
+      }
+      toast.success("Document uploaded successfully");
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -432,16 +496,35 @@ export default function AddDocumentModal({
           />
         </div>
 
-        <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? "Uploading..." : "Upload Document"}
-        </Button>
+        {/* Primary action: Preview when requiresSignature, else Upload */}
+        {requiresSignature ? (
+          <div className="flex items-center justify-between">
+            <Button
+              variant="secondary"
+              disabled={!file}
+              onClick={() => setIsPlacementBeforeSendOpen(true)}
+            >
+              Preview & Place Signature Fields
+            </Button>
+            <Button
+              onClick={() => uploadWithPending(pendingFields)}
+              disabled={loading || !file}
+            >
+              {loading ? "Uploading..." : "Upload"}
+            </Button>
+          </div>
+        ) : (
+          <Button onClick={handleSubmit} disabled={loading || !file}>
+            {loading ? "Uploading..." : "Upload Document"}
+          </Button>
+        )}
       </DialogContent>
       {/* Placement before upload (local) */}
       <FieldPlacementModal
         isOpen={isPlacementBeforeSendOpen}
         onClose={() => setIsPlacementBeforeSendOpen(false)}
         documentId={"local"}
-        url={""}
+        url={objectUrl}
         saveMode="local"
         onSaveFields={(f) => setPendingFields(f)}
       />

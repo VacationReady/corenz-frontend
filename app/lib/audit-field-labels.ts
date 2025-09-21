@@ -19,6 +19,7 @@ export const fieldLabels: Record<string, string> = {
   pronouns: "Pronouns",
   genderOptionId: "Gender",
   bankAccountNumber: "Bank account number",
+  irdNumber: "IRD number",
   taxCode: "Tax code",
   kiwiSaverEnrolled: "KiwiSaver enrolled",
   kiwiSaverContribution: "KiwiSaver contribution",

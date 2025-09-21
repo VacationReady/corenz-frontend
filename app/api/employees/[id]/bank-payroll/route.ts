@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
+import {
+  formatBankAccountNumber,
+  isValidIrdNumber,
+  isValidNzBankAccountNumber,
+  normalizeBankAccountNumber,
+  normalizeIrdNumber,
+} from "@/lib/utils";
+import { TaxCode } from "@prisma/client";
 
 export async function PATCH(
   req: Request,
@@ -30,6 +38,7 @@ export async function PATCH(
     
     const allowed = [
       "bankAccountNumber",
+      "irdNumber",
       "taxCode",
       "kiwiSaverEnrolled",
       "kiwiSaverContribution",
@@ -39,6 +48,74 @@ export async function PATCH(
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(updateFields, key)) {
         updates[key] = updateFields[key as string];
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, "bankAccountNumber")) {
+      const raw = updates.bankAccountNumber;
+      if (raw === null || raw === undefined) {
+        updates.bankAccountNumber = null;
+      } else if (typeof raw === "string") {
+        const normalized = normalizeBankAccountNumber(raw);
+        if (!normalized) {
+          updates.bankAccountNumber = null;
+        } else if (!isValidNzBankAccountNumber(normalized)) {
+          return NextResponse.json(
+            { error: "Invalid bank account number" },
+            { status: 400 },
+          );
+        } else {
+          updates.bankAccountNumber = formatBankAccountNumber(normalized);
+        }
+      } else {
+        return NextResponse.json(
+          { error: "Invalid bank account number" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, "irdNumber")) {
+      const raw = updates.irdNumber;
+      if (raw === null || raw === undefined) {
+        updates.irdNumber = null;
+      } else if (typeof raw === "string") {
+        const normalized = normalizeIrdNumber(raw);
+        if (!normalized) {
+          updates.irdNumber = null;
+        } else if (!isValidIrdNumber(normalized)) {
+          return NextResponse.json(
+            { error: "Invalid IRD number" },
+            { status: 400 },
+          );
+        } else {
+          updates.irdNumber = normalized;
+        }
+      } else {
+        return NextResponse.json(
+          { error: "Invalid IRD number" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, "taxCode")) {
+      const value = updates.taxCode;
+      if (value === null || value === undefined || value === "") {
+        updates.taxCode = null;
+      } else if (typeof value === "string") {
+        if (!Object.values(TaxCode).includes(value as TaxCode)) {
+          return NextResponse.json(
+            { error: "Invalid tax code" },
+            { status: 400 },
+          );
+        }
+        updates.taxCode = value as TaxCode;
+      } else {
+        return NextResponse.json(
+          { error: "Invalid tax code" },
+          { status: 400 },
+        );
       }
     }
 
@@ -108,6 +185,7 @@ export async function GET(
 
     return NextResponse.json({
       bankAccountNumber: employee.bankAccountNumber,
+      irdNumber: employee.irdNumber,
       taxCode: employee.taxCode,
       kiwiSaverEnrolled: employee.kiwiSaverEnrolled,
       kiwiSaverContribution: employee.kiwiSaverContribution,

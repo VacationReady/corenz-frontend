@@ -327,6 +327,11 @@ describe("Audit Logs Notification Integration", () => {
           newValue: "****5678",
         },
         {
+          field: "irdNumber",
+          oldValue: "12345678",
+          newValue: "123456789",
+        },
+        {
           field: "taxCode",
           oldValue: "M",
           newValue: "ME",
@@ -335,11 +340,12 @@ describe("Audit Logs Notification Integration", () => {
 
       const reasons = {
         bankAccountNumber: "Changed bank",
+        irdNumber: "Validated with IRD",
         taxCode: "Updated for accuracy",
       };
 
       mockPrisma.employeeAuditLog.createMany.mock.mockImplementationOnce(
-        () => Promise.resolve({ count: 2 })
+        () => Promise.resolve({ count: 3 })
       );
 
       mockDispatchNotifications.mock.mockImplementationOnce(

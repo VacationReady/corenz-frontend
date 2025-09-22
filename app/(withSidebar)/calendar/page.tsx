@@ -531,15 +531,17 @@ export default function CalendarPage() {
               variant={currentView === "dayGridMonth" ? "primary" : "secondary"}
               size="sm"
               onClick={() => handleChangeView("dayGridMonth")}
+              icon={<CalendarDays className="h-4 w-4" />}
             >
-              <CalendarDays className="h-4 w-4 mr-2" /> Month
+              Month
             </Button>
             <Button
               variant={currentView === "listMonth" ? "primary" : "secondary"}
               size="sm"
               onClick={() => handleChangeView("listMonth")}
+              icon={<List className="h-4 w-4" />}
             >
-              <List className="h-4 w-4 mr-2" /> List
+              List
             </Button>
             <div className="ml-2 text-sm text-gray-700 font-medium">{currentTitle}</div>
             <div className="ml-2 flex items-center gap-2">
@@ -603,8 +605,9 @@ export default function CalendarPage() {
                   toast.error("Failed to copy link");
                 }
               }}
+              icon={<Copy className="h-4 w-4" />}
             >
-              <Copy className="h-4 w-4 mr-2" /> Copy link
+              Copy link
             </Button>
           </div>
         </div>
@@ -682,8 +685,9 @@ export default function CalendarPage() {
                     variant="danger"
                     onClick={() => deleteBlackoutForDate(inspectorDate)}
                     aria-label="Delete blackout day"
+                    icon={<Trash2 className="h-4 w-4" />}
                   >
-                    <Trash2 className="h-4 w-4 mr-1" /> Delete blackout
+                    Delete blackout
                   </Button>
                 ) : null;
               })()}

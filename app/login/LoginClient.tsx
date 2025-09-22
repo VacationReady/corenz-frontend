@@ -7,6 +7,7 @@ import { useState, FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { LogIn } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 const MicrosoftIcon = () => (
@@ -120,7 +121,13 @@ export default function LoginClient() {
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full" loading={loading}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={loading}
+            loadingText="Signing in"
+            icon={<LogIn className="h-4 w-4" />}
+          >
             Sign In
           </Button>
         </form>
@@ -136,7 +143,9 @@ export default function LoginClient() {
 
         <div className="my-6 flex items-center">
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-          <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">Or</span>
+          <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">
+            Or
+          </span>
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </div>
 

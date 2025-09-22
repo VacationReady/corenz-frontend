@@ -110,6 +110,9 @@ export default function CreateNewsPostPage() {
   }>({ type: "all" });
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingAction, setSubmittingAction] = useState<
+    "draft" | "publish" | null
+  >(null);
   const [showPreview, setShowPreview] = useState(false);
   const handleAttachmentUpload = (
     file: File,
@@ -176,7 +179,10 @@ export default function CreateNewsPostPage() {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent, asDraft = false) => {
+  const handleSubmit = async (
+    e: React.FormEvent | React.MouseEvent,
+    asDraft = false,
+  ) => {
     e.preventDefault();
 
     if (!validateForm()) return;
@@ -210,6 +216,7 @@ export default function CreateNewsPostPage() {
       .map((item) => item.meta as NewsUploadMeta);
 
     setIsSubmitting(true);
+    setSubmittingAction(asDraft ? "draft" : "publish");
 
     try {
       const res = await fetch("/api/news", {
@@ -249,6 +256,7 @@ export default function CreateNewsPostPage() {
       console.error(error);
     } finally {
       setIsSubmitting(false);
+      setSubmittingAction(null);
     }
   };
 
@@ -296,49 +304,38 @@ export default function CreateNewsPostPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                icon={<Eye className="w-4 h-4" />}
+                className={cn(showPreview && "bg-muted")}
                 onClick={() => setShowPreview(!showPreview)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
-                  "border border-border hover:bg-muted",
-                  showPreview && "bg-muted"
-                )}
-                type="button"
               >
-                <Eye className="w-4 h-4" />
-                <span>Preview</span>
-              </button>
-              <button
+                Preview
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<Clock className="w-4 h-4" />}
                 onClick={(e) => handleSubmit(e, true)}
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-all disabled:opacity-50"
+                loading={isSubmitting && submittingAction === "draft"}
+                loadingText="Saving draft..."
+                disabled={isSubmitting && submittingAction !== "draft"}
+              >
+                Save Draft
+              </Button>
+              <Button
                 type="button"
-              >
-                <Clock className="w-4 h-4" />
-                <span>Save Draft</span>
-              </button>
-              <button
+                variant="primary"
+                icon={<Send className="w-4 h-4" />}
                 onClick={(e) => handleSubmit(e, false)}
-                disabled={isSubmitting}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all",
-                  "bg-gradient-to-r from-editorial-purple to-editorial-blue text-white",
-                  "hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:scale-100"
-                )}
-                type="submit"
+                loading={isSubmitting && submittingAction === "publish"}
+                loadingText="Publishing..."
+                disabled={isSubmitting && submittingAction !== "publish"}
+                className="bg-gradient-to-r from-editorial-purple to-editorial-blue text-white shadow-lg hover:shadow-xl hover:scale-105 disabled:scale-100"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Publishing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Publish Now</span>
-                  </>
-                )}
-              </button>
+                Publish Now
+              </Button>
             </div>
           </div>
         </div>

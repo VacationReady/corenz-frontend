@@ -2,18 +2,26 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 export default function ActivateClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get("token") ?? "";
   const redirect = searchParams?.get("redirect") ?? "/dashboard";
+  const { branding } = useTenantBranding();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const brandName = branding.shortName || branding.name;
+  const brandInitials = branding.initials || brandName.slice(0, 2).toUpperCase();
+  const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
+  const activationHeadline = `Activate Your ${brandName} Account`;
+  const activationSubtitle = `Set your password to get started with ${brandName}`;
 
   // Derived validation flags
   const hasMinLength = password.length >= 6;
@@ -68,33 +76,23 @@ export default function ActivateClient() {
       <div className="w-full max-w-md bg-white p-8 shadow-xl rounded-2xl">
         <div className="text-center mb-6">
           <div className="flex justify-center mb-3">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect width="100" height="100" rx="20" fill="#000" />
-              <text
-                x="50%"
-                y="55%"
-                textAnchor="middle"
-                fill="white"
-                fontSize="28"
-                fontFamily="Arial, sans-serif"
-                dy=".3em"
-              >
-                PC
-              </text>
-            </svg>
+            {brandLogo ? (
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-900/5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brandLogo}
+                  alt={`${brandName} logo`}
+                  className="h-10 w-10 object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-white text-xl font-semibold">
+                {brandInitials}
+              </div>
+            )}
           </div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Activate Your PeopleCore Account
-          </h1>
-          <p className="text-sm text-gray-500">
-            Set your password to get started
-          </p>
+          <h1 className="text-xl font-bold text-gray-900">{activationHeadline}</h1>
+          <p className="text-sm text-gray-500">{activationSubtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

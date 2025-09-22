@@ -5,9 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 export default function ManagerSidebar() {
+  const { branding } = useTenantBranding();
   const pathname = usePathname();
+  const brandName = branding.shortName || branding.name;
+  const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
 
   const navItems = [
     { label: "Dashboard", href: "/dashboard" },
@@ -24,13 +28,22 @@ export default function ManagerSidebar() {
         {/* Logo Section */}
         <div className="px-8 py-8 border-b border-glass">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
-              <span className="text-primary-foreground font-bold text-lg">
-                P
-              </span>
+            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm overflow-hidden">
+              {brandLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={brandLogo}
+                  alt={`${brandName} logo`}
+                  className="h-8 w-8 object-contain"
+                />
+              ) : (
+                <span className="text-primary-foreground font-bold text-lg">
+                  {branding.initials}
+                </span>
+              )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">PeopleCore</h2>
+              <h2 className="text-2xl font-bold text-foreground">{brandName}</h2>
               <p className="text-sm text-muted-foreground">Manager Panel</p>
             </div>
           </div>

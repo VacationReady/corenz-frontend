@@ -7,6 +7,7 @@ import { useState, FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 const MicrosoftIcon = () => (
   <span className="grid h-5 w-5 grid-cols-2 gap-[2px]">
@@ -20,10 +21,17 @@ const MicrosoftIcon = () => (
 export default function LoginClient() {
   const router = useRouter();
   const search = useSearchParams();
+  const { branding } = useTenantBranding();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const brandName = branding.shortName || branding.name;
+  const logoSrc = branding.logoUrl || branding.squareLogoUrl || null;
+  const loginHeading = branding.loginHeadline?.trim() || brandName;
+  const loginSubtitle =
+    branding.loginSubtitle?.trim() || `Sign in to your ${brandName} account`;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -69,9 +77,19 @@ export default function LoginClient() {
     <div className="flex min-h-screen items-center justify-center bg-surface dark:bg-surface-dark px-4">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-dark p-8 shadow-sm transition-colors">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-primary">PeopleCore</h1>
+          {logoSrc ? (
+            <div className="mb-3 flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoSrc}
+                alt={`${brandName} logo`}
+                className="h-12 w-auto"
+              />
+            </div>
+          ) : null}
+          <h1 className="text-2xl font-bold text-primary">{loginHeading}</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            Sign in to your account
+            {loginSubtitle}
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -6,11 +6,12 @@ import { POST as ReportsQueryPOST } from "@/app/api/reports/query/route";
 // Mocks
 const mockGetServerSession = mock.fn();
 const mockPrismaFindMany = mock.fn();
+const mockPrismaCount = mock.fn();
 const mockPrisma = new Proxy(
   {},
   {
-    get: (_target, prop) => {
-      return { findMany: mockPrismaFindMany };
+    get: () => {
+      return { findMany: mockPrismaFindMany, count: mockPrismaCount };
     },
   },
 );
@@ -27,6 +28,8 @@ describe("/api/reports/query route", () => {
   beforeEach(() => {
     mockGetServerSession.mock.resetCalls();
     mockPrismaFindMany.mock.resetCalls();
+    mockPrismaCount.mock.resetCalls();
+    mockPrismaCount.mock.mockImplementation(() => Promise.resolve(0));
   });
 
   it("rejects unauthenticated users", async () => {
@@ -44,6 +47,7 @@ describe("/api/reports/query route", () => {
       Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
     );
     mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+    mockPrismaCount.mock.mockImplementationOnce(() => Promise.resolve(4));
 
     const req = new NextRequest("http://localhost:3000/api/reports/query", {
       method: "POST",
@@ -63,6 +67,11 @@ describe("/api/reports/query route", () => {
     const args = mockPrismaFindMany.mock.calls[0].arguments[0];
     assert(args);
     assert.deepStrictEqual(args.where.email, { contains: "@corp", mode: "insensitive" });
+    const countArgs = mockPrismaCount.mock.calls[0].arguments[0];
+    assert(countArgs);
+    assert.deepStrictEqual(countArgs.where.email, { contains: "@corp", mode: "insensitive" });
+    const json = await res.json();
+    assert.strictEqual(json.total, 4);
   });
 
   it("maps number and boolean operators and nested orderBy", async () => {
@@ -70,6 +79,7 @@ describe("/api/reports/query route", () => {
       Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
     );
     mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+    mockPrismaCount.mock.mockImplementationOnce(() => Promise.resolve(2));
 
     const req = new NextRequest("http://localhost:3000/api/reports/query", {
       method: "POST",
@@ -90,6 +100,8 @@ describe("/api/reports/query route", () => {
     assert.deepStrictEqual(args.where.salaryAmount, { gt: 50000 });
     assert.deepStrictEqual(args.where.isActive, { equals: true });
     assert.deepStrictEqual(args.orderBy, { salaryAmount: "desc" });
+    const json = await res.json();
+    assert.strictEqual(json.total, 2);
   });
 
   it("maps date_between operator correctly", async () => {
@@ -97,6 +109,7 @@ describe("/api/reports/query route", () => {
       Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
     );
     mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+    mockPrismaCount.mock.mockImplementationOnce(() => Promise.resolve(1));
 
     const req = new NextRequest("http://localhost:3000/api/reports/query", {
       method: "POST",
@@ -114,6 +127,31 @@ describe("/api/reports/query route", () => {
     assert(args);
     assert(args.where.startDate.gte instanceof Date);
     assert(args.where.startDate.lte instanceof Date);
+    const json = await res.json();
+    assert.strictEqual(json.total, 1);
+  });
+
+  it("returns total count alongside page data", async () => {
+    mockGetServerSession.mock.mockImplementationOnce(() =>
+      Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
+    );
+    const rows = [{ id: "u1" }, { id: "u2" }];
+    mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve(rows));
+    mockPrismaCount.mock.mockImplementationOnce(() => Promise.resolve(15));
+
+    const req = new NextRequest("http://localhost:3000/api/reports/query", {
+      method: "POST",
+      body: JSON.stringify({
+        selectedFields: ["User.id"],
+        pagination: { page: 2, limit: 2 },
+      }),
+    });
+
+    const res = await ReportsQueryPOST(req);
+    assert.strictEqual(res.status, 200);
+    const json = await res.json();
+    assert.strictEqual(json.total, 15);
+    assert.deepStrictEqual(json.data, rows);
   });
 });
 
@@ -146,6 +184,7 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
         prisma: {
           User: {
             findMany: async (_args: any) => [{ id: "u1", email: "a@b.com" }],
+            count: async () => 1,
           },
         },
       };
@@ -183,9 +222,10 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
   assert.equal(res.status, 200);
   const data = await res.json();
   assert.equal(data.status, "success");
-  assert.ok(data.data.User);
-  assert.equal(data.data.User.length, 1);
-  assert.equal(Object.keys(data.data.User[0]).includes("password"), false);
+  assert.ok(Array.isArray(data.data));
+  assert.equal(data.data.length, 1);
+  assert.equal(Object.keys(data.data[0]).includes("password"), false);
+  assert.equal(data.total, 1);
   (Module as any)._load = originalLoad;
 });
 
@@ -201,6 +241,7 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
               capturedWhere = args?.where;
               return [{ id: "u1", email: "a@b.com" }];
             },
+            count: async (_args: any) => 1,
           },
         },
       };

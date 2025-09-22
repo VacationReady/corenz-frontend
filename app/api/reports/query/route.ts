@@ -110,34 +110,48 @@ export async function POST(req: Request) {
 			sort: translatedSort,
 		});
 
-		if (queries.length === 0) {
-			return NextResponse.json({ status: "success", message: "No data", data: [] });
-		}
+                if (queries.length === 0) {
+                        return NextResponse.json({ status: "success", message: "No data", data: [], total: 0 });
+                }
 
-		// Single primary dataset
-		const primary = queries[0];
-		const model = primary.model as keyof typeof prisma;
-		// @ts-ignore dynamic access
-		let results = await (prisma[model] as any).findMany(primary.prismaQuery);
-		results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
+                // Single primary dataset
+                const primary = queries[0];
+                const model = primary.model as keyof typeof prisma;
 
-		return NextResponse.json({
-			status: "success",
-			message: "Report generated successfully",
-			data: results,
-		});
+                const countArgs = primary.prismaQuery.where
+                        ? { where: primary.prismaQuery.where }
+                        : {};
+
+                // @ts-ignore dynamic access
+                const total = await (prisma[model] as any).count(countArgs);
+                // @ts-ignore dynamic access
+                let results = await (prisma[model] as any).findMany(primary.prismaQuery);
+                results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
+
+                return NextResponse.json({
+                        status: "success",
+                        message: "Report generated successfully",
+                        data: results,
+                        total,
+                });
 	} catch (error: any) {
 		console.error("🔥 Error in report query API:", error);
 		if (error instanceof z.ZodError) {
-			return NextResponse.json(
-				{ status: "error", message: "Invalid request body", details: error.flatten(), data: [] },
-				{ status: 400 },
-			);
-		}
-		return NextResponse.json(
-			{ status: "error", message: error?.message || "Internal server error", data: [] },
-			{ status: 500 },
-		);
-	}
+                        return NextResponse.json(
+                                {
+                                        status: "error",
+                                        message: "Invalid request body",
+                                        details: error.flatten(),
+                                        data: [],
+                                        total: 0,
+                                },
+                                { status: 400 },
+                        );
+                }
+                return NextResponse.json(
+                        { status: "error", message: error?.message || "Internal server error", data: [], total: 0 },
+                        { status: 500 },
+                );
+        }
 }
 

@@ -68,6 +68,7 @@ export default function ReportsPreviewClient() {
   const [loading, setLoading] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
 
+  // PII-aware field metadata (label + isPII)
   const [fieldMetadata, setFieldMetadata] = useState<
     Record<string, FieldMetadata>
   >(() => {
@@ -82,15 +83,18 @@ export default function ReportsPreviewClient() {
   const [showPIIModal, setShowPIIModal] = useState(false);
   const [piiAcknowledged, setPiiAcknowledged] = useState(false);
 
+  // Client-side filters/sort config from saved reports
   const [activeFilters, setActiveFilters] = useState<any[]>([]);
   const [activeSort, setActiveSort] = useState<{
     field: string;
     direction?: "asc" | "desc";
   } | null>(null);
-  const [pagination, setPagination] = useState<{ page?: number; limit?: number}>({
-    page: 1,
-    limit: 50,
-  });
+
+  // Server pagination + totals + full export
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [total, setTotal] = useState<number>(0);
+  const [exportingFull, setExportingFull] = useState(false);
 
   const defaultSort = useMemo(() => {
     if (!selectedFields.length) return null;
@@ -168,11 +172,13 @@ export default function ReportsPreviewClient() {
           : [];
         setActiveFilters(savedFilters);
 
+        // pagination from report if present
         const savedPagination =
           report?.pagination && typeof report.pagination === "object"
             ? { ...{ page: 1, limit: 50 }, ...report.pagination }
             : { page: 1, limit: 50 };
-        setPagination(savedPagination);
+        setPage(savedPagination.page ?? 1);
+        setPageSize(savedPagination.limit ?? 50);
 
         const savedSort =
           report?.sort && typeof report.sort === "object" && report.sort.field
@@ -193,9 +199,9 @@ export default function ReportsPreviewClient() {
     loadReport();
   }, [reportIdParam]);
 
+  // ensure sort remains valid when fields change
   useEffect(() => {
     if (!selectedFields.length) return;
-
     setActiveSort((prev) => {
       if (prev?.field && selectedFields.includes(prev.field)) {
         return prev;
@@ -204,50 +210,62 @@ export default function ReportsPreviewClient() {
     });
   }, [defaultSort, selectedFields]);
 
+  // reset to page 1 when selected fields change
+  useEffect(() => {
+    setPage((prev) => (prev === 1 ? prev : 1));
+  }, [selectedFields.join(",")]);
+
+  // Helper to fetch a specific page (used by both initial load and full export)
+  const fetchReportPage = useCallback(
+    async (pageToFetch: number, limitToFetch: number) => {
+      const sortToSend =
+        activeSort && activeSort.field
+          ? { field: activeSort.field, direction: activeSort.direction || "asc" }
+          : defaultSort || undefined;
+
+      const res = await fetch("/api/reports/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedFields,
+          filters: Array.isArray(activeFilters) ? activeFilters : [],
+          pagination: { page: pageToFetch, limit: limitToFetch },
+          sort: sortToSend,
+        }),
+      });
+      const json = await res.json();
+      const results = Array.isArray(json.data) ? json.data : [];
+      const totalCount = typeof json.total === "number" ? json.total : results.length;
+      return { results, totalCount };
+    },
+    [selectedFields, activeFilters, activeSort, defaultSort]
+  );
+
   // Load report data when fields are available
   useEffect(() => {
     if (selectedFields.length === 0) return;
     if (reportIdParam && !reportConfig) return;
-    const fetchData = async () => {
+
+    let cancelled = false;
+    const load = async () => {
       setLoading(true);
       try {
-        const filtersToSend = Array.isArray(activeFilters) ? activeFilters : [];
-        const sortToSend =
-          activeSort && activeSort.field
-            ? { field: activeSort.field, direction: activeSort.direction || "asc" }
-            : defaultSort;
-        const paginationToSend = pagination || { page: 1, limit: 50 };
-
-        const res = await fetch("/api/reports/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            selectedFields,
-            filters: filtersToSend,
-            pagination: paginationToSend,
-            sort: sortToSend || undefined,
-          }),
-        });
-        const json = await res.json();
-        const results = Array.isArray(json.data) ? json.data : [];
+        const { results, totalCount } = await fetchReportPage(page, pageSize);
+        if (cancelled) return;
         setData([...results]);
         setFilteredData([...results]);
+        setTotal(totalCount);
       } catch (error) {
         console.error("❌ Error fetching report data:", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchData();
-  }, [
-    selectedFields,
-    activeFilters,
-    activeSort,
-    pagination,
-    defaultSort,
-    reportIdParam,
-    reportConfig,
-  ]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFields, page, pageSize, reportIdParam, reportConfig, fetchReportPage]);
 
   const translateLegacy = useCallback((f: string) => {
     const map: Record<string, string> = {
@@ -284,12 +302,9 @@ export default function ReportsPreviewClient() {
     });
   }, [selectedFields, fieldLabels, translateLegacy]);
 
-  const performDownload = useCallback(() => {
-    if (!columns.length) return;
-
-    downloadCSV(filteredData, columns);
-
-    if (hasPIISelected) {
+  const logAndToastPII = useCallback(
+    (rowCount: number) => {
+      if (!hasPIISelected) return;
       const acknowledgedFields = piiFieldLabels.join(", ") || "PII data";
       toast({
         title: "PII export acknowledged",
@@ -298,10 +313,17 @@ export default function ReportsPreviewClient() {
       console.info("[PII_EXPORT_ACK]", {
         at: new Date().toISOString(),
         fields: piiFields,
-        rows: filteredData.length,
+        rows: rowCount,
       });
-    }
-  }, [columns, filteredData, hasPIISelected, piiFieldLabels, toast, piiFields]);
+    },
+    [hasPIISelected, piiFieldLabels, piiFields, toast]
+  );
+
+  const performDownload = useCallback(() => {
+    if (!columns.length) return;
+    downloadCSV(filteredData, columns);
+    logAndToastPII(filteredData.length);
+  }, [columns, filteredData, logAndToastPII]);
 
   const handleDownloadClick = () => {
     if (hasPIISelected && !piiAcknowledged) {
@@ -319,6 +341,30 @@ export default function ReportsPreviewClient() {
 
   const handleCancelPIIExport = () => {
     setShowPIIModal(false);
+  };
+
+  const handleFullExport = async () => {
+    if (hasPIISelected && !piiAcknowledged) {
+      setShowPIIModal(true);
+      return;
+    }
+    if (exportingFull) return;
+    setExportingFull(true);
+    try {
+      const combined: any[] = [];
+      const pagesToFetch = Math.max(1, Math.ceil(total / pageSize));
+      for (let currentPage = 1; currentPage <= pagesToFetch; currentPage++) {
+        const { results } = await fetchReportPage(currentPage, pageSize);
+        combined.push(...results);
+      }
+      downloadCSV(combined, columns);
+      logAndToastPII(combined.length);
+    } catch (error) {
+      console.error("❌ Error exporting full report:", error);
+      alert("Failed to export full report. Please try again.");
+    } finally {
+      setExportingFull(false);
+    }
   };
 
   const handleSaveReport = async () => {
@@ -395,13 +441,28 @@ export default function ReportsPreviewClient() {
           <Button onClick={handleDownloadClick}>
             Download CSV ({filteredData.length} rows)
           </Button>
+          {total > data.length ? (
+            <Button disabled={exportingFull} onClick={handleFullExport}>
+              {exportingFull
+                ? "Exporting full report..."
+                : `Download Full CSV (${total} rows)`}
+            </Button>
+          ) : null}
           <Button onClick={handleSaveReport}>Save Report</Button>
         </div>
         <div className="min-h-[200px]">
           <FilterableDataTable
             columns={columns}
             data={data}
+            total={total}
+            page={page}
+            pageSize={pageSize}
             onFilteredDataChange={setFilteredData}
+            onPageChange={setPage}
+            onPageSizeChange={(size: number) => {
+              setPageSize(size);
+              setPage(1);
+            }}
           />
         </div>
       </main>
@@ -436,7 +497,11 @@ export default function ReportsPreviewClient() {
             </p>
           </div>
           <DialogFooter className="mt-6">
-            <Button type="button" variant="secondary" onClick={handleCancelPIIExport}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleCancelPIIExport}
+            >
               Cancel
             </Button>
             <Button type="button" onClick={handleConfirmPIIExport}>

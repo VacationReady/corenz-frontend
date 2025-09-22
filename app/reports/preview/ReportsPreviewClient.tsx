@@ -275,19 +275,26 @@ export default function ReportsPreviewClient() {
 
   const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
-    if (!hasLeave) return fields;
-    return fields.map((f) => {
-      if (f.startsWith("User.")) return f.replace("User.", "LeaveRequest.Employee.User.");
-      if (f.startsWith("Employee.")) return f.replace("Employee.", "LeaveRequest.Employee.");
-      if (f.startsWith("Department.")) return f.replace("Department.", "LeaveRequest.Employee.Department.");
-      if (f.startsWith("JobRole.")) return f.replace("JobRole.", "LeaveRequest.Employee.JobRole.");
-      if (f === "User.department.name" || f === "User.Department_User_departmentIdToDepartment.name")
-        return "LeaveRequest.Employee.Department.name";
-      if (f.startsWith("EventCategory.")) return f.replace("EventCategory.", "LeaveRequest.EventCategory.");
-      if (f === "LeaveEntitlement.usedDays") return "_computed.durationDays";
-      if (f.startsWith("LeaveEntitlement.")) return f.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.");
-      return f;
-    });
+    const result: string[] = [];
+    for (const f of fields) {
+      if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
+        if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
+        // also ensure sources are fetched server-side (the server handles this rewrite)
+        continue;
+      }
+      if (hasLeave) {
+        if (f.startsWith("User.")) { result.push(f.replace("User.", "LeaveRequest.Employee.User.")); continue; }
+        if (f.startsWith("Employee.")) { result.push(f.replace("Employee.", "LeaveRequest.Employee.")); continue; }
+        if (f.startsWith("Department.")) { result.push(f.replace("Department.", "LeaveRequest.Employee.Department.")); continue; }
+        if (f.startsWith("JobRole.")) { result.push(f.replace("JobRole.", "LeaveRequest.Employee.JobRole.")); continue; }
+        if (f === "User.department.name" || f === "User.Department_User_departmentIdToDepartment.name") { result.push("LeaveRequest.Employee.Department.name"); continue; }
+        if (f.startsWith("EventCategory.")) { result.push(f.replace("EventCategory.", "LeaveRequest.EventCategory.")); continue; }
+        if (f === "LeaveEntitlement.usedDays") { result.push("_computed.durationDays"); continue; }
+        if (f.startsWith("LeaveEntitlement.")) { result.push(f.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.")); continue; }
+      }
+      result.push(f);
+    }
+    return result;
   }, []);
 
   const effectiveSelectedFields = useMemo(

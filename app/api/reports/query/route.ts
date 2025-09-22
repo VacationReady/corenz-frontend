@@ -42,23 +42,25 @@ function anchorFieldToLeave(field: string): string {
 
 function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
-    if (!hasLeave) return fields;
     const result: string[] = [];
     for (const f of fields) {
-        const anchored = anchorFieldToLeave(f);
-        // Special handling: Job Role fallback via computed field
+        const maybeAnchored = hasLeave ? anchorFieldToLeave(f) : f;
+        // Always normalize Job Role into a single computed field, independent of context
         if (
             f === "User.JobRole.name" ||
-            anchored === "LeaveRequest.Employee.User.JobRole.name" ||
-            anchored === "LeaveRequest.Employee.JobRole.name"
+            f === "Employee.JobRole.name" ||
+            maybeAnchored === "LeaveRequest.Employee.User.JobRole.name" ||
+            maybeAnchored === "LeaveRequest.Employee.JobRole.name"
         ) {
-            // Push the underlying sources for computation (hidden) and the computed field for display
-            if (!result.includes("LeaveRequest.Employee.User.JobRole.name")) result.push("LeaveRequest.Employee.User.JobRole.name");
-            if (!result.includes("LeaveRequest.Employee.JobRole.name")) result.push("LeaveRequest.Employee.JobRole.name");
+            // Include both source paths so the computed can resolve, plus the computed field
+            const userPath = hasLeave ? "LeaveRequest.Employee.User.JobRole.name" : "User.JobRole.name";
+            const employeePath = hasLeave ? "LeaveRequest.Employee.JobRole.name" : "Employee.JobRole.name";
+            if (!result.includes(userPath)) result.push(userPath);
+            if (!result.includes(employeePath)) result.push(employeePath);
             if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
             continue;
         }
-        result.push(anchored);
+        result.push(maybeAnchored);
     }
     return result;
 }

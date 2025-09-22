@@ -41,6 +41,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users, Calendar, Settings, AlertTriangle } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
+import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 interface EventCategory {
@@ -295,12 +296,6 @@ export default function LeavePoliciesPage() {
     }));
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">Loading...</div>
-    );
-  }
-
   return (
     <PageShell
       title="Leave Policies"
@@ -308,28 +303,47 @@ export default function LeavePoliciesPage() {
       breadcrumbs={breadcrumbConfigs.settingsSection('Leave Policies')}
       showHomeIcon={false}
     >
-      <div className="flex justify-end mb-6">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Policy
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingPolicy ? "Edit Leave Policy" : "Create Leave Policy"}
-              </DialogTitle>
-              <DialogDescription>
-                Configure accrual rates and rules for leave entitlements. This
-                affects only entitlement calculations - booking rules are
-                managed in Event Rules.
-              </DialogDescription>
-            </DialogHeader>
+      {loading ? (
+        <div className="space-y-6">
+          <div className="flex justify-end">
+            <SectionSkeleton
+              showContainer={false}
+              rows={1}
+              lineClassName="h-10 w-36 rounded-lg"
+            />
+          </div>
+          <SectionSkeleton
+            showHeader
+            variant="grid"
+            gridItems={4}
+            gridCols={2}
+          />
+          <SectionSkeleton showHeader variant="table" rows={5} />
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-end mb-6">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Policy
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingPolicy ? "Edit Leave Policy" : "Create Leave Policy"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure accrual rates and rules for leave entitlements. This
+                    affects only entitlement calculations - booking rules are
+                    managed in Event Rules.
+                  </DialogDescription>
+                </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Tabs defaultValue="basic" className="w-full">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <Tabs defaultValue="basic" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="basic">Basic Settings</TabsTrigger>
                   <TabsTrigger value="accrual">Accrual Rules</TabsTrigger>
@@ -785,6 +799,8 @@ export default function LeavePoliciesPage() {
           </div>
         )}
       </div>
+        </>
+      )}
     </PageShell>
   );
 }

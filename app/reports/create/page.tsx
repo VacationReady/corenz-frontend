@@ -43,6 +43,7 @@ export default function ReportsPage() {
     if (selectedFields.length === 0) return;
     const params = new URLSearchParams();
     params.set("fields", selectedFields.join(","));
+    params.set("returnTo", "/reports/create");
     window.location.href = `/reports/preview?${params.toString()}`;
   };
 

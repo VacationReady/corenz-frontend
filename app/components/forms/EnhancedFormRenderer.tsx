@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
+import FileDropzone, { FileDropzoneItem, UploadHelpers } from "@/components/ui/FileDropzone";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, FormSection } from "@/api/forms/[id]/types";
@@ -332,7 +333,8 @@ export function EnhancedFormRenderer({
       .flatMap((s) => s.fields);
     for (const field of allFields) {
       if (field.type === "file") {
-        const file = toFile(rawData[field.id]);
+        const value = rawData[field.id];
+        const file = toFile(value);
         if (file) {
           const fd = new FormData();
           fd.append("file", file);
@@ -355,19 +357,21 @@ export function EnhancedFormRenderer({
               return;
             }
             const uploadResult = await uploadRes.json();
-            if (!uploadResult?.document) {
+            const payload = uploadResult?.document || uploadResult?.Document;
+            if (!payload) {
               toast.error(`Failed to upload file for ${field.label}`);
               return;
             }
-            data[field.id] = uploadResult.document;
+            data[field.id] = payload;
           } catch {
             toast.error(`Upload error: ${field.label}`);
             return;
           }
-        } else if (rawData[field.id]?.url) {
-          // keep existing document if no new file selected
-          data[field.id] = rawData[field.id];
-        } else {
+        } else if (value?.document || value?.Document) {
+          data[field.id] = value.document || value.Document;
+        } else if (value?.url || value?.path) {
+          data[field.id] = value;
+        } else if (!value) {
           data[field.id] = null;
         }
       }
@@ -517,7 +521,12 @@ export function EnhancedFormRenderer({
                               />
                             </div>
                           </div>
-                          {renderField(field, register, watch, setValue, isReadOnly)}
+                          {renderField(field, register, watch, setValue, isReadOnly, {
+                            uploadContext: {
+                              employeeId,
+                              formName: formData.form.name,
+                            },
+                          })}
                         </>
                       )}
                     </div>
@@ -575,12 +584,20 @@ export function EnhancedFormRenderer({
   );
 }
 
+interface RenderFieldOptions {
+  uploadContext?: {
+    employeeId?: string;
+    formName?: string;
+  };
+}
+
 export function renderField(
   field: FormField,
   register: any,
   watch: any,
   setValue: any,
   readOnly?: boolean,
+  options?: RenderFieldOptions,
 ) {
   const baseInput =
     "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
@@ -733,32 +750,14 @@ export function renderField(
         </div>
       );
     case "file":
-      const existing = watch(field.id);
       return (
-        <div className="space-y-2">
-          {existing?.url && (
-            <div className="space-y-2">
-              <iframe
-                src={existing.url}
-                className="w-full h-64 rounded border"
-              />
-              <a
-                href={existing.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline block"
-              >
-                {existing.name || "View document"}
-              </a>
-            </div>
-          )}
-          <input
-            type="file"
-            className="border rounded px-3 py-2 w-full text-sm"
-            disabled={readOnly}
-            {...register(field.id, { required: field.required })}
-          />
-        </div>
+        <FormFileUploadField
+          field={field}
+          watch={watch}
+          setValue={setValue}
+          readOnly={readOnly}
+          uploadContext={options?.uploadContext}
+        />
       );
 
     case "text":
@@ -894,6 +893,180 @@ export function renderField(
         />
       );
   }
+}
+
+interface FormFileUploadFieldProps {
+  field: FormField;
+  watch: any;
+  setValue: any;
+  readOnly?: boolean;
+  uploadContext?: {
+    employeeId?: string;
+    formName?: string;
+  };
+}
+
+function FormFileUploadField({
+  field,
+  watch,
+  setValue,
+  readOnly,
+  uploadContext,
+}: FormFileUploadFieldProps) {
+  const currentValue = watch(field.id);
+  const [files, setFiles] = useState<FileDropzoneItem<any>[]>(() =>
+    normalizeToDropzoneItems(currentValue, field.id),
+  );
+
+  useEffect(() => {
+    setFiles((prev) => {
+      const next = normalizeToDropzoneItems(currentValue, field.id);
+      const prevMeta = JSON.stringify(prev.map((item) => item.meta));
+      const nextMeta = JSON.stringify(next.map((item) => item.meta));
+      return prevMeta === nextMeta ? prev : next;
+    });
+  }, [currentValue, field.id]);
+
+  const handleFilesChange = (items: FileDropzoneItem<any>[]) => {
+    setFiles(items);
+    const successful = items.find(
+      (item) => item.status === "success" && item.meta,
+    );
+    if (successful?.meta) {
+      setValue(field.id, successful.meta, { shouldDirty: true, shouldTouch: true });
+    } else {
+      setValue(field.id, null, { shouldDirty: true, shouldTouch: true });
+    }
+  };
+
+  const uploadFile = (file: File, helpers: UploadHelpers) =>
+    uploadEmployeeDocumentWithProgress(file, helpers, {
+      employeeId: uploadContext?.employeeId,
+      formName: uploadContext?.formName,
+      fieldLabel: field.label,
+    });
+
+  return (
+    <FileDropzone
+      files={files}
+      onFilesChange={handleFilesChange}
+      onUpload={uploadFile}
+      multiple={false}
+      disabled={readOnly}
+      description={
+        field.placeholder || "Drag a document here or click to browse"
+      }
+      helperText={
+        readOnly
+          ? undefined
+          : "Documents are uploaded to this employee's secure bucket."
+      }
+    />
+  );
+}
+
+function normalizeToDropzoneItems(
+  value: any,
+  fieldId: string,
+): FileDropzoneItem<any>[] {
+  if (!value) return [];
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .map((entry) => entry?.document || entry?.Document || entry)
+    .filter(Boolean)
+    .map((meta: any) => {
+      const id = String(meta.id || `${fieldId}-${Math.random().toString(16).slice(2)}`);
+      const name =
+        meta.name || meta.fileName || meta.path || meta.url || "Uploaded file";
+      const size =
+        typeof meta.size === "number"
+          ? meta.size
+          : typeof meta.fileSize === "number"
+            ? meta.fileSize
+            : 0;
+      const type = meta.type || meta.mimeType || "";
+      return {
+        id,
+        name,
+        size,
+        type,
+        status: "success" as const,
+        progress: 100,
+        meta,
+        previewUrl: meta.url || meta.signedUrl || undefined,
+      } satisfies FileDropzoneItem<any>;
+    });
+}
+
+function uploadEmployeeDocumentWithProgress(
+  file: File,
+  helpers: UploadHelpers,
+  context: { employeeId?: string; formName?: string; fieldLabel?: string },
+) {
+  return new Promise<any>((resolve, reject) => {
+    if (!context.employeeId) {
+      reject(new Error("Missing employee context for file upload"));
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("name", file.name);
+    formData.append(
+      "category",
+      context.fieldLabel || context.formName || "Forms",
+    );
+    formData.append("employeeId", context.employeeId);
+    formData.append("canViewAdmin", "true");
+    formData.append("canViewManager", "true");
+    formData.append("canViewEmployee", "true");
+    formData.append("requiresAck", "false");
+    formData.append("requiresSignature", "false");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/documents/upload-employee", true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        helpers.onProgress(percent);
+      } else {
+        helpers.onProgress(50);
+      }
+    };
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+          const document = payload.document || payload.Document;
+          if (!document) {
+            reject(new Error("Upload failed"));
+            return;
+          }
+          resolve(document);
+        } catch (error) {
+          reject(
+            error instanceof Error ? error : new Error("Failed to parse upload response"),
+          );
+        }
+      } else {
+        reject(new Error(xhr.responseText || `Upload failed (${xhr.status})`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onabort = () => reject(new Error("Upload cancelled"));
+
+    helpers.signal.addEventListener("abort", () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) {
+        xhr.abort();
+      }
+    });
+
+    xhr.send(formData);
+  });
 }
 
 function ListField({ field, register, watch, setValue, readOnly }: any) {

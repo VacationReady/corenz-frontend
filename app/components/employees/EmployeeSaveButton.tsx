@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo } from "../audit/ChangeReasonModal";
 
@@ -116,8 +117,14 @@ export default function EmployeeSaveButton({
 
   return (
     <>
-      <Button onClick={handleSave} disabled={disabled || loading}>
-        {loading ? "Saving..." : "Save changes"}
+      <Button
+        onClick={handleSave}
+        disabled={disabled}
+        loading={loading}
+        loadingText="Saving changes"
+        icon={<Save className="h-4 w-4" />}
+      >
+        Save changes
       </Button>
       
       <ChangeReasonModal

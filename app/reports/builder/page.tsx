@@ -85,7 +85,10 @@ export default function ReportBuilder() {
       }),
     });
 
-    router.push(`/reports/preview?fields=${selectedFields.join(",")}`);
+    const params = new URLSearchParams();
+    params.set("fields", selectedFields.join(","));
+    params.set("returnTo", "/reports/builder");
+    router.push(`/reports/preview?${params.toString()}`);
   };
 
   const toggleField = (field: string) => {

@@ -9,6 +9,7 @@ import { useSession } from "next-auth/react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
 import { toast } from "sonner";
+import { Download } from "lucide-react";
 
 type OnboardingStepProps = {
   step: {
@@ -74,6 +75,26 @@ export default function OnboardingStepRenderer({
               className="w-full h-96 border-none"
               title={step.document.name}
             />
+          </div>
+        )}
+        {step.document?.url && (
+          <div className="mb-4">
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="gap-2"
+              aria-label={`Download ${step.document?.name ?? "document"}`}
+            >
+              <a
+                href={step.document.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" />
+                <span>Download</span>
+              </a>
+            </Button>
           </div>
         )}
         <Label

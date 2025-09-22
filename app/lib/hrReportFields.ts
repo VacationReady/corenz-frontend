@@ -306,6 +306,16 @@ export const hrReportFields: HRReportField[] = [
 		join: "LeaveRequest.eventCategoryId = EventCategory.id",
 		description: "Type of leave (Annual, Sick, etc.)",
 	},
+	{
+		model: "LeaveRequest",
+		field: "LeaveRequest.EventCategory.name",
+		label: "Leave Type",
+		type: "string",
+		category: "time-off",
+		filterable: true,
+		sortable: true,
+		description: "Type of leave anchored under LeaveRequest for single-model reports",
+	},
 	// Leave-anchored employee fields for single-model leave reports
 	{
 		model: "LeaveRequest",

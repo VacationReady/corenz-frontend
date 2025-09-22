@@ -19,12 +19,28 @@ type Operator = typeof allowedOperators[number];
 
 // Legacy-to-current field key mapping for backwards compatibility
 const legacyFieldMap: Record<string, string> = {
-	"User.department.name": "User.Department_User_departmentIdToDepartment.name",
-	"User.jobRole.name": "User.JobRole.name",
+    "User.department.name": "User.Department_User_departmentIdToDepartment.name",
+    "User.jobRole.name": "User.JobRole.name",
 };
 
 function translateFieldKey(field: string): string {
-	return legacyFieldMap[field] || field;
+    return legacyFieldMap[field] || field;
+}
+
+// When any LeaveRequest field is present, rewrite generic User/EventCategory selections
+// to their leave-anchored equivalents so the primary model can remain LeaveRequest.
+function rewriteFieldsForLeaveContext(fields: string[]): string[] {
+    const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    if (!hasLeave) return fields;
+    return fields.map((f) => {
+        if (f === "User.firstName") return "LeaveRequest.Employee.User.firstName";
+        if (f === "User.lastName") return "LeaveRequest.Employee.User.lastName";
+        if (f === "User.Department_User_departmentIdToDepartment.name" || f === "User.department.name") {
+            return "LeaveRequest.Employee.Department.name";
+        }
+        if (f === "EventCategory.name") return "LeaveRequest.EventCategory.name";
+        return f;
+    });
 }
 
 const filterSchema = z
@@ -75,9 +91,17 @@ export async function POST(req: Request) {
 		};
 
 		// Translate legacy keys first
-		const translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
-		const translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
-		const translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
+        let translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
+        let translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
+        let translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
+
+        // Rewrite to leave-anchored equivalents if applicable
+        translatedSelectedFields = rewriteFieldsForLeaveContext(translatedSelectedFields);
+        translatedFilters = translatedFilters.map((f) => ({ ...f, field: rewriteFieldsForLeaveContext([f.field])[0] }));
+        if (translatedSort?.field) {
+            const newSortField = rewriteFieldsForLeaveContext([translatedSort.field])[0];
+            translatedSort = { ...translatedSort, field: newSortField } as any;
+        }
 
 		// Restrict selectedFields to allowed hrReportFields list
 		const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));

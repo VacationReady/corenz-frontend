@@ -180,13 +180,18 @@ export function buildDynamicQuery({
     const fieldGroups = groupFieldsByModel(selectedFields);
     const models = Object.keys(fieldGroups);
     if (models.length > 1) {
-        // Choose primary model by highest field count, tie-breaker: prefer LeaveRequest, else first
-        const counts = models.map((m) => ({ model: m, count: fieldGroups[m].length }));
-        counts.sort((a, b) => b.count - a.count);
-        let primaryModel = counts[0].model;
-        const topCount = counts[0].count;
-        const tied = counts.filter((c) => c.count === topCount).map((c) => c.model);
-        if (tied.includes("LeaveRequest")) primaryModel = "LeaveRequest";
+        // If any LeaveRequest fields are selected, prefer LeaveRequest as the primary model
+        const hasLeaveFields = selectedFields.some((f: string) => f.startsWith("LeaveRequest."));
+        let primaryModel = hasLeaveFields ? "LeaveRequest" : undefined as string | undefined;
+        if (!primaryModel) {
+            // Otherwise choose by highest field count, tie-breaker: prefer LeaveRequest, else first
+            const counts = models.map((m) => ({ model: m, count: fieldGroups[m].length }));
+            counts.sort((a, b) => b.count - a.count);
+            primaryModel = counts[0].model;
+            const topCount = counts[0].count;
+            const tied = counts.filter((c) => c.count === topCount).map((c) => c.model);
+            if (tied.includes("LeaveRequest")) primaryModel = "LeaveRequest";
+        }
         console.warn("Multiple models selected; constraining to primary model:", primaryModel);
         selectedFields = selectedFields.filter((f: string) => f.startsWith(`${primaryModel}.`));
         // Also drop filters/sort that target other models; handled later per-model

@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Step = {
   id: string;
@@ -49,6 +50,7 @@ export default function EmployeeOnboardingPage({
   const [assigning, setAssigning] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const canAssignTemplate = session?.user?.role === "ADMIN";
 
   const fetchOnboarding = async () => {
     setLoading(true);
@@ -78,11 +80,10 @@ export default function EmployeeOnboardingPage({
 
   useEffect(() => {
     fetchOnboarding();
-    if (session?.user?.role === "ADMIN") {
+    if (canAssignTemplate) {
       fetchTemplates();
     }
-    // eslint-disable-next-line
-  }, [employeeId, session?.user?.role]);
+  }, [employeeId, canAssignTemplate]);
 
   const handleAssignOnboarding = async () => {
     if (!selectedTemplate) {
@@ -146,29 +147,38 @@ export default function EmployeeOnboardingPage({
     return (
       <div className="p-8 text-center">
         <p className="mb-4">No onboarding currently assigned.</p>
-        {templates.length > 0 ? (
-          <>
-            <Select
-              value={selectedTemplate}
-              onValueChange={setSelectedTemplate}
-            >
-              <SelectTrigger className="w-full max-w-sm mx-auto mb-4">
-                <SelectValue placeholder="Select an onboarding template" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((tpl) => (
-                  <SelectItem key={tpl.id} value={tpl.id}>
-                    {tpl.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAssignOnboarding} disabled={assigning}>
-              {assigning ? "Assigning..." : "Assign Onboarding"}
-            </Button>
-          </>
+        {canAssignTemplate ? (
+          templates.length > 0 ? (
+            <>
+              <Select
+                value={selectedTemplate}
+                onValueChange={setSelectedTemplate}
+              >
+                <SelectTrigger className="w-full max-w-sm mx-auto mb-4">
+                  <SelectValue placeholder="Select an onboarding template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((tpl) => (
+                    <SelectItem key={tpl.id} value={tpl.id}>
+                      {tpl.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleAssignOnboarding} disabled={assigning}>
+                {assigning ? "Assigning..." : "Assign Onboarding"}
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground">No templates available.</p>
+          )
         ) : (
-          <p className="text-muted-foreground">No templates available.</p>
+          <Card className="max-w-xl mx-auto">
+            <EmptyState
+              title="No onboarding yet"
+              description="Your onboarding isn't ready just yet. Please reach out to your HR team if you believe this is a mistake or need assistance getting started."
+            />
+          </Card>
         )}
       </div>
     );

@@ -213,7 +213,11 @@ export default function ReportsPage() {
                       console.log("🧪 Raw report.fields:", report.fields);
 
                       if (!report.fields) {
-                        alert("No fields found in this report.");
+                        toast({
+                          title: "Unable to open report",
+                          description: "No fields were saved with this report configuration.",
+                          variant: "destructive",
+                        });
                         return;
                       }
 
@@ -222,7 +226,11 @@ export default function ReportsPage() {
                         : JSON.parse(report.fields || "[]");
 
                       if (!fieldArray.length) {
-                        alert("This report has no fields.");
+                        toast({
+                          title: "Unable to open report",
+                          description: "This report does not contain any fields yet.",
+                          variant: "destructive",
+                        });
                         return;
                       }
 

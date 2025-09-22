@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -178,7 +179,21 @@ export default function EmployeeOnboardingPage({
               </Button>
             </>
           ) : (
-            <p className="text-muted-foreground">No templates available.</p>
+            <Card className="max-w-xl mx-auto p-6 text-center space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">No onboarding templates yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  We can&apos;t assign onboarding because no templates are available. Set
+                  up your first template to get new hires started.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Create your first template to assign onboarding here.
+                </p>
+              </div>
+              <Button asChild>
+                <Link href="/settings/onboarding">Open template builder</Link>
+              </Button>
+            </Card>
           )
         ) : (
           <Card className="max-w-xl mx-auto">

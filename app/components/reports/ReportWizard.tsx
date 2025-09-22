@@ -1,11 +1,20 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import Button from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import { hrReportTemplates, ReportTemplate } from "@/lib/hrReportFields";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration, { ReportFilter, SortConfig } from "./FilterConfiguration";
+import { cn } from "@/lib/utils";
 
 export type WizardStep = "template" | "fields" | "filters" | "preview";
 
@@ -96,149 +105,132 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
   const canMoveForward = canProceed();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Create New Report
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {steps[currentStepIndex].description}
-              </p>
-            </div>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+      <Card className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
+            <CardTitle className="text-2xl">Create New Report</CardTitle>
+            <CardDescription>{steps[currentStepIndex].description}</CardDescription>
           </div>
-        </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            aria-label="Close report wizard"
+            className="self-end sm:self-auto"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </CardHeader>
 
-        {/* Progress Steps */}
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <nav aria-label="Progress">
-            <ol className="flex items-center justify-between">
-              {steps.map((step, index) => {
-                const isActive = step.id === currentStep;
-                const isCompleted = index < currentStepIndex;
-                const isUpcoming = index > currentStepIndex;
+        <CardContent className="flex flex-1 flex-col space-y-0 p-0">
+          <div className="border-b border-glass bg-muted/40 px-6 py-4">
+            <nav aria-label="Progress">
+              <ol className="flex flex-wrap gap-4">
+                {steps.map((step, index) => {
+                  const isActive = step.id === currentStep;
+                  const isCompleted = index < currentStepIndex;
 
-                return (
-                  <li key={step.id} className="flex items-center">
-                    <div className="flex items-center">
+                  return (
+                    <li key={step.id} className="flex items-center gap-3">
                       <div
-                        className={`
-                          flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors
-                          ${isActive
-                            ? "border-blue-600 bg-blue-600 text-white"
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition",
+                          isActive
+                            ? "border-primary bg-primary text-primary-foreground shadow-warm"
                             : isCompleted
-                            ? "border-green-600 bg-green-600 text-white"
-                            : "border-gray-300 bg-white text-gray-500"
-                          }
-                        `}
-                      >
-                        {isCompleted ? (
-                          <CheckIcon className="w-4 h-4" />
-                        ) : (
-                          <span className="text-sm font-medium">{index + 1}</span>
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-glass text-muted-foreground",
                         )}
+                      >
+                        {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
                       </div>
-                      <div className="ml-3">
+                      <div className="min-w-[120px] space-y-1">
                         <p
-                          className={`text-sm font-medium ${
-                            isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-500"
-                          }`}
+                          className={cn(
+                            "text-sm font-semibold",
+                            isActive
+                              ? "text-primary"
+                              : isCompleted
+                              ? "text-emerald-600"
+                              : "text-foreground/70",
+                          )}
                         >
                           {step.title}
                         </p>
+                        <p className="hidden text-xs text-muted-foreground sm:block">
+                          {step.description}
+                        </p>
                       </div>
-                    </div>
-                    {index < steps.length - 1 && (
-                      <div
-                        className={`ml-4 w-16 h-0.5 ${
-                          isCompleted ? "bg-green-600" : "bg-gray-300"
-                        }`}
-                      />
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-        </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+          </div>
 
-        {/* Step Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {currentStep === "template" && (
-            <TemplateSelection
-              selectedTemplate={config.template}
-              onSelectTemplate={(template) => {
-                updateConfig({
-                  template,
-                  selectedFields: template?.defaultFields || [],
-                  filters: template?.suggestedFilters?.map((f, index) => ({
-                    id: `filter_${index}`,
-                    field: f.field,
-                    operator: f.operator as any,
-                    value: f.value,
-                  })) || [],
-                });
-              }}
-            />
-          )}
-          
-          {currentStep === "fields" && (
-            <FieldSelection
-              selectedFields={config.selectedFields}
-              onUpdateFields={(selectedFields) => updateConfig({ selectedFields })}
-            />
-          )}
-          
-          {currentStep === "filters" && (
-            <FilterConfiguration
-              filters={config.filters}
-              sort={config.sort}
-              selectedFields={config.selectedFields}
-              onUpdateFilters={(filters) => updateConfig({ filters })}
-              onUpdateSort={(sort) => updateConfig({ sort })}
-            />
-          )}
-          
-          {currentStep === "preview" && (
-            <ReportPreview
-              config={config}
-              onUpdateName={(name) => updateConfig({ name })}
-            />
-          )}
-        </div>
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            {currentStep === "template" && (
+              <TemplateSelection
+                selectedTemplate={config.template}
+                onSelectTemplate={(template) => {
+                  updateConfig({
+                    template,
+                    selectedFields: template?.defaultFields || [],
+                    filters:
+                      template?.suggestedFilters?.map((f, index) => ({
+                        id: `filter_${index}`,
+                        field: f.field,
+                        operator: f.operator as any,
+                        value: f.value,
+                      })) || [],
+                  });
+                }}
+              />
+            )}
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            className="flex items-center"
-          >
-            <ChevronLeftIcon className="w-4 h-4 mr-2" />
+            {currentStep === "fields" && (
+              <FieldSelection
+                selectedFields={config.selectedFields}
+                onUpdateFields={(selectedFields) => updateConfig({ selectedFields })}
+              />
+            )}
+
+            {currentStep === "filters" && (
+              <FilterConfiguration
+                filters={config.filters}
+                sort={config.sort}
+                selectedFields={config.selectedFields}
+                onUpdateFilters={(filters) => updateConfig({ filters })}
+                onUpdateSort={(sort) => updateConfig({ sort })}
+              />
+            )}
+
+            {currentStep === "preview" && (
+              <ReportPreview
+                config={config}
+                onUpdateName={(name) => updateConfig({ name })}
+              />
+            )}
+          </div>
+        </CardContent>
+
+        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="ghost" onClick={handleBack} className="flex items-center gap-2">
+            <ChevronLeft className="h-4 w-4" />
             {isFirstStep ? "Cancel" : "Back"}
           </Button>
-          
+
           <Button
             onClick={handleNext}
             disabled={!canMoveForward}
-            className="flex items-center"
+            className="flex items-center gap-2"
           >
             {isLastStep ? "Create Report" : "Next"}
-            {!isLastStep && <ChevronRightIcon className="w-4 h-4 ml-2" />}
+            {!isLastStep && <ChevronRight className="h-4 w-4" />}
           </Button>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
@@ -253,59 +245,55 @@ function TemplateSelection({
 }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Choose a Report Template
-        </h3>
-        <p className="text-gray-600">
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-foreground">Choose a Report Template</h3>
+        <p className="text-sm text-muted-foreground">
           Start with a pre-built template or create a custom report from scratch.
         </p>
       </div>
 
-      {/* Custom Report Option */}
       <div
-        className={`
-          border-2 rounded-lg p-4 cursor-pointer transition-all hover:border-blue-300
-          ${!selectedTemplate ? "border-blue-500 bg-blue-50" : "border-gray-200"}
-        `}
+        className={cn(
+          "cursor-pointer rounded-2xl border border-glass bg-background/80 p-5 transition hover:border-primary/40 hover:shadow-glass",
+          !selectedTemplate && "border-primary bg-primary/10",
+        )}
         onClick={() => onSelectTemplate(undefined)}
       >
-        <div className="flex items-center">
-          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
             <span className="text-2xl">⚡</span>
           </div>
-          <div>
-            <h4 className="font-medium text-gray-900">Custom Report</h4>
-            <p className="text-sm text-gray-600">
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-foreground">Custom Report</h4>
+            <p className="text-sm text-muted-foreground">
               Build a report from scratch with your own field selection
             </p>
           </div>
         </div>
       </div>
 
-      {/* Template Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {hrReportTemplates.map((template) => (
           <div
             key={template.id}
-            className={`
-              border-2 rounded-lg p-4 cursor-pointer transition-all hover:border-blue-300
-              ${selectedTemplate?.id === template.id ? "border-blue-500 bg-blue-50" : "border-gray-200"}
-            `}
+            className={cn(
+              "cursor-pointer rounded-2xl border border-glass bg-background/80 p-5 transition hover:border-primary/40 hover:shadow-glass",
+              selectedTemplate?.id === template.id && "border-primary bg-primary/10",
+            )}
             onClick={() => onSelectTemplate(template)}
           >
-            <div className="flex items-start">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-muted">
                 <span className="text-2xl">{template.icon}</span>
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-900 mb-1">
+              <div className="flex-1 space-y-2">
+                <h4 className="text-sm font-semibold text-foreground">
                   {template.name}
                 </h4>
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-sm text-muted-foreground">
                   {template.description}
                 </p>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-muted-foreground">
                   {template.defaultFields.length} fields included
                 </div>
               </div>
@@ -326,20 +314,18 @@ function ReportPreview({
   config: ReportConfig;
   onUpdateName: (name: string) => void;
 }) {
-  console.log("🔍 ReportPreview config:", config);
-  
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900">
+      <h3 className="text-lg font-semibold text-foreground">
         Preview & Save Report
       </h3>
-      <p className="text-gray-600">
+      <p className="text-sm text-muted-foreground">
         Review your report configuration and give it a name.
       </p>
-      
+
       <div className="space-y-4">
         <div>
-          <label htmlFor="report-name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="report-name" className="mb-2 block text-sm font-semibold text-foreground">
             Report Name *
           </label>
           <input
@@ -348,35 +334,35 @@ function ReportPreview({
             value={config.name || ""}
             onChange={(e) => onUpdateName(e.target.value)}
             placeholder="Enter a name for your report"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-2xl border border-glass bg-background px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary"
             required
           />
         </div>
-        
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-2">Report Summary</h4>
-          <div className="space-y-2 text-sm text-gray-600">
-            <div>
-              <span className="font-medium">Template:</span>{" "}
+
+        <div className="rounded-2xl border border-glass bg-muted/40 p-4">
+          <h4 className="mb-2 text-sm font-semibold text-foreground">Report Summary</h4>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="font-semibold text-foreground">Template:</span>
               {config.template?.name || "Custom Report"}
             </div>
-            <div>
-              <span className="font-medium">Fields:</span>{" "}
+            <div className="space-y-1">
+              <span className="font-semibold text-foreground">Fields:</span>{" "}
               {config.selectedFields.length} selected
               {config.selectedFields.length > 0 && (
-                <div className="mt-1 text-xs">
+                <div className="text-xs text-muted-foreground">
                   {config.selectedFields.slice(0, 3).join(", ")}
                   {config.selectedFields.length > 3 && ` and ${config.selectedFields.length - 3} more`}
                 </div>
               )}
             </div>
-            <div>
-              <span className="font-medium">Filters:</span>{" "}
+            <div className="flex flex-wrap items-center gap-1">
+              <span className="font-semibold text-foreground">Filters:</span>
               {config.filters.length} applied
             </div>
             {config.sort && (
-              <div>
-                <span className="font-medium">Sorting:</span>{" "}
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold text-foreground">Sorting:</span>
                 {config.sort.field} ({config.sort.direction})
               </div>
             )}

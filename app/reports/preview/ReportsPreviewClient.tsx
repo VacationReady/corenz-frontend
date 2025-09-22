@@ -397,7 +397,11 @@ export default function ReportsPreviewClient() {
       logAndToastPII(combined.length);
     } catch (error) {
       console.error("❌ Error exporting full report:", error);
-      alert("Failed to export full report. Please try again.");
+      toast({
+        title: "Export failed",
+        description: "We couldn't export the full report. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setExportingFull(false);
     }
@@ -417,11 +421,21 @@ export default function ReportsPreviewClient() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save report");
-      alert("Report saved!");
+      toast({
+        title: "Report saved",
+        description: "Your report has been saved successfully.",
+      });
       router.push("/reports");
     } catch (err) {
       console.error(err);
-      alert("Error saving report.");
+      toast({
+        title: "Error saving report",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while saving your report.",
+        variant: "destructive",
+      });
     }
   };
 

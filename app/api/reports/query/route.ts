@@ -29,18 +29,19 @@ function translateFieldKey(field: string): string {
 
 // When any LeaveRequest field is present, rewrite generic User/EventCategory selections
 // to their leave-anchored equivalents so the primary model can remain LeaveRequest.
+function anchorFieldToLeave(field: string): string {
+    if (field === "LeaveEntitlement.usedDays") return "_computed.durationDays";
+    if (field.startsWith("LeaveEntitlement.")) return field.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.");
+    if (field.startsWith("User.")) return field.replace("User.", "LeaveRequest.Employee.User.");
+    if (field.startsWith("Employee.")) return field.replace("Employee.", "LeaveRequest.Employee.");
+    if (field.startsWith("EventCategory.")) return field.replace("EventCategory.", "LeaveRequest.EventCategory.");
+    return field;
+}
+
 function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
     if (!hasLeave) return fields;
-    return fields.map((f) => {
-        if (f === "User.firstName") return "LeaveRequest.Employee.User.firstName";
-        if (f === "User.lastName") return "LeaveRequest.Employee.User.lastName";
-        if (f === "User.Department_User_departmentIdToDepartment.name" || f === "User.department.name") {
-            return "LeaveRequest.Employee.Department.name";
-        }
-        if (f === "EventCategory.name") return "LeaveRequest.EventCategory.name";
-        return f;
-    });
+    return fields.map(anchorFieldToLeave);
 }
 
 const filterSchema = z
@@ -104,7 +105,9 @@ export async function POST(req: Request) {
         }
 
 		// Restrict selectedFields to allowed hrReportFields list
-        const allowedFieldSet = new Set(hrReportFields.map((f) => f.field).concat(["_computed.durationDays"]));
+        const baseAllowed = hrReportFields.map((f) => f.field);
+        const anchoredAllowed = baseAllowed.map(anchorFieldToLeave);
+        const allowedFieldSet = new Set([...baseAllowed, ...anchoredAllowed, "_computed.durationDays"]);
 		const sanitizedSelectedFields = translatedSelectedFields.filter((f) =>
 			allowedFieldSet.has(f),
 		);

@@ -275,19 +275,13 @@ export default function ReportsPreviewClient() {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
     if (!hasLeave) return fields;
     return fields.map((f) => {
-      if (f === "User.firstName") return "LeaveRequest.Employee.User.firstName";
-      if (f === "User.lastName") return "LeaveRequest.Employee.User.lastName";
-      if (
-        f === "User.Department_User_departmentIdToDepartment.name" ||
-        f === "User.department.name"
-      )
+      if (f.startsWith("User.")) return f.replace("User.", "LeaveRequest.Employee.User.");
+      if (f.startsWith("Employee.")) return f.replace("Employee.", "LeaveRequest.Employee.");
+      if (f === "User.department.name" || f === "User.Department_User_departmentIdToDepartment.name")
         return "LeaveRequest.Employee.Department.name";
-      if (f === "EventCategory.name") return "LeaveRequest.EventCategory.name";
-      if (f.startsWith("LeaveEntitlement."))
-        return f.replace(
-          "LeaveEntitlement.",
-          "LeaveRequest.Employee.LeaveEntitlement."
-        );
+      if (f.startsWith("EventCategory.")) return f.replace("EventCategory.", "LeaveRequest.EventCategory.");
+      if (f === "LeaveEntitlement.usedDays") return "_computed.durationDays";
+      if (f.startsWith("LeaveEntitlement.")) return f.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.");
       return f;
     });
   }, []);

@@ -728,7 +728,12 @@ function DocumentsContent() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" loading={uploading}>
+                <Button
+                  type="submit"
+                  loading={uploading}
+                  loadingText="Uploading document"
+                  icon={<UploadCloud className="h-4 w-4" />}
+                >
                   Upload
                 </Button>
               </DialogFooter>

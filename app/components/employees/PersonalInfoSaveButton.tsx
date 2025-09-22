@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Button from "@/components/ui/Button";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo } from "../audit/ChangeReasonModal";
 
@@ -128,8 +129,14 @@ export default function PersonalInfoSaveButton({
   return (
     <>
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={loading}>
-          {loading ? "Saving..." : "Save changes"}
+        <Button
+          onClick={handleSave}
+          disabled={loading}
+          loading={loading}
+          loadingText="Saving changes"
+          icon={<Save className="h-4 w-4" />}
+        >
+          Save changes
         </Button>
       </div>
       

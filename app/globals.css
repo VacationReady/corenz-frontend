@@ -1502,144 +1502,122 @@ video {
 
 @layer base {
   :root {
-    /* Beautiful Vibrant Palette - Modern Professional */
-    --background: 220 25% 98%; /* #f8f9fc - Premium light base */
-    --foreground: 220 20% 10%; /* Deep refined text */
-
-    /* Card System - Glass Morphism */
-    --card: 0 0% 100%; /* Pure white for glass effect base */
-    --card-foreground: 220 15% 15%;
-    --card-header: 220 30% 98%; /* #fafbfc - Cool header */
-
-    /* Content Panels - Layered Cool Tones */
-    --content-panel: 220 20% 90%; /* #e2e8f0 - Medium cool tone */
-    --section-background: 220 25% 96%; /* #f8fafc - Light section */
-
-    /* Interactive Elements */
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-    --primary: 217 91% 60%; /* #3b82f6 - Beautiful blue primary */
-    --primary-foreground: 0 0% 100%;
-    --primary-rgb: 59, 130, 246;
-    
-    /* Primary color scale */
-    --primary-50: 214 100% 97%;
-    --primary-100: 214 95% 93%;
-    --primary-200: 213 97% 87%;
-    --primary-300: 212 96% 78%;
-    --primary-400: 213 94% 68%;
-    --primary-500: 217 91% 60%;
-    --primary-600: 221 83% 53%;
-    --primary-700: 224 76% 48%;
-    --primary-800: 226 71% 40%;
-    --primary-900: 226 64% 33%;
-    
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 220 15% 15%;
-    --muted: 220 15% 92%;
-    --muted-foreground: 220 10% 50%;
-    --accent: 220 20% 88%;
-    --accent-foreground: 220 15% 15%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Glassmorphism Borders & Effects */
-    --border: 220 15% 88%; /* Subtle cool border */
-    --input: 220 20% 94%;
-    --ring: 217 91% 60%;
-
-    /* Beautiful Gradient Colors for Background */
-    --gradient-start: 280 100% 99%; /* Soft lavender */
-    --gradient-mid: 217 100% 97%; /* Premium blue */
-    --gradient-end: 190 100% 98%; /* Mint fresh */
-
-    /* Editorial Accent Colors */
-    --editorial-purple: 280 100% 70%;
-    --editorial-blue: 217 91% 60%;
-    --editorial-teal: 180 60% 50%;
-    --editorial-pink: 340 82% 65%;
-    --editorial-orange: 25 95% 53%;
-    --editorial-yellow: 45 93% 47%;
-
-    /* Vibrant Accent Colors */
-    --sunset-1: 217 91% 60%; /* Beautiful blue */
-    --sunset-2: 267 84% 65%; /* Purple accent */
-    --sunset-3: 142 76% 55%; /* Emerald accent */
-
-    /* Charts - Warm Palette */
-    --chart-1: 25 95% 53%;
-    --chart-2: 15 85% 50%;
-    --chart-3: 35 75% 45%;
-    --chart-4: 45 70% 50%;
-    --chart-5: 55 65% 45%;
-
-    --radius: 1rem; /* Increased for modern look */
+    --background: var(--tenant-background, 220 25% 98%);
+    --foreground: var(--tenant-foreground, 220 20% 10%);
+    --card: var(--tenant-card, 0 0% 100%);
+    --card-foreground: var(--tenant-card-foreground, 220 15% 15%);
+    --card-header: var(--tenant-card-header, 220 30% 98%);
+    --content-panel: var(--tenant-content-panel, 220 20% 90%);
+    --section-background: var(--tenant-section-background, 220 25% 96%);
+    --popover: var(--tenant-popover, 0 0% 100%);
+    --popover-foreground: var(--tenant-popover-foreground, 220 15% 15%);
+    --primary: var(--tenant-primary, 217 91% 60%);
+    --primary-foreground: var(--tenant-primary-foreground, 0 0% 100%);
+    --primary-rgb: var(--tenant-primary-rgb, 59, 130, 246);
+    --primary-50: var(--tenant-primary-50, 214 100% 97%);
+    --primary-100: var(--tenant-primary-100, 214 95% 93%);
+    --primary-200: var(--tenant-primary-200, 213 97% 87%);
+    --primary-300: var(--tenant-primary-300, 212 96% 78%);
+    --primary-400: var(--tenant-primary-400, 213 94% 68%);
+    --primary-500: var(--tenant-primary-500, 217 91% 60%);
+    --primary-600: var(--tenant-primary-600, 221 83% 53%);
+    --primary-700: var(--tenant-primary-700, 224 76% 48%);
+    --primary-800: var(--tenant-primary-800, 226 71% 40%);
+    --primary-900: var(--tenant-primary-900, 226 64% 33%);
+    --secondary: var(--tenant-secondary, 220 15% 92%);
+    --secondary-foreground: var(--tenant-secondary-foreground, 220 15% 15%);
+    --muted: var(--tenant-muted, 220 15% 92%);
+    --muted-foreground: var(--tenant-muted-foreground, 220 10% 50%);
+    --accent: var(--tenant-accent, 220 20% 88%);
+    --accent-foreground: var(--tenant-accent-foreground, 220 15% 15%);
+    --destructive: var(--tenant-destructive, 0 84.2% 60.2%);
+    --destructive-foreground: var(--tenant-destructive-foreground, 0 0% 100%);
+    --border: var(--tenant-border, 220 15% 88%);
+    --input: var(--tenant-input, 220 20% 94%);
+    --ring: var(--tenant-ring, 217 91% 60%);
+    --gradient-start: var(--tenant-gradient-start, 280 100% 99%);
+    --gradient-mid: var(--tenant-gradient-mid, 217 100% 97%);
+    --gradient-end: var(--tenant-gradient-end, 190 100% 98%);
+    --editorial-purple: var(--tenant-editorial-purple, 280 100% 70%);
+    --editorial-blue: var(--tenant-editorial-blue, 217 91% 60%);
+    --editorial-teal: var(--tenant-editorial-teal, 180 60% 50%);
+    --editorial-pink: var(--tenant-editorial-pink, 340 82% 65%);
+    --editorial-orange: var(--tenant-editorial-orange, 25 95% 53%);
+    --editorial-yellow: var(--tenant-editorial-yellow, 45 93% 47%);
+    --sunset-1: var(--tenant-sunset-1, 217 91% 60%);
+    --sunset-2: var(--tenant-sunset-2, 267 84% 65%);
+    --sunset-3: var(--tenant-sunset-3, 142 76% 55%);
+    --chart-1: var(--tenant-chart-1, 25 95% 53%);
+    --chart-2: var(--tenant-chart-2, 15 85% 50%);
+    --chart-3: var(--tenant-chart-3, 35 75% 45%);
+    --chart-4: var(--tenant-chart-4, 45 70% 50%);
+    --chart-5: var(--tenant-chart-5, 55 65% 45%);
+    --surface: var(--tenant-surface, 210 40% 98%);
+    --surface-dark: var(--tenant-surface-dark, 222 47% 12%);
+    --radius: var(--tenant-radius, 1rem);
   }
   .dark {
-    /* Dark mode with modern depth */
-    --background: 222 47% 7%; /* Rich dark blue */
-    --foreground: 210 40% 98%; /* Clean white text */
-    --card: 222 47% 11%; /* Elevated dark card */
-    --card-foreground: 210 40% 98%;
-    --card-header: 222 47% 13%; /* Subtle header */
-    --content-panel: 222 47% 9%; /* Deep panel */
-    --section-background: 222 47% 8%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%; /* Keep vibrant blue in dark mode */
-    --primary-foreground: 210 40% 98%;
-    --primary-rgb: 59, 130, 246;
-    
-    /* Primary color scale - dark mode */
-    --primary-50: 222 47% 15%;
-    --primary-100: 221 50% 18%;
-    --primary-200: 220 55% 25%;
-    --primary-300: 218 60% 35%;
-    --primary-400: 217 75% 45%;
-    --primary-500: 217 91% 60%;
-    --primary-600: 217 91% 65%;
-    --primary-700: 217 91% 70%;
-    --primary-800: 216 90% 75%;
-    --primary-900: 215 88% 80%;
-    
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 32% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 217 91% 60%;
-
-    /* Dark mode gradients */
-    --gradient-start: 222 47% 12%;
-    --gradient-mid: 222 47% 10%;
-    --gradient-end: 222 47% 8%;
-
-    /* Editorial Accent Colors - Dark Mode */
-    --editorial-purple: 280 100% 75%;
-    --editorial-blue: 217 91% 65%;
-    --editorial-teal: 180 60% 55%;
-    --editorial-pink: 340 82% 70%;
-    --editorial-orange: 25 95% 58%;
-    --editorial-yellow: 45 93% 52%;
-
-    /* Dark sunset accents */
-    --sunset-1: 217 91% 65%;
-    --sunset-2: 267 84% 70%;
-    --sunset-3: 142 76% 60%;
-
-    --chart-1: 25 80% 45%;
-    --chart-2: 15 70% 40%;
-    --chart-3: 35 60% 35%;
-    --chart-4: 45 55% 40%;
-    --chart-5: 55 50% 35%;
+    --background: var(--tenant-dark-background, 222 47% 7%);
+    --foreground: var(--tenant-dark-foreground, 210 40% 98%);
+    --card: var(--tenant-dark-card, 222 47% 11%);
+    --card-foreground: var(--tenant-dark-card-foreground, 210 40% 98%);
+    --card-header: var(--tenant-dark-card-header, 222 47% 13%);
+    --content-panel: var(--tenant-dark-content-panel, 222 47% 9%);
+    --section-background: var(--tenant-dark-section-background, 222 47% 8%);
+    --popover: var(--tenant-dark-popover, 222 47% 11%);
+    --popover-foreground: var(--tenant-dark-popover-foreground, 210 40% 98%);
+    --primary: var(--tenant-dark-primary, var(--tenant-primary, 217 91% 60%));
+    --primary-foreground: var(
+      --tenant-dark-primary-foreground,
+      var(--tenant-primary-foreground, 0 0% 100%)
+    );
+    --primary-rgb: var(
+      --tenant-dark-primary-rgb,
+      var(--tenant-primary-rgb, 59, 130, 246)
+    );
+    --primary-50: var(--tenant-dark-primary-50, 222 47% 15%);
+    --primary-100: var(--tenant-dark-primary-100, 221 50% 18%);
+    --primary-200: var(--tenant-dark-primary-200, 220 55% 25%);
+    --primary-300: var(--tenant-dark-primary-300, 218 60% 35%);
+    --primary-400: var(--tenant-dark-primary-400, 217 75% 45%);
+    --primary-500: var(--tenant-dark-primary-500, 217 91% 60%);
+    --primary-600: var(--tenant-dark-primary-600, 217 91% 65%);
+    --primary-700: var(--tenant-dark-primary-700, 217 91% 70%);
+    --primary-800: var(--tenant-dark-primary-800, 216 90% 75%);
+    --primary-900: var(--tenant-dark-primary-900, 215 88% 80%);
+    --secondary: var(--tenant-dark-secondary, 217 32% 17%);
+    --secondary-foreground: var(--tenant-dark-secondary-foreground, 210 40% 98%);
+    --muted: var(--tenant-dark-muted, 217 32% 17%);
+    --muted-foreground: var(--tenant-dark-muted-foreground, 215 20% 65%);
+    --accent: var(--tenant-dark-accent, 217 32% 17%);
+    --accent-foreground: var(--tenant-dark-accent-foreground, 210 40% 98%);
+    --destructive: var(--tenant-dark-destructive, 0 62.8% 50%);
+    --destructive-foreground: var(--tenant-dark-destructive-foreground, 210 40% 98%);
+    --border: var(--tenant-dark-border, 217 32% 17%);
+    --input: var(--tenant-dark-input, 217 32% 17%);
+    --ring: var(--tenant-dark-ring, 217 91% 60%);
+    --gradient-start: var(--tenant-dark-gradient-start, 222 47% 12%);
+    --gradient-mid: var(--tenant-dark-gradient-mid, 222 47% 10%);
+    --gradient-end: var(--tenant-dark-gradient-end, 222 47% 8%);
+    --editorial-purple: var(--tenant-dark-editorial-purple, 280 100% 75%);
+    --editorial-blue: var(--tenant-dark-editorial-blue, 217 91% 65%);
+    --editorial-teal: var(--tenant-dark-editorial-teal, 180 60% 55%);
+    --editorial-pink: var(--tenant-dark-editorial-pink, 340 82% 70%);
+    --editorial-orange: var(--tenant-dark-editorial-orange, 25 95% 58%);
+    --editorial-yellow: var(--tenant-dark-editorial-yellow, 45 93% 52%);
+    --sunset-1: var(--tenant-dark-sunset-1, 217 91% 65%);
+    --sunset-2: var(--tenant-dark-sunset-2, 267 84% 70%);
+    --sunset-3: var(--tenant-dark-sunset-3, 142 76% 60%);
+    --chart-1: var(--tenant-dark-chart-1, 25 80% 45%);
+    --chart-2: var(--tenant-dark-chart-2, 15 70% 40%);
+    --chart-3: var(--tenant-dark-chart-3, 35 60% 35%);
+    --chart-4: var(--tenant-dark-chart-4, 45 55% 40%);
+    --chart-5: var(--tenant-dark-chart-5, 55 50% 35%);
+    --surface: var(--tenant-dark-surface, 222 47% 12%);
+    --surface-dark: var(--tenant-dark-surface-dark, 222 47% 16%);
+    --radius: var(--tenant-dark-radius, var(--tenant-radius, 1rem));
   }
 }
-
 /*
 ---break---
 */

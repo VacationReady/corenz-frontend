@@ -120,6 +120,28 @@ export default function EmployeeOnboardingPage({
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <Card className="max-w-xl w-full p-6 text-center space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold mb-1">
+              We couldn't load your onboarding.
+            </h2>
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Try again below. If the issue persists, please refresh the page or
+            contact your administrator.
+          </p>
+          <Button variant="secondary" onClick={fetchOnboarding}>
+            Retry loading onboarding
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   if (!instance) {
     return (
       <div className="p-8 text-center">

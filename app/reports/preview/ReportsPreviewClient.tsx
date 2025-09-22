@@ -20,7 +20,11 @@ type ColumnDefinition = { header: string; accessorKey: string };
 type FieldMetadata = { label: string; isPII?: boolean };
 
 function getNested(obj: any, path: string): any {
-  return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+  return path.split(".").reduce((acc: any, key: string) => {
+    if (acc === undefined || acc === null) return undefined;
+    if (Array.isArray(acc)) acc = acc[0];
+    return acc ? acc[key] : undefined;
+  }, obj);
 }
 
 function downloadCSV(data: any[], columns: ColumnDefinition[]) {
@@ -267,6 +271,32 @@ export default function ReportsPreviewClient() {
     };
   }, [selectedFields, page, pageSize, reportIdParam, reportConfig, fetchReportPage]);
 
+  const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
+    const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    if (!hasLeave) return fields;
+    return fields.map((f) => {
+      if (f === "User.firstName") return "LeaveRequest.Employee.User.firstName";
+      if (f === "User.lastName") return "LeaveRequest.Employee.User.lastName";
+      if (
+        f === "User.Department_User_departmentIdToDepartment.name" ||
+        f === "User.department.name"
+      )
+        return "LeaveRequest.Employee.Department.name";
+      if (f === "EventCategory.name") return "LeaveRequest.EventCategory.name";
+      if (f.startsWith("LeaveEntitlement."))
+        return f.replace(
+          "LeaveEntitlement.",
+          "LeaveRequest.Employee.LeaveEntitlement."
+        );
+      return f;
+    });
+  }, []);
+
+  const effectiveSelectedFields = useMemo(
+    () => rewriteFieldsForLeaveContext(selectedFields),
+    [selectedFields, rewriteFieldsForLeaveContext]
+  );
+
   const translateLegacy = useCallback((f: string) => {
     const map: Record<string, string> = {
       "User.department.name": "User.Department_User_departmentIdToDepartment.name",
@@ -277,7 +307,7 @@ export default function ReportsPreviewClient() {
   }, []);
 
   const columns = useMemo<ColumnDefinition[]>(() => {
-    return selectedFields.map((field) => {
+    return effectiveSelectedFields.map((field) => {
       const keys = field.split(".");
       let accessorKey: string;
       let headerFallback: string;
@@ -300,7 +330,7 @@ export default function ReportsPreviewClient() {
 
       return { header: label, accessorKey };
     });
-  }, [selectedFields, fieldLabels, translateLegacy]);
+  }, [effectiveSelectedFields, fieldLabels, translateLegacy]);
 
   const logAndToastPII = useCallback(
     (rowCount: number) => {

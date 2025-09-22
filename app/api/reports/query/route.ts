@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         let translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
         let translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
 
-        // Rewrite to leave-anchored equivalents if applicable
+        // Rewrite to leave-anchored equivalents if applicable (includes LeaveEntitlement -> LeaveRequest.Employee.LeaveEntitlement)
         translatedSelectedFields = rewriteFieldsForLeaveContext(translatedSelectedFields);
         translatedFilters = translatedFilters.map((f) => ({ ...f, field: rewriteFieldsForLeaveContext([f.field])[0] }));
         if (translatedSort?.field) {
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
         }
 
 		// Restrict selectedFields to allowed hrReportFields list
-		const allowedFieldSet = new Set(hrReportFields.map((f) => f.field));
+        const allowedFieldSet = new Set(hrReportFields.map((f) => f.field).concat(["_computed.durationDays"]));
 		const sanitizedSelectedFields = translatedSelectedFields.filter((f) =>
 			allowedFieldSet.has(f),
 		);

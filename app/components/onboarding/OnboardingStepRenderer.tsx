@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import Checkbox from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
@@ -60,6 +62,7 @@ export default function OnboardingStepRenderer({
 
   // ✅ Acknowledge Document
   if (step.type === "acknowledge-document") {
+    const acknowledgeCheckboxId = `acknowledge-${step.id}`;
     return (
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
@@ -73,15 +76,19 @@ export default function OnboardingStepRenderer({
             />
           </div>
         )}
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
+        <Label
+          htmlFor={acknowledgeCheckboxId}
+          className="flex items-center gap-2"
+        >
+          <Checkbox
+            id={acknowledgeCheckboxId}
             checked={ack}
-            disabled={readOnly}
-            onChange={(e) => setAck(e.target.checked)}
+            disabled={readOnly || loading}
+            aria-readonly={readOnly}
+            onCheckedChange={(checked) => setAck(checked === true)}
           />
           I have read and acknowledge this document
-        </label>
+        </Label>
         {!readOnly && (
           <Button
             disabled={!ack || loading}
@@ -120,6 +127,7 @@ export default function OnboardingStepRenderer({
 
   // ✅ Upload Document
   if (step.type === "upload-document") {
+    const uploadInputId = `document-upload-${step.id}`;
     return (
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
@@ -134,12 +142,27 @@ export default function OnboardingStepRenderer({
           </a>
         ) : (
           <>
-            <input
-              type="file"
-              accept=".pdf,.jpg,.png"
-              disabled={readOnly}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
+            <div className="mb-4 space-y-2">
+              <Label
+                htmlFor={uploadInputId}
+                className="text-sm font-medium text-foreground"
+              >
+                Upload document
+              </Label>
+              <Input
+                id={uploadInputId}
+                type="file"
+                accept=".pdf,.jpg,.png"
+                disabled={readOnly || loading}
+                readOnly={readOnly}
+                aria-readonly={readOnly}
+                className="cursor-pointer"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Accepted formats: PDF, JPG, PNG.
+              </p>
+            </div>
             {!readOnly && (
               <Button
                 disabled={!file || loading}

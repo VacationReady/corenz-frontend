@@ -1,16 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
+import {
+        Dialog,
+        DialogContent,
+        DialogDescription,
+        DialogFooter,
+        DialogHeader,
+        DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { hrReportFields } from "@/lib/hrReportFields";
 import Papa from "papaparse";
+
+type ColumnDefinition = { header: string; accessorKey: string };
+type FieldMetadata = { label: string; isPII?: boolean };
 
 function getNested(obj: any, path: string): any {
 	return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
 }
 
-function downloadCSV(data: any[], columns: any[]) {
+function downloadCSV(data: any[], columns: ColumnDefinition[]) {
 	if (!data || data.length === 0) return;
 
 	const headers = columns.map((col: any) => col.header);
@@ -37,38 +50,85 @@ function downloadCSV(data: any[], columns: any[]) {
 }
 
 export default function ReportsPreviewClient() {
-	const searchParams = useSearchParams();
-	const router = useRouter();
-	const fieldsParam = searchParams?.get("fields");
-	const reportIdParam = searchParams?.get("reportId");
-	
-	const [selectedFields, setSelectedFields] = useState<string[]>(
-		fieldsParam ? fieldsParam.split(",") : []
-	);
-	const [reportConfig, setReportConfig] = useState<any>(null);
+        const searchParams = useSearchParams();
+        const router = useRouter();
+        const fieldsParam = searchParams?.get("fields");
+        const reportIdParam = searchParams?.get("reportId");
+        const { toast } = useToast();
 
-	const [data, setData] = useState<any[]>([]);
-	const [filteredData, setFilteredData] = useState<any[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [loadingReport, setLoadingReport] = useState(false);
-	const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
+        const [selectedFields, setSelectedFields] = useState<string[]>(
+                fieldsParam ? fieldsParam.split(",") : []
+        );
+        const [reportConfig, setReportConfig] = useState<any>(null);
 
-	// Build field label map from server (includes dynamic Forms)
-	useEffect(() => {
-		const load = async () => {
-			try {
-				const res = await fetch("/api/reports/fields", { cache: "no-store" });
-				if (!res.ok) throw new Error(String(res.status));
-				const list = await res.json();
-				const map: Record<string, string> = {};
-				if (Array.isArray(list)) list.forEach((f: any) => { if (f?.field && f?.label) map[f.field] = f.label; });
-				setFieldLabels(map);
-			} catch {
-				setFieldLabels({});
-			}
-		};
-		load();
-	}, []);
+        const [data, setData] = useState<any[]>([]);
+        const [filteredData, setFilteredData] = useState<any[]>([]);
+        const [loading, setLoading] = useState(false);
+        const [loadingReport, setLoadingReport] = useState(false);
+        const [fieldMetadata, setFieldMetadata] = useState<Record<string, FieldMetadata>>(() => {
+                const initial: Record<string, FieldMetadata> = {};
+                hrReportFields.forEach((field) => {
+                        if (field?.field && field?.label) {
+                                initial[field.field] = { label: field.label, isPII: field.isPII };
+                        }
+                });
+                return initial;
+        });
+        const [showPIIModal, setShowPIIModal] = useState(false);
+        const [piiAcknowledged, setPiiAcknowledged] = useState(false);
+
+        // Build field metadata map from server (includes dynamic Forms)
+        useEffect(() => {
+                const load = async () => {
+                        try {
+                                const res = await fetch("/api/reports/fields", { cache: "no-store" });
+                                if (!res.ok) throw new Error(String(res.status));
+                                const list = await res.json();
+                                if (Array.isArray(list)) {
+                                        setFieldMetadata((prev) => {
+                                                const next: Record<string, FieldMetadata> = { ...prev };
+                                                list.forEach((f: any) => {
+                                                        if (f?.field && f?.label) {
+                                                                const previous = next[f.field];
+                                                                const isPII = f?.isPII ?? previous?.isPII ?? false;
+                                                                next[f.field] = { label: f.label, isPII };
+                                                        }
+                                                });
+                                                return next;
+                                        });
+                                }
+                        } catch {
+                                // Ignore label loading errors – fallback metadata already seeded from hrReportFields
+                        }
+                };
+                load();
+        }, []);
+
+        const fieldLabels = useMemo(() => {
+                const map: Record<string, string> = {};
+                Object.entries(fieldMetadata).forEach(([field, meta]) => {
+                        map[field] = meta.label;
+                });
+                return map;
+        }, [fieldMetadata]);
+
+        const piiFields = useMemo(
+                () => selectedFields.filter((field) => fieldMetadata[field]?.isPII),
+                [selectedFields, fieldMetadata]
+        );
+
+        const piiFieldLabels = useMemo(
+                () => piiFields.map((field) => fieldMetadata[field]?.label ?? field),
+                [piiFields, fieldMetadata]
+        );
+
+        const hasPIISelected = piiFields.length > 0;
+
+        useEffect(() => {
+                if (!hasPIISelected) {
+                        setPiiAcknowledged(false);
+                }
+        }, [hasPIISelected]);
 
 	// Load report configuration if reportId is provided
 	useEffect(() => {
@@ -91,11 +151,11 @@ export default function ReportsPreviewClient() {
 	}, [reportIdParam]);
 
 	// Load report data when fields are available
-	useEffect(() => {
-		if (selectedFields.length === 0) return;
-		const fetchData = async () => {
-			setLoading(true);
-			try {
+        useEffect(() => {
+                if (selectedFields.length === 0) return;
+                const fetchData = async () => {
+                        setLoading(true);
+                        try {
 				const res = await fetch("/api/reports/query", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
@@ -116,11 +176,83 @@ export default function ReportsPreviewClient() {
 				setLoading(false);
 			}
 		};
-		fetchData();
-	}, [selectedFields]);
+                fetchData();
+        }, [selectedFields]);
 
-	const handleSaveReport = async () => {
-		const reportName = prompt("Enter a name for this report:");
+        const translateLegacy = useCallback((f: string) => {
+                const map: Record<string, string> = {
+                        "User.department.name": "User.Department_User_departmentIdToDepartment.name",
+                        "User.Department.name": "User.Department_User_departmentIdToDepartment.name",
+                        "User.jobRole.name": "User.JobRole.name",
+                };
+                return map[f] || f;
+        }, []);
+
+        const columns = useMemo<ColumnDefinition[]>(() => {
+                return selectedFields.map((field) => {
+                        const keys = field.split(".");
+                        let accessorKey: string;
+                        let headerFallback: string;
+                        if (keys.length >= 3) {
+                                accessorKey = `${keys.slice(1).join(".")}`; // support nested
+                                headerFallback = keys[keys.length - 1];
+                        } else if (keys.length === 2) {
+                                accessorKey = keys[1];
+                                headerFallback = keys[1];
+                        } else {
+                                accessorKey = keys[keys.length - 1];
+                                headerFallback = keys[keys.length - 1];
+                        }
+
+                        const translated = translateLegacy(field);
+                        const label =
+                                fieldLabels[field] ||
+                                fieldLabels[translated] ||
+                                headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
+
+                        return { header: label, accessorKey };
+                });
+        }, [selectedFields, fieldLabels, translateLegacy]);
+
+        const performDownload = useCallback(() => {
+                if (!columns.length) return;
+
+                downloadCSV(filteredData, columns);
+
+                if (hasPIISelected) {
+                        const acknowledgedFields = piiFieldLabels.join(", ") || "PII data";
+                        toast({
+                                title: "PII export acknowledged",
+                                description: `Exporting sensitive fields: ${acknowledgedFields}. Please handle securely.`,
+                        });
+                        console.info("[PII_EXPORT_ACK]", {
+                                at: new Date().toISOString(),
+                                fields: piiFields,
+                                rows: filteredData.length,
+                        });
+                }
+        }, [columns, filteredData, hasPIISelected, piiFieldLabels, toast, piiFields]);
+
+        const handleDownloadClick = () => {
+                if (hasPIISelected && !piiAcknowledged) {
+                        setShowPIIModal(true);
+                        return;
+                }
+                performDownload();
+        };
+
+        const handleConfirmPIIExport = () => {
+                setShowPIIModal(false);
+                setPiiAcknowledged(true);
+                performDownload();
+        };
+
+        const handleCancelPIIExport = () => {
+                setShowPIIModal(false);
+        };
+
+        const handleSaveReport = async () => {
+                const reportName = prompt("Enter a name for this report:");
 		if (!reportName) return;
 		try {
 			const res = await fetch("/api/reports/save", {
@@ -171,47 +303,56 @@ export default function ReportsPreviewClient() {
 		);
 	}
 
-	const translateLegacy = (f: string) => {
-		const map: Record<string, string> = {
-			"User.department.name": "User.Department_User_departmentIdToDepartment.name",
-			"User.Department.name": "User.Department_User_departmentIdToDepartment.name",
-			"User.jobRole.name": "User.JobRole.name",
-		};
-		return map[f] || f;
-	};
-
-	const columns = selectedFields.map((field) => {
-		const keys = field.split(".");
-		let accessorKey: string;
-		let headerFallback: string;
-		if (keys.length >= 3) {
-			accessorKey = `${keys.slice(1).join(".")}`; // support nested
-			headerFallback = keys[keys.length - 1];
-		} else if (keys.length === 2) {
-			accessorKey = keys[1];
-			headerFallback = keys[1];
-		} else {
-			accessorKey = keys[keys.length - 1];
-			headerFallback = keys[keys.length - 1];
-		}
-
-		const translated = translateLegacy(field);
-		const label = fieldLabels[field] || fieldLabels[translated] || headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
-
-		return { header: label, accessorKey };
-	});
-
-	return (
-		<main className="p-6">
-			<h1 className="text-2xl font-bold mb-4">Report Preview</h1>
-			<p className="mb-4">Your custom report is displayed below. You can sort and filter as needed.</p>
-			<div className="flex gap-2 mb-4">
-				<Button onClick={() => downloadCSV(filteredData, columns)}>Download CSV ({filteredData.length} rows)</Button>
-				<Button onClick={handleSaveReport}>Save Report</Button>
-			</div>
-			<div className="min-h-[200px]">
-				<FilterableDataTable columns={columns} data={data} onFilteredDataChange={setFilteredData} />
-			</div>
-		</main>
-	);
+        return (
+                <>
+                        <main className="p-6">
+                                <h1 className="text-2xl font-bold mb-4">Report Preview</h1>
+                                <p className="mb-4">Your custom report is displayed below. You can sort and filter as needed.</p>
+                                <div className="flex gap-2 mb-4">
+                                        <Button onClick={handleDownloadClick}>Download CSV ({filteredData.length} rows)</Button>
+                                        <Button onClick={handleSaveReport}>Save Report</Button>
+                                </div>
+                                <div className="min-h-[200px]">
+                                        <FilterableDataTable columns={columns} data={data} onFilteredDataChange={setFilteredData} />
+                                </div>
+                        </main>
+                        <Dialog open={showPIIModal} onOpenChange={setShowPIIModal}>
+                                <DialogContent>
+                                        <DialogHeader>
+                                                <DialogTitle>Confirm export of personal data</DialogTitle>
+                                                <DialogDescription>
+                                                        You&apos;re about to download a report that contains personal or sensitive information.
+                                                        Please confirm you are authorized to export this data and will handle it securely.
+                                                </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4">
+                                                {piiFieldLabels.length > 0 && (
+                                                        <div>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                        This export includes the following fields flagged as personally identifiable information:
+                                                                </p>
+                                                                <ul className="list-disc list-inside text-sm text-foreground mt-2 space-y-1">
+                                                                        {piiFieldLabels.map((label) => (
+                                                                                <li key={label}>{label}</li>
+                                                                        ))}
+                                                                </ul>
+                                                        </div>
+                                                )}
+                                                <p className="text-sm text-muted-foreground">
+                                                        By continuing you acknowledge the privacy obligations associated with this export and
+                                                        agree to follow company policy for safeguarding sensitive data.
+                                                </p>
+                                        </div>
+                                        <DialogFooter className="mt-6">
+                                                <Button type="button" variant="secondary" onClick={handleCancelPIIExport}>
+                                                        Cancel
+                                                </Button>
+                                                <Button type="button" onClick={handleConfirmPIIExport}>
+                                                        Confirm &amp; Download
+                                                </Button>
+                                        </DialogFooter>
+                                </DialogContent>
+                        </Dialog>
+                </>
+        );
 }

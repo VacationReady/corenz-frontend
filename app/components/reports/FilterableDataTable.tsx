@@ -588,7 +588,16 @@ export default function FilterableDataTable({
                         key={column.accessorKey}
                         className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                       >
-                        {getNestedValue(row, column.accessorKey) ?? '-'}
+                        {(() => {
+                          const raw = getNestedValue(row, column.accessorKey);
+                          if (raw === null || raw === undefined || raw === "") return "-";
+                          // Format ISO date strings as date-only
+                          if (typeof raw === "string" && /\d{4}-\d{2}-\d{2}T/.test(raw)) {
+                            const d = new Date(raw);
+                            if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+                          }
+                          return String(raw);
+                        })()}
                       </td>
                     ))}
                   </tr>

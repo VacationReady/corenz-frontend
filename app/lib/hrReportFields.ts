@@ -360,6 +360,16 @@ export const hrReportFields: HRReportField[] = [
 		description: "Leave days already used",
 	},
 	{
+		model: "LeaveRequest",
+		field: "_computed.durationDays",
+		label: "Used Leave Days",
+		type: "number",
+		category: "time-off",
+		filterable: true,
+		sortable: true,
+		description: "Computed duration between start and end dates (inclusive)",
+	},
+	{
 		model: "LeaveEntitlement",
 		field: "LeaveEntitlement.carryoverDays",
 		label: "Carryover Days",

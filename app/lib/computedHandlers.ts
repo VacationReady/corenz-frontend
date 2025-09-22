@@ -12,7 +12,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Leave Entitlement
   // ===========================
-  leaveEntitlement: {
+  LeaveEntitlement: {
     "_computed.remainingEntitlement": (item) => {
       const total =
         (item.totalDays || 0) +
@@ -25,7 +25,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Leave Request
   // ===========================
-  leaveRequest: {
+  LeaveRequest: {
     "_computed.durationDays": (item) => {
       const start = new Date(item.startDate);
       const end = new Date(item.endDate);
@@ -39,7 +39,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Driver Licence
   // ===========================
-  driverLicence: {
+  DriverLicence: {
     "_computed.daysUntilExpiry": (item) => {
       const expiry = new Date(item.expiryDate);
       const today = new Date();
@@ -52,7 +52,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Training Record
   // ===========================
-  trainingRecord: {
+  TrainingRecord: {
     "_computed.daysUntilExpiry": (item) => {
       const expiry = new Date(item.expiryDate);
       const today = new Date();
@@ -65,7 +65,7 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   // Employment Check
   // ===========================
-  employmentCheck: {
+  EmploymentCheck: {
     "_computed.daysSinceCompleted": (item) => {
       const completed = new Date(item.completedAt);
       const today = new Date();

@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/accordion";
 
 export default function ReportsPage() {
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
+  const [selectedFields, setSelectedFields] = useState<string[]>(REQUIRED_FIELDS);
   const [fieldGroups, setFieldGroups] = useState<
     Record<string, { label: string; value: string }[]>
   >({});
@@ -32,6 +33,7 @@ export default function ReportsPage() {
   }, []);
 
   const handleFieldToggle = (field: string) => {
+    if (REQUIRED_FIELDS.includes(field)) return; // cannot unselect required
     setSelectedFields((prev) =>
       prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field],
     );
@@ -59,8 +61,12 @@ export default function ReportsPage() {
                 id={field.value}
                 checked={selectedFields.includes(field.value)}
                 onCheckedChange={() => handleFieldToggle(field.value)}
+                disabled={REQUIRED_FIELDS.includes(field.value)}
               />
-              <span>{field.label}</span>
+              <span>
+                {field.label}
+                {REQUIRED_FIELDS.includes(field.value) ? " (Required)" : ""}
+              </span>
             </label>
           ))}
         </div>

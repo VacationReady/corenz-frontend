@@ -34,6 +34,8 @@ function anchorFieldToLeave(field: string): string {
     if (field.startsWith("LeaveEntitlement.")) return field.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.");
     if (field.startsWith("User.")) return field.replace("User.", "LeaveRequest.Employee.User.");
     if (field.startsWith("Employee.")) return field.replace("Employee.", "LeaveRequest.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "LeaveRequest.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "LeaveRequest.Employee.JobRole.");
     if (field.startsWith("EventCategory.")) return field.replace("EventCategory.", "LeaveRequest.EventCategory.");
     return field;
 }
@@ -92,7 +94,10 @@ export async function POST(req: Request) {
 		};
 
 		// Translate legacy keys first
+        // Always guarantee first and last name are present
         let translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
+        const ensure = (arr: string[], f: string) => (arr.includes(f) ? arr : [...arr, f]);
+        translatedSelectedFields = ensure(ensure(translatedSelectedFields, "User.firstName"), "User.lastName");
         let translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
         let translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
 

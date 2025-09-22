@@ -62,9 +62,11 @@ export default function ReportsPreviewClient() {
   const reportIdParam = searchParams?.get("reportId");
   const { toast } = useToast();
 
-  const [selectedFields, setSelectedFields] = useState<string[]>(() =>
-    reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : []
-  );
+  const [selectedFields, setSelectedFields] = useState<string[]>(() => {
+    const base = reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
+    const ensure = (arr: string[], field: string) => (arr.includes(field) ? arr : [...arr, field]);
+    return ensure(ensure(base, "User.firstName"), "User.lastName");
+  });
   const [reportConfig, setReportConfig] = useState<any>(null);
 
   const [data, setData] = useState<any[]>([]);
@@ -277,6 +279,8 @@ export default function ReportsPreviewClient() {
     return fields.map((f) => {
       if (f.startsWith("User.")) return f.replace("User.", "LeaveRequest.Employee.User.");
       if (f.startsWith("Employee.")) return f.replace("Employee.", "LeaveRequest.Employee.");
+      if (f.startsWith("Department.")) return f.replace("Department.", "LeaveRequest.Employee.Department.");
+      if (f.startsWith("JobRole.")) return f.replace("JobRole.", "LeaveRequest.Employee.JobRole.");
       if (f === "User.department.name" || f === "User.Department_User_departmentIdToDepartment.name")
         return "LeaveRequest.Employee.Department.name";
       if (f.startsWith("EventCategory.")) return f.replace("EventCategory.", "LeaveRequest.EventCategory.");

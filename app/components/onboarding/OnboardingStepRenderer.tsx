@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
+import { GlassSpinner } from "@/components/ui/LoadingSpinner";
 import { toast } from "sonner";
 
 type OnboardingStepProps = {
@@ -224,7 +225,9 @@ export default function OnboardingStepRenderer({
           <Card className="p-4">
             <div className="mb-2 font-semibold">{title}</div>
             <div className="mb-3 text-sm">{desc}</div>
-            <div>Loading form...</div>
+            <div className="flex justify-center py-6">
+              <GlassSpinner showText text="Loading form…" />
+            </div>
           </Card>
         );
       }

@@ -34,6 +34,12 @@ export const computedHandlers: ComputedFieldRegistry = {
         1
       );
     },
+    "_computed.jobRoleName": (item) => {
+      // Prefer JobRole via Employee, fallback to User.JobRole
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      const viaUser = item?.Employee?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
   },
 
   // ===========================

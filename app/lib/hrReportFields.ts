@@ -182,16 +182,6 @@ export const hrReportFields: HRReportField[] = [
 	},
 	{
 		model: "Employee",
-		field: "Employee.JobRole.name",
-		label: "Job Role",
-		type: "string",
-		category: "employment",
-		filterable: true,
-		sortable: true,
-		description: "Employee job role via Employee relationship",
-	},
-	{
-		model: "Employee",
 		field: "Employee.startDate",
 		label: "Start Date",
 		type: "date",

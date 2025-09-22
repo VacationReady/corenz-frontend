@@ -43,7 +43,24 @@ function anchorFieldToLeave(field: string): string {
 function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
     if (!hasLeave) return fields;
-    return fields.map(anchorFieldToLeave);
+    const result: string[] = [];
+    for (const f of fields) {
+        const anchored = anchorFieldToLeave(f);
+        // Special handling: Job Role fallback via computed field
+        if (
+            f === "User.JobRole.name" ||
+            anchored === "LeaveRequest.Employee.User.JobRole.name" ||
+            anchored === "LeaveRequest.Employee.JobRole.name"
+        ) {
+            // Push the underlying sources for computation (hidden) and the computed field for display
+            if (!result.includes("LeaveRequest.Employee.User.JobRole.name")) result.push("LeaveRequest.Employee.User.JobRole.name");
+            if (!result.includes("LeaveRequest.Employee.JobRole.name")) result.push("LeaveRequest.Employee.JobRole.name");
+            if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
+            continue;
+        }
+        result.push(anchored);
+    }
+    return result;
 }
 
 const filterSchema = z
@@ -112,7 +129,7 @@ export async function POST(req: Request) {
 		// Restrict selectedFields to allowed hrReportFields list
         const baseAllowed = hrReportFields.map((f) => f.field);
         const anchoredAllowed = baseAllowed.map(anchorFieldToLeave);
-        const allowedFieldSet = new Set([...baseAllowed, ...anchoredAllowed, "_computed.durationDays"]);
+        const allowedFieldSet = new Set([...baseAllowed, ...anchoredAllowed, "_computed.durationDays", "_computed.jobRoleName", "LeaveRequest.Employee.User.JobRole.name", "LeaveRequest.Employee.JobRole.name"]);
 		const sanitizedSelectedFields = translatedSelectedFields.filter((f) =>
 			allowedFieldSet.has(f),
 		);

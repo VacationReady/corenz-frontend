@@ -321,10 +321,11 @@ export default function ReportsPreviewClient() {
       }
 
       const translated = translateLegacy(field);
-      const label =
-        fieldLabels[field] ||
-        fieldLabels[translated] ||
-        headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
+      let label = fieldLabels[field] || fieldLabels[translated] || headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
+      if (field === "_computed.jobRoleName") {
+        label = "Job Role";
+        accessorKey = "_computed.jobRoleName";
+      }
 
       return { header: label, accessorKey };
     });

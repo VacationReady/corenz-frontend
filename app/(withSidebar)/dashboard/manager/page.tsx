@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
+import { useTenantSettings } from "@/components/TenantProvider";
+import { formatTenantDateRange } from "@/lib/datetime";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -61,6 +63,7 @@ function MetricsSummary() {
 }
 
 function PendingLeaveApprovals() {
+  const tenant = useTenantSettings();
   const { data, error, isLoading, mutate } = useSWR(
     "/api/leave-request?approvalStatus=PENDING",
     fetcher,
@@ -124,8 +127,10 @@ function PendingLeaveApprovals() {
                   </div>
                   <div className="text-muted-foreground">
                     {r.eventCategory?.name} —{" "}
-                    {new Date(r.startDate).toLocaleDateString()} to{" "}
-                    {new Date(r.endDate).toLocaleDateString()}
+                    {formatTenantDateRange(r.startDate, r.endDate, {
+                      tenant,
+                      separator: " to ",
+                    })}
                   </div>
                 </div>
                 <div className="flex gap-2">

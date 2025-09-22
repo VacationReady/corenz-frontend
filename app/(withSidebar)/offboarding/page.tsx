@@ -24,8 +24,9 @@ import {
   Calendar,
   User,
 } from "lucide-react";
-import { format } from "date-fns";
 import Link from "next/link";
+import { useTenantSettings } from "@/components/TenantProvider";
+import { formatTenantDate, formatTenantDateTime } from "@/lib/datetime";
 
 interface OffboardingRecord {
   id: string;
@@ -82,6 +83,7 @@ export default function OffboardingPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const breadcrumbs = useBreadcrumbs();
+  const tenant = useTenantSettings();
 
   useEffect(() => {
     fetchOffboardingRecords();
@@ -290,7 +292,10 @@ export default function OffboardingPage() {
                       <span>Last Working Date</span>
                     </div>
                     <p className="font-medium">
-                      {format(new Date(record.lastWorkingDate), "MMM dd, yyyy")}
+                      {formatTenantDate(record.lastWorkingDate, {
+                        tenant,
+                        formatStr: "MMM dd, yyyy",
+                      })}
                     </p>
                   </div>
 
@@ -323,10 +328,10 @@ export default function OffboardingPage() {
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-sm text-muted-foreground">
                       Completed on{" "}
-                      {format(
-                        new Date(record.completedAt),
-                        "MMM dd, yyyy 'at' h:mm a",
-                      )}
+                      {formatTenantDateTime(record.completedAt, {
+                        tenant,
+                        formatStr: "MMM dd, yyyy 'at' h:mm a",
+                      })}
                     </p>
                   </div>
                 )}

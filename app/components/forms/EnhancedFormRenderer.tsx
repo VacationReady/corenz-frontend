@@ -11,6 +11,8 @@ import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, Form
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+import { useTenantSettings } from "@/components/TenantProvider";
+import { formatTenantDateTime } from "@/lib/datetime";
 
 interface EnhancedFormRendererProps {
   formId: string;
@@ -35,6 +37,7 @@ export function EnhancedFormRenderer({
   employeeId,
   onDataChange,
 }: EnhancedFormRendererProps) {
+  const tenant = useTenantSettings();
   const [formData, setFormData] = useState<FormDataShape | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -304,7 +307,7 @@ export function EnhancedFormRenderer({
           )}
           {formData.lastUpdated && (
             <span>
-              Last updated: {new Date(formData.lastUpdated).toLocaleString()}
+              Last updated: {formatTenantDateTime(formData.lastUpdated ?? "", { tenant })}
             </span>
           )}
         </div>

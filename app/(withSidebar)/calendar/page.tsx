@@ -24,6 +24,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Lock } from "lucide-react";
+import { useTenantSettings } from "@/components/TenantProvider";
+import { formatTenantDateRange } from "@/lib/datetime";
 
 interface Department {
   id: string;
@@ -31,6 +33,7 @@ interface Department {
 }
 
 export default function CalendarPage() {
+  const tenant = useTenantSettings();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -423,7 +426,11 @@ export default function CalendarPage() {
           <div className="mt-3 space-y-1">
             {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge> : null}
             <div className="text-xs text-gray-600">
-              {new Date(content.event.start!).toLocaleDateString()} – {new Date((content.event.end as any) || content.event.start!).toLocaleDateString()}
+              {formatTenantDateRange(
+                content.event.start!,
+                (content.event.end as any) ?? undefined,
+                { tenant },
+              )}
             </div>
             {content.event.extendedProps?.reason ? (
               <div className="text-xs text-gray-700">{String(content.event.extendedProps.reason)}</div>

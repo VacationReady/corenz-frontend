@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";
+import { useTenantSettings } from "@/components/TenantProvider";
+import { formatTenantDate } from "@/lib/datetime";
 
 interface NewsPost {
   id: string;
@@ -21,6 +23,7 @@ type NewsWidgetProps = {
 export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
   const [items, setItems] = useState<NewsPost[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const tenant = useTenantSettings();
 
   useEffect(() => {
     const fetchLatestNews = async () => {
@@ -70,7 +73,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
                         {post.title}
                       </h3>
                       <p className="text-white/80 text-xs mt-1">
-                        {new Date(post.createdAt).toLocaleDateString()}
+                        {formatTenantDate(post.createdAt, { tenant })}
                       </p>
                       {post.preview && (
                         <p className="text-white/90 text-sm mt-2 line-clamp-2">
@@ -105,7 +108,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
                         {post.title}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(post.createdAt).toLocaleDateString()}
+                        {formatTenantDate(post.createdAt, { tenant })}
                       </p>
                       {post.preview && (
                         <p className="text-sm text-muted-foreground line-clamp-2">

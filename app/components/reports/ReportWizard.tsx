@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, CheckIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
-import { hrCategories, hrReportTemplates, ReportTemplate } from "@/lib/hrReportFields";
+import { hrReportTemplates, ReportTemplate } from "@/lib/hrReportFields";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration, { ReportFilter, SortConfig } from "./FilterConfiguration";
 
@@ -92,6 +92,8 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
         return false;
     }
   };
+
+  const canMoveForward = canProceed();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -229,7 +231,7 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
           
           <Button
             onClick={handleNext}
-            disabled={!canProceed()}
+            disabled={!canMoveForward}
             className="flex items-center"
           >
             {isLastStep ? "Create Report" : "Next"}

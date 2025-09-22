@@ -3,12 +3,12 @@
 import React, { useState, useMemo } from "react";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { CheckIcon } from "@heroicons/react/24/solid";
-import { 
-  hrCategories, 
-  hrReportFields, 
-  HRReportField, 
-  HRCategory,
-  getFieldsByCategory 
+import {
+  hrCategories,
+  hrReportFields,
+  HRReportField,
+  getFieldsByCategory,
+  getFieldByKey,
 } from "@/lib/hrReportFields";
 
 interface FieldSelectionProps {
@@ -25,7 +25,6 @@ export default function FieldSelection({
   showSelectedSummary = true,
 }: FieldSelectionProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>(hrCategories[0].id);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set([hrCategories[0].id])
   );
@@ -144,15 +143,15 @@ export default function FieldSelection({
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedFields.map((fieldKey) => {
-              const field = hrReportFields.find(f => f.field === fieldKey);
+              const field = getFieldByKey(fieldKey);
               if (!field) return null;
-              
+
               return (
                 <div
                   key={fieldKey}
-                  className="inline-flex items-center bg-white border border-blue-200 rounded-md px-3 py-1 text-sm"
+                  className="inline-flex items-center border rounded-md px-3 py-1 text-sm transition-colors bg-white border-blue-200 text-gray-900"
                 >
-                  <span className="text-gray-900">{field.label}</span>
+                  <span>{field.label}</span>
                   <button
                     onClick={() => removeField(fieldKey)}
                     className="ml-2 text-gray-400 hover:text-gray-600"
@@ -243,14 +242,14 @@ export default function FieldSelection({
                     <div className="p-4 space-y-3">
                       {categoryFields.map((field) => {
                         const isSelected = selectedFields.includes(field.field);
-                        
+
                         return (
                           <div
                             key={field.field}
                             className={`
                               flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-all
-                              ${isSelected 
-                                ? 'bg-blue-50 border-blue-200' 
+                              ${isSelected
+                                ? 'bg-blue-50 border-blue-200'
                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                               }
                             `}
@@ -259,8 +258,8 @@ export default function FieldSelection({
                             <div
                               className={`
                                 w-5 h-5 rounded border-2 flex items-center justify-center mt-0.5 transition-colors
-                                ${isSelected 
-                                  ? 'bg-blue-600 border-blue-600 text-white' 
+                                ${isSelected
+                                  ? 'bg-blue-600 border-blue-600 text-white'
                                   : 'border-gray-300'
                                 }
                               `}

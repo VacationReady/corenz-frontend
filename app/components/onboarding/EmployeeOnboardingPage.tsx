@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { Progress } from "@/components/ui/progress";
 import OnboardingStepRenderer from "@/components/onboarding/OnboardingStepRenderer";
 import { OnboardingStep } from "@prisma/client";
+import { GlassSpinner } from "@/components/ui/LoadingSpinner";
 import {
   Select,
   SelectContent,
@@ -112,7 +113,11 @@ export default function EmployeeOnboardingPage({
   };
 
   if (loading) {
-    return <div className="p-8 text-lg">Loading onboarding…</div>;
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <GlassSpinner size="lg" showText text="Loading onboarding…" />
+      </div>
+    );
   }
 
   if (!instance) {

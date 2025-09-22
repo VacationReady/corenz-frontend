@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+export const runtime = "nodejs";
 import Holidays from "date-holidays";
 
 type Template = "NZ" | "AU" | "UK";
@@ -36,8 +37,9 @@ function toEvents(h: any[], fromISO: string, toISO: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions as any);
-    if (!session?.user?.companyId) {
+    const session = await getServerSession(authOptions);
+    const companyIdFromSession = (session as any)?.user?.companyId as string | undefined;
+    if (!companyIdFromSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { searchParams } = new URL(req.url);
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "from and to are required" }, { status: 400 });
     }
     const company = await prisma.company.findUnique({
-      where: { id: session.user.companyId },
+      where: { id: companyIdFromSession },
       select: { publicHolidayTemplate: true, publicHolidayRegion: true, id: true },
     });
     const template = (company?.publicHolidayTemplate ?? null) as Template | null;

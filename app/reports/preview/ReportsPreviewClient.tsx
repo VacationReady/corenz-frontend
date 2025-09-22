@@ -48,7 +48,11 @@ export default function ReportsPreviewClient() {
 	const [reportConfig, setReportConfig] = useState<any>(null);
 
 	const [data, setData] = useState<any[]>([]);
-	const [filteredData, setFilteredData] = useState<any[]>([]);
+        const [filteredData, setFilteredData] = useState<any[]>([]);
+        const [page, setPage] = useState(1);
+        const [pageSize, setPageSize] = useState(50);
+        const [total, setTotal] = useState<number>(0);
+        const [exportingFull, setExportingFull] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [loadingReport, setLoadingReport] = useState(false);
 	const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
@@ -90,34 +94,53 @@ export default function ReportsPreviewClient() {
 		loadReport();
 	}, [reportIdParam]);
 
-	// Load report data when fields are available
-	useEffect(() => {
-		if (selectedFields.length === 0) return;
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				const res = await fetch("/api/reports/query", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						selectedFields,
-						filters: [],
-						pagination: { page: 1, limit: 50 },
-						sort: { field: selectedFields[0], direction: "asc" },
-					}),
-				});
-				const json = await res.json();
-				const results = Array.isArray(json.data) ? json.data : [];
-				setData([...results]);
-				setFilteredData([...results]);
-			} catch (error) {
-				console.error("❌ Error fetching report data:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
-	}, [selectedFields]);
+        useEffect(() => {
+                setPage((prev) => (prev === 1 ? prev : 1));
+        }, [selectedFields.join(",")]);
+
+        const fetchReportPage = async (pageToFetch: number, limitToFetch: number) => {
+                const sortField = selectedFields[0];
+                const res = await fetch("/api/reports/query", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                                selectedFields,
+                                filters: [],
+                                pagination: { page: pageToFetch, limit: limitToFetch },
+                                sort: sortField ? { field: sortField, direction: "asc" } : undefined,
+                        }),
+                });
+                const json = await res.json();
+                const results = Array.isArray(json.data) ? json.data : [];
+                const totalCount = typeof json.total === "number" ? json.total : results.length;
+                return { results, totalCount };
+        };
+
+        // Load report data when fields are available
+        useEffect(() => {
+                if (selectedFields.length === 0) return;
+                let cancelled = false;
+                const fetchData = async () => {
+                        setLoading(true);
+                        try {
+                                const { results, totalCount } = await fetchReportPage(page, pageSize);
+                                if (cancelled) return;
+                                setData([...results]);
+                                setFilteredData([...results]);
+                                setTotal(totalCount);
+                        } catch (error) {
+                                console.error("❌ Error fetching report data:", error);
+                        } finally {
+                                if (!cancelled) {
+                                        setLoading(false);
+                                }
+                        }
+                };
+                fetchData();
+                return () => {
+                        cancelled = true;
+                };
+        }, [selectedFields, page, pageSize]);
 
 	const handleSaveReport = async () => {
 		const reportName = prompt("Enter a name for this report:");
@@ -201,17 +224,56 @@ export default function ReportsPreviewClient() {
 		return { header: label, accessorKey };
 	});
 
-	return (
-		<main className="p-6">
-			<h1 className="text-2xl font-bold mb-4">Report Preview</h1>
-			<p className="mb-4">Your custom report is displayed below. You can sort and filter as needed.</p>
-			<div className="flex gap-2 mb-4">
-				<Button onClick={() => downloadCSV(filteredData, columns)}>Download CSV ({filteredData.length} rows)</Button>
-				<Button onClick={handleSaveReport}>Save Report</Button>
-			</div>
-			<div className="min-h-[200px]">
-				<FilterableDataTable columns={columns} data={data} onFilteredDataChange={setFilteredData} />
-			</div>
-		</main>
-	);
+        return (
+                <main className="p-6">
+                        <h1 className="text-2xl font-bold mb-4">Report Preview</h1>
+                        <p className="mb-4">Your custom report is displayed below. You can sort and filter as needed.</p>
+                        <div className="flex gap-2 mb-4">
+                                <Button onClick={() => downloadCSV(filteredData, columns)}>Download CSV ({filteredData.length} rows)</Button>
+                                {total > data.length ? (
+                                        <Button
+                                                disabled={exportingFull}
+                                                onClick={async () => {
+                                                        if (exportingFull) return;
+                                                        setExportingFull(true);
+                                                        try {
+                                                                const combined: any[] = [];
+                                                                const pagesToFetch = Math.max(1, Math.ceil(total / pageSize));
+                                                                for (let currentPage = 1; currentPage <= pagesToFetch; currentPage++) {
+                                                                        const { results } = await fetchReportPage(currentPage, pageSize);
+                                                                        combined.push(...results);
+                                                                }
+                                                                downloadCSV(combined, columns);
+                                                        } catch (error) {
+                                                                console.error("❌ Error exporting full report:", error);
+                                                                alert("Failed to export full report. Please try again.");
+                                                        } finally {
+                                                                setExportingFull(false);
+                                                        }
+                                                }}
+                                        >
+                                                {exportingFull
+                                                        ? "Exporting full report..."
+                                                        : `Download Full CSV (${total} rows)`}
+                                        </Button>
+                                ) : null}
+                                <Button onClick={handleSaveReport}>Save Report</Button>
+                        </div>
+                        <div className="min-h-[200px]">
+                                <FilterableDataTable
+                                        columns={columns}
+                                        data={data}
+                                        total={total}
+                                        page={page}
+                                        pageSize={pageSize}
+                                        onFilteredDataChange={setFilteredData}
+                                        onPageChange={setPage}
+                                        onPageSizeChange={(size) => {
+                                                setPageSize(size);
+                                                setPage(1);
+                                        }}
+                                />
+                        </div>
+                </main>
+        );
 }

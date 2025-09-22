@@ -12,7 +12,12 @@ interface Column {
 interface FilterableDataTableProps {
   columns: Column[];
   data: any[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
   onFilteredDataChange?: (filteredData: any[]) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 interface ColumnFilter {
@@ -54,12 +59,72 @@ function detectColumnType(sampleValues: string[], data: any[], accessorKey: stri
   return "string";
 }
 
-export default function FilterableDataTable({ columns, data, onFilteredDataChange }: FilterableDataTableProps) {
+export default function FilterableDataTable({
+  columns,
+  data,
+  total,
+  page,
+  pageSize,
+  onFilteredDataChange,
+  onPageChange,
+  onPageSizeChange,
+}: FilterableDataTableProps) {
   const [columnFilters, setColumnFilters] = useState<ColumnFilter>({});
   const [advancedFilters, setAdvancedFilters] = useState<Record<string, AdvancedFilter>>({});
   const [openFilters, setOpenFilters] = useState<Set<string>>(new Set());
   const [hasError, setHasError] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
+  const [internalPage, setInternalPage] = useState(page ?? 1);
+  const [internalPageSize, setInternalPageSize] = useState(pageSize ?? 50);
+
+  useEffect(() => {
+    if (typeof page === "number") {
+      setInternalPage(page);
+    }
+  }, [page]);
+
+  useEffect(() => {
+    if (typeof pageSize === "number") {
+      setInternalPageSize(pageSize);
+    }
+  }, [pageSize]);
+
+  const currentPage = page ?? internalPage;
+  const currentPageSize = pageSize ?? internalPageSize;
+  const hasTotal = typeof total === "number" && !Number.isNaN(total);
+  const totalCount = hasTotal ? total! : data.length;
+  const safePageSize = currentPageSize > 0 ? currentPageSize : 1;
+  const pageCount = Math.max(1, Math.ceil((totalCount || 0) / safePageSize));
+
+  const pageSizeOptions = useMemo(() => {
+    const presets = [10, 25, 50, 100];
+    if (!presets.includes(safePageSize)) {
+      presets.push(safePageSize);
+      presets.sort((a, b) => a - b);
+    }
+    return presets;
+  }, [safePageSize]);
+
+  const changePage = (nextPage: number) => {
+    if (nextPage < 1) return;
+    if (onPageChange) {
+      onPageChange(nextPage);
+    }
+    if (page === undefined) {
+      setInternalPage(nextPage);
+    }
+  };
+
+  const changePageSize = (nextPageSize: number) => {
+    if (nextPageSize <= 0) return;
+    if (onPageSizeChange) {
+      onPageSizeChange(nextPageSize);
+    }
+    if (pageSize === undefined) {
+      setInternalPageSize(nextPageSize);
+      setInternalPage(1);
+    }
+  };
 
   // Error boundary effect
   useEffect(() => {
@@ -207,6 +272,10 @@ export default function FilterableDataTable({ columns, data, onFilteredDataChang
 
     return result;
   }, [data, columnFilters, advancedFilters, columnTypes]);
+
+  const disablePrev = currentPage <= 1;
+  const disableNext = hasTotal ? currentPage >= pageCount : filteredData.length < safePageSize;
+  const currentPageDisplay = Math.min(currentPage, pageCount);
 
   // Notify parent component of filtered data changes
   useEffect(() => {
@@ -533,13 +602,53 @@ export default function FilterableDataTable({ columns, data, onFilteredDataChang
       {/* Footer Info */}
       <div className="flex justify-between items-center text-sm text-gray-500">
         <span>
-          Showing {filteredData.length} of {data.length} rows
+          Showing {filteredData.length} of {totalCount} rows
         </span>
         {getActiveFilterCount() > 0 && (
           <span>
             {getActiveFilterCount()} filter{getActiveFilterCount() !== 1 ? 's' : ''} applied
           </span>
         )}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600">
+        <label className="flex items-center gap-2">
+          <span>Rows per page:</span>
+          <select
+            value={safePageSize}
+            onChange={(event) => changePageSize(Number(event.target.value))}
+            className="px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            aria-label="Rows per page"
+          >
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => changePage(currentPage - 1)}
+            disabled={disablePrev}
+            className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Previous page"
+          >
+            Previous
+          </button>
+          <span>
+            Page {currentPageDisplay} of {pageCount}
+          </span>
+          <button
+            onClick={() => changePage(currentPage + 1)}
+            disabled={disableNext}
+            className="px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Next page"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

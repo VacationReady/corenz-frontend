@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import OnboardingStepRenderer from "@/components/onboarding/OnboardingStepRenderer";
 import { OnboardingStep } from "@prisma/client";
 import { GlassSpinner } from "@/components/ui/LoadingSpinner";
+import { CheckCircle, Clock, Circle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ type Step = {
   type: string;
   status: string;
   order: number;
+  label?: string;
   title?: string;
   description?: string;
   formFields?: any[];
@@ -260,6 +262,50 @@ export default function EmployeeOnboardingPage({
             </Button>
           </div>
         )}
+      </Card>
+      <Card className="mb-6">
+        <div className="space-y-4 text-xs text-muted-foreground">
+          <div className="font-semibold uppercase tracking-wide">Step summary</div>
+          <ul className="space-y-3">
+            {steps.map((step, index) => {
+              const isCompleted = step.status === "completed";
+              const isActive =
+                !isCompleted &&
+                (step.status === "active" ||
+                  step.status === "in_progress" ||
+                  step.id === activeStep?.id);
+              const Icon = isCompleted ? CheckCircle : isActive ? Clock : Circle;
+              const iconClass = isCompleted
+                ? "text-emerald-500"
+                : isActive
+                  ? "text-primary"
+                  : "text-muted-foreground";
+              const title =
+                step.title ||
+                step.label ||
+                step.description ||
+                `Step ${index + 1}`;
+              const statusLabel = isCompleted
+                ? "Completed"
+                : isActive
+                  ? "In progress"
+                  : "Pending";
+              return (
+                <li key={step.id} className="flex items-start gap-3 leading-tight">
+                  <Icon
+                    className={`mt-0.5 h-4 w-4 flex-shrink-0 opacity-80 ${iconClass}`}
+                  />
+                  <div className="flex-1 space-y-1">
+                    <div className="text-sm font-medium text-foreground">{title}</div>
+                    <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground/80">
+                      {statusLabel}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </Card>
       <div className="text-sm text-center text-muted-foreground mb-2">
         {activeStep

@@ -1,7 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { ArrowLeft, LifeBuoy } from "lucide-react";
+
+import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 
 export default function ActivateClient() {
   const router = useRouter();
@@ -14,6 +18,11 @@ export default function ActivateClient() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const supportHref = useMemo(() => {
+    const email = "support@peoplecore.co.nz";
+    return `mailto:${email}`;
+  }, []);
 
   // Derived validation flags
   const hasMinLength = password.length >= 6;
@@ -64,45 +73,49 @@ export default function ActivateClient() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white p-8 shadow-xl rounded-2xl">
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-3">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 100 100"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect width="100" height="100" rx="20" fill="#000" />
-              <text
-                x="50%"
-                y="55%"
-                textAnchor="middle"
-                fill="white"
-                fontSize="28"
-                fontFamily="Arial, sans-serif"
-                dy=".3em"
-              >
-                PC
-              </text>
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Activate Your PeopleCore Account
-          </h1>
-          <p className="text-sm text-gray-500">
-            Set your password to get started
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <FullScreenHeader
+        backSlot={
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
+            aria-label="Back to login"
+          >
+            <ArrowLeft aria-hidden className="h-4 w-4" />
+            <span>Back to login</span>
+          </Link>
+        }
+        title={<span>Activate your PeopleCore account</span>}
+        helpSlot={
+          <a href={supportHref} className="focus-visible:outline-none">
+            <span className="flex items-center gap-2">
+              <LifeBuoy aria-hidden className="h-4 w-4" />
+              Need help?
+            </span>
+          </a>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Set a secure password to finish activating your account and jump back
+          into the PeopleCore portal.
+        </p>
+      </FullScreenHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="password"
-            placeholder="New Password"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            value={password}
+      <div className="mx-auto flex w-full max-w-5xl justify-center px-4 pb-12 pt-10">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+          <div className="text-center">
+            <p className="mb-6 text-sm text-muted-foreground">
+              Choose a password that meets the requirements below to keep your
+              account safe.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="password"
+              placeholder="New Password"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <input
@@ -172,7 +185,8 @@ export default function ActivateClient() {
           >
             {loading ? "Submitting..." : "Set Password"}
           </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

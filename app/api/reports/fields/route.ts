@@ -37,19 +37,20 @@ export async function GET() {
 		});
 
 		const dynamicFormFields = forms.flatMap((form) => {
-			const schema = (form.schema as any[]) || [];
-			return schema.map((field) => {
-				const key = slugify(field.label || field.id || "field");
+			const rawSchema: any = (form.schema as any);
+			const schemaArray: any[] = Array.isArray(rawSchema) ? rawSchema : [];
+			return schemaArray.map((field: any) => {
+				const key = slugify((field && (field.label || field.id)) || "field");
 				return {
 					model: "FormSubmission",
 					field: `FormSubmission.data.${form.slug}.${key}`,
-					label: `${form.name}: ${field.label}`,
-					type: mapFormFieldTypeToHRType(field.type),
+					label: `${form.name}: ${field?.label ?? key}`,
+					type: mapFormFieldTypeToHRType(field?.type),
 					filterable: true,
 					sortable: true,
 					category: "forms",
 					description: `Field from form '${form.name}'`,
-					enumValues: Array.isArray(field.options) ? field.options : undefined,
+					enumValues: Array.isArray(field?.options) ? field.options : undefined,
 				};
 			});
 		});

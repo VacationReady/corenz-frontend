@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { getScreenDisplayName } from "@/lib/permissions";
 import { PageShell } from "@/components/ui/PageShell";
+import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 interface PermissionProfile {
@@ -236,7 +237,11 @@ export default function PermissionsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading profiles...</div>
+            <SectionSkeleton
+              showContainer={false}
+              variant="table"
+              rows={5}
+            />
           ) : profiles.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No permission profiles found

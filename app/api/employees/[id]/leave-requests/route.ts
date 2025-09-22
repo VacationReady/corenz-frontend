@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -53,11 +53,14 @@ const leaveRequestCreateSchema = z.object({
     .transform((val) => (typeof val === "string" ? val : undefined)),
 });
 
+export const runtime = "nodejs";
+
 export async function GET(
   req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
+    await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
@@ -119,6 +122,7 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   try {
+    await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       console.log("❌ Unauthenticated attempt to submit leave request");

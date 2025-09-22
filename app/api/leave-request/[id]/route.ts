@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -14,6 +14,8 @@ const leaveRequestActionSchema = z.object({
   decisionId: z.string().optional(),
 });
 
+export const runtime = "nodejs";
+
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } },
@@ -28,6 +30,7 @@ export async function GET(
   }
 
   try {
+    await ensurePrismaConnected();
     const leave = await prisma.leaveRequest.findUnique({
       where: { id: params.id },
       include: {

@@ -5,8 +5,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { toast } from "sonner";
 
 type Template = "NZ" | "AU" | "UK" | null;
@@ -64,20 +63,19 @@ export default function PublicHolidaysSettingsPage() {
         {loading ? (
           <p>Loading…</p>
         ) : (
-          <RadioGroup value={value ?? undefined} onValueChange={(v) => setValue(v as Template)}>
-            <div className="flex items-center space-x-3 py-2">
-              <RadioGroupItem value="NZ" id="nz" />
-              <Label htmlFor="nz">New Zealand</Label>
-            </div>
-            <div className="flex items-center space-x-3 py-2">
-              <RadioGroupItem value="AU" id="au" />
-              <Label htmlFor="au">Australia</Label>
-            </div>
-            <div className="flex items-center space-x-3 py-2">
-              <RadioGroupItem value="UK" id="uk" />
-              <Label htmlFor="uk">United Kingdom</Label>
-            </div>
-          </RadioGroup>
+          <div className="space-y-2">
+            <div className="mb-1 font-medium">Country</div>
+            <Select value={value ?? undefined} onValueChange={(v) => setValue(v as Template)}>
+              <SelectTrigger className="w-full md:w-96">
+                <SelectValue placeholder="Select a country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NZ">New Zealand</SelectItem>
+                <SelectItem value="AU">Australia</SelectItem>
+                <SelectItem value="UK">United Kingdom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </Card>
       {!loading && value && (

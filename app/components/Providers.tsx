@@ -7,6 +7,7 @@ import ChunkErrorHandler from "./ChunkErrorHandler";
 import { TenantThemeProvider } from "../lib/tenant-theme";
 import { TenantThemePalette } from "../lib/tenant-theme-config";
 import { CommandPaletteMount } from "./CommandPaletteMount";
+import TenantSupportLauncher from "./support/TenantSupportLauncher";
 import { TenantBrandingProvider } from "./TenantBrandingProvider";
 import { Toaster } from "sonner";
 
@@ -46,6 +47,7 @@ export default function Providers({
               }}
             />
             <CommandPaletteMount />
+            <TenantSupportLauncher />
           </TenantBrandingProvider>
         </TenantThemeBridge>
       </SessionProvider>

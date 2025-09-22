@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { sendOffboardingCompletionSummaryEmail } from "@/lib/email/send";
 
 export async function PATCH(
   req: NextRequest,
@@ -92,6 +93,8 @@ export async function PATCH(
             offboardingStatus: "COMPLETED",
           },
         });
+
+        await sendOffboardingCompletionSummaryEmail(task.offboardingId);
       }
     }
 

@@ -10,6 +10,73 @@ import { getAppBaseUrl, renderPeopleCoreEmail } from "./template";
 
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@peoplecore.co.nz";
 
+const HR_INBOX_FALLBACK = process.env.HR_INBOX_EMAIL;
+
+function isValidEmail(value: string): boolean {
+  return /.+@.+\..+/.test(value.trim());
+}
+
+function formatPersonName(
+  user?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    name?: string | null;
+    email?: string | null;
+  } | null,
+): string {
+  if (!user) return "";
+  const parts = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+  if (parts) return parts;
+  if (user.name) return user.name;
+  return user.email ?? "";
+}
+
+function collectEmailsFromConfig(config: unknown): string[] {
+  if (!config || typeof config !== "object") {
+    return [];
+  }
+
+  const emails: string[] = [];
+  const entries = Object.entries(config as Record<string, unknown>);
+
+  for (const [key, value] of entries) {
+    const loweredKey = key.toLowerCase();
+
+    if (typeof value === "string") {
+      if (
+        isValidEmail(value) &&
+        (loweredKey.includes("email") ||
+          loweredKey.includes("recipient") ||
+          loweredKey.includes("address") ||
+          loweredKey.includes("inbox"))
+      ) {
+        emails.push(value.trim());
+      }
+    } else if (Array.isArray(value)) {
+      if (
+        loweredKey.includes("email") ||
+        loweredKey.includes("recipient") ||
+        loweredKey.includes("address") ||
+        loweredKey.includes("inbox")
+      ) {
+        for (const entry of value) {
+          if (typeof entry === "string" && isValidEmail(entry)) {
+            emails.push(entry.trim());
+          }
+        }
+      } else {
+        for (const entry of value) {
+          emails.push(...collectEmailsFromConfig(entry));
+        }
+      }
+    } else if (typeof value === "object" && value) {
+      emails.push(...collectEmailsFromConfig(value));
+    }
+  }
+
+  return emails;
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
     switch (char) {
@@ -469,6 +536,328 @@ export async function sendExitInterviewCancellation(
     return true;
   } catch (error) {
     console.error("Failed to send exit interview cancellation:", error);
+    return false;
+  }
+}
+
+async function resolveHrContacts(companyId: string): Promise<string[]> {
+  const hrEmails = new Set<string>();
+
+  const notificationSettings = await prisma.notificationSettings.findUnique({
+    where: { companyId },
+  });
+
+  if (notificationSettings) {
+    // Email template configuration may explicitly store an HR inbox
+    if (
+      notificationSettings.emailTemplateConfig &&
+      typeof notificationSettings.emailTemplateConfig === "object"
+    ) {
+      for (const email of collectEmailsFromConfig(
+        notificationSettings.emailTemplateConfig,
+      )) {
+        if (isValidEmail(email)) {
+          hrEmails.add(email);
+        }
+      }
+    }
+
+    // Digest recipients can act as a configured HR distribution list
+    if (
+      Array.isArray(notificationSettings.digestRecipients) &&
+      notificationSettings.digestRecipients.length > 0
+    ) {
+      const digestUsers = await prisma.user.findMany({
+        where: { id: { in: notificationSettings.digestRecipients } },
+        select: { email: true },
+      });
+
+      for (const user of digestUsers) {
+        if (user.email) {
+          hrEmails.add(user.email);
+        }
+      }
+    }
+
+    // Default channel mapping (if configured for offboarding/HR)
+    const defaultChannels =
+      (notificationSettings.defaultChannels as
+        | Record<string, string[]>
+        | null
+        | undefined) ?? {};
+    const candidateChannelKeys = ["offboarding", "hr", "employee_offboarding"];
+
+    const channelIds = candidateChannelKeys.flatMap((key) =>
+      Array.isArray(defaultChannels[key]) ? defaultChannels[key]! : [],
+    );
+
+    if (channelIds.length > 0) {
+      const channels = await prisma.notificationChannel.findMany({
+        where: { id: { in: channelIds } },
+      });
+
+      for (const channel of channels) {
+        if (channel.type !== "EMAIL") continue;
+
+        for (const email of collectEmailsFromConfig(channel.config)) {
+          if (isValidEmail(email)) {
+            hrEmails.add(email);
+          }
+        }
+      }
+    }
+  }
+
+  if (hrEmails.size === 0 && HR_INBOX_FALLBACK && isValidEmail(HR_INBOX_FALLBACK)) {
+    hrEmails.add(HR_INBOX_FALLBACK);
+  }
+
+  if (hrEmails.size === 0) {
+    const admins = await prisma.user.findMany({
+      where: {
+        companyId,
+        role: "ADMIN",
+      },
+      select: { email: true },
+    });
+
+    for (const admin of admins) {
+      if (admin.email) {
+        hrEmails.add(admin.email);
+      }
+    }
+  }
+
+  return Array.from(hrEmails);
+}
+
+export async function sendOffboardingCompletionSummaryEmail(
+  offboardingId: string,
+): Promise<boolean> {
+  try {
+    const offboarding = await prisma.employeeOffboarding.findUnique({
+      where: { id: offboardingId },
+      include: {
+        Employee: {
+          select: {
+            companyId: true,
+            User: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                name: true,
+                managerId: true,
+              },
+            },
+          },
+        },
+        User_EmployeeOffboarding_initiatedByIdToUser: {
+          select: { firstName: true, lastName: true, name: true, email: true },
+        },
+        OffboardingTask: {
+          include: {
+            User_OffboardingTask_assignedToToUser: {
+              select: {
+                firstName: true,
+                lastName: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!offboarding || !offboarding.Employee?.User) {
+      throw new Error("Offboarding record not found for summary email");
+    }
+
+    const employeeUser = offboarding.Employee.User;
+    const employeeName =
+      formatPersonName(employeeUser) || employeeUser.email || "the employee";
+    const companyId = offboarding.Employee.companyId;
+
+    const recipients = new Set<string>();
+
+    // Manager recipient
+    let managerName = "";
+    if (employeeUser.managerId) {
+      const manager = await prisma.user.findUnique({
+        where: { id: employeeUser.managerId },
+        select: {
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+        },
+      });
+
+      if (manager?.email) {
+        recipients.add(manager.email);
+      }
+      managerName = formatPersonName(manager);
+    }
+
+    // HR recipients from configuration
+    const hrEmails = await resolveHrContacts(companyId);
+    for (const email of hrEmails) {
+      if (isValidEmail(email)) {
+        recipients.add(email);
+      }
+    }
+
+    if (recipients.size === 0) {
+      console.warn(
+        "No recipients resolved for offboarding completion summary. Skipping email.",
+      );
+      return false;
+    }
+
+    const outstandingOptionalTasks = offboarding.OffboardingTask.filter(
+      (task) => !task.isRequired && !task.completedAt,
+    );
+
+    const optionalTaskDetails = outstandingOptionalTasks.map((task) => {
+      const assignee = formatPersonName(
+        task.User_OffboardingTask_assignedToToUser,
+      ) || "Unassigned";
+      const dueDate = task.dueDate
+        ? formatLondon(task.dueDate, "dd MMM yyyy")
+        : "No due date";
+      return `${task.title} — ${assignee} (Due ${dueDate})`;
+    });
+
+    const completionDate = offboarding.completedAt || new Date();
+    const keyDates: Array<{ label: string; value: string }> = [];
+
+    if (offboarding.resignationDate) {
+      keyDates.push({
+        label: "Resignation received",
+        value: formatLondon(offboarding.resignationDate, "dd MMM yyyy"),
+      });
+    }
+    if (offboarding.noticePeriodDays) {
+      keyDates.push({
+        label: "Notice period",
+        value: `${offboarding.noticePeriodDays} days`,
+      });
+    }
+    if (offboarding.lastWorkingDate) {
+      keyDates.push({
+        label: "Final working day",
+        value: formatLondon(offboarding.lastWorkingDate, "dd MMM yyyy"),
+      });
+    }
+    if (offboarding.actualLeaveDate) {
+      keyDates.push({
+        label: "Employment end",
+        value: formatLondon(offboarding.actualLeaveDate, "dd MMM yyyy"),
+      });
+    }
+    if (offboarding.benefitsEndDate) {
+      keyDates.push({
+        label: "Benefits end",
+        value: formatLondon(offboarding.benefitsEndDate, "dd MMM yyyy"),
+      });
+    }
+    if (offboarding.exitInterviewDate) {
+      keyDates.push({
+        label: "Exit interview",
+        value: `${formatLondon(offboarding.exitInterviewDate, "dd MMM yyyy")}`,
+      });
+    }
+
+    const keyDatesHtml = keyDates.length
+      ? `<table style="width: 100%; border-collapse: collapse;">
+          <tbody>
+            ${keyDates
+              .map(
+                (date) => `
+                  <tr>
+                    <td style="padding: 6px 0; font-weight: 600; color: #0f172a; width: 45%;">${date.label}</td>
+                    <td style="padding: 6px 0; color: #0f172a;">${date.value}</td>
+                  </tr>
+                `,
+              )
+              .join("")}
+          </tbody>
+        </table>`
+      : "";
+
+    const keyDatesText = keyDates.map((date) => `${date.label}: ${date.value}`);
+
+    const optionalSection = outstandingOptionalTasks.length
+      ? {
+          title: "Outstanding Optional Tasks",
+          description: optionalTaskDetails,
+        }
+      : {
+          title: "Outstanding Optional Tasks",
+          description: ["All optional tasks are complete."],
+        };
+
+    const introGreeting = managerName
+      ? `Hi ${managerName},`
+      : "Hello team,";
+
+    const { html, text } = renderPeopleCoreEmail({
+      preheader: `Offboarding complete for ${employeeName}`,
+      title: `Offboarding Completed — ${employeeName}`,
+      intro: [
+        introGreeting,
+        `${employeeName}'s required offboarding tasks are now complete. Here is the latest summary for your records.`,
+      ],
+      sections: [
+        {
+          title: "Completion Summary",
+          description: [
+            `Status: Completed`,
+            `Completed on: ${formatLondon(completionDate, "dd MMM yyyy HH:mm")}`,
+            ...(offboarding.User_EmployeeOffboarding_initiatedByIdToUser
+              ? [
+                  `Initiated by: ${formatPersonName(
+                    offboarding.User_EmployeeOffboarding_initiatedByIdToUser,
+                  )}`,
+                ]
+              : []),
+          ],
+        },
+        keyDatesHtml
+          ? {
+              title: "Key Dates",
+              html: keyDatesHtml,
+              text: keyDatesText,
+            }
+          : undefined,
+        optionalSection,
+      ].filter(Boolean) as {
+        title?: string;
+        description?: string | string[];
+        bulletPoints?: string[];
+        html?: string;
+        text?: string | string[];
+      }[],
+      outro: [
+        "If any optional tasks remain outstanding, please ensure they are completed before the employee's final day.",
+        "Thank you,",
+        "The PeopleCore Team",
+      ],
+    });
+
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: Array.from(recipients),
+      subject: `Offboarding Completed — ${employeeName}`,
+      html,
+      text,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to send offboarding completion summary:", error);
     return false;
   }
 }

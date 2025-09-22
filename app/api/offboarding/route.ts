@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
+
+function isAssignmentEmailEnabled(): boolean {
+  const flag = process.env.ENABLE_OFFBOARDING_TASK_EMAILS;
+  if (!flag) {
+    return true;
+  }
+
+  const value = flag.trim().toLowerCase();
+  return value !== "false" && value !== "0" && value !== "off";
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -143,6 +155,30 @@ export async function POST(req: NextRequest) {
     // Verify offboarding record exists
     const offboardingRecord = await prisma.employeeOffboarding.findUnique({
       where: { id: offboardingId },
+      include: {
+        Employee: {
+          include: {
+            User: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            Department: {
+              select: {
+                name: true,
+              },
+            },
+            JobRole: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!offboardingRecord) {
@@ -173,21 +209,120 @@ export async function POST(req: NextRequest) {
         order: newOrder,
         EmployeeOffboarding: { connect: { id: offboardingId } },
       },
-      include: {
-        User_OffboardingTask_assignedToToUser: {
+    });
+
+    const assignedUserDetails = task.assignedTo
+      ? await prisma.user.findUnique({
+          where: { id: task.assignedTo },
           select: {
             id: true,
             firstName: true,
             lastName: true,
             email: true,
+            phone: true,
           },
-        },
-      },
-    });
+        })
+      : null;
+
+    if (task.assignedTo && !assignedUserDetails) {
+      console.warn(
+        "Offboarding task assigned user not found:",
+        task.assignedTo,
+      );
+    }
+
+    const enrichedTask = {
+      ...task,
+      User_OffboardingTask_assignedToToUser: assignedUserDetails,
+    };
+
+    const assignmentEmailsEnabled = isAssignmentEmailEnabled();
+
+    if (!assignmentEmailsEnabled) {
+      console.log(
+        "ℹ️ Offboarding assignment email skipped: disabled via feature flag",
+      );
+    } else if (!assignedUserDetails?.email) {
+      console.log(
+        "ℹ️ Offboarding assignment email skipped: no email for assigned user",
+      );
+    } else if (!offboardingRecord.Employee?.User) {
+      console.log(
+        "ℹ️ Offboarding assignment email skipped: missing employee context",
+      );
+    } else {
+      const employeeUser = offboardingRecord.Employee.User;
+      const employeeName =
+        `${employeeUser.firstName ?? ""} ${employeeUser.lastName ?? ""}`.trim() ||
+        employeeUser.email;
+      const departmentName =
+        offboardingRecord.Employee.Department?.name || undefined;
+      const jobRoleName = offboardingRecord.Employee.JobRole?.name || undefined;
+      const dueDateText = enrichedTask.dueDate
+        ? new Intl.DateTimeFormat("en-NZ", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }).format(new Date(enrichedTask.dueDate))
+        : "No due date set";
+      const baseUrl = getAppBaseUrl();
+      const offboardingLink = `${baseUrl}/employees/${offboardingRecord.employeeId}/offboarding`;
+
+      try {
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: `${employeeName}'s offboarding task: ${enrichedTask.title}`,
+          title: "New Offboarding Task Assigned",
+          intro: [
+            `Hi ${assignedUserDetails.firstName || "there"},`,
+            `${employeeName}'s offboarding has a new task assigned to you.`,
+          ],
+          sections: [
+            {
+              title: "Task details",
+              bulletPoints: [
+                `Task: ${enrichedTask.title}`,
+                `Due date: ${dueDateText}`,
+                `Employee: ${employeeName}`,
+                ...(departmentName ? [`Department: ${departmentName}`] : []),
+                ...(jobRoleName ? [`Role: ${jobRoleName}`] : []),
+              ],
+            },
+          ],
+          ctas: {
+            label: "View Offboarding Checklist",
+            href: offboardingLink,
+          },
+          outro: [
+            "Log in to PeopleCore to update the task once it's complete.",
+            "Thanks,",
+            "The PeopleCore Team",
+          ],
+        });
+
+        const result = await resend.emails.send({
+          from: "PeopleCore Notifications <noreply@peoplecore.co.nz>",
+          to: assignedUserDetails.email,
+          subject: `New offboarding task for ${employeeName}: ${enrichedTask.title}`,
+          html,
+          text,
+        });
+
+        console.log(
+          "✅ Offboarding assignment email sent:",
+          result,
+        );
+      } catch (emailError) {
+        console.error(
+          "❌ Failed to send offboarding assignment email:",
+          emailError,
+        );
+      }
+    }
 
     return NextResponse.json({
       message: "Task created successfully",
-      task,
+      task: enrichedTask,
     });
   } catch (error) {
     console.error("Error creating offboarding task:", error);

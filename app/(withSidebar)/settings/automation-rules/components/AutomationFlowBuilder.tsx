@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -59,6 +59,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { v4 as uuidv4 } from "uuid";
 import {
   TriggerConfiguration,
   ConditionConfiguration,
@@ -389,9 +390,34 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
     })
   );
 
-  // Generate IDs for sortable items
-  const conditionIds = formData.conditions?.map((_: any, idx: number) => `condition-${idx}`) || [];
-  const actionIds = formData.actions?.map((_: any, idx: number) => `action-${idx}`) || [];
+  // Backfill stable IDs for existing arrays once
+  useEffect(() => {
+    const withIds = <T extends { id?: string }>(items: T[] | undefined) =>
+      (items || []).map((item) => (item?.id ? item : { ...item, id: uuidv4() }));
+
+    const needsBackfill =
+      (formData.conditions || []).some((c: any) => !c?.id) ||
+      (formData.actions || []).some((a: any) => !a?.id);
+
+    if (needsBackfill) {
+      setFormData({
+        ...formData,
+        conditions: withIds(formData.conditions as any),
+        actions: withIds(formData.actions as any),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Memoize stable ID arrays for dnd-kit
+  const conditionIds = useMemo(
+    () => (formData.conditions || []).map((c: any) => `condition-${c.id}`),
+    [formData.conditions],
+  );
+  const actionIds = useMemo(
+    () => (formData.actions || []).map((a: any) => `action-${a.id}`),
+    [formData.actions],
+  );
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -405,27 +431,35 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
       return;
     }
 
-    const activeId = active.id as string;
-    const overId = over.id as string;
+    const activeIdStr = active.id as string;
+    const overIdStr = over.id as string;
 
-    if (activeId.startsWith("condition-") && overId.startsWith("condition-")) {
-      const activeIndex = parseInt(activeId.split("-")[1]);
-      const overIndex = parseInt(overId.split("-")[1]);
-      
-      setFormData({
-        ...formData,
-        conditions: arrayMove(formData.conditions || [], activeIndex, overIndex),
-      });
+    if (activeIdStr.startsWith("condition-") && overIdStr.startsWith("condition-")) {
+      const sourceId = activeIdStr.replace("condition-", "");
+      const targetId = overIdStr.replace("condition-", "");
+      const list = formData.conditions || [];
+      const fromIndex = list.findIndex((c: any) => c.id === sourceId);
+      const toIndex = list.findIndex((c: any) => c.id === targetId);
+      if (fromIndex !== -1 && toIndex !== -1) {
+        setFormData({
+          ...formData,
+          conditions: arrayMove(list, fromIndex, toIndex),
+        });
+      }
     }
 
-    if (activeId.startsWith("action-") && overId.startsWith("action-")) {
-      const activeIndex = parseInt(activeId.split("-")[1]);
-      const overIndex = parseInt(overId.split("-")[1]);
-      
-      setFormData({
-        ...formData,
-        actions: arrayMove(formData.actions || [], activeIndex, overIndex),
-      });
+    if (activeIdStr.startsWith("action-") && overIdStr.startsWith("action-")) {
+      const sourceId = activeIdStr.replace("action-", "");
+      const targetId = overIdStr.replace("action-", "");
+      const list = formData.actions || [];
+      const fromIndex = list.findIndex((a: any) => a.id === sourceId);
+      const toIndex = list.findIndex((a: any) => a.id === targetId);
+      if (fromIndex !== -1 && toIndex !== -1) {
+        setFormData({
+          ...formData,
+          actions: arrayMove(list, fromIndex, toIndex),
+        });
+      }
     }
 
     setActiveId(null);
@@ -441,14 +475,65 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
   const addCondition = () => {
     setFormData({
       ...formData,
-      conditions: [...(formData.conditions || []), { type: "", config: {} }],
+      conditions: [...(formData.conditions || []), { id: uuidv4(), type: "", config: {} }],
     });
   };
 
   const addAction = () => {
     setFormData({
       ...formData,
-      actions: [...(formData.actions || []), { type: "", config: {} }],
+      actions: [...(formData.actions || []), { id: uuidv4(), type: "", config: {} }],
+    });
+  };
+
+  // Helpers to update/remove by id (reduces duplication)
+  const updateConditionByIndex = (index: number, updated: any) => {
+    const next = [...(formData.conditions || [])];
+    next[index] = updated;
+    setFormData({ ...formData, conditions: next });
+  };
+
+  const removeConditionByIndex = (index: number) => {
+    setFormData({
+      ...formData,
+      conditions: (formData.conditions || []).filter((_: any, i: number) => i !== index),
+    });
+  };
+
+  const insertConditionAfter = (index: number) => {
+    const newCondition = { id: uuidv4(), type: "", config: {} };
+    setFormData({
+      ...formData,
+      conditions: [
+        ...(formData.conditions || []).slice(0, index + 1),
+        newCondition,
+        ...(formData.conditions || []).slice(index + 1),
+      ],
+    });
+  };
+
+  const updateActionByIndex = (index: number, updated: any) => {
+    const next = [...(formData.actions || [])];
+    next[index] = updated;
+    setFormData({ ...formData, actions: next });
+  };
+
+  const removeActionByIndex = (index: number) => {
+    setFormData({
+      ...formData,
+      actions: (formData.actions || []).filter((_: any, i: number) => i !== index),
+    });
+  };
+
+  const insertActionAfter = (index: number) => {
+    const newAction = { id: uuidv4(), type: "", config: {} };
+    setFormData({
+      ...formData,
+      actions: [
+        ...(formData.actions || []).slice(0, index + 1),
+        newAction,
+        ...(formData.actions || []).slice(index + 1),
+      ],
     });
   };
 
@@ -603,7 +688,7 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                     {formData.conditions.map((condition: any, index: number) => (
                       <React.Fragment key={`condition-${index}`}>
                         <DraggableNode
-                          id={`condition-${index}`}
+                          id={`condition-${condition.id}`}
                           type="condition"
                           data={{
                             ...condition,
@@ -612,22 +697,17 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                             jobRolesOptions,
                           }}
                           index={index}
-                          onUpdate={(data) => {
-                            const updated = [...formData.conditions];
-                            updated[index] = data;
-                            setFormData({ ...formData, conditions: updated });
-                          }}
-                          onRemove={() => {
-                            setFormData({
-                              ...formData,
-                              conditions: formData.conditions.filter((_: any, i: number) => i !== index),
-                            });
-                          }}
+                          onUpdate={(data) => updateConditionByIndex(index, data)}
+                          onRemove={() => removeConditionByIndex(index)}
                           onDuplicate={() => {
-                            const newCondition = { ...condition };
+                            const duplicated = { ...condition, id: uuidv4() };
                             setFormData({
                               ...formData,
-                              conditions: [...formData.conditions.slice(0, index + 1), newCondition, ...formData.conditions.slice(index + 1)],
+                              conditions: [
+                                ...(formData.conditions || []).slice(0, index + 1),
+                                duplicated,
+                                ...(formData.conditions || []).slice(index + 1),
+                              ],
                             });
                           }}
                           errors={validationErrors[`condition-${index}`] ? [validationErrors[`condition-${index}`]] : undefined}
@@ -636,13 +716,7 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                         />
                         {index < formData.conditions.length - 1 && (
                           <AddStepButton
-                            onAddCondition={() => {
-                              const newCondition = { type: "", config: {} };
-                              setFormData({
-                                ...formData,
-                                conditions: [...formData.conditions.slice(0, index + 1), newCondition, ...formData.conditions.slice(index + 1)],
-                              });
-                            }}
+                            onAddCondition={() => insertConditionAfter(index)}
                             onAddAction={() => {}}
                             showCondition={true}
                             showAction={false}
@@ -680,7 +754,7 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                     {formData.actions.map((action: any, index: number) => (
                       <React.Fragment key={`action-${index}`}>
                         <DraggableNode
-                          id={`action-${index}`}
+                          id={`action-${action.id}`}
                           type="action"
                           data={{
                             ...action,
@@ -689,22 +763,17 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                             usersOptions,
                           }}
                           index={index}
-                          onUpdate={(data) => {
-                            const updated = [...formData.actions];
-                            updated[index] = data;
-                            setFormData({ ...formData, actions: updated });
-                          }}
-                          onRemove={() => {
-                            setFormData({
-                              ...formData,
-                              actions: formData.actions.filter((_: any, i: number) => i !== index),
-                            });
-                          }}
+                          onUpdate={(data) => updateActionByIndex(index, data)}
+                          onRemove={() => removeActionByIndex(index)}
                           onDuplicate={() => {
-                            const newAction = { ...action };
+                            const duplicated = { ...action, id: uuidv4() };
                             setFormData({
                               ...formData,
-                              actions: [...formData.actions.slice(0, index + 1), newAction, ...formData.actions.slice(index + 1)],
+                              actions: [
+                                ...(formData.actions || []).slice(0, index + 1),
+                                duplicated,
+                                ...(formData.actions || []).slice(index + 1),
+                              ],
                             });
                           }}
                           errors={validationErrors[`action-${index}`] ? [validationErrors[`action-${index}`]] : undefined}
@@ -714,13 +783,7 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                         {index < formData.actions.length - 1 && (
                           <AddStepButton
                             onAddCondition={() => {}}
-                            onAddAction={() => {
-                              const newAction = { type: "", config: {} };
-                              setFormData({
-                                ...formData,
-                                actions: [...formData.actions.slice(0, index + 1), newAction, ...formData.actions.slice(index + 1)],
-                              });
-                            }}
+                            onAddAction={() => insertActionAfter(index)}
                             showCondition={false}
                             showAction={true}
                           />

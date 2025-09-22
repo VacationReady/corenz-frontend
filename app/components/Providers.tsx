@@ -6,6 +6,9 @@ import ErrorBoundary from "./ErrorBoundary";
 import ChunkErrorHandler from "./ChunkErrorHandler";
 import { TenantThemeProvider } from "../lib/tenant-theme";
 import { TenantThemePalette } from "../lib/tenant-theme-config";
+import { CommandPaletteMount } from "./CommandPaletteMount";
+import { TenantBrandingProvider } from "./TenantBrandingProvider";
+import { Toaster } from "sonner";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -26,7 +29,24 @@ export default function Providers({
           initialTenantId={initialTenantId}
           initialPalette={initialPalette}
         >
-          {children}
+          <TenantBrandingProvider>
+            {children}
+            <Toaster
+              position="bottom-right"
+              richColors
+              closeButton
+              toastOptions={{
+                className: "shadow-glass border-glass rounded-2xl",
+                style: {
+                  background: "rgba(255, 255, 255, 0.8)",
+                  backdropFilter: "blur(16px)",
+                  color: "hsl(var(--card-foreground))",
+                  border: "1px solid rgba(255, 255, 255, 0.4)",
+                },
+              }}
+            />
+            <CommandPaletteMount />
+          </TenantBrandingProvider>
         </TenantThemeBridge>
       </SessionProvider>
     </ErrorBoundary>
@@ -51,3 +71,5 @@ function TenantThemeBridge({
     </TenantThemeProvider>
   );
 }
+
+export { useTenantBranding } from "./TenantBrandingProvider";

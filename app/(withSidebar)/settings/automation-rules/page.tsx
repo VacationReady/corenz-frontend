@@ -3,39 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
-import { Badge } from "@/components/ui/Badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "@/hooks/use-toast";
-import { MultiSelect } from "@/components/ui/MultiSelect";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Import new components
+import { AutomationRuleList } from "./components/AutomationRuleList";
+import { AutomationFlowBuilder } from "./components/AutomationFlowBuilder";
+import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
+import { PreflightDialog } from "./components/PreflightDialog";
+import { ValidationChecklist } from "./components/ValidationChecklist";
 import {
   Settings,
   Plus,
@@ -96,10 +71,11 @@ interface ActionType {
 interface ConfigField {
   key: string;
   label: string;
-  type: "text" | "number" | "select" | "multiselect" | "date" | "boolean";
+  type: "text" | "number" | "select" | "multiselect" | "date" | "boolean" | "textarea";
   required?: boolean;
   options?: { value: string; label: string }[];
   placeholder?: string;
+  helpText?: string;
 }
 
 const triggerTypes: TriggerType[] = [
@@ -357,10 +333,12 @@ const actionTypes: ActionType[] = [
 export default function AutomationRulesPage() {
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [loading, setLoading] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<AutomationRule | null>(null);
+  const [builderMode, setBuilderMode] = useState<"create" | "edit" | null>(null);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [dryRunResults, setDryRunResults] = useState<any>(null);
+  const [preflightOpen, setPreflightOpen] = useState(false);
+  const [postSaveRunTest, setPostSaveRunTest] = useState(true);
 
   // Form state for rule creation/editing
   const [formData, setFormData] = useState<AutomationRule>({
@@ -381,11 +359,9 @@ export default function AutomationRulesPage() {
   const [usersOptions, setUsersOptions] = useState<{ value: string; label: string }[]>([]);
   const [documentTypeOptions, setDocumentTypeOptions] = useState<{ value: string; label: string }[]>([]);
 
-  // Validation and preflight states
+  // Validation states
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [validationHints, setValidationHints] = useState<string[]>([]);
-  const [preflightOpen, setPreflightOpen] = useState(false);
-  const [postSaveRunTest, setPostSaveRunTest] = useState(true);
 
   useEffect(() => {
     fetchRules();
@@ -486,7 +462,7 @@ export default function AutomationRulesPage() {
           title: "Success",
           description: `Rule ${selectedRule?.id ? "updated" : "created"} successfully`,
         });
-        setCreateDialogOpen(false);
+        setBuilderMode(null);
         setSelectedRule(null);
         resetForm();
         fetchRules();
@@ -597,13 +573,13 @@ export default function AutomationRulesPage() {
   const openCreateDialog = () => {
     resetForm();
     setSelectedRule(null);
-    setCreateDialogOpen(true);
+    setBuilderMode("create");
   };
 
   const openEditDialog = (rule: AutomationRule) => {
     setFormData(rule);
     setSelectedRule(rule);
-    setCreateDialogOpen(true);
+    setBuilderMode("edit");
   };
 
   const getTriggerTypeInfo = (triggerType: string) => {
@@ -789,932 +765,151 @@ export default function AutomationRulesPage() {
     saveRuleAndMaybeTest(false);
   };
 
-  const getStatusBadge = (rule: AutomationRule) => {
-    if (rule.isActive) {
-      return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-    }
-    return <Badge variant="secondary">Inactive</Badge>;
+  const handleDuplicateRule = (rule: AutomationRule) => {
+    const duplicatedRule = {
+      ...rule,
+      id: undefined,
+      name: `${rule.name} (Copy)`,
+      isActive: false,
+    };
+    setFormData(duplicatedRule);
+    setSelectedRule(null);
+    setBuilderMode("create");
   };
 
-  return (
+  // Show builder view when in create/edit mode
+  if (builderMode) {
+    return (
     <PageShell
       title="Automation Rules"
       description="Create and manage no-code automation rules to streamline HR processes"
       breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
       showHomeIcon={false}
-      action={
-        <Button onClick={openCreateDialog}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Rule
-        </Button>
-      }
     >
-      <div className="space-y-6">
-        {/* Helper banner */}
-        <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-md p-3">
-          <div className="text-sm leading-5">
-            <p className="font-medium">How automations work</p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li><span className="font-semibold">Trigger</span> starts the workflow (e.g., a form is submitted or a document is expiring).</li>
-              <li><span className="font-semibold">Conditions</span> narrow when it runs (e.g., department is Sales).</li>
-              <li><span className="font-semibold">Actions</span> define what happens (e.g., create a task, send a notification).</li>
-            </ul>
+      <div className="flex h-[calc(100vh-12rem)]">
+        {/* Left Sidebar - Rules List */}
+        <div className="w-80 flex-shrink-0">
+          <AutomationRuleList
+            rules={rules}
+            selectedRuleId={selectedRule?.id}
+            loading={loading}
+            onCreateNew={openCreateDialog}
+            onSelectRule={(rule) => {
+              setFormData(rule);
+              setSelectedRule(rule);
+            }}
+            onEditRule={openEditDialog}
+            onDeleteRule={deleteRule}
+            onToggleStatus={toggleRuleStatus}
+            onRunTest={runDryTest}
+            onDuplicateRule={handleDuplicateRule}
+          />
+        </div>
+
+        {/* Main Builder Area */}
+        <div className="flex-1 flex">
+          <div className="flex-1">
+            <AutomationFlowBuilder
+              formData={formData}
+              setFormData={setFormData}
+              validationErrors={validationErrors}
+              triggerTypes={triggerTypes}
+              conditionTypes={conditionTypes}
+              actionTypes={actionTypes}
+              formsOptions={formsOptions}
+              templatesOptions={templatesOptions}
+              departmentsOptions={departmentsOptions}
+              jobRolesOptions={jobRolesOptions}
+              usersOptions={usersOptions}
+              documentTypeOptions={documentTypeOptions}
+              onSave={attemptSave}
+              onCancel={() => {
+                setBuilderMode(null);
+                setSelectedRule(null);
+                resetForm();
+              }}
+              onTest={() => {
+                if (selectedRule?.id) {
+                  runDryTest(selectedRule);
+                }
+              }}
+              isFormValid={isFormValid}
+              selectedRule={selectedRule}
+            />
+          </div>
+
+          {/* Right Sidebar - Validation Checklist */}
+          <div className="w-80 flex-shrink-0 bg-gray-50 border-l p-4 overflow-y-auto">
+            <ValidationChecklist
+              validationErrors={validationErrors}
+              validationHints={validationHints}
+              formData={formData}
+              onFocusSection={(section) => {
+                // Scroll to section in builder
+                const element = document.getElementById(`builder-section-${section}`);
+                element?.scrollIntoView({ behavior: "smooth" });
+              }}
+            />
           </div>
         </div>
-        {/* Rules List */}
-        <div className="grid gap-4">
-          {loading ? (
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">
-                  Loading...
-                </div>
-              </CardContent>
-            </Card>
-          ) : rules.length === 0 ? (
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center">
-                  <Zap className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">
-                    No automation rules
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first automation rule to streamline HR processes
-                  </p>
-                  <Button onClick={openCreateDialog}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Rule
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            rules.map((rule) => {
-              const triggerInfo = getTriggerTypeInfo(rule.triggerType);
-              return (
-                <Card key={rule.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {triggerInfo?.icon}
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            {rule.name}
-                            {getStatusBadge(rule)}
-                          </CardTitle>
-                          <CardDescription>
-                            {rule.description || triggerInfo?.description}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => runDryTest(rule)}
-                        >
-                          <TestTube className="w-4 h-4 mr-2" />
-                          Test
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            toggleRuleStatus(rule.id!, !rule.isActive)
-                          }
-                        >
-                          {rule.isActive ? (
-                            <Pause className="w-4 h-4 mr-2" />
-                          ) : (
-                            <Play className="w-4 h-4 mr-2" />
-                          )}
-                          {rule.isActive ? "Pause" : "Activate"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(rule)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteRule(rule.id!)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">Trigger:</span>{" "}
-                        {triggerInfo?.name}
-                      </div>
-                      <div>
-                        <span className="font-medium">Conditions:</span>{" "}
-                        {rule.conditions?.length || 0}
-                      </div>
-                      <div>
-                        <span className="font-medium">Actions:</span>{" "}
-                        {rule.actions?.length || 0}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
-
-        {/* Create/Edit Rule Dialog */}
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedRule ? "Edit" : "Create"} Automation Rule
-              </DialogTitle>
-              <DialogDescription>
-                Build a no-code automation rule to streamline your HR processes
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              {/* Quick Start Presets */}
-              <div>
-                <Label>Quick start</Label>
-                <div className="grid grid-cols-3 gap-3 mt-2">
-                  <Card className="cursor-pointer hover:border-primary/50" onClick={() => usePreset("expiry-30")}>
-                    <CardContent className="p-3">
-                      <div className="font-medium">Document Expiry Reminder</div>
-                      <div className="text-xs text-muted-foreground">Email employees 30 days before expiry</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="cursor-pointer hover:border-primary/50" onClick={() => usePreset("welcome")}>
-                    <CardContent className="p-3">
-                      <div className="font-medium">Welcome New Starter</div>
-                      <div className="text-xs text-muted-foreground">Welcome email + manager task</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="cursor-pointer hover:border-primary/50" onClick={() => usePreset("form-followup")}>
-                    <CardContent className="p-3">
-                      <div className="font-medium">Form Submission Follow-up</div>
-                      <div className="text-xs text-muted-foreground">Create task when a form is submitted</div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              {/* Basic Information */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="rule-name">Rule Name *</Label>
-                  <Input
-                    id="rule-name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="e.g., Document Expiry Reminder"
-                  />
-                  {getError("name") && (
-                    <div className="text-xs text-destructive mt-1">{getError("name")}</div>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="rule-description">Description</Label>
-                  <Input
-                    id="rule-description"
-                    value={formData.description || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Optional description"
-                  />
-                </div>
-              </div>
-
-              <Tabs defaultValue="trigger" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="trigger">1. Trigger</TabsTrigger>
-                  <TabsTrigger value="conditions">2. Conditions</TabsTrigger>
-                  <TabsTrigger value="actions">3. Actions</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="trigger" className="space-y-4">
-                  <div>
-                    <Label>Select Trigger Type</Label>
-                    <div className="grid grid-cols-2 gap-4 mt-2">
-                      {triggerTypes.map((trigger) => (
-                        <Card
-                          key={trigger.id}
-                          className={`cursor-pointer transition-colors ${
-                            formData.triggerType === trigger.id
-                              ? "border-primary bg-primary/5"
-                              : "hover:border-primary/50"
-                          }`}
-                          onClick={() =>
-                            setFormData({
-                              ...formData,
-                              triggerType: trigger.id,
-                              triggerConfig: {},
-                            })
-                          }
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                              {trigger.icon}
-                              <h4 className="font-medium">{trigger.name}</h4>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {trigger.description}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                {getError("triggerType") && (
-                  <div className="text-xs text-destructive mt-2">{getError("triggerType")}</div>
-                )}
-                  </div>
-
-                  {/* Trigger Configuration */}
-                  {formData.triggerType && (
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Configure Trigger</h4>
-                      {getTriggerTypeInfo(
-                        formData.triggerType,
-                      )?.configFields.map((field) => (
-                        <div key={field.key}>
-                            <div className="flex items-center gap-2">
-                              <Label>
-                                {field.label}
-                                {field.required && " *"}
-                              </Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button type="button" aria-label="Help" className="text-muted-foreground">
-                                      <HelpCircle className="w-4 h-4" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Configure {field.label.toLowerCase()} for the selected trigger.
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          {field.type === "select" && (
-                            <Select
-                              value={formData.triggerConfig[field.key] || ""}
-                              onValueChange={(value) =>
-                                setFormData({
-                                  ...formData,
-                                  triggerConfig: {
-                                    ...formData.triggerConfig,
-                                    [field.key]: value,
-                                  },
-                                })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={`Select ${field.label}`}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getTriggerFieldOptions(field).map((option) => (
-                                  <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                  >
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                          {getError(`triggerConfig.${field.key}`) && (
-                            <div className="text-xs text-destructive mt-1">{getError(`triggerConfig.${field.key}`)}</div>
-                          )}
-                          {field.type === "multiselect" && (
-                            <MultiSelect
-                              options={getTriggerFieldOptions(field)}
-                              selected={
-                                Array.isArray(formData.triggerConfig[field.key])
-                                  ? (formData.triggerConfig[field.key] as string[])
-                                  : []
-                              }
-                              onChange={(values) =>
-                                setFormData({
-                                  ...formData,
-                                  triggerConfig: {
-                                    ...formData.triggerConfig,
-                                    [field.key]: values,
-                                  },
-                                })
-                              }
-                              placeholder={`Select ${field.label}`}
-                            />
-                          )}
-                          {field.type === "number" && (
-                            <Input
-                              type="number"
-                              value={formData.triggerConfig[field.key] || ""}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  triggerConfig: {
-                                    ...formData.triggerConfig,
-                                    [field.key]: parseInt(e.target.value) || 0,
-                                  },
-                                })
-                              }
-                              placeholder={field.placeholder}
-                            />
-                          )}
-                          {getError(`triggerConfig.${field.key}`) && (
-                            <div className="text-xs text-destructive mt-1">{getError(`triggerConfig.${field.key}`)}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="conditions" className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Conditions (Optional)</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Add conditions to filter when this rule runs
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          conditions: [
-                            ...(formData.conditions || []),
-                            { type: "", config: {} },
-                          ],
-                        })
-                      }
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Condition
-                    </Button>
-                  </div>
-
-                  {formData.conditions?.map((condition, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <h5 className="font-medium">Condition {index + 1}</h5>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                conditions: formData.conditions?.filter(
-                                  (_, i) => i !== index,
-                                ),
-                              })
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Label>Condition Type</Label>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button type="button" aria-label="Help" className="text-muted-foreground">
-                                      <HelpCircle className="w-4 h-4" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Choose what to filter by (e.g., department, job role).
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <Select
-                              value={condition.type}
-                              onValueChange={(value) => {
-                                const updatedConditions = [
-                                  ...(formData.conditions || []),
-                                ];
-                                updatedConditions[index] = {
-                                  type: value,
-                                  config: {},
-                                };
-                                setFormData({
-                                  ...formData,
-                                  conditions: updatedConditions,
-                                });
-                              }}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select condition type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {conditionTypes.map((condType) => (
-                                  <SelectItem
-                                    key={condType.id}
-                                    value={condType.id}
-                                  >
-                                    {condType.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {/* Condition configuration fields would go here */}
-                          {(() => {
-                            const condMeta = conditionTypes.find((c) => c.id === condition.type);
-                            if (!condMeta) return null;
-                            return (
-                              <div className="grid grid-cols-2 gap-4">
-                                {condMeta.configFields.map((field) => (
-                                  <div key={field.key}>
-                                    <div className="flex items-center gap-2">
-                                      <Label>{field.label}</Label>
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <button type="button" aria-label="Help" className="text-muted-foreground">
-                                              <HelpCircle className="w-4 h-4" />
-                                            </button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            Set {field.label.toLowerCase()} for this condition.
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    </div>
-                                    {field.type === "select" && (
-                                      <Select
-                                        value={condition.config?.[field.key] || ""}
-                                        onValueChange={(value) => {
-                                          const updated = [...(formData.conditions || [])];
-                                          updated[index] = {
-                                            ...condition,
-                                            config: { ...(condition.config || {}), [field.key]: value },
-                                          };
-                                          setFormData({ ...formData, conditions: updated });
-                                        }}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder={`Select ${field.label}`} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {(field.options ?? []).map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                              {opt.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    )}
-                                    {field.type === "multiselect" && (
-                                      <MultiSelect
-                                        options={
-                                          condition.type === "department"
-                                            ? departmentsOptions
-                                            : condition.type === "jobRole"
-                                            ? jobRolesOptions
-                                            : field.options ?? []
-                                        }
-                                        selected={
-                                          Array.isArray(condition.config?.[field.key])
-                                            ? (condition.config?.[field.key] as string[])
-                                            : []
-                                        }
-                                        onChange={(values) => {
-                                          const updated = [...(formData.conditions || [])];
-                                          updated[index] = {
-                                            ...condition,
-                                            config: { ...(condition.config || {}), [field.key]: values },
-                                          };
-                                          setFormData({ ...formData, conditions: updated });
-                                        }}
-                                        placeholder={`Select ${field.label}`}
-                                      />
-                                    )}
-                                    {field.type === "text" && (
-                                      <Input
-                                        value={condition.config?.[field.key] || ""}
-                                        onChange={(e) => {
-                                          const updated = [...(formData.conditions || [])];
-                                          updated[index] = {
-                                            ...condition,
-                                            config: { ...(condition.config || {}), [field.key]: e.target.value },
-                                          };
-                                          setFormData({ ...formData, conditions: updated });
-                                        }}
-                                        placeholder={field.placeholder}
-                                      />
-                                    )}
-                                    {field.type === "date" && (
-                                      <Input
-                                        type="date"
-                                        value={condition.config?.[field.key] || ""}
-                                        onChange={(e) => {
-                                          const updated = [...(formData.conditions || [])];
-                                          updated[index] = {
-                                            ...condition,
-                                            config: { ...(condition.config || {}), [field.key]: e.target.value },
-                                          };
-                                          setFormData({ ...formData, conditions: updated });
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )) || (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No conditions added. This rule will run for all matching
-                      triggers.
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="actions" className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Actions *</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Define what happens when this rule triggers
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          actions: [
-                            ...(formData.actions || []),
-                            { type: "", config: {} },
-                          ],
-                        })
-                      }
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Action
-                    </Button>
-                  </div>
-
-                  {formData.actions?.map((action, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <h5 className="font-medium">Action {index + 1}</h5>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                actions: formData.actions?.filter(
-                                  (_, i) => i !== index,
-                                ),
-                              })
-                            }
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="space-y-4">
-                          <div>
-                            <Label>Action Type</Label>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                              {actionTypes.map((actionType) => (
-                                <Card
-                                  key={actionType.id}
-                                  className={`cursor-pointer transition-colors ${
-                                    action.type === actionType.id
-                                      ? "border-primary bg-primary/5"
-                                      : "hover:border-primary/50"
-                                  }`}
-                                  onClick={() => {
-                                    const updatedActions = [
-                                      ...(formData.actions || []),
-                                    ];
-                                    updatedActions[index] = {
-                                      type: actionType.id,
-                                      config: {},
-                                    };
-                                    setFormData({
-                                      ...formData,
-                                      actions: updatedActions,
-                                    });
-                                  }}
-                                >
-                                  <CardContent className="p-3">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      {actionType.icon}
-                                      <span className="font-medium text-sm">
-                                        {actionType.name}
-                                      </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                      {actionType.description}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          </div>
-                          {(() => {
-                            const meta = actionTypes.find((a) => a.id === action.type);
-                            if (!meta) return null;
-                            const actionConfig = action.config || {};
-                            const showAssigneeId = action.type === "create_task" && actionConfig.assigneeType === "specific";
-                            const showRecipients = action.type === "send_notification" && actionConfig.recipientType === "specific";
-                            return (
-                              <div className="grid grid-cols-2 gap-4">
-                                {meta.configFields.map((field) => {
-                                  // Conditional visibility
-                                  if (field.key === "assigneeId" && !showAssigneeId) return null;
-                                  if (field.key === "recipients" && !showRecipients) return null;
-                                  const setActionField = (updater: (cfg: any) => any) => {
-                                    const updatedActions = [...(formData.actions || [])];
-                                    const current = updatedActions[index] || { type: action.type, config: {} };
-                                    updatedActions[index] = {
-                                      ...current,
-                                      config: updater(current.config || {}),
-                                    };
-                                    setFormData({ ...formData, actions: updatedActions });
-                                  };
-                                  const dynamicOptions = () => {
-                                    if (field.key === "assigneeId") return usersOptions;
-                                    if (field.key === "templateId") return templatesOptions;
-                                    if (field.key === "recipients") return usersOptions;
-                                    return field.options ?? [];
-                                  };
-                                  return (
-                                    <div key={field.key}>
-                                      <div className="flex items-center gap-2">
-                                        <Label>{field.label}{field.required && " *"}</Label>
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <button type="button" aria-label="Help" className="text-muted-foreground">
-                                                <HelpCircle className="w-4 h-4" />
-                                              </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              Configure {field.label.toLowerCase()} for this action.
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      </div>
-                                      {field.type === "select" && (
-                                        <Select
-                                          value={actionConfig[field.key] || ""}
-                                          onValueChange={(value) =>
-                                            setActionField((cfg) => ({ ...cfg, [field.key]: value }))
-                                          }
-                                        >
-                                          <SelectTrigger>
-                                            <SelectValue placeholder={`Select ${field.label}`} />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {dynamicOptions().map((opt) => (
-                                              <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      )}
-                                      {field.type === "multiselect" && (
-                                        <MultiSelect
-                                          options={dynamicOptions()}
-                                          selected={
-                                            Array.isArray(actionConfig[field.key])
-                                              ? (actionConfig[field.key] as string[])
-                                              : []
-                                          }
-                                          onChange={(values) =>
-                                            setActionField((cfg) => ({ ...cfg, [field.key]: values }))
-                                          }
-                                          placeholder={`Select ${field.label}`}
-                                        />
-                                      )}
-                                      {field.type === "text" && (
-                                        <Input
-                                          value={actionConfig[field.key] || ""}
-                                          onChange={(e) =>
-                                            setActionField((cfg) => ({ ...cfg, [field.key]: e.target.value }))
-                                          }
-                                          placeholder={field.placeholder}
-                                        />
-                                      )}
-                                      {field.type === "number" && (
-                                        <Input
-                                          type="number"
-                                          value={actionConfig[field.key] ?? ""}
-                                          onChange={(e) =>
-                                            setActionField((cfg) => ({
-                                              ...cfg,
-                                              [field.key]: e.target.value === "" ? undefined : parseInt(e.target.value) || 0,
-                                            }))
-                                          }
-                                          placeholder={field.placeholder}
-                                        />
-                                      )}
-                                      {field.type === "boolean" && (
-                                        <div className="flex items-center gap-2">
-                                          <Switch
-                                            checked={Boolean(actionConfig[field.key])}
-                                            onChange={(checked) =>
-                                              setActionField((cfg) => ({ ...cfg, [field.key]: checked }))
-                                            }
-                                          />
-                                          <span className="text-sm">{field.label}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )) || (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No actions added. Add at least one action for this rule.
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-
-              {/* Validation checklist */}
-              {(validationHints.length > 0 || getError("actions")) && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-md p-3">
-                  <div className="text-sm font-medium mb-1">Before you save</div>
-                  <ul className="list-disc pl-5 text-sm space-y-1">
-                    {getError("actions") && <li>{getError("actions")}</li>}
-                    {validationHints.map((h, i) => (
-                      <li key={i}>{h}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={formData.isActive}
-                    onChange={(checked) =>
-                      setFormData({ ...formData, isActive: checked })
-                    }
-                  />
-                  <Label>Activate rule immediately</Label>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCreateDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={attemptSave}
-                    disabled={!isFormValid}
-                  >
-                    {selectedRule ? "Update" : "Create"} Rule
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dry Run Test Dialog */}
-        <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Dry Run Test Results</DialogTitle>
-              <DialogDescription>
-                See what would happen if this rule ran right now
-              </DialogDescription>
-            </DialogHeader>
-
-            {dryRunResults && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {dryRunResults.matchingEmployees || 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Matching Employees
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {dryRunResults.actionsToRun || 0}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Actions to Run
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="p-4 text-center">
-                      <div className="text-2xl font-bold text-orange-600">
-                        {dryRunResults.estimatedRuntime || 0}s
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Est. Runtime
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {dryRunResults.preview && (
-                  <div>
-                    <h4 className="font-medium mb-2">Preview Actions</h4>
-                    <div className="space-y-2">
-                      {dryRunResults.preview.map((item: any, index: number) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 p-3 border rounded-lg"
-                        >
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <div>
-                            <div className="font-medium">{item.action}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {item.description}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-    {/* Preflight Confirmation Dialog */}
-    <Dialog open={preflightOpen} onOpenChange={setPreflightOpen}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Activate now or test first?</DialogTitle>
-          <DialogDescription>
-            You chose to activate this rule immediately. We recommend saving and running a quick test before rolling out.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 text-sm">
-          <div>
-            <div className="font-medium">Summary</div>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>Trigger: {getTriggerTypeInfo(formData.triggerType || "")?.name || "Not set"}</li>
-              <li>Conditions: {formData.conditions?.length || 0}</li>
-              <li>Actions: {formData.actions?.length || 0}</li>
-            </ul>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch checked={postSaveRunTest} onChange={setPostSaveRunTest} />
-            <span>Run a test right after saving</span>
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setPreflightOpen(false)}>Cancel</Button>
-          <Button onClick={async () => {
-            setPreflightOpen(false);
-            await saveRuleAndMaybeTest(Boolean(postSaveRunTest));
-          }}>Save{postSaveRunTest ? " & Test" : " Now"}</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
       </div>
+
+      {/* Dialogs */}
+      <DryRunResultsDialog
+        open={testDialogOpen}
+        onOpenChange={setTestDialogOpen}
+        results={dryRunResults}
+        ruleName={selectedRule?.name}
+        onEditRule={() => setTestDialogOpen(false)}
+      />
+
+      <PreflightDialog
+        open={preflightOpen}
+        onOpenChange={setPreflightOpen}
+        formData={formData}
+        postSaveRunTest={postSaveRunTest}
+        onPostSaveRunTestChange={setPostSaveRunTest}
+        onConfirm={async () => {
+          setPreflightOpen(false);
+          await saveRuleAndMaybeTest(postSaveRunTest);
+        }}
+        onCancel={() => setPreflightOpen(false)}
+        getTriggerTypeInfo={getTriggerTypeInfo}
+      />
     </PageShell>
   );
+}
+
+// Default view - show rules list
+return (
+  <PageShell
+    title="Automation Rules"
+    description="Create and manage no-code automation rules to streamline HR processes"
+    breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
+    showHomeIcon={false}
+  >
+    <div className="max-w-6xl mx-auto">
+      <AutomationRuleList
+        rules={rules}
+        loading={loading}
+        onCreateNew={openCreateDialog}
+        onSelectRule={openEditDialog}
+        onEditRule={openEditDialog}
+        onDeleteRule={deleteRule}
+        onToggleStatus={toggleRuleStatus}
+        onRunTest={runDryTest}
+        onDuplicateRule={handleDuplicateRule}
+      />
+    </div>
+
+    {/* Dialogs */}
+    <DryRunResultsDialog
+      open={testDialogOpen}
+      onOpenChange={setTestDialogOpen}
+      results={dryRunResults}
+      ruleName={selectedRule?.name}
+      onEditRule={() => setTestDialogOpen(false)}
+    />
+  </PageShell>
+);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
@@ -37,25 +37,33 @@ function downloadCSV(data: any[], columns: any[]) {
 }
 
 export default function ReportsPreviewClient() {
-	const searchParams = useSearchParams();
-	const router = useRouter();
-	const fieldsParam = searchParams?.get("fields");
-	const reportIdParam = searchParams?.get("reportId");
-	
-	const [selectedFields, setSelectedFields] = useState<string[]>(
-		fieldsParam ? fieldsParam.split(",") : []
-	);
-	const [reportConfig, setReportConfig] = useState<any>(null);
+        const searchParams = useSearchParams();
+        const router = useRouter();
+        const fieldsParam = searchParams?.get("fields");
+        const reportIdParam = searchParams?.get("reportId");
 
-	const [data, setData] = useState<any[]>([]);
-	const [filteredData, setFilteredData] = useState<any[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [loadingReport, setLoadingReport] = useState(false);
-	const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
+        const [selectedFields, setSelectedFields] = useState<string[]>(() =>
+                reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : []
+        );
+        const [reportConfig, setReportConfig] = useState<any>(null);
 
-	// Build field label map from server (includes dynamic Forms)
-	useEffect(() => {
-		const load = async () => {
+        const [data, setData] = useState<any[]>([]);
+        const [filteredData, setFilteredData] = useState<any[]>([]);
+        const [loading, setLoading] = useState(false);
+        const [loadingReport, setLoadingReport] = useState(false);
+        const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
+        const [activeFilters, setActiveFilters] = useState<any[]>([]);
+        const [activeSort, setActiveSort] = useState<{ field: string; direction?: "asc" | "desc" } | null>(null);
+        const [pagination, setPagination] = useState<{ page?: number; limit?: number }>({ page: 1, limit: 50 });
+
+        const defaultSort = useMemo(() => {
+                if (!selectedFields.length) return null;
+                return { field: selectedFields[0], direction: "asc" as const };
+        }, [selectedFields]);
+
+        // Build field label map from server (includes dynamic Forms)
+        useEffect(() => {
+                const load = async () => {
 			try {
 				const res = await fetch("/api/reports/fields", { cache: "no-store" });
 				if (!res.ok) throw new Error(String(res.status));
@@ -78,46 +86,88 @@ export default function ReportsPreviewClient() {
 			try {
 				const res = await fetch(`/api/reports/${reportIdParam}`);
 				if (!res.ok) throw new Error(`Failed to load report: ${res.status}`);
-				const report = await res.json();
-				setReportConfig(report);
-				setSelectedFields(report.fields || []);
-			} catch (error) {
-				console.error("❌ Error loading report:", error);
-			} finally {
-				setLoadingReport(false);
-			}
-		};
-		loadReport();
-	}, [reportIdParam]);
+                                const report = await res.json();
+                                setReportConfig(report);
 
-	// Load report data when fields are available
-	useEffect(() => {
-		if (selectedFields.length === 0) return;
-		const fetchData = async () => {
-			setLoading(true);
-			try {
-				const res = await fetch("/api/reports/query", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						selectedFields,
-						filters: [],
-						pagination: { page: 1, limit: 50 },
-						sort: { field: selectedFields[0], direction: "asc" },
-					}),
-				});
-				const json = await res.json();
-				const results = Array.isArray(json.data) ? json.data : [];
-				setData([...results]);
-				setFilteredData([...results]);
-			} catch (error) {
-				console.error("❌ Error fetching report data:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
-	}, [selectedFields]);
+                                const savedFilters = Array.isArray(report?.filters)
+                                        ? report.filters
+                                        : report?.filters
+                                        ? [report.filters]
+                                        : [];
+                                setActiveFilters(savedFilters);
+
+                                const savedPagination =
+                                        report?.pagination && typeof report.pagination === "object"
+                                                ? { ...{ page: 1, limit: 50 }, ...report.pagination }
+                                                : { page: 1, limit: 50 };
+                                setPagination(savedPagination);
+
+                                const savedSort =
+                                        report?.sort && typeof report.sort === "object" && report.sort.field
+                                                ? {
+                                                          field: report.sort.field,
+                                                          direction: (report.sort.direction || "asc") as "asc" | "desc",
+                                                  }
+                                                : null;
+                                setActiveSort(savedSort);
+
+                                setSelectedFields(report.fields || []);
+                        } catch (error) {
+                                console.error("❌ Error loading report:", error);
+                        } finally {
+                                setLoadingReport(false);
+                        }
+                };
+                loadReport();
+        }, [reportIdParam]);
+
+        useEffect(() => {
+                if (!selectedFields.length) return;
+
+                setActiveSort((prev) => {
+                        if (prev?.field && selectedFields.includes(prev.field)) {
+                                return prev;
+                        }
+                        return defaultSort;
+                });
+        }, [defaultSort, selectedFields]);
+
+        // Load report data when fields are available
+        useEffect(() => {
+                if (selectedFields.length === 0) return;
+                if (reportIdParam && !reportConfig) return;
+                const fetchData = async () => {
+                        setLoading(true);
+                        try {
+                                const filtersToSend = Array.isArray(activeFilters) ? activeFilters : [];
+                                const sortToSend =
+                                        activeSort && activeSort.field
+                                                ? { field: activeSort.field, direction: activeSort.direction || "asc" }
+                                                : defaultSort;
+                                const paginationToSend = pagination || { page: 1, limit: 50 };
+
+                                const res = await fetch("/api/reports/query", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                                selectedFields,
+                                                filters: filtersToSend,
+                                                pagination: paginationToSend,
+                                                sort: sortToSend || undefined,
+                                        }),
+                                });
+                                const json = await res.json();
+                                const results = Array.isArray(json.data) ? json.data : [];
+                                setData([...results]);
+                                setFilteredData([...results]);
+                        } catch (error) {
+                                console.error("❌ Error fetching report data:", error);
+                        } finally {
+                                setLoading(false);
+                        }
+                };
+                fetchData();
+        }, [selectedFields, activeFilters, activeSort, pagination, defaultSort, reportIdParam, reportConfig]);
 
 	const handleSaveReport = async () => {
 		const reportName = prompt("Enter a name for this report:");

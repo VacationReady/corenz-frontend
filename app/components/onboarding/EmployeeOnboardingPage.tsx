@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Progress } from "@/components/ui/progress";
@@ -44,6 +45,7 @@ export default function EmployeeOnboardingPage({
   canComplete = true,
 }: Props) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [instance, setInstance] = useState<OnboardingInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,10 @@ export default function EmployeeOnboardingPage({
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const canAssignTemplate = session?.user?.role === "ADMIN";
+
+  useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
 
   const fetchOnboarding = async () => {
     setLoading(true);
@@ -249,7 +255,7 @@ export default function EmployeeOnboardingPage({
             <div className="text-lg font-bold text-green-700 mb-4">
               🎉 Onboarding Complete!
             </div>
-            <Button onClick={() => (window.location.href = "/dashboard")}>
+            <Button onClick={() => router.push("/dashboard")}>
               Go to Dashboard
             </Button>
           </div>

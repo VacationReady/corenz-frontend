@@ -7,6 +7,7 @@ import { useState, FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { LogIn } from "lucide-react";
 
 const MicrosoftIcon = () => (
   <span className="grid h-5 w-5 grid-cols-2 gap-[2px]">
@@ -102,7 +103,13 @@ export default function LoginClient() {
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full" loading={loading}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={loading}
+            loadingText="Signing in"
+            icon={<LogIn className="h-4 w-4" />}
+          >
             Sign In
           </Button>
         </form>

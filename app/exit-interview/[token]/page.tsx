@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -16,7 +16,29 @@ import {
 } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "sonner";
-import { Loader2, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  ArrowLeft,
+  LifeBuoy,
+} from "lucide-react";
+
+import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
+
+const SUPPORT_FALLBACK_EMAIL = "support@peoplecore.co.nz";
+
+const ensureProtocol = (value?: string | null) => {
+  if (!value) return null;
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+};
+
+const normalisePhone = (value?: string | null) => {
+  if (!value) return null;
+  const cleaned = value.replace(/[^+\d]/g, "");
+  return cleaned || null;
+};
 
 interface FormField {
   id: string;
@@ -41,6 +63,13 @@ interface Employee {
   lastName: string;
 }
 
+interface TenantContactDetails {
+  companyName?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  supportEmail?: string | null;
+}
+
 export default function ExitInterviewPage() {
   const params = useParams();
   const token = params?.token as string;
@@ -52,6 +81,9 @@ export default function ExitInterviewPage() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [template, setTemplate] = useState<FormTemplate | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
+  const [tenantContact, setTenantContact] = useState<TenantContactDetails | null>(
+    null,
+  );
 
   useEffect(() => {
     if (token) {
@@ -80,7 +112,8 @@ export default function ExitInterviewPage() {
 
       const data = await response.json();
       setTemplate(data.formTemplate);
-      setEmployee(data.employee);
+      setEmployee(data.employee ?? data.Employee ?? null);
+      setTenantContact(data.tenantContact ?? null);
 
       // Initialize form data
       const initialData: Record<string, any> = {};
@@ -293,73 +326,140 @@ export default function ExitInterviewPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading exit interview form...</p>
-        </div>
-      </div>
-    );
-  }
+  const companyName = tenantContact?.companyName?.trim() || null;
+  const portalHref = useMemo(() => {
+    return ensureProtocol(tenantContact?.website) ?? "/login";
+  }, [tenantContact?.website]);
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="text-center p-6">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Access Error
+  const portalLabel = useMemo(() => {
+    return companyName ? `Back to ${companyName} portal` : "Back to portal";
+  }, [companyName]);
+
+  const supportEmail = tenantContact?.supportEmail?.trim() || null;
+  const phoneForDisplay = tenantContact?.phone?.trim() || null;
+  const phoneForHref = useMemo(
+    () => normalisePhone(tenantContact?.phone),
+    [tenantContact?.phone],
+  );
+
+  const supportHref = useMemo(() => {
+    if (supportEmail) return `mailto:${supportEmail}`;
+    if (phoneForHref) return `tel:${phoneForHref}`;
+    const portalUrl = ensureProtocol(tenantContact?.website);
+    if (portalUrl) return portalUrl;
+    return `mailto:${SUPPORT_FALLBACK_EMAIL}`;
+  }, [supportEmail, phoneForHref, tenantContact?.website]);
+
+  const supportLabel = useMemo(() => {
+    if (supportEmail) return `Need help? Email ${supportEmail}`;
+    if (phoneForDisplay) return `Need help? Call ${phoneForDisplay}`;
+    if (tenantContact?.website && companyName)
+      return `Need help? Visit ${companyName}`;
+    if (tenantContact?.website) return "Need help? Visit your portal";
+    return `Need help? Email ${SUPPORT_FALLBACK_EMAIL}`;
+  }, [supportEmail, phoneForDisplay, tenantContact?.website, companyName]);
+
+  const headerDescription = useMemo(() => {
+    if (employee) {
+      return `Exit interview for ${employee.firstName} ${employee.lastName}. Your responses will be shared securely with the HR team.`;
+    }
+    if (companyName) {
+      return `Exit interview for ${companyName}. Share your honest feedback to help us improve the employee experience.`;
+    }
+    return "Share your honest feedback about your experience before you depart.";
+  }, [employee, companyName]);
+
+  const header = (
+    <FullScreenHeader
+      backSlot={
+        <a
+          href={portalHref}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
+          aria-label={portalLabel}
+        >
+          <ArrowLeft aria-hidden className="h-4 w-4" />
+          <span>{portalLabel}</span>
+        </a>
+      }
+      title={<span>Exit interview</span>}
+      helpSlot={
+        <a
+          href={supportHref}
+          className="inline-flex items-center gap-2"
+          aria-label={supportLabel}
+        >
+          <LifeBuoy aria-hidden className="h-4 w-4" />
+          <span>{supportLabel}</span>
+        </a>
+      }
+    >
+      <p className="text-sm text-muted-foreground">{headerDescription}</p>
+    </FullScreenHeader>
+  );
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex min-h-[240px] flex-col items-center justify-center text-center">
+          <Loader2 className="mb-4 h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Loading exit interview form...
+          </p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <Card className="w-full">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+            <h2 className="mb-2 text-xl font-semibold text-foreground">
+              Access error
             </h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <p className="text-sm text-gray-500">
-              If you believe this is an error, please contact HR for assistance.
+            <p className="mb-4 text-sm text-muted-foreground">{error}</p>
+            <p className="text-xs text-muted-foreground">
+              If you believe this is incorrect, please reach out using the
+              contact details above.
             </p>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="text-center p-6">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Thank You
+    if (submitted) {
+      return (
+        <Card className="w-full">
+          <CardContent className="p-6 text-center">
+            <CheckCircle className="mx-auto mb-4 h-12 w-12 text-emerald-500" />
+            <h2 className="mb-2 text-xl font-semibold text-foreground">
+              Thank you
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="mb-4 text-sm text-muted-foreground">
               Your exit interview form has been submitted successfully.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs text-muted-foreground">
               We appreciate your feedback and wish you all the best in your
               future endeavors.
             </p>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (!template || !employee) {
+    if (!template || !employee) {
+      return (
+        <Card className="w-full">
+          <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <p className="text-sm text-muted-foreground">Form not found.</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Form not found</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <Card>
+      <Card>
           <CardHeader className="text-center">
             <div className="flex items-center justify-center mb-4">
               <FileText className="h-8 w-8 text-blue-600 mr-3" />
@@ -408,6 +508,14 @@ export default function ExitInterviewPage() {
             </form>
           </CardContent>
         </Card>
+      );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {header}
+      <div className="mx-auto w-full max-w-2xl px-4 pb-12 pt-10">
+        {renderContent()}
       </div>
     </div>
   );

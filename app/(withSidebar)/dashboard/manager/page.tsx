@@ -14,6 +14,9 @@ import {
   Search,
   FileBarChart2,
   UserPlus,
+  CheckSquare,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -106,6 +109,7 @@ function PendingLeaveApprovals() {
                   items.map((r: any) => handleAction(r.id, "approve")),
                 );
               }}
+              icon={<CheckSquare className="h-4 w-4" />}
             >
               Approve all
             </Button>
@@ -132,6 +136,7 @@ function PendingLeaveApprovals() {
                   <Button
                     size="sm"
                     onClick={() => handleAction(r.id, "approve")}
+                    icon={<CheckCircle2 className="h-4 w-4" />}
                   >
                     Approve
                   </Button>
@@ -139,6 +144,7 @@ function PendingLeaveApprovals() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleAction(r.id, "decline")}
+                    icon={<XCircle className="h-4 w-4" />}
                   >
                     Reject
                   </Button>
@@ -194,14 +200,20 @@ function QuickLinks() {
     <DashboardWidget title="Quick Links" icon={UserPlus}>
       <div className="flex flex-wrap gap-2">
         <Link href="/employees">
-          <Button variant="outline" size="sm">
-            <UserPlus className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<UserPlus className="h-4 w-4" />}
+          >
             Add Employee
           </Button>
         </Link>
         <Link href="/reports">
-          <Button variant="outline" size="sm">
-            <FileBarChart2 className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<FileBarChart2 className="h-4 w-4" />}
+          >
             Run Report
           </Button>
         </Link>
@@ -317,18 +329,20 @@ export default function ManagerDashboardPage() {
             />
             <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
           </div>
-          <Link href="/employees">
-            <Button size="sm">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Employee
-            </Button>
-          </Link>
-          <Link href="/reports">
-            <Button size="sm" variant="outline">
-              <FileBarChart2 className="w-4 h-4 mr-2" />
-              Run Report
-            </Button>
-          </Link>
+        <Link href="/employees">
+          <Button size="sm" icon={<UserPlus className="h-4 w-4" />}>
+            Add Employee
+          </Button>
+        </Link>
+        <Link href="/reports">
+          <Button
+            size="sm"
+            variant="outline"
+            icon={<FileBarChart2 className="h-4 w-4" />}
+          >
+            Run Report
+          </Button>
+        </Link>
         </div>
       }
     >

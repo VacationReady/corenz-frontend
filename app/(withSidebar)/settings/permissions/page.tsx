@@ -110,8 +110,8 @@ function PermissionsContent() {
           const list = Array.isArray(data)
             ? data
             : Array.isArray(data?.departments)
-              ? data.departments
-              : [];
+            ? data.departments
+            : [];
           setDepartments(
             list.map((dept: any) => ({ id: dept.id, name: dept.name })),
           );
@@ -122,8 +122,8 @@ function PermissionsContent() {
           const list = Array.isArray(data)
             ? data
             : Array.isArray(data?.jobRoles)
-              ? data.jobRoles
-              : [];
+            ? data.jobRoles
+            : [];
           setJobRoles(
             list.map((role: any) => ({ id: role.id, name: role.name })),
           );
@@ -190,8 +190,8 @@ function PermissionsContent() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        sortBy: filters.sortBy || "name",
-        sortOrder: filters.sortOrder || "asc",
+        sortBy: (filters.sortBy as string) || "name",
+        sortOrder: (filters.sortOrder as string) || "asc",
       });
 
       const searchTerm = filters.search.trim();
@@ -221,7 +221,15 @@ function PermissionsContent() {
     } finally {
       setLoading(false);
     }
-  }, [filters.search, filters.sortBy, filters.sortOrder, statusKey, page, limit, selectedStatus]);
+  }, [
+    filters.search,
+    filters.sortBy,
+    filters.sortOrder,
+    statusKey,
+    page,
+    limit,
+    selectedStatus,
+  ]);
 
   useEffect(() => {
     fetchProfiles();
@@ -508,7 +516,7 @@ function PermissionsContent() {
                 {profileToDelete?._count?.users &&
                   profileToDelete._count.users > 0 && (
                     <span className="mt-2 block text-red-600 font-medium">
-                      Warning: This profile is currently assigned to {" "}
+                      Warning: This profile is currently assigned to{" "}
                       {profileToDelete._count.users} user(s). They will lose their
                       custom permissions and fall back to role-based permissions.
                     </span>

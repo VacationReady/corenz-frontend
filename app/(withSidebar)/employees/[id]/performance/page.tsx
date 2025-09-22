@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { ClipboardList, History, Pencil } from "lucide-react";
+import { ClipboardList, History, Pencil, Save } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
 import Button from "@/components/ui/Button";
 import {
@@ -447,7 +447,13 @@ export default function PerformancePage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" loading={saving} disabled={saving}>
+              <Button
+                type="submit"
+                loading={saving}
+                disabled={saving}
+                loadingText={editingReview ? "Saving review" : "Creating review"}
+                icon={<Save className="h-4 w-4" />}
+              >
                 {editingReview ? "Save changes" : "Create review"}
               </Button>
             </DialogFooter>

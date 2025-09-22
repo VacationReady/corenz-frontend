@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
+import { CheckCircle2 } from "lucide-react";
 
 export interface ChangeInfo {
   field: string;
@@ -116,10 +117,12 @@ export default function ChangeReasonModal({
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={!allReasonsProvided || loading}
             loading={loading}
+            loadingText="Saving changes"
+            icon={<CheckCircle2 className="h-4 w-4" />}
           >
             Confirm Changes
           </Button>

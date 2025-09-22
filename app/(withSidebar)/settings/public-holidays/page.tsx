@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { toast } from "sonner";
+import { Save } from "lucide-react";
 
 type Template = "NZ" | "AU" | "UK" | null;
 
@@ -54,7 +55,13 @@ export default function PublicHolidaysSettingsPage() {
       breadcrumbs={breadcrumbConfigs.settingsSection("Public Holiday Templates")}
       showHomeIcon={false}
       action={
-        <Button onClick={handleSave} loading={saving} disabled={loading}>
+        <Button
+          onClick={handleSave}
+          loading={saving}
+          disabled={loading}
+          loadingText="Saving template"
+          icon={<Save className="h-4 w-4" />}
+        >
           Save
         </Button>
       }

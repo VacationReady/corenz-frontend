@@ -2,8 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
@@ -13,10 +14,12 @@ import NewsChip from "@/components/ui/NewsChip";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import FileDropzone, { FileDropzoneItem, UploadHelpers } from "@/components/ui/FileDropzone";
+import FileDropzone, {
+  FileDropzoneItem,
+  UploadHelpers,
+} from "@/components/ui/FileDropzone";
 import {
   ArrowLeft,
-  Save,
   Send,
   Video,
   X,
@@ -26,8 +29,56 @@ import {
   Eye,
   Clock,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 
+/** ---------------- Draft management types & helpers ---------------- */
+interface NewsDraftPayload {
+  title: string;
+  content: any;
+  coverImage: string;
+  videoUrl: string;
+  tags: string[];
+  pinned: boolean;
+  featured: boolean;
+  sendEmail: boolean;
+  audience: {
+    type?: "all" | "custom";
+    departments?: string[];
+    roles?: string[];
+    locations?: string[];
+  };
+  isDraft: boolean;
+}
+
+const hasMeaningfulDraft = (draft: NewsDraftPayload | null | undefined) => {
+  if (!draft) return false;
+  const hasContent = (() => {
+    const value = draft.content;
+    if (!value) return false;
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") return Object.keys(value).length > 0;
+    return true;
+  })();
+  return (
+    Boolean(draft.title?.trim()) ||
+    hasContent ||
+    Boolean(draft.coverImage?.trim()) ||
+    Boolean(draft.videoUrl?.trim()) ||
+    (Array.isArray(draft.tags) && draft.tags.length > 0) ||
+    draft.pinned ||
+    draft.featured ||
+    draft.sendEmail ||
+    (draft.audience &&
+      ((draft.audience.departments || []).length > 0 ||
+        (draft.audience.roles || []).length > 0 ||
+        (draft.audience.locations || []).length > 0 ||
+        draft.audience.type === "custom"))
+  );
+};
+
+/** ---------------- Upload types & helpers ---------------- */
 type NewsUploadMeta = {
   path: string;
   url: string | null;
@@ -87,6 +138,8 @@ const uploadWithProgress = (
 
 export default function CreateNewsPostPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
@@ -95,7 +148,9 @@ export default function CreateNewsPostPage() {
   const [attachmentItems, setAttachmentItems] = useState<
     FileDropzoneItem<NewsUploadMeta>[]
   >([]);
-  const [coverItems, setCoverItems] = useState<FileDropzoneItem<NewsUploadMeta>[]>([]);
+  const [coverItems, setCoverItems] = useState<
+    FileDropzoneItem<NewsUploadMeta>[]
+  >([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [pinned, setPinned] = useState(false);
@@ -114,17 +169,83 @@ export default function CreateNewsPostPage() {
     "draft" | "publish" | null
   >(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Draft refs
+  const coverFileInputRef = useRef<HTMLInputElement | null>(null);
+  const latestDraftRef = useRef<NewsDraftPayload>({
+    title: "",
+    content: null,
+    coverImage: "",
+    videoUrl: "",
+    tags: [],
+    pinned: false,
+    featured: false,
+    sendEmail: false,
+    audience: { type: "all" },
+    isDraft: false,
+  });
+  const restorePromptedRef = useRef(false);
+
+  const autosaveKey = session?.user
+    ? `news:create:${session.user.companyId}:${session.user.id}`
+    : null;
+
+  const clearDraftStorage = (resetState = false) => {
+    if (typeof window !== "undefined" && autosaveKey) {
+      try {
+        window.localStorage.removeItem(autosaveKey);
+      } catch (error) {
+        console.error("Failed to clear news draft", error);
+      }
+    }
+    if (resetState) {
+      setTitle("");
+      setContent(null);
+      setCoverImage("");
+      setVideoUrl("");
+      setAttachmentItems([]);
+      setTags([]);
+      setTagInput("");
+      setPinned(false);
+      setFeatured(false);
+      setIsDraft(false);
+      setSendEmail(false);
+      setAudience({ type: "all" });
+      setShowPreview(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Discard the autosaved draft? This cannot be undone.",
+      );
+      if (!confirmed) return;
+    }
+    clearDraftStorage(true);
+    toast.success("Draft discarded");
+  };
+
   const handleAttachmentUpload = (
     file: File,
     helpers: UploadHelpers,
   ): Promise<NewsUploadMeta> =>
-    uploadWithProgress("/api/news/attachment-upload", file, helpers) as Promise<NewsUploadMeta>;
+    uploadWithProgress(
+      "/api/news/attachment-upload",
+      file,
+      helpers,
+    ) as Promise<NewsUploadMeta>;
 
   const handleCoverUpload = (
     file: File,
     helpers: UploadHelpers,
   ): Promise<NewsUploadMeta> =>
-    uploadWithProgress("/api/news/cover-upload", file, helpers) as Promise<NewsUploadMeta>;
+    uploadWithProgress(
+      "/api/news/cover-upload",
+      file,
+      helpers,
+    ) as Promise<NewsUploadMeta>;
 
   useEffect(() => {
     const successful = coverItems.find(
@@ -147,8 +268,9 @@ export default function CreateNewsPostPage() {
   };
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
+    const t = tagInput.trim();
+    if (t && !tags.includes(t)) {
+      setTags([...tags, t]);
       setTagInput("");
     }
   };
@@ -187,6 +309,10 @@ export default function CreateNewsPostPage() {
 
     if (!validateForm()) return;
 
+    // Retain draft flag
+    setIsDraft(asDraft);
+
+    // Ensure uploads are complete/healthy
     const hasUploadingAttachments = attachmentItems.some(
       (item) => item.status === "uploading",
     );
@@ -242,10 +368,9 @@ export default function CreateNewsPostPage() {
 
       if (res.ok) {
         toast.success(
-          asDraft
-            ? "Draft saved successfully!"
-            : "News post published successfully!"
+          asDraft ? "Draft saved successfully!" : "News post published successfully!",
         );
+        clearDraftStorage(false);
         router.push("/news");
       } else {
         const error = await res.text();
@@ -264,7 +389,11 @@ export default function CreateNewsPostPage() {
     if (!input) return "";
     // If this is a Supabase signed URL, extract the object path after "documents/"
     try {
-      if (input.startsWith("http") && input.includes("/object/sign/") && input.includes("documents/")) {
+      if (
+        input.startsWith("http") &&
+        input.includes("/object/sign/") &&
+        input.includes("documents/")
+      ) {
         const after = input.split("documents/")[1] || "";
         const pathOnly = after.split("?")[0] || "";
         return pathOnly;
@@ -276,6 +405,125 @@ export default function CreateNewsPostPage() {
   const handleAudienceRefresh = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
+  // Keep latest draft snapshot
+  useEffect(() => {
+    latestDraftRef.current = {
+      title,
+      content,
+      coverImage,
+      videoUrl,
+      tags,
+      pinned,
+      featured,
+      sendEmail,
+      audience,
+      isDraft,
+    };
+  }, [
+    title,
+    content,
+    coverImage,
+    videoUrl,
+    tags,
+    pinned,
+    featured,
+    sendEmail,
+    audience,
+    isDraft,
+  ]);
+
+  // Reset restore prompted flag when key changes
+  useEffect(() => {
+    restorePromptedRef.current = false;
+  }, [autosaveKey]);
+
+  // Autosave interval
+  useEffect(() => {
+    if (!autosaveKey) return;
+    if (typeof window === "undefined") return;
+
+    const interval = window.setInterval(() => {
+      const draft = latestDraftRef.current;
+      if (!hasMeaningfulDraft(draft)) {
+        try {
+          window.localStorage.removeItem(autosaveKey);
+        } catch (error) {
+          console.error("Failed to prune empty news draft", error);
+        }
+        return;
+      }
+
+      try {
+        window.localStorage.setItem(
+          autosaveKey,
+          JSON.stringify({
+            ...draft,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
+      } catch (error) {
+        console.error("Failed to persist news draft", error);
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [autosaveKey]);
+
+  // Attempt restore on mount/key change
+  useEffect(() => {
+    if (!autosaveKey) return;
+    if (restorePromptedRef.current) return;
+    if (typeof window === "undefined") return;
+
+    const stored = window.localStorage.getItem(autosaveKey);
+    if (!stored) {
+      restorePromptedRef.current = true;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as Partial<NewsDraftPayload> & {
+        updatedAt?: string;
+      };
+      if (!hasMeaningfulDraft(parsed as NewsDraftPayload)) {
+        window.localStorage.removeItem(autosaveKey);
+        restorePromptedRef.current = true;
+        return;
+      }
+
+      const restoreMessage = parsed?.updatedAt
+        ? `A locally saved draft from ${new Date(
+            parsed.updatedAt,
+          ).toLocaleString()} was found. Restore it?`
+        : "A locally saved draft was found. Restore it?";
+      const shouldRestore = window.confirm(restoreMessage);
+      if (shouldRestore) {
+        setTitle(parsed?.title || "");
+        setContent(parsed?.content ?? null);
+        setCoverImage(parsed?.coverImage || "");
+        setVideoUrl(parsed?.videoUrl || "");
+        setTags(parsed?.tags || []);
+        setPinned(Boolean(parsed?.pinned));
+        setFeatured(Boolean(parsed?.featured));
+        setSendEmail(Boolean(parsed?.sendEmail));
+        setAudience(parsed?.audience || { type: "all" });
+        setIsDraft(Boolean(parsed?.isDraft));
+        setAttachmentItems([]);
+        setTagInput("");
+        setShowPreview(false);
+        if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+        toast.info("Draft restored from this device");
+      } else {
+        window.localStorage.removeItem(autosaveKey);
+      }
+    } catch (error) {
+      console.error("Failed to restore news draft", error);
+      window.localStorage.removeItem(autosaveKey);
+    } finally {
+      restorePromptedRef.current = true;
+    }
+  }, [autosaveKey]);
 
   useEffect(() => {
     handleAudienceRefresh();
@@ -296,7 +544,9 @@ export default function CreateNewsPostPage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Create News Post</h1>
+                <h1 className="text-xl font-bold text-foreground">
+                  Create News Post
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   Share updates with your organization
                 </p>
@@ -304,6 +554,17 @@ export default function CreateNewsPostPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleDiscardDraft}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                  "border border-destructive/60 text-destructive hover:bg-destructive/10",
+                )}
+                type="button"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Discard Draft</span>
+              </button>
               <Button
                 type="button"
                 variant="outline"
@@ -374,7 +635,7 @@ export default function CreateNewsPostPage() {
                   "w-full px-4 py-3 text-lg font-semibold",
                   "bg-card border border-border rounded-xl",
                   "focus:outline-none focus:ring-2 focus:ring-primary",
-                  "placeholder:text-muted-foreground"
+                  "placeholder:text-muted-foreground",
                 )}
                 required
               />
@@ -404,7 +665,7 @@ export default function CreateNewsPostPage() {
                     className={cn(
                       "flex-1 px-4 py-2",
                       "bg-card border border-border rounded-lg",
-                      "focus:outline-none focus:ring-2 focus:ring-primary"
+                      "focus:outline-none focus:ring-2 focus:ring-primary",
                     )}
                   />
                   {coverImage && (
@@ -428,6 +689,7 @@ export default function CreateNewsPostPage() {
                 />
                 {coverImage && (
                   <div className="relative mt-2 rounded-lg overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={coverImage}
                       alt="Cover"
@@ -484,7 +746,7 @@ export default function CreateNewsPostPage() {
                   className={cn(
                     "flex-1 px-4 py-2",
                     "bg-card border border-border rounded-lg",
-                    "focus:outline-none focus:ring-2 focus:ring-primary"
+                    "focus:outline-none focus:ring-2 focus:ring-primary",
                   )}
                 />
                 <button
@@ -555,7 +817,7 @@ export default function CreateNewsPostPage() {
                     className={cn(
                       "flex-1 px-3 py-2 text-sm",
                       "bg-background border border-border rounded-lg",
-                      "focus:outline-none focus:ring-2 focus:ring-primary"
+                      "focus:outline-none focus:ring-2 focus:ring-primary",
                     )}
                   />
                   <button

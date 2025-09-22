@@ -175,12 +175,15 @@ export default function EmployeeOnboardingPage({
   }
 
   const steps = instance.steps.sort((a, b) => a.order - b.order);
+  const totalSteps = steps.length;
   const completeCount = steps.filter((s) => s.status === "completed").length;
-  const percent = Math.round((completeCount / steps.length) * 100);
+  const percent = totalSteps
+    ? Math.round((completeCount / totalSteps) * 100)
+    : 0;
   const activeStep = steps.find((s) => s.status !== "completed");
   const currentIdx = activeStep
     ? steps.findIndex((s) => s.id === activeStep.id)
-    : steps.length;
+    : totalSteps;
 
   const handleComplete = async (stepId: string, data?: any) => {
     try {
@@ -212,7 +215,7 @@ export default function EmployeeOnboardingPage({
         </div>
         <Progress value={percent} className="h-2 mb-3" />
         <div className="text-sm text-muted-foreground mb-2">
-          {percent}% complete
+          {totalSteps ? `${percent}% complete` : "0% complete"}
         </div>
       </Card>
       <Card className="mb-8">
@@ -244,8 +247,8 @@ export default function EmployeeOnboardingPage({
       </Card>
       <div className="text-sm text-center text-muted-foreground mb-2">
         {activeStep
-          ? `${currentIdx + 1} / ${steps.length} steps`
-          : `${steps.length} / ${steps.length} steps`}
+          ? `${currentIdx + 1} / ${totalSteps} steps`
+          : `${totalSteps} / ${totalSteps} steps`}
       </div>
     </div>
   );

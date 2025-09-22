@@ -2,26 +2,23 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { uploadFileToSupabase } from "@/lib/news/uploadFileToSupabase";
 import NewsEditor from "@/components/news/NewsEditor";
 import AudienceCampaignPanel from "@/components/news/AudienceCampaignPanel";
 import NewsChip from "@/components/ui/NewsChip";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import FileDropzone, { FileDropzoneItem, UploadHelpers } from "@/components/ui/FileDropzone";
 import {
   ArrowLeft,
   Save,
   Send,
-  Upload,
-  Image,
   Video,
-  FileText,
   X,
   Plus,
   Hash,
@@ -31,14 +28,74 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+type NewsUploadMeta = {
+  path: string;
+  url: string | null;
+  name: string;
+  size: number;
+  type: string;
+};
+
+const uploadWithProgress = (
+  endpoint: string,
+  file: File,
+  { onProgress, signal }: UploadHelpers,
+) =>
+  new Promise<any>((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint, true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(percent);
+      } else {
+        onProgress(50);
+      }
+    };
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) return;
+      const status = xhr.status;
+      if (status >= 200 && status < 300) {
+        try {
+          const json = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+          resolve(json);
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        const message = xhr.responseText || `Upload failed (${status})`;
+        reject(new Error(message));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onabort = () => reject(new Error("Upload cancelled"));
+
+    signal.addEventListener("abort", () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) {
+        xhr.abort();
+      }
+    });
+
+    xhr.send(formData);
+  });
+
 export default function CreateNewsPostPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverStoragePath, setCoverStoragePath] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachmentItems, setAttachmentItems] = useState<
+    FileDropzoneItem<NewsUploadMeta>[]
+  >([]);
+  const [coverItems, setCoverItems] = useState<FileDropzoneItem<NewsUploadMeta>[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [pinned, setPinned] = useState(false);
@@ -54,45 +111,36 @@ export default function CreateNewsPostPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const coverFileInputRef = useRef<HTMLInputElement | null>(null);
+  const handleAttachmentUpload = (
+    file: File,
+    helpers: UploadHelpers,
+  ): Promise<NewsUploadMeta> =>
+    uploadWithProgress("/api/news/attachment-upload", file, helpers) as Promise<NewsUploadMeta>;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setAttachments(Array.from(e.target.files));
+  const handleCoverUpload = (
+    file: File,
+    helpers: UploadHelpers,
+  ): Promise<NewsUploadMeta> =>
+    uploadWithProgress("/api/news/cover-upload", file, helpers) as Promise<NewsUploadMeta>;
+
+  useEffect(() => {
+    const successful = coverItems.find(
+      (item) => item.status === "success" && item.meta,
+    );
+    if (successful?.meta) {
+      const meta = successful.meta as NewsUploadMeta;
+      setCoverStoragePath(meta.path);
+      setCoverImage(meta.url || meta.path || "");
+    } else if (coverItems.length === 0 && coverStoragePath) {
+      setCoverStoragePath(null);
+      setCoverImage("");
     }
-  };
+  }, [coverItems, coverStoragePath]);
 
-  const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
-  };
-
-  const handleCoverFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingCover(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/news/cover-upload", {
-        method: "POST",
-        body: form,
-      });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        throw new Error(errText || "Upload failed");
-      }
-      const data = await res.json();
-      setCoverImage(data.url || "");
-      toast.success("Cover image uploaded");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to upload cover image");
-    } finally {
-      setIsUploadingCover(false);
-      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
-    }
+  const clearCover = () => {
+    setCoverImage("");
+    setCoverStoragePath(null);
+    if (coverItems.length) setCoverItems([]);
   };
 
   const handleAddTag = () => {
@@ -133,22 +181,46 @@ export default function CreateNewsPostPage() {
 
     if (!validateForm()) return;
 
+    const hasUploadingAttachments = attachmentItems.some(
+      (item) => item.status === "uploading",
+    );
+    if (hasUploadingAttachments) {
+      toast.error("Please wait for attachments to finish uploading.");
+      return;
+    }
+
+    const hasFailedAttachments = attachmentItems.some(
+      (item) => item.status === "error",
+    );
+    if (hasFailedAttachments) {
+      toast.error("Remove or retry failed attachments before submitting.");
+      return;
+    }
+
+    const hasUploadingCover = coverItems.some(
+      (item) => item.status === "uploading",
+    );
+    if (hasUploadingCover) {
+      toast.error("Please wait for the cover image upload to finish.");
+      return;
+    }
+
+    const uploadedAttachments = attachmentItems
+      .filter((item) => item.status === "success" && item.meta)
+      .map((item) => item.meta as NewsUploadMeta);
+
     setIsSubmitting(true);
 
     try {
-      // Upload attachments
-      const uploadedUrls = await Promise.all(
-        attachments.map((file) => uploadFileToSupabase(file))
-      );
-
       const res = await fetch("/api/news", {
         method: "POST",
         body: JSON.stringify({
           title,
           content,
-          coverImage: normalizeCoverForSave(coverImage) || null,
+          coverImage:
+            normalizeCoverForSave(coverStoragePath || coverImage) || null,
           videoEmbedUrl: videoUrl || null,
-          attachments: uploadedUrls,
+          attachments: uploadedAttachments,
           sendEmail,
           audience,
           tags,
@@ -321,55 +393,59 @@ export default function CreateNewsPostPage() {
               <label className="block text-sm font-medium text-foreground">
                 Cover Image
               </label>
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className={cn(
-                    "flex-1 px-4 py-2",
-                    "bg-card border border-border rounded-lg",
-                    "focus:outline-none focus:ring-2 focus:ring-primary"
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => coverFileInputRef.current?.click()}
-                  disabled={isUploadingCover}
-                  className={cn(
-                    "px-4 py-2 rounded-lg transition-all flex items-center gap-2",
-                    "bg-muted hover:bg-muted/80",
-                    isUploadingCover && "opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  <Image className="w-4 h-4" />
-                  {isUploadingCover ? "Uploading..." : "Upload"}
-                </button>
-              </div>
-              <input
-                ref={coverFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCoverFileChange}
-                className="hidden"
-              />
-              {coverImage && (
-                <div className="relative mt-2 rounded-lg overflow-hidden">
-                  <img
-                    src={coverImage}
-                    alt="Cover"
-                    className="w-full h-48 object-cover"
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="url"
+                    value={coverImage}
+                    onChange={(e) => {
+                      setCoverImage(e.target.value);
+                      setCoverStoragePath(null);
+                      if (coverItems.length) setCoverItems([]);
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className={cn(
+                      "flex-1 px-4 py-2",
+                      "bg-card border border-border rounded-lg",
+                      "focus:outline-none focus:ring-2 focus:ring-primary"
+                    )}
                   />
-                  <button
-                    onClick={() => setCoverImage("")}
-                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                    type="button"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {coverImage && (
+                    <button
+                      type="button"
+                      onClick={clearCover}
+                      className="h-10 rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-muted"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-              )}
+                <FileDropzone
+                  files={coverItems}
+                  onFilesChange={setCoverItems}
+                  onUpload={handleCoverUpload}
+                  multiple={false}
+                  accept="image/*"
+                  description="Upload a hero image for this post"
+                  helperText="Images are stored securely in your tenant bucket."
+                />
+                {coverImage && (
+                  <div className="relative mt-2 rounded-lg overflow-hidden">
+                    <img
+                      src={coverImage}
+                      alt="Cover"
+                      className="w-full h-48 object-cover"
+                    />
+                    <button
+                      onClick={clearCover}
+                      className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white transition hover:bg-black/70"
+                      type="button"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
             {/* Content Editor */}
@@ -434,54 +510,23 @@ export default function CreateNewsPostPage() {
               <label className="block text-sm font-medium text-foreground">
                 Attachments
               </label>
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer flex flex-col items-center gap-2"
-                >
-                  <Upload className="w-8 h-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Click to upload or drag and drop
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    PDF, DOC, XLS, PPT up to 10MB each
-                  </span>
-                </label>
-              </div>
-              {attachments.length > 0 && (
-                <div className="grid gap-2 mt-3">
-                  {attachments.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => removeAttachment(index)}
-                        className="p-1 hover:bg-muted rounded-lg"
-                        type="button"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <FileDropzone
+                files={attachmentItems}
+                onFilesChange={setAttachmentItems}
+                onUpload={handleAttachmentUpload}
+                accept={[
+                  ".pdf",
+                  ".doc",
+                  ".docx",
+                  ".xls",
+                  ".xlsx",
+                  ".ppt",
+                  ".pptx",
+                  "image/*",
+                ]}
+                description="Upload supporting documents or images"
+                helperText="Files are uploaded to your tenant's secure storage bucket."
+              />
             </motion.div>
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Button from "@/components/ui/Button";
@@ -11,8 +11,8 @@ import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { uploadToSupabase } from "@/lib/supabase";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+import { FormActionBar } from "./FormActionBar";
 
 interface DynamicFormRendererProps {
   formId: string;
@@ -81,11 +81,12 @@ export function DynamicFormRenderer({
   };
 
   const formSchema = buildValidationSchema();
+  const form = useForm({ resolver: zodResolver(formSchema) });
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(formSchema) });
+  } = form;
 
   const submitForm = async (data: Record<string, any>, reasons?: Record<string, string>) => {
     try {
@@ -147,59 +148,63 @@ export function DynamicFormRenderer({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit(async (data) => {
-        const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
-        setPendingData(data);
-        setPendingChanges(changes);
-        setIsReasonOpen(true);
-      })}
-      className="space-y-6 bg-white p-6 rounded-lg shadow-md"
-    >
-      {fields.map((field) => {
-        console.log("📦 Rendering field:", field);
-        return (
-          <div key={field.id} className="flex flex-col gap-2">
-            <label className="font-medium text-sm text-gray-700">
-              {field.label || "Untitled Field"}
-              {field.required && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            {renderField(field, register)}
-            {errors[field.id] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[field.id]?.message as string}
-              </p>
+    <FormProvider {...form}>
+      <form
+        onSubmit={handleSubmit(async (data) => {
+          const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
+          setPendingData(data);
+          setPendingChanges(changes);
+          setIsReasonOpen(true);
+        })}
+        className="space-y-6 bg-white p-6 rounded-lg shadow-md pb-32"
+      >
+        {fields.map((field) => {
+          console.log("📦 Rendering field:", field);
+          return (
+            <div key={field.id} className="flex flex-col gap-2">
+              <label className="font-medium text-sm text-gray-700">
+                {field.label || "Untitled Field"}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              {renderField(field, register)}
+              {errors[field.id] && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors[field.id]?.message as string}
+                </p>
+              )}
+            </div>
+          );
+        })}
+        <FormActionBar>
+          <Button type="submit" className="gap-2" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
+              </>
+            ) : (
+              "Submit"
             )}
-          </div>
-        );
-      })}
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...
-          </>
-        ) : (
-          "Submit"
-        )}
-      </Button>
+          </Button>
+        </FormActionBar>
 
-      <ChangeReasonModal
-        isOpen={isReasonOpen}
-        onClose={() => {
-          setIsReasonOpen(false);
-          setPendingChanges([]);
-          setPendingData(null);
-        }}
-        changes={pendingChanges}
-        onSubmit={async (reasons) => {
-          if (!pendingData) return;
-          await submitForm(pendingData, reasons);
-          setIsReasonOpen(false);
-          setPendingChanges([]);
-          setPendingData(null);
-        }}
-      />
-    </form>
+        <ChangeReasonModal
+          isOpen={isReasonOpen}
+          onClose={() => {
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingData(null);
+          }}
+          changes={pendingChanges}
+          onSubmit={async (reasons) => {
+            if (!pendingData) return;
+            await submitForm(pendingData, reasons);
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingData(null);
+          }}
+        />
+      </form>
+    </FormProvider>
   );
 }
 

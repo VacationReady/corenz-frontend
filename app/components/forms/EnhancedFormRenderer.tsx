@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, Form
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+import { FormActionBar } from "./FormActionBar";
 
 interface EnhancedFormRendererProps {
   formId: string;
@@ -44,7 +45,8 @@ export function EnhancedFormRenderer({
   const [pendingAction, setPendingAction] = useState<"data" | "submit" | null>(null);
   const [pendingPayload, setPendingPayload] = useState<Record<string, any> | null>(null);
 
-  const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const form = useForm();
+  const { register, handleSubmit, setValue, watch, reset } = form;
 
   const evaluateCondition = (cond: any): boolean => {
     if (!cond) return true;
@@ -310,8 +312,9 @@ export function EnhancedFormRenderer({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {pages.map((page) => (
+      <FormProvider {...form}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-32">
+          {pages.map((page) => (
           <div key={page.id} className="space-y-6">
             {page.title && (
               <h3 className="text-lg font-semibold">{page.title}</h3>
@@ -343,7 +346,7 @@ export function EnhancedFormRenderer({
                         : "col-span-12"
                       : "";
                     return (
-                    <div key={field.id} className={widthClass}>
+                      <div key={field.id} className={widthClass}>
                       {field.type === "sectionHeader" && (
                         <h5 className="text-base font-semibold">{field.label}</h5>
                       )}
@@ -381,27 +384,28 @@ export function EnhancedFormRenderer({
               </div>
             ))}
           </div>
-        ))}
+          ))}
 
-        <div className="flex justify-end pt-4">
-          <Button
-            type="submit"
-            disabled={saving || isReadOnly}
-            className="flex items-center gap-2"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : formData.form.formType === "DATA_SCREEN" ? (
-              <Save className="h-4 w-4" />
-            ) : null}
-            {saving
-              ? "Saving..."
-              : formData.form.formType === "DATA_SCREEN"
-                ? "Save Data"
-                : "Submit Form"}
-          </Button>
-        </div>
-      </form>
+          <FormActionBar>
+            <Button
+              type="submit"
+              disabled={saving || isReadOnly}
+              className="flex items-center gap-2"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : formData.form.formType === "DATA_SCREEN" ? (
+                <Save className="h-4 w-4" />
+              ) : null}
+              {saving
+                ? "Saving..."
+                : formData.form.formType === "DATA_SCREEN"
+                  ? "Save Data"
+                  : "Submit Form"}
+            </Button>
+          </FormActionBar>
+        </form>
+      </FormProvider>
 
       <ChangeReasonModal
         isOpen={isReasonOpen}

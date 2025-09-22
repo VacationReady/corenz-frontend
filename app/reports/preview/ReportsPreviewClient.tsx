@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
@@ -12,8 +18,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
+import { ArrowLeft, X } from "lucide-react";
 import Papa from "papaparse";
 
 type ColumnDefinition = { header: string; accessorKey: string };
@@ -102,6 +110,51 @@ export default function ReportsPreviewClient() {
   const [total, setTotal] = useState<number>(0);
   const [exportingFull, setExportingFull] = useState(false);
 
+  const returnToParam = searchParams?.get("returnTo") || "";
+  const safeReturnTo = useMemo(() => {
+    if (!returnToParam) return null;
+    if (returnToParam.startsWith("/")) {
+      return returnToParam;
+    }
+    return null;
+  }, [returnToParam]);
+
+  const exitLabel = useMemo(() => {
+    if (!safeReturnTo) return "Close preview";
+    if (safeReturnTo.includes("builder")) return "Back to builder";
+    if (safeReturnTo.includes("create")) return "Back to report setup";
+    if (safeReturnTo === "/reports") return "Back to reports";
+    return "Back";
+  }, [safeReturnTo]);
+
+  const handleExit = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const closeEvent = new CustomEvent("reports-preview:close", {
+        cancelable: true,
+      });
+      if (!window.dispatchEvent(closeEvent)) {
+        return;
+      }
+      if (safeReturnTo) {
+        router.push(safeReturnTo);
+        return;
+      }
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
+      router.push("/reports");
+      return;
+    }
+
+    if (safeReturnTo) {
+      router.push(safeReturnTo);
+      return;
+    }
+
+    router.push("/reports");
+  }, [router, safeReturnTo]);
+
   const defaultSort = useMemo(() => {
     if (!selectedFields.length) return null;
     return { field: selectedFields[0], direction: "asc" as const };
@@ -159,6 +212,20 @@ export default function ReportsPreviewClient() {
       setPiiAcknowledged(false);
     }
   }, [hasPIISelected]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !showPIIModal) {
+        event.preventDefault();
+        handleExit();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleExit, showPIIModal]);
 
   // Load report configuration if reportId is provided
   useEffect(() => {
@@ -425,55 +492,100 @@ export default function ReportsPreviewClient() {
     }
   };
 
-  if (loadingReport) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">Loading report configuration...</p>
+  const header = (
+    <FullScreenHeader
+      backSlot={
+        <button
+          type="button"
+          onClick={handleExit}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
+          aria-label={exitLabel}
+        >
+          <ArrowLeft aria-hidden className="h-4 w-4" />
+          <span>{exitLabel}</span>
+        </button>
+      }
+      title={
+        <h1 className="text-base font-semibold text-foreground sm:text-lg">
+          Report preview
+        </h1>
+      }
+      helpSlot={
+        <button
+          type="button"
+          onClick={handleExit}
+          className="inline-flex items-center gap-2"
+          aria-label="Close preview"
+        >
+          <X aria-hidden className="h-4 w-4" />
+          <span className="hidden text-sm font-medium sm:inline">Close</span>
+        </button>
+      }
+    >
+      <p className="text-sm text-muted-foreground">
+        Review your selected fields, apply filters, and export data without
+        leaving the builder.
+      </p>
+    </FullScreenHeader>
+  );
+
+  const renderShell = (body: ReactNode) => (
+    <div className="min-h-screen bg-muted/10">
+      {header}
+      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6">
+        {body}
       </main>
+    </div>
+  );
+
+  if (loadingReport) {
+    return renderShell(
+      <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border/60 bg-background/60 text-sm text-muted-foreground">
+        Loading report configuration...
+      </div>,
     );
   }
 
   if (!selectedFields.length && !loadingReport) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">
-          No fields selected. Please go back and select fields for your report.
+    return renderShell(
+      <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border/60 bg-background/60 text-center">
+        <p className="max-w-md text-sm text-muted-foreground">
+          No fields selected. Head back to the builder to choose the data you
+          want to preview.
         </p>
-        <Button className="mt-4" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
-      </main>
+        <Button onClick={handleExit}>Go back</Button>
+      </div>,
     );
   }
 
   if (loading) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">Loading report data...</p>
-      </main>
+    return renderShell(
+      <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border/60 bg-background/60 text-sm text-muted-foreground">
+        Loading report data...
+      </div>,
     );
   }
 
   if (!loading && data.length === 0) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">No data found for the selected fields.</p>
-        <Button className="mt-4" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
-      </main>
+    return renderShell(
+      <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border/60 bg-background/60 text-center">
+        <p className="max-w-md text-sm text-muted-foreground">
+          No data matched your current selection. Try adjusting filters or
+          selecting different fields.
+        </p>
+        <Button onClick={handleExit}>Go back</Button>
+      </div>,
     );
   }
 
-  return (
-    <>
-      <main className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Report Preview</h1>
-        <p className="mb-4">
-          Your custom report is displayed below. You can sort and filter as
+  const body = (
+    <div className="rounded-3xl border border-border/60 bg-background p-6 shadow-sm">
+      <div className="mb-6 space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Your custom report is displayed below. Sort, filter, and export as
           needed.
         </p>
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={handleDownloadClick}>
             Download CSV ({filteredData.length} rows)
           </Button>
@@ -486,22 +598,28 @@ export default function ReportsPreviewClient() {
           ) : null}
           <Button onClick={handleSaveReport}>Save Report</Button>
         </div>
-        <div className="min-h-[200px]">
-          <FilterableDataTable
-            columns={columns}
-            data={data}
-            total={total}
-            page={page}
-            pageSize={pageSize}
-            onFilteredDataChange={setFilteredData}
-            onPageChange={setPage}
-            onPageSizeChange={(size: number) => {
-              setPageSize(size);
-              setPage(1);
-            }}
-          />
-        </div>
-      </main>
+      </div>
+      <div className="min-h-[200px]">
+        <FilterableDataTable
+          columns={columns}
+          data={data}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onFilteredDataChange={setFilteredData}
+          onPageChange={setPage}
+          onPageSizeChange={(size: number) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {renderShell(body)}
       <Dialog open={showPIIModal} onOpenChange={setShowPIIModal}>
         <DialogContent>
           <DialogHeader>

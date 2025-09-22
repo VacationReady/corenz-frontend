@@ -226,9 +226,10 @@ export default function ReportsPage() {
                         return;
                       }
 
-                      router.push(
-                        `/reports/preview?fields=${encodeURIComponent(fieldArray.join(","))}`,
-                      );
+                      const params = new URLSearchParams();
+                      params.set("fields", fieldArray.join(","));
+                      params.set("returnTo", "/reports");
+                      router.push(`/reports/preview?${params.toString()}`);
                     }}
                   >
                     View

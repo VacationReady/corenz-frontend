@@ -114,10 +114,6 @@ export async function GET(req: Request) {
       { error: "Failed to fetch calendar events" },
       { status: 500 },
     );
-  } finally {
-    try {
-      await prisma.$disconnect();
-    } catch (_) {}
   }
 }
 

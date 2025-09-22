@@ -3,8 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   try {
+    await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorised" }, { status: 401 });

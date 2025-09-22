@@ -7,6 +7,8 @@ interface Params {
 	params: { id: string };
 }
 
+export const runtime = "nodejs";
+
 export async function GET(req: Request, { params }: Params) {
 	try {
 		const session = await getServerSession(authOptions);

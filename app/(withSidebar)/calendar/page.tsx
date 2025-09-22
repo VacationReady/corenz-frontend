@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [inspectorDate, setInspectorDate] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [bankHolidaysOn, setBankHolidaysOn] = useState(false);
+  const [templateLabel, setTemplateLabel] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState("");
   const bankHolidayCacheRef = useRef<any | null>(null);
   const router = useRouter();
@@ -281,32 +282,41 @@ export default function CalendarPage() {
         successCallback([]);
         return;
       }
-      if (!bankHolidayCacheRef.current) {
-        const res = await fetch("https://www.gov.uk/bank-holidays.json");
-        if (!res.ok) throw new Error("Failed to load bank holidays");
-        bankHolidayCacheRef.current = await res.json();
+      // Fetch from app API that uses selected company template
+      const params = new URLSearchParams({ from: fetchInfo.startStr, to: fetchInfo.endStr });
+      const res = await fetch(`/api/public-holidays?${params.toString()}`);
+      if (!res.ok) {
+        successCallback([]);
+        return;
       }
-      const defaultRegion = "england-and-wales";
-      const configuredRegion = process.env.NEXT_PUBLIC_BANK_HOLIDAY_REGION || defaultRegion;
-      const region = bankHolidayCacheRef.current[configuredRegion];
-      const events: EventInput[] = (region?.events || [])
-        .map((e: any) => ({
-          id: `bank-${e.date}`,
-          title: e.title || "Bank Holiday",
-          start: e.date,
-          allDay: true,
-          backgroundColor: "#86efac",
-          borderColor: "#22c55e",
-          textColor: "#065f46",
-          extendedProps: { isBankHoliday: true },
-        }))
-        .filter((ev: any) => ev.start >= fetchInfo.startStr && ev.start <= fetchInfo.endStr);
-      successCallback(events);
+      const events = await res.json();
+      successCallback((events || []).map((e: any) => ({
+        ...e,
+        id: `pub-${e.start}`,
+        backgroundColor: "#86efac",
+        borderColor: "#22c55e",
+        textColor: "#065f46",
+        extendedProps: { isBankHoliday: true },
+      })));
     } catch (error) {
       console.error(error);
       failureCallback(error);
     }
   };
+
+  // Load template label to show near toggle
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/settings/public-holidays");
+        if (res.ok) {
+          const data = await res.json();
+          const t = data?.template as string | null;
+          setTemplateLabel(t ? (t === 'NZ' ? 'New Zealand' : t === 'AU' ? 'Australia' : 'United Kingdom') : null);
+        }
+      } catch {}
+    })();
+  }, []);
 
   const dayCellDidMount = (arg: any) => {
     const d = arg.date as Date;
@@ -573,8 +583,11 @@ export default function CalendarPage() {
               Filters
             </Button>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Bank holidays</span>
-              <Switch checked={bankHolidaysOn} onChange={setBankHolidaysOn} />
+              <span className="text-sm text-gray-600">Show public holidays</span>
+              <Switch checked={bankHolidaysOn} onChange={(v) => { setBankHolidaysOn(v); calendarRef.current?.getApi().refetchEvents(); }} />
+              {bankHolidaysOn && templateLabel && (
+                <span className="text-xs text-gray-500">({templateLabel})</span>
+              )}
             </div>
             <Button
               variant="outline"

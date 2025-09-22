@@ -39,6 +39,11 @@ const holidaySettings = [
     icon: <Clock className="h-5 w-5 text-primary" />,
   },
   {
+    title: "Public Holiday Templates",
+    href: "/settings/public-holidays",
+    icon: <Calendar className="h-5 w-5 text-primary" />,
+  },
+  {
     title: "Expiry Alerts",
     href: "/settings/expiry-alerts",
     icon: <AlertTriangle className="h-5 w-5 text-primary" />,

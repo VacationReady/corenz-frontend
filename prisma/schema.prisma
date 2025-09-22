@@ -116,6 +116,7 @@ model Company {
   phone                               String?
   size                                Int?
   website                             String?
+  publicHolidayTemplate               PublicHolidayTemplate?
   AutomationExecution                 AutomationExecution[]
   AutomationJob                       AutomationJob[]
   AutomationRule                      AutomationRule[]
@@ -1703,4 +1704,10 @@ enum TaskCategory {
   HR
   COMPLIANCE
   OTHER
+}
+
+enum PublicHolidayTemplate {
+  NZ
+  AU
+  UK
 }

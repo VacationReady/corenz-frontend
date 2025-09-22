@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import ErrorBoundary from "./ErrorBoundary";
 import ChunkErrorHandler from "./ChunkErrorHandler";
 import { CommandPaletteMount } from "./CommandPaletteMount";
+import TenantSupportLauncher from "./support/TenantSupportLauncher";
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
@@ -28,6 +29,7 @@ export default function Providers({ children }: { children: ReactNode }) {
           }}
         />
         <CommandPaletteMount />
+        <TenantSupportLauncher />
       </SessionProvider>
     </ErrorBoundary>
   );

@@ -181,11 +181,10 @@ export const PreflightDialog: React.FC<PreflightDialogProps> = ({
             
             <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <Switch
-                id="test-after-save"
                 checked={postSaveRunTest}
                 onChange={onPostSaveRunTestChange}
               />
-              <Label htmlFor="test-after-save" className="flex-1 cursor-pointer">
+              <Label className="flex-1 cursor-pointer" onClick={() => onPostSaveRunTestChange(!postSaveRunTest)}>
                 <div className="flex items-start gap-2">
                   <TestTube className="w-4 h-4 text-blue-600 mt-0.5" />
                   <div>

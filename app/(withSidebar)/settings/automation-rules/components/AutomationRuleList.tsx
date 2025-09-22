@@ -19,10 +19,7 @@ import {
 } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Plus,
@@ -181,7 +178,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
           </div>
           <div className="flex gap-1">
             <Button
-              variant={filterStatus === "all" ? "default" : "ghost"}
+              variant={filterStatus === "all" ? "primary" : "ghost"}
               size="sm"
               className="h-7 text-xs flex-1"
               onClick={() => setFilterStatus("all")}
@@ -189,7 +186,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
               All ({rules.length})
             </Button>
             <Button
-              variant={filterStatus === "active" ? "default" : "ghost"}
+              variant={filterStatus === "active" ? "primary" : "ghost"}
               size="sm"
               className="h-7 text-xs flex-1"
               onClick={() => setFilterStatus("active")}
@@ -197,7 +194,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
               Active ({activeCount})
             </Button>
             <Button
-              variant={filterStatus === "inactive" ? "default" : "ghost"}
+              variant={filterStatus === "inactive" ? "primary" : "ghost"}
               size="sm"
               className="h-7 text-xs flex-1"
               onClick={() => setFilterStatus("inactive")}
@@ -268,72 +265,79 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                         </p>
                       )}
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="w-3.5 h-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          onEditRule(rule);
-                        }}>
-                          <Edit className="w-3.5 h-3.5 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          onRunTest(rule);
-                        }}>
-                          <TestTube className="w-3.5 h-3.5 mr-2" />
-                          Test
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleStatus(rule.id!, !rule.isActive);
-                        }}>
-                          {rule.isActive ? (
-                            <>
-                              <Pause className="w-3.5 h-3.5 mr-2" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3.5 h-3.5 mr-2" />
-                              Activate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        {onDuplicateRule && (
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            onDuplicateRule(rule);
-                          }}>
-                            <Copy className="w-3.5 h-3.5 mr-2" />
-                            Duplicate
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm("Are you sure you want to delete this rule?")) {
-                              onDeleteRule(rule.id!);
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            <DropdownMenu
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </Button>
+              }
+              align="right"
+            >
+              <div className="py-1">
+                <DropdownMenuItem onClick={() => {
+                  onEditRule(rule);
+                }}>
+                  <div className="flex items-center">
+                    <Edit className="w-3.5 h-3.5 mr-2" />
+                    Edit
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  onRunTest(rule);
+                }}>
+                  <div className="flex items-center">
+                    <TestTube className="w-3.5 h-3.5 mr-2" />
+                    Test
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  onToggleStatus(rule.id!, !rule.isActive);
+                }}>
+                  <div className="flex items-center">
+                    {rule.isActive ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5 mr-2" />
+                        Deactivate
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 mr-2" />
+                        Activate
+                      </>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+                {onDuplicateRule && (
+                  <DropdownMenuItem onClick={() => {
+                    onDuplicateRule(rule);
+                  }}>
+                    <div className="flex items-center">
+                      <Copy className="w-3.5 h-3.5 mr-2" />
+                      Duplicate
+                    </div>
+                  </DropdownMenuItem>
+                )}
+                <div className="my-1 h-px bg-gray-200" />
+                <DropdownMenuItem
+                  className="text-destructive hover:bg-red-50"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this rule?")) {
+                      onDeleteRule(rule.id!);
+                    }
+                  }}
+                >
+                  <div className="flex items-center text-red-600">
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    Delete
+                  </div>
+                </DropdownMenuItem>
+              </div>
+            </DropdownMenu>
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">

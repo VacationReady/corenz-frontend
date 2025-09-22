@@ -118,8 +118,6 @@ export const ConfigField: React.FC<ConfigFieldProps> = ({
           selected={Array.isArray(value) ? value : []}
           onChange={onChange}
           placeholder={`Select ${field.label}`}
-          disabled={disabled}
-          className="min-h-[32px] text-sm"
         />
       )}
 
@@ -137,12 +135,11 @@ export const ConfigField: React.FC<ConfigFieldProps> = ({
       {field.type === "boolean" && (
         <div className="flex items-center gap-2">
           <Switch
-            id={field.key}
             checked={Boolean(value)}
             onChange={onChange}
             disabled={disabled}
           />
-          <Label htmlFor={field.key} className="text-sm font-normal">
+          <Label className="text-sm font-normal cursor-pointer" onClick={() => onChange(!value)}>
             {field.label}
           </Label>
         </div>

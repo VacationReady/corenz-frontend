@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { DndContext, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
@@ -286,11 +289,23 @@ const StepEditor = React.memo(function StepEditor({
   updateStep: (idx: number, data: any) => void;
   removeStep: (idx: number) => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: getStepKey(step),
+  });
+
   return (
-    <div className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border">
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border"
+    >
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex gap-2 items-center">
-          <GripVertical className="text-gray-400 cursor-grab w-4 h-4" />
+          <GripVertical
+            className="text-gray-400 cursor-grab w-4 h-4"
+            {...attributes}
+            {...listeners}
+          />
           <span className="uppercase text-xs font-semibold text-gray-500">
             {STEP_TYPES.find((t) => t.value === step.type)?.label}
           </span>
@@ -487,6 +502,29 @@ export default function OnboardingTemplateEditor({
     setSteps((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    setSteps((prevSteps) => {
+      const oldIndex = prevSteps.findIndex(
+        (item) => getStepKey(item) === active.id,
+      );
+      const newIndex = prevSteps.findIndex(
+        (item) => getStepKey(item) === over.id,
+      );
+
+      if (oldIndex === -1 || newIndex === -1) {
+        return prevSteps;
+      }
+
+      return arrayMove(prevSteps, oldIndex, newIndex);
+    });
+  }, []);
+
   const handleSave = async (publish = false) => {
     if (!name.trim()) {
       toast.error("Template name required");
@@ -628,17 +666,21 @@ export default function OnboardingTemplateEditor({
           acknowledged, uploaded, or a custom form.
         </p>
         <StepTypePicker />
-        <div className="space-y-2">
-          {steps.map((step, idx) => (
-            <StepEditor
-              key={step.key}
-              step={step}
-              idx={idx}
-              updateStep={updateStep}
-              removeStep={removeStep}
-            />
-          ))}
-        </div>
+        <DndContext onDragEnd={handleDragEnd}>
+          <SortableContext items={steps.map(getStepKey)}>
+            <div className="space-y-2">
+              {steps.map((step, idx) => (
+                <StepEditor
+                  key={step.key}
+                  step={step}
+                  idx={idx}
+                  updateStep={updateStep}
+                  removeStep={removeStep}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {steps.length > 0 && <PreviewBlock />}

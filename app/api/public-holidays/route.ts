@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     if (subdivision) {
       // date-holidays expects country + state code; subdivision often like AU-NSW; split to country/state
       const [c, sub] = subdivision.split("-");
-      hd.init(c || country, sub);
+      hd.init(c || country, sub ? sub.toLowerCase() : undefined);
     } else {
       hd.init(country);
     }
@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
     CACHE.set(cacheKey, { ts: Date.now(), events });
     return NextResponse.json(events);
   } catch (error) {
+    console.error("[public-holidays][GET]", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

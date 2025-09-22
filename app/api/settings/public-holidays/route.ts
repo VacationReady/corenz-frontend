@@ -17,6 +17,7 @@ export async function GET() {
     });
     return NextResponse.json({ template: company?.publicHolidayTemplate ?? null, region: company?.publicHolidayRegion ?? null });
   } catch (error) {
+    console.error("[settings/public-holidays][GET]", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -41,6 +42,7 @@ export async function PUT(req: NextRequest) {
     });
     return NextResponse.json({ ok: true });
   } catch (error) {
+    console.error("[settings/public-holidays][PUT]", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

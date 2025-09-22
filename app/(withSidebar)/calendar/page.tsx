@@ -9,6 +9,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
+import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { List, CalendarDays, Trash2 } from "lucide-react";
@@ -622,7 +623,11 @@ export default function CalendarPage() {
         )}
         <div className="bg-white rounded-xl overflow-hidden">
           {loading ? (
-            <p className="p-4">Loading...</p>
+            <SectionSkeleton
+              showContainer={false}
+              rows={1}
+              lineClassName="h-[520px] w-full"
+            />
           ) : (
             <FullCalendar
               ref={calendarRef}

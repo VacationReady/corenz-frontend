@@ -56,8 +56,17 @@ export default function NewReportBuilderPage() {
 			const result = await response.json();
 			if (response.ok && result.success) {
 				const reportId = result.id || result.data?.id;
-				if (reportId) router.push(`/reports/preview?reportId=${reportId}`);
-				else router.push(`/reports/preview?fields=${config.selectedFields.join(",")}`);
+                                if (reportId) {
+                                        const params = new URLSearchParams();
+                                        params.set("reportId", String(reportId));
+                                        params.set("returnTo", "/reports/builder-new");
+                                        router.push(`/reports/preview?${params.toString()}`);
+                                } else {
+                                        const params = new URLSearchParams();
+                                        params.set("fields", config.selectedFields.join(","));
+                                        params.set("returnTo", "/reports/builder-new");
+                                        router.push(`/reports/preview?${params.toString()}`);
+                                }
 			} else {
 				alert(`Failed to save report: ${result.error || result.details || "Unknown error"}`);
 			}
@@ -132,7 +141,17 @@ export default function NewReportBuilderPage() {
 											<div className="text-sm text-gray-500">{new Date(r.createdAt).toLocaleString()} • {r.category}</div>
 										</div>
 										<div className="flex items-center gap-2">
-											<Button variant="outline" onClick={() => router.push(`/reports/preview?reportId=${r.id}`)}>Open</Button>
+                                                                                        <Button
+                                                                                                variant="outline"
+                                                                                                onClick={() => {
+                                                                                                        const params = new URLSearchParams();
+                                                                                                        params.set("reportId", String(r.id));
+                                                                                                        params.set("returnTo", "/reports/builder-new");
+                                                                                                        router.push(`/reports/preview?${params.toString()}`);
+                                                                                                }}
+                                                                                        >
+                                                                                                Open
+                                                                                        </Button>
 										</div>
 									</li>
 								))}

@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
         Employee: {
           include: { User: true },
         },
-        ExitInterviewFormTemplate: true,
+        ExitInterviewFormTemplate: {
+          include: { Company: true },
+        },
       },
     });
 
@@ -51,13 +53,52 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const templateCompany = offboarding.ExitInterviewFormTemplate?.Company;
+    let companyContact = templateCompany
+      ? {
+          name: templateCompany.name,
+          phone: templateCompany.phone,
+          website: templateCompany.website,
+        }
+      : null;
+
+    if (!companyContact) {
+      const fallbackCompanyId = offboarding.ExitInterviewFormTemplate?.companyId
+        ?? offboarding.Employee.User.companyId;
+
+      if (fallbackCompanyId) {
+        const fallbackCompany = await prisma.company.findUnique({
+          where: { id: fallbackCompanyId },
+          select: {
+            name: true,
+            phone: true,
+            website: true,
+          },
+        });
+
+        if (fallbackCompany) {
+          companyContact = {
+            name: fallbackCompany.name,
+            phone: fallbackCompany.phone,
+            website: fallbackCompany.website,
+          };
+        }
+      }
+    }
+
     // Return form template data
     return NextResponse.json({
       success: true,
       formTemplate: offboarding.ExitInterviewFormTemplate,
-      Employee: {
+      employee: {
         firstName: offboarding.Employee.User.firstName,
         lastName: offboarding.Employee.User.lastName,
+      },
+      tenantContact: {
+        companyName: companyContact?.name ?? null,
+        phone: companyContact?.phone ?? null,
+        website: companyContact?.website ?? null,
+        supportEmail: offboarding.interviewerEmail ?? null,
       },
       offboardingId: offboarding.id,
     });

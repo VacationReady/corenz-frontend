@@ -83,7 +83,14 @@ export default function EmployeeOnboardingPage({
     const res = await fetch("/api/onboarding/templates");
     if (res.ok) {
       const data = await res.json();
-      setTemplates(data || []);
+      const templatesData = Array.isArray(data) ? data : [];
+      setTemplates(templatesData);
+      if (canAssignTemplate && templatesData.length === 1) {
+        const templateId = templatesData[0]?.id;
+        if (templateId) {
+          setSelectedTemplate((prev) => prev || templateId);
+        }
+      }
     }
   };
 
@@ -174,6 +181,11 @@ export default function EmployeeOnboardingPage({
                   ))}
                 </SelectContent>
               </Select>
+              {templates.length === 1 ? (
+                <p className="text-xs text-muted-foreground -mt-2 mb-4">
+                  Automatically selected because it's the only template.
+                </p>
+              ) : null}
               <Button onClick={handleAssignOnboarding} disabled={assigning}>
                 {assigning ? "Assigning..." : "Assign Onboarding"}
               </Button>

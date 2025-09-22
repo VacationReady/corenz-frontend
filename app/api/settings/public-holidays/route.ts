@@ -11,9 +11,9 @@ export async function GET() {
     }
     const company = await prisma.company.findUnique({
       where: { id: session.user.companyId },
-      select: { publicHolidayTemplate: true },
+      select: { publicHolidayTemplate: true, publicHolidayRegion: true },
     });
-    return NextResponse.json({ template: company?.publicHolidayTemplate ?? null });
+    return NextResponse.json({ template: company?.publicHolidayTemplate ?? null, region: company?.publicHolidayRegion ?? null });
   } catch (error) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
@@ -27,12 +27,13 @@ export async function PUT(req: NextRequest) {
     }
     const body = await req.json();
     const template = (body?.template || null) as "NZ" | "AU" | "UK" | null;
+    const region = (body?.region || null) as string | null;
     if (template && !["NZ", "AU", "UK"].includes(template)) {
       return NextResponse.json({ error: "Invalid template" }, { status: 400 });
     }
     await prisma.company.update({
       where: { id: session.user.companyId },
-      data: { publicHolidayTemplate: template as any },
+      data: { publicHolidayTemplate: template as any, publicHolidayRegion: region },
     });
     return NextResponse.json({ ok: true });
   } catch (error) {

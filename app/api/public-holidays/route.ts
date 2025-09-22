@@ -2,55 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import Holidays from "date-holidays";
 
-type Region = "NZ" | "AU" | "UK";
+type Template = "NZ" | "AU" | "UK";
 
-function getRegionFromCompany(template: string | null | undefined): Region | null {
-  if (template === "NZ" || template === "AU" || template === "UK") return template;
-  return null;
+const CACHE = new Map<string, { ts: number; events: any[] }>();
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24h
+
+function mapTemplateToCountry(template: Template): string {
+  if (template === "NZ") return "NZ";
+  if (template === "AU") return "AU";
+  return "GB"; // UK
 }
 
-// Minimal, static templates; can be upgraded to external sources later
-function getHolidays(region: Region, fromISO: string, toISO: string) {
+function buildCacheKey(args: { companyId: string; template: Template; region: string | null; from: string; to: string }) {
+  return `${args.companyId}:${args.template}:${args.region || "_"}:${args.from}:${args.to}`;
+}
+
+function toEvents(h: any[], fromISO: string, toISO: string) {
   const from = new Date(fromISO);
   const to = new Date(toISO);
-  const within = (d: Date) => d >= from && d <= to;
-
-  // Simple sample data per region (common fixed days); can be extended
-  const year = from.getUTCFullYear();
-  const base: Record<Region, { date: string; title: string }[]> = {
-    NZ: [
-      { date: `${year}-01-01`, title: "New Year’s Day" },
-      { date: `${year}-02-06`, title: "Waitangi Day" },
-      { date: `${year}-04-25`, title: "ANZAC Day" },
-      { date: `${year}-12-25`, title: "Christmas Day" },
-      { date: `${year}-12-26`, title: "Boxing Day" },
-    ],
-    AU: [
-      { date: `${year}-01-01`, title: "New Year’s Day" },
-      { date: `${year}-01-26`, title: "Australia Day" },
-      { date: `${year}-04-25`, title: "ANZAC Day" },
-      { date: `${year}-12-25`, title: "Christmas Day" },
-      { date: `${year}-12-26`, title: "Boxing Day" },
-    ],
-    UK: [
-      { date: `${year}-01-01`, title: "New Year’s Day" },
-      { date: `${year}-05-01`, title: "Early May bank holiday (approx)" },
-      { date: `${year}-12-25`, title: "Christmas Day" },
-      { date: `${year}-12-26`, title: "Boxing Day" },
-    ],
-  };
-
-  return base[region]
-    .map((h) => ({
-      date: new Date(`${h.date}T00:00:00.000Z`),
-      title: h.title,
-    }))
-    .filter((h) => within(h.date))
-    .map((h) => ({
-      title: h.title,
-      start: h.date.toISOString().slice(0, 10),
-      end: h.date.toISOString().slice(0, 10),
+  return h
+    .filter((e) => {
+      const d = new Date(e.date);
+      return d >= from && d <= to;
+    })
+    .map((e) => ({
+      title: e.name,
+      start: e.date,
       allDay: true,
     }));
 }
@@ -69,11 +48,37 @@ export async function GET(req: NextRequest) {
     }
     const company = await prisma.company.findUnique({
       where: { id: session.user.companyId },
-      select: { publicHolidayTemplate: true },
+      select: { publicHolidayTemplate: true, publicHolidayRegion: true, id: true },
     });
-    const region = getRegionFromCompany(company?.publicHolidayTemplate ?? null);
-    if (!region) return NextResponse.json([]);
-    const events = getHolidays(region, from, to);
+    const template = (company?.publicHolidayTemplate ?? null) as Template | null;
+    if (!template) return NextResponse.json([]);
+    const country = mapTemplateToCountry(template);
+    const subdivision = company?.publicHolidayRegion || undefined; // e.g., NZ-WGN, AU-NSW, GB-SCT
+
+    const cacheKey = buildCacheKey({ companyId: company!.id, template, region: subdivision || null, from, to });
+    const cached = CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return NextResponse.json(cached.events);
+    }
+
+    const hd = new Holidays();
+    // Initialize with country; if subdivision present, use it
+    if (subdivision) {
+      // date-holidays expects country + state code; subdivision often like AU-NSW; split to country/state
+      const [c, sub] = subdivision.split("-");
+      hd.init(c || country, sub);
+    } else {
+      hd.init(country);
+    }
+    // Get raw holidays for the span year(s)
+    const startYear = new Date(from).getUTCFullYear();
+    const endYear = new Date(to).getUTCFullYear();
+    let all: any[] = [];
+    for (let y = startYear; y <= endYear; y++) {
+      all = all.concat(hd.getHolidays(y) || []);
+    }
+    const events = toEvents(all, from, to);
+    CACHE.set(cacheKey, { ts: Date.now(), events });
     return NextResponse.json(events);
   } catch (error) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });

@@ -54,7 +54,7 @@ export default function LeaveSummaryCard({
     <Card>
       <div className="border-b p-4 flex items-center gap-2">
         <CalendarCheck2 className="w-5 h-5 text-indigo-600" />
-        <h2 className="text-lg font-semibold">Holiday Balance</h2>
+        <h2 className="text-lg font-semibold">Annual Leave Balance</h2>
       </div>
       <div className="p-4 space-y-2 text-sm">
         <p>
@@ -68,7 +68,7 @@ export default function LeaveSummaryCard({
         </p>
 
         <Button className="mt-2 w-full" onClick={() => setModalOpen(true)}>
-          Book Holiday
+          Book Leave
         </Button>
 
         <AddLeaveRequestDialog

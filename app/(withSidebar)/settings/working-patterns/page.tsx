@@ -154,10 +154,26 @@ export default function WorkingPatternsPage() {
     setCurrentPattern(pattern);
     setName(pattern.name);
     setDescription(pattern.description || "");
+    const toShortDay = (name: string) => {
+      const map: Record<string, string> = {
+        Monday: "Mon",
+        Tuesday: "Tue",
+        Wednesday: "Wed",
+        Thursday: "Thu",
+        Friday: "Fri",
+        Saturday: "Sat",
+        Sunday: "Sun",
+      };
+      if (!name) return name;
+      if (name.length <= 3) return name;
+      return map[name] || name;
+    };
+
     const loadedWeeks = pattern.weeks.map((week: any) => {
       const daysObj: Record<string, string> = {};
       week.days.forEach((d: any) => {
-        daysObj[d.day] = d.type;
+        const key = toShortDay(d.day);
+        daysObj[key] = d.type;
       });
       return { weekNumber: week.weekNumber, days: daysObj };
     });

@@ -56,13 +56,11 @@ async function main() {
               weekNumber: 1,
               WorkingPatternDay: {
                 create: [
-                  { id: randomUUID(), day: "Monday", type: "FULL_DAY" },
-                  { id: randomUUID(), day: "Tuesday", type: "FULL_DAY" },
-                  { id: randomUUID(), day: "Wednesday", type: "FULL_DAY" },
-                  { id: randomUUID(), day: "Thursday", type: "FULL_DAY" },
-                  { id: randomUUID(), day: "Friday", type: "FULL_DAY" },
-                  { id: randomUUID(), day: "Saturday", type: "FULL_DAY" },
-                  { id: randomUUID(), day: "Sunday", type: "FULL_DAY" },
+                  { id: randomUUID(), day: "Mon", type: "FULL_DAY" },
+                  { id: randomUUID(), day: "Tue", type: "FULL_DAY" },
+                  { id: randomUUID(), day: "Wed", type: "FULL_DAY" },
+                  { id: randomUUID(), day: "Thu", type: "FULL_DAY" },
+                  { id: randomUUID(), day: "Fri", type: "FULL_DAY" },
                 ],
               },
             },

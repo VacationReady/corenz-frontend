@@ -117,6 +117,7 @@ model Company {
   size                                Int?
   website                             String?
   publicHolidayTemplate               PublicHolidayTemplate?
+  publicHolidayRegion                 String?
   AutomationExecution                 AutomationExecution[]
   AutomationJob                       AutomationJob[]
   AutomationRule                      AutomationRule[]

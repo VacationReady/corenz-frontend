@@ -312,7 +312,9 @@ export default function CalendarPage() {
         if (res.ok) {
           const data = await res.json();
           const t = data?.template as string | null;
-          setTemplateLabel(t ? (t === 'NZ' ? 'New Zealand' : t === 'AU' ? 'Australia' : 'United Kingdom') : null);
+          const r = data?.region as string | null;
+          const base = t ? (t === 'NZ' ? 'New Zealand' : t === 'AU' ? 'Australia' : 'United Kingdom') : null;
+          setTemplateLabel(base ? (r ? `${base} — ${r}` : base) : null);
         }
       } catch {}
     })();

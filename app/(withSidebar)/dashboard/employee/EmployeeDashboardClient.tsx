@@ -146,11 +146,11 @@ function QuickActions({ employeeId }: { employeeId?: string }) {
         {employeeId && (
           <Link
             href={`/employees/${employeeId}/leave`}
-            aria-label="Book Holiday"
+            aria-label="Book Leave"
           >
             <Button variant="outline" size="sm">
               <Calendar className="w-4 h-4 mr-2" />
-              Book Holiday
+              Book Leave
             </Button>
           </Link>
         )}

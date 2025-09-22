@@ -13,6 +13,22 @@ export async function calculateLeaveDeduction(
   employeeId: string,
   leaveDate: Date,
 ): Promise<number> {
+  const toShortDay = (name: string): string => {
+    const map: Record<string, string> = {
+      Monday: "Mon",
+      Tuesday: "Tue",
+      Wednesday: "Wed",
+      Thursday: "Thu",
+      Friday: "Fri",
+      Saturday: "Sat",
+      Sunday: "Sun",
+    };
+    if (!name) return name;
+    // If already short (Mon, Tue, ...), return as-is
+    if (name.length <= 3) return name;
+    return map[name] || name;
+  };
+
   const assignment = await prisma.employeeWorkingPatternAssignment.findFirst({
     where: {
       employeeId,
@@ -49,6 +65,10 @@ export async function calculateLeaveDeduction(
   // use the correct relation field name
   const weeks = workingPattern.WorkingPatternWeek;
   const weekCount = weeks.length;
+  if (weekCount === 0) {
+    console.log(`[Deduction] Pattern has 0 weeks. Returning 1.`);
+    return 1;
+  }
   const weekIndex =
     diffInDays >= 0 ? Math.floor(diffInDays / 7) % weekCount : 0;
 
@@ -61,7 +81,7 @@ export async function calculateLeaveDeduction(
     weekday: "short",
   });
   const days = applicableWeek.WorkingPatternDay;
-  const dayEntry = days.find((day) => day.day === dayOfWeek);
+  const dayEntry = days.find((day) => toShortDay(day.day) === dayOfWeek);
 
   console.log(`-----------------------------`);
   console.log(

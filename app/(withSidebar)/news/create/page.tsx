@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
@@ -16,7 +17,6 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  Save,
   Send,
   Upload,
   Image,
@@ -29,10 +29,59 @@ import {
   Eye,
   Clock,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
+
+interface NewsDraftPayload {
+  title: string;
+  content: any;
+  coverImage: string;
+  videoUrl: string;
+  tags: string[];
+  pinned: boolean;
+  featured: boolean;
+  sendEmail: boolean;
+  audience: {
+    type?: "all" | "custom";
+    departments?: string[];
+    roles?: string[];
+    locations?: string[];
+  };
+  isDraft: boolean;
+}
+
+const hasMeaningfulDraft = (
+  draft: NewsDraftPayload | null | undefined,
+) => {
+  if (!draft) return false;
+  const hasContent = (() => {
+    const value = draft.content;
+    if (!value) return false;
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") return Object.keys(value).length > 0;
+    return true;
+  })();
+  return (
+    Boolean(draft.title?.trim()) ||
+    hasContent ||
+    Boolean(draft.coverImage?.trim()) ||
+    Boolean(draft.videoUrl?.trim()) ||
+    (Array.isArray(draft.tags) && draft.tags.length > 0) ||
+    draft.pinned ||
+    draft.featured ||
+    draft.sendEmail ||
+    (draft.audience &&
+      ((draft.audience.departments || []).length > 0 ||
+        (draft.audience.roles || []).length > 0 ||
+        (draft.audience.locations || []).length > 0 ||
+        draft.audience.type === "custom"))
+  );
+};
 
 export default function CreateNewsPostPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
@@ -55,6 +104,60 @@ export default function CreateNewsPostPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
+  const latestDraftRef = useRef<NewsDraftPayload>({
+    title: "",
+    content: null,
+    coverImage: "",
+    videoUrl: "",
+    tags: [],
+    pinned: false,
+    featured: false,
+    sendEmail: false,
+    audience: { type: "all" },
+    isDraft: false,
+  });
+  const restorePromptedRef = useRef(false);
+
+  const autosaveKey = session?.user
+    ? `news:create:${session.user.companyId}:${session.user.id}`
+    : null;
+
+  const clearDraftStorage = (resetState = false) => {
+    if (typeof window !== "undefined" && autosaveKey) {
+      try {
+        window.localStorage.removeItem(autosaveKey);
+      } catch (error) {
+        console.error("Failed to clear news draft", error);
+      }
+    }
+    if (resetState) {
+      setTitle("");
+      setContent(null);
+      setCoverImage("");
+      setVideoUrl("");
+      setAttachments([]);
+      setTags([]);
+      setTagInput("");
+      setPinned(false);
+      setFeatured(false);
+      setIsDraft(false);
+      setSendEmail(false);
+      setAudience({ type: "all" });
+      setShowPreview(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+    }
+  };
+
+  const handleDiscardDraft = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Discard the autosaved draft? This cannot be undone.",
+      );
+      if (!confirmed) return;
+    }
+    clearDraftStorage(true);
+    toast.success("Draft discarded");
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -133,6 +236,7 @@ export default function CreateNewsPostPage() {
 
     if (!validateForm()) return;
 
+    setIsDraft(asDraft);
     setIsSubmitting(true);
 
     try {
@@ -167,6 +271,7 @@ export default function CreateNewsPostPage() {
             ? "Draft saved successfully!"
             : "News post published successfully!"
         );
+        clearDraftStorage(false);
         router.push("/news");
       } else {
         const error = await res.text();
@@ -198,6 +303,108 @@ export default function CreateNewsPostPage() {
   };
 
   useEffect(() => {
+    latestDraftRef.current = {
+      title,
+      content,
+      coverImage,
+      videoUrl,
+      tags,
+      pinned,
+      featured,
+      sendEmail,
+      audience,
+      isDraft,
+    };
+  }, [title, content, coverImage, videoUrl, tags, pinned, featured, sendEmail, audience, isDraft]);
+
+  useEffect(() => {
+    restorePromptedRef.current = false;
+  }, [autosaveKey]);
+
+  useEffect(() => {
+    if (!autosaveKey) return;
+    if (typeof window === "undefined") return;
+
+    const interval = window.setInterval(() => {
+      const draft = latestDraftRef.current;
+      if (!hasMeaningfulDraft(draft)) {
+        try {
+          window.localStorage.removeItem(autosaveKey);
+        } catch (error) {
+          console.error("Failed to prune empty news draft", error);
+        }
+        return;
+      }
+
+      try {
+        window.localStorage.setItem(
+          autosaveKey,
+          JSON.stringify({
+            ...draft,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
+      } catch (error) {
+        console.error("Failed to persist news draft", error);
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [autosaveKey]);
+
+  useEffect(() => {
+    if (!autosaveKey) return;
+    if (restorePromptedRef.current) return;
+    if (typeof window === "undefined") return;
+
+    const stored = window.localStorage.getItem(autosaveKey);
+    if (!stored) {
+      restorePromptedRef.current = true;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as Partial<NewsDraftPayload> & {
+        updatedAt?: string;
+      };
+      if (!hasMeaningfulDraft(parsed as NewsDraftPayload)) {
+        window.localStorage.removeItem(autosaveKey);
+        restorePromptedRef.current = true;
+        return;
+      }
+
+      const restoreMessage = parsed?.updatedAt
+        ? `A locally saved draft from ${new Date(parsed.updatedAt).toLocaleString()} was found. Restore it?`
+        : "A locally saved draft was found. Restore it?";
+      const shouldRestore = window.confirm(restoreMessage);
+      if (shouldRestore) {
+        setTitle(parsed?.title || "");
+        setContent(parsed?.content ?? null);
+        setCoverImage(parsed?.coverImage || "");
+        setVideoUrl(parsed?.videoUrl || "");
+        setTags(parsed?.tags || []);
+        setPinned(Boolean(parsed?.pinned));
+        setFeatured(Boolean(parsed?.featured));
+        setSendEmail(Boolean(parsed?.sendEmail));
+        setAudience(parsed?.audience || { type: "all" });
+        setIsDraft(Boolean(parsed?.isDraft));
+        setAttachments([]);
+        setTagInput("");
+        setShowPreview(false);
+        if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+        toast.info("Draft restored from this device");
+      } else {
+        window.localStorage.removeItem(autosaveKey);
+      }
+    } catch (error) {
+      console.error("Failed to restore news draft", error);
+      window.localStorage.removeItem(autosaveKey);
+    } finally {
+      restorePromptedRef.current = true;
+    }
+  }, [autosaveKey]);
+
+  useEffect(() => {
     handleAudienceRefresh();
   }, []);
 
@@ -224,6 +431,17 @@ export default function CreateNewsPostPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleDiscardDraft}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                  "border border-destructive/60 text-destructive hover:bg-destructive/10",
+                )}
+                type="button"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Discard Draft</span>
+              </button>
               <button
                 onClick={() => setShowPreview(!showPreview)}
                 className={cn(

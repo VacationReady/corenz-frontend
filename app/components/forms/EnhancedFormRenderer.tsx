@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +12,34 @@ import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, Form
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+
+const isSerializableValue = (value: unknown) => {
+  if (value === undefined) return false;
+  if (typeof value === "function" || typeof value === "symbol") return false;
+  if (typeof File !== "undefined" && value instanceof File) return false;
+  if (typeof FileList !== "undefined" && value instanceof FileList) return false;
+  return true;
+};
+
+const isMeaningfulValue = (value: unknown) => {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return !Number.isNaN(value);
+  if (typeof value === "boolean") return value === true;
+  if (Array.isArray(value)) return value.length > 0;
+  if (value instanceof Date) return true;
+  if (typeof value === "object") return Object.keys(value as Record<string, unknown>).length > 0;
+  return true;
+};
+
+const serialiseDraftValues = (values: Record<string, any>) => {
+  const serialised: Record<string, any> = {};
+  Object.entries(values || {}).forEach(([key, value]) => {
+    if (!isSerializableValue(value)) return;
+    serialised[key] = value;
+  });
+  return serialised;
+};
 
 interface EnhancedFormRendererProps {
   formId: string;
@@ -45,6 +74,16 @@ export function EnhancedFormRenderer({
   const [pendingPayload, setPendingPayload] = useState<Record<string, any> | null>(null);
 
   const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const { data: session } = useSession();
+  const watchedValues = watch();
+  const latestValuesRef = useRef<Record<string, any>>({});
+  const [draftChecked, setDraftChecked] = useState(false);
+  const isDataScreen = formData?.form?.formType === "DATA_SCREEN";
+  const draftStorageKey =
+    session?.user && isDataScreen
+      ? `form:draft:${session.user.companyId}:${session.user.id}:${formId}:${employeeId}`
+      : null;
+  const isReadOnly = Boolean(formData?.readOnly);
 
   const evaluateCondition = (cond: any): boolean => {
     if (!cond) return true;
@@ -86,6 +125,16 @@ export function EnhancedFormRenderer({
     return andOk && orOk;
   };
 
+  const clearFormDraftStorage = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!draftStorageKey) return;
+    try {
+      window.localStorage.removeItem(draftStorageKey);
+    } catch (error) {
+      console.error("Failed to clear form draft", error);
+    }
+  }, [draftStorageKey]);
+
   useEffect(() => {
     const loadFormData = async () => {
       if (!formId || !employeeId) {
@@ -112,6 +161,103 @@ export function EnhancedFormRenderer({
     loadFormData();
   }, [formId, employeeId, setValue]);
 
+  useEffect(() => {
+    if (!isDataScreen) {
+      latestValuesRef.current = {};
+      return;
+    }
+    latestValuesRef.current = serialiseDraftValues(watchedValues || {});
+  }, [watchedValues, isDataScreen]);
+
+  useEffect(() => {
+    setDraftChecked(false);
+  }, [draftStorageKey]);
+
+  useEffect(() => {
+    if (!draftStorageKey || !isDataScreen || isReadOnly) return;
+    if (typeof window === "undefined") return;
+
+    const interval = window.setInterval(() => {
+      const values = latestValuesRef.current || {};
+      const hasContent =
+        Object.keys(values).length > 0 && Object.values(values).some(isMeaningfulValue);
+      if (!hasContent) {
+        try {
+          window.localStorage.removeItem(draftStorageKey);
+        } catch (error) {
+          console.error("Failed to prune empty form draft", error);
+        }
+        return;
+      }
+
+      try {
+        window.localStorage.setItem(
+          draftStorageKey,
+          JSON.stringify({
+            values,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
+      } catch (error) {
+        console.error("Failed to persist form draft", error);
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [draftStorageKey, isDataScreen, isReadOnly]);
+
+  useEffect(() => {
+    if (!draftStorageKey || !isDataScreen) return;
+    const existingData = formData?.data;
+    if (existingData && Object.keys(existingData || {}).length > 0) {
+      clearFormDraftStorage();
+    }
+  }, [draftStorageKey, formData, isDataScreen, clearFormDraftStorage]);
+
+  useEffect(() => {
+    if (draftChecked) return;
+    if (!draftStorageKey || !isDataScreen) return;
+    if (loading) return;
+    if (!formData) return;
+    if (formData.data && Object.keys(formData.data || {}).length > 0) {
+      setDraftChecked(true);
+      return;
+    }
+    if (typeof window === "undefined") return;
+
+    const raw = window.localStorage.getItem(draftStorageKey);
+    if (!raw) {
+      setDraftChecked(true);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        values?: Record<string, any>;
+        updatedAt?: string;
+      };
+      const serialised = serialiseDraftValues(parsed?.values || {});
+      const hasContent =
+        Object.keys(serialised).length > 0 &&
+        Object.values(serialised).some(isMeaningfulValue);
+      if (!hasContent) {
+        window.localStorage.removeItem(draftStorageKey);
+      } else {
+        reset(serialised);
+        toast.info(
+          parsed?.updatedAt
+            ? `Restored a local draft from ${new Date(parsed.updatedAt).toLocaleString()}.`
+            : "Restored a local draft from this device.",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to restore form draft", error);
+      window.localStorage.removeItem(draftStorageKey);
+    } finally {
+      setDraftChecked(true);
+    }
+  }, [draftChecked, draftStorageKey, formData, isDataScreen, loading, reset]);
+
   const saveData = async (data: Record<string, any>, reasons?: Record<string, string>) => {
     setSaving(true);
     try {
@@ -122,6 +268,7 @@ export function EnhancedFormRenderer({
       });
       if (res.ok) {
         toast.success("Data saved successfully");
+        clearFormDraftStorage();
         onDataChange?.(data);
         const r = await fetch(
           `/api/forms/${formId}/data?employeeId=${employeeId}`,
@@ -149,6 +296,7 @@ export function EnhancedFormRenderer({
       if (res.ok) {
         toast.success("Form submitted successfully");
         reset();
+        clearFormDraftStorage();
         onDataChange?.(data);
       } else {
         const errText = await res.text().catch(() => "");
@@ -272,8 +420,6 @@ export function EnhancedFormRenderer({
       </div>
     );
   }
-
-  const isReadOnly = Boolean(formData?.readOnly);
 
   // Normalize schema to pages/sections for rendering
   const pages: FormPage[] = normalizeToPages(formData.form.schema as any);

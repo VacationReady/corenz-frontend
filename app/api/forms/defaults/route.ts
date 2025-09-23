@@ -30,17 +30,6 @@ const BUILTIN_SCREENS = [
       { id: "disability", type: "select", label: "Disability", required: false, options: ["No","Yes","Prefer not to say"] },
     ],
   },
-  {
-    slug: "employment-checks",
-    name: "Employment Checks",
-    description: "Right-to-work and certifications",
-    formType: "DATA_SCREEN",
-    schema: [
-      { id: "rtwDocument", type: "file", label: "Right to Work Document", required: false },
-      { id: "rtwExpiry", type: "date", label: "RTW Expiry", required: false },
-      { id: "certifications", type: "list", label: "Certifications", required: false },
-    ],
-  },
 ];
 
 export async function GET() {

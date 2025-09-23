@@ -15,6 +15,7 @@ export interface FilterState {
   departments: string[];
   jobRoles: string[];
   status: string[];
+  locations: string[];
   dateRange: DateRangeFilter;
   documentTypes: string[];
   authors: string[];
@@ -28,6 +29,7 @@ export interface FilterConfig {
   showDepartmentFilter?: boolean;
   showJobRoleFilter?: boolean;
   showStatusFilter?: boolean;
+  showLocationFilter?: boolean;
   showDateRangeFilter?: boolean;
   showDocumentTypeFilter?: boolean;
   showAuthorFilter?: boolean;

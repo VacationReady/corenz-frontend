@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef, useRef as useMutableRef } from "react";
+import { useEffect, useState, useRef, useRef as useMutableRef, useMemo } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -11,12 +11,10 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { List, CalendarDays, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
-import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
 import BlockDayModal from "./BlockDayModal";
 import { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
@@ -25,21 +23,65 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Lock } from "lucide-react";
+import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
+import { FilterBar } from "@/components/ui/FilterBar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { CalendarLegend } from "./CalendarLegend";
+import {
+  resolveTenantTimeSettings,
+  formatTenantDate,
+  type TenantTimeSettings,
+} from "@/lib/calendar/timezone";
 
 interface Department {
   id: string;
   name: string;
 }
 
-export default function CalendarPage() {
+interface CalendarPageInnerProps {
+  initialView: "dayGridMonth" | "listMonth";
+}
+
+type PublicHolidayTemplate = "NZ" | "AU" | "UK" | null;
+
+const PUBLIC_HOLIDAY_REGION_LABELS: Record<string, string> = {
+  NZ: "New Zealand (National)",
+  "NZ-AUK": "Auckland Anniversary",
+  "NZ-WGN": "Wellington Anniversary",
+  "NZ-CAN": "Canterbury Anniversary",
+  "NZ-OTA": "Otago Anniversary",
+  AU: "Australia (National)",
+  "AU-NSW": "New South Wales",
+  "AU-VIC": "Victoria",
+  "AU-QLD": "Queensland",
+  "AU-SA": "South Australia",
+  "AU-WA": "Western Australia",
+  "AU-TAS": "Tasmania",
+  "AU-NT": "Northern Territory",
+  "AU-ACT": "Australian Capital Territory",
+  UK: "United Kingdom (National)",
+  "GB-ENG": "England & Wales",
+  "GB-SCT": "Scotland",
+  "GB-NIR": "Northern Ireland",
+};
+
+function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(false); // 🚩 NEW: force re-render trigger
-  const [currentView, setCurrentView] = useState<"dayGridMonth" | "listMonth">("dayGridMonth");
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(false);
+  const [currentView, setCurrentView] = useState<"dayGridMonth" | "listMonth">(initialView);
+  const [tenantTimeSettings, setTenantTimeSettings] = useState<TenantTimeSettings>(() =>
+    resolveTenantTimeSettings(null, null),
+  );
   const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
   const [thresholds, setThresholds] = useState<{ defaultMaxConcurrent?: number } | null>(null);
   const [presentCategories, setPresentCategories] = useState<string[]>([]);
@@ -47,17 +89,16 @@ export default function CalendarPage() {
   const [inspectorDate, setInspectorDate] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [bankHolidaysOn, setBankHolidaysOn] = useState(false);
+  const [bankHolidaysAvailable, setBankHolidaysAvailable] = useState(false);
   const [templateLabel, setTemplateLabel] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState("");
   const bankHolidayCacheRef = useRef<any | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const initializedFromUrl = useMutableRef(false);
-  const [categoryOptions, setCategoryOptions] = useState<{label: string; value: string}[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [nameQuery, setNameQuery] = useState("");
-  const [locationOptions, setLocationOptions] = useState<{label: string; value: string}[]>([]);
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const { filters, updateFilter } = useFilters();
+  const [categoryOptions, setCategoryOptions] = useState<{ label: string; value: string }[]>([]);
+  const [locationOptions, setLocationOptions] = useState<{ label: string; value: string }[]>([]);
   const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
   const [blackoutIdsByDay, setBlackoutIdsByDay] = useState<Record<string, string[]>>({});
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -139,22 +180,37 @@ export default function CalendarPage() {
     if (initializedFromUrl.current) return;
     if (!searchParams) return;
     const dep = searchParams.get("department") || "";
-    const view = (searchParams.get("view") as any) || "";
-    if (dep) setSelectedDepartment(dep);
+    const view = searchParams.get("view") || "";
+    const query = searchParams.get("q") || "";
+    updateFilter("departments", dep ? [dep] : []);
+    updateFilter("search", query);
     if (view === "list") setCurrentView("listMonth");
     initializedFromUrl.current = true;
-  }, [searchParams]);
+  }, [searchParams, updateFilter]);
 
   useEffect(() => {
     if (!initializedFromUrl.current) return;
     try {
       const url = new URL(window.location.href);
-      if (selectedDepartment) url.searchParams.set("department", selectedDepartment);
+      const departmentParam = filters.departments[0];
+      if (departmentParam) url.searchParams.set("department", departmentParam);
       else url.searchParams.delete("department");
+      if (filters.search) url.searchParams.set("q", filters.search);
+      else url.searchParams.delete("q");
       url.searchParams.set("view", currentView === "listMonth" ? "list" : "month");
       router.replace(url.pathname + "?" + url.searchParams.toString(), { scroll: false });
     } catch (_err) {}
-  }, [selectedDepartment, currentView, router]);
+  }, [filters.departments.join(","), filters.search, currentView, router]);
+
+  useEffect(() => {
+    if (!calendarRef.current) return;
+    calendarRef.current.getApi().refetchEvents();
+  }, [
+    filters.departments.join(","),
+    filters.categories.join(","),
+    filters.locations.join(","),
+    filters.search,
+  ]);
 
   const fetchLeaveEvents = async (
     fetchInfo: EventSourceFuncArg,
@@ -162,11 +218,12 @@ export default function CalendarPage() {
     failureCallback: (error: any) => void,
   ) => {
     try {
+      const departmentFilter = filters.departments[0] || "";
       const params = new URLSearchParams({
         from: fetchInfo.startStr,
         to: fetchInfo.endStr,
       });
-      if (selectedDepartment) params.set("department", selectedDepartment);
+      if (departmentFilter) params.set("department", departmentFilter);
       const res = await fetch(`/api/calendar-events?${params.toString()}`);
       if (!res.ok) {
         console.warn("Leave events fetch non-OK status", res.status);
@@ -175,16 +232,16 @@ export default function CalendarPage() {
       }
       let data = await res.json();
       // Client-side filtering by category and name (optional)
-      if (selectedCategories.length > 0) {
-        const selectedSet = new Set(selectedCategories);
+      if (filters.categories.length > 0) {
+        const selectedSet = new Set(filters.categories);
         data = (data as any[]).filter((e) => e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : true);
       }
-      if (selectedLocations.length > 0) {
-        const locSet = new Set(selectedLocations);
+      if (filters.locations.length > 0) {
+        const locSet = new Set(filters.locations);
         data = (data as any[]).filter((e) => e.employee?.locationId ? locSet.has(e.employee.locationId) : true);
       }
-      if (nameQuery.trim().length > 0) {
-        const q = nameQuery.trim().toLowerCase();
+      if (filters.search.trim().length > 0) {
+        const q = filters.search.trim().toLowerCase();
         data = (data as any[]).filter((e) => (e.employee?.name || e.title || "").toLowerCase().includes(q));
       }
       setLeaveEventsInRange(data);
@@ -279,7 +336,7 @@ export default function CalendarPage() {
     failureCallback: (error: any) => void,
   ) => {
     try {
-      if (!bankHolidaysOn) {
+      if (!bankHolidaysOn || !bankHolidaysAvailable) {
         successCallback([]);
         return;
       }
@@ -310,14 +367,35 @@ export default function CalendarPage() {
     (async () => {
       try {
         const res = await fetch("/api/settings/public-holidays");
-        if (res.ok) {
-          const data = await res.json();
-          const t = data?.template as string | null;
-          const r = data?.region as string | null;
-          const base = t ? (t === 'NZ' ? 'New Zealand' : t === 'AU' ? 'Australia' : 'United Kingdom') : null;
-          setTemplateLabel(base ? (r ? `${base} — ${r}` : base) : null);
+        if (!res.ok) {
+          setBankHolidaysAvailable(false);
+          setTenantTimeSettings(resolveTenantTimeSettings(null, null));
+          setTemplateLabel(null);
+          return;
         }
-      } catch {}
+        const data = await res.json();
+        const template = (data?.template ?? null) as PublicHolidayTemplate;
+        const region = (data?.region ?? null) as string | null;
+        setBankHolidaysAvailable(Boolean(template));
+        const templateName =
+          template === "NZ"
+            ? "New Zealand"
+            : template === "AU"
+              ? "Australia"
+              : template === "UK"
+                ? "United Kingdom"
+                : null;
+        const regionLabel = region ? PUBLIC_HOLIDAY_REGION_LABELS[region] || region : null;
+        setTemplateLabel(
+          templateName ? (regionLabel ? `${templateName} — ${regionLabel}` : templateName) : null,
+        );
+        setTenantTimeSettings(resolveTenantTimeSettings(template, region));
+      } catch (error) {
+        console.error(error);
+        setBankHolidaysAvailable(false);
+        setTenantTimeSettings(resolveTenantTimeSettings(null, null));
+        setTemplateLabel(null);
+      }
     })();
   }, []);
 
@@ -424,7 +502,9 @@ export default function CalendarPage() {
           <div className="mt-3 space-y-1">
             {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge> : null}
             <div className="text-xs text-gray-600">
-              {new Date(content.event.start!).toLocaleDateString()} – {new Date((content.event.end as any) || content.event.start!).toLocaleDateString()}
+              {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –
+              {" "}
+              {formatTenantDate((content.event.end as any) || content.event.start!, tenantTimeSettings, "d MMM yyyy")}
             </div>
             {content.event.extendedProps?.reason ? (
               <div className="text-xs text-gray-700">{String(content.event.extendedProps.reason)}</div>
@@ -458,10 +538,10 @@ export default function CalendarPage() {
     return 'bg-blue-500';
   };
 
-  const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedDepartment(value);
-    calendarRef.current?.getApi().refetchEvents();
+  const formatEventRange = (start: string, end?: string) => {
+    const startLabel = formatTenantDate(start, tenantTimeSettings, "d MMM yyyy");
+    const endLabel = formatTenantDate(end ?? start, tenantTimeSettings, "d MMM yyyy");
+    return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
   };
 
   const handleChangeView = (viewName: "dayGridMonth" | "listMonth") => {
@@ -522,105 +602,131 @@ export default function CalendarPage() {
     }
   };
 
+  const legendCategories = useMemo(
+    () =>
+      presentCategories.map((cat) => ({
+        label: cat,
+        swatchClassName: getCategoryColor(cat),
+      })),
+    [presentCategories],
+  );
+
   return (
     <PageShell title="Calendar">
       <Card title="Company Calendar">
-        <div className="p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              variant={currentView === "dayGridMonth" ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => handleChangeView("dayGridMonth")}
-              icon={<CalendarDays className="h-4 w-4" />}
-            >
-              Month
-            </Button>
-            <Button
-              variant={currentView === "listMonth" ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => handleChangeView("listMonth")}
-              icon={<List className="h-4 w-4" />}
-            >
-              List
-            </Button>
-            <div className="ml-2 text-sm text-gray-700 font-medium">{currentTitle}</div>
-            <div className="ml-2 flex items-center gap-2">
+        <div className="space-y-4 p-4">
+          <FilterBar
+            config={{
+              searchPlaceholder: "Search people or leave...",
+              showDepartmentFilter: departments.length > 0,
+              showCategoryFilter: categoryOptions.length > 0,
+              showLocationFilter: locationOptions.length > 0,
+            }}
+            departmentOptions={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
+            categoryOptions={categoryOptions}
+            locationOptions={locationOptions}
+          />
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={currentView === "dayGridMonth" ? "primary" : "ghost"}
+                  className="rounded-none"
+                  aria-pressed={currentView === "dayGridMonth"}
+                  onClick={() => handleChangeView("dayGridMonth")}
+                >
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  Month
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={currentView === "listMonth" ? "primary" : "ghost"}
+                  className="rounded-none"
+                  aria-pressed={currentView === "listMonth"}
+                  onClick={() => handleChangeView("listMonth")}
+                >
+                  <List className="mr-2 h-4 w-4" />
+                  List
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    calendarRef.current?.getApi().today();
+                  }}
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    calendarRef.current?.getApi().prev();
+                  }}
+                  aria-label="Previous period"
+                >
+                  Prev
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    calendarRef.current?.getApi().next();
+                  }}
+                  aria-label="Next period"
+                >
+                  Next
+                </Button>
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">{currentTitle}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Show public holidays</span>
+                <Switch
+                  checked={bankHolidaysOn && bankHolidaysAvailable}
+                  disabled={!bankHolidaysAvailable}
+                  onChange={(checked) => {
+                    if (!bankHolidaysAvailable) return;
+                    setBankHolidaysOn(checked);
+                    calendarRef.current?.getApi().refetchEvents();
+                  }}
+                />
+                {bankHolidaysAvailable && templateLabel ? (
+                  <span className="text-xs text-muted-foreground">({templateLabel})</span>
+                ) : null}
+                {!bankHolidaysAvailable ? (
+                  <span className="text-xs text-muted-foreground">No feed configured</span>
+                ) : null}
+              </div>
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                onClick={() => { calendarRef.current?.getApi().today(); }}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied");
+                  } catch {
+                    toast.error("Failed to copy link");
+                  }
+                }}
               >
-                Today
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => { calendarRef.current?.getApi().prev(); }}
-              >
-                Prev
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => { calendarRef.current?.getApi().next(); }}
-              >
-                Next
+                <Copy className="mr-2 h-4 w-4" />
+                Copy link
               </Button>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div>
-              <label className="block mb-2 font-medium">Department</label>
-              <select
-                value={selectedDepartment}
-                onChange={handleDepartmentChange}
-                className="border rounded p-2 w-full md:w-64"
-              >
-                <option value="">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.name}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Button variant="secondary" size="sm" onClick={() => setFiltersOpen(true)}>
-              Filters
-            </Button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Show public holidays</span>
-              <Switch checked={bankHolidaysOn} onChange={(v) => { setBankHolidaysOn(v); calendarRef.current?.getApi().refetchEvents(); }} />
-              {bankHolidaysOn && templateLabel && (
-                <span className="text-xs text-gray-500">({templateLabel})</span>
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(window.location.href);
-                  toast.success("Link copied");
-                } catch {
-                  toast.error("Failed to copy link");
-                }
-              }}
-              icon={<Copy className="h-4 w-4" />}
-            >
-              Copy link
-            </Button>
           </div>
         </div>
-        {presentCategories.length > 0 && (
-          <div className="px-4 pb-2 flex flex-wrap gap-2">
-            {presentCategories.map((cat) => (
-              <div key={cat} className="inline-flex items-center gap-2 mr-2 mb-1">
-                <span className={`inline-block w-3 h-3 rounded-sm ${getCategoryColor(cat)}`}></span>
-                <span className="text-xs text-gray-600">{cat}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <CalendarLegend
+          categories={legendCategories}
+          showBankHoliday={bankHolidaysAvailable && bankHolidaysOn}
+          bankHolidayLabel={templateLabel}
+        />
         <div className="bg-white rounded-xl overflow-hidden">
           {loading ? (
             <SectionSkeleton
@@ -632,7 +738,7 @@ export default function CalendarPage() {
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
-              initialView="dayGridMonth"
+              initialView={initialView}
               headerToolbar={false}
               datesSet={(arg: any) => {
                 setCurrentTitle(arg.view?.title || "");
@@ -652,117 +758,104 @@ export default function CalendarPage() {
               eventContent={renderEventContent}
               dayCellDidMount={dayCellDidMount}
               height="auto"
-              key={refreshTrigger ? "refresh-on" : "refresh-off"} // 🚩 forces rerender on refresh
-              timeZone="Europe/London" // 🚩 added for BST stability
+              key={`${tenantTimeSettings.timeZone}-${refreshTrigger ? "refresh-on" : "refresh-off"}`}
+              timeZone={tenantTimeSettings.timeZone}
             />
           )}
         </div>
       </Card>
-      {inspectorDate && (
-        <div className="fixed right-0 top-0 h-full w-full sm:w-[380px] bg-white shadow-2xl border-l z-40 p-4 overflow-y-auto">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="text-sm text-gray-500">Day summary</div>
-              <div className="text-lg font-semibold">{inspectorDate.toDateString()}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
+      <Sheet
+        open={Boolean(inspectorDate)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInspectorDate(null);
+            setSelectedDay(null);
+          }
+        }}
+      >
+        <SheetContent side="right" className="flex h-full flex-col gap-6 overflow-y-auto">
+          <SheetHeader className="space-y-2">
+            <SheetTitle>Day summary</SheetTitle>
+            <p className="text-sm text-muted-foreground">
+              {inspectorDate
+                ? formatTenantDate(inspectorDate, tenantTimeSettings, "EEEE, d MMMM yyyy")
+                : ""}
+            </p>
+          </SheetHeader>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                if (inspectorDate) {
                   setSelectedDate(inspectorDate);
                   setBlockModalOpen(true);
-                }}
-              >
-                Block day
-              </Button>
-              {(() => {
-                const key = `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth()+1).padStart(2,'0')}-${String(inspectorDate.getDate()).padStart(2,'0')}`;
-                const hasBlackout = blackoutDateKeys.has(key);
-                return hasBlackout ? (
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => deleteBlackoutForDate(inspectorDate)}
-                    aria-label="Delete blackout day"
-                    icon={<Trash2 className="h-4 w-4" />}
-                  >
-                    Delete blackout
-                  </Button>
-                ) : null;
-              })()}
-              <Button size="sm" variant="ghost" onClick={() => setInspectorDate(null)}>Close</Button>
-            </div>
+                }
+              }}
+            >
+              Block day
+            </Button>
+            {inspectorDate
+              ? (() => {
+                  const key = `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth()+1).padStart(2,'0')}-${String(inspectorDate.getDate()).padStart(2,'0')}`;
+                  const hasBlackout = blackoutDateKeys.has(key);
+                  return hasBlackout ? (
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => deleteBlackoutForDate(inspectorDate)}
+                      aria-label="Delete blackout day"
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" /> Delete blackout
+                    </Button>
+                  ) : null;
+                })()
+              : null}
           </div>
           <div className="space-y-3">
-            <div className="text-sm text-gray-600">People off</div>
+            <div className="text-sm font-medium text-muted-foreground">People off</div>
             <div className="space-y-2">
-              {leaveEventsInRange.filter((ev: any) => {
-                const d = inspectorDate;
-                const start = new Date(ev.start);
-                const end = new Date(ev.end || ev.start);
-                start.setHours(0,0,0,0);
-                end.setHours(0,0,0,0);
-                const target = new Date(d);
-                target.setHours(0,0,0,0);
-                return target >= start && target <= end;
-              }).map((ev: any) => (
-                <div key={ev.id} className="flex items-center gap-3 p-2 rounded border">
-                  <Avatar src={ev.employee?.profileImageUrl ?? null} name={ev.employee?.name ?? null} size={28} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{ev.employee?.name || ev.title}</div>
-                    <div className="text-xs text-gray-600 truncate">{ev.employee?.department ?? ""}</div>
+              {leaveEventsInRange
+                .filter((ev: any) => {
+                  if (!inspectorDate) return false;
+                  const start = new Date(ev.start);
+                  const end = new Date(ev.end || ev.start);
+                  start.setHours(0, 0, 0, 0);
+                  end.setHours(0, 0, 0, 0);
+                  const target = new Date(inspectorDate);
+                  target.setHours(0, 0, 0, 0);
+                  return target >= start && target <= end;
+                })
+                .map((ev: any) => (
+                  <div key={ev.id} className="flex items-start gap-3 rounded border p-3">
+                    <Avatar src={ev.employee?.profileImageUrl ?? null} name={ev.employee?.name ?? null} size={28} />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="text-sm font-medium truncate">{ev.employee?.name || ev.title}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {formatEventRange(ev.start, ev.end)}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {ev.employee?.department ?? ""}
+                      </div>
+                    </div>
+                    {ev.categoryName ? (
+                      <span className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(ev.categoryName)}`}>
+                        {ev.categoryName}
+                      </span>
+                    ) : null}
                   </div>
-                  {ev.categoryName ? (
-                    <span className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(ev.categoryName)}`}>{ev.categoryName}</span>
-                  ) : null}
-                </div>
-              ))}
+                ))}
             </div>
           </div>
-        </div>
-      )}
-      <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <DialogContent title="Filters">
-          <DialogHeader>
-            <DialogTitle>Filters</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-2 text-sm font-medium">Categories</label>
-              <MultiSelect
-                options={categoryOptions}
-                selected={selectedCategories}
-                onChange={setSelectedCategories}
-                placeholder="Select categories"
-              />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">Locations</label>
-              <MultiSelect
-                options={locationOptions}
-                selected={selectedLocations}
-                onChange={setSelectedLocations}
-                placeholder="Select locations"
-              />
-            </div>
-            <div>
-              <label className="block mb-2 text-sm font-medium">Search by name</label>
-              <input
-                type="text"
-                value={nameQuery}
-                onChange={(e) => setNameQuery(e.target.value)}
-                placeholder="Search employees..."
-                className="w-full border rounded-md p-2"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => { setSelectedCategories([]); setSelectedLocations([]); setNameQuery(""); }}>Clear</Button>
-              <Button size="sm" onClick={() => setFiltersOpen(false)}>Done</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          <SheetFooter className="justify-end">
+            <SheetClose asChild>
+              <Button variant="ghost" size="sm">
+                Close
+              </Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       {selectedDate && (
         <BlockDayModal
           open={blockModalOpen}
@@ -772,5 +865,27 @@ export default function CalendarPage() {
         />
       )}
     </PageShell>
+  );
+}
+
+export default function CalendarPage() {
+  const searchParams = useSearchParams();
+  const departmentParam = searchParams?.get("department") || "";
+  const queryParam = searchParams?.get("q") || "";
+  const viewParam = searchParams?.get("view") || "";
+  const initialView = viewParam === "list" ? "listMonth" : "dayGridMonth";
+
+  const initialFilters = useMemo(
+    () => ({
+      departments: departmentParam ? [departmentParam] : [],
+      search: queryParam,
+    }),
+    [departmentParam, queryParam],
+  );
+
+  return (
+    <FilterProvider initialFilters={initialFilters}>
+      <CalendarPageInner initialView={initialView} />
+    </FilterProvider>
   );
 }

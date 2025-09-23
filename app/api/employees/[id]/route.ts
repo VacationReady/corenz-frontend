@@ -141,6 +141,18 @@ export async function DELETE(
       await tx.employmentCheck.deleteMany({ where: { employeeId } });
       await tx.driverLicence.deleteMany({ where: { employeeId } });
       await tx.trainingRecord.deleteMany({ where: { employeeId } });
+      await tx.emergencyContact.deleteMany({ where: { employeeId } });
+
+      // Document signatures
+      await tx.documentSignatureArtifact.deleteMany({ where: { employeeId } });
+      await tx.documentSignatureEmployee.deleteMany({ where: { employeeId } });
+
+      // Performance reviews
+      await tx.employeePerformanceReview.deleteMany({ where: { employeeId } });
+
+      // Audit logs
+      await tx.permissionAudit.deleteMany({ where: { employeeId } });
+      await tx.employeeAuditLog.deleteMany({ where: { employeeId } });
 
       // Leave
       await tx.leaveEntitlement.deleteMany({ where: { employeeId } });

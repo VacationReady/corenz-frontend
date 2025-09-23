@@ -12,7 +12,7 @@ import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage } from "@/api/forms/[id]/types";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
-import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 
 const isSerializableValue = (value: unknown) => {
   if (value === undefined) return false;
@@ -387,7 +387,7 @@ export function EnhancedFormRenderer({
           changes.push({ field: k, oldValue: JSON.stringify(oldVal ?? ""), newValue: JSON.stringify(v ?? "") });
         }
       }
-      if (changes.length > 0) {
+      if (changes.length > 0 && changes.some(changeRequiresReason)) {
         setPendingAction("data");
         setPendingChanges(changes);
         setPendingPayload({ data });
@@ -395,17 +395,27 @@ export function EnhancedFormRenderer({
         return;
       }
       if (!formData?.readOnly) {
-        saveData(data);
+        await saveData(data);
       } else {
         toast.error("This screen is read-only.");
       }
     } else {
       // Treat as changes from empty -> value
-      const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
-      setPendingAction("submit");
-      setPendingChanges(changes);
-      setPendingPayload({ data });
-      setIsReasonOpen(true);
+      const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({
+        field: k,
+        oldValue: "",
+        newValue: JSON.stringify(v ?? ""),
+      }));
+
+      if (changes.some(changeRequiresReason)) {
+        setPendingAction("submit");
+        setPendingChanges(changes);
+        setPendingPayload({ data });
+        setIsReasonOpen(true);
+        return;
+      }
+
+      await submitForm(data, {});
     }
   };
 

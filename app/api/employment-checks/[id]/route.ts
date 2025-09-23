@@ -6,7 +6,7 @@ import supabase from "@/lib/supabase-admin";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
-import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
+import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 
 export async function PATCH(
   req: NextRequest,
@@ -102,8 +102,9 @@ export async function PATCH(
         { ...existing, typeOfCheck, documentNumber, dateOfIssue: new Date(dateOfIssue), expiryDate: new Date(expiryDate), ...(documentUrl && { documentUrl }) },
         ["typeOfCheck", "documentNumber", "dateOfIssue", "expiryDate", "documentUrl"] as const,
       );
-      if (diffs.some((d) => d.newValue)) {
-        if (!reasons) {
+      if (diffs.length > 0) {
+        const requiresReasons = diffs.some(diffRequiresReason);
+        if (requiresReasons && !reasons) {
           return NextResponse.json({ error: "Reasons required" }, { status: 400 });
         }
         await createAuditLogs({
@@ -111,7 +112,7 @@ export async function PATCH(
           employeeId: existing.employeeId,
           section: "employment-checks",
           diffs,
-          reasons,
+          reasons: reasons || {},
           changedById: session.user.id,
         });
       }

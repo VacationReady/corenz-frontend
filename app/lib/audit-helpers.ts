@@ -47,6 +47,38 @@ export function computeDiffs(
   return diffs;
 }
 
+function hasMeaningfulValue(value: string | null): boolean {
+  if (value === null) return false;
+  return value.trim() !== "";
+}
+
+export function diffRequiresReason(diff: AuditDiff): boolean {
+  const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
+  if (isSynthetic) {
+    return true;
+  }
+
+  const hasOldValue = hasMeaningfulValue(diff.oldValue);
+  const hasNewValue = hasMeaningfulValue(diff.newValue);
+
+  return hasOldValue && hasNewValue;
+}
+
+function defaultReasonForDiff(diff: AuditDiff): string {
+  const hasNewValue = hasMeaningfulValue(diff.newValue);
+  const hasOldValue = hasMeaningfulValue(diff.oldValue);
+
+  if (!hasNewValue) {
+    return "Field cleared";
+  }
+
+  if (!hasOldValue) {
+    return "Initial value set";
+  }
+
+  return "Change recorded";
+}
+
 export interface CreateAuditLogsOptions {
   skipNotifications?: boolean;
 }
@@ -73,11 +105,7 @@ export async function createAuditLogs(
 
   // Validate that all required reasons are provided
   for (const diff of diffs) {
-    const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
-    // Only require a reason when value changes from a non-null/meaningful previous value to a different one
-    const hadValue = diff.oldValue !== null && diff.oldValue !== "";
-    const changedToDifferent = diff.newValue !== diff.oldValue;
-    const requiresReason = isSynthetic || (hadValue && changedToDifferent);
+    const requiresReason = diffRequiresReason(diff);
     if (requiresReason && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
       throw new Error(`Reason required for field: ${diff.field}`);
     }
@@ -92,7 +120,10 @@ export async function createAuditLogs(
       field: diff.field,
       oldValue: diff.oldValue,
       newValue: diff.newValue,
-      reason: reasons[diff.field] || "Field cleared", // Default reason for cleared fields
+      reason:
+        (reasons[diff.field] && reasons[diff.field].trim() !== ""
+          ? reasons[diff.field]
+          : defaultReasonForDiff(diff)),
       changedById,
     })),
   });
@@ -122,10 +153,7 @@ export function validateReasons(
   const errors: string[] = [];
   
   for (const diff of diffs) {
-    const isSynthetic = diff.field === "__create__" || diff.field === "__delete__";
-    const hadValue = diff.oldValue !== null && diff.oldValue !== "";
-    const changedToDifferent = diff.newValue !== diff.oldValue;
-    const requiresReason = isSynthetic || (hadValue && changedToDifferent);
+    const requiresReason = diffRequiresReason(diff);
     if (requiresReason && (!reasons[diff.field] || reasons[diff.field].trim() === "")) {
       errors.push(`Reason required for field: ${diff.field}`);
     }

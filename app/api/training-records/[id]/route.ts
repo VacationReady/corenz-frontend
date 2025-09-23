@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
-import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
+import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 
 export async function PUT(
   req: Request,
@@ -127,8 +127,9 @@ export async function PUT(
         },
         ["courseId", "providerId", "dateCompleted", "expiryDate", "documentId"] as const,
       );
-      if (diffs.some((d) => d.newValue)) {
-        if (!reasons) {
+      if (diffs.length > 0) {
+        const requiresReasons = diffs.some(diffRequiresReason);
+        if (requiresReasons && !reasons) {
           return NextResponse.json({ error: "Reasons required" }, { status: 400 });
         }
         await createAuditLogs({
@@ -136,7 +137,7 @@ export async function PUT(
           employeeId: existing.employeeId,
           section: "training",
           diffs,
-          reasons,
+          reasons: reasons || {},
           changedById: session.user.id,
         });
       }

@@ -14,6 +14,25 @@ export interface ChangeInfo {
   newValue: string;
 }
 
+function hasMeaningfulValue(value: string): boolean {
+  if (!value) return false;
+  if (typeof value.trim === "function") {
+    return value.trim() !== "";
+  }
+  return Boolean(value);
+}
+
+export function changeRequiresReason(change: ChangeInfo): boolean {
+  if (change.field === "__create__" || change.field === "__delete__") {
+    return true;
+  }
+
+  const hasOldValue = hasMeaningfulValue(change.oldValue);
+  const hasNewValue = hasMeaningfulValue(change.newValue);
+
+  return hasOldValue && hasNewValue;
+}
+
 interface ChangeReasonModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -43,8 +62,7 @@ export default function ChangeReasonModal({
     const missingReasons: string[] = [];
     
     for (const change of changes) {
-      // Only require reason if new value is non-empty
-      const requiresReason = Boolean(change.newValue);
+      const requiresReason = changeRequiresReason(change);
       if (requiresReason && (!reasons[change.field] || reasons[change.field].trim() === "")) {
         missingReasons.push(labelForField(change.field));
       }
@@ -58,9 +76,11 @@ export default function ChangeReasonModal({
     onSubmit(reasons);
   };
 
-  const allReasonsProvided = changes.every(change => 
-    !change.newValue || (reasons[change.field] && reasons[change.field].trim() !== "")
-  );
+  const allReasonsProvided = changes.every(change => {
+    if (!changeRequiresReason(change)) return true;
+    const reason = reasons[change.field];
+    return Boolean(reason && reason.trim() !== "");
+  });
 
   if (!isOpen) return null;
 
@@ -85,7 +105,7 @@ export default function ChangeReasonModal({
                 </div>
               </div>
               
-              {change.newValue ? (
+              {changeRequiresReason(change) ? (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Reason for change <span className="text-red-500">*</span>
@@ -102,7 +122,7 @@ export default function ChangeReasonModal({
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 italic">
-                  Field is being cleared - no reason required
+                  No reason required for this change
                 </div>
               )}
             </div>

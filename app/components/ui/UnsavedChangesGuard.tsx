@@ -73,7 +73,7 @@ export default function UnsavedChangesGuard({
   const closingActionRef = useRef<"stay" | "discard" | null>(null);
   const bypassRef = useRef(false);
   const dirtyRef = useRef(dirty);
-  const actualPushRef = useRef<typeof router.push>();
+  const actualPushRef = useRef<typeof router.push | null>(null);
   const [tenantName, setTenantName] = useState<string | null>(null);
 
   useEffect(() => {

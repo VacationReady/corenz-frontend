@@ -118,6 +118,7 @@ export async function DELETE(
       employee.companyId ?? employee.User?.companyId ?? undefined;
 
     const transactionResult = await prisma.$transaction(async (tx) => {
+      const transactionResult = await prisma.$transaction(async (tx) => {
       const pathsToRemove: string[] = [];
 
       // Onboarding instances and nested data
@@ -217,39 +218,68 @@ export async function DELETE(
         data: { completedBy: null },
       });
 
-      // Reassign company-level documents uploaded by this user (if any) to another admin, else delete
+      // Reassign documents uploaded by this user to a fallback user (prefer ADMIN; otherwise any other user in the company). If no companyId
+      // could be determined, still try to find any other user to take ownership; else delete company-level docs.
+      let fallbackUserId: string | undefined;
       if (companyId) {
         const fallbackAdmin = await tx.user.findFirst({
-          where: { companyId, role: "ADMIN", id: { not: userId } },
+          where: { companyId, id: { not: userId }, role: "ADMIN" },
           select: { id: true },
         });
         if (fallbackAdmin) {
-          await tx.document.updateMany({
-            where: { uploaderId: userId, employeeId: null },
-            data: { uploaderId: fallbackAdmin.id },
-          });
+          fallbackUserId = fallbackAdmin.id;
         } else {
-          const companyDocs = await tx.document.findMany({
-            where: { uploaderId: userId, employeeId: null },
-            select: { path: true },
+          const fallbackAny = await tx.user.findFirst({
+            where: { companyId, id: { not: userId } },
+            select: { id: true },
           });
-          if (companyDocs.length) {
-            pathsToRemove.push(...companyDocs.map((doc) => doc.path));
-          }
-          await tx.document.deleteMany({
-            where: { uploaderId: userId, employeeId: null },
-          });
+          fallbackUserId = fallbackAny?.id;
         }
+      }
+      if (fallbackUserId) {
+        // Reassign ALL documents uploaded by this user (both employee-attached and company-level)
+        await tx.document.updateMany({ where: { uploaderId: userId }, data: { uploaderId: fallbackUserId } });
       } else {
+        // As a last resort, delete company-level docs by this user (we already removed employee-specific docs above)
         const companyDocs = await tx.document.findMany({
           where: { uploaderId: userId, employeeId: null },
           select: { path: true },
         });
-        if (companyDocs.length) {
-          pathsToRemove.push(...companyDocs.map((doc) => doc.path));
-        }
-        await tx.document.deleteMany({
-          where: { uploaderId: userId, employeeId: null },
+        if (companyDocs.length) pathsToRemove.push(...companyDocs.map((d) => d.path));
+        await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
+      }
+
+      // Department head ownership -> set to null
+      await tx.department.updateMany({ where: { headId: userId }, data: { headId: null } });
+
+      // Onboarding templates updatedBy -> set to null
+      await tx.onboardingTemplate.updateMany({ where: { updatedById: userId }, data: { updatedById: null } });
+
+      // Offboarding records where this user participated for other employees
+      await tx.employeeOffboarding.updateMany({
+        where: { accessRemovedBy: userId },
+        data: { accessRemovedBy: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { assetsReturnedTo: userId },
+        data: { assetsReturnedTo: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { handoverAssignedTo: userId },
+        data: { handoverAssignedTo: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { hrReviewCompletedBy: userId },
+        data: { hrReviewCompletedBy: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { interviewerUserId: userId },
+        data: { interviewerUserId: null },
+      });
+      if (fallbackUserId) {
+        await tx.employeeOffboarding.updateMany({
+          where: { initiatedById: userId },
+          data: { initiatedById: fallbackUserId },
         });
       }
 

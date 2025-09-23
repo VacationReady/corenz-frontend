@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { execSync } from "child_process";
 import { randomUUID } from "crypto";
@@ -239,7 +239,7 @@ async function main() {
         email: emp.email,
         firstName: emp.firstName,
         lastName: emp.lastName,
-        role: emp.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN",
+        role: emp.role as Role,
         password: hashedPassword,
         companyId: company.id,
         departmentId: department.id,

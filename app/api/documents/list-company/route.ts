@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
   // ✅ Build role-based access filter
   let roleFilter: any = {};
-  if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+  if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
     roleFilter = { canViewAdmin: true };
   } else if (user.role === "MANAGER") {
     roleFilter = { canViewManager: true };

@@ -90,7 +90,7 @@ export function hasPermission(
 ): boolean {
   // Admin override: ADMIN role always has all permissions
   if (
-    (user.role === "ADMIN" || user.role === "SUPER_ADMIN") &&
+    ["ADMIN", "SUPER_ADMIN"].includes(user.role) &&
     !user.permissionProfile
   ) {
     return true;

@@ -28,7 +28,7 @@ type OnboardingStepProps = {
   onComplete: (data?: any) => void;
   readOnly?: boolean;
   employeeId?: string;
-  companyId?: string;
+  _companyId?: string;
 };
 
 export default function OnboardingStepRenderer({

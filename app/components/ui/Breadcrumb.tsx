@@ -107,6 +107,7 @@ export const breadcrumbConfigs = {
   }),
   employeeSection: (
     employeeName: string,
+    employeeId: string,
     section: string,
   ) => ({
     items: [

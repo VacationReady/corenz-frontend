@@ -82,7 +82,7 @@ export function useBreadcrumbs(
         const newsSlug = pathSegments[1];
         const newsTitle = dynamicData?.newsTitle || `News Article`;
 
-        return breadcrumbConfigs.newsDetail(newsTitle, newsSlug);
+        return breadcrumbConfigs.newsDetail(newsTitle);
 
       case "calendar":
         return breadcrumbConfigs.calendar;

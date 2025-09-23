@@ -15,9 +15,7 @@ export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) redirect("/login");
-  if (session.user.role === "SUPER_ADMIN") {
-    redirect("/tenants");
-  }
+  const isSuperAdmin = session.user.role === "SUPER_ADMIN";
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -31,7 +29,7 @@ export default async function AdminDashboardPage() {
   });
 
   if (!user?.Employee) {
-    if (session.user.role === "SUPER_ADMIN") {
+    if (isSuperAdmin) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
           <h1 className="text-2xl font-semibold">Welcome, super admin</h1>
@@ -46,6 +44,10 @@ export default async function AdminDashboardPage() {
     }
 
     redirect("/dashboard/employee");
+  }
+
+  if (isSuperAdmin) {
+    redirect("/tenants");
   }
 
   return (

@@ -30,9 +30,8 @@ export default function LoginClient() {
 
   const brandName = branding.shortName || branding.name;
   const logoSrc = branding.logoUrl || branding.squareLogoUrl || null;
-  const loginHeading = branding.loginHeadline?.trim() || brandName;
   const loginSubtitle =
-    branding.loginSubtitle?.trim() || `Sign in to your ${brandName} account`;
+    branding.loginSubtitle?.trim() || `Please log into your ${brandName} account`;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -83,15 +82,15 @@ export default function LoginClient() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoSrc}
-                alt={`${brandName} logo`}
+                alt={`${brandName} logo`
+                }
                 className="h-12 w-auto"
               />
             </div>
-          ) : null}
-          <h1 className="text-2xl font-bold text-primary">{loginHeading}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {loginSubtitle}
-          </p>
+          ) : (
+            <h1 className="text-2xl font-bold text-primary">{brandName}</h1>
+          )}
+          <p className="text-sm text-gray-600 dark:text-gray-300">{loginSubtitle}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -492,6 +492,11 @@ function EmployeesContent() {
                             )
                               return;
                             try {
+                              // Optimistic update: remove from local list immediately
+                              setEmployees((prev) =>
+                                prev.filter((e) => e.id !== emp.id),
+                              );
+
                               const res = await fetch(
                                 `/api/employees/${emp.id}`,
                                 { method: "DELETE" },
@@ -501,14 +506,21 @@ function EmployeesContent() {
                                   .json()
                                   .catch(() => ({}));
                                 throw new Error(
-                                  errorData.error || "Delete failed",
+                                  (errorData as any).error || "Delete failed",
                                 );
                               }
-                              fetchData(activeTab);
+
+                              toast.success("Employee deleted");
+
+                              // Defer refetch slightly to avoid re-render during menu unmount
+                              setTimeout(() => {
+                                fetchData(activeTab);
+                              }, 0);
                             } catch (err) {
-                              alert(
-                                "Error deleting employee: " +
-                                  (err as Error).message,
+                              // Rollback optimistic update if needed by refetching
+                              setTimeout(() => fetchData(activeTab), 0);
+                              toast.error(
+                                `Error deleting employee: ${(err as Error).message}`,
                               );
                               console.error(err);
                             }

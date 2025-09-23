@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/Card";
 import Checkbox from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
@@ -37,7 +36,7 @@ export default function OnboardingStepRenderer({
   onComplete,
   readOnly = false,
   employeeId,
-  companyId,
+  _companyId,
 }: OnboardingStepProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);

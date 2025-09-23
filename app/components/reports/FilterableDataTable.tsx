@@ -126,37 +126,6 @@ export default function FilterableDataTable({
     }
   };
 
-  // Error boundary effect
-  useEffect(() => {
-    const handleError = () => setHasError(true);
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-
-  // Reset error state when data changes
-  useEffect(() => {
-    setHasError(false);
-  }, [data, columns]);
-
-  // Simple fallback if there's an error
-  if (hasError || !columns || !data) {
-    return (
-      <div className="border border-gray-200 rounded-lg p-8 text-center">
-        <p className="text-gray-500 mb-4">
-          {hasError ? "Something went wrong with the table filters." : "Loading table..."}
-        </p>
-        {hasError && (
-          <button 
-            onClick={() => setHasError(false)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Retry
-          </button>
-        )}
-      </div>
-    );
-  }
-
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -170,6 +139,18 @@ export default function FilterableDataTable({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = () => setHasError(true);
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  // Reset error state when data changes
+  useEffect(() => {
+    setHasError(false);
+  }, [data, columns]);
 
   // Get unique values for each column
   const columnValues = useMemo(() => {
@@ -201,6 +182,7 @@ export default function FilterableDataTable({
 
   // Detect column types
   const columnTypes = useMemo(() => {
+    if (!columns || !data) return {};
     const map: Record<string, "number" | "date" | "boolean" | "string"> = {};
     for (const col of columns) {
       map[col.accessorKey] = detectColumnType(columnValues[col.accessorKey] || [], data, col.accessorKey);
@@ -273,16 +255,35 @@ export default function FilterableDataTable({
     return result;
   }, [data, columnFilters, advancedFilters, columnTypes]);
 
-  const disablePrev = currentPage <= 1;
-  const disableNext = hasTotal ? currentPage >= pageCount : filteredData.length < safePageSize;
-  const currentPageDisplay = Math.min(currentPage, pageCount);
-
   // Notify parent component of filtered data changes
   useEffect(() => {
     if (onFilteredDataChange && filteredData) {
       onFilteredDataChange(filteredData);
     }
   }, [filteredData, onFilteredDataChange]);
+
+  // Simple fallback if there's an error
+  if (hasError || !columns || !data) {
+    return (
+      <div className="border border-gray-200 rounded-lg p-8 text-center">
+        <p className="text-gray-500 mb-4">
+          {hasError ? "Something went wrong with the table filters." : "Loading table..."}
+        </p>
+        {hasError && (
+          <button 
+            onClick={() => setHasError(false)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const disablePrev = currentPage <= 1;
+  const disableNext = hasTotal ? currentPage >= pageCount : filteredData.length < safePageSize;
+  const currentPageDisplay = Math.min(currentPage, pageCount);
 
   const toggleFilter = (columnKey: string) => {
     setOpenFilters(prev => {

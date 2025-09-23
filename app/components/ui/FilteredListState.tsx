@@ -111,7 +111,7 @@ export function FilteredListLoading({
       <LoadingSpinner size="lg" showText text={`Loading ${resourceName}${summary}...`} />
       {segments.length > 0 && (
         <p className="text-sm text-muted-foreground max-w-xl">
-          Hang tight — we\'re fetching {resourceName.toLowerCase()} that match your
+          Hang tight — we&apos;re fetching {resourceName.toLowerCase()} that match your
           selected filters.
         </p>
       )}

@@ -12,11 +12,9 @@ import {
   CheckCircle,
   XCircle,
   Code,
-  Image as ImageIcon,
   PlayCircle,
   FileText,
   Download,
-  ExternalLink,
   Copy,
   Check,
 } from "lucide-react";
@@ -195,7 +193,7 @@ export default function NewsContentRenderer({ content, className }: Props) {
                         {block.emoji}
                       </span>
                     )}
-                    "{block.text}"
+                    &ldquo;{block.text}&rdquo;
                   </p>
                   {block.author && (
                     <p className="text-sm text-muted-foreground">— {block.author}</p>

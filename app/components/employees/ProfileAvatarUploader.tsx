@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { uploadToSupabase } from "@/lib/supabase";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 

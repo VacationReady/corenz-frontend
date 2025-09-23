@@ -9,7 +9,6 @@ import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import NewsHero from "./NewsHero";
 import NewsSpotlightCard from "./NewsSpotlightCard";
 import NewsChip from "../ui/NewsChip";
-import NewsTag from "../ui/NewsTag";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -18,11 +17,8 @@ import {
   Plus,
   Grid3X3,
   List,
-  Filter,
-  TrendingUp,
   Clock,
   Star,
-  Calendar,
   Users,
   Hash,
   Sparkles,

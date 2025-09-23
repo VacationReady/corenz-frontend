@@ -6,7 +6,7 @@ export const resend = apiKey
   ? new Resend(apiKey)
   : ({
       emails: {
-        async send(_opts: any) {
+        async send() {
           // Test fallback: avoid external calls
           return { id: "test-email", simulated: true } as any;
         },

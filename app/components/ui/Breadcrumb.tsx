@@ -107,7 +107,6 @@ export const breadcrumbConfigs = {
   }),
   employeeSection: (
     employeeName: string,
-    employeeId: string,
     section: string,
   ) => ({
     items: [
@@ -129,7 +128,7 @@ export const breadcrumbConfigs = {
       { label: "News", isCurrentPage: true },
     ],
   },
-  newsDetail: (newsTitle: string, newsSlug: string) => ({
+  newsDetail: (newsTitle: string) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "News", href: "/news" },
@@ -191,7 +190,7 @@ export const breadcrumbConfigs = {
     ],
   },
   // Form-specific breadcrumbs
-  formDetail: (formName: string, formId: string) => ({
+  formDetail: (formName: string) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Settings", href: "/settings" },

@@ -84,7 +84,7 @@ interface PermissionProfileManagementProps {
 export function PermissionProfileManagement({
   employeeId,
 }: PermissionProfileManagementProps) {
-  const { data: session } = useSession();
+  const { data: _session } = useSession();
   const [userPermissions, setUserPermissions] =
     useState<UserPermissions | null>(null);
   const [availableProfiles, setAvailableProfiles] = useState<

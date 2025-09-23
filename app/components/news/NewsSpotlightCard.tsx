@@ -11,11 +11,9 @@ import {
   Clock,
   User,
   Eye,
-  MessageCircle,
   Share2,
   Bookmark,
   Heart,
-  TrendingUp,
   ChevronRight,
   Sparkles,
 } from "lucide-react";

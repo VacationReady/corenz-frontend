@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { ApprovalScopeType, Prisma } from "@prisma/client";
+import type { ApprovalScopeType } from "@prisma/client";
 
 type MinimalEmployee = {
   id: string;

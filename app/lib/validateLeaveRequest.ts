@@ -1,7 +1,7 @@
 // lib/validateLeaveRequest.ts
 
 import { prisma } from "@/lib/prisma";
-import { addDays, eachDayOfInterval } from "date-fns";
+import { eachDayOfInterval } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
 import dayjs from "dayjs";

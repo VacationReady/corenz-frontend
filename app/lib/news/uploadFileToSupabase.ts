@@ -10,7 +10,7 @@ export async function uploadFileToSupabase(file: File) {
   const fileName = `${Date.now()}.${fileExt}`;
   const filePath = `${fileName}`; // ✅ fixed: no documents/ prefix
 
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from("documents") // ✅ bucket name
     .upload(filePath, file);
 

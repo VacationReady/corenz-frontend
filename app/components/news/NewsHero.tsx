@@ -11,8 +11,6 @@ import {
   ChevronRight,
   Clock,
   User,
-  Eye,
-  MessageCircle,
   Share2,
   Bookmark,
 } from "lucide-react";
@@ -50,8 +48,6 @@ export default function NewsHero({
   const [isHovered, setIsHovered] = useState(false);
 
   const featuredPosts = posts.filter((post) => post.pinned || post.featured).slice(0, 5);
-  
-  if (featuredPosts.length === 0) return null;
 
   useEffect(() => {
     if (!isHovered && featuredPosts.length > 1) {
@@ -61,6 +57,8 @@ export default function NewsHero({
       return () => clearInterval(timer);
     }
   }, [currentIndex, isHovered, featuredPosts.length, autoPlayInterval]);
+  
+  if (featuredPosts.length === 0) return null;
 
   const currentPost = featuredPosts[currentIndex];
 
@@ -114,7 +112,7 @@ export default function NewsHero({
                 {emoji}
               </span>
               <span className="text-white font-medium text-lg">
-                {greeting}, here's what's happening
+                {greeting}, here&apos;s what&apos;s happening
               </span>
             </motion.div>
             <div className="flex items-center gap-2">

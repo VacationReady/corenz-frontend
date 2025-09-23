@@ -36,10 +36,10 @@ export default function ForgotPasswordPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const message = data?.error || "We couldn't start a reset just now. Try again soon.";
+        const message = data?.error || "We couldn&apos;t start a reset just now. Try again soon.";
         setFormError(message);
         toast({
-          title: "Couldn't send reset email",
+          title: "Couldn&apos;t send reset email",
           description: message,
           variant: "destructive",
         });
@@ -50,11 +50,11 @@ export default function ForgotPasswordPage() {
       toast({
         title: "Check your inbox",
         description:
-          "If the email matches an account, you'll receive password reset instructions shortly.",
+          "If the email matches an account, you&apos;ll receive password reset instructions shortly.",
       });
     } catch (error) {
       console.error("Forgot password request failed", error);
-      const message = "We couldn't reach the server. Please try again.";
+      const message = "We couldn&apos;t reach the server. Please try again.";
       setFormError(message);
       toast({
         title: "Network error",
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-primary">Reset your password</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            We'll email you a link to choose a new password.
+            We&apos;ll email you a link to choose a new password.
           </p>
         </div>
 

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import FileDropzone, { FileDropzoneItem, UploadHelpers } from "@/components/ui/FileDropzone";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
-import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage, FormSection } from "@/api/forms/[id]/types";
+import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage } from "@/api/forms/[id]/types";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";

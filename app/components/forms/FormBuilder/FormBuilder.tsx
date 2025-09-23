@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 import { FieldPalette } from "./FieldPalette";
 import { FormCanvas } from "./FormCanvas";
@@ -13,7 +12,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { FormField, FormSection, AnyFormSchema, isLegacySchema, upgradeLegacySchema } from "@/api/forms/[id]/types";
+import { FormField, FormSection, AnyFormSchema, upgradeLegacySchema } from "@/api/forms/[id]/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 

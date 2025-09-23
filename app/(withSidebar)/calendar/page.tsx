@@ -92,7 +92,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [bankHolidaysAvailable, setBankHolidaysAvailable] = useState(false);
   const [templateLabel, setTemplateLabel] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState("");
-  const bankHolidayCacheRef = useRef<any | null>(null);
+  const _bankHolidayCacheRef = useRef<any | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const initializedFromUrl = useMutableRef(false);
@@ -107,7 +107,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const inspectorBlackoutKey = inspectorDate
     ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
     : null;
-  const inspectorHasBlackout = inspectorBlackoutKey
+  const _inspectorHasBlackout = inspectorBlackoutKey
     ? blackoutDateKeys.has(inspectorBlackoutKey)
     : false;
 

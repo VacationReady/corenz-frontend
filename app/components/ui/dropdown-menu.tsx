@@ -2,7 +2,7 @@
 
 import React, { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
-import { cn } from "@/lib/utils"; // If you don't have this, replace with className joins.
+import { cn } from "@/lib/utils"; // If you don&apos;t have this, replace with className joins.
 
 type DropdownMenuProps = {
   trigger: React.ReactNode;

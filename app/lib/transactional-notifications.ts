@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail } from "@/lib/email/template";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
-import { Employee, User, Department, TransactionalNotificationPreference } from "@prisma/client";
+import { Employee, User, TransactionalNotificationPreference } from "@prisma/client";
 
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@peoplecore.co.nz";
 

@@ -144,7 +144,7 @@ export default function EmployeeOnboardingPage({
         <Card className="max-w-xl w-full p-6 text-center space-y-4">
           <div>
             <h2 className="text-xl font-semibold mb-1">
-              We couldn't load your onboarding.
+              We couldn&apos;t load your onboarding.
             </h2>
             <p className="text-sm text-destructive">{error}</p>
           </div>
@@ -184,7 +184,7 @@ export default function EmployeeOnboardingPage({
               </Select>
               {templates.length === 1 ? (
                 <p className="text-xs text-muted-foreground -mt-2 mb-4">
-                  Automatically selected because it's the only template.
+                  Automatically selected because it&apos;s the only template.
                 </p>
               ) : null}
               <Button onClick={handleAssignOnboarding} disabled={assigning}>
@@ -253,7 +253,7 @@ export default function EmployeeOnboardingPage({
       <Card className="p-6 mb-8">
         <h1 className="text-2xl font-bold mb-2">Welcome to Your Onboarding!</h1>
         <p className="mb-4">
-          You're nearly ready to get started. Complete each step below to finish
+          You&apos;re nearly ready to get started. Complete each step below to finish
           onboarding.
         </p>
         <div className="mb-2 font-semibold">

@@ -32,22 +32,12 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignJustify,
   Highlighter,
-  Type,
   Smile,
-  Hash,
-  AtSign,
-  Calendar,
-  MapPin,
-  Sparkles,
   Info,
   AlertCircle,
   CheckCircle,
   XCircle,
-  Play,
-  FileText,
-  ChevronDown,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -237,7 +227,7 @@ export default function NewsEditor({
     [editor]
   );
 
-  const insertSlashCommand = useCallback(
+    const _insertSlashCommand = useCallback(
     (command: string) => {
       if (!editor) return;
 

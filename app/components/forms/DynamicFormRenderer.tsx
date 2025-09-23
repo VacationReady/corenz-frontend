@@ -11,7 +11,6 @@ import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { uploadToSupabase } from "@/lib/supabase";
 import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 interface DynamicFormRendererProps {

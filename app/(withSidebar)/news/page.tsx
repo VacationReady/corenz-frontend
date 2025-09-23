@@ -51,11 +51,7 @@ export default async function NewsPage() {
       },
     });
 
-    if (
-      dbUser?.role === "ADMIN" ||
-      dbUser?.role === "SUPER_ADMIN" ||
-      dbUser?.role === "MANAGER"
-    ) {
+    if (dbUser?.role && ["ADMIN", "SUPER_ADMIN", "MANAGER"].includes(dbUser.role)) {
       canPost = true;
     }
   }

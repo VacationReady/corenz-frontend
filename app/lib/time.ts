@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 
 const LONDON_TIMEZONE = "Europe/London";

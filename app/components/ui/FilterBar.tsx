@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, Filter, X, Calendar, SortAsc, SortDesc } from "lucide-react";
+import { Search, Filter, X, SortAsc, SortDesc } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import {
@@ -230,7 +230,7 @@ export function FilterBar({
               className="rounded-full px-3"
               onClick={() => updateFilter("search", "")}
             >
-              Search: "{filters.search}" <span className="ml-2">×</span>
+              Search: &ldquo;{filters.search}&rdquo; <span className="ml-2">×</span>
             </Button>
           )}
 

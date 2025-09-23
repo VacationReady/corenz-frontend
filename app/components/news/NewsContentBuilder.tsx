@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Trash2, Plus, Bold, Italic, Underline } from "lucide-react";

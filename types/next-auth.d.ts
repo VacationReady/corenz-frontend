@@ -8,8 +8,10 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
-      role: "ADMIN" | "MANAGER" | "EMPLOYEE";
+      role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
       companyId: string; // ✅ Ensure companyId exists for PeopleCore HRIS
+      homeCompanyId: string;
+      canManageTenants: boolean;
     } & DefaultSession["user"];
   }
 
@@ -17,7 +19,7 @@ declare module "next-auth" {
     id: string;
     email: string;
     name?: string | null;
-    role: "ADMIN" | "MANAGER" | "EMPLOYEE";
+    role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
     companyId: string; // ✅ Ensure companyId exists for PeopleCore HRIS
   }
 }
@@ -26,7 +28,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
-    role: "ADMIN" | "MANAGER" | "EMPLOYEE";
+    role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
     companyId: string; // ✅ Ensure companyId included in JWT for pipeline consistency
+    homeCompanyId?: string;
   }
 }

@@ -20,22 +20,47 @@ import {
   LogOut,
 } from "lucide-react";
 
-export default function AdminSidebar() {
+interface SidebarProps {
+  variant?: "desktop" | "mobile";
+  onMobileNavigate?: () => void;
+  onMobileClose?: () => void;
+}
+
+export default function AdminSidebar({
+  variant = "desktop",
+  onMobileNavigate,
+  onMobileClose,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed(!collapsed);
   const pathname = usePathname();
+  const isMobile = variant === "mobile";
+  const headerPadding = isMobile ? "px-6 py-6" : "px-8 py-8";
+  const sectionPadding = isMobile ? "px-6 py-5" : "px-8 py-6";
+  const navPadding = isMobile ? "px-4" : "px-6";
+
+  const handleLogout = () => {
+    onMobileNavigate?.();
+    void signOut({ callbackUrl: "/login" });
+  };
 
   return (
     <div
       className={clsx(
-        "min-h-screen transition-all duration-300 flex flex-col m-4 ml-6",
-        collapsed ? "w-16" : "w-80",
+        "transition-all duration-300 flex flex-col",
+        isMobile ? "h-full w-full max-w-sm p-4" : "min-h-screen m-4 ml-6",
+        isMobile ? "w-full" : collapsed ? "w-16" : "w-80",
       )}
     >
       {/* Glassmorphism Container */}
       <div className="glass rounded-3xl shadow-glass h-full flex flex-col overflow-hidden">
         {/* Logo Section */}
-        <div className="flex items-center justify-between px-8 py-8 border-b border-glass">
+        <div
+          className={clsx(
+            "flex items-center justify-between border-b border-glass",
+            headerPadding,
+          )}
+        >
           <div
             className={clsx(
               "flex items-center transition-opacity duration-200",
@@ -49,21 +74,32 @@ export default function AdminSidebar() {
             </div>
             <h1 className="font-bold text-foreground text-2xl">PeopleCore</h1>
           </div>
-          <button
-            onClick={toggleSidebar}
-            className="p-3 hover-glass rounded-2xl transition-glass"
-          >
-            {collapsed ? (
-              <Menu className="w-6 h-6 text-foreground" />
-            ) : (
+          {isMobile && onMobileClose ? (
+            <button
+              onClick={onMobileClose}
+              className="p-3 hover-glass rounded-2xl transition-glass"
+            >
               <X className="w-6 h-6 text-foreground" />
-            )}
-          </button>
+              <span className="sr-only">Close navigation</span>
+            </button>
+          ) : (
+            <button
+              onClick={toggleSidebar}
+              className="p-3 hover-glass rounded-2xl transition-glass"
+            >
+              {collapsed ? (
+                <Menu className="w-6 h-6 text-foreground" />
+              ) : (
+                <X className="w-6 h-6 text-foreground" />
+              )}
+              <span className="sr-only">Toggle sidebar width</span>
+            </button>
+          )}
         </div>
 
         {/* Quick Actions Header */}
         {!collapsed && (
-          <div className="px-8 py-6">
+          <div className={clsx("space-y-1", sectionPadding)}>
             <h2 className="text-lg font-bold text-foreground mb-2">
               Quick actions
             </h2>
@@ -74,7 +110,13 @@ export default function AdminSidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-6 pb-6">
+        <nav
+          className={clsx(
+            "flex-1 pb-6",
+            navPadding,
+            isMobile && "overflow-y-auto",
+          )}
+        >
           <div className="space-y-8">
             {/* Core Section */}
             <div>
@@ -92,6 +134,7 @@ export default function AdminSidebar() {
                     label={link.label}
                     collapsed={collapsed}
                     active={pathname === link.href}
+                    onNavigate={onMobileNavigate}
                   />
                 ))}
               </ul>
@@ -113,6 +156,7 @@ export default function AdminSidebar() {
                     label={link.label}
                     collapsed={collapsed}
                     active={pathname === link.href}
+                    onNavigate={onMobileNavigate}
                   />
                 ))}
               </ul>
@@ -121,9 +165,14 @@ export default function AdminSidebar() {
         </nav>
 
         {/* Settings & Logout */}
-        <div className="border-t border-glass px-6 py-6">
+        <div
+          className={clsx(
+            "border-t border-glass",
+            isMobile ? "px-6 py-5" : "px-6 py-6",
+          )}
+        >
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover-glass rounded-2xl transition-glass"
           >
             <LogOut size={20} />
@@ -141,12 +190,14 @@ function SidebarLink({
   label,
   collapsed,
   active,
+  onNavigate,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   collapsed: boolean;
   active: boolean;
+  onNavigate?: () => void;
 }) {
   return (
     <li>
@@ -159,6 +210,7 @@ function SidebarLink({
             ? "bg-primary text-primary-foreground shadow-warm"
             : "text-foreground",
         )}
+        onClick={() => onNavigate?.()}
       >
         <div className="flex-shrink-0 w-6 h-6">{icon}</div>
         {!collapsed && (

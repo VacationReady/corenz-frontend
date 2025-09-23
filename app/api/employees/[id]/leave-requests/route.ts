@@ -168,7 +168,11 @@ export async function POST(
       );
     }
 
-    if (employee.User.id !== userId && session.user.role !== "ADMIN") {
+    if (
+      employee.User.id !== userId &&
+      session.user.role !== "ADMIN" &&
+      session.user.role !== "SUPER_ADMIN"
+    ) {
       console.log("❌ Unauthorized leave request submission attempt");
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -197,7 +201,8 @@ export async function POST(
       eventCategoryId: EventCategoryId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      isAdmin: session.user.role === "ADMIN",
+      isAdmin:
+        session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN",
       companyId: session.user.companyId,
     });
 

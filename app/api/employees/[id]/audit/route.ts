@@ -23,8 +23,9 @@ export async function GET(
     }
 
     // Authorization check - only ADMIN or manager/self can view audit logs
-    const canAccess = 
+    const canAccess =
       session.user.role === "ADMIN" ||
+      session.user.role === "SUPER_ADMIN" ||
       session.user.id === employee.userId ||
       session.user.id === employee.User.managerId;
     

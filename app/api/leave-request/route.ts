@@ -61,7 +61,8 @@ export async function GET(req: Request) {
       : undefined;
 
     // Only ADMINs may view "all"; managers default to direct reports only
-    const canViewAll = session.user.role === "ADMIN";
+    const canViewAll =
+      session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
 
     const baseInclude = {
       EventCategory: { select: { id: true, name: true } },

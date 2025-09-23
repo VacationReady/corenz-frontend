@@ -27,7 +27,23 @@ export default async function AdminDashboardPage() {
     },
   });
 
-  if (!user?.Employee) redirect("/dashboard/employee");
+  if (!user?.Employee) {
+    if (session.user.role === "SUPER_ADMIN") {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
+          <h1 className="text-2xl font-semibold">Welcome, super admin</h1>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            You don&apos;t have an employee profile in this tenant, so the
+            standard admin dashboard widgets aren&apos;t available. You can still
+            use the top navigation to manage tenants and switch between
+            companies.
+          </p>
+        </div>
+      );
+    }
+
+    redirect("/dashboard/employee");
+  }
 
   return (
     <div className="flex flex-col w-full h-screen overflow-hidden">

@@ -55,7 +55,8 @@ export default function EmployeeOnboardingPage({
   const [assigning, setAssigning] = useState(false);
   const [templates, setTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
-  const canAssignTemplate = session?.user?.role === "ADMIN";
+  const canAssignTemplate =
+    session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     router.prefetch("/dashboard");

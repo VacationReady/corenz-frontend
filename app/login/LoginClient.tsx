@@ -48,7 +48,7 @@ export default function LoginClient() {
           return;
         }
 
-        if (role === "ADMIN") {
+        if (role === "ADMIN" || role === "SUPER_ADMIN") {
           router.push("/dashboard/admin");
         } else if (role === "MANAGER") {
           router.push("/dashboard/manager");

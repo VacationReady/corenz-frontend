@@ -90,7 +90,7 @@ function DocumentsContent() {
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
   const [userRole, setUserRole] = useState<
-    "ADMIN" | "MANAGER" | "EMPLOYEE" | null
+    "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN" | null
   >(null);
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
   const [ackDocId, setAckDocId] = useState<string | null>(null);
@@ -115,6 +115,8 @@ function DocumentsContent() {
   const [fields, setFields] = useState<any[]>([]);
   const [showCapture, setShowCapture] = useState(false);
   const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
+
+  const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
   const fetchDocuments = async () => {
     try {
@@ -431,7 +433,7 @@ function DocumentsContent() {
       icon={<FileText className="w-6 h-6" />}
       breadcrumbs={breadcrumbs || undefined}
       action={
-        userRole === "ADMIN" ? (
+        isAdminUser ? (
           <Button onClick={() => setIsUploadModalOpen(true)}>
             <UploadCloud className="w-4 h-4 mr-2" /> Add Document
           </Button>
@@ -477,7 +479,7 @@ function DocumentsContent() {
                 <TableHead>Signatures</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
-                {userRole === "ADMIN" && (
+                {isAdminUser && (
                   <TableHead className="w-[50px] text-right">Actions</TableHead>
                 )}
               </TableRow>
@@ -560,7 +562,7 @@ function DocumentsContent() {
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>{formatFileSize(doc.size)}</TableCell>
-                    {userRole === "ADMIN" && (
+                    {isAdminUser && (
                       <TableCell
                         className="text-right"
                         onClick={(e) => e.stopPropagation()}

@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { uploadFileToSupabase } from "@/lib/news/uploadFileToSupabase";
 import dynamic from "next/dynamic";
 import AudienceSelector from "@/components/news/AudienceSelector";
+import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 
 const NewsContentBuilder = dynamic(
   () => import("@/components/news/NewsContentBuilder"),
@@ -106,7 +107,21 @@ export default function EditNewsPostPage({ params }: Props) {
   };
 
   if (loading || status === "loading")
-    return <p className="p-4">Loading post…</p>;
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
+        <SectionSkeleton
+          showContainer={false}
+          rows={1}
+          lineClassName="h-9 w-2/3"
+        />
+        <SectionSkeleton
+          showContainer={false}
+          rows={1}
+          lineClassName="h-64 w-full rounded-xl"
+        />
+        <SectionSkeleton showContainer={false} rows={4} />
+      </div>
+    );
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

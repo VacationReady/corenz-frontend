@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, LayoutDashboard, Calendar, Clock, User, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 import clsx from "clsx";
+import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
@@ -18,11 +19,15 @@ export default function EmployeeSidebar({
   onMobileNavigate,
   onMobileClose,
 }: SidebarProps) {
+  const { branding } = useTenantBranding();
   const pathname = usePathname();
   const isMobile = variant === "mobile";
   const headerPadding = isMobile ? "px-6 py-6" : "px-8 py-8";
   const sectionPadding = isMobile ? "px-6 py-5" : "px-8 py-6";
   const navPadding = isMobile ? "px-4" : "px-6";
+
+  const brandName = branding.shortName || branding.name;
+  const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
 
   const handleLogout = () => {
     onMobileNavigate?.();
@@ -53,13 +58,22 @@ export default function EmployeeSidebar({
         <div className={clsx("border-b border-glass", headerPadding)}>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
-                <span className="text-primary-foreground font-bold text-lg">
-                  P
-                </span>
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm overflow-hidden">
+                {brandLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={brandLogo}
+                    alt={`${brandName} logo`}
+                    className="h-8 w-8 object-contain"
+                  />
+                ) : (
+                  <span className="text-primary-foreground font-bold text-lg">
+                    {branding.initials}
+                  </span>
+                )}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">PeopleCore</h2>
+                <h2 className="text-2xl font-bold text-foreground">{brandName}</h2>
                 <p className="text-sm text-muted-foreground">Employee Portal</p>
               </div>
             </div>

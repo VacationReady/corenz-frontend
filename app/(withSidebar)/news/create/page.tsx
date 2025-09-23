@@ -4,24 +4,24 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { uploadFileToSupabase } from "@/lib/news/uploadFileToSupabase";
 import NewsEditor from "@/components/news/NewsEditor";
 import AudienceCampaignPanel from "@/components/news/AudienceCampaignPanel";
 import NewsChip from "@/components/ui/NewsChip";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import FileDropzone, {
+  FileDropzoneItem,
+  UploadHelpers,
+} from "@/components/ui/FileDropzone";
 import {
   ArrowLeft,
-  Save,
   Send,
-  Upload,
-  Image,
   Video,
-  FileText,
   X,
   Plus,
   Hash,
@@ -29,16 +29,128 @@ import {
   Eye,
   Clock,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
+
+/** ---------------- Draft management types & helpers ---------------- */
+interface NewsDraftPayload {
+  title: string;
+  content: any;
+  coverImage: string;
+  videoUrl: string;
+  tags: string[];
+  pinned: boolean;
+  featured: boolean;
+  sendEmail: boolean;
+  audience: {
+    type?: "all" | "custom";
+    departments?: string[];
+    roles?: string[];
+    locations?: string[];
+  };
+  isDraft: boolean;
+}
+
+const hasMeaningfulDraft = (draft: NewsDraftPayload | null | undefined) => {
+  if (!draft) return false;
+  const hasContent = (() => {
+    const value = draft.content;
+    if (!value) return false;
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") return Object.keys(value).length > 0;
+    return true;
+  })();
+  return (
+    Boolean(draft.title?.trim()) ||
+    hasContent ||
+    Boolean(draft.coverImage?.trim()) ||
+    Boolean(draft.videoUrl?.trim()) ||
+    (Array.isArray(draft.tags) && draft.tags.length > 0) ||
+    draft.pinned ||
+    draft.featured ||
+    draft.sendEmail ||
+    (draft.audience &&
+      ((draft.audience.departments || []).length > 0 ||
+        (draft.audience.roles || []).length > 0 ||
+        (draft.audience.locations || []).length > 0 ||
+        draft.audience.type === "custom"))
+  );
+};
+
+/** ---------------- Upload types & helpers ---------------- */
+type NewsUploadMeta = {
+  path: string;
+  url: string | null;
+  name: string;
+  size: number;
+  type: string;
+};
+
+const uploadWithProgress = (
+  endpoint: string,
+  file: File,
+  { onProgress, signal }: UploadHelpers,
+) =>
+  new Promise<any>((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint, true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(percent);
+      } else {
+        onProgress(50);
+      }
+    };
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) return;
+      const status = xhr.status;
+      if (status >= 200 && status < 300) {
+        try {
+          const json = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+          resolve(json);
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        const message = xhr.responseText || `Upload failed (${status})`;
+        reject(new Error(message));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.onabort = () => reject(new Error("Upload cancelled"));
+
+    signal.addEventListener("abort", () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) {
+        xhr.abort();
+      }
+    });
+
+    xhr.send(formData);
+  });
 
 export default function CreateNewsPostPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [coverStoragePath, setCoverStoragePath] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState("");
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachmentItems, setAttachmentItems] = useState<
+    FileDropzoneItem<NewsUploadMeta>[]
+  >([]);
+  const [coverItems, setCoverItems] = useState<
+    FileDropzoneItem<NewsUploadMeta>[]
+  >([]);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [pinned, setPinned] = useState(false);
@@ -53,51 +165,112 @@ export default function CreateNewsPostPage() {
   }>({ type: "all" });
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingAction, setSubmittingAction] = useState<
+    "draft" | "publish" | null
+  >(null);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Draft refs
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
+  const latestDraftRef = useRef<NewsDraftPayload>({
+    title: "",
+    content: null,
+    coverImage: "",
+    videoUrl: "",
+    tags: [],
+    pinned: false,
+    featured: false,
+    sendEmail: false,
+    audience: { type: "all" },
+    isDraft: false,
+  });
+  const restorePromptedRef = useRef(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setAttachments(Array.from(e.target.files));
-    }
-  };
+  const autosaveKey = session?.user
+    ? `news:create:${session.user.companyId}:${session.user.id}`
+    : null;
 
-  const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
-  };
-
-  const handleCoverFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingCover(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const res = await fetch("/api/news/cover-upload", {
-        method: "POST",
-        body: form,
-      });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        throw new Error(errText || "Upload failed");
+  const clearDraftStorage = (resetState = false) => {
+    if (typeof window !== "undefined" && autosaveKey) {
+      try {
+        window.localStorage.removeItem(autosaveKey);
+      } catch (error) {
+        console.error("Failed to clear news draft", error);
       }
-      const data = await res.json();
-      setCoverImage(data.url || "");
-      toast.success("Cover image uploaded");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to upload cover image");
-    } finally {
-      setIsUploadingCover(false);
+    }
+    if (resetState) {
+      setTitle("");
+      setContent(null);
+      setCoverImage("");
+      setVideoUrl("");
+      setAttachmentItems([]);
+      setTags([]);
+      setTagInput("");
+      setPinned(false);
+      setFeatured(false);
+      setIsDraft(false);
+      setSendEmail(false);
+      setAudience({ type: "all" });
+      setShowPreview(false);
       if (coverFileInputRef.current) coverFileInputRef.current.value = "";
     }
   };
 
+  const handleDiscardDraft = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Discard the autosaved draft? This cannot be undone.",
+      );
+      if (!confirmed) return;
+    }
+    clearDraftStorage(true);
+    toast.success("Draft discarded");
+  };
+
+  const handleAttachmentUpload = (
+    file: File,
+    helpers: UploadHelpers,
+  ): Promise<NewsUploadMeta> =>
+    uploadWithProgress(
+      "/api/news/attachment-upload",
+      file,
+      helpers,
+    ) as Promise<NewsUploadMeta>;
+
+  const handleCoverUpload = (
+    file: File,
+    helpers: UploadHelpers,
+  ): Promise<NewsUploadMeta> =>
+    uploadWithProgress(
+      "/api/news/cover-upload",
+      file,
+      helpers,
+    ) as Promise<NewsUploadMeta>;
+
+  useEffect(() => {
+    const successful = coverItems.find(
+      (item) => item.status === "success" && item.meta,
+    );
+    if (successful?.meta) {
+      const meta = successful.meta as NewsUploadMeta;
+      setCoverStoragePath(meta.path);
+      setCoverImage(meta.url || meta.path || "");
+    } else if (coverItems.length === 0 && coverStoragePath) {
+      setCoverStoragePath(null);
+      setCoverImage("");
+    }
+  }, [coverItems, coverStoragePath]);
+
+  const clearCover = () => {
+    setCoverImage("");
+    setCoverStoragePath(null);
+    if (coverItems.length) setCoverItems([]);
+  };
+
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
+    const t = tagInput.trim();
+    if (t && !tags.includes(t)) {
+      setTags([...tags, t]);
       setTagInput("");
     }
   };
@@ -128,27 +301,59 @@ export default function CreateNewsPostPage() {
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent, asDraft = false) => {
+  const handleSubmit = async (
+    e: React.FormEvent | React.MouseEvent,
+    asDraft = false,
+  ) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
+    // Retain draft flag
+    setIsDraft(asDraft);
+
+    // Ensure uploads are complete/healthy
+    const hasUploadingAttachments = attachmentItems.some(
+      (item) => item.status === "uploading",
+    );
+    if (hasUploadingAttachments) {
+      toast.error("Please wait for attachments to finish uploading.");
+      return;
+    }
+
+    const hasFailedAttachments = attachmentItems.some(
+      (item) => item.status === "error",
+    );
+    if (hasFailedAttachments) {
+      toast.error("Remove or retry failed attachments before submitting.");
+      return;
+    }
+
+    const hasUploadingCover = coverItems.some(
+      (item) => item.status === "uploading",
+    );
+    if (hasUploadingCover) {
+      toast.error("Please wait for the cover image upload to finish.");
+      return;
+    }
+
+    const uploadedAttachments = attachmentItems
+      .filter((item) => item.status === "success" && item.meta)
+      .map((item) => item.meta as NewsUploadMeta);
+
     setIsSubmitting(true);
+    setSubmittingAction(asDraft ? "draft" : "publish");
 
     try {
-      // Upload attachments
-      const uploadedUrls = await Promise.all(
-        attachments.map((file) => uploadFileToSupabase(file))
-      );
-
       const res = await fetch("/api/news", {
         method: "POST",
         body: JSON.stringify({
           title,
           content,
-          coverImage: normalizeCoverForSave(coverImage) || null,
+          coverImage:
+            normalizeCoverForSave(coverStoragePath || coverImage) || null,
           videoEmbedUrl: videoUrl || null,
-          attachments: uploadedUrls,
+          attachments: uploadedAttachments,
           sendEmail,
           audience,
           tags,
@@ -163,10 +368,9 @@ export default function CreateNewsPostPage() {
 
       if (res.ok) {
         toast.success(
-          asDraft
-            ? "Draft saved successfully!"
-            : "News post published successfully!"
+          asDraft ? "Draft saved successfully!" : "News post published successfully!",
         );
+        clearDraftStorage(false);
         router.push("/news");
       } else {
         const error = await res.text();
@@ -177,6 +381,7 @@ export default function CreateNewsPostPage() {
       console.error(error);
     } finally {
       setIsSubmitting(false);
+      setSubmittingAction(null);
     }
   };
 
@@ -184,7 +389,11 @@ export default function CreateNewsPostPage() {
     if (!input) return "";
     // If this is a Supabase signed URL, extract the object path after "documents/"
     try {
-      if (input.startsWith("http") && input.includes("/object/sign/") && input.includes("documents/")) {
+      if (
+        input.startsWith("http") &&
+        input.includes("/object/sign/") &&
+        input.includes("documents/")
+      ) {
         const after = input.split("documents/")[1] || "";
         const pathOnly = after.split("?")[0] || "";
         return pathOnly;
@@ -196,6 +405,125 @@ export default function CreateNewsPostPage() {
   const handleAudienceRefresh = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
+  // Keep latest draft snapshot
+  useEffect(() => {
+    latestDraftRef.current = {
+      title,
+      content,
+      coverImage,
+      videoUrl,
+      tags,
+      pinned,
+      featured,
+      sendEmail,
+      audience,
+      isDraft,
+    };
+  }, [
+    title,
+    content,
+    coverImage,
+    videoUrl,
+    tags,
+    pinned,
+    featured,
+    sendEmail,
+    audience,
+    isDraft,
+  ]);
+
+  // Reset restore prompted flag when key changes
+  useEffect(() => {
+    restorePromptedRef.current = false;
+  }, [autosaveKey]);
+
+  // Autosave interval
+  useEffect(() => {
+    if (!autosaveKey) return;
+    if (typeof window === "undefined") return;
+
+    const interval = window.setInterval(() => {
+      const draft = latestDraftRef.current;
+      if (!hasMeaningfulDraft(draft)) {
+        try {
+          window.localStorage.removeItem(autosaveKey);
+        } catch (error) {
+          console.error("Failed to prune empty news draft", error);
+        }
+        return;
+      }
+
+      try {
+        window.localStorage.setItem(
+          autosaveKey,
+          JSON.stringify({
+            ...draft,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
+      } catch (error) {
+        console.error("Failed to persist news draft", error);
+      }
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [autosaveKey]);
+
+  // Attempt restore on mount/key change
+  useEffect(() => {
+    if (!autosaveKey) return;
+    if (restorePromptedRef.current) return;
+    if (typeof window === "undefined") return;
+
+    const stored = window.localStorage.getItem(autosaveKey);
+    if (!stored) {
+      restorePromptedRef.current = true;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as Partial<NewsDraftPayload> & {
+        updatedAt?: string;
+      };
+      if (!hasMeaningfulDraft(parsed as NewsDraftPayload)) {
+        window.localStorage.removeItem(autosaveKey);
+        restorePromptedRef.current = true;
+        return;
+      }
+
+      const restoreMessage = parsed?.updatedAt
+        ? `A locally saved draft from ${new Date(
+            parsed.updatedAt,
+          ).toLocaleString()} was found. Restore it?`
+        : "A locally saved draft was found. Restore it?";
+      const shouldRestore = window.confirm(restoreMessage);
+      if (shouldRestore) {
+        setTitle(parsed?.title || "");
+        setContent(parsed?.content ?? null);
+        setCoverImage(parsed?.coverImage || "");
+        setVideoUrl(parsed?.videoUrl || "");
+        setTags(parsed?.tags || []);
+        setPinned(Boolean(parsed?.pinned));
+        setFeatured(Boolean(parsed?.featured));
+        setSendEmail(Boolean(parsed?.sendEmail));
+        setAudience(parsed?.audience || { type: "all" });
+        setIsDraft(Boolean(parsed?.isDraft));
+        setAttachmentItems([]);
+        setTagInput("");
+        setShowPreview(false);
+        if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+        toast.info("Draft restored from this device");
+      } else {
+        window.localStorage.removeItem(autosaveKey);
+      }
+    } catch (error) {
+      console.error("Failed to restore news draft", error);
+      window.localStorage.removeItem(autosaveKey);
+    } finally {
+      restorePromptedRef.current = true;
+    }
+  }, [autosaveKey]);
 
   useEffect(() => {
     handleAudienceRefresh();
@@ -216,7 +544,9 @@ export default function CreateNewsPostPage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Create News Post</h1>
+                <h1 className="text-xl font-bold text-foreground">
+                  Create News Post
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   Share updates with your organization
                 </p>
@@ -225,48 +555,48 @@ export default function CreateNewsPostPage() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowPreview(!showPreview)}
+                onClick={handleDiscardDraft}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
-                  "border border-border hover:bg-muted",
-                  showPreview && "bg-muted"
+                  "border border-destructive/60 text-destructive hover:bg-destructive/10",
                 )}
                 type="button"
               >
-                <Eye className="w-4 h-4" />
-                <span>Preview</span>
+                <Trash2 className="w-4 h-4" />
+                <span>Discard Draft</span>
               </button>
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                icon={<Eye className="w-4 h-4" />}
+                className={cn(showPreview && "bg-muted")}
+                onClick={() => setShowPreview(!showPreview)}
+              >
+                Preview
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<Clock className="w-4 h-4" />}
                 onClick={(e) => handleSubmit(e, true)}
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-all disabled:opacity-50"
+                loading={isSubmitting && submittingAction === "draft"}
+                loadingText="Saving draft..."
+                disabled={isSubmitting && submittingAction !== "draft"}
+              >
+                Save Draft
+              </Button>
+              <Button
                 type="button"
-              >
-                <Clock className="w-4 h-4" />
-                <span>Save Draft</span>
-              </button>
-              <button
+                variant="primary"
+                icon={<Send className="w-4 h-4" />}
                 onClick={(e) => handleSubmit(e, false)}
-                disabled={isSubmitting}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all",
-                  "bg-gradient-to-r from-editorial-purple to-editorial-blue text-white",
-                  "hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:scale-100"
-                )}
-                type="submit"
+                loading={isSubmitting && submittingAction === "publish"}
+                loadingText="Publishing..."
+                disabled={isSubmitting && submittingAction !== "publish"}
+                className="bg-gradient-to-r from-editorial-purple to-editorial-blue text-white shadow-lg hover:shadow-xl hover:scale-105 disabled:scale-100"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Publishing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Publish Now</span>
-                  </>
-                )}
-              </button>
+                Publish Now
+              </Button>
             </div>
           </div>
         </div>
@@ -305,7 +635,7 @@ export default function CreateNewsPostPage() {
                   "w-full px-4 py-3 text-lg font-semibold",
                   "bg-card border border-border rounded-xl",
                   "focus:outline-none focus:ring-2 focus:ring-primary",
-                  "placeholder:text-muted-foreground"
+                  "placeholder:text-muted-foreground",
                 )}
                 required
               />
@@ -321,55 +651,60 @@ export default function CreateNewsPostPage() {
               <label className="block text-sm font-medium text-foreground">
                 Cover Image
               </label>
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className={cn(
-                    "flex-1 px-4 py-2",
-                    "bg-card border border-border rounded-lg",
-                    "focus:outline-none focus:ring-2 focus:ring-primary"
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={() => coverFileInputRef.current?.click()}
-                  disabled={isUploadingCover}
-                  className={cn(
-                    "px-4 py-2 rounded-lg transition-all flex items-center gap-2",
-                    "bg-muted hover:bg-muted/80",
-                    isUploadingCover && "opacity-60 cursor-not-allowed"
-                  )}
-                >
-                  <Image className="w-4 h-4" />
-                  {isUploadingCover ? "Uploading..." : "Upload"}
-                </button>
-              </div>
-              <input
-                ref={coverFileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCoverFileChange}
-                className="hidden"
-              />
-              {coverImage && (
-                <div className="relative mt-2 rounded-lg overflow-hidden">
-                  <img
-                    src={coverImage}
-                    alt="Cover"
-                    className="w-full h-48 object-cover"
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="url"
+                    value={coverImage}
+                    onChange={(e) => {
+                      setCoverImage(e.target.value);
+                      setCoverStoragePath(null);
+                      if (coverItems.length) setCoverItems([]);
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className={cn(
+                      "flex-1 px-4 py-2",
+                      "bg-card border border-border rounded-lg",
+                      "focus:outline-none focus:ring-2 focus:ring-primary",
+                    )}
                   />
-                  <button
-                    onClick={() => setCoverImage("")}
-                    className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
-                    type="button"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {coverImage && (
+                    <button
+                      type="button"
+                      onClick={clearCover}
+                      className="h-10 rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-muted"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-              )}
+                <FileDropzone
+                  files={coverItems}
+                  onFilesChange={setCoverItems}
+                  onUpload={handleCoverUpload}
+                  multiple={false}
+                  accept="image/*"
+                  description="Upload a hero image for this post"
+                  helperText="Images are stored securely in your tenant bucket."
+                />
+                {coverImage && (
+                  <div className="relative mt-2 rounded-lg overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={coverImage}
+                      alt="Cover"
+                      className="w-full h-48 object-cover"
+                    />
+                    <button
+                      onClick={clearCover}
+                      className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white transition hover:bg-black/70"
+                      type="button"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
 
             {/* Content Editor */}
@@ -411,7 +746,7 @@ export default function CreateNewsPostPage() {
                   className={cn(
                     "flex-1 px-4 py-2",
                     "bg-card border border-border rounded-lg",
-                    "focus:outline-none focus:ring-2 focus:ring-primary"
+                    "focus:outline-none focus:ring-2 focus:ring-primary",
                   )}
                 />
                 <button
@@ -434,54 +769,23 @@ export default function CreateNewsPostPage() {
               <label className="block text-sm font-medium text-foreground">
                 Attachments
               </label>
-              <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer flex flex-col items-center gap-2"
-                >
-                  <Upload className="w-8 h-8 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Click to upload or drag and drop
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    PDF, DOC, XLS, PPT up to 10MB each
-                  </span>
-                </label>
-              </div>
-              {attachments.length > 0 && (
-                <div className="grid gap-2 mt-3">
-                  {attachments.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => removeAttachment(index)}
-                        className="p-1 hover:bg-muted rounded-lg"
-                        type="button"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <FileDropzone
+                files={attachmentItems}
+                onFilesChange={setAttachmentItems}
+                onUpload={handleAttachmentUpload}
+                accept={[
+                  ".pdf",
+                  ".doc",
+                  ".docx",
+                  ".xls",
+                  ".xlsx",
+                  ".ppt",
+                  ".pptx",
+                  "image/*",
+                ]}
+                description="Upload supporting documents or images"
+                helperText="Files are uploaded to your tenant's secure storage bucket."
+              />
             </motion.div>
           </div>
 
@@ -513,7 +817,7 @@ export default function CreateNewsPostPage() {
                     className={cn(
                       "flex-1 px-3 py-2 text-sm",
                       "bg-background border border-border rounded-lg",
-                      "focus:outline-none focus:ring-2 focus:ring-primary"
+                      "focus:outline-none focus:ring-2 focus:ring-primary",
                     )}
                   />
                   <button

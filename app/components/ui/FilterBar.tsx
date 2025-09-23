@@ -22,6 +22,7 @@ interface FilterBarProps {
   departmentOptions?: FilterOption[];
   jobRoleOptions?: FilterOption[];
   statusOptions?: FilterOption[];
+  locationOptions?: FilterOption[];
   documentTypeOptions?: FilterOption[];
   authorOptions?: FilterOption[];
   categoryOptions?: FilterOption[];
@@ -41,6 +42,7 @@ export function FilterBar({
   departmentOptions = [],
   jobRoleOptions = [],
   statusOptions = [],
+  locationOptions = [],
   documentTypeOptions = [],
   authorOptions = [],
   categoryOptions = [],
@@ -79,6 +81,7 @@ export function FilterBar({
       config.showDepartmentFilter ||
       config.showJobRoleFilter ||
       config.showStatusFilter ||
+      config.showLocationFilter ||
       config.showDateRangeFilter ||
       config.showDocumentTypeFilter ||
       config.showAuthorFilter ||
@@ -277,6 +280,26 @@ export function FilterBar({
             );
           })}
 
+          {filters.locations.map((val) => {
+            const label = locationOptions.find((o) => o.value === val)?.label || val;
+            return (
+              <Button
+                key={`location-${val}`}
+                variant="secondary"
+                size="sm"
+                className="rounded-full px-3"
+                onClick={() =>
+                  updateFilter(
+                    "locations",
+                    filters.locations.filter((v) => v !== val),
+                  )
+                }
+              >
+                Location: {label} <span className="ml-2">×</span>
+              </Button>
+            );
+          })}
+
           {filters.documentTypes.map((val) => {
             const label = documentTypeOptions.find((o) => o.value === val)?.label || val;
             return (
@@ -369,6 +392,21 @@ export function FilterBar({
                   selected={filters.status}
                   onChange={(values) => updateFilter("status", values)}
                   placeholder="Select status..."
+                />
+              </div>
+            )}
+
+            {/* Location Filter */}
+            {config.showLocationFilter && locationOptions.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Location
+                </label>
+                <MultiSelect
+                  options={locationOptions}
+                  selected={filters.locations}
+                  onChange={(values) => updateFilter("locations", values)}
+                  placeholder="Select locations..."
                 />
               </div>
             )}

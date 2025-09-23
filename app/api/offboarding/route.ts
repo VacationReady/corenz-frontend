@@ -261,7 +261,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const assignedUserProfile = assignedUserDetails 
+    // ✅ FIX: Avoid destructuring on a possibly null value.
+    // Build a profile object only after confirming assignedUserDetails is not null.
+    const assignedUserProfile = assignedUserDetails
       ? {
           id: assignedUserDetails.id,
           firstName: assignedUserDetails.firstName,
@@ -372,4 +374,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

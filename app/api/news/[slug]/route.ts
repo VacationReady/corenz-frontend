@@ -46,12 +46,27 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   const { slug } = params;
 
-  const existing = await prisma.newsPost.findUnique({
-    where: { slug },
+  const companyId = session.user.companyId;
+
+  if (!companyId) {
+    return NextResponse.json({ error: "Company context missing" }, { status: 400 });
+  }
+
+  const existing = await prisma.newsPost.findFirst({
+    where: { slug, companyId },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
+  }
+
+  const postCompanyId = existing.companyId;
+
+  if (!postCompanyId) {
+    return NextResponse.json(
+      { error: "Post company missing" },
+      { status: 500 }
+    );
   }
 
   const isAuthor = existing.authorId === session.user.id;
@@ -65,7 +80,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const body = await req.json();
 
   const updated = await prisma.newsPost.update({
-    where: { slug },
+    where: { id: existing.id },
     data: {
       title: body.title,
       content: body.content,
@@ -80,7 +95,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   if (body.sendEmail) {
     const recipients = await prisma.user.findMany({
-      where: { email: { not: "" } },
+      where: {
+        companyId: postCompanyId,
+        email: { not: "" },
+      },
       select: { email: true },
     });
 
@@ -104,8 +122,14 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   const { slug } = params;
 
-  const existing = await prisma.newsPost.findUnique({
-    where: { slug },
+  const companyId = session.user.companyId;
+
+  if (!companyId) {
+    return NextResponse.json({ error: "Company context missing" }, { status: 400 });
+  }
+
+  const existing = await prisma.newsPost.findFirst({
+    where: { slug, companyId },
   });
 
   if (!existing) {
@@ -121,7 +145,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 
   await prisma.newsPost.delete({
-    where: { slug },
+    where: { id: existing.id },
   });
 
   return new Response(null, { status: 204 });

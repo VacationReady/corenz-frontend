@@ -3,6 +3,7 @@
 import { useState, ChangeEvent } from "react";
 import { Dialog } from "@headlessui/react";
 import Button from "@/components/ui/Button";
+import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -115,7 +116,12 @@ export default function AddSubcategoryModal({
           <Button onClick={onClose} variant="ghost" disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} loading={loading}>
+          <Button
+            onClick={handleSubmit}
+            loading={loading}
+            loadingText="Adding subcategory"
+            icon={<PlusCircle className="h-4 w-4" />}
+          >
             Add Subcategory
           </Button>
         </div>

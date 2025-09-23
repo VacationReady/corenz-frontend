@@ -391,96 +391,102 @@ export default function AddDocumentModal({
           />
         </div>
 
-        {/* ✅ Access Rights (Employee Only) */}
-        {type === "employee" && (
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Admin Access</Label>
-              <Switch
-                checked={canViewAdmin}
-                onChange={(checked) => setCanViewAdmin(checked)}
-              />
-            </div>
-            <div>
-              <Label>Manager Access</Label>
-              <Switch
-                checked={canViewManager}
-                onChange={(checked) => setCanViewManager(checked)}
-              />
-            </div>
-            <div>
-              <Label>Employee Access</Label>
-              <Switch
-                checked={canViewEmployee}
-                onChange={(checked) => setCanViewEmployee(checked)}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* --- ADDED: Requires Acknowledgement for both types --- */}
-        {(type === "employee" || type === "company") && (
-          <div>
-            <Label>Requires Acknowledgement</Label>
-            <Switch checked={requiresAck} onChange={setRequiresAck} />
-          </div>
-        )}
-
-        {/* --- ADDED: Signature requirements --- */}
-        {(type === "employee" || type === "company") && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Requires Signature</Label>
-              <Switch
-                checked={requiresSignature}
-                onChange={setRequiresSignature}
-              />
-            </div>
-            {requiresSignature && (
+        {/* UX: Grouped and aligned toggles for clarity */}
+        <div className="grid gap-4">
+          {/* Visibility (Employee only) */}
+          {type === "employee" && (
+            <div className="rounded-lg border p-4">
+              <h4 className="font-semibold mb-3">Visibility</h4>
               <div className="space-y-3">
-                <div>
-                  <Label>Signature due date (optional)</Label>
-                  <Input
-                    type="datetime-local"
-                    value={signatureDueAt}
-                    onChange={(e) => setSignatureDueAt(e.target.value)}
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Admin Access</Label>
+                  <Switch
+                    checked={canViewAdmin}
+                    onChange={(checked) => setCanViewAdmin(checked)}
                   />
                 </div>
-                {type === "company" && (
-                  <>
-                    <div>
-                      <Label>Signers: Departments</Label>
-                      <MultiSelect
-                        options={departmentsList}
-                        selected={signerDepartments}
-                        onChange={setSignerDepartments}
-                        placeholder="Select departments required to sign"
-                      />
-                    </div>
-                    <div>
-                      <Label>Signers: Job Roles</Label>
-                      <MultiSelect
-                        options={jobRolesList}
-                        selected={signerJobRoles}
-                        onChange={setSignerJobRoles}
-                        placeholder="Select job roles required to sign"
-                      />
-                    </div>
-                    <div>
-                      <Label>Additional Individual Signers</Label>
-                      <MultiSelect
-                        options={employees.map((e:any)=>({label:`${e.firstName} ${e.lastName} (${e.email})`, value:e.id}))}
-                        selected={signerEmployees}
-                        onChange={setSignerEmployees}
-                        placeholder="Select specific employees"
-                      />
-                    </div>
-                  </>
-                )}
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Manager Access</Label>
+                  <Switch
+                    checked={canViewManager}
+                    onChange={(checked) => setCanViewManager(checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Employee Access</Label>
+                  <Switch
+                    checked={canViewEmployee}
+                    onChange={(checked) => setCanViewEmployee(checked)}
+                  />
+                </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* Compliance (both types) */}
+          {(type === "employee" || type === "company") && (
+            <div className="rounded-lg border p-4">
+              <h4 className="font-semibold mb-3">Compliance</h4>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Requires Acknowledgement</Label>
+                  <Switch checked={requiresAck} onChange={setRequiresAck} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Requires Signature</Label>
+                  <Switch
+                    checked={requiresSignature}
+                    onChange={setRequiresSignature}
+                  />
+                </div>
+              </div>
+
+              {requiresSignature && (
+                <div className="space-y-3 mt-4">
+                  <div>
+                    <Label>Signature due date (optional)</Label>
+                    <Input
+                      type="datetime-local"
+                      value={signatureDueAt}
+                      onChange={(e) => setSignatureDueAt(e.target.value)}
+                    />
+                  </div>
+                  {type === "company" && (
+                    <>
+                      <div>
+                        <Label>Signers: Departments</Label>
+                        <MultiSelect
+                          options={departmentsList}
+                          selected={signerDepartments}
+                          onChange={setSignerDepartments}
+                          placeholder="Select departments required to sign"
+                        />
+                      </div>
+                      <div>
+                        <Label>Signers: Job Roles</Label>
+                        <MultiSelect
+                          options={jobRolesList}
+                          selected={signerJobRoles}
+                          onChange={setSignerJobRoles}
+                          placeholder="Select job roles required to sign"
+                        />
+                      </div>
+                      <div>
+                        <Label>Additional Individual Signers</Label>
+                        <MultiSelect
+                          options={employees.map((e:any)=>({label:`${e.firstName} ${e.lastName} (${e.email})`, value:e.id}))}
+                          selected={signerEmployees}
+                          onChange={setSignerEmployees}
+                          placeholder="Select specific employees"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div>
           <Label>Upload File</Label>

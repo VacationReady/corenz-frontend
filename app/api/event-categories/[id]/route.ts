@@ -19,12 +19,24 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   try {
     const { id } = params;
 
-    const category = await prisma.eventCategory.findUnique({
-      where: { id },
-      include: { EventSubcategory: true },
+    const category = await prisma.eventCategory.findFirst({
+      where: { id, companyId: session.user.companyId },
+      include: {
+        EventSubcategory: {
+          where: { companyId: session.user.companyId },
+        },
+      },
     });
 
     if (!category) {
@@ -52,7 +64,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 403 },
@@ -63,8 +75,18 @@ export async function PATCH(
     const { id } = params;
 
     // Prevent edits on system-defined categories
-    const category = await prisma.eventCategory.findUnique({ where: { id } });
-    if (category?.systemDefined) {
+    const category = await prisma.eventCategory.findFirst({
+      where: { id, companyId: session.user.companyId },
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { success: false, error: "Event category not found." },
+        { status: 404 },
+      );
+    }
+
+    if (category.systemDefined) {
       return NextResponse.json(
         { success: false, error: "Cannot edit system-defined categories." },
         { status: 400 },
@@ -81,10 +103,28 @@ export async function PATCH(
       );
     }
 
-    const updatedCategory = await prisma.eventCategory.update({
-      where: { id },
+    const updateResult = await prisma.eventCategory.updateMany({
+      where: { id, companyId: session.user.companyId },
       data: parse.data,
     });
+
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        { success: false, error: "Event category not found." },
+        { status: 404 },
+      );
+    }
+
+    const updatedCategory = await prisma.eventCategory.findFirst({
+      where: { id, companyId: session.user.companyId },
+    });
+
+    if (!updatedCategory) {
+      return NextResponse.json(
+        { success: false, error: "Event category not found." },
+        { status: 404 },
+      );
+    }
 
     console.log("[Event Categories PATCH] Updated:", updatedCategory);
 
@@ -112,7 +152,7 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 403 },
@@ -123,7 +163,9 @@ export async function DELETE(
     const { id } = params;
 
     // Prevent deletion on system-defined categories
-    const category = await prisma.eventCategory.findUnique({ where: { id } });
+    const category = await prisma.eventCategory.findFirst({
+      where: { id, companyId: session.user.companyId },
+    });
     if (!category) {
       return NextResponse.json(
         { success: false, error: "Event category not found." },
@@ -138,10 +180,28 @@ export async function DELETE(
       );
     }
 
-    const archivedCategory = await prisma.eventCategory.update({
-      where: { id },
+    const updateResult = await prisma.eventCategory.updateMany({
+      where: { id, companyId: session.user.companyId },
       data: { isActive: false },
     });
+
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        { success: false, error: "Event category not found." },
+        { status: 404 },
+      );
+    }
+
+    const archivedCategory = await prisma.eventCategory.findFirst({
+      where: { id, companyId: session.user.companyId },
+    });
+
+    if (!archivedCategory) {
+      return NextResponse.json(
+        { success: false, error: "Event category not found." },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json({ success: true, data: archivedCategory });
   } catch (error: any) {

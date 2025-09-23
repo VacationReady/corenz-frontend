@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
+import { CalendarX2 } from "lucide-react";
 
 interface EventCategory {
   id: string;
@@ -137,8 +138,14 @@ export default function BlockDayModal({
             />
           </div>
 
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Blocking..." : "Block Day"}
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            loading={loading}
+            loadingText="Blocking day"
+            icon={<CalendarX2 className="h-4 w-4" />}
+          >
+            Block Day
           </Button>
         </div>
       </DialogContent>

@@ -8,7 +8,16 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
-import { Bell, UserCircle, Shield, Users, FileText, ClipboardList, ExternalLink } from "lucide-react";
+import {
+  Bell,
+  UserCircle,
+  Shield,
+  Users,
+  FileText,
+  ClipboardList,
+  ExternalLink,
+  Save,
+} from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -389,6 +398,8 @@ export default function TransactionalNotificationsPage() {
                     loading={saving}
                     disabled={saving}
                     size="sm"
+                    loadingText="Saving preferences"
+                    icon={<Save className="h-4 w-4" />}
                   >
                     Save Changes
                   </Button>

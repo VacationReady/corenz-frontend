@@ -7,6 +7,8 @@ import { useState, FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
+import { LogIn } from "lucide-react";
+import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 const MicrosoftIcon = () => (
   <span className="grid h-5 w-5 grid-cols-2 gap-[2px]">
@@ -20,10 +22,16 @@ const MicrosoftIcon = () => (
 export default function LoginClient() {
   const router = useRouter();
   const search = useSearchParams();
+  const { branding } = useTenantBranding();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const brandName = branding.shortName || branding.name;
+  const logoSrc = branding.logoUrl || branding.squareLogoUrl || null;
+  const loginSubtitle =
+    branding.loginSubtitle?.trim() || `Please log into your ${brandName} account`;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -69,10 +77,20 @@ export default function LoginClient() {
     <div className="flex min-h-screen items-center justify-center bg-surface dark:bg-surface-dark px-4">
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-dark p-8 shadow-sm transition-colors">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-primary">PeopleCore</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Sign in to your account
-          </p>
+          {logoSrc ? (
+            <div className="mb-3 flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoSrc}
+                alt={`${brandName} logo`
+                }
+                className="h-12 w-auto"
+              />
+            </div>
+          ) : (
+            <h1 className="text-2xl font-bold text-primary">{brandName}</h1>
+          )}
+          <p className="text-sm text-gray-600 dark:text-gray-300">{loginSubtitle}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -102,7 +120,13 @@ export default function LoginClient() {
             />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" className="w-full" loading={loading}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={loading}
+            loadingText="Signing in"
+            icon={<LogIn className="h-4 w-4" />}
+          >
             Sign In
           </Button>
         </form>
@@ -118,7 +142,9 @@ export default function LoginClient() {
 
         <div className="my-6 flex items-center">
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-          <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">Or</span>
+          <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">
+            Or
+          </span>
           <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
         </div>
 

@@ -228,7 +228,7 @@ export default function AudienceCampaignPanel({
               Campaign Targeting
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Choose who should see this news and how they'll be notified
+              Choose who should see this news and how they&apos;ll be notified
             </p>
           </div>
           <div className="text-right">

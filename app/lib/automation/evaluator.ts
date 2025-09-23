@@ -11,7 +11,6 @@ import {
   TriggerHandler,
   TriggerEvaluationResult,
   ConditionEvaluator,
-  ConditionEvaluationResult,
   ConditionEvaluationContext,
   JobLogger,
   DocumentExpiryTriggerData,

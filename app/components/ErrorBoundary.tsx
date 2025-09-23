@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
             {this.state.error?.name === "ChunkLoadError" && (
               <p className="text-sm text-muted-foreground mb-4">
-                A loading error occurred. We'll refresh the page to fix this.
+                A loading error occurred. We&apos;ll refresh the page to fix this.
               </p>
             )}
             <Button onClick={this.handleRetry} className="w-full">

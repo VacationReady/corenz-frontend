@@ -98,7 +98,7 @@ export const breadcrumbConfigs = {
       { label: "Employees", isCurrentPage: true },
     ],
   },
-  employeeDetail: (employeeName: string, employeeId: string) => ({
+  employeeDetail: (employeeName: string, _employeeId: string) => ({
     items: [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Employees", href: "/employees" },

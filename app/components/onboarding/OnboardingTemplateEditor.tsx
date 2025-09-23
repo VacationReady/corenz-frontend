@@ -593,7 +593,7 @@ export default function OnboardingTemplateEditor({
         Onboarding preview (as new starter):
       </h3>
       <ol className="list-decimal ml-5 space-y-2">
-        {steps.map((s, idx) => (
+        {steps.map((s, _idx) => (
           <li key={getStepKey(s)}>
             <span className="font-bold">
               {s.title || STEP_TYPES.find((t) => t.value === s.type)?.label}

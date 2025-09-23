@@ -227,7 +227,7 @@ export default function NewsEditor({
     [editor]
   );
 
-    const _insertSlashCommand = useCallback(
+    const __insertSlashCommand = useCallback(
     (command: string) => {
       if (!editor) return;
 

@@ -202,7 +202,7 @@ export default function FilterableDataTable({
     result = result.filter((row) => {
       return Object.entries(advancedFilters).every(([key, filter]) => {
         const raw = getNestedValue(row, key);
-        const type = columnTypes[key];
+        const _type = columnTypes[key];
         if (!filter) return true;
 
         switch (filter.mode) {
@@ -317,11 +317,11 @@ export default function FilterableDataTable({
 
   const clearColumnFilter = (columnKey: string) => {
     setColumnFilters(prev => {
-      const { [columnKey]: removed, ...rest } = prev;
+      const { [columnKey]: _removed, ...rest } = prev;
       return rest;
     });
     setAdvancedFilters(prev => {
-      const { [columnKey]: removed, ...rest } = prev;
+      const { [columnKey]: _removed, ...rest } = prev;
       return rest;
     });
   };

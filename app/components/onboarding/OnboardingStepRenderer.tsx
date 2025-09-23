@@ -28,7 +28,7 @@ type OnboardingStepProps = {
   onComplete: (data?: any) => void;
   readOnly?: boolean;
   employeeId?: string;
-  _companyId?: string;
+  __companyId?: string;
 };
 
 export default function OnboardingStepRenderer({
@@ -36,7 +36,7 @@ export default function OnboardingStepRenderer({
   onComplete,
   readOnly = false,
   employeeId,
-  _companyId,
+  __companyId,
 }: OnboardingStepProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);

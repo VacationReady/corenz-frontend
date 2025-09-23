@@ -38,7 +38,7 @@ export function MultiSelect({
   const fullOptions = useMemo(() => {
     const hasAll = options.some((opt) => opt.value === "all");
     return hasAll ? options : [allOption, ...options];
-  }, [options]);
+  }, [options, allOption]);
 
   console.log("Options (final):", fullOptions);
   console.log("Selected (values):", selected);

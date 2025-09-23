@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ApprovalStatus, ApprovalStageMode } from "@prisma/client";
 import { notifyApproversForStage, notifyRequesterStatusChange } from "./approvalNotifications";
 
-async function activateNextApproverSequential(stageId: string) {
+async function _activateNextApproverSequential(stageId: string) {
   const next = await prisma.leaveApprovalDecision.findFirst({
     where: { stageId, status: "PENDING", isActive: false },
     orderBy: { order: "asc" },

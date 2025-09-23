@@ -79,7 +79,7 @@ export function useBreadcrumbs(
           return breadcrumbConfigs.news;
         }
 
-        const newsSlug = pathSegments[1];
+        const _newsSlug = pathSegments[1];
         const newsTitle = dynamicData?.newsTitle || `News Article`;
 
         return breadcrumbConfigs.newsDetail(newsTitle);

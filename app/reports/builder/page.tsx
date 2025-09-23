@@ -69,10 +69,10 @@ export default function ReportBuilder() {
     direction: "asc",
   });
   const [pagination, setPagination] = useState({ page: 1, limit: 50 });
-  const [results, setResults] = useState<any[]>([]);
+  const [results, _setResults] = useState<any[]>([]);
 
   const handleGenerate = async () => {
-    const res = await fetch("/api/reports/query", {
+    const _res = await fetch("/api/reports/query", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

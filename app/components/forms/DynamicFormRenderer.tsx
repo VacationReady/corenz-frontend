@@ -206,7 +206,7 @@ function renderField(field: FormField, register: any) {
   console.log("🧪 renderField received:", field);
 
   const baseInput =
-    "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
+    "w-full rounded-2xl glass-subtle border-glass px-4 py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50";
 
   switch (field.type) {
     case "text":
@@ -253,7 +253,7 @@ function renderField(field: FormField, register: any) {
                 type="radio"
                 value={opt}
                 {...register(field.id)}
-                className="accent-blue-500 focus:ring-blue-400"
+                className="accent-primary focus:ring-primary/50"
               />
               {opt}
             </label>
@@ -281,7 +281,7 @@ function renderField(field: FormField, register: any) {
           <input
             type="file"
             {...register(field.id)}
-            className={`${baseInput} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+            className={`${baseInput} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20`}
           />
         </>
       );

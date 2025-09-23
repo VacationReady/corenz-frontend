@@ -179,24 +179,6 @@ export default async function PersonalInformationPage({ params }: PageProps) {
           </div>
         </Card>
 
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Other</h2>
-          </div>
-          <div className="p-4 space-y-2 text-sm text-muted-foreground">
-            <p>Additional suggested fields:</p>
-            <ul className="list-disc ml-5 space-y-1">
-              <li>Emergency contact (name, relationship, phone)</li>
-              <li>Home address split into Street, City, Postcode, Country</li>
-              <li>
-                National ID (e.g., NI number), Gender/Pronouns (if required)
-              </li>
-            </ul>
-            <p className="mt-2">
-              I can add these as editable fields with an update API if you'd like.
-            </p>
-          </div>
-        </Card>
 
         {canEdit && (
           <PersonalInfoSaveButton employeeId={params.id} section="personal-info" />

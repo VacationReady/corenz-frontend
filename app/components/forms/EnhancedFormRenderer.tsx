@@ -600,7 +600,7 @@ export function renderField(
   options?: RenderFieldOptions,
 ) {
   const baseInput =
-    "border rounded px-3 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
+    "w-full rounded-2xl glass-subtle border-glass px-4 py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50";
 
   switch (field.type) {
     case "signature": {

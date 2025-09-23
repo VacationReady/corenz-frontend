@@ -261,14 +261,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { companyId: _assignedUserCompanyId, ...assignedUserProfile } =
-      assignedUserDetails ?? ({} as typeof assignedUserDetails);
+    const assignedUserProfile = assignedUserDetails 
+      ? (({ companyId, ...rest }) => rest)(assignedUserDetails)
+      : null;
 
     const enrichedTask = {
       ...task,
-      User_OffboardingTask_assignedToToUser: assignedUserDetails
-        ? assignedUserProfile
-        : null,
+      User_OffboardingTask_assignedToToUser: assignedUserProfile,
     };
 
     const assignmentEmailsEnabled = isAssignmentEmailEnabled();

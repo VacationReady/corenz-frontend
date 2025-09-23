@@ -262,7 +262,13 @@ export async function POST(req: NextRequest) {
     }
 
     const assignedUserProfile = assignedUserDetails 
-      ? (({ companyId, ...rest }) => rest)(assignedUserDetails)
+      ? {
+          id: assignedUserDetails.id,
+          firstName: assignedUserDetails.firstName,
+          lastName: assignedUserDetails.lastName,
+          email: assignedUserDetails.email,
+          phone: assignedUserDetails.phone,
+        }
       : null;
 
     const enrichedTask = {

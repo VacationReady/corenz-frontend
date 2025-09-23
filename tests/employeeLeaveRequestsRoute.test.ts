@@ -9,7 +9,7 @@ const mockLeaves = [
     endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
     dayType: "FULL_DAY",
     approvalStatus: "APPROVED",
-    eventCategory: { id: "ec1", name: "Holiday" },
+    eventCategory: { id: "ec1", name: "Annual Leave" },
   },
   {
     id: "lr2",

@@ -40,8 +40,12 @@ export default function EmploymentDetailsPage({
   const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
 
-  const canEdit = session?.user?.role === "ADMIN";
-  const canViewComp = session?.user?.role === "ADMIN" || session?.user?.role === "MANAGER";
+  const canEdit =
+    session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+  const canViewComp =
+    session?.user?.role === "ADMIN" ||
+    session?.user?.role === "SUPER_ADMIN" ||
+    session?.user?.role === "MANAGER";
 
   const reloadOptions = async () => {
     const [et, ct, loc, deps] = await Promise.all([

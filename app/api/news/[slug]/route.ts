@@ -26,7 +26,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   const isAuthor = post.authorId === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin =
+    session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
 
   if (!isAuthor && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -54,7 +55,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 
   const isAuthor = existing.authorId === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin =
+    session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
 
   if (!isAuthor && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -111,7 +113,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 
   const isAuthor = existing.authorId === session.user.id;
-  const isAdmin = session.user.role === "ADMIN";
+  const isAdmin =
+    session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
 
   if (!isAuthor && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

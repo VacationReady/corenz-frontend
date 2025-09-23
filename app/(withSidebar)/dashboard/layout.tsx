@@ -16,7 +16,7 @@ export default async function DashboardLayout({
   const role = session?.user?.role ?? "EMPLOYEE";
 
   let Sidebar: React.ReactElement | null = null;
-  if (role === "ADMIN") {
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
     Sidebar = <AdminSidebar />;
   } else if (role === "MANAGER") {
     Sidebar = <ManagerSidebar />;

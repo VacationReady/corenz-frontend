@@ -10,26 +10,29 @@ export type UserWithProfile = User & {
 };
 
 // Default permission sets for built-in roles
+const ADMIN_BASE_PERMISSIONS: ScreenPermissions = {
+  dashboard: ["read"],
+  approvals: ["read", "edit"],
+  employees: ["read", "edit", "delete"],
+  calendar: ["read", "edit", "delete"],
+  documents: ["read", "edit", "delete"],
+  reports: ["read", "edit", "delete"],
+  "org-chart": ["read"],
+  news: ["read", "edit", "delete"],
+  settings: ["read", "edit", "delete"],
+  onboarding: ["read", "edit", "delete"],
+  offboarding: ["read", "edit", "delete"],
+  forms: ["read", "edit", "delete"],
+  "leave-requests": ["read", "edit", "delete"],
+  "working-patterns": ["read", "edit", "delete"],
+  departments: ["read", "edit", "delete"],
+  "job-roles": ["read", "edit", "delete"],
+  permissions: ["read", "edit", "delete"],
+};
+
 export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
-  ADMIN: {
-    dashboard: ["read"],
-    approvals: ["read", "edit"],
-    employees: ["read", "edit", "delete"],
-    calendar: ["read", "edit", "delete"],
-    documents: ["read", "edit", "delete"],
-    reports: ["read", "edit", "delete"],
-    "org-chart": ["read"],
-    news: ["read", "edit", "delete"],
-    settings: ["read", "edit", "delete"],
-    onboarding: ["read", "edit", "delete"],
-    offboarding: ["read", "edit", "delete"],
-    forms: ["read", "edit", "delete"],
-    "leave-requests": ["read", "edit", "delete"],
-    "working-patterns": ["read", "edit", "delete"],
-    departments: ["read", "edit", "delete"],
-    "job-roles": ["read", "edit", "delete"],
-    permissions: ["read", "edit", "delete"],
-  },
+  ADMIN: ADMIN_BASE_PERMISSIONS,
+  SUPER_ADMIN: ADMIN_BASE_PERMISSIONS,
   MANAGER: {
     dashboard: ["read"],
     employees: ["read", "edit"],
@@ -86,7 +89,10 @@ export function hasPermission(
   action: PermissionAction,
 ): boolean {
   // Admin override: ADMIN role always has all permissions
-  if (user.role === "ADMIN" && !user.permissionProfile) {
+  if (
+    (user.role === "ADMIN" || user.role === "SUPER_ADMIN") &&
+    !user.permissionProfile
+  ) {
     return true;
   }
 
@@ -233,16 +239,20 @@ export function getActionDisplayName(action: PermissionAction): string {
 /**
  * Determines if the requesting user can access a target employee record.
  * Access rules:
- * - ADMIN can access any employee in their company
+ * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
  * - A MANAGER can access employees whose user.managerId = requestor.id
  */
 export async function canAccessEmployee(
-  requestor: { id: string; role: "ADMIN" | "MANAGER" | "EMPLOYEE"; companyId: string },
+  requestor: {
+    id: string;
+    role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
+    companyId: string;
+  },
   targetEmployeeId: string,
 ): Promise<boolean> {
   // Admins can access any employee within their company
-  if (requestor.role === "ADMIN") {
+  if (requestor.role === "ADMIN" || requestor.role === "SUPER_ADMIN") {
     return true;
   }
 

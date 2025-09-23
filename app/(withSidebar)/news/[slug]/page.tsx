@@ -70,7 +70,8 @@ export default async function NewsDetailPage({ params }: Props) {
   });
 
   const isAuthor = session?.user?.id === post.authorId;
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isAdmin =
+    session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
   const canEdit = isAuthor || isAdmin;
 
   // Transform the post data to match client expectations

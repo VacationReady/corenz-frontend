@@ -55,7 +55,9 @@ export default function EditNewsPostPage({ params }: Props) {
 
       if (!post) return router.push("/news");
 
-      const isAdmin = session?.user?.role === "ADMIN";
+      const isAdmin =
+        session?.user?.role === "ADMIN" ||
+        session?.user?.role === "SUPER_ADMIN";
       const isAuthor = session?.user?.id === post.authorId;
 
       if (!isAdmin && !isAuthor) return router.push("/news");

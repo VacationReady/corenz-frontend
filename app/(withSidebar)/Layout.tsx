@@ -2,10 +2,9 @@
 
 import React, { ReactNode } from "react";
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth-options";
-import AdminSidebar from "@/components/sidebars/AdminSidebar";
-import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
-import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
+import ClientLayout from "@/ClientLayout";
 
 export default async function WithSidebarLayout({
   children,
@@ -13,22 +12,15 @@ export default async function WithSidebarLayout({
   children: ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  const role = session?.user?.role ?? "EMPLOYEE";
-
-  let Sidebar: React.ReactElement | null = null;
-
-  if (role === "ADMIN") {
-    Sidebar = <AdminSidebar />;
-  } else if (role === "MANAGER") {
-    Sidebar = <ManagerSidebar />;
-  } else {
-    Sidebar = <EmployeeSidebar />;
+  if (session?.user?.role === "SUPER_ADMIN") {
+    redirect("/tenants");
   }
+  const initialRole = session?.user?.role as
+    | "ADMIN"
+    | "MANAGER"
+    | "EMPLOYEE"
+    | "SUPER_ADMIN"
+    | undefined;
 
-  return (
-    <div className="flex min-h-screen bg-app-background">
-      {Sidebar}
-      <main className="flex-1 overflow-y-auto">{children}</main>
-    </div>
-  );
+  return <ClientLayout initialRole={initialRole}>{children}</ClientLayout>;
 }

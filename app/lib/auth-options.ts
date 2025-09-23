@@ -6,6 +6,9 @@ import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
+const MAIN_PRODUCTION_COMPANY_ID =
+  process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
+
 export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET, // ✅ added for server session consistency
 
@@ -85,12 +88,26 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.companyId = user.companyId;
+        token.homeCompanyId = user.companyId;
       }
+
+      if (trigger === "update" && session?.companyId) {
+        const isSuperAdmin = token.role === "SUPER_ADMIN";
+        const homeCompanyId = token.homeCompanyId ?? token.companyId;
+        const mainCompanyMatches =
+          !MAIN_PRODUCTION_COMPANY_ID ||
+          homeCompanyId === MAIN_PRODUCTION_COMPANY_ID;
+
+        if (isSuperAdmin && mainCompanyMatches) {
+          token.companyId = session.companyId as string;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -98,6 +115,12 @@ export const authOptions: AuthOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.companyId = token.companyId;
+        session.user.homeCompanyId =
+          (token.homeCompanyId as string | undefined) ?? token.companyId;
+        session.user.canManageTenants =
+          session.user.role === "SUPER_ADMIN" &&
+          (!MAIN_PRODUCTION_COMPANY_ID ||
+            session.user.homeCompanyId === MAIN_PRODUCTION_COMPANY_ID);
       }
       return session;
     },

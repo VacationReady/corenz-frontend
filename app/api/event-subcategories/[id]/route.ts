@@ -18,11 +18,23 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   try {
     const { id } = params;
 
-    const subcategory = await prisma.eventSubcategory.findUnique({
-      where: { id },
+    const subcategory = await prisma.eventSubcategory.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+        EventCategory: { companyId: session.user.companyId },
+      },
       include: { EventCategory: true },
     });
 
@@ -51,7 +63,7 @@ export async function PATCH(
   { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 403 },
@@ -60,6 +72,22 @@ export async function PATCH(
 
   try {
     const { id } = params;
+
+    const existingSubcategory = await prisma.eventSubcategory.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+        EventCategory: { companyId: session.user.companyId },
+      },
+    });
+
+    if (!existingSubcategory) {
+      return NextResponse.json(
+        { success: false, error: "Event subcategory not found." },
+        { status: 404 },
+      );
+    }
+
     const json = await req.json();
     const parse = UpdateSubcategorySchema.safeParse(json);
 
@@ -70,10 +98,32 @@ export async function PATCH(
       );
     }
 
-    const updatedSubcategory = await prisma.eventSubcategory.update({
-      where: { id },
+    const updateResult = await prisma.eventSubcategory.updateMany({
+      where: { id, companyId: session.user.companyId },
       data: parse.data,
     });
+
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        { success: false, error: "Event subcategory not found." },
+        { status: 404 },
+      );
+    }
+
+    const updatedSubcategory = await prisma.eventSubcategory.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+        EventCategory: { companyId: session.user.companyId },
+      },
+    });
+
+    if (!updatedSubcategory) {
+      return NextResponse.json(
+        { success: false, error: "Event subcategory not found." },
+        { status: 404 },
+      );
+    }
 
     console.log("[Event Subcategories PATCH] Updated:", updatedSubcategory);
 
@@ -101,7 +151,7 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 403 },
@@ -111,12 +161,47 @@ export async function DELETE(
   try {
     const { id } = params;
 
-    const archivedSubcategory = await prisma.eventSubcategory.update({
-      where: { id },
-      data: {
-        isActive: false,
+    const existingSubcategory = await prisma.eventSubcategory.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+        EventCategory: { companyId: session.user.companyId },
       },
     });
+
+    if (!existingSubcategory) {
+      return NextResponse.json(
+        { success: false, error: "Event subcategory not found." },
+        { status: 404 },
+      );
+    }
+
+    const updateResult = await prisma.eventSubcategory.updateMany({
+      where: { id, companyId: session.user.companyId },
+      data: { isActive: false },
+    });
+
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        { success: false, error: "Event subcategory not found." },
+        { status: 404 },
+      );
+    }
+
+    const archivedSubcategory = await prisma.eventSubcategory.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+        EventCategory: { companyId: session.user.companyId },
+      },
+    });
+
+    if (!archivedSubcategory) {
+      return NextResponse.json(
+        { success: false, error: "Event subcategory not found." },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json({ success: true, data: archivedSubcategory });
   } catch (error: any) {

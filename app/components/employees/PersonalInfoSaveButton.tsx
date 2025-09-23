@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo } from "../audit/ChangeReasonModal";
+import { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 
 export default function PersonalInfoSaveButton({
   employeeId,
@@ -18,6 +19,7 @@ export default function PersonalInfoSaveButton({
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingPayload, setPendingPayload] = useState<Record<string, any>>({});
+  const unsavedChanges = useUnsavedChangesContext();
 
   // Capture initial form values when component mounts
   useEffect(() => {
@@ -67,9 +69,10 @@ export default function PersonalInfoSaveButton({
 
       // Compute changes
       const changes = computeChanges(payload);
-      
+
       if (changes.length === 0) {
         toast.success("No changes to save");
+        unsavedChanges?.markSaved();
         return;
       }
 
@@ -104,9 +107,10 @@ export default function PersonalInfoSaveButton({
       }
       
       toast.success("Changes saved successfully");
-      
+
       // Update initial values to current values
       setInitialValues(payload);
+      unsavedChanges?.markSaved();
     } catch (error: any) {
       throw error;
     }

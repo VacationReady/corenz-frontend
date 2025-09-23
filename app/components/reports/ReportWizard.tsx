@@ -105,8 +105,8 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
   const canMoveForward = canProceed();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <Card className="flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 overflow-y-auto">
+      <Card className="flex min-h-0 w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2">
             <CardTitle className="text-2xl">Create New Report</CardTitle>
@@ -123,7 +123,7 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
           </Button>
         </CardHeader>
 
-        <CardContent className="flex flex-1 flex-col space-y-0 p-0">
+        <CardContent className="flex min-h-0 flex-1 flex-col space-y-0 p-0">
           <div className="border-b border-glass bg-muted/40 px-6 py-4">
             <nav aria-label="Progress">
               <ol className="flex flex-wrap gap-4">

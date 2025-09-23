@@ -21,11 +21,11 @@ export async function GET(req: NextRequest) {
   }
 
   // ✅ Determine user role (uppercase from session type)
-  const userRole = session.user.role; // "ADMIN" | "MANAGER" | "EMPLOYEE"
+  const userRole = session.user.role; // "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN"
 
   // ✅ Build role-based filter using uppercase matches
   let accessFilter = {};
-  if (userRole === "ADMIN") {
+  if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
     accessFilter = { canViewAdmin: true };
   } else if (userRole === "MANAGER") {
     accessFilter = { canViewManager: true };

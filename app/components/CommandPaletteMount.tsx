@@ -20,8 +20,19 @@ export function CommandPaletteMount() {
         setOpen((v) => !v);
       }
     };
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+    const handleToggle = () => setOpen((v) => !v);
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("command-palette:open", handleOpen);
+    window.addEventListener("command-palette:close", handleClose);
+    window.addEventListener("command-palette:toggle", handleToggle);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("command-palette:open", handleOpen);
+      window.removeEventListener("command-palette:close", handleClose);
+      window.removeEventListener("command-palette:toggle", handleToggle);
+    };
   }, []);
 
   if (!open) return null;
@@ -35,16 +46,65 @@ export function CommandPaletteMount() {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Navigate">
-              <CommandItem onSelect={() => (window.location.href = "/employees")}>Employees</CommandItem>
-              <CommandItem onSelect={() => (window.location.href = "/documents")}>Documents</CommandItem>
-              <CommandItem onSelect={() => (window.location.href = "/reports")}>Reports</CommandItem>
-              <CommandItem onSelect={() => (window.location.href = "/news")}>News</CommandItem>
-              <CommandItem onSelect={() => (window.location.href = "/settings")}>Settings</CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/employees";
+                }}
+              >
+                Employees
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/documents";
+                }}
+              >
+                Documents
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/reports";
+                }}
+              >
+                Reports
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/news";
+                }}
+              >
+                News
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/settings";
+                }}
+              >
+                Settings
+              </CommandItem>
             </CommandGroup>
             <CommandSeparator />
             <CommandGroup heading="Quick actions">
-              <CommandItem onSelect={() => (window.location.href = "/employees/new")}>Add employee</CommandItem>
-              <CommandItem onSelect={() => (window.location.href = "/documents/new")}>Upload document</CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/employees/new";
+                }}
+              >
+                Add employee
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  window.location.href = "/documents/new";
+                }}
+              >
+                Upload document
+              </CommandItem>
             </CommandGroup>
           </CommandList>
         </Command>

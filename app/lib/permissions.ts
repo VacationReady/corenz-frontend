@@ -233,16 +233,20 @@ export function getActionDisplayName(action: PermissionAction): string {
 /**
  * Determines if the requesting user can access a target employee record.
  * Access rules:
- * - ADMIN can access any employee in their company
+ * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
  * - A MANAGER can access employees whose user.managerId = requestor.id
  */
 export async function canAccessEmployee(
-  requestor: { id: string; role: "ADMIN" | "MANAGER" | "EMPLOYEE"; companyId: string },
+  requestor: {
+    id: string;
+    role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
+    companyId: string;
+  },
   targetEmployeeId: string,
 ): Promise<boolean> {
   // Admins can access any employee within their company
-  if (requestor.role === "ADMIN") {
+  if (requestor.role === "ADMIN" || requestor.role === "SUPER_ADMIN") {
     return true;
   }
 

@@ -60,6 +60,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
+  const postCompanyId = existing.companyId;
+
+  if (!postCompanyId) {
+    return NextResponse.json(
+      { error: "Post company missing" },
+      { status: 500 }
+    );
+  }
+
   const isAuthor = existing.authorId === session.user.id;
   const isAdmin =
     session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
@@ -87,7 +96,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (body.sendEmail) {
     const recipients = await prisma.user.findMany({
       where: {
-        companyId: existing.companyId,
+        companyId: postCompanyId,
         email: { not: "" },
       },
       select: { email: true },

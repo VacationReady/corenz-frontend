@@ -106,7 +106,7 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <Card className="flex min-h-0 w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden">
+      <Card className="flex min-h-0 w-full max-w-5xl max-h-[90vh] flex-col overflow-y-auto">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2">
             <CardTitle className="text-2xl">Create New Report</CardTitle>

@@ -42,7 +42,7 @@ const originalLoad = (Module as any)._load;
 
 test("AutomationActionExecutor", async (t) => {
   const { AutomationActionExecutor } = await import(
-    "../../lib/automation/executor"
+    "../executor"
   );
 
   await t.test("create_task action", async (t) => {

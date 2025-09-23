@@ -213,7 +213,7 @@ test("Automation Rules Component Tests", async (t) => {
 
     // Import the component after mocking
     const AutomationRulesPageModule = await import(
-      "../../app/(withSidebar)/settings/automation-rules/page"
+      "../../../(withSidebar)/settings/automation-rules/page"
     );
     const AutomationRulesPage = AutomationRulesPageModule.default;
 

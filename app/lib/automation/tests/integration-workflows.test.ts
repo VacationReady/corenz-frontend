@@ -288,11 +288,11 @@ test("Automation Workflow Integration Tests", async (t) => {
 
     // Import components
     const { AutomationRuleEvaluator } = await import(
-      "../../lib/automation/evaluator"
+      "../evaluator"
     );
-    const { AutomationJobQueue } = await import("../../lib/automation/queue");
+    const { AutomationJobQueue } = await import("../queue");
     const { AutomationActionExecutor } = await import(
-      "../../lib/automation/executor"
+      "../executor"
     );
 
     // Step 1: Evaluate trigger
@@ -442,7 +442,7 @@ test("Automation Workflow Integration Tests", async (t) => {
 
     // Simulate form submission trigger
     const { AutomationScheduler } = await import(
-      "../../lib/automation/scheduler"
+      "../scheduler"
     );
     const scheduler = new AutomationScheduler();
 
@@ -460,7 +460,7 @@ test("Automation Workflow Integration Tests", async (t) => {
     assert.strictEqual(job.companyId, companyId);
 
     // Process the job
-    const { AutomationWorker } = await import("../../lib/automation/worker");
+    const { AutomationWorker } = await import("../worker");
     const worker = new AutomationWorker();
 
     const success = await worker.processJob(job.id);
@@ -503,7 +503,7 @@ test("Automation Workflow Integration Tests", async (t) => {
 
     mockDatabase.automationRules.push(automationRule);
 
-    const { AutomationJobQueue } = await import("../../lib/automation/queue");
+    const { AutomationJobQueue } = await import("../queue");
     const queue = new AutomationJobQueue();
 
     // Create a job
@@ -513,7 +513,7 @@ test("Automation Workflow Integration Tests", async (t) => {
     });
 
     // Process job (should fail)
-    const { AutomationWorker } = await import("../../lib/automation/worker");
+    const { AutomationWorker } = await import("../worker");
     const worker = new AutomationWorker();
 
     const success = await worker.processJob(jobId);
@@ -595,7 +595,7 @@ test("Automation Workflow Integration Tests", async (t) => {
 
     // Trigger workflow
     const { AutomationScheduler } = await import(
-      "../../lib/automation/scheduler"
+      "../scheduler"
     );
     const scheduler = new AutomationScheduler();
 
@@ -607,7 +607,7 @@ test("Automation Workflow Integration Tests", async (t) => {
 
     // Process job
     const job = mockDatabase.automationJobs[0];
-    const { AutomationWorker } = await import("../../lib/automation/worker");
+    const { AutomationWorker } = await import("../worker");
     const worker = new AutomationWorker();
 
     await worker.processJob(job.id);

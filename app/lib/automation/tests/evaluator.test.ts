@@ -37,7 +37,7 @@ const originalLoad = (Module as any)._load;
 
 test("AutomationRuleEvaluator", async (t) => {
   const { AutomationRuleEvaluator } = await import(
-    "../../lib/automation/evaluator"
+    "../evaluator"
   );
 
   await t.test("DOCUMENT_EXPIRING trigger evaluation", async (t) => {

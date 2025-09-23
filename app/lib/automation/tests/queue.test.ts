@@ -30,7 +30,7 @@ const originalLoad = (Module as any)._load;
 };
 
 test("AutomationJobQueue", async (t) => {
-  const { AutomationJobQueue } = await import("../../lib/automation/queue");
+  const { AutomationJobQueue } = await import("../queue");
 
   await t.test("enqueue creates a job with correct data", async () => {
     const mockJob = {

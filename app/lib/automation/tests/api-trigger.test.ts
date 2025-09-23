@@ -95,7 +95,7 @@ test("Automation Trigger API", async (t) => {
     "POST /api/automation/trigger - manual rule trigger",
     async () => {
       // Import the route handler
-      const { POST } = await import("../../app/api/automation/trigger/route");
+      const { POST } = await import("../../../api/automation/trigger/route");
 
       const mockRule = {
         id: "rule-123",
@@ -151,7 +151,7 @@ test("Automation Trigger API", async (t) => {
   await t.test(
     "POST /api/automation/trigger - event-based trigger",
     async () => {
-      const { POST } = await import("../../app/api/automation/trigger/route");
+      const { POST } = await import("../../../api/automation/trigger/route");
 
       mockScheduler.handleEvent.mock.mockImplementationOnce(() =>
         Promise.resolve(),
@@ -221,7 +221,7 @@ test("Automation Trigger API", async (t) => {
   await t.test(
     "GET /api/automation/trigger - specific rule status",
     async () => {
-      const { GET } = await import("../../app/api/automation/trigger/route");
+      const { GET } = await import("../../../api/automation/trigger/route");
 
       const mockRule = {
         id: "rule-123",

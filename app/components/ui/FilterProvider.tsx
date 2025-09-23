@@ -14,6 +14,7 @@ const initialFilterState: FilterState = {
   departments: [],
   jobRoles: [],
   status: [],
+  locations: [],
   dateRange: {},
   documentTypes: [],
   authors: [],
@@ -94,6 +95,7 @@ export function FilterProvider({
       filters.departments.length > 0 ||
       filters.jobRoles.length > 0 ||
       filters.status.length > 0 ||
+      filters.locations.length > 0 ||
       filters.documentTypes.length > 0 ||
       filters.authors.length > 0 ||
       filters.categories.length > 0 ||

@@ -11,8 +11,12 @@ test("renders existing document preview for file fields", () => {
   const register = () => ({});
   const watch = (id: string) =>
     id === "f1" ? { url: "/docs/test.pdf", name: "test.pdf" } : null;
-  const html = renderToString(renderField(field, register, watch, () => {}));
-  assert.ok(html.includes("<iframe"));
+  const html = renderToString(
+    renderField(field, register, watch, () => {}, false, {
+      uploadContext: { employeeId: "emp-1", formName: "Test Form" },
+    }),
+  );
+  assert.ok(html.includes("View document"));
   assert.ok(html.includes("/docs/test.pdf"));
   assert.ok(html.includes("test.pdf"));
 });

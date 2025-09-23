@@ -198,6 +198,15 @@ This implementation successfully delivers all requested features with zero regre
 ### API Validation:
 
 - ✅ Input validation on all endpoints
+
+## 🗂️ List Page Filter Patterns
+
+- ✅ Wrap list-centric pages in `<FilterProvider>` so shared filter state (search, status, department, role, sort) can be consumed by tables, empty states, and server fetches.
+- ✅ Use `<FilterBar>` with the relevant configuration flags:
+  - `showStatusFilter`, `showDepartmentFilter`, and `showJobRoleFilter` enable the shared multi-select drawers for each dimension.
+  - Supply option arrays via `statusOptions`, `departmentOptions`, `jobRoleOptions`, and `sortOptions` to keep labels consistent with API IDs.
+  - Saved views are available out of the box: pass `savedViewsEnabled`, `savedViews`, and the callbacks (`onSaveView`, `onSelectView`, `onDeleteView`) to allow users to capture reusable filter presets on any future list page.
+- ✅ For consistent UX, pair data regions with the shared `FilteredListLoading` and `FilteredListEmpty` helpers (from `@/components/ui/FilteredListState`). They render active-filter summaries, contextual messaging, and a one-click clear action without duplicating logic.
 - ✅ Company isolation and security
 - ✅ Proper error handling and messaging
 - ✅ Relationship integrity checks

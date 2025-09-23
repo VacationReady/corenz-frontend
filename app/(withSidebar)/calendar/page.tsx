@@ -62,6 +62,13 @@ export default function CalendarPage() {
   const calendarRef = useRef<FullCalendar | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
 
+  const inspectorBlackoutKey = inspectorDate
+    ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
+    : null;
+  const inspectorHasBlackout = inspectorBlackoutKey
+    ? blackoutDateKeys.has(inspectorBlackoutKey)
+    : false;
+
   const fetchDepartments = async () => {
     try {
       const res = await fetch("/api/departments");
@@ -650,69 +657,83 @@ export default function CalendarPage() {
           )}
         </div>
       </Card>
-      {inspectorDate && (
-        <div className="fixed right-0 top-0 h-full w-full sm:w-[380px] bg-white shadow-2xl border-l z-40 p-4 overflow-y-auto">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <div className="text-sm text-gray-500">Day summary</div>
-              <div className="text-lg font-semibold">{inspectorDate.toDateString()}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setSelectedDate(inspectorDate);
-                  setBlockModalOpen(true);
-                }}
-              >
-                Block day
-              </Button>
-              {(() => {
-                const key = `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth()+1).padStart(2,'0')}-${String(inspectorDate.getDate()).padStart(2,'0')}`;
-                const hasBlackout = blackoutDateKeys.has(key);
-                return hasBlackout ? (
+      <Dialog
+        open={Boolean(inspectorDate)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInspectorDate(null);
+          }
+        }}
+      >
+        {inspectorDate ? (
+          <DialogContent
+            title="Day summary"
+            description={inspectorDate.toDateString()}
+            containerClassName="justify-end sm:items-stretch"
+            className="w-full max-w-none sm:max-w-[380px] sm:w-[380px] sm:h-screen sm:max-h-none sm:rounded-none sm:border-l p-4"
+            actions={
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    variant="danger"
-                    onClick={() => deleteBlackoutForDate(inspectorDate)}
-                    aria-label="Delete blackout day"
+                    variant="secondary"
+                    onClick={() => {
+                      setSelectedDate(inspectorDate);
+                      setBlockModalOpen(true);
+                    }}
                   >
-                    <Trash2 className="h-4 w-4 mr-1" /> Delete blackout
+                    Block day
                   </Button>
-                ) : null;
-              })()}
-              <Button size="sm" variant="ghost" onClick={() => setInspectorDate(null)}>Close</Button>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="text-sm text-gray-600">People off</div>
-            <div className="space-y-2">
-              {leaveEventsInRange.filter((ev: any) => {
-                const d = inspectorDate;
-                const start = new Date(ev.start);
-                const end = new Date(ev.end || ev.start);
-                start.setHours(0,0,0,0);
-                end.setHours(0,0,0,0);
-                const target = new Date(d);
-                target.setHours(0,0,0,0);
-                return target >= start && target <= end;
-              }).map((ev: any) => (
-                <div key={ev.id} className="flex items-center gap-3 p-2 rounded border">
-                  <Avatar src={ev.employee?.profileImageUrl ?? null} name={ev.employee?.name ?? null} size={28} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{ev.employee?.name || ev.title}</div>
-                    <div className="text-xs text-gray-600 truncate">{ev.employee?.department ?? ""}</div>
-                  </div>
-                  {ev.categoryName ? (
-                    <span className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(ev.categoryName)}`}>{ev.categoryName}</span>
+                  {inspectorHasBlackout ? (
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => inspectorDate && deleteBlackoutForDate(inspectorDate)}
+                      aria-label="Delete blackout day"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" /> Delete blackout
+                    </Button>
                   ) : null}
                 </div>
-              ))}
+                <Button size="sm" variant="ghost" onClick={() => setInspectorDate(null)}>
+                  Close
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">People off</div>
+              <div className="space-y-2">
+                {leaveEventsInRange
+                  .filter((ev: any) => {
+                    if (!inspectorDate) return false;
+                    const start = new Date(ev.start);
+                    const end = new Date(ev.end || ev.start);
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(0, 0, 0, 0);
+                    const target = new Date(inspectorDate);
+                    target.setHours(0, 0, 0, 0);
+                    return target >= start && target <= end;
+                  })
+                  .map((ev: any) => (
+                    <div key={ev.id} className="flex items-center gap-3 p-2 rounded border">
+                      <Avatar src={ev.employee?.profileImageUrl ?? null} name={ev.employee?.name ?? null} size={28} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium truncate">{ev.employee?.name || ev.title}</div>
+                        <div className="text-xs text-gray-600 truncate">{ev.employee?.department ?? ""}</div>
+                      </div>
+                      {ev.categoryName ? (
+                        <span className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(ev.categoryName)}`}>
+                          {ev.categoryName}
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        ) : null}
+      </Dialog>
       <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
         <DialogContent title="Filters">
           <DialogHeader>

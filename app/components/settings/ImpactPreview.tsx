@@ -157,7 +157,7 @@ export function ImpactPreview({
             current: "18",
             projected: "20",
             change: "+2",
-            changeType: "increase",
+            changeType: "increase" as const,
             unit: "days/year",
           },
           {
@@ -165,7 +165,7 @@ export function ImpactPreview({
             current: "1.5",
             projected: "1.67",
             change: "+0.17",
-            changeType: "increase",
+            changeType: "increase" as const,
             unit: "days/month",
           },
           {
@@ -173,7 +173,7 @@ export function ImpactPreview({
             current: "72%",
             projected: "78%",
             change: "+6%",
-            changeType: "increase",
+            changeType: "increase" as const,
           },
         ],
         risks: [

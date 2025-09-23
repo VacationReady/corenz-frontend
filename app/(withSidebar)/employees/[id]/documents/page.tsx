@@ -93,8 +93,9 @@ export default function EmployeeDocumentsPage() {
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
   const [userRole, setUserRole] = useState<
-    "ADMIN" | "MANAGER" | "EMPLOYEE" | null
+    "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN" | null
   >(null);
+  const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
 
@@ -316,7 +317,7 @@ export default function EmployeeDocumentsPage() {
         ],
       }}
       action={
-        userRole === "ADMIN" ? (
+        isAdminUser ? (
           <Button onClick={() => setIsUploadModalOpen(true)}>
             Add Document
           </Button>
@@ -341,7 +342,7 @@ export default function EmployeeDocumentsPage() {
                 <TableHead>Signatures</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
-                {userRole === "ADMIN" && (
+                {isAdminUser && (
                   <TableHead className="w-[50px] text-right">Actions</TableHead>
                 )}
               </TableRow>
@@ -412,7 +413,7 @@ export default function EmployeeDocumentsPage() {
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>{formatFileSize(doc.size)}</TableCell>
-                    {userRole === "ADMIN" && (
+                    {isAdminUser && (
                       <TableCell
                         className="text-right"
                         onClick={(e) => e.stopPropagation()}
@@ -459,7 +460,7 @@ export default function EmployeeDocumentsPage() {
           )}
 
           {/* Upload Modal */}
-        {userRole === "ADMIN" && (
+        {isAdminUser && (
           <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
             <DialogContent>
               <DialogHeader>
@@ -672,7 +673,7 @@ export default function EmployeeDocumentsPage() {
           </DialogContent>
         </Dialog>
 
-        {userRole === "ADMIN" && (
+        {isAdminUser && (
           <EditAccessModal
             isOpen={isEditAccessOpen}
             onClose={() => setIsEditAccessOpen(false)}
@@ -682,7 +683,7 @@ export default function EmployeeDocumentsPage() {
           />
         )}
 
-        {userRole === "ADMIN" && (
+        {isAdminUser && (
           <ViewAcknowledgementsModal
             isOpen={isViewAckOpen}
             onClose={() => setIsViewAckOpen(false)}

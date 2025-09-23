@@ -3,12 +3,31 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Clock, User } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Clock, User, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 import clsx from "clsx";
 
-export default function EmployeeSidebar() {
+interface SidebarProps {
+  variant?: "desktop" | "mobile";
+  onMobileNavigate?: () => void;
+  onMobileClose?: () => void;
+}
+
+export default function EmployeeSidebar({
+  variant = "desktop",
+  onMobileNavigate,
+  onMobileClose,
+}: SidebarProps) {
   const pathname = usePathname();
+  const isMobile = variant === "mobile";
+  const headerPadding = isMobile ? "px-6 py-6" : "px-8 py-8";
+  const sectionPadding = isMobile ? "px-6 py-5" : "px-8 py-6";
+  const navPadding = isMobile ? "px-4" : "px-6";
+
+  const handleLogout = () => {
+    onMobileNavigate?.();
+    void signOut({ callbackUrl: "/login" });
+  };
 
   const navItems = [
     {
@@ -22,26 +41,42 @@ export default function EmployeeSidebar() {
   ];
 
   return (
-    <div className="min-h-screen transition-all duration-300 flex flex-col m-4 ml-6 w-80">
+    <div
+      className={clsx(
+        "transition-all duration-300 flex flex-col",
+        isMobile ? "h-full w-full max-w-sm p-4" : "min-h-screen m-4 ml-6 w-80",
+      )}
+    >
       {/* Glassmorphism Container */}
       <div className="glass rounded-3xl shadow-glass h-full flex flex-col overflow-hidden">
         {/* Logo Section */}
-        <div className="px-8 py-8 border-b border-glass">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
-              <span className="text-primary-foreground font-bold text-lg">
-                P
-              </span>
+        <div className={clsx("border-b border-glass", headerPadding)}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
+                <span className="text-primary-foreground font-bold text-lg">
+                  P
+                </span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">PeopleCore</h2>
+                <p className="text-sm text-muted-foreground">Employee Portal</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">PeopleCore</h2>
-              <p className="text-sm text-muted-foreground">Employee Portal</p>
-            </div>
+            {isMobile && onMobileClose && (
+              <button
+                onClick={onMobileClose}
+                className="p-3 hover-glass rounded-2xl transition-glass"
+              >
+                <X className="h-6 w-6 text-foreground" />
+                <span className="sr-only">Close navigation</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Quick Actions Header */}
-        <div className="px-8 py-6">
+        <div className={clsx(sectionPadding)}>
           <h2 className="text-lg font-bold text-foreground mb-2">
             Quick actions
           </h2>
@@ -51,7 +86,13 @@ export default function EmployeeSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-6 pb-6">
+        <nav
+          className={clsx(
+            "flex-1 pb-6",
+            navPadding,
+            isMobile && "overflow-y-auto",
+          )}
+        >
           <div className="space-y-2">
             {navItems.map(({ label, href, icon }) => (
               <Link
@@ -63,6 +104,7 @@ export default function EmployeeSidebar() {
                     ? "bg-primary text-primary-foreground shadow-warm"
                     : "text-foreground",
                 )}
+                onClick={() => onMobileNavigate?.()}
               >
                 <div className="w-6 h-6">
                   {React.cloneElement(icon, { size: 24 })}
@@ -74,9 +116,14 @@ export default function EmployeeSidebar() {
         </nav>
 
         {/* Settings & Logout */}
-        <div className="border-t border-glass px-6 py-6">
+        <div
+          className={clsx(
+            "border-t border-glass",
+            isMobile ? "px-6 py-5" : "px-6 py-6",
+          )}
+        >
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover-glass rounded-2xl transition-glass"
           >
             <LogOut size={20} />

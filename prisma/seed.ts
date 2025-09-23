@@ -239,7 +239,7 @@ async function main() {
         email: emp.email,
         firstName: emp.firstName,
         lastName: emp.lastName,
-        role: emp.role as "ADMIN" | "MANAGER" | "EMPLOYEE",
+        role: emp.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN",
         password: hashedPassword,
         companyId: company.id,
         departmentId: department.id,

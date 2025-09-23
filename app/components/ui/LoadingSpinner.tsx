@@ -9,6 +9,7 @@ interface LoadingSpinnerProps {
   className?: string;
   text?: string;
   showText?: boolean;
+  color?: string;
 }
 
 const sizeClasses = {
@@ -25,22 +26,28 @@ const textSizeClasses = {
   xl: "text-lg",
 };
 
-const variantClasses = {
-  primary: "text-primary",
-  secondary: "text-secondary",
-  accent: "text-accent",
-  muted: "text-muted-foreground",
+const variantColorMap = {
+  primary: "hsl(var(--primary))",
+  secondary: "hsl(var(--secondary))",
+  accent: "hsl(var(--accent))",
+  muted: "hsl(var(--muted-foreground))",
 };
 
 export function LoadingSpinner({
   size = "md",
-  variant = "primary", 
+  variant = "primary",
   className,
   text = "Loading...",
   showText = false,
+  color,
 }: LoadingSpinnerProps) {
+  const resolvedColor = color ?? variantColorMap[variant];
+
   return (
-    <div className={cn("flex items-center justify-center gap-3", className)}>
+    <div
+      className={cn("flex items-center justify-center gap-3", className)}
+      style={{ color: resolvedColor }}
+    >
       <div className="relative">
         {/* Outer ring with gradient */}
         <div
@@ -49,38 +56,36 @@ export function LoadingSpinner({
             sizeClasses[size]
           )}
           style={{
-            background: `conic-gradient(from 0deg, transparent, ${variant === 'primary' ? 'hsl(var(--primary))' : variant === 'accent' ? 'hsl(var(--accent))' : 'hsl(var(--muted-foreground))'}, transparent)`,
+            background: `conic-gradient(from 0deg, transparent, ${resolvedColor}, transparent)`,
             borderRadius: '50%',
             padding: '2px',
           }}
         >
           <div className="w-full h-full bg-background rounded-full" />
         </div>
-        
+
         {/* Inner pulsing dot */}
         <div
           className={cn(
             "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full animate-pulse",
-            variantClasses[variant],
             {
               "w-1 h-1": size === "sm",
-              "w-1.5 h-1.5": size === "md", 
+              "w-1.5 h-1.5": size === "md",
               "w-2 h-2": size === "lg",
               "w-3 h-3": size === "xl",
             }
           )}
           style={{
-            backgroundColor: 'currentColor',
+            backgroundColor: resolvedColor,
             animationDuration: '1.5s',
           }}
         />
       </div>
-      
+
       {showText && (
         <span className={cn(
           "font-medium animate-pulse",
-          textSizeClasses[size],
-          variantClasses[variant]
+          textSizeClasses[size]
         )}>
           {text}
         </span>

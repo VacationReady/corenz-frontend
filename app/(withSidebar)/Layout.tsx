@@ -12,9 +12,11 @@ export default async function WithSidebarLayout({
   children: ReactNode;
 }) {
   const session = await getServerSession(authOptions);
+
   if (session?.user?.role === "SUPER_ADMIN") {
     redirect("/tenants");
   }
+
   const initialRole = session?.user?.role as
     | "ADMIN"
     | "MANAGER"

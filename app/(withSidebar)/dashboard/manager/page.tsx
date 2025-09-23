@@ -7,6 +7,8 @@ import DashboardGrid from "@/components/ui/DashboardGrid";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useTenantRegion } from "@/hooks/useTenantRegion";
 import {
   CalendarCheck2,
   Users,
@@ -14,6 +16,9 @@ import {
   Search,
   FileBarChart2,
   UserPlus,
+  CheckSquare,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -65,6 +70,7 @@ function PendingLeaveApprovals() {
     "/api/leave-request?approvalStatus=PENDING",
     fetcher,
   );
+  const { template, regionName } = useTenantRegion();
 
   const handleAction = async (id: string, action: "approve" | "decline") => {
     await fetch(`/api/leave-request/${id}`, {
@@ -94,7 +100,24 @@ function PendingLeaveApprovals() {
       ) : error ? (
         <WidgetError message="Failed to load approvals." />
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No pending requests.</p>
+        <EmptyState
+          tone="brand"
+          title="You're all caught up"
+          description="There aren't any leave requests waiting for approval."
+          className="py-8"
+          guidance={[
+            template === "NZ"
+              ? "Glance at the NZ payroll cut-off so approved leave is captured in your PAYE run."
+              : template === "AU"
+              ? "Use the AU award interpreter to confirm allowances before you approve."
+              : template === "UK"
+              ? "Check your UK payroll draft so statutory leave balances stay tidy."
+              : "Double-check your payroll draft so balances stay accurate.",
+            regionName
+              ? `Encourage your ${regionName} team to submit requests ahead of busy periods.`
+              : "Encourage your team to submit requests ahead of busy periods.",
+          ]}
+        />
       ) : (
         <div className="space-y-2">
           <div className="flex justify-end gap-2">
@@ -106,6 +129,7 @@ function PendingLeaveApprovals() {
                   items.map((r: any) => handleAction(r.id, "approve")),
                 );
               }}
+              icon={<CheckSquare className="h-4 w-4" />}
             >
               Approve all
             </Button>
@@ -132,6 +156,7 @@ function PendingLeaveApprovals() {
                   <Button
                     size="sm"
                     onClick={() => handleAction(r.id, "approve")}
+                    icon={<CheckCircle2 className="h-4 w-4" />}
                   >
                     Approve
                   </Button>
@@ -139,6 +164,7 @@ function PendingLeaveApprovals() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleAction(r.id, "decline")}
+                    icon={<XCircle className="h-4 w-4" />}
                   >
                     Reject
                   </Button>
@@ -168,6 +194,7 @@ function TeamAbsenceOverview() {
     `/api/calendar-events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     fetcher,
   );
+  const { template, regionName } = useTenantRegion();
   return (
     <DashboardWidget title="Team Absences Today" icon={Users}>
       {isLoading ? (
@@ -175,7 +202,24 @@ function TeamAbsenceOverview() {
       ) : error ? (
         <WidgetError message="Failed to load absences." />
       ) : !data || data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No absences today.</p>
+        <EmptyState
+          tone="success"
+          title="Everyone's in"
+          description="No absences are scheduled today."
+          className="py-8"
+          guidance={[
+            template === "NZ"
+              ? "Check the NZ public holiday calendar so upcoming regional days don't surprise the roster."
+              : template === "AU"
+              ? "Review your AU award roster to confirm coverage before the next payroll run."
+              : template === "UK"
+              ? "Give the UK bank holiday calendar a quick scan for any last-minute impacts."
+              : "Review your upcoming roster to stay ahead of any coverage gaps.",
+            regionName
+              ? `Keep an eye on ${regionName} sickness trends so you can react quickly.`
+              : "Keep an eye on sickness trends so you can react quickly.",
+          ]}
+        />
       ) : (
         <ul className="space-y-1 text-sm">
           {data.map((ev: any) => (
@@ -194,14 +238,20 @@ function QuickLinks() {
     <DashboardWidget title="Quick Links" icon={UserPlus}>
       <div className="flex flex-wrap gap-2">
         <Link href="/employees">
-          <Button variant="outline" size="sm">
-            <UserPlus className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<UserPlus className="h-4 w-4" />}
+          >
             Add Employee
           </Button>
         </Link>
         <Link href="/reports">
-          <Button variant="outline" size="sm">
-            <FileBarChart2 className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<FileBarChart2 className="h-4 w-4" />}
+          >
             Run Report
           </Button>
         </Link>
@@ -215,6 +265,7 @@ function TeamInsights() {
     `/api/employees?status=active`,
     fetcher,
   );
+  const { template, regionName } = useTenantRegion();
 
   const insights = useMemo(() => {
     if (!Array.isArray(data)) return null;
@@ -290,7 +341,24 @@ function TeamInsights() {
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">No data.</p>
+        <EmptyState
+          tone="brand"
+          title="Build your first insight"
+          description="We need a little more information to surface team insights."
+          className="py-8"
+          guidance={[
+            template === "NZ"
+              ? "Run the NZ payroll insights report to seed tenure and anniversary trends."
+              : template === "AU"
+              ? "Start with the AU award compliance report to benchmark allowance usage."
+              : template === "UK"
+              ? "Generate the UK payroll starter report to baseline tenure data."
+              : "Save a core people analytics report to baseline tenure data.",
+            regionName
+              ? `Tag upcoming ${regionName} public holidays so celebrations land on the right day.`
+              : "Tag upcoming public holidays so celebrations land on the right day.",
+          ]}
+        />
       )}
     </DashboardWidget>
   );
@@ -317,18 +385,20 @@ export default function ManagerDashboardPage() {
             />
             <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
           </div>
-          <Link href="/employees">
-            <Button size="sm">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Employee
-            </Button>
-          </Link>
-          <Link href="/reports">
-            <Button size="sm" variant="outline">
-              <FileBarChart2 className="w-4 h-4 mr-2" />
-              Run Report
-            </Button>
-          </Link>
+        <Link href="/employees">
+          <Button size="sm" icon={<UserPlus className="h-4 w-4" />}>
+            Add Employee
+          </Button>
+        </Link>
+        <Link href="/reports">
+          <Button
+            size="sm"
+            variant="outline"
+            icon={<FileBarChart2 className="h-4 w-4" />}
+          >
+            Run Report
+          </Button>
+        </Link>
         </div>
       }
     >

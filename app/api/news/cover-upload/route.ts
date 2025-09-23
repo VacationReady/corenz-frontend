@@ -38,7 +38,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: signErr.message }, { status: 400 });
     }
 
-    return NextResponse.json({ path: objectPath, url: signed?.signedUrl || null });
+    return NextResponse.json({
+      path: objectPath,
+      url: signed?.signedUrl || null,
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }

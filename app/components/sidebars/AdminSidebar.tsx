@@ -19,6 +19,7 @@ import {
   X,
   LogOut,
 } from "lucide-react";
+import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
@@ -31,6 +32,7 @@ export default function AdminSidebar({
   onMobileNavigate,
   onMobileClose,
 }: SidebarProps) {
+  const { branding } = useTenantBranding();
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed(!collapsed);
   const pathname = usePathname();
@@ -38,6 +40,9 @@ export default function AdminSidebar({
   const headerPadding = isMobile ? "px-6 py-6" : "px-8 py-8";
   const sectionPadding = isMobile ? "px-6 py-5" : "px-8 py-6";
   const navPadding = isMobile ? "px-4" : "px-6";
+
+  const brandName = branding.shortName || branding.name;
+  const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
 
   const handleLogout = () => {
     onMobileNavigate?.();
@@ -67,12 +72,21 @@ export default function AdminSidebar({
               collapsed ? "opacity-0 w-0" : "opacity-100",
             )}
           >
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm">
-              <span className="text-primary-foreground font-bold text-lg">
-                P
-              </span>
+            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm overflow-hidden">
+              {brandLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={brandLogo}
+                  alt={`${brandName} logo`}
+                  className="h-8 w-8 object-contain"
+                />
+              ) : (
+                <span className="text-primary-foreground font-bold text-lg">
+                  {branding.initials}
+                </span>
+              )}
             </div>
-            <h1 className="font-bold text-foreground text-2xl">PeopleCore</h1>
+            <h1 className="font-bold text-foreground text-2xl">{brandName}</h1>
           </div>
           {isMobile && onMobileClose ? (
             <button

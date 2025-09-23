@@ -87,8 +87,7 @@ export default function TopBar({
           if (!options.some((option) => option.id === id)) {
             options.push({
               id,
-              name:
-                label || `Tenant ${id.slice(0, 8).toUpperCase()}`,
+              name: label || `Tenant ${id.slice(0, 8).toUpperCase()}`,
             });
           }
         };
@@ -151,9 +150,7 @@ export default function TopBar({
         await updateSession?.({ companyId: value });
         const selected = tenants.find((option) => option.id === value);
         toast.success(
-          selected
-            ? `Now viewing “${selected.name}”`
-            : "Tenant switched",
+          selected ? `Now viewing “${selected.name}”` : "Tenant switched",
         );
       } catch (error) {
         console.error("Failed to switch tenant", error);
@@ -183,6 +180,7 @@ export default function TopBar({
       setTenant(created.id);
       setIsSwitchingTenant(true);
       try {
+        // Fire a custom event so the rest of the app can react to a new tenant being created.
         if (typeof window !== "undefined") {
           window.dispatchEvent(
             new CustomEvent("tenant:created", { detail: created }),

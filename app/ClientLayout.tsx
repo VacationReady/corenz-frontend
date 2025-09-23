@@ -34,9 +34,18 @@ export default function ClientLayout({
 
   const loading = status === "loading" && !initialRole;
 
+  const isSuperAdmin = resolvedRole === "SUPER_ADMIN";
+  const hasSidebar = !isProfilePage && !isSuperAdmin;
+
   React.useEffect(() => {
     setMobileSidebarOpen(false);
   }, [pathname]);
+
+  React.useEffect(() => {
+    if (!hasSidebar) {
+      setMobileSidebarOpen(false);
+    }
+  }, [hasSidebar]);
 
   const handleOpenMobileSidebar = React.useCallback(() => {
     setMobileSidebarOpen(true);
@@ -45,15 +54,6 @@ export default function ClientLayout({
   const handleCloseMobileSidebar = React.useCallback(() => {
     setMobileSidebarOpen(false);
   }, []);
-
-  const isSuperAdmin = resolvedRole === "SUPER_ADMIN";
-  const hasSidebar = !isProfilePage && !isSuperAdmin;
-
-  React.useEffect(() => {
-    if (!hasSidebar) {
-      setMobileSidebarOpen(false);
-    }
-  }, [hasSidebar]);
 
   const getSidebar = React.useCallback(
     (variant: "desktop" | "mobile") => {

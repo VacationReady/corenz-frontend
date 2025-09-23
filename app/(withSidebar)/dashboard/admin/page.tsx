@@ -68,8 +68,8 @@ export default async function AdminDashboardPage() {
                 <h1 className="text-2xl font-bold text-foreground mb-1">
                   {user.firstName || user.name || "User"}
                 </h1>
-                {/* Replace hardcoded role/location/status with actual data when present */}
-                {(user.JobRole?.name || user.Department_User_departmentIdToDepartment?.name) && (
+                {(user.JobRole?.name ||
+                  user.Department_User_departmentIdToDepartment?.name) && (
                   <p className="text-sm text-muted-foreground mb-1">
                     {[user.JobRole?.name, user.Department_User_departmentIdToDepartment?.name]
                       .filter(Boolean)

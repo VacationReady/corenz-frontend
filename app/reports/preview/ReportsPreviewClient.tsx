@@ -1,9 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +19,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
+import { useTenantRegion } from "@/hooks/useTenantRegion";
+import { ArrowLeft, X } from "lucide-react";
 import Papa from "papaparse";
 
 type ColumnDefinition = { header: string; accessorKey: string };
@@ -32,7 +42,7 @@ function downloadCSV(data: any[], columns: ColumnDefinition[]) {
 
   const headers = columns.map((col: any) => col.header);
   const fields = columns.map((col: any) =>
-    col.accessorKey ? col.accessorKey : col.header
+    col.accessorKey ? col.accessorKey : col.header,
   );
 
   const csvData = data.map((row) => {
@@ -61,10 +71,12 @@ export default function ReportsPreviewClient() {
   const fieldsParam = searchParams?.get("fields");
   const reportIdParam = searchParams?.get("reportId");
   const { toast } = useToast();
+  const { template, regionName } = useTenantRegion();
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
     const base = reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
-    const ensure = (arr: string[], field: string) => (arr.includes(field) ? arr : [...arr, field]);
+    const ensure = (arr: string[], field: string) =>
+      arr.includes(field) ? arr : [...arr, field];
     return ensure(ensure(base, "User.firstName"), "User.lastName");
   });
   const [reportConfig, setReportConfig] = useState<any>(null);
@@ -101,6 +113,51 @@ export default function ReportsPreviewClient() {
   const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState<number>(0);
   const [exportingFull, setExportingFull] = useState(false);
+
+  const returnToParam = searchParams?.get("returnTo") || "";
+  const safeReturnTo = useMemo(() => {
+    if (!returnToParam) return null;
+    if (returnToParam.startsWith("/")) {
+      return returnToParam;
+    }
+    return null;
+  }, [returnToParam]);
+
+  const exitLabel = useMemo(() => {
+    if (!safeReturnTo) return "Close preview";
+    if (safeReturnTo.includes("builder")) return "Back to builder";
+    if (safeReturnTo.includes("create")) return "Back to report setup";
+    if (safeReturnTo === "/reports") return "Back to reports";
+    return "Back";
+  }, [safeReturnTo]);
+
+  const handleExit = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const closeEvent = new CustomEvent("reports-preview:close", {
+        cancelable: true,
+      });
+      if (!window.dispatchEvent(closeEvent)) {
+        return;
+      }
+      if (safeReturnTo) {
+        router.push(safeReturnTo);
+        return;
+      }
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
+      router.push("/reports");
+      return;
+    }
+
+    if (safeReturnTo) {
+      router.push(safeReturnTo);
+      return;
+    }
+
+    router.push("/reports");
+  }, [router, safeReturnTo]);
 
   const defaultSort = useMemo(() => {
     if (!selectedFields.length) return null;
@@ -144,12 +201,12 @@ export default function ReportsPreviewClient() {
 
   const piiFields = useMemo(
     () => selectedFields.filter((field) => fieldMetadata[field]?.isPII),
-    [selectedFields, fieldMetadata]
+    [selectedFields, fieldMetadata],
   );
 
   const piiFieldLabels = useMemo(
     () => piiFields.map((field) => fieldMetadata[field]?.label ?? field),
-    [piiFields, fieldMetadata]
+    [piiFields, fieldMetadata],
   );
 
   const hasPIISelected = piiFields.length > 0;
@@ -159,6 +216,20 @@ export default function ReportsPreviewClient() {
       setPiiAcknowledged(false);
     }
   }, [hasPIISelected]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !showPIIModal) {
+        event.preventDefault();
+        handleExit();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleExit, showPIIModal]);
 
   // Load report configuration if reportId is provided
   useEffect(() => {
@@ -221,6 +292,72 @@ export default function ReportsPreviewClient() {
     setPage((prev) => (prev === 1 ? prev : 1));
   }, [selectedFields.join(",")]);
 
+  // --- Field rewrite for Leave context (merged functionality) ---
+  const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
+    const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    const result: string[] = [];
+    for (const f of fields) {
+      if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
+        if (!result.includes("_computed.jobRoleName"))
+          result.push("_computed.jobRoleName");
+        continue;
+      }
+      if (hasLeave) {
+        if (f.startsWith("User.")) {
+          result.push(f.replace("User.", "LeaveRequest.Employee.User."));
+          continue;
+        }
+        if (f.startsWith("Employee.")) {
+          result.push(f.replace("Employee.", "LeaveRequest.Employee."));
+          continue;
+        }
+        if (f.startsWith("Department.")) {
+          result.push(
+            f.replace("Department.", "LeaveRequest.Employee.Department."),
+          );
+          continue;
+        }
+        if (f.startsWith("JobRole.")) {
+          result.push(f.replace("JobRole.", "LeaveRequest.Employee.JobRole."));
+          continue;
+        }
+        if (
+          f === "User.department.name" ||
+          f === "User.Department_User_departmentIdToDepartment.name"
+        ) {
+          result.push("LeaveRequest.Employee.Department.name");
+          continue;
+        }
+        if (f.startsWith("EventCategory.")) {
+          result.push(
+            f.replace("EventCategory.", "LeaveRequest.EventCategory."),
+          );
+          continue;
+        }
+        if (f === "LeaveEntitlement.usedDays") {
+          result.push("_computed.durationDays");
+          continue;
+        }
+        if (f.startsWith("LeaveEntitlement.")) {
+          result.push(
+            f.replace(
+              "LeaveEntitlement.",
+              "LeaveRequest.Employee.LeaveEntitlement.",
+            ),
+          );
+          continue;
+        }
+      }
+      result.push(f);
+    }
+    return result;
+  }, []);
+
+  const effectiveSelectedFields = useMemo(
+    () => rewriteFieldsForLeaveContext(selectedFields),
+    [selectedFields, rewriteFieldsForLeaveContext],
+  );
+
   // Helper to fetch a specific page (used by both initial load and full export)
   const fetchReportPage = useCallback(
     async (pageToFetch: number, limitToFetch: number) => {
@@ -233,7 +370,7 @@ export default function ReportsPreviewClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          selectedFields,
+          selectedFields: effectiveSelectedFields,
           filters: Array.isArray(activeFilters) ? activeFilters : [],
           pagination: { page: pageToFetch, limit: limitToFetch },
           sort: sortToSend,
@@ -241,15 +378,16 @@ export default function ReportsPreviewClient() {
       });
       const json = await res.json();
       const results = Array.isArray(json.data) ? json.data : [];
-      const totalCount = typeof json.total === "number" ? json.total : results.length;
+      const totalCount =
+        typeof json.total === "number" ? json.total : results.length;
       return { results, totalCount };
     },
-    [selectedFields, activeFilters, activeSort, defaultSort]
+    [effectiveSelectedFields, activeFilters, activeSort, defaultSort],
   );
 
   // Load report data when fields are available
   useEffect(() => {
-    if (selectedFields.length === 0) return;
+    if (effectiveSelectedFields.length === 0) return;
     if (reportIdParam && !reportConfig) return;
 
     let cancelled = false;
@@ -271,41 +409,21 @@ export default function ReportsPreviewClient() {
     return () => {
       cancelled = true;
     };
-  }, [selectedFields, page, pageSize, reportIdParam, reportConfig, fetchReportPage]);
-
-  const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
-    const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
-    const result: string[] = [];
-    for (const f of fields) {
-      if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
-        if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
-        // also ensure sources are fetched server-side (the server handles this rewrite)
-        continue;
-      }
-      if (hasLeave) {
-        if (f.startsWith("User.")) { result.push(f.replace("User.", "LeaveRequest.Employee.User.")); continue; }
-        if (f.startsWith("Employee.")) { result.push(f.replace("Employee.", "LeaveRequest.Employee.")); continue; }
-        if (f.startsWith("Department.")) { result.push(f.replace("Department.", "LeaveRequest.Employee.Department.")); continue; }
-        if (f.startsWith("JobRole.")) { result.push(f.replace("JobRole.", "LeaveRequest.Employee.JobRole.")); continue; }
-        if (f === "User.department.name" || f === "User.Department_User_departmentIdToDepartment.name") { result.push("LeaveRequest.Employee.Department.name"); continue; }
-        if (f.startsWith("EventCategory.")) { result.push(f.replace("EventCategory.", "LeaveRequest.EventCategory.")); continue; }
-        if (f === "LeaveEntitlement.usedDays") { result.push("_computed.durationDays"); continue; }
-        if (f.startsWith("LeaveEntitlement.")) { result.push(f.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.")); continue; }
-      }
-      result.push(f);
-    }
-    return result;
-  }, []);
-
-  const effectiveSelectedFields = useMemo(
-    () => rewriteFieldsForLeaveContext(selectedFields),
-    [selectedFields, rewriteFieldsForLeaveContext]
-  );
+  }, [
+    effectiveSelectedFields,
+    page,
+    pageSize,
+    reportIdParam,
+    reportConfig,
+    fetchReportPage,
+  ]);
 
   const translateLegacy = useCallback((f: string) => {
     const map: Record<string, string> = {
-      "User.department.name": "User.Department_User_departmentIdToDepartment.name",
-      "User.Department.name": "User.Department_User_departmentIdToDepartment.name",
+      "User.department.name":
+        "User.Department_User_departmentIdToDepartment.name",
+      "User.Department.name":
+        "User.Department_User_departmentIdToDepartment.name",
       "User.jobRole.name": "User.JobRole.name",
     };
     return map[f] || f;
@@ -316,8 +434,13 @@ export default function ReportsPreviewClient() {
       const keys = field.split(".");
       let accessorKey: string;
       let headerFallback: string;
+
+      if (field === "_computed.jobRoleName") {
+        return { header: "Job Role", accessorKey: "_computed.jobRoleName" };
+      }
+
       if (keys.length >= 3) {
-        accessorKey = `${keys.slice(1).join(".")}`; // support nested
+        accessorKey = `${keys.slice(1).join(".")}`;
         headerFallback = keys[keys.length - 1];
       } else if (keys.length === 2) {
         accessorKey = keys[1];
@@ -328,11 +451,10 @@ export default function ReportsPreviewClient() {
       }
 
       const translated = translateLegacy(field);
-      let label = fieldLabels[field] || fieldLabels[translated] || headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
-      if (field === "_computed.jobRoleName") {
-        label = "Job Role";
-        accessorKey = "_computed.jobRoleName";
-      }
+      const label =
+        fieldLabels[field] ||
+        fieldLabels[translated] ||
+        headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
 
       return { header: label, accessorKey };
     });
@@ -352,7 +474,7 @@ export default function ReportsPreviewClient() {
         rows: rowCount,
       });
     },
-    [hasPIISelected, piiFieldLabels, piiFields, toast]
+    [hasPIISelected, piiFieldLabels, piiFields, toast],
   );
 
   const performDownload = useCallback(() => {
@@ -397,7 +519,11 @@ export default function ReportsPreviewClient() {
       logAndToastPII(combined.length);
     } catch (error) {
       console.error("❌ Error exporting full report:", error);
-      alert("Failed to export full report. Please try again.");
+      toast({
+        title: "Export failed",
+        description: "We couldn't export the full report. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setExportingFull(false);
     }
@@ -417,63 +543,155 @@ export default function ReportsPreviewClient() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save report");
-      alert("Report saved!");
+      toast({
+        title: "Report saved",
+        description: "Your report has been saved successfully.",
+      });
       router.push("/reports");
     } catch (err) {
       console.error(err);
-      alert("Error saving report.");
+      toast({
+        title: "Error saving report",
+        description:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong while saving your report.",
+        variant: "destructive",
+      });
     }
   };
 
+  const header = (
+    <FullScreenHeader
+      backSlot={
+        <button
+          type="button"
+          onClick={handleExit}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
+          aria-label={exitLabel}
+        >
+          <ArrowLeft aria-hidden className="h-4 w-4" />
+          <span>{exitLabel}</span>
+        </button>
+      }
+      title={
+        <h1 className="text-base font-semibold text-foreground sm:text-lg">
+          Report preview
+        </h1>
+      }
+      helpSlot={
+        <button
+          type="button"
+          onClick={handleExit}
+          className="inline-flex items-center gap-2"
+          aria-label="Close preview"
+        >
+          <X aria-hidden className="h-4 w-4" />
+          <span className="hidden text-sm font-medium sm:inline">Close</span>
+        </button>
+      }
+    >
+      <p className="text-sm text-muted-foreground">
+        Review your selected fields, apply filters, and export data without
+        leaving the builder.
+      </p>
+    </FullScreenHeader>
+  );
+
+  const renderShell = (body: ReactNode) => (
+    <div className="min-h-screen bg-muted/10">
+      {header}
+      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6">{body}</main>
+    </div>
+  );
+
   if (loadingReport) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">Loading report configuration...</p>
-      </main>
+    return renderShell(
+      <EmptyState
+        tone="brand"
+        title="Loading report configuration"
+        description="We’re fetching your saved filters and columns."
+        className="max-w-xl mx-auto mt-20"
+      />,
     );
   }
 
   if (!selectedFields.length && !loadingReport) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">
-          No fields selected. Please go back and select fields for your report.
-        </p>
-        <Button className="mt-4" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
-      </main>
+    const templateLabel =
+      template === "NZ"
+        ? "NZ Payroll Summary"
+        : template === "AU"
+        ? "AU Award Compliance"
+        : template === "UK"
+        ? "UK Payroll Starter"
+        : "People Analytics Starter";
+
+    return renderShell(
+      <EmptyState
+        tone="brand"
+        title="Choose at least one column"
+        description="No fields are selected yet, so there’s nothing to preview."
+        className="max-w-xl mx-auto mt-20"
+        guidance={[
+          `Load the ${templateLabel} template in the builder for a quick start.`,
+          "Include first and last name so your export stays easy to read.",
+        ]}
+        action={{
+          label: "Go back",
+          variant: "outline",
+          onClick: handleExit,
+        }}
+      />,
     );
   }
 
   if (loading) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">Loading report data...</p>
-      </main>
+    return renderShell(
+      <EmptyState
+        tone="brand"
+        title="Building your preview"
+        description="We’re running the report with your selected filters."
+        className="max-w-xl mx-auto mt-20"
+      />,
     );
   }
 
   if (!loading && data.length === 0) {
-    return (
-      <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">No data found for the selected fields.</p>
-        <Button className="mt-4" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
-      </main>
+    return renderShell(
+      <EmptyState
+        tone="warning"
+        title="No matching rows"
+        description="We didn’t find any records that meet your criteria."
+        className="max-w-xl mx-auto mt-20"
+        guidance={[
+          template === "NZ"
+            ? "Check the pay period dates against the NZ payroll template you used."
+            : template === "AU"
+            ? "Verify the award and allowance filters match your AU template."
+            : template === "UK"
+            ? "Confirm the pay run selection matches your UK payroll starter template."
+            : "Review your filters or try widening the date range.",
+          regionName
+            ? `If you’re filtering by location, make sure it includes all ${regionName} sites.`
+            : "If you’re filtering by location, make sure it includes every site you need.",
+        ]}
+        action={{
+          label: "Adjust filters",
+          variant: "outline",
+          onClick: handleExit,
+        }}
+      />,
     );
   }
 
-  return (
-    <>
-      <main className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Report Preview</h1>
-        <p className="mb-4">
-          Your custom report is displayed below. You can sort and filter as
+  const body = (
+    <div className="rounded-3xl border border-border/60 bg-background p-6 shadow-sm">
+      <div className="mb-6 space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Your custom report is displayed below. Sort, filter, and export as
           needed.
         </p>
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={handleDownloadClick}>
             Download CSV ({filteredData.length} rows)
           </Button>
@@ -486,22 +704,28 @@ export default function ReportsPreviewClient() {
           ) : null}
           <Button onClick={handleSaveReport}>Save Report</Button>
         </div>
-        <div className="min-h-[200px]">
-          <FilterableDataTable
-            columns={columns}
-            data={data}
-            total={total}
-            page={page}
-            pageSize={pageSize}
-            onFilteredDataChange={setFilteredData}
-            onPageChange={setPage}
-            onPageSizeChange={(size: number) => {
-              setPageSize(size);
-              setPage(1);
-            }}
-          />
-        </div>
-      </main>
+      </div>
+      <div className="min-h-[200px]">
+        <FilterableDataTable
+          columns={columns}
+          data={data}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          onFilteredDataChange={setFilteredData}
+          onPageChange={setPage}
+          onPageSizeChange={(size: number) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {renderShell(body)}
       <Dialog open={showPIIModal} onOpenChange={setShowPIIModal}>
         <DialogContent>
           <DialogHeader>

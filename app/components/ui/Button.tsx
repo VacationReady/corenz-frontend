@@ -4,12 +4,16 @@ import React from "react";
 import clsx from "clsx";
 import { Slot } from "@radix-ui/react-slot";
 import { LoadingSpinner } from "./LoadingSpinner";
+import { useTenantTheme } from "./TenantThemeProvider";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   asChild?: boolean;
+  loadingText?: string;
+  icon?: React.ReactNode;
+  iconPosition?: "start" | "end";
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -22,10 +26,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       type = "submit",
       asChild = false,
+      loadingText = "Loading...",
+      icon,
+      iconPosition = "start",
       ...props
     },
     ref,
   ) => {
+    const { primaryColor } = useTenantTheme();
     const baseClasses =
       "inline-flex items-center justify-center rounded-2xl font-medium transition-glass focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed";
 
@@ -65,18 +73,41 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "opacity-50 cursor-not-allowed": disabled || loading,
           },
         )}
+        aria-live={loading ? "polite" : undefined}
+        aria-busy={loading || undefined}
       >
-        {loading ? (
-          <span className="flex items-center gap-2">
-            <LoadingSpinner 
-              size={size === "lg" ? "md" : "sm"} 
-              variant="secondary"
-            />
-            Loading...
+        <span className="relative inline-flex items-center justify-center">
+          <span
+            className={clsx(
+              "flex items-center justify-center gap-2",
+              loading && "invisible",
+            )}
+            aria-hidden={loading}
+          >
+            {icon && iconPosition === "start" && (
+              <span className="flex items-center" aria-hidden="true">
+                {icon}
+              </span>
+            )}
+            {children}
+            {icon && iconPosition === "end" && (
+              <span className="flex items-center" aria-hidden="true">
+                {icon}
+              </span>
+            )}
           </span>
-        ) : (
-          children
-        )}
+          {loading && (
+            <span className="absolute inset-0 flex items-center justify-center gap-2">
+              <span aria-hidden="true">
+                <LoadingSpinner
+                  size={size === "lg" ? "md" : "sm"}
+                  color={primaryColor}
+                />
+              </span>
+              <span>{loadingText}</span>
+            </span>
+          )}
+        </span>
       </Comp>
     );
   },

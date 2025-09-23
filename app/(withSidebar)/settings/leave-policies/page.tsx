@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ImpactPreview } from "@/components/settings/ImpactPreview";
+import { SmartTooltip } from "@/components/ui/SmartTooltip";
 import {
   Select,
   SelectContent,

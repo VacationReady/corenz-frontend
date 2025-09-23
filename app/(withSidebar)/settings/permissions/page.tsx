@@ -16,6 +16,8 @@ import Link from "next/link";
 import { getScreenDisplayName } from "@/lib/permissions";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useTenantRegion } from "@/hooks/useTenantRegion";
 
 interface PermissionProfile {
   id: string;
@@ -57,6 +59,7 @@ export default function PermissionsPage() {
   const [profileToDelete, setProfileToDelete] =
     useState<PermissionProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { template, regionName } = useTenantRegion();
 
   useEffect(() => {
     fetchProfiles();
@@ -236,11 +239,31 @@ export default function PermissionsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading profiles...</div>
+            <EmptyState
+              tone="brand"
+              title="Loading permission profiles"
+              description="Hang tight while we fetch your existing profiles."
+              className="py-10"
+            />
           ) : profiles.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No permission profiles found
-            </div>
+            <EmptyState
+              tone="brand"
+              title="No permission profiles yet"
+              description="Create tailored access so managers only see what they need."
+              className="py-10"
+              guidance={[
+                template === "NZ"
+                  ? "Start with the NZ Payroll Manager template to share pay data safely."
+                  : template === "AU"
+                  ? "Start with the AU Award Interpreter template so only specialists adjust awards."
+                  : template === "UK"
+                  ? "Start with the UK Payroll & HR template to separate finance access."
+                  : "Start with the payroll & HR template to control access to sensitive information.",
+                regionName
+                  ? `Limit approvals to people across ${regionName} who understand local legislation.`
+                  : "Limit approvals to people who understand your local legislation.",
+              ]}
+            />
           ) : (
             <Table>
               <TableHeader>

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
 import Button from "@/components/ui/Button";
 import { PlusIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useTenantRegion } from "@/hooks/useTenantRegion";
 
 interface RecentReport {
 	id: number;
@@ -16,10 +18,11 @@ interface RecentReport {
 }
 
 export default function NewReportBuilderPage() {
-	const router = useRouter();
-	const [showWizard, setShowWizard] = useState(false);
-	const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
-	const [loadingReports, setLoadingReports] = useState<boolean>(true);
+        const router = useRouter();
+        const [showWizard, setShowWizard] = useState(false);
+        const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
+        const [loadingReports, setLoadingReports] = useState<boolean>(true);
+        const { template, regionName } = useTenantRegion();
 
 	useEffect(() => {
 		const fetchReports = async () => {
@@ -118,13 +121,39 @@ export default function NewReportBuilderPage() {
 				{/* Recent Reports Section */}
 				<div className="mt-8">
 					<h3 className="text-lg font-medium text-gray-900 mb-4">Recent Reports</h3>
-					<div className="bg-white rounded-lg shadow-sm border border-gray-200">
-						{loadingReports ? (
-							<div className="p-6 text-center text-gray-500">Loading...</div>
-						) : recentReports.length === 0 ? (
-							<div className="p-6 text-center text-gray-500">No reports yet. Create your first one.</div>
-						) : (
-							<ul className="divide-y divide-gray-200">
+                                        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                                                {loadingReports ? (
+                                                        <EmptyState
+                                                                tone="brand"
+                                                                title="Loading recent reports"
+                                                                description="We’re fetching the latest analytics your team saved."
+                                                                className="py-10"
+                                                        />
+                                                ) : recentReports.length === 0 ? (
+                                                        <EmptyState
+                                                                tone="brand"
+                                                                title="No reports yet"
+                                                                description="Kick things off with a template so stakeholders get insights fast."
+                                                                className="py-10"
+                                                                guidance={[
+                                                                        template === "NZ"
+                                                                                ? "Start with the NZ Payroll Summary template to reconcile PAYE before payday."
+                                                                                : template === "AU"
+                                                                                ? "Start with the AU Award Compliance template to audit allowances and overtime."
+                                                                                : template === "UK"
+                                                                                ? "Start with the UK Payroll Starter template to prep HMRC exports."
+                                                                                : "Start with the People Analytics template to track headcount and turnover trends.",
+                                                                        regionName
+                                                                                ? `Share your first dashboard with ${regionName} leaders so everyone sees the same numbers.`
+                                                                                : "Share your first dashboard with leaders so everyone sees the same numbers.",
+                                                                ]}
+                                                                action={{
+                                                                        label: "Launch the builder",
+                                                                        onClick: () => setShowWizard(true),
+                                                                }}
+                                                        />
+                                                ) : (
+                                                        <ul className="divide-y divide-gray-200">
 								{recentReports.map((r) => (
 									<li key={r.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
 										<div>

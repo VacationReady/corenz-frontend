@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
+import { useTenantRegion } from "@/hooks/useTenantRegion";
 import Papa from "papaparse";
 
 type ColumnDefinition = { header: string; accessorKey: string };
@@ -61,6 +63,7 @@ export default function ReportsPreviewClient() {
   const fieldsParam = searchParams?.get("fields");
   const reportIdParam = searchParams?.get("reportId");
   const { toast } = useToast();
+  const { template, regionName } = useTenantRegion();
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
     const base = reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
@@ -425,10 +428,24 @@ export default function ReportsPreviewClient() {
     }
   };
 
+  const templateLabel =
+    template === "NZ"
+      ? "NZ Payroll Summary"
+      : template === "AU"
+      ? "AU Award Compliance"
+      : template === "UK"
+      ? "UK Payroll Starter"
+      : "People Analytics Starter";
+
   if (loadingReport) {
     return (
       <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">Loading report configuration...</p>
+        <EmptyState
+          tone="brand"
+          title="Loading report configuration"
+          description="We’re fetching your saved filters and columns."
+          className="max-w-xl"
+        />
       </main>
     );
   }
@@ -436,12 +453,21 @@ export default function ReportsPreviewClient() {
   if (!selectedFields.length && !loadingReport) {
     return (
       <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">
-          No fields selected. Please go back and select fields for your report.
-        </p>
-        <Button className="mt-4" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
+        <EmptyState
+          tone="brand"
+          title="Choose at least one column"
+          description="No fields are selected yet, so there’s nothing to preview."
+          className="max-w-xl"
+          guidance={[
+            `Load the ${templateLabel} template in the builder for a quick start.`,
+            "Include first and last name so your export stays easy to read.",
+          ]}
+          action={{
+            label: "Go back",
+            variant: "outline",
+            onClick: () => window.history.back(),
+          }}
+        />
       </main>
     );
   }
@@ -449,7 +475,12 @@ export default function ReportsPreviewClient() {
   if (loading) {
     return (
       <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">Loading report data...</p>
+        <EmptyState
+          tone="brand"
+          title="Building your preview"
+          description="We’re running the report with your selected filters."
+          className="max-w-xl"
+        />
       </main>
     );
   }
@@ -457,10 +488,29 @@ export default function ReportsPreviewClient() {
   if (!loading && data.length === 0) {
     return (
       <main className="flex flex-col items-center justify-center p-10">
-        <p className="text-lg">No data found for the selected fields.</p>
-        <Button className="mt-4" onClick={() => window.history.back()}>
-          Go Back
-        </Button>
+        <EmptyState
+          tone="warning"
+          title="No matching rows"
+          description="We didn’t find any records that meet your criteria."
+          className="max-w-xl"
+          guidance={[
+            template === "NZ"
+              ? "Check the pay period dates against the NZ payroll template you used."
+              : template === "AU"
+              ? "Verify the award and allowance filters match your AU template."
+              : template === "UK"
+              ? "Confirm the pay run selection matches your UK payroll starter template."
+              : "Review your filters or try widening the date range.",
+            regionName
+              ? `If you’re filtering by location, make sure it includes all ${regionName} sites.`
+              : "If you’re filtering by location, make sure it includes every site you need.",
+          ]}
+          action={{
+            label: "Adjust filters",
+            variant: "outline",
+            onClick: () => window.history.back(),
+          }}
+        />
       </main>
     );
   }

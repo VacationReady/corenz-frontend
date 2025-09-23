@@ -12,7 +12,7 @@ const sendFormInviteSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { offboardingId } = sendFormInviteSchema.parse(body);
+    const companyId = session.user.companyId;
 
     // Get offboarding record
     const offboarding = await prisma.employeeOffboarding.findUnique({
@@ -43,6 +44,10 @@ export async function POST(req: NextRequest) {
         { error: "Offboarding record not found" },
         { status: 404 },
       );
+    }
+
+    if (offboarding.Employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (!offboarding.sendForm) {

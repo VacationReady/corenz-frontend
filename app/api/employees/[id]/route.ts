@@ -150,9 +150,23 @@ export async function DELETE(
       // Performance reviews
       await tx.employeePerformanceReview.deleteMany({ where: { employeeId } });
 
-      // Audit logs
-      await tx.permissionAudit.deleteMany({ where: { employeeId } });
-      await tx.employeeAuditLog.deleteMany({ where: { employeeId } });
+      // Audit logs (include records where this user acted on others)
+      await tx.permissionAudit.deleteMany({
+        where: {
+          OR: [{ employeeId }, { changedById: userId }],
+        },
+      });
+      await tx.employeeAuditLog.deleteMany({
+        where: {
+          OR: [{ employeeId }, { changedById: userId }],
+        },
+      });
+      await tx.personalInfoAudit.deleteMany({
+        where: {
+          OR: [{ subjectUserId: userId }, { changedById: userId }],
+        },
+      });
+      await tx.globalAuditLog.deleteMany({ where: { actorId: userId } });
 
       // Leave
       await tx.leaveEntitlement.deleteMany({ where: { employeeId } });
@@ -165,6 +179,7 @@ export async function DELETE(
           ],
         },
       });
+      await tx.leaveApprovalDecision.deleteMany({ where: { approverId: userId } });
 
       // Offboarding (tasks cascade on offboarding delete)
       await tx.employeeOffboarding.deleteMany({ where: { employeeId } });
@@ -188,6 +203,19 @@ export async function DELETE(
       // Saved reports and authored news posts
       await tx.savedReport.deleteMany({ where: { createdBy: userId } });
       await tx.newsPost.deleteMany({ where: { authorId: userId } });
+
+      // Approvals configuration where user is an approver
+      await tx.approvalWorkflowStageApprover.deleteMany({ where: { userId } });
+
+      // Offboarding tasks assigned to / completed by this user across the company
+      await tx.offboardingTask.updateMany({
+        where: { assignedTo: userId },
+        data: { assignedTo: null },
+      });
+      await tx.offboardingTask.updateMany({
+        where: { completedBy: userId },
+        data: { completedBy: null },
+      });
 
       // Reassign company-level documents uploaded by this user (if any) to another admin, else delete
       if (companyId) {

@@ -10,6 +10,7 @@ import {
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
 import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
+import { useTenantRegion } from "@/hooks/useTenantRegion";
 import { ArrowLeft, X } from "lucide-react";
 import Papa from "papaparse";
 
@@ -40,7 +42,7 @@ function downloadCSV(data: any[], columns: ColumnDefinition[]) {
 
   const headers = columns.map((col: any) => col.header);
   const fields = columns.map((col: any) =>
-    col.accessorKey ? col.accessorKey : col.header
+    col.accessorKey ? col.accessorKey : col.header,
   );
 
   const csvData = data.map((row) => {
@@ -69,10 +71,12 @@ export default function ReportsPreviewClient() {
   const fieldsParam = searchParams?.get("fields");
   const reportIdParam = searchParams?.get("reportId");
   const { toast } = useToast();
+  const { template, regionName } = useTenantRegion();
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
     const base = reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
-    const ensure = (arr: string[], field: string) => (arr.includes(field) ? arr : [...arr, field]);
+    const ensure = (arr: string[], field: string) =>
+      arr.includes(field) ? arr : [...arr, field];
     return ensure(ensure(base, "User.firstName"), "User.lastName");
   });
   const [reportConfig, setReportConfig] = useState<any>(null);
@@ -197,12 +201,12 @@ export default function ReportsPreviewClient() {
 
   const piiFields = useMemo(
     () => selectedFields.filter((field) => fieldMetadata[field]?.isPII),
-    [selectedFields, fieldMetadata]
+    [selectedFields, fieldMetadata],
   );
 
   const piiFieldLabels = useMemo(
     () => piiFields.map((field) => fieldMetadata[field]?.label ?? field),
-    [piiFields, fieldMetadata]
+    [piiFields, fieldMetadata],
   );
 
   const hasPIISelected = piiFields.length > 0;
@@ -288,6 +292,72 @@ export default function ReportsPreviewClient() {
     setPage((prev) => (prev === 1 ? prev : 1));
   }, [selectedFields.join(",")]);
 
+  // --- Field rewrite for Leave context (merged functionality) ---
+  const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
+    const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    const result: string[] = [];
+    for (const f of fields) {
+      if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
+        if (!result.includes("_computed.jobRoleName"))
+          result.push("_computed.jobRoleName");
+        continue;
+      }
+      if (hasLeave) {
+        if (f.startsWith("User.")) {
+          result.push(f.replace("User.", "LeaveRequest.Employee.User."));
+          continue;
+        }
+        if (f.startsWith("Employee.")) {
+          result.push(f.replace("Employee.", "LeaveRequest.Employee."));
+          continue;
+        }
+        if (f.startsWith("Department.")) {
+          result.push(
+            f.replace("Department.", "LeaveRequest.Employee.Department."),
+          );
+          continue;
+        }
+        if (f.startsWith("JobRole.")) {
+          result.push(f.replace("JobRole.", "LeaveRequest.Employee.JobRole."));
+          continue;
+        }
+        if (
+          f === "User.department.name" ||
+          f === "User.Department_User_departmentIdToDepartment.name"
+        ) {
+          result.push("LeaveRequest.Employee.Department.name");
+          continue;
+        }
+        if (f.startsWith("EventCategory.")) {
+          result.push(
+            f.replace("EventCategory.", "LeaveRequest.EventCategory."),
+          );
+          continue;
+        }
+        if (f === "LeaveEntitlement.usedDays") {
+          result.push("_computed.durationDays");
+          continue;
+        }
+        if (f.startsWith("LeaveEntitlement.")) {
+          result.push(
+            f.replace(
+              "LeaveEntitlement.",
+              "LeaveRequest.Employee.LeaveEntitlement.",
+            ),
+          );
+          continue;
+        }
+      }
+      result.push(f);
+    }
+    return result;
+  }, []);
+
+  const effectiveSelectedFields = useMemo(
+    () => rewriteFieldsForLeaveContext(selectedFields),
+    [selectedFields, rewriteFieldsForLeaveContext],
+  );
+
   // Helper to fetch a specific page (used by both initial load and full export)
   const fetchReportPage = useCallback(
     async (pageToFetch: number, limitToFetch: number) => {
@@ -300,7 +370,7 @@ export default function ReportsPreviewClient() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          selectedFields,
+          selectedFields: effectiveSelectedFields,
           filters: Array.isArray(activeFilters) ? activeFilters : [],
           pagination: { page: pageToFetch, limit: limitToFetch },
           sort: sortToSend,
@@ -308,15 +378,16 @@ export default function ReportsPreviewClient() {
       });
       const json = await res.json();
       const results = Array.isArray(json.data) ? json.data : [];
-      const totalCount = typeof json.total === "number" ? json.total : results.length;
+      const totalCount =
+        typeof json.total === "number" ? json.total : results.length;
       return { results, totalCount };
     },
-    [selectedFields, activeFilters, activeSort, defaultSort]
+    [effectiveSelectedFields, activeFilters, activeSort, defaultSort],
   );
 
   // Load report data when fields are available
   useEffect(() => {
-    if (selectedFields.length === 0) return;
+    if (effectiveSelectedFields.length === 0) return;
     if (reportIdParam && !reportConfig) return;
 
     let cancelled = false;
@@ -338,41 +409,21 @@ export default function ReportsPreviewClient() {
     return () => {
       cancelled = true;
     };
-  }, [selectedFields, page, pageSize, reportIdParam, reportConfig, fetchReportPage]);
-
-  const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
-    const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
-    const result: string[] = [];
-    for (const f of fields) {
-      if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
-        if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
-        // also ensure sources are fetched server-side (the server handles this rewrite)
-        continue;
-      }
-      if (hasLeave) {
-        if (f.startsWith("User.")) { result.push(f.replace("User.", "LeaveRequest.Employee.User.")); continue; }
-        if (f.startsWith("Employee.")) { result.push(f.replace("Employee.", "LeaveRequest.Employee.")); continue; }
-        if (f.startsWith("Department.")) { result.push(f.replace("Department.", "LeaveRequest.Employee.Department.")); continue; }
-        if (f.startsWith("JobRole.")) { result.push(f.replace("JobRole.", "LeaveRequest.Employee.JobRole.")); continue; }
-        if (f === "User.department.name" || f === "User.Department_User_departmentIdToDepartment.name") { result.push("LeaveRequest.Employee.Department.name"); continue; }
-        if (f.startsWith("EventCategory.")) { result.push(f.replace("EventCategory.", "LeaveRequest.EventCategory.")); continue; }
-        if (f === "LeaveEntitlement.usedDays") { result.push("_computed.durationDays"); continue; }
-        if (f.startsWith("LeaveEntitlement.")) { result.push(f.replace("LeaveEntitlement.", "LeaveRequest.Employee.LeaveEntitlement.")); continue; }
-      }
-      result.push(f);
-    }
-    return result;
-  }, []);
-
-  const effectiveSelectedFields = useMemo(
-    () => rewriteFieldsForLeaveContext(selectedFields),
-    [selectedFields, rewriteFieldsForLeaveContext]
-  );
+  }, [
+    effectiveSelectedFields,
+    page,
+    pageSize,
+    reportIdParam,
+    reportConfig,
+    fetchReportPage,
+  ]);
 
   const translateLegacy = useCallback((f: string) => {
     const map: Record<string, string> = {
-      "User.department.name": "User.Department_User_departmentIdToDepartment.name",
-      "User.Department.name": "User.Department_User_departmentIdToDepartment.name",
+      "User.department.name":
+        "User.Department_User_departmentIdToDepartment.name",
+      "User.Department.name":
+        "User.Department_User_departmentIdToDepartment.name",
       "User.jobRole.name": "User.JobRole.name",
     };
     return map[f] || f;
@@ -383,8 +434,13 @@ export default function ReportsPreviewClient() {
       const keys = field.split(".");
       let accessorKey: string;
       let headerFallback: string;
+
+      if (field === "_computed.jobRoleName") {
+        return { header: "Job Role", accessorKey: "_computed.jobRoleName" };
+      }
+
       if (keys.length >= 3) {
-        accessorKey = `${keys.slice(1).join(".")}`; // support nested
+        accessorKey = `${keys.slice(1).join(".")}`;
         headerFallback = keys[keys.length - 1];
       } else if (keys.length === 2) {
         accessorKey = keys[1];
@@ -395,11 +451,10 @@ export default function ReportsPreviewClient() {
       }
 
       const translated = translateLegacy(field);
-      let label = fieldLabels[field] || fieldLabels[translated] || headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
-      if (field === "_computed.jobRoleName") {
-        label = "Job Role";
-        accessorKey = "_computed.jobRoleName";
-      }
+      const label =
+        fieldLabels[field] ||
+        fieldLabels[translated] ||
+        headerFallback.charAt(0).toUpperCase() + headerFallback.slice(1);
 
       return { header: label, accessorKey };
     });
@@ -419,7 +474,7 @@ export default function ReportsPreviewClient() {
         rows: rowCount,
       });
     },
-    [hasPIISelected, piiFieldLabels, piiFields, toast]
+    [hasPIISelected, piiFieldLabels, piiFields, toast],
   );
 
   const performDownload = useCallback(() => {
@@ -546,49 +601,86 @@ export default function ReportsPreviewClient() {
   const renderShell = (body: ReactNode) => (
     <div className="min-h-screen bg-muted/10">
       {header}
-      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6">
-        {body}
-      </main>
+      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6">{body}</main>
     </div>
   );
 
   if (loadingReport) {
     return renderShell(
-      <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border/60 bg-background/60 text-sm text-muted-foreground">
-        Loading report configuration...
-      </div>,
+      <EmptyState
+        tone="brand"
+        title="Loading report configuration"
+        description="We’re fetching your saved filters and columns."
+        className="max-w-xl mx-auto mt-20"
+      />,
     );
   }
 
   if (!selectedFields.length && !loadingReport) {
+    const templateLabel =
+      template === "NZ"
+        ? "NZ Payroll Summary"
+        : template === "AU"
+        ? "AU Award Compliance"
+        : template === "UK"
+        ? "UK Payroll Starter"
+        : "People Analytics Starter";
+
     return renderShell(
-      <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border/60 bg-background/60 text-center">
-        <p className="max-w-md text-sm text-muted-foreground">
-          No fields selected. Head back to the builder to choose the data you
-          want to preview.
-        </p>
-        <Button onClick={handleExit}>Go back</Button>
-      </div>,
+      <EmptyState
+        tone="brand"
+        title="Choose at least one column"
+        description="No fields are selected yet, so there’s nothing to preview."
+        className="max-w-xl mx-auto mt-20"
+        guidance={[
+          `Load the ${templateLabel} template in the builder for a quick start.`,
+          "Include first and last name so your export stays easy to read.",
+        ]}
+        action={{
+          label: "Go back",
+          variant: "outline",
+          onClick: handleExit,
+        }}
+      />,
     );
   }
 
   if (loading) {
     return renderShell(
-      <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border/60 bg-background/60 text-sm text-muted-foreground">
-        Loading report data...
-      </div>,
+      <EmptyState
+        tone="brand"
+        title="Building your preview"
+        description="We’re running the report with your selected filters."
+        className="max-w-xl mx-auto mt-20"
+      />,
     );
   }
 
   if (!loading && data.length === 0) {
     return renderShell(
-      <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-border/60 bg-background/60 text-center">
-        <p className="max-w-md text-sm text-muted-foreground">
-          No data matched your current selection. Try adjusting filters or
-          selecting different fields.
-        </p>
-        <Button onClick={handleExit}>Go back</Button>
-      </div>,
+      <EmptyState
+        tone="warning"
+        title="No matching rows"
+        description="We didn’t find any records that meet your criteria."
+        className="max-w-xl mx-auto mt-20"
+        guidance={[
+          template === "NZ"
+            ? "Check the pay period dates against the NZ payroll template you used."
+            : template === "AU"
+            ? "Verify the award and allowance filters match your AU template."
+            : template === "UK"
+            ? "Confirm the pay run selection matches your UK payroll starter template."
+            : "Review your filters or try widening the date range.",
+          regionName
+            ? `If you’re filtering by location, make sure it includes all ${regionName} sites.`
+            : "If you’re filtering by location, make sure it includes every site you need.",
+        ]}
+        action={{
+          label: "Adjust filters",
+          variant: "outline",
+          onClick: handleExit,
+        }}
+      />,
     );
   }
 

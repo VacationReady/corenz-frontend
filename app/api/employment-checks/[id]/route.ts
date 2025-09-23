@@ -33,6 +33,27 @@ export async function PATCH(
     }
   }
 
+  const existing = await prisma.employmentCheck.findUnique({
+    where: { id: params.id },
+    include: {
+      Employee: {
+        include: {
+          Company: true,
+          User: true,
+        },
+      },
+    },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const companyId = session.user.companyId;
+  if (!companyId || existing.Employee?.companyId !== companyId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let documentUrl: string | undefined = undefined;
   let signedUrl: string | undefined = undefined;
 
@@ -55,7 +76,6 @@ export async function PATCH(
     signedUrl = signed?.signedUrl;
   }
 
-  const existing = await prisma.employmentCheck.findUnique({ where: { id: params.id } });
   const updated = await prisma.employmentCheck.update({
     where: { id: params.id },
     data: {
@@ -87,7 +107,7 @@ export async function PATCH(
           return NextResponse.json({ error: "Reasons required" }, { status: 400 });
         }
         await createAuditLogs({
-          companyId: session.user.companyId!,
+          companyId: existing.Employee.companyId,
           employeeId: existing.employeeId,
           section: "employment-checks",
           diffs,

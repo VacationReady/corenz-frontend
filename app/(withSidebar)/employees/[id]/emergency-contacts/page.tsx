@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
-import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 
 type Contact = {
   id: string;
@@ -64,7 +64,7 @@ export default function EmergencyContactsPage({
     setIsReasonOpen(true);
   };
 
-  const openReasonForUpdate = (contact: Contact) => {
+  const openReasonForUpdate = async (contact: Contact) => {
     const original = originalContacts.find((c) => c.id === contact.id);
     if (!original) {
       toast.error("Original contact not found");
@@ -81,6 +81,19 @@ export default function EmergencyContactsPage({
     }
     if (changes.length === 0) {
       toast.success("No changes to save");
+      return;
+    }
+    if (!changes.some(changeRequiresReason)) {
+      const res = await fetch(`/api/employees/${params.id}/emergency-contacts`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...contact, reasons: {} }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update");
+      }
+      toast.success("Saved");
+      await load();
       return;
     }
     setPendingAction("update");
@@ -105,7 +118,7 @@ export default function EmergencyContactsPage({
       if (contact.id.startsWith("__new__")) {
         openReasonForCreate(contact);
       } else {
-        openReasonForUpdate(contact);
+        await openReasonForUpdate(contact);
       }
     } catch (e: any) {
       toast.error(e?.message || "Save failed");

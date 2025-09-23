@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
+import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 import {
   formatBankAccountNumber,
   isValidIrdNumber,
@@ -126,23 +126,22 @@ export async function PATCH(
     // Compute diffs before update
     const diffs = computeDiffs(employee, { ...employee, ...updates }, allowed);
     
-    // Check if reasons are required and provided
-    if (diffs.some(diff => diff.newValue)) {
-      if (!reasons) {
+    if (diffs.length > 0) {
+      const requiresReasons = diffs.some(diffRequiresReason);
+      if (requiresReasons && !reasons) {
         return NextResponse.json(
           { error: "Reasons required for changes" },
           { status: 400 }
         );
       }
-      
-      // Validate reasons (will throw if missing)
+
       try {
         await createAuditLogs({
           companyId: session.user.companyId!,
           employeeId: employee.id,
           section: "bank-payroll",
           diffs,
-          reasons: reasons as Record<string, string>,
+          reasons: (reasons as Record<string, string>) || {},
           changedById: session.user.id,
         });
       } catch (error: any) {

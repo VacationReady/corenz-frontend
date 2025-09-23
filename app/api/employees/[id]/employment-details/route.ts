@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
+import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 
 export async function GET(
   _req: Request,
@@ -99,8 +99,9 @@ export async function PATCH(
       allowed,
     );
 
-    if (diffs.some((d) => d.newValue)) {
-      if (!reasons) {
+    if (diffs.length > 0) {
+      const requiresReasons = diffs.some(diffRequiresReason);
+      if (requiresReasons && !reasons) {
         return NextResponse.json(
           { error: "Reasons required for changes" },
           { status: 400 },
@@ -112,7 +113,7 @@ export async function PATCH(
           employeeId: employee.id,
           section: "employment-details",
           diffs,
-          reasons,
+          reasons: reasons || {},
           changedById: session.user.id,
         });
       } catch (err: any) {

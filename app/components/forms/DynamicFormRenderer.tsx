@@ -11,7 +11,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
+import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 
 interface DynamicFormRendererProps {
   formId: string;
@@ -148,10 +148,20 @@ export function DynamicFormRenderer({
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
-        const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({ field: k, oldValue: "", newValue: JSON.stringify(v ?? "") }));
-        setPendingData(data);
-        setPendingChanges(changes);
-        setIsReasonOpen(true);
+        const changes: ChangeInfo[] = Object.entries(data).map(([k, v]) => ({
+          field: k,
+          oldValue: "",
+          newValue: JSON.stringify(v ?? ""),
+        }));
+
+        if (changes.some(changeRequiresReason)) {
+          setPendingData(data);
+          setPendingChanges(changes);
+          setIsReasonOpen(true);
+          return;
+        }
+
+        await submitForm(data, {});
       })}
       className="space-y-6 bg-white p-6 rounded-lg shadow-md"
     >

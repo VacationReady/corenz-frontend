@@ -84,6 +84,21 @@ interface ImpactPreviewProps {
   onCancel?: () => void;
 }
 
+type ImpactData = {
+  affectedCount: number;
+  affectedDepartments: string[];
+  affectedRoles: string[];
+  costImpact: {
+    immediate: number;
+    annual: number;
+    breakdown: CostBreakdown[];
+  };
+  metrics: ImpactMetric[];
+  risks: Risk[];
+  timeline: { phase: string; duration: string; description: string }[];
+  recommendation: string;
+};
+
 export function ImpactPreview({
   settingType,
   settingChange,
@@ -92,20 +107,7 @@ export function ImpactPreview({
   onCancel,
 }: ImpactPreviewProps) {
   const [loading, setLoading] = useState(true);
-  const [impactData, setImpactData] = useState<{
-    affectedCount: number;
-    affectedDepartments: string[];
-    affectedRoles: string[];
-    costImpact: {
-      immediate: number;
-      annual: number;
-      breakdown: CostBreakdown[];
-    };
-    metrics: ImpactMetric[];
-    risks: Risk[];
-    timeline: { phase: string; duration: string; description: string }[];
-    recommendation: string;
-  } | null>(null);
+  const [impactData, setImpactData] = useState<ImpactData | null>(null);
 
   useEffect(() => {
     // Simulate loading impact analysis
@@ -117,7 +119,7 @@ export function ImpactPreview({
     return () => clearTimeout(timer);
   }, [settingType, settingChange]);
 
-  const generateMockImpactData = (type: string, change: any) => {
+  const generateMockImpactData = (type: string, change: any): ImpactData => {
     // Generate realistic mock data based on setting type
     if (type === "leave-policy") {
       return {

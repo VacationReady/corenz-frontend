@@ -4,7 +4,7 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-import ChangeReasonModal, { ChangeInfo } from "../audit/ChangeReasonModal";
+import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "../audit/ChangeReasonModal";
 
 interface EmployeeSaveButtonProps {
   employeeId: string;
@@ -66,8 +66,8 @@ export default function EmployeeSaveButton({
         return;
       }
 
-      // Check if any changes have non-empty new values (require reasons)
-      if (changes.some(change => change.newValue)) {
+      // Check if any changes require reasons (existing values being updated or synthetic changes)
+      if (changes.some(changeRequiresReason)) {
         setPendingChanges(changes);
         setIsReasonModalOpen(true);
         return;

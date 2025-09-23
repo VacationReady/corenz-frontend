@@ -37,7 +37,7 @@ export default async function ContactInfoPage({ params }: PageProps) {
   const user = employee.User;
   const canEdit = Boolean(
     session?.user &&
-      session.user.role === "ADMIN" &&
+      (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") &&
       session.user.companyId === employee.User.companyId,
   );
 

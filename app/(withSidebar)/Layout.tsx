@@ -15,6 +15,7 @@ export default async function WithSidebarLayout({
     | "ADMIN"
     | "MANAGER"
     | "EMPLOYEE"
+    | "SUPER_ADMIN"
     | undefined;
 
   return <ClientLayout initialRole={initialRole}>{children}</ClientLayout>;

@@ -51,7 +51,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
 
   const canEdit = Boolean(
     session?.user &&
-      session.user.role === "ADMIN" &&
+      (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") &&
       session.user.companyId === employee.User.companyId,
   );
   const showManageGender = canEdit;

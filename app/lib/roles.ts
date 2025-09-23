@@ -12,12 +12,15 @@ function extractRole(input: MinimalUser | MinimalSession): string | null {
 }
 
 export function isAdmin(input: MinimalUser | MinimalSession): boolean {
-  return extractRole(input) === "ADMIN";
+  const role = extractRole(input);
+  return role === "ADMIN" || role === "SUPER_ADMIN";
 }
 
-export function isAdminOrManager(input: MinimalUser | MinimalSession): boolean {
+export function isAdminOrManager(
+  input: MinimalUser | MinimalSession,
+): boolean {
   const role = extractRole(input);
-  return role === "ADMIN" || role === "MANAGER";
+  return role === "ADMIN" || role === "SUPER_ADMIN" || role === "MANAGER";
 }
 
 

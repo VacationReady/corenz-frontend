@@ -34,7 +34,9 @@ const reviewUpdateSchema = reviewBodySchema.extend({
 });
 
 function isManagerOrAdmin(role?: string | null) {
-  return role === "ADMIN" || role === "MANAGER";
+  return (
+    role === "ADMIN" || role === "SUPER_ADMIN" || role === "MANAGER"
+  );
 }
 
 async function getEmployeeForSession(employeeId: string, companyId: string) {

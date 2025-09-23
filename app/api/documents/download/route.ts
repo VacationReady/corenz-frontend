@@ -48,7 +48,8 @@ export async function GET(req: Request) {
 
     // Role-based access flags
     let allowed = false;
-    if (user.role === "ADMIN") allowed = document.canViewAdmin;
+    if (user.role === "ADMIN" || user.role === "SUPER_ADMIN")
+      allowed = document.canViewAdmin;
     else if (user.role === "MANAGER") allowed = document.canViewManager;
     else allowed = document.canViewEmployee;
 

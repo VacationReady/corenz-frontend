@@ -14,7 +14,7 @@ export default async function DocumentsLayout({
   const role = session?.user?.role ?? "EMPLOYEE";
 
   let Sidebar: React.ReactElement | null = null;
-  if (role === "ADMIN") {
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
     Sidebar = <AdminSidebar />;
   } else if (role === "MANAGER") {
     Sidebar = <ManagerSidebar />;

@@ -25,42 +25,32 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-interface DialogContentProps
-  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
-  title?: string;
-}
-
-const DialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
-  DialogContentProps
->(({ className, children, title, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
-      <DialogPrimitive.Content
-        ref={ref}
-        className={cn(
-          "w-full max-w-lg bg-white p-6 rounded-lg shadow-lg border max-h-[90vh] overflow-y-auto relative",
-          className,
-        )}
-        {...props}
-      >
-        {title && (
-          <div className="mb-4">
-            <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight">
-              {title}
-            </DialogPrimitive.Title>
-          </div>
-        )}
-        {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
-    </div>
-  </DialogPortal>
+const DialogTitle = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
+    {...props}
+  />
 ));
-DialogContent.displayName = DialogPrimitive.Content.displayName;
+DialogTitle.displayName = DialogPrimitive.Title.displayName;
+
+const DialogDescription = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Description>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+));
+DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 const DialogHeader = ({
   className,
@@ -90,32 +80,50 @@ const DialogFooter = ({
 );
 DialogFooter.displayName = "DialogFooter";
 
-const DialogTitle = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className,
-    )}
-    {...props}
-  />
-));
-DialogTitle.displayName = DialogPrimitive.Title.displayName;
+interface DialogContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+  containerClassName?: string;
+}
 
-const DialogDescription = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props}
-  />
+const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  DialogContentProps
+>(({ className, children, title, description, actions, containerClassName, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto",
+        containerClassName,
+      )}
+    >
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "w-full max-w-lg bg-white p-6 rounded-lg shadow-lg border max-h-[90vh] overflow-y-auto relative",
+          className,
+        )}
+        {...props}
+      >
+        {(title || description) && (
+          <div className="mb-4 space-y-1.5">
+            {title ? <DialogTitle>{title}</DialogTitle> : null}
+            {description ? <DialogDescription>{description}</DialogDescription> : null}
+          </div>
+        )}
+        {children}
+        {actions ? <DialogFooter className="mt-4">{actions}</DialogFooter> : null}
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <X className="h-4 w-4" />
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </div>
+  </DialogPortal>
 ));
-DialogDescription.displayName = DialogPrimitive.Description.displayName;
+DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 export {
   Dialog,

@@ -23,15 +23,24 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status");
+    const statusParam = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
     const where: any = {};
 
-    if (status && status !== "all") {
-      where.status = status;
+    if (statusParam && statusParam !== "all") {
+      const statuses = statusParam
+        .split(",")
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean);
+
+      if (statuses.length === 1) {
+        where.status = statuses[0];
+      } else if (statuses.length > 1) {
+        where.status = { in: statuses };
+      }
     }
 
     const [offboardingRecords, total] = await Promise.all([

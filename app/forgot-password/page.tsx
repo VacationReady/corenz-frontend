@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "@/hooks/use-toast";
+import { Send } from "lucide-react";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -105,7 +106,14 @@ export default function ForgotPasswordPage() {
             </p>
           )}
 
-          <Button type="submit" className="w-full" loading={loading} disabled={submitted}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={loading}
+            disabled={submitted}
+            loadingText="Sending reset link"
+            icon={<Send className="h-4 w-4" />}
+          >
             Send reset link
           </Button>
         </form>

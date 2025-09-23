@@ -160,6 +160,7 @@ export default function AddEmployeeModal({
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -240,6 +241,9 @@ export default function AddEmployeeModal({
       setHolidayStartDay("");
       setHolidayYearError(null);
       setShowAllTemplates(false);
+      setIsSubmitting(false); // Reset loading state when modal closes
+      setError(""); // Clear any errors
+      setCurrentStep(1); // Reset to first step
       return;
     }
 
@@ -466,15 +470,21 @@ export default function AddEmployeeModal({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Don't submit if already submitting
+    if (isSubmitting) return;
+    
     try {
       if (!formData.onboardingTemplateId) {
-        toast.error("Need to select onboarding template");
+        toast.error("Please select an onboarding template");
+        setIsSubmitting(false);
         return;
       }
 
       // Validate step 2 fields
       if (holidayYearError) {
         toast.error(holidayYearError);
+        setIsSubmitting(false);
         return;
       }
 
@@ -488,8 +498,13 @@ export default function AddEmployeeModal({
         formData.entitlementDays === ""
       ) {
         toast.error("Please fill in all holiday settings");
+        setIsSubmitting(false);
         return;
       }
+
+      // Start loading state
+      setIsSubmitting(true);
+      setError("");
 
       const payload = {
         ...formData,
@@ -517,10 +532,17 @@ export default function AddEmployeeModal({
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || "Failed to create employee");
+        const errorMessage = data.error || "Failed to create employee";
+        setError(errorMessage);
+        toast.error(errorMessage);
+        setIsSubmitting(false);
         return;
       }
 
+      // Success! Show success message
+      const employeeName = `${formData.firstName} ${formData.lastName}`.trim();
+      toast.success(`Employee ${employeeName} has been created successfully!`);
+      
       setError("");
       // Reset form
       setFormData({
@@ -550,8 +572,14 @@ export default function AddEmployeeModal({
 
       onClose();
       if (onSuccess) onSuccess();
-    } catch {
-      setError("Network error");
+    } catch (error) {
+      console.error("Error creating employee:", error);
+      const errorMessage = "Network error - please try again";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      // Always stop loading state
+      setIsSubmitting(false);
     }
   };
 
@@ -617,6 +645,7 @@ export default function AddEmployeeModal({
                 size="sm"
                 aria-label="Close"
                 onClick={onClose}
+                disabled={isSubmitting}
                 className="h-8 w-8 p-0 rounded-full"
               >
                 <X className="h-4 w-4" />
@@ -948,10 +977,22 @@ export default function AddEmployeeModal({
                 </div>
 
                 <div className="flex justify-between">
-                  <Button type="button" variant="ghost" onClick={prevStep}>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={prevStep}
+                    disabled={isSubmitting}
+                  >
                     Back
                   </Button>
-                  <Button type="submit">Add Employee</Button>
+                  <Button 
+                    type="submit" 
+                    loading={isSubmitting}
+                    loadingText="Creating Employee..."
+                    disabled={isSubmitting}
+                  >
+                    Add Employee
+                  </Button>
                 </div>
               </div>
             )}

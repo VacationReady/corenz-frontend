@@ -15,6 +15,7 @@ export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) redirect("/login");
+  const isSuperAdmin = session.user.role === "SUPER_ADMIN";
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -28,7 +29,7 @@ export default async function AdminDashboardPage() {
   });
 
   if (!user?.Employee) {
-    if (session.user.role === "SUPER_ADMIN") {
+    if (isSuperAdmin) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
           <h1 className="text-2xl font-semibold">Welcome, super admin</h1>
@@ -43,6 +44,10 @@ export default async function AdminDashboardPage() {
     }
 
     redirect("/dashboard/employee");
+  }
+
+  if (isSuperAdmin) {
+    redirect("/tenants");
   }
 
   return (
@@ -63,8 +68,8 @@ export default async function AdminDashboardPage() {
                 <h1 className="text-2xl font-bold text-foreground mb-1">
                   {user.firstName || user.name || "User"}
                 </h1>
-                {/* Replace hardcoded role/location/status with actual data when present */}
-                {(user.JobRole?.name || user.Department_User_departmentIdToDepartment?.name) && (
+                {(user.JobRole?.name ||
+                  user.Department_User_departmentIdToDepartment?.name) && (
                   <p className="text-sm text-muted-foreground mb-1">
                     {[user.JobRole?.name, user.Department_User_departmentIdToDepartment?.name]
                       .filter(Boolean)

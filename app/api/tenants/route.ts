@@ -50,7 +50,7 @@ export async function GET() {
   }
 
   const companies = await prisma.company.findMany({
-    select: { id: true, name: true, createdAt: true },
+    select: { id: true, name: true, createdAt: true, updatedAt: true },
     orderBy: { name: "asc" },
   });
 

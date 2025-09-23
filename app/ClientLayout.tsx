@@ -26,7 +26,6 @@ export default function ClientLayout({
 
   const isProfilePage =
     pathname.startsWith("/employees/") && pathname.split("/").length > 2;
-  const hasSidebar = !isProfilePage;
 
   const resolvedRole =
     (session?.user?.role as UserRole | undefined) ??
@@ -34,6 +33,9 @@ export default function ClientLayout({
     "EMPLOYEE";
 
   const loading = status === "loading" && !initialRole;
+
+  const isSuperAdmin = resolvedRole === "SUPER_ADMIN";
+  const hasSidebar = !isProfilePage && !isSuperAdmin;
 
   React.useEffect(() => {
     setMobileSidebarOpen(false);

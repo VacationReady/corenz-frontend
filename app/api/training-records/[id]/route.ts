@@ -33,6 +33,29 @@ export async function PUT(
   }
 
   try {
+    const existing = await prisma.trainingRecord.findFirst({
+      where: {
+        id: trainingId,
+        Employee: { companyId: session.user.companyId! },
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        courseId: true,
+        providerId: true,
+        dateCompleted: true,
+        expiryDate: true,
+        documentId: true,
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Training record not found" },
+        { status: 404 },
+      );
+    }
+
     let documentId: string | null = null;
 
     if (file && file.size > 0) {
@@ -62,15 +85,18 @@ export async function PUT(
           url: publicUrl,
           uploaderId: session.user.id,
           companyId: session.user.companyId,
+          employeeId: existing.employeeId,
         },
       });
 
       documentId = doc.id;
     }
 
-    const existing = await prisma.trainingRecord.findUnique({ where: { id: trainingId } });
-    const updatedRecord = await prisma.trainingRecord.update({
-      where: { id: trainingId },
+    const updateResult = await prisma.trainingRecord.updateMany({
+      where: {
+        id: trainingId,
+        Employee: { companyId: session.user.companyId! },
+      },
       data: {
         courseId,
         providerId,
@@ -80,30 +106,57 @@ export async function PUT(
       },
     });
 
+    if (updateResult.count === 0) {
+      return NextResponse.json(
+        { error: "Training record not found" },
+        { status: 404 },
+      );
+    }
+
     // Audit logs
     try {
-      if (existing) {
-        const diffs = computeDiffs(
-          existing,
-          { ...existing, courseId, providerId, dateCompleted, expiryDate, ...(documentId && { documentId }) },
-          ["courseId", "providerId", "dateCompleted", "expiryDate", "documentId"] as const,
-        );
-        if (diffs.some((d) => d.newValue)) {
-          if (!reasons) {
-            return NextResponse.json({ error: "Reasons required" }, { status: 400 });
-          }
-          await createAuditLogs({
-            companyId: session.user.companyId!,
-            employeeId: existing.employeeId,
-            section: "training",
-            diffs,
-            reasons,
-            changedById: session.user.id,
-          });
+      const diffs = computeDiffs(
+        existing,
+        {
+          ...existing,
+          courseId,
+          providerId,
+          dateCompleted,
+          expiryDate,
+          documentId: documentId ?? existing.documentId,
+        },
+        ["courseId", "providerId", "dateCompleted", "expiryDate", "documentId"] as const,
+      );
+      if (diffs.some((d) => d.newValue)) {
+        if (!reasons) {
+          return NextResponse.json({ error: "Reasons required" }, { status: 400 });
         }
+        await createAuditLogs({
+          companyId: session.user.companyId!,
+          employeeId: existing.employeeId,
+          section: "training",
+          diffs,
+          reasons,
+          changedById: session.user.id,
+        });
       }
     } catch (err: any) {
       return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+
+    const updatedRecord = await prisma.trainingRecord.findFirst({
+      where: {
+        id: trainingId,
+        Employee: { companyId: session.user.companyId! },
+      },
+      include: { Document: true, Course: true, TrainingProvider: true },
+    });
+
+    if (!updatedRecord) {
+      return NextResponse.json(
+        { error: "Training record not found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(updatedRecord);
@@ -120,11 +173,24 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } },
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
-    const record = await prisma.trainingRecord.findUnique({
-      where: { id: params.id },
+    const record = await prisma.trainingRecord.findFirst({
+      where: {
+        id: params.id,
+        Employee: { companyId: session.user.companyId! },
+      },
       include: { Document: true, Course: true, TrainingProvider: true },
     });
+    if (!record) {
+      return NextResponse.json(
+        { error: "Training record not found" },
+        { status: 404 },
+      );
+    }
     return NextResponse.json(record);
   } catch (error) {
     console.error(error);

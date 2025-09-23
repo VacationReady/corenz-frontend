@@ -154,7 +154,7 @@ export async function DELETE(
       // Audit logs (include records where this user acted on others)
       await tx.permissionAudit.deleteMany({
         where: {
-          OR: [{ employeeId }, { changedById: userId }],
+          OR: [{ employeeId: userId }, { changedById: userId }],
         },
       });
       await tx.employeeAuditLog.deleteMany({
@@ -168,6 +168,11 @@ export async function DELETE(
         },
       });
       await tx.globalAuditLog.deleteMany({ where: { actorId: userId } });
+      await tx.employeePerformanceReview.updateMany({
+        where: { reviewerId: userId },
+        data: { reviewerId: null },
+      });
+      await tx.user.updateMany({ where: { managerId: userId }, data: { managerId: null } });
 
       // Leave
       await tx.leaveEntitlement.deleteMany({ where: { employeeId } });

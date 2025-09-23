@@ -104,6 +104,13 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const calendarRef = useRef<FullCalendar | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
 
+  const inspectorBlackoutKey = inspectorDate
+    ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
+    : null;
+  const inspectorHasBlackout = inspectorBlackoutKey
+    ? blackoutDateKeys.has(inspectorBlackoutKey)
+    : false;
+
   const fetchDepartments = async () => {
     try {
       const res = await fetch("/api/departments");
@@ -124,7 +131,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   }, []);
 
   useEffect(() => {
-    // Load event rules to show capacity hints (maxConcurrent per category - simplified aggregate)
     (async () => {
       try {
         const res = await fetch("/api/event-rules");
@@ -132,7 +138,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           const rules = await res.json();
           const maxes = (rules || [])
             .map((r: any) => r.maxConcurrent)
-            .filter((n: any) => typeof n === 'number') as number[];
+            .filter((n: any) => typeof n === "number") as number[];
           if (maxes.length > 0) {
             setThresholds({ defaultMaxConcurrent: Math.min(...maxes) });
           }
@@ -148,23 +154,20 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     }
     return base;
   };
+
   useEffect(() => {
-    // Load categories for filter drawer
     (async () => {
       try {
         const res = await fetch("/api/event-categories");
         if (res.ok) {
           const cats = await res.json();
-          setCategoryOptions(
-            (cats || []).map((c: any) => ({ label: c.name, value: c.id }))
-          );
+          setCategoryOptions((cats || []).map((c: any) => ({ label: c.name, value: c.id })));
         }
       } catch (_err) {}
     })();
   }, []);
 
   useEffect(() => {
-    // Load locations for filter drawer
     (async () => {
       try {
         const res = await fetch("/api/locations");
@@ -215,7 +218,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const fetchLeaveEvents = async (
     fetchInfo: EventSourceFuncArg,
     successCallback: (events: EventInput[]) => void,
-    failureCallback: (error: any) => void,
+    _failureCallback: (error: any) => void,
   ) => {
     try {
       const departmentFilter = filters.departments[0] || "";
@@ -231,26 +234,33 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         return;
       }
       let data = await res.json();
-      // Client-side filtering by category and name (optional)
       if (filters.categories.length > 0) {
         const selectedSet = new Set(filters.categories);
-        data = (data as any[]).filter((e) => e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : true);
+        data = (data as any[]).filter((e) =>
+          e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : true,
+        );
       }
       if (filters.locations.length > 0) {
         const locSet = new Set(filters.locations);
-        data = (data as any[]).filter((e) => e.employee?.locationId ? locSet.has(e.employee.locationId) : true);
+        data = (data as any[]).filter((e) =>
+          e.employee?.locationId ? locSet.has(e.employee.locationId) : true,
+        );
       }
       if (filters.search.trim().length > 0) {
         const q = filters.search.trim().toLowerCase();
-        data = (data as any[]).filter((e) => (e.employee?.name || e.title || "").toLowerCase().includes(q));
+        data = (data as any[]).filter((e) =>
+          (e.employee?.name || e.title || "").toLowerCase().includes(q),
+        );
       }
       setLeaveEventsInRange(data);
-      // Track which categories are present for legend
       const cats = Array.from(
-        new Set((data as any[]).map((e) => (e.categoryName as string) || "Uncategorized").filter(Boolean))
+        new Set(
+          (data as any[])
+            .map((e) => (e.categoryName as string) || "Uncategorized")
+            .filter(Boolean),
+        ),
       );
       setPresentCategories(cats);
-      // Compute simple capacity counts per day
       const counts: Record<string, number> = {};
       const rangeStart = new Date(fetchInfo.startStr);
       const rangeEnd = new Date(fetchInfo.endStr);
@@ -259,10 +269,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         const end = new Date(ev.end || ev.start);
         const cur = new Date(Math.max(start.getTime(), rangeStart.getTime()));
         const last = new Date(Math.min(end.getTime(), rangeEnd.getTime()));
-        cur.setHours(0,0,0,0);
-        last.setHours(0,0,0,0);
+        cur.setHours(0, 0, 0, 0);
+        last.setHours(0, 0, 0, 0);
         for (let d = new Date(cur); d <= last; d.setDate(d.getDate() + 1)) {
-          const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate(),
+          ).padStart(2, "0")}`;
           counts[key] = (counts[key] || 0) + 1;
         }
       }
@@ -277,7 +289,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const fetchBlackoutEvents = async (
     fetchInfo: EventSourceFuncArg,
     successCallback: (events: EventInput[]) => void,
-    failureCallback: (error: any) => void,
+    _failureCallback: (error: any) => void,
   ) => {
     try {
       const params = new URLSearchParams({
@@ -286,7 +298,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       });
       const res = await fetch(`/api/blackout-days/get?${params.toString()}`);
       if (!res.ok) {
-        // Soft-fail: do not spam toasts; just return empty
         console.warn("Blackout fetch non-OK status", res.status);
         successCallback([]);
         return;
@@ -296,7 +307,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       const idMap: Record<string, string[]> = {};
       const blackoutEvents = blackoutData.map((b: any) => {
         const d = new Date(b.date);
-        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+          d.getDate(),
+        ).padStart(2, "0")}`;
         keys.add(key);
         if (!idMap[key]) idMap[key] = [];
         idMap[key].push(b.id);
@@ -314,8 +327,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           },
         };
       });
-      // Update blackout key set and trigger a one-time rerender of day cells
-      const nextHash = Array.from(keys).sort().join(',');
+      const nextHash = Array.from(keys).sort().join(",");
       setBlackoutDateKeys(keys);
       setBlackoutIdsByDay(idMap);
       if (nextHash !== blackoutKeyHashRef.current) {
@@ -325,7 +337,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       successCallback(blackoutEvents);
     } catch (error) {
       console.error("Blackout fetch error", error);
-      // Soft-fail without toast storm
       successCallback([]);
     }
   };
@@ -340,7 +351,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         successCallback([]);
         return;
       }
-      // Fetch from app API that uses selected company template
       const params = new URLSearchParams({ from: fetchInfo.startStr, to: fetchInfo.endStr });
       const res = await fetch(`/api/public-holidays?${params.toString()}`);
       if (!res.ok) {
@@ -348,21 +358,22 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         return;
       }
       const events = await res.json();
-      successCallback((events || []).map((e: any) => ({
-        ...e,
-        id: `pub-${e.start}`,
-        backgroundColor: "#86efac",
-        borderColor: "#22c55e",
-        textColor: "#065f46",
-        extendedProps: { isBankHoliday: true },
-      })));
+      successCallback(
+        (events || []).map((e: any) => ({
+          ...e,
+          id: `pub-${e.start}`,
+          backgroundColor: "#86efac",
+          borderColor: "#22c55e",
+          textColor: "#065f46",
+          extendedProps: { isBankHoliday: true },
+        })),
+      );
     } catch (error) {
       console.error(error);
       failureCallback(error);
     }
   };
 
-  // Load template label to show near toggle
   useEffect(() => {
     (async () => {
       try {
@@ -378,17 +389,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         const region = (data?.region ?? null) as string | null;
         setBankHolidaysAvailable(Boolean(template));
         const templateName =
-          template === "NZ"
-            ? "New Zealand"
-            : template === "AU"
-              ? "Australia"
-              : template === "UK"
-                ? "United Kingdom"
-                : null;
+          template === "NZ" ? "New Zealand" : template === "AU" ? "Australia" : template === "UK" ? "United Kingdom" : null;
         const regionLabel = region ? PUBLIC_HOLIDAY_REGION_LABELS[region] || region : null;
-        setTemplateLabel(
-          templateName ? (regionLabel ? `${templateName} — ${regionLabel}` : templateName) : null,
-        );
+        setTemplateLabel(templateName ? (regionLabel ? `${templateName} — ${regionLabel}` : templateName) : null);
         setTenantTimeSettings(resolveTenantTimeSettings(template, region));
       } catch (error) {
         console.error(error);
@@ -401,59 +404,59 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const dayCellDidMount = (arg: any) => {
     const d = arg.date as Date;
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
     const count = dailyCounts[key] || 0;
     const el: HTMLElement = arg.el;
-    // Cleanup any previous badge
-    const prev = el.querySelector('.capacity-badge');
+    const prev = el.querySelector(".capacity-badge");
     if (prev && prev.parentElement) prev.parentElement.removeChild(prev);
-    // Weekend subtle shading if no capacity shading
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    const isToday = (() => { const t = new Date(); return t.toDateString() === d.toDateString(); })();
-    // Blackout day gets highest priority visual
+    const isToday = (() => {
+      const t = new Date();
+      return t.toDateString() === d.toDateString();
+    })();
     if (blackoutDateKeys.has(key)) {
-      el.style.backgroundColor = 'rgba(239,68,68,0.18)'; // red-500 at low alpha
-      const badge = document.createElement('div');
-      badge.className = 'capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-red-600 text-white px-1.5 py-0.5';
-      badge.textContent = 'Blocked';
-      el.style.position = el.style.position || 'relative';
+      el.style.backgroundColor = "rgba(239,68,68,0.18)";
+      const badge = document.createElement("div");
+      badge.className =
+        "capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-red-600 text-white px-1.5 py-0.5";
+      badge.textContent = "Blocked";
+      el.style.position = el.style.position || "relative";
       el.appendChild(badge);
-      // Add small lock icon overlay (bottom-left)
-      const prevLock = el.querySelector('.blackout-lock');
+      const prevLock = el.querySelector(".blackout-lock");
       if (prevLock && prevLock.parentElement) prevLock.parentElement.removeChild(prevLock as any);
-      const lock = document.createElement('div');
-      lock.className = 'blackout-lock absolute bottom-1 left-1 text-[12px]';
-      lock.textContent = '🔒';
+      const lock = document.createElement("div");
+      lock.className = "blackout-lock absolute bottom-1 left-1 text-[12px]";
+      lock.textContent = "🔒";
       el.appendChild(lock);
     } else if (count > 0) {
-      // Heat color by tiers
       let alpha = getHeatAlpha(count);
-      el.style.backgroundColor = `rgba(59, 130, 246, ${alpha})`; // blue-500 with varying alpha
-      const badge = document.createElement('div');
-      badge.className = 'capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-blue-600 text-white px-1.5 py-0.5';
+      el.style.backgroundColor = `rgba(59, 130, 246, ${alpha})`;
+      const badge = document.createElement("div");
+      badge.className =
+        "capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-blue-600 text-white px-1.5 py-0.5";
       badge.textContent = String(count);
-      el.style.position = el.style.position || 'relative';
+      el.style.position = el.style.position || "relative";
       el.appendChild(badge);
     } else {
-      el.style.backgroundColor = isWeekend ? 'rgba(0,0,0,0.035)' : '';
+      el.style.backgroundColor = isWeekend ? "rgba(0,0,0,0.035)" : "";
     }
-    // Today ring
-    const prevRing = el.querySelector('.today-ring');
+    const prevRing = el.querySelector(".today-ring");
     if (prevRing && prevRing.parentElement) prevRing.parentElement.removeChild(prevRing);
     if (isToday) {
-      const ring = document.createElement('div');
-      ring.className = 'today-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-sky-400';
-      el.style.position = el.style.position || 'relative';
+      const ring = document.createElement("div");
+      ring.className = "today-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-sky-400";
+      el.style.position = el.style.position || "relative";
       el.appendChild(ring);
     }
-
-    // Selected day highlight (soft yellow)
-    const prevSelect = el.querySelector('.selected-day-ring');
+    const prevSelect = el.querySelector(".selected-day-ring");
     if (prevSelect && prevSelect.parentElement) prevSelect.parentElement.removeChild(prevSelect);
     if (selectedDay && selectedDay.toDateString() === d.toDateString()) {
-      const sel = document.createElement('div');
-      sel.className = 'selected-day-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-yellow-300 bg-yellow-50/40';
-      el.style.position = el.style.position || 'relative';
+      const sel = document.createElement("div");
+      sel.className =
+        "selected-day-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-yellow-300 bg-yellow-50/40";
+      el.style.position = el.style.position || "relative";
       el.appendChild(sel);
     }
   };
@@ -483,10 +486,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         <PopoverTrigger asChild>
           <div className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-black/5 cursor-pointer">
             <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={18} />
-            <span className="text-[11px] font-medium truncate max-w-[110px]">{employee?.name || content.event.title}</span>
-            {categoryName ? (
-              <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge>
-            ) : null}
+            <span className="text-[11px] font-medium truncate max-w-[110px]">
+              {employee?.name || content.event.title}
+            </span>
+            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge> : null}
           </div>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72">
@@ -502,9 +505,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           <div className="mt-3 space-y-1">
             {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge> : null}
             <div className="text-xs text-gray-600">
-              {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –
-              {" "}
-              {formatTenantDate((content.event.end as any) || content.event.start!, tenantTimeSettings, "d MMM yyyy")}
+              {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –{" "}
+              {formatTenantDate(
+                (content.event.end as any) || content.event.start!,
+                tenantTimeSettings,
+                "d MMM yyyy",
+              )}
             </div>
             {content.event.extendedProps?.reason ? (
               <div className="text-xs text-gray-700">{String(content.event.extendedProps.reason)}</div>
@@ -526,16 +532,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   };
 
   const getCategoryColor = (name: string) => {
-    const key = (name || '').toLowerCase();
-    if (key.includes('annual')) return 'bg-emerald-500';
-    if (key.includes('holiday')) return 'bg-emerald-500';
-    if (key.includes('sick')) return 'bg-amber-500';
-    if (key.includes('training')) return 'bg-indigo-500';
-    if (key.includes('parent')) return 'bg-pink-500';
-    if (key.includes('bereave')) return 'bg-purple-500';
-    if (key.includes('unpaid')) return 'bg-slate-500';
-    if (key.includes('toil') || key.includes('lieu')) return 'bg-sky-500';
-    return 'bg-blue-500';
+    const key = (name || "").toLowerCase();
+    if (key.includes("annual")) return "bg-emerald-500";
+    if (key.includes("holiday")) return "bg-emerald-500";
+    if (key.includes("sick")) return "bg-amber-500";
+    if (key.includes("training")) return "bg-indigo-500";
+    if (key.includes("parent")) return "bg-pink-500";
+    if (key.includes("bereave")) return "bg-purple-500";
+    if (key.includes("unpaid")) return "bg-slate-500";
+    if (key.includes("toil") || key.includes("lieu")) return "bg-sky-500";
+    return "bg-blue-500";
   };
 
   const formatEventRange = (start: string, end?: string) => {
@@ -576,13 +582,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   };
 
   const refreshCalendar = () => {
-    console.log("🔄 Refreshing calendar events...");
+    console.log("Refreshing calendar events...");
     calendarRef.current?.getApi().refetchEvents();
-    setRefreshTrigger((prev) => !prev); // 🚩 NEW: force re-render on refresh
+    setRefreshTrigger((prev) => !prev);
   };
 
   const deleteBlackoutForDate = async (date: Date) => {
-    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate(),
+    ).padStart(2, "0")}`;
     const ids = blackoutIdsByDay[key] || [];
     if (ids.length === 0) return;
     try {
@@ -729,11 +737,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         />
         <div className="bg-white rounded-xl overflow-hidden">
           {loading ? (
-            <SectionSkeleton
-              showContainer={false}
-              rows={1}
-              lineClassName="h-[520px] w-full"
-            />
+            <SectionSkeleton showContainer={false} rows={1} lineClassName="h-[520px] w-full" />
           ) : (
             <FullCalendar
               ref={calendarRef}
@@ -751,7 +755,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               dateClick={(arg) => {
                 setInspectorDate(arg.date);
                 setSelectedDay(arg.date);
-                // Force re-render day cells to show selection highlight
                 setRefreshTrigger((prev) => !prev);
               }}
               eventClick={handleEventClick}
@@ -764,6 +767,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           )}
         </div>
       </Card>
+
       <Sheet
         open={Boolean(inspectorDate)}
         onOpenChange={(open) => {
@@ -782,6 +786,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                 : ""}
             </p>
           </SheetHeader>
+
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -797,7 +802,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             </Button>
             {inspectorDate
               ? (() => {
-                  const key = `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth()+1).padStart(2,'0')}-${String(inspectorDate.getDate()).padStart(2,'0')}`;
+                  const key = `${inspectorDate.getFullYear()}-${String(
+                    inspectorDate.getMonth() + 1,
+                  ).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`;
                   const hasBlackout = blackoutDateKeys.has(key);
                   return hasBlackout ? (
                     <Button
@@ -812,6 +819,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                 })()
               : null}
           </div>
+
           <div className="space-y-3">
             <div className="text-sm font-medium text-muted-foreground">People off</div>
             <div className="space-y-2">
@@ -828,7 +836,11 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                 })
                 .map((ev: any) => (
                   <div key={ev.id} className="flex items-start gap-3 rounded border p-3">
-                    <Avatar src={ev.employee?.profileImageUrl ?? null} name={ev.employee?.name ?? null} size={28} />
+                    <Avatar
+                      src={ev.employee?.profileImageUrl ?? null}
+                      name={ev.employee?.name ?? null}
+                      size={28}
+                    />
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="text-sm font-medium truncate">{ev.employee?.name || ev.title}</div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -839,7 +851,11 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       </div>
                     </div>
                     {ev.categoryName ? (
-                      <span className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(ev.categoryName)}`}>
+                      <span
+                        className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(
+                          ev.categoryName,
+                        )}`}
+                      >
                         {ev.categoryName}
                       </span>
                     ) : null}
@@ -847,6 +863,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                 ))}
             </div>
           </div>
+
           <SheetFooter className="justify-end">
             <SheetClose asChild>
               <Button variant="ghost" size="sm">
@@ -856,6 +873,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
       {selectedDate && (
         <BlockDayModal
           open={blockModalOpen}

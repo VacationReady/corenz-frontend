@@ -14,7 +14,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -25,11 +25,13 @@ export async function POST(
     }
 
     const employeeId = params.employeeId;
+    const companyId = session.user.companyId;
     const data = parsed.data;
 
     // Find the offboarding record for this employee
     const offboarding = await prisma.employeeOffboarding.findUnique({
       where: { employeeId },
+      include: { Employee: true },
     });
 
     if (!offboarding) {
@@ -37,6 +39,10 @@ export async function POST(
         { error: "Offboarding not found" },
         { status: 404 },
       );
+    }
+
+    if (offboarding.Employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Update the main offboarding record with exit interview details
@@ -52,9 +58,12 @@ export async function POST(
       try {
         const interviewer = await prisma.user.findUnique({
           where: { id: data.interviewerId },
-          select: { id: true },
+          select: { id: true, companyId: true },
         });
         if (interviewer) {
+          if (interviewer.companyId !== companyId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+          }
           validInterviewerId = data.interviewerId;
         } else {
           console.warn(
@@ -117,12 +126,16 @@ export async function POST(
         }
         const template = await prisma.exitInterviewFormTemplate.findUnique({
           where: { id: data.formTemplateId },
+          select: { id: true, companyId: true },
         });
         if (!template) {
           return NextResponse.json(
             { error: "Form template not found" },
             { status: 400 },
           );
+        }
+        if (template.companyId && template.companyId !== companyId) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
       }
 
@@ -159,10 +172,20 @@ export async function POST(
 
     let interviewer = null;
     if (validInterviewerId) {
-      interviewer = await prisma.user.findUnique({
+      const interviewerRecord = await prisma.user.findUnique({
         where: { id: validInterviewerId },
-        select: { id: true, firstName: true, lastName: true, email: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          companyId: true,
+        },
       });
+      if (interviewerRecord?.companyId === companyId) {
+        const { companyId: _interviewerCompanyId, ...rest } = interviewerRecord;
+        interviewer = rest;
+      }
     }
 
     // Send calendar invite if interview is scheduled

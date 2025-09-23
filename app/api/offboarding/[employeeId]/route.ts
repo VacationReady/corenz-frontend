@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -22,6 +22,7 @@ export async function GET(
     }
 
     const { employeeId } = params;
+    const companyId = session.user.companyId;
 
     // Get offboarding record with all related data
     const offboarding = await prisma.employeeOffboarding.findUnique({
@@ -72,6 +73,10 @@ export async function GET(
         { error: "Offboarding record not found" },
         { status: 404 },
       );
+    }
+
+    if (offboarding.Employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Format the response
@@ -209,7 +214,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -220,15 +225,29 @@ export async function PATCH(
       );
     }
 
+    const companyId = session.user.companyId;
     const { assetsToReturn } = await req.json();
     if (!Array.isArray(assetsToReturn)) {
       return NextResponse.json({ error: "Invalid assets" }, { status: 400 });
     }
 
+    const offboarding = await prisma.employeeOffboarding.findUnique({
+      where: { employeeId: params.employeeId },
+      include: { Employee: true },
+    });
+
+    if (!offboarding) {
+      return NextResponse.json({ error: "Offboarding record not found" }, { status: 404 });
+    }
+
+    if (offboarding.Employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const allReturned = assetsToReturn.every((a: any) => a.returned);
 
     await prisma.employeeOffboarding.update({
-      where: { employeeId: params.employeeId },
+      where: { id: offboarding.id },
       data: {
         assetsToReturn,
         assetsReturned: allReturned,

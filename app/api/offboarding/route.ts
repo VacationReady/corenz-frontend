@@ -18,7 +18,7 @@ function isAssignmentEmailEnabled(): boolean {
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -28,7 +28,13 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const companyId = session.user.companyId;
+
+    const where: any = {
+      Employee: {
+        companyId,
+      },
+    };
 
     if (statusParam && statusParam !== "all") {
       const statuses = statusParam
@@ -139,10 +145,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const companyId = session.user.companyId;
     const body = await req.json();
     const {
       offboardingId,
@@ -197,9 +204,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (offboardingRecord.Employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Get the highest order for new task placement
     const lastTask = await prisma.offboardingTask.findFirst({
-      where: { offboardingId },
+      where: {
+        offboardingId,
+        EmployeeOffboarding: {
+          is: { Employee: { companyId } },
+        },
+      },
       orderBy: { order: "desc" },
     });
 
@@ -229,6 +245,7 @@ export async function POST(req: NextRequest) {
             lastName: true,
             email: true,
             phone: true,
+            companyId: true,
           },
         })
       : null;
@@ -240,9 +257,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (assignedUserDetails && assignedUserDetails.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { companyId: _assignedUserCompanyId, ...assignedUserProfile } =
+      assignedUserDetails ?? ({} as typeof assignedUserDetails);
+
     const enrichedTask = {
       ...task,
-      User_OffboardingTask_assignedToToUser: assignedUserDetails,
+      User_OffboardingTask_assignedToToUser: assignedUserDetails
+        ? assignedUserProfile
+        : null,
     };
 
     const assignmentEmailsEnabled = isAssignmentEmailEnabled();

@@ -10,7 +10,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,11 +20,17 @@ export async function PATCH(
 
     const task = await prisma.offboardingTask.findUnique({
       where: { id: taskId },
-      include: { EmployeeOffboarding: true },
+      include: { EmployeeOffboarding: { include: { Employee: true } } },
     });
 
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const companyId = session.user.companyId;
+
+    if (task.EmployeeOffboarding.Employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const updateData: any = {
@@ -41,6 +47,21 @@ export async function PATCH(
     }
 
     if (assignedTo !== undefined) {
+      if (assignedTo) {
+        const assignee = await prisma.user.findUnique({
+          where: { id: assignedTo },
+          select: { id: true, companyId: true },
+        });
+        if (!assignee) {
+          return NextResponse.json(
+            { error: "Assigned user not found" },
+            { status: 400 },
+          );
+        }
+        if (assignee.companyId !== companyId) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
       updateData.assignedTo = assignedTo;
     }
 
@@ -70,7 +91,10 @@ export async function PATCH(
     // Check if all required tasks are completed to update offboarding status
     if (completed) {
       const allTasks = await prisma.offboardingTask.findMany({
-        where: { offboardingId: task.offboardingId },
+        where: {
+          offboardingId: task.offboardingId,
+          EmployeeOffboarding: { is: { Employee: { companyId } } },
+        },
       });
 
       const allRequiredTasksCompleted = allTasks
@@ -117,7 +141,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -125,10 +149,15 @@ export async function DELETE(
 
     const task = await prisma.offboardingTask.findUnique({
       where: { id: taskId },
+      include: { EmployeeOffboarding: { include: { Employee: true } } },
     });
 
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    if (task.EmployeeOffboarding.Employee.companyId !== session.user.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Don't allow deletion of required tasks

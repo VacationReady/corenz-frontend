@@ -36,7 +36,7 @@ const initiateSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
       formTiming,
     } = validatedData;
 
+    const companyId = session.user.companyId;
+
     // Check if employee exists
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
@@ -77,6 +79,10 @@ export async function POST(req: NextRequest) {
         { error: "Employee not found" },
         { status: 404 },
       );
+    }
+
+    if (employee.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (employee.EmployeeOffboarding) {
@@ -94,12 +100,22 @@ export async function POST(req: NextRequest) {
     if (interviewerUserId) {
       const interviewer = await prisma.user.findUnique({
         where: { id: interviewerUserId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          companyId: true,
+        },
       });
       if (!interviewer) {
         return NextResponse.json(
           { error: "Interviewer not found" },
           { status: 400 },
         );
+      }
+      if (interviewer.companyId !== companyId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       interviewerNameValid = `${interviewer.firstName} ${interviewer.lastName}`;
       interviewerEmailValid = interviewer.email;
@@ -129,12 +145,16 @@ export async function POST(req: NextRequest) {
     if (sendForm && formTemplateId) {
       const template = await prisma.exitInterviewFormTemplate.findUnique({
         where: { id: formTemplateId },
+        select: { id: true, isActive: true, companyId: true },
       });
       if (!template || !template.isActive) {
         return NextResponse.json(
           { error: "Invalid or inactive form template" },
           { status: 400 },
         );
+      }
+      if (template.companyId && template.companyId !== companyId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 

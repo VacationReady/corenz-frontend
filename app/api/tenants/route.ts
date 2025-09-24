@@ -509,8 +509,8 @@ export async function DELETE(req: NextRequest) {
       await tx.employmentTypeOption.deleteMany({ where: { companyId } });
       await tx.notificationSettings.deleteMany({ where: { companyId } });
       await tx.brandingConfiguration.deleteMany({ where: { companyId } });
-      await tx.scimConfiguration.deleteMany({ where: { companyId } });
-      await tx.ssoConfiguration.deleteMany({ where: { companyId } });
+      await tx.sCIMConfiguration.deleteMany({ where: { companyId } });
+      await tx.sSOConfiguration.deleteMany({ where: { companyId } });
       await tx.transactionalNotificationPreference.deleteMany({ where: { companyId } });
       await tx.location.deleteMany({ where: { companyId } });
       await tx.trainingProvider.deleteMany({ where: { companyId } });

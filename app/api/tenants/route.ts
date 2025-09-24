@@ -300,7 +300,7 @@ export async function POST(req: NextRequest) {
           `Welcome to your new PeopleCore space for ${result.company.name}.`,
           `Click the button below to activate your admin account and set a password.`,
         ],
-        cta: {
+        ctas: {
           label: "Activate your account",
           href: activationLink,
         },

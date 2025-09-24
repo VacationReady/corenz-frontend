@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch steps for a template
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,9 +15,10 @@ export async function GET(
     }
 
     // Verify template belongs to company
+    const { id } = await context.params;
     const template = await prisma.onboardingTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -31,7 +32,7 @@ export async function GET(
 
     const steps = await prisma.onboardingStep.findMany({
       where: {
-        templateId: params.id,
+        templateId: id,
       },
       include: {
         Document: {
@@ -57,7 +58,7 @@ export async function GET(
 // POST: Create a new step
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -82,9 +83,10 @@ export async function POST(
     } = body;
 
     // Verify template belongs to company
+    const { id } = await context.params;
     const template = await prisma.onboardingTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -168,7 +170,7 @@ export async function POST(
     // Check for duplicate label in template
     const existingStep = await prisma.onboardingStep.findFirst({
       where: {
-        templateId: params.id,
+        templateId: id,
         label,
       },
     });
@@ -183,7 +185,7 @@ export async function POST(
     const step = await prisma.onboardingStep.create({
       data: {
         id: crypto.randomUUID(),
-        templateId: params.id,
+        templateId: id,
         type,
         label,
         order,

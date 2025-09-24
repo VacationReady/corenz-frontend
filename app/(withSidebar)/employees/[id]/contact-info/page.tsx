@@ -119,5 +119,3 @@ export default async function ContactInfoPage({ params }: PageProps) {
     </div>
   );
 }
-
-

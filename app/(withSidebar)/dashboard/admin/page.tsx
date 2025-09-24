@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
-import AdminDashboardClient from "./AdminDashboardWrapper";
+import AdminDashboardClient from "./AdminDashboardClient";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);

@@ -164,9 +164,10 @@ export async function POST(req: NextRequest) {
       artifactPath = fileName;
     }
 
-    const fwd = req.headers.get("x-forwarded-for");
-    const real = req.headers.get("x-real-ip");
-    const ipAddress = (fwd?.split(",")[0]?.trim() || real || undefined);
+    // Consolidated IP detection
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const realIp = req.headers.get("x-real-ip");
+    const ipAddress = (forwardedFor?.split(",")[0]?.trim() || realIp || undefined);
     const userAgent = req.headers.get("user-agent") || undefined;
 
     const createdArtifact = await prisma.documentSignatureArtifact.create({
@@ -317,5 +318,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
-

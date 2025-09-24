@@ -6,15 +6,14 @@ import { sendOffboardingCompletionSummaryEmail } from "@/lib/email/send";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id: taskId } = params;
+    const { id: taskId } = await context.params;
     const body = await req.json();
     const { completed, notes, assignedTo } = body;
 
@@ -137,15 +136,14 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id: taskId } = params;
+    const { id: taskId } = await context.params;
 
     const task = await prisma.offboardingTask.findUnique({
       where: { id: taskId },

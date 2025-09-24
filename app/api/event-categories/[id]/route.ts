@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -16,8 +16,8 @@ const UpdateEventCategorySchema = z.object({
 
 // GET single event category
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
@@ -28,7 +28,7 @@ export async function GET(
   }
 
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     const category = await prisma.eventCategory.findFirst({
       where: { id, companyId: session.user.companyId },
@@ -60,8 +60,8 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
@@ -72,7 +72,7 @@ export async function PATCH(
   }
 
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     // Prevent edits on system-defined categories
     const category = await prisma.eventCategory.findFirst({
@@ -148,8 +148,8 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
@@ -160,7 +160,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     // Prevent deletion on system-defined categories
     const category = await prisma.eventCategory.findFirst({

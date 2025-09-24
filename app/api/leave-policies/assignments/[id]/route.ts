@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // PUT: Update a leave policy assignment
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -26,9 +26,10 @@ export async function PUT(
     } = body;
 
     // Check if assignment exists and belongs to company
+    const { id } = await context.params;
     const existingAssignment = await prisma.leavePolicyAssignment.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -110,7 +111,7 @@ export async function PUT(
     }
 
     const updatedAssignment = await prisma.leavePolicyAssignment.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         departmentIds,
         jobRoleIds,
@@ -144,7 +145,7 @@ export async function PUT(
 // DELETE: Delete a leave policy assignment
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -153,9 +154,10 @@ export async function DELETE(
     }
 
     // Check if assignment exists and belongs to company
+    const { id } = await context.params;
     const existingAssignment = await prisma.leavePolicyAssignment.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -168,7 +170,7 @@ export async function DELETE(
     }
 
     await prisma.leavePolicyAssignment.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

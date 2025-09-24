@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET a single form by ID
-export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
 
@@ -23,7 +26,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
 
 // UPDATE a form
 export async function PUT(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
@@ -107,7 +110,7 @@ export async function PUT(
 
 // DELETE a form
 export async function DELETE(
-  _: Request,
+  _: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;

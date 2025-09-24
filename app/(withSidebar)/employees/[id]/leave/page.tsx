@@ -6,6 +6,7 @@ import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import { CalendarDays, Plus, RotateCcw } from "lucide-react";
@@ -112,12 +113,9 @@ function getStatusMeta(status?: string | null) {
   };
 }
 
-export default function LeavePage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const employeeId = params.id;
+export default function LeavePage() {
+  const params = useParams();
+  const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();

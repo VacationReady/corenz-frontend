@@ -1,16 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
-import ChangeReasonModal, {
-  ChangeInfo,
-  changeRequiresReason,
-} from "@/components/audit/ChangeReasonModal";
+import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 
 type Contact = {
   id: string;
@@ -20,8 +16,7 @@ type Contact = {
   email?: string | null;
 };
 
-export default function EmergencyContactsPage() {
-  const { id } = useParams() as { id: string };
+export default function EmergencyContactsClient({ employeeId }: { employeeId: string }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [originalContacts, setOriginalContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +26,7 @@ export default function EmergencyContactsPage() {
   const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const load = async () => {
-    const res = await fetch(`/api/employees/${id}/emergency-contacts`);
+    const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`);
     if (!res.ok) return;
     const data: Contact[] = await res.json();
     setContacts(data);
@@ -40,19 +35,12 @@ export default function EmergencyContactsPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [employeeId]);
 
   const addEmpty = () => {
     setContacts((c) => [
       ...c,
-      {
-        id: "__new__" + Math.random().toString(36).slice(2),
-        name: "",
-        relationship: "",
-        phone: "",
-        email: "",
-      },
+      { id: "__new__" + Math.random().toString(36).slice(2), name: "", relationship: "", phone: "", email: "" },
     ]);
   };
 
@@ -84,11 +72,7 @@ export default function EmergencyContactsPage() {
       const oldValue = (original as any)[key] ?? "";
       const newValue = (contact as any)[key] ?? "";
       if (String(oldValue) !== String(newValue)) {
-        changes.push({
-          field: key as string,
-          oldValue: String(oldValue),
-          newValue: String(newValue),
-        });
+        changes.push({ field: key as string, oldValue: String(oldValue), newValue: String(newValue) });
       }
     }
     if (changes.length === 0) {
@@ -96,7 +80,7 @@ export default function EmergencyContactsPage() {
       return;
     }
     if (!changes.some(changeRequiresReason)) {
-      const res = await fetch(`/api/employees/${id}/emergency-contacts`, {
+      const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...contact, reasons: {} }),
@@ -116,16 +100,7 @@ export default function EmergencyContactsPage() {
 
   const openReasonForDelete = (contact: Contact) => {
     const changes: ChangeInfo[] = [
-      {
-        field: "__delete__",
-        oldValue: JSON.stringify({
-          name: contact.name,
-          relationship: contact.relationship,
-          phone: contact.phone,
-          email: contact.email,
-        }),
-        newValue: "true",
-      },
+      { field: "__delete__", oldValue: JSON.stringify({ name: contact.name, relationship: contact.relationship, phone: contact.phone, email: contact.email }), newValue: "true" },
     ];
     setPendingAction("delete");
     setPendingPayload({ id: contact.id });
@@ -148,10 +123,10 @@ export default function EmergencyContactsPage() {
     }
   };
 
-  const remove = async (contactId: string) => {
+  const remove = async (id: string) => {
     try {
       setLoading(true);
-      const contact = contacts.find((c) => c.id === contactId);
+      const contact = contacts.find((c) => c.id === id);
       if (!contact) throw new Error("Contact not found");
       openReasonForDelete(contact);
     } catch (e: any) {
@@ -163,7 +138,7 @@ export default function EmergencyContactsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <HeaderWithHistory title="Emergency contacts" employeeId={id} section="emergency-contacts" />
+      <HeaderWithHistory title="Emergency contacts" employeeId={employeeId} section="emergency-contacts" />
 
       <div className="flex justify-end">
         <Button onClick={addEmpty}>Add contact</Button>
@@ -249,21 +224,21 @@ export default function EmergencyContactsPage() {
           try {
             setLoading(true);
             if (pendingAction === "create") {
-              const res = await fetch(`/api/employees/${id}/emergency-contacts`, {
+              const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...pendingPayload, reason: reasons["__create__"] }),
               });
               if (!res.ok) throw new Error("Failed to create");
             } else if (pendingAction === "update") {
-              const res = await fetch(`/api/employees/${id}/emergency-contacts`, {
+              const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...pendingPayload, reasons }),
               });
               if (!res.ok) throw new Error("Failed to update");
             } else if (pendingAction === "delete") {
-              const res = await fetch(`/api/employees/${id}/emergency-contacts`, {
+              const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: pendingPayload.id, reason: reasons["__delete__"] }),
@@ -286,3 +261,5 @@ export default function EmergencyContactsPage() {
     </div>
   );
 }
+
+

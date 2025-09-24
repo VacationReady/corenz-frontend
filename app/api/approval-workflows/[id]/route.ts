@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
@@ -27,7 +27,7 @@ const WorkflowSchema = z.object({
   stages: z.array(StageSchema).min(1, "At least one stage is required"),
 });
 
-export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
@@ -39,7 +39,12 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
       EventCategory: { select: { id: true, name: true } },
       stages: {
         orderBy: { order: "asc" },
-        include: { approvers: { orderBy: { order: "asc" }, include: { user: { select: { id: true, name: true, email: true } } } } },
+        include: {
+          approvers: {
+            orderBy: { order: "asc" },
+            include: { user: { select: { id: true, name: true, email: true } } },
+          },
+        },
       },
     },
   });
@@ -47,13 +52,16 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   return NextResponse.json({ success: true, data: wf });
 }
 
-export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true, PermissionProfile: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, PermissionProfile: true },
+  });
   if (!user || user.role !== "ADMIN" || !hasPermission(user as any, "settings", "edit")) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
@@ -67,7 +75,9 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
-      const existing = await tx.approvalWorkflow.findFirst({ where: { id, companyId: session.user.companyId } });
+      const existing = await tx.approvalWorkflow.findFirst({
+        where: { id, companyId: session.user.companyId },
+      });
       if (!existing) throw new Error("Not found");
 
       await tx.approvalWorkflow.update({
@@ -85,7 +95,12 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
       });
 
       // Replace nested
-      const stageIds = (await tx.approvalWorkflowStage.findMany({ where: { workflowId: existing.id }, select: { id: true } })).map((s) => s.id);
+      const stageIds = (
+        await tx.approvalWorkflowStage.findMany({
+          where: { workflowId: existing.id },
+          select: { id: true },
+        })
+      ).map((s) => s.id);
       if (stageIds.length > 0) {
         await tx.approvalWorkflowStageApprover.deleteMany({ where: { stageId: { in: stageIds } } });
         await tx.approvalWorkflowStage.deleteMany({ where: { id: { in: stageIds } } });
@@ -93,10 +108,17 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
 
       for (const st of stages) {
         const stage = await tx.approvalWorkflowStage.create({
-          data: { workflowId: existing.id, name: st.name ?? null, order: st.order, mode: st.mode as any },
+          data: {
+            workflowId: existing.id,
+            name: st.name ?? null,
+            order: st.order,
+            mode: st.mode as any,
+          },
         });
         for (const appr of st.approvers) {
-          await tx.approvalWorkflowStageApprover.create({ data: { stageId: stage.id, userId: appr.userId, order: appr.order } });
+          await tx.approvalWorkflowStageApprover.create({
+            data: { stageId: stage.id, userId: appr.userId, order: appr.order },
+          });
         }
       }
 
@@ -104,24 +126,38 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
         where: { id: existing.id },
         include: {
           EventCategory: { select: { id: true, name: true } },
-          stages: { orderBy: { order: "asc" }, include: { approvers: { orderBy: { order: "asc" }, include: { user: { select: { id: true, name: true, email: true } } } } } },
+          stages: {
+            orderBy: { order: "asc" },
+            include: {
+              approvers: {
+                orderBy: { order: "asc" },
+                include: { user: { select: { id: true, name: true, email: true } } },
+              },
+            },
+          },
         },
       });
     });
 
     return NextResponse.json({ success: true, data: updated });
   } catch (e: any) {
-    return NextResponse.json({ success: false, error: e.message || "Failed to update" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: e.message || "Failed to update" },
+      { status: 500 },
+    );
   }
 }
 
-export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true, PermissionProfile: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, PermissionProfile: true },
+  });
   if (!user || user.role !== "ADMIN" || !hasPermission(user as any, "settings", "edit")) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
@@ -130,6 +166,9 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
     await prisma.approvalWorkflow.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ success: false, error: e.message || "Failed to delete" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: e.message || "Failed to delete" },
+      { status: 500 },
+    );
   }
 }

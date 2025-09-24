@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -47,17 +47,18 @@ async function getEmployeeForSession(employeeId: string, companyId: string) {
 }
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const employee = await getEmployeeForSession(
-      params.id,
+      id,
       session.user.companyId,
     );
     if (!employee) {
@@ -96,10 +97,11 @@ export async function GET(
 }
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -110,7 +112,7 @@ export async function POST(
     }
 
     const employee = await getEmployeeForSession(
-      params.id,
+      id,
       session.user.companyId,
     );
     if (!employee) {
@@ -168,10 +170,11 @@ export async function POST(
 }
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -182,7 +185,7 @@ export async function PUT(
     }
 
     const employee = await getEmployeeForSession(
-      params.id,
+      id,
       session.user.companyId,
     );
     if (!employee) {

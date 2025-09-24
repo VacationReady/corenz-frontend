@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET: Fetch form by slug
 export async function GET(
-  req: Request,
-  { params }: { params: { slug: string } },
+  req: NextRequest,
+  context: { params: Promise<{ slug: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -17,6 +17,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { slug } = await context.params;
   const url = new URL(req.url);
   const employeeId = url.searchParams.get("employeeId");
 
@@ -58,9 +59,9 @@ export async function GET(
       console.log("🛠 Job Role:", userJobRole);
 
       // ✅ TEMP: manually test department match
-      const formDebug = await prisma.form.findFirst({
+    const formDebug = await prisma.form.findFirst({
         where: {
-          slug: params.slug,
+        slug: slug,
           companyId: session.user.companyId,
           isActive: true,
         },
@@ -113,7 +114,7 @@ export async function GET(
 
     const form = await prisma.form.findFirst({
       where: {
-        slug: params.slug,
+        slug: slug,
         companyId: session.user.companyId,
         isActive: true,
         ...visibilityFilter,

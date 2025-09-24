@@ -8,15 +8,16 @@ import { buildDocumentNotificationEmail } from "@/lib/email/documentNotification
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { documentId: string } },
+  context: { params: Promise<{ documentId: string }> },
 ) {
+  const { documentId } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const fields = await prisma.documentSignatureField.findMany({
-    where: { documentId: params.documentId },
+    where: { documentId },
     orderBy: { pageNumber: "asc" },
   });
   return NextResponse.json(fields);
@@ -24,8 +25,9 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { documentId: string } },
+  context: { params: Promise<{ documentId: string }> },
 ) {
+  const { documentId } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -39,7 +41,7 @@ export async function POST(
       prisma.documentSignatureField.create({
         data: {
           id: crypto.randomUUID(),
-          documentId: params.documentId,
+          documentId,
           pageNumber: f.pageNumber ?? 1,
           x: f.x,
           y: f.y,
@@ -58,7 +60,7 @@ export async function POST(
   // After placement, automatically notify targeted signers if the document requires signatures
   try {
     const document = await prisma.document.findFirst({
-      where: { id: params.documentId, companyId: session.user.companyId },
+      where: { id: documentId, companyId: session.user.companyId },
       include: {
         SignatureEmployees: true,
         SignatureDepartments: true,
@@ -110,7 +112,7 @@ export async function POST(
       // Ensure explicit assignees are stored as DocumentSignatureEmployee for future reference
       if (explicitEmpIds.size > 0) {
         await prisma.documentSignatureEmployee.createMany({
-          data: Array.from(explicitEmpIds).map((id) => ({ documentId: params.documentId, employeeId: id })),
+          data: Array.from(explicitEmpIds).map((id) => ({ documentId, employeeId: id })),
           skipDuplicates: true,
         });
       }

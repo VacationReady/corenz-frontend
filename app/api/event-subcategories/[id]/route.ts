@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -15,8 +15,8 @@ const UpdateSubcategorySchema = z.object({
 
 // GET single subcategory
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
@@ -27,7 +27,7 @@ export async function GET(
   }
 
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     const subcategory = await prisma.eventSubcategory.findFirst({
       where: {
@@ -59,8 +59,8 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
@@ -71,7 +71,7 @@ export async function PATCH(
   }
 
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     const existingSubcategory = await prisma.eventSubcategory.findFirst({
       where: {
@@ -147,8 +147,8 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN" || !session.user.companyId) {
@@ -159,7 +159,7 @@ export async function DELETE(
   }
 
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
     const existingSubcategory = await prisma.eventSubcategory.findFirst({
       where: {

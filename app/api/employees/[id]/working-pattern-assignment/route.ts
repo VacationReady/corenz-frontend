@@ -1,16 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   console.log(
-    `[API] Fetching working pattern assignments for employee ${params.id}`,
+    `[API] Fetching working pattern assignments for employee ${id}`,
   );
 
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
-    where: { employeeId: params.id },
+    where: { employeeId: id },
     include: { WorkingPattern: true },
     orderBy: { effectiveDate: "desc" },
   });
@@ -19,15 +20,16 @@ export async function GET(
 }
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const body = await req.json();
     const { workingPatternId, effectiveDate } = body;
 
     console.log(`[API] Attempting to assign working pattern`, {
-      employeeId: params.id,
+      employeeId: id,
       workingPatternId,
       effectiveDate,
     });
@@ -46,7 +48,7 @@ export async function POST(
     const assignment = await prisma.employeeWorkingPatternAssignment.create({
       data: {
         id: crypto.randomUUID(),
-        employeeId: params.id,
+        employeeId: id,
         workingPatternId,
         effectiveDate: new Date(effectiveDate),
         updatedAt: new Date(),

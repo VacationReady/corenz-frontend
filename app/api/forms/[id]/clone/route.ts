@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { generateUniqueSlug } from "@/lib/forms";
 import { Prisma } from "@prisma/client";
 
-export async function POST(_: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  _: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId)

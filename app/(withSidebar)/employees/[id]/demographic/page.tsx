@@ -111,5 +111,3 @@ export default async function DemographicPage({ params }: PageProps) {
     </div>
   );
 }
-
-

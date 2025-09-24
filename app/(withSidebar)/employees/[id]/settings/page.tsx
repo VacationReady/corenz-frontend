@@ -11,20 +11,15 @@ import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
 import { PermissionProfileManagement } from "@/components/employees/PermissionProfileManagement";
 
-interface EmployeeSettingsPageProps {
-  params: { id: string };
-}
-
-export default async function EmployeeSettingsPage({
-  params,
-}: EmployeeSettingsPageProps) {
+export default async function EmployeeSettingsPage(context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   // Get the employee with user information
   const employee = await prisma.employee.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { User: true },
   });
 
@@ -33,7 +28,7 @@ export default async function EmployeeSettingsPage({
   }
 
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
-    where: { employeeId: params.id },
+    where: { employeeId: id },
     include: { WorkingPattern: true },
     orderBy: { effectiveDate: "asc" },
   });
@@ -87,7 +82,7 @@ export default async function EmployeeSettingsPage({
           {/* Only the Assign New Pattern button */}
           <div className="pt-2">
             <Suspense fallback={null}>
-              <WorkingPatternAssignment employeeId={params.id} />
+          <WorkingPatternAssignment employeeId={id} />
             </Suspense>
           </div>
         </div>

@@ -13,10 +13,14 @@ const csp = [
   "frame-ancestors 'none'",
 ].join('; ');
 
+const path = require("path");
+
 const nextConfig = {
   reactStrictMode: true,
   // Most important: disables static export
   output: "standalone",
+  // Explicitly set root to avoid monorepo lockfile inference
+  outputFileTracingRoot: __dirname,
   eslint: {
     ignoreDuringBuilds: true,
   },

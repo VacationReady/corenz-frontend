@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -15,7 +16,7 @@ export async function GET(
     }
 
     const employee = await prisma.employee.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: { User: true },
     });
     if (!employee) {
@@ -37,9 +38,10 @@ export async function GET(
 }
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -50,7 +52,7 @@ export async function POST(
     }
 
     const employee = await prisma.employee.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: { User: true },
     });
     if (!employee) {
@@ -103,9 +105,10 @@ export async function POST(
 }
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -116,7 +119,7 @@ export async function PATCH(
     }
 
     const employee = await prisma.employee.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: { User: true },
     });
     if (!employee) {
@@ -198,9 +201,10 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -211,7 +215,7 @@ export async function DELETE(
     }
 
     const employee = await prisma.employee.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: { User: true },
     });
     if (!employee) {

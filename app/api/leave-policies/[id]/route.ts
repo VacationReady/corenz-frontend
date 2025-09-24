@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch a specific leave policy
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,9 +14,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await context.params;
     const policy = await prisma.leavePolicy.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -47,7 +48,7 @@ export async function GET(
 // PUT: Update a leave policy
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -73,9 +74,10 @@ export async function PUT(
     } = body;
 
     // Check if policy exists and belongs to company
+    const { id } = await context.params;
     const existingPolicy = await prisma.leavePolicy.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -118,7 +120,7 @@ export async function PUT(
       where: {
         companyId: session.user.companyId,
         name,
-        id: { not: params.id },
+        id: { not: id },
       },
     });
 
@@ -166,7 +168,7 @@ export async function PUT(
     }
 
     const updatedPolicy = await prisma.leavePolicy.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name,
         description,
@@ -203,7 +205,7 @@ export async function PUT(
 // DELETE: Delete a leave policy
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -212,9 +214,10 @@ export async function DELETE(
     }
 
     // Check if policy exists and belongs to company
+    const { id } = await context.params;
     const existingPolicy = await prisma.leavePolicy.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -235,7 +238,7 @@ export async function DELETE(
     if (existingPolicy._count.LeavePolicyAssignment > 0) {
       // Instead of hard delete, deactivate the policy
       const deactivatedPolicy = await prisma.leavePolicy.update({
-        where: { id: params.id },
+        where: { id: id },
         data: { isActive: false },
       });
 
@@ -247,7 +250,7 @@ export async function DELETE(
 
     // Hard delete if no assignments
     await prisma.leavePolicy.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

@@ -1,5 +1,5 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
@@ -17,8 +17,8 @@ const leaveRequestActionSchema = z.object({
 export const runtime = "nodejs";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -31,8 +31,9 @@ export async function GET(
 
   try {
     await ensurePrismaConnected();
+    const { id } = await context.params;
     const leave = await prisma.leaveRequest.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         Employee: { include: { User: true, Department: true } },
         EventCategory: true,
@@ -116,8 +117,8 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -128,7 +129,7 @@ export async function PATCH(
     );
   }
 
-  const leaveId = params.id;
+  const { id: leaveId } = await context.params;
 
   try {
     const { action, decisionId } = leaveRequestActionSchema.parse(await req.json());

@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
@@ -49,8 +50,7 @@ interface InitialValuesState {
   kiwiSaverContribution: number | null;
 }
 
-export default function BankPayrollPage() {
-  const { id } = useParams() as { id: string };
+export default function BankPayrollClient({ employeeId }: { employeeId: string }) {
   const [form, setForm] = useState<FormState>({
     bankAccountNumber: "",
     irdNumber: "",
@@ -66,10 +66,9 @@ export default function BankPayrollPage() {
     kiwiSaverContribution: null,
   });
   const [errors, setErrors] = useState<{ bankAccountNumber?: string; irdNumber?: string }>({});
-  const [touched, setTouched] = useState<{ bankAccountNumber: boolean; irdNumber: boolean }>({
-    bankAccountNumber: false,
-    irdNumber: false,
-  });
+  const [touched, setTouched] = useState<{ bankAccountNumber: boolean; irdNumber: boolean }>(
+    { bankAccountNumber: false, irdNumber: false },
+  );
 
   const validateBankAccount = (value: string) => {
     const normalized = normalizeBankAccountNumber(value);
@@ -98,11 +97,10 @@ export default function BankPayrollPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/employees/${id}/bank-payroll`);
+        const res = await fetch(`/api/employees/${employeeId}/bank-payroll`);
         if (!res.ok) return;
         const data = await res.json();
 
-        // Store initial values for audit comparison
         setInitialValues({
           bankAccountNumber: data.bankAccountNumber,
           irdNumber: data.irdNumber,
@@ -127,7 +125,7 @@ export default function BankPayrollPage() {
         setTouched({ bankAccountNumber: false, irdNumber: false });
       } catch {}
     })();
-  }, [id]);
+  }, [employeeId]);
 
   const handleBankAccountChange = (value: string) => {
     const formatted = formatBankAccountNumber(value);
@@ -185,7 +183,6 @@ export default function BankPayrollPage() {
   const isIrdInvalid = normalizedIrd.length > 0 && !isValidIrdNumber(normalizedIrd);
   const disableSave = isBankInvalid || isIrdInvalid;
 
-  // Convert form values to API format
   const getCurrentValues = () => ({
     bankAccountNumber: normalizedBankAccount
       ? formatBankAccountNumber(normalizedBankAccount)
@@ -204,14 +201,17 @@ export default function BankPayrollPage() {
   });
 
   const handleSaveSuccess = () => {
-    // Update initial values to current values after successful save
     const currentValues = getCurrentValues();
     setInitialValues(currentValues);
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <HeaderWithHistory title="Bank & Payroll" employeeId={id} section="bank-payroll" />
+      <HeaderWithHistory
+        title="Bank & Payroll"
+        employeeId={employeeId}
+        section="bank-payroll"
+      />
 
       <TooltipProvider>
         <Card>
@@ -232,7 +232,7 @@ export default function BankPayrollPage() {
                 className={cn(
                   errors.bankAccountNumber
                     ? "border-destructive focus:border-destructive focus:ring-destructive/50"
-                    : ""
+                    : "",
                 )}
                 placeholder="00-0000-0000000-000"
                 inputMode="numeric"
@@ -257,8 +257,7 @@ export default function BankPayrollPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    IRD numbers include a check digit. We'll validate them against Inland Revenue
-                    rules.
+                    IRD numbers include a check digit. We'll validate them against Inland Revenue rules.
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -271,7 +270,7 @@ export default function BankPayrollPage() {
                 className={cn(
                   errors.irdNumber
                     ? "border-destructive focus:border-destructive focus:ring-destructive/50"
-                    : ""
+                    : "",
                 )}
                 placeholder="123-456-789"
                 inputMode="numeric"
@@ -374,7 +373,9 @@ export default function BankPayrollPage() {
                 max="100"
                 step="1"
                 value={form.kiwiSaverContribution}
-                onChange={(e) => setForm((f) => ({ ...f, kiwiSaverContribution: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, kiwiSaverContribution: e.target.value }))
+                }
               />
             </div>
           </div>
@@ -382,11 +383,14 @@ export default function BankPayrollPage() {
       </TooltipProvider>
 
       <div className="flex items-center justify-between">
-        <Link href={`/employees/${id}/documents`} className="text-sm underline">
+        <Link
+          href={`/employees/${employeeId}/documents`}
+          className="text-sm underline"
+        >
           View payslip history
         </Link>
         <EmployeeSaveButton
-          employeeId={id}
+          employeeId={employeeId}
           endpoint="bank-payroll"
           initialValues={initialValues}
           currentValues={getCurrentValues()}
@@ -397,3 +401,5 @@ export default function BankPayrollPage() {
     </div>
   );
 }
+
+

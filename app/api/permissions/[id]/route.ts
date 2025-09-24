@@ -6,7 +6,7 @@ import { hasPermission, validatePermissions } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,9 +22,10 @@ export async function GET(
       );
     }
 
+    const { id } = await context.params;
     const dbProfile = await prisma.permissionProfile.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -58,7 +59,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -93,9 +94,10 @@ export async function PUT(
     }
 
     // Check if profile exists and belongs to user's company
+    const { id } = await context.params;
     const existingProfile = await prisma.permissionProfile.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -117,7 +119,7 @@ export async function PUT(
       where: {
         companyId: session.user.companyId,
         name: name.trim(),
-        id: { not: params.id },
+        id: { not: id },
       },
     });
 
@@ -129,7 +131,7 @@ export async function PUT(
     }
 
     const updatedProfile = await prisma.permissionProfile.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: name.trim(),
         description: description?.trim(),
@@ -149,7 +151,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -166,9 +168,10 @@ export async function DELETE(
     }
 
     // Check if profile exists and belongs to user's company
+    const { id } = await context.params;
     const existingProfile = await prisma.permissionProfile.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -202,7 +205,7 @@ export async function DELETE(
     }
 
     await prisma.permissionProfile.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ message: "Profile deleted successfully" });

@@ -6,8 +6,9 @@ import supabase from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -22,12 +23,12 @@ export async function GET(
 
     const artifact = await prisma.documentSignatureArtifact.findUnique({
       where: {
-        documentId_employeeId: { documentId: params.id, employeeId: employee.id },
+        documentId_employeeId: { documentId: id, employeeId: employee.id },
       },
     });
     // Determine eligibility (mirror sign route logic)
     const document = await prisma.document.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: {
         Employee: true,
         Department: { select: { id: true } },
@@ -56,7 +57,7 @@ export async function GET(
       }
       if (!eligible) {
         const assignedField = await prisma.documentSignatureField.findFirst({
-          where: { documentId: params.id, assignedEmployeeId: employee.id },
+          where: { documentId: id, assignedEmployeeId: employee.id },
           select: { id: true },
         });
         if (assignedField) eligible = true;

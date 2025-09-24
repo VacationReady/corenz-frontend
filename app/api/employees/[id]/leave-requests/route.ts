@@ -1,5 +1,5 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
@@ -56,10 +56,11 @@ const leaveRequestCreateSchema = z.object({
 export const runtime = "nodejs";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -79,7 +80,7 @@ export async function GET(
     const now = new Date();
 
     const where: any = {
-      employeeId: params.id,
+      employeeId: id,
       // Use correct relation casing per Prisma schema: Employee
       Employee: { companyId: session.user.companyId },
       approvalStatus: "APPROVED",
@@ -118,10 +119,11 @@ export async function GET(
 }
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -133,7 +135,7 @@ export async function POST(
     }
 
     const userId = session.user.id;
-    const employeeId = params.id;
+    const employeeId = id;
   const body = leaveRequestCreateSchema.parse(await req.json());
   const EventCategoryId = body.eventCategoryId || body.EventCategoryId;
   const { startDate, endDate, reason, sickReason, paidStatus, dayType } = body;

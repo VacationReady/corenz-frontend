@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
-  const { id: employeeId } = await context.params;
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  const employeeId = id;
+
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
@@ -12,7 +17,6 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
   }
 
   try {
-
     // Verify employee belongs to the same company
     const employee = await prisma.employee.findFirst({
       where: {

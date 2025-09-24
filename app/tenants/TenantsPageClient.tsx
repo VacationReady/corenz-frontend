@@ -3,6 +3,7 @@
 import React from "react";
 import { format } from "date-fns";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -41,6 +42,7 @@ export default function TenantsPageClient({
   homeCompanyId,
   mainCompanyId,
 }: TenantsPageClientProps) {
+  const router = useRouter();
   const { data: session, update: updateSession } = useSession();
   const [tenants, setTenants] = React.useState<TenantSummary[]>(() =>
     sortTenants(initialTenants, homeCompanyId),
@@ -165,6 +167,9 @@ export default function TenantsPageClient({
         toast.success(
           selected ? `Now viewing “${selected.name}”` : "Tenant switched",
         );
+        // Force a navigation so all server components/rendered data use the new tenant
+        router.push("/dashboard");
+        router.refresh();
       } catch (error) {
         console.error("Failed to switch tenant", error);
         toast.error("Unable to switch tenants. Try again.");
@@ -172,7 +177,7 @@ export default function TenantsPageClient({
         setSwitchingTenantId(null);
       }
     },
-    [updateSession, currentCompanyId, tenants],
+    [updateSession, currentCompanyId, tenants, router],
   );
 
   const handleDeleteTenant = React.useCallback(
@@ -299,7 +304,7 @@ export default function TenantsPageClient({
                     disabled={isCurrent}
                     loading={isSwitching}
                   >
-                    {isCurrent ? "Currently viewing" : "Switch to tenant"}
+                    {isCurrent ? "Currently viewing" : "View tenant"}
                   </Button>
                   {!isHome && (
                     <Button

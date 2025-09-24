@@ -93,12 +93,8 @@ export const authOptions: AuthOptions = {
 
       if (trigger === "update" && session?.companyId) {
         const isSuperAdmin = token.role === "SUPER_ADMIN";
-        const homeCompanyId = token.homeCompanyId ?? token.companyId;
-        const mainCompanyMatches =
-          !MAIN_PRODUCTION_COMPANY_ID ||
-          homeCompanyId === MAIN_PRODUCTION_COMPANY_ID;
-
-        if (isSuperAdmin && mainCompanyMatches) {
+        // Allow SUPER_ADMIN to switch to any tenant by updating companyId
+        if (isSuperAdmin) {
           token.companyId = session.companyId as string;
         }
       }
@@ -112,10 +108,7 @@ export const authOptions: AuthOptions = {
         session.user.companyId = token.companyId;
         session.user.homeCompanyId =
           (token.homeCompanyId as string | undefined) ?? token.companyId;
-        session.user.canManageTenants =
-          session.user.role === "SUPER_ADMIN" &&
-          (!MAIN_PRODUCTION_COMPANY_ID ||
-            session.user.homeCompanyId === MAIN_PRODUCTION_COMPANY_ID);
+        session.user.canManageTenants = session.user.role === "SUPER_ADMIN";
       }
       return session;
     },

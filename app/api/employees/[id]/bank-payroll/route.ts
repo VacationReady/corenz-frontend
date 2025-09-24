@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -13,9 +13,10 @@ import {
 import { TaxCode } from "@prisma/client";
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -26,7 +27,7 @@ export async function PATCH(
     }
 
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { User: true },
     });
     if (!employee || employee.companyId !== session.user.companyId) {
@@ -165,9 +166,10 @@ export async function PATCH(
 }
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } },
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -175,7 +177,7 @@ export async function GET(
     }
 
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { User: true },
     });
     if (!employee || employee.companyId !== session.user.companyId) {

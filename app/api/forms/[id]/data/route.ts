@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
@@ -6,8 +6,8 @@ import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
 
 // GET: Retrieve form data for an employee
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -27,9 +27,10 @@ export async function GET(
 
   try {
     // Verify the form exists and belongs to the company
+    const { id } = await context.params;
     const form = await prisma.form.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
         isActive: true,
       },
@@ -69,7 +70,7 @@ export async function GET(
         readOnly = true;
       } else {
         const stepForForm = activeInstance.OnboardingStepInstance.find(
-          (s) => s.OnboardingStep?.formId === params.id,
+          (s) => s.OnboardingStep?.formId === id,
         );
         readOnly = !stepForForm || stepForForm.status === "completed";
       }
@@ -79,7 +80,7 @@ export async function GET(
     const dataRecord = await prisma.formDataRecord.findUnique({
       where: {
         formId_employeeId: {
-          formId: params.id,
+          formId: id,
           employeeId: employeeId,
         },
       },
@@ -107,8 +108,8 @@ export async function GET(
 
 // POST/PUT: Save or update form data for an employee
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
@@ -127,9 +128,10 @@ export async function POST(
 
   try {
     // Verify the form exists and belongs to the company
+    const { id } = await context.params;
     const form = await prisma.form.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
         isActive: true,
       },
@@ -158,7 +160,7 @@ export async function POST(
     const existing = await prisma.formDataRecord.findUnique({
       where: {
         formId_employeeId: {
-          formId: params.id,
+          formId: id,
           employeeId,
         },
       },
@@ -186,7 +188,7 @@ export async function POST(
         await createAuditLogs({
           companyId: session.user.companyId!,
           employeeId,
-          section: `forms:${params.id}`,
+          section: `forms:${id}`,
           diffs,
           reasons: reasons || {},
           changedById: session.user.id,
@@ -199,7 +201,7 @@ export async function POST(
     const dataRecord = await prisma.formDataRecord.upsert({
       where: {
         formId_employeeId: {
-          formId: params.id,
+          formId: id,
           employeeId: employeeId,
         },
       },
@@ -209,7 +211,7 @@ export async function POST(
       create: {
         id: crypto.randomUUID(),
         updatedAt: new Date(),
-        formId: params.id,
+        formId: id,
         employeeId: employeeId,
         data: data,
       },

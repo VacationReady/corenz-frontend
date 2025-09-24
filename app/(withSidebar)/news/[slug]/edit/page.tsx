@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -21,11 +21,9 @@ type ContentBlock =
   | { type: "paragraph"; text: string }
   | { type: "bullet_list"; items: string[] };
 
-interface Props {
-  params: { slug: string };
-}
-
-export default function EditNewsPostPage({ params }: Props) {
+export default function EditNewsPostPage() {
+  const params = useParams();
+  const slug = Array.isArray(params?.slug) ? params.slug[0] : (params?.slug as string);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -49,7 +47,7 @@ export default function EditNewsPostPage({ params }: Props) {
     if (!session?.user) return router.push("/news");
 
     async function fetchPost() {
-      const res = await fetch(`/api/news/${params.slug}`);
+      const res = await fetch(`/api/news/${slug}`);
       if (!res.ok) return router.push("/news");
 
       const post = await res.json();
@@ -73,7 +71,7 @@ export default function EditNewsPostPage({ params }: Props) {
     }
 
     fetchPost();
-  }, [params.slug, router, session, status]);
+  }, [slug, router, session, status]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -88,7 +86,7 @@ export default function EditNewsPostPage({ params }: Props) {
       attachments.map((file) => uploadFileToSupabase(file)),
     );
 
-    const res = await fetch(`/api/news/${params.slug}`, {
+    const res = await fetch(`/api/news/${slug}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -102,7 +100,7 @@ export default function EditNewsPostPage({ params }: Props) {
     });
 
     if (res.ok) {
-      router.push(`/news/${params.slug}`);
+      router.push(`/news/${slug}`);
     } else {
       alert("Failed to update news post.");
     }

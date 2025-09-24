@@ -6,7 +6,7 @@ import { hasPermission, resolvePermissions } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,9 +23,10 @@ export async function GET(
     }
 
     // Get user with their current permission profile
+    const { id } = await context.params;
     const user = await prisma.user.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -42,7 +43,7 @@ export async function GET(
 
     // Get audit trail
     const auditTrail = await prisma.permissionAudit.findMany({
-      where: { employeeId: params.id },
+      where: { employeeId: id },
       select: {
         id: true,
         changedAt: true,
@@ -85,7 +86,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -105,9 +106,10 @@ export async function PATCH(
     const { permissionProfileId, note } = body;
 
     // Validate that user exists and belongs to the same company
+    const { id } = await context.params;
     const user = await prisma.user.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -145,7 +147,7 @@ export async function PATCH(
 
     // Update user's permission profile
     const updatedUser = await prisma.user.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         permissionProfileId: permissionProfileId || null,
       },
@@ -167,7 +169,7 @@ export async function PATCH(
     await prisma.permissionAudit.create({
       data: {
         id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        employeeId: params.id,
+        employeeId: id,
         changedById: session.user.id,
         oldProfileId: user.permissionProfileId,
         newProfileId: permissionProfileId,
@@ -186,7 +188,7 @@ export async function PATCH(
 
     // Get audit trail
     const auditTrail = await prisma.permissionAudit.findMany({
-      where: { employeeId: params.id },
+      where: { employeeId: id },
       select: {
         id: true,
         changedAt: true,

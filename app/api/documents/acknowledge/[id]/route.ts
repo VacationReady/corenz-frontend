@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -16,7 +17,7 @@ export async function GET(
 
     // ✅ Fetch the document, including departments & jobRoles, scoped by company
     const doc = await prisma.document.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: {
         Department: true,
         JobRole: true,

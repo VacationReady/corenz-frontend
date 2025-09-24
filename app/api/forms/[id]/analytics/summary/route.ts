@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch form analytics summary
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formId = params.id;
+    const { id: formId } = await context.params;
 
     // Verify form exists and belongs to company
     const form = await prisma.form.findFirst({

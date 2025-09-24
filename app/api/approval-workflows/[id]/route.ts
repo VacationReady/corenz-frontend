@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
@@ -27,13 +27,14 @@ const WorkflowSchema = z.object({
   stages: z.array(StageSchema).min(1, "At least one stage is required"),
 });
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
   const wf = await prisma.approvalWorkflow.findFirst({
-    where: { id: params.id, companyId: session.user.companyId },
+    where: { id, companyId: session.user.companyId },
     include: {
       EventCategory: { select: { id: true, name: true } },
       stages: {
@@ -46,7 +47,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ success: true, data: wf });
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -65,7 +67,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
   try {
     const updated = await prisma.$transaction(async (tx) => {
-      const existing = await tx.approvalWorkflow.findFirst({ where: { id: params.id, companyId: session.user.companyId } });
+      const existing = await tx.approvalWorkflow.findFirst({ where: { id, companyId: session.user.companyId } });
       if (!existing) throw new Error("Not found");
 
       await tx.approvalWorkflow.update({
@@ -113,7 +115,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -124,7 +127,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   }
 
   try {
-    await prisma.approvalWorkflow.delete({ where: { id: params.id } });
+    await prisma.approvalWorkflow.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ success: false, error: e.message || "Failed to delete" }, { status: 500 });

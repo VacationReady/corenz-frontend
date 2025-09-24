@@ -6,15 +6,14 @@ import { OffboardingType, TaskCategory } from "@prisma/client";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id: employeeId } = params;
+    const { id: employeeId } = await context.params;
     const body = await req.json();
 
     const {
@@ -212,15 +211,14 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id: employeeId } = params;
+    const { id: employeeId } = await context.params;
 
     const offboardingRecord = await prisma.employeeOffboarding.findUnique({
       where: { employeeId },
@@ -307,15 +305,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const { id: employeeId } = params;
+    const { id: employeeId } = await context.params;
     const body = await req.json();
 
     const offboardingRecord = await prisma.employeeOffboarding.findUnique({

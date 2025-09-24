@@ -6,14 +6,11 @@ import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
-interface PageProps {
-  params: { id: string };
-}
-
-export default async function ContactInfoPage({ params }: PageProps) {
+export default async function ContactInfoPage(context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   const employee = await prisma.employee.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       User: {
         select: {
@@ -45,7 +42,7 @@ export default async function ContactInfoPage({ params }: PageProps) {
     <div className="max-w-3xl mx-auto space-y-6">
       <HeaderWithHistory
         title="Contact information"
-        employeeId={params.id}
+        employeeId={id}
         section="personal-info"
       />
 
@@ -55,7 +52,7 @@ export default async function ContactInfoPage({ params }: PageProps) {
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <form
-            action={`/api/employees/${params.id}/personal-info`}
+            action={`/api/employees/${id}/personal-info`}
             method="PATCH"
             className="contents"
           >
@@ -114,7 +111,7 @@ export default async function ContactInfoPage({ params }: PageProps) {
         </div>
       </Card>
 
-      {canEdit && <PersonalInfoSaveButton employeeId={params.id} />}
+      {canEdit && <PersonalInfoSaveButton employeeId={id} />}
     </div>
   );
 }

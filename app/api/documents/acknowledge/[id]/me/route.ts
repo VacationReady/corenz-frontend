@@ -1,12 +1,13 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -26,7 +27,7 @@ export async function GET(
     const ack = await prisma.documentAcknowledgement.findUnique({
       where: {
         documentId_employeeId: {
-          documentId: params.id,
+          documentId: id,
           employeeId: employee.id,
         },
       },

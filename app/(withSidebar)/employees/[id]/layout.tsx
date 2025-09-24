@@ -4,18 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
-interface EmployeeLayoutProps {
-  children: ReactNode;
-  params: { id: string };
-}
-
 export default async function EmployeeLayout({
   children,
   params,
-}: EmployeeLayoutProps) {
+}: {
+  children: ReactNode;
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   const employee = await prisma.employee.findFirst({
-    where: { id: params.id, companyId: session?.user?.companyId || "" },
+    where: { id, companyId: session?.user?.companyId || "" },
     include: {
       User: {
         include: {
@@ -123,44 +122,44 @@ export default async function EmployeeLayout({
   console.log("=== END DEBUG INFO ===");
 
   const menu = [
-    { href: `/employees/${params.id}/overview`, label: "Overview" },
+    { href: `/employees/${id}/overview`, label: "Overview" },
     {
-      href: `/employees/${params.id}/personal-information`,
+      href: `/employees/${id}/personal-information`,
       label: "Personal information",
     },
     {
-      href: `/employees/${params.id}/contact-info`,
+      href: `/employees/${id}/contact-info`,
       label: "Contact Info",
     },
     {
-      href: `/employees/${params.id}/demographic`,
+      href: `/employees/${id}/demographic`,
       label: "Demographic",
     },
-    { href: `/employees/${params.id}/leave`, label: "Leave" },
-    { href: `/employees/${params.id}/documents`, label: "Documents" },
+    { href: `/employees/${id}/leave`, label: "Leave" },
+    { href: `/employees/${id}/documents`, label: "Documents" },
     ...forms.map((form: any) => ({
-      href: `/employees/${params.id}/${form.slug}`,
+      href: `/employees/${id}/${form.slug}`,
       label: form.name,
     })),
-    { href: `/employees/${params.id}/employment-details`, label: "Employment Details" },
-    { href: `/employees/${params.id}/emergency-contacts`, label: "Emergency Contacts" },
-    { href: `/employees/${params.id}/bank-payroll`, label: "Bank & Payroll" },
-    { href: `/employees/${params.id}/performance`, label: "Performance" },
-    { href: `/employees/${params.id}/onboarding`, label: "Onboarding History" },
+    { href: `/employees/${id}/employment-details`, label: "Employment Details" },
+    { href: `/employees/${id}/emergency-contacts`, label: "Emergency Contacts" },
+    { href: `/employees/${id}/bank-payroll`, label: "Bank & Payroll" },
+    { href: `/employees/${id}/performance`, label: "Performance" },
+    { href: `/employees/${id}/onboarding`, label: "Onboarding History" },
     // Show offboarding tab for archived employees or if they have an offboarding record
     ...(employee.EmployeeOffboarding || !employee.isActive
-      ? [{ href: `/employees/${params.id}/offboarding`, label: "Offboarding" }]
+      ? [{ href: `/employees/${id}/offboarding`, label: "Offboarding" }]
       : []),
     {
-      href: `/employees/${params.id}/driver-licenses`,
+      href: `/employees/${id}/driver-licenses`,
       label: "Driver Licenses",
     },
-    { href: `/employees/${params.id}/training`, label: "Training" },
+    { href: `/employees/${id}/training`, label: "Training" },
     {
-      href: `/employees/${params.id}/employment-checks`,
+      href: `/employees/${id}/employment-checks`,
       label: "Employment Checks",
     },
-    { href: `/employees/${params.id}/settings`, label: "Settings" },
+    { href: `/employees/${id}/settings`, label: "Settings" },
   ];
 
   return (

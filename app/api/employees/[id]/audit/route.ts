@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
@@ -15,7 +16,7 @@ export async function GET(
 
     // Check if user can access this employee
     const employee = await prisma.employee.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: { User: true },
     });
     if (!employee) {
@@ -42,7 +43,7 @@ export async function GET(
 
     // Build where clause
     const where: any = {
-      employeeId: params.id,
+      employeeId: id,
       companyId: session.user.companyId,
     };
     

@@ -167,6 +167,10 @@ export default async function EmployeeLayout({
       {/* Profile sidebar */}
       <aside className="w-64 bg-white p-4 border-r">
         <h2 className="text-lg font-bold mb-4">{employee.User?.name}</h2>
+        {/* Transactional notifications quick-view for admins */}
+        {session?.user?.role === "ADMIN" && (
+          <EmployeeNotificationsQuickView employeeId={id} />
+        )}
         <nav className="space-y-2">
           {menu.map((item) => (
             <Link
@@ -182,6 +186,14 @@ export default async function EmployeeLayout({
 
       {/* Profile content */}
       <main className="flex-1 p-6">{children}</main>
+    </div>
+  );
+}
+
+function EmployeeNotificationsQuickView({ employeeId }: { employeeId: string }) {
+  return (
+    <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3">
+      <NotificationsSectionBadge employeeId={employeeId} />
     </div>
   );
 }

@@ -17,20 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
-import dynamic from "next/dynamic";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
-const ProfileAvatarUploader = dynamic(
-  () => import("@/components/employees/ProfileAvatarUploader"),
-  { ssr: false },
-);
+import ProfileAvatarUploader from "@/components/employees/ProfileAvatarUploader";
 
-interface PageProps {
-  params: { id: string };
-}
-
-export default async function EmployeeOverviewPage({ params }: PageProps) {
+export default async function EmployeeOverviewPage(context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
-  const employeeId = params.id;
+  const employeeId = id;
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },

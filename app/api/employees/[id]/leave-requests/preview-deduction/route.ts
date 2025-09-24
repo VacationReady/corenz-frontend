@@ -3,9 +3,9 @@ import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
-  const employeeId = params.id;
+  const { id: employeeId } = await context.params;
   const startDateParam = req.nextUrl.searchParams.get("startDate");
   const endDateParam = req.nextUrl.searchParams.get("endDate");
 

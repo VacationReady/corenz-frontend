@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -23,9 +23,10 @@ const AutomationRuleUpdateSchema = z.object({
 
 // GET: Fetch a specific automation rule
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
@@ -34,7 +35,7 @@ export async function GET(
 
     const rule = await prisma.automationRule.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
       include: {
@@ -70,9 +71,10 @@ export async function GET(
 
 // PUT: Update an automation rule
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || !session?.user?.id) {
@@ -85,7 +87,7 @@ export async function PUT(
     // Check if rule exists and belongs to company
     const existingRule = await prisma.automationRule.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
     });
@@ -100,7 +102,7 @@ export async function PUT(
         where: {
           companyId: session.user.companyId,
           name: validatedData.name,
-          id: { not: params.id },
+          id: { not: id },
         },
       });
 
@@ -121,7 +123,7 @@ export async function PUT(
 
     // Update the rule
     const updatedRule = await prisma.automationRule.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
       include: {
         User: {
@@ -140,7 +142,7 @@ export async function PUT(
         id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "AUTOMATION_RULE",
-        entityId: params.id,
+        entityId: id,
         action: "UPDATED",
         actorId: session.user.id,
         changes: {
@@ -177,9 +179,10 @@ export async function PUT(
 
 // PATCH: Partial update (e.g., toggle active status)
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || !session?.user?.id) {
@@ -208,7 +211,7 @@ export async function PATCH(
     // Check if rule exists and belongs to company
     const existingRule = await prisma.automationRule.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
     });
@@ -219,7 +222,7 @@ export async function PATCH(
 
     // Update the rule
     const updatedRule = await prisma.automationRule.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -230,7 +233,7 @@ export async function PATCH(
           id: crypto.randomUUID(),
           companyId: session.user.companyId,
           entityType: "AUTOMATION_RULE",
-          entityId: params.id,
+          entityId: id,
           action: updateData.isActive ? "ACTIVATED" : "DEACTIVATED",
           actorId: session.user.id,
           changes: {
@@ -255,9 +258,10 @@ export async function PATCH(
 
 // DELETE: Delete an automation rule
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || !session?.user?.id) {
@@ -267,7 +271,7 @@ export async function DELETE(
     // Check if rule exists and belongs to company
     const existingRule = await prisma.automationRule.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
     });
@@ -278,7 +282,7 @@ export async function DELETE(
 
     // Delete the rule (this will cascade delete executions)
     await prisma.automationRule.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     // Log the deletion in audit log
@@ -287,7 +291,7 @@ export async function DELETE(
         id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "AUTOMATION_RULE",
-        entityId: params.id,
+        entityId: id,
         action: "DELETED",
         actorId: session.user.id,
         changes: {

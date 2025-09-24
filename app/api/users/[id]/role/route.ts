@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@prisma/client";
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,8 +23,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
+    const { id } = await context.params;
     const user = await prisma.user.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id: id, companyId: session.user.companyId },
       select: { id: true },
     });
     if (!user) {

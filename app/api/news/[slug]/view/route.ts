@@ -3,22 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-interface RouteParams {
-  params: {
-    slug: string;
-  };
-}
+interface RouteParams {}
 
-export async function POST(req: NextRequest, { params }: RouteParams) {
+export async function POST(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { slug } = await context.params;
   const post = await prisma.newsPost.findFirst({
     where: {
-      slug: params.slug,
+      slug: slug,
       OR: [
         { companyId: session.user.companyId },
         { User: { companyId: session.user.companyId } },

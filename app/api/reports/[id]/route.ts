@@ -1,22 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
-interface Params {
-	params: { id: string };
-}
+interface Params {}
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request, { params }: Params) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session || !session.user?.companyId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const id = Number(params.id);
+		const { id: idParam } = await context.params;
+		const id = Number(idParam);
 		if (isNaN(id)) {
 			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 		}
@@ -40,14 +39,15 @@ export async function GET(req: Request, { params }: Params) {
 	}
 }
 
-export async function DELETE(req: Request, { params }: Params) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session || !session.user?.companyId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const id = Number(params.id);
+		const { id: idParam } = await context.params;
+		const id = Number(idParam);
 		if (isNaN(id)) {
 			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 		}

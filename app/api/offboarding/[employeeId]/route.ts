@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { employeeId: string } },
+  context: { params: Promise<{ employeeId: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,7 +21,7 @@ export async function GET(
       );
     }
 
-    const { employeeId } = params;
+    const { employeeId } = await context.params;
     const companyId = session.user.companyId;
 
     // Get offboarding record with all related data
@@ -210,7 +210,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { employeeId: string } },
+  context: { params: Promise<{ employeeId: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -226,13 +226,14 @@ export async function PATCH(
     }
 
     const companyId = session.user.companyId;
+    const { employeeId } = await context.params;
     const { assetsToReturn } = await req.json();
     if (!Array.isArray(assetsToReturn)) {
       return NextResponse.json({ error: "Invalid assets" }, { status: 400 });
     }
 
     const offboarding = await prisma.employeeOffboarding.findUnique({
-      where: { employeeId: params.employeeId },
+      where: { employeeId: employeeId },
       include: { Employee: true },
     });
 

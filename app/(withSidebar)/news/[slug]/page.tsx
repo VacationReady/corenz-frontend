@@ -7,16 +7,13 @@ import supabase from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
-interface Props {
-  params: { slug: string };
-}
-
-export default async function NewsDetailPage({ params }: Props) {
+export default async function NewsDetailPage(context: { params: Promise<{ slug: string }> }) {
+  const { slug } = await context.params;
   const session = await getServerSession(authOptions);
 
   const post = await prisma.newsPost.findFirst({
     where: {
-      slug: params.slug,
+      slug,
       ...(session?.user?.companyId
         ? { User: { is: { companyId: session.user.companyId } } }
         : {}),

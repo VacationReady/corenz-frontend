@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -21,8 +21,8 @@ const EventRuleOverrideUpdateSchema = z.object({
 
 // GET: Fetch a specific event rule override
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -30,9 +30,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await context.params;
     const override = await prisma.eventRuleOverride.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
       include: {
@@ -71,8 +72,8 @@ export async function GET(
 
 // PUT: Update an event rule override
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -84,9 +85,10 @@ export async function PUT(
     const validatedData = EventRuleOverrideUpdateSchema.parse(body);
 
     // Check if override exists and belongs to company
+    const { id } = await context.params;
     const existingOverride = await prisma.eventRuleOverride.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
       include: {
@@ -119,7 +121,7 @@ export async function PUT(
             validatedData.teamId !== undefined
               ? validatedData.teamId
               : existingOverride.teamId,
-          id: { not: params.id },
+          id: { not: id },
         },
       });
 
@@ -141,7 +143,7 @@ export async function PUT(
 
     // Update the override
     const updatedOverride = await prisma.eventRuleOverride.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
       include: {
         EventCategory: {
@@ -166,7 +168,7 @@ export async function PUT(
         id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "EVENT_RULE",
-        entityId: params.id,
+        entityId: id,
         action: "UPDATED",
         actorId: session.user.id,
         changes: {
@@ -205,8 +207,8 @@ export async function PUT(
 
 // DELETE: Delete an event rule override
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -215,9 +217,10 @@ export async function DELETE(
     }
 
     // Check if override exists and belongs to company
+    const { id } = await context.params;
     const existingOverride = await prisma.eventRuleOverride.findFirst({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
       include: {
@@ -235,7 +238,7 @@ export async function DELETE(
 
     // Delete the override
     await prisma.eventRuleOverride.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     // Log the deletion in audit log
@@ -244,7 +247,7 @@ export async function DELETE(
         id: crypto.randomUUID(),
         companyId: session.user.companyId,
         entityType: "EVENT_RULE",
-        entityId: params.id,
+        entityId: id,
         action: "DELETED",
         actorId: session.user.id,
         changes: {

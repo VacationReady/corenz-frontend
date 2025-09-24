@@ -1,7 +1,7 @@
 // app/api/working-patterns/[id]/route.ts
 
 import { prisma } from "@/lib/prisma"; // ← named import
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -24,8 +24,8 @@ const WorkingPatternUpdateSchema = z.object({
 });
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -36,8 +36,9 @@ export async function PATCH(
     await WorkingPatternUpdateSchema.parseAsync({ name, description, weeks });
 
     // Ensure pattern belongs to the same company
+    const { id } = await context.params;
     const existing = await prisma.workingPattern.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id: id, companyId: session.user.companyId },
       select: { id: true },
     });
     if (!existing) {
@@ -45,7 +46,7 @@ export async function PATCH(
     }
 
     const updatedPattern = await prisma.workingPattern.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name,
         description, // ← now supported in schema
@@ -86,23 +87,24 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+    const { id } = await context.params;
     const existing = await prisma.workingPattern.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id: id, companyId: session.user.companyId },
       select: { id: true },
     });
     if (!existing) {
       return NextResponse.json({ message: "Not found" }, { status: 404 });
     }
     await prisma.workingPattern.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { active: false },
     });
     return NextResponse.json({ message: "Pattern archived" }, { status: 200 });

@@ -10,7 +10,7 @@ import {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { employeeId: string } },
+  context: { params: Promise<{ employeeId: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,7 +24,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const employeeId = params.employeeId;
+    const { employeeId } = await context.params;
     const companyId = session.user.companyId;
     const data = parsed.data;
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -7,10 +7,11 @@ import supabase from "@/lib/supabase-admin";
 
 // ✅ GET employee profile by Employee.id (not User.id)
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function GET(
 
     const employee = await prisma.employee.findUnique({
       where: {
-        id: params.id, // ✅ Use Employee.id for matching
+        id, // ✅ Use Employee.id for matching
         companyId: session.user.companyId,
       },
       include: {
@@ -56,7 +57,7 @@ export async function GET(
         role: session.user.role as any,
         companyId: session.user.companyId,
       },
-      params.id,
+      id,
     );
     if (!allowed) {
       return NextResponse.json(
@@ -80,10 +81,11 @@ export async function GET(
 
 // ✅ DELETE employee by Employee.id
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json(
@@ -93,7 +95,7 @@ export async function DELETE(
     }
 
     const employee = await prisma.employee.findUnique({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: { User: true },
     });
 
@@ -118,7 +120,6 @@ export async function DELETE(
       employee.companyId ?? employee.User?.companyId ?? undefined;
 
     const transactionResult = await prisma.$transaction(async (tx) => {
-      const transactionResult = await prisma.$transaction(async (tx) => {
       const pathsToRemove: string[] = [];
 
       // Onboarding instances and nested data

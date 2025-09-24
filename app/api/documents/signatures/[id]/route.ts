@@ -6,8 +6,9 @@ import supabase from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
@@ -15,7 +16,7 @@ export async function GET(
     }
 
     const doc = await prisma.document.findFirst({
-      where: { id: params.id, companyId: session.user.companyId },
+      where: { id, companyId: session.user.companyId },
       include: {
         SignatureArtifacts: {
           include: {

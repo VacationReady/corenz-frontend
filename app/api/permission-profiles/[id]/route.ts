@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch a specific permission profile
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,9 +14,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await context.params;
     const profile = await prisma.permissionProfile.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -54,7 +55,7 @@ export async function GET(
 // PUT: Update a permission profile
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -66,9 +67,10 @@ export async function PUT(
     const { name, description, permissions, scope, constraints } = body;
 
     // Check if profile exists and belongs to company
+    const { id } = await context.params;
     const existingProfile = await prisma.permissionProfile.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -101,7 +103,7 @@ export async function PUT(
       where: {
         companyId: session.user.companyId,
         name,
-        id: { not: params.id },
+        id: { not: id },
       },
     });
 
@@ -179,7 +181,7 @@ export async function PUT(
     }
 
     const updatedProfile = await prisma.permissionProfile.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name,
         description,
@@ -220,7 +222,7 @@ export async function PUT(
 // DELETE: Delete a permission profile
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -229,9 +231,10 @@ export async function DELETE(
     }
 
     // Check if profile exists and belongs to company
+    const { id } = await context.params;
     const existingProfile = await prisma.permissionProfile.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -284,7 +287,7 @@ export async function DELETE(
     });
 
     await prisma.permissionProfile.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

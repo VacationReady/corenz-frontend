@@ -10,8 +10,9 @@ import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-h
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,7 +35,7 @@ export async function PATCH(
   }
 
   const existing = await prisma.employmentCheck.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       Employee: {
         include: {
@@ -77,7 +78,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.employmentCheck.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       typeOfCheck,
       documentNumber,

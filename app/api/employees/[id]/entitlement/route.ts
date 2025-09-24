@@ -8,8 +8,9 @@ import { authOptions } from "@/lib/auth-options";
 // ✅ Handle GET requests
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -17,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const employeeId = params.id;
+    const employeeId = id;
     const companyId = session.user.companyId;
 
     // ✅ Fetch entitlements with related event category scoped by company
@@ -60,8 +61,9 @@ export async function GET(
 // ✅ Existing POST handler remains unchanged
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -70,7 +72,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const employeeId = params.id;
+    const employeeId = id;
     const companyId = session.user.companyId;
     const entitlements: Array<
       | { eventCategoryId: string; totalDays: number; daysAllocated?: number }

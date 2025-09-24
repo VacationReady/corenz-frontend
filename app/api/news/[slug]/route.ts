@@ -4,20 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
 
-interface Params {
-  params: { slug: string };
-}
+interface Params {}
 
 // ✅ GET: Fetch a single news post
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { slug } = await context.params;
   const post = await prisma.newsPost.findFirst({
-    where: { slug: params.slug, companyId: session.user.companyId },
+    where: { slug: slug, companyId: session.user.companyId },
     include: { User: true },
   });
 
@@ -37,14 +36,14 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 // ✅ PUT: Update a news post
-export async function PUT(req: NextRequest, { params }: Params) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = params;
+  const { slug } = await context.params;
 
   const companyId = session.user.companyId;
 
@@ -113,14 +112,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 // ✅ DELETE: Delete a news post
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = params;
+  const { slug } = await context.params;
 
   const companyId = session.user.companyId;
 

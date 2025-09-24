@@ -8,14 +8,11 @@ import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButto
 import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
-interface PageProps {
-  params: { id: string };
-}
-
-export default async function PersonalInformationPage({ params }: PageProps) {
+export default async function PersonalInformationPage(context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
   const employee = await prisma.employee.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       User: {
         select: {
@@ -60,7 +57,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
     <div className="max-w-3xl mx-auto space-y-6">
       <HeaderWithHistory 
         title="Personal information" 
-        employeeId={params.id} 
+        employeeId={id} 
         section="personal-info" 
       />
 
@@ -71,7 +68,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <form
-              action={`/api/employees/${params.id}/personal-info`}
+              action={`/api/employees/${id}/personal-info`}
               method="PATCH"
               className="contents"
             >
@@ -181,7 +178,7 @@ export default async function PersonalInformationPage({ params }: PageProps) {
 
 
         {canEdit && (
-          <PersonalInfoSaveButton employeeId={params.id} section="personal-info" />
+          <PersonalInfoSaveButton employeeId={id} section="personal-info" />
         )}
       </UnsavedChangesGuard>
       {/* Portal handled in client-only ManageGenderInline */}

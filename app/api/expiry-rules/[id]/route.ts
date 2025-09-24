@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "ADMIN") {
@@ -16,8 +16,9 @@ export async function PUT(
     const body = await req.json();
     const { daysBefore, notifyAdmin, notifyManager, notifyEmployee } = body;
 
+    const { id } = await context.params;
     const updatedRule = await prisma.expiryRule.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...(daysBefore !== undefined && { daysBefore }),
         ...(notifyAdmin !== undefined && { notifyAdmin }),

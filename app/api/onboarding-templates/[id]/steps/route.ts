@@ -156,7 +156,7 @@ export async function POST(
       const validDependencies = await prisma.onboardingStep.count({
         where: {
           id: { in: dependencies },
-          templateId: params.id,
+          templateId: id,
         },
       });
       if (validDependencies !== dependencies.length) {

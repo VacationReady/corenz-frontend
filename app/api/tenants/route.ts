@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import slugify from "slugify";
 import { randomBytes, randomUUID } from "crypto";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 export const dynamic = "force-dynamic";
 
@@ -286,6 +288,37 @@ export async function POST(req: NextRequest) {
       };
     });
 
+    // Attempt to send activation email to the tenant admin
+    try {
+      const appBaseUrl = getAppBaseUrl();
+      const redirectPath = "/dashboard";
+      const activationLink = `${appBaseUrl}/activate?token=${result.activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+      const { html, text } = renderPeopleCoreEmail({
+        preheader: `Activate your PeopleCore account`,
+        title: "You're invited to PeopleCore",
+        intro: [
+          `Welcome to your new PeopleCore space for ${result.company.name}.`,
+          `Click the button below to activate your admin account and set a password.`,
+        ],
+        cta: {
+          label: "Activate your account",
+          href: activationLink,
+        },
+        outro: [
+          `If you didn't expect this, please ignore this email.`,
+        ],
+      });
+      await resend.emails.send({
+        from: "noreply@peoplecore.co.nz",
+        to: result.adminUser.email,
+        subject: "Activate your PeopleCore admin account",
+        html,
+        text,
+      });
+    } catch (e) {
+      console.warn("[tenants][POST] Failed to send activation email:", e);
+    }
+
     return NextResponse.json(
       {
         company: result.company,
@@ -303,6 +336,213 @@ export async function POST(req: NextRequest) {
     console.error("Failed to create tenant", err);
     return NextResponse.json(
       { error: "Failed to create tenant" },
+      { status: 500 },
+    );
+  }
+}
+
+// DELETE a tenant and all associated data by companyId
+const deleteTenantSchema = z.object({
+  companyId: z.string().min(1, "companyId is required"),
+  confirm: z.string().optional(),
+});
+
+export async function DELETE(req: NextRequest) {
+  const { session, homeCompanyId, error } = await requireSuperAdmin();
+  if (error) return error;
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let parsed: z.infer<typeof deleteTenantSchema>;
+  try {
+    parsed = deleteTenantSchema.parse(await req.json());
+  } catch (e) {
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
+
+  const { companyId } = parsed;
+
+  // Safety rails: do not allow deleting your own home tenant or main production tenant
+  if (homeCompanyId && companyId === homeCompanyId) {
+    return NextResponse.json(
+      { error: "Refusing to delete your home tenant" },
+      { status: 400 },
+    );
+  }
+  if (
+    process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID &&
+    companyId === process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID
+  ) {
+    return NextResponse.json(
+      { error: "Refusing to delete main production tenant" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const users = await tx.user.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const userIds = users.map((u) => u.id);
+
+      const employees = await tx.employee.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const employeeIds = employees.map((e) => e.id);
+
+      const documents = await tx.document.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const documentIds = documents.map((d) => d.id);
+
+      // Email/news/notifications
+      await tx.newsReaction.deleteMany({ where: { companyId } });
+      await tx.newsBookmark.deleteMany({ where: { companyId } });
+      await tx.newsPost.deleteMany({ where: { companyId } });
+      await tx.transactionalNotificationPreference.deleteMany({ where: { companyId } });
+      await tx.notificationChannel.deleteMany({ where: { companyId } });
+      await tx.notificationSettings.deleteMany({ where: { companyId } });
+
+      // Approvals and leave
+      await tx.approvalWorkflow.deleteMany({ where: { companyId } });
+      await tx.leaveRequest.deleteMany({ where: { companyId } });
+      await tx.leavePolicyAssignment.deleteMany({ where: { companyId } });
+      await tx.leavePolicy.deleteMany({ where: { companyId } });
+      await tx.leaveEntitlement.deleteMany({ where: { companyId } });
+
+      // Events and rules
+      await tx.eventRuleOverride.deleteMany({ where: { companyId } });
+      await tx.eventRule.deleteMany({ where: { companyId } });
+      await tx.eventSubcategory.deleteMany({ where: { companyId } });
+      await tx.eventCategory.deleteMany({ where: { companyId } });
+
+      // Forms
+      await tx.formAssignment.deleteMany({
+        where: {
+          OR: [
+            { Employee: { companyId } },
+            { Form: { companyId } },
+          ],
+        },
+      });
+      await tx.formSubmission.deleteMany({
+        where: {
+          OR: [
+            { Employee: { companyId } },
+            { Form: { companyId } },
+          ],
+        },
+      });
+      await tx.formDataRecord.deleteMany({
+        where: {
+          OR: [
+            { Employee: { companyId } },
+            { Form: { companyId } },
+          ],
+        },
+      });
+      await tx.form.deleteMany({ where: { companyId } });
+
+      // Onboarding
+      await tx.onboardingStepResponse.deleteMany({
+        where: { OnboardingStepInstance: { OnboardingInstance: { Employee: { companyId } } } },
+      });
+      await tx.onboardingStepInstance.deleteMany({
+        where: { OnboardingInstance: { Employee: { companyId } } },
+      });
+      await tx.onboardingInstance.deleteMany({ where: { Employee: { companyId } } });
+      await tx.onboardingAssignment.deleteMany({ where: { User: { companyId } } });
+      await tx.onboardingStep.deleteMany({ where: { OnboardingTemplate: { companyId } } });
+      await tx.onboardingTemplate.deleteMany({ where: { companyId } });
+
+      // Documents and signatures
+      if (documentIds.length) {
+        await tx.documentSignatureArtifact.deleteMany({ where: { documentId: { in: documentIds } } });
+      }
+      await tx.documentSignatureDepartment.deleteMany({ where: { Document: { companyId } } });
+      await tx.documentSignatureJobRole.deleteMany({ where: { Document: { companyId } } });
+      await tx.documentSignatureEmployee.deleteMany({ where: { Document: { companyId } } });
+      await tx.documentSignatureField.deleteMany({ where: { Document: { companyId } } });
+      await tx.documentAcknowledgement.deleteMany({
+        where: {
+          OR: [
+            { Document: { companyId } },
+            { Employee: { companyId } },
+          ],
+        },
+      });
+      await tx.trainingRecord.deleteMany({ where: { Employee: { companyId } } });
+      await tx.driverLicence.deleteMany({ where: { Employee: { companyId } } });
+      await tx.employmentCheck.deleteMany({ where: { Employee: { companyId } } });
+      await tx.document.deleteMany({ where: { companyId } });
+
+      // HR core
+      await tx.employeePerformanceReview.deleteMany({ where: { companyId } });
+      await tx.employeeAuditLog.deleteMany({ where: { companyId } });
+      await tx.permissionAudit.deleteMany({
+        where: {
+          OR: [
+            { User_PermissionAudit_changedByIdToUser: { companyId } },
+            { User_PermissionAudit_employeeIdToUser: { companyId } },
+          ],
+        },
+      });
+      await tx.globalAuditLog.deleteMany({ where: { companyId } });
+      await tx.savedReport.deleteMany({ where: { companyId } });
+
+      // Automation
+      await tx.automationExecution.deleteMany({ where: { companyId } });
+      await tx.automationJob.deleteMany({ where: { companyId } });
+      await tx.automationRule.deleteMany({ where: { companyId } });
+
+      // Options/config
+      await tx.genderOption.deleteMany({ where: { companyId } });
+      await tx.contractTypeOption.deleteMany({ where: { companyId } });
+      await tx.employmentTypeOption.deleteMany({ where: { companyId } });
+      await tx.notificationSettings.deleteMany({ where: { companyId } });
+      await tx.brandingConfiguration.deleteMany({ where: { companyId } });
+      await tx.scimConfiguration.deleteMany({ where: { companyId } });
+      await tx.ssoConfiguration.deleteMany({ where: { companyId } });
+      await tx.transactionalNotificationPreference.deleteMany({ where: { companyId } });
+      await tx.location.deleteMany({ where: { companyId } });
+      await tx.trainingProvider.deleteMany({ where: { companyId } });
+      await tx.course.deleteMany({ where: { companyId } });
+      await tx.expiryRule.deleteMany({ where: { companyId } });
+
+      // Working patterns
+      await tx.workingPattern.deleteMany({ where: { companyId } });
+
+      // Relationships to roles/structures
+      await tx.jobRole.deleteMany({ where: { companyId } });
+      await tx.department.deleteMany({ where: { companyId } });
+
+      // Users and tokens
+      if (userIds.length) {
+        await tx.activationToken.deleteMany({ where: { userId: { in: userIds } } });
+      }
+      await tx.user.deleteMany({ where: { companyId } });
+      await tx.permissionProfile.deleteMany({ where: { companyId } });
+
+      // Employees last (after dependents cleared)
+      await tx.employee.deleteMany({ where: { companyId } });
+
+      // Finally, the company
+      await tx.company.delete({ where: { id: companyId } });
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("[tenants][DELETE] Failed to delete tenant:", e);
+    return NextResponse.json(
+      { error: "Failed to delete tenant. See server logs for details." },
       { status: 500 },
     );
   }

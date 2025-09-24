@@ -38,10 +38,9 @@ export const authOptions: AuthOptions = {
           }
 
           const emailInput = credentials.email.trim();
-          const user = await prisma.user.findFirst({
-            where: {
-              email: { equals: emailInput, mode: "insensitive" } as any,
-            },
+          // Fetch all users with this email (case-insensitive) across tenants
+          const users = await prisma.user.findMany({
+            where: { email: { equals: emailInput, mode: "insensitive" } as any },
             select: {
               id: true,
               email: true,
@@ -53,33 +52,29 @@ export const authOptions: AuthOptions = {
             },
           });
 
-          if (!user) {
+          if (!users.length) {
             console.warn("[auth] User not found for email", emailInput);
             return null;
           }
 
-          if (!user.password) {
-            console.warn("[auth] User has no password set", emailInput);
-            return null;
+          // Try to match by password among all candidates (supports cross-tenant same email)
+          for (const candidate of users) {
+            if (!candidate.password) continue;
+            const ok = await bcrypt.compare(credentials.password, candidate.password);
+            if (ok) {
+              return {
+                id: candidate.id,
+                email: candidate.email,
+                firstName: candidate.firstName,
+                lastName: candidate.lastName,
+                role: candidate.role,
+                companyId: candidate.companyId ?? "",
+              };
+            }
           }
 
-          const isValid = await bcrypt.compare(
-            credentials.password,
-            user.password,
-          );
-          if (!isValid) {
-            console.warn("[auth] Invalid password for", emailInput);
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-            companyId: user.companyId ?? "",
-          };
+          console.warn("[auth] Invalid password for", emailInput);
+          return null;
         } catch (e) {
           console.error("[auth] authorize error", e);
           return null;

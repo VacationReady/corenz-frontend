@@ -13,6 +13,7 @@ import { FormField, TableColumn, AnyFormSchema, normalizeToPages, FormPage } fro
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
+import UnsavedChangesGuard, { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 
 const isSerializableValue = (value: unknown) => {
   if (value === undefined) return false;
@@ -74,10 +75,11 @@ export function EnhancedFormRenderer({
   const [pendingAction, setPendingAction] = useState<"data" | "submit" | null>(null);
   const [pendingPayload, setPendingPayload] = useState<Record<string, any> | null>(null);
 
-  const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const { register, handleSubmit, setValue, watch, reset, formState } = useForm();
   const { data: session } = useSession();
   const watchedValues = watch();
   const latestValuesRef = useRef<Record<string, any>>({});
+  const unsavedCtxRef = useRef<{ markSaved: () => void } | null>(null);
   const [draftChecked, setDraftChecked] = useState(false);
   const isDataScreen = formData?.form?.formType === "DATA_SCREEN";
   const draftStorageKey =
@@ -259,6 +261,18 @@ export function EnhancedFormRenderer({
     }
   }, [draftChecked, draftStorageKey, formData, isDataScreen, loading, reset]);
 
+  function UnsavedContextBridge() {
+    const ctx = useUnsavedChangesContext();
+    useEffect(() => {
+      if (ctx) {
+        unsavedCtxRef.current = { markSaved: ctx.markSaved };
+      } else {
+        unsavedCtxRef.current = null;
+      }
+    }, [ctx]);
+    return null;
+  }
+
   const saveData = async (data: Record<string, any>, reasons?: Record<string, string>) => {
     setSaving(true);
     try {
@@ -271,6 +285,7 @@ export function EnhancedFormRenderer({
         toast.success("Data saved successfully");
         clearFormDraftStorage();
         onDataChange?.(data);
+        unsavedCtxRef.current?.markSaved();
         const r = await fetch(
           `/api/forms/${formId}/data?employeeId=${employeeId}`,
         );
@@ -299,6 +314,7 @@ export function EnhancedFormRenderer({
         reset();
         clearFormDraftStorage();
         onDataChange?.(data);
+        unsavedCtxRef.current?.markSaved();
       } else {
         const errText = await res.text().catch(() => "");
         toast.error(errText || "Failed to submit form");
@@ -439,7 +455,9 @@ export function EnhancedFormRenderer({
   const pages: FormPage[] = normalizeToPages(formData.form.schema as any);
 
   return (
-    <div className="space-y-6">
+    <UnsavedChangesGuard>
+      <UnsavedContextBridge />
+      <div className="space-y-6">
       <div className="border-b pb-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">{formData.form.name}</h2>
@@ -548,10 +566,14 @@ export function EnhancedFormRenderer({
           </div>
         ))}
 
-        <div className="flex justify-end pt-4">
+        <div className="flex items-center justify-end gap-3 pt-4">
           <Button
             type="submit"
-            disabled={saving || isReadOnly}
+            disabled={
+              saving ||
+              isReadOnly ||
+              (formData.form.formType === "DATA_SCREEN" && !formState.isDirty)
+            }
             className="flex items-center gap-2"
           >
             {saving ? (
@@ -565,6 +587,9 @@ export function EnhancedFormRenderer({
                 ? "Save Data"
                 : "Submit Form"}
           </Button>
+          {formData.form.formType === "DATA_SCREEN" && !formState.isDirty && !isReadOnly && (
+            <span className="text-xs text-gray-500">No changes to save</span>
+          )}
         </div>
       </form>
 
@@ -590,7 +615,8 @@ export function EnhancedFormRenderer({
           setPendingPayload(null);
         }}
       />
-    </div>
+      </div>
+    </UnsavedChangesGuard>
   );
 }
 

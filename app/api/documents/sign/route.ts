@@ -164,6 +164,7 @@ export async function POST(req: NextRequest) {
       artifactPath = fileName;
     }
 
+    // Consolidated IP detection
     const forwardedFor = req.headers.get("x-forwarded-for");
     const realIp = req.headers.get("x-real-ip");
     const ipAddress = (forwardedFor?.split(",")[0]?.trim() || realIp || undefined);
@@ -317,5 +318,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
-

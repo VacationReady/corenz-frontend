@@ -5,7 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 
 // GET: List submissions (HR/admin view)
-export async function GET(_: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
 

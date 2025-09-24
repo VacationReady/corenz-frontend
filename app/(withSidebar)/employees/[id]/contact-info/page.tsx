@@ -6,8 +6,12 @@ import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
-export default async function ContactInfoPage(context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function ContactInfoPage({ params }: PageProps) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   const employee = await prisma.employee.findUnique({
     where: { id },
@@ -115,5 +119,3 @@ export default async function ContactInfoPage(context: { params: Promise<{ id: s
     </div>
   );
 }
-
-

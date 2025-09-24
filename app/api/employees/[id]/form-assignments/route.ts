@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(_: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
   const { id } = await context.params;
+  const employeeId = id;
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const employeeId = id;
-
     // Verify employee belongs to the same company
     const employee = await prisma.employee.findFirst({
       where: {
@@ -51,15 +54,13 @@ export async function GET(_: NextRequest, context: { params: Promise<{ id: strin
     });
 
     // Determine status based on completion and due date
+    const now = new Date();
     const assignmentsWithStatus = assignments.map((assignment) => {
       let status = assignment.status;
 
       if (assignment.completedAt) {
         status = "completed";
-      } else if (
-        assignment.dueDate &&
-        new Date(assignment.dueDate) < new Date()
-      ) {
+      } else if (assignment.dueDate && new Date(assignment.dueDate) < now) {
         status = "overdue";
       } else {
         status = "pending";

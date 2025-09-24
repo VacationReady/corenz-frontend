@@ -4,7 +4,10 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET a single form by ID
-export async function GET(_: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
 

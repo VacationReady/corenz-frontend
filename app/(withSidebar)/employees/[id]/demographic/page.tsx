@@ -7,8 +7,12 @@ import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButto
 import GenderSelectWithManage from "@/components/shared/GenderSelectWithManage";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 
-export default async function DemographicPage(context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function DemographicPage({ params }: PageProps) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   const employee = await prisma.employee.findUnique({
     where: { id },
@@ -107,5 +111,3 @@ export default async function DemographicPage(context: { params: Promise<{ id: s
     </div>
   );
 }
-
-

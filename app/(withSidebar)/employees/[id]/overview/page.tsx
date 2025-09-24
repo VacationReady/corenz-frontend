@@ -18,12 +18,15 @@ import {
 import Button from "@/components/ui/Button";
 import { prisma } from "@/lib/prisma";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
-import ProfileAvatarUploader from "@/components/employees/ProfileAvatarUploader";
+import ProfileAvatarUploader from "./ProfileAvatarWrapper";
 
-export default async function EmployeeOverviewPage(context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function EmployeeOverviewPage({ params }: PageProps) {
+  const { id: employeeId } = await params;
   const session = await getServerSession(authOptions);
-  const employeeId = id;
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
@@ -96,112 +99,112 @@ export default async function EmployeeOverviewPage(context: { params: Promise<{ 
           />
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Summary cards */}
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Contact Info</h2>
-          </div>
-          <div className="p-4 space-y-1 text-sm">
-            <p><strong>Email:</strong> {employee.User.email}</p>
-            <p><strong>Phone:</strong> {employee.User.phone || "N/A"}</p>
-            <Link href={`/employees/${employee.id}/contact-info`} className="text-blue-600 underline text-sm">Manage</Link>
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Summary cards */}
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Contact Info</h2>
+            </div>
+            <div className="p-4 space-y-1 text-sm">
+              <p><strong>Email:</strong> {employee.User.email}</p>
+              <p><strong>Phone:</strong> {employee.User.phone || "N/A"}</p>
+              <Link href={`/employees/${employee.id}/contact-info`} className="text-blue-600 underline text-sm">Manage</Link>
+            </div>
+          </Card>
 
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Demographic</h2>
-          </div>
-          <div className="p-4 space-y-1 text-sm">
-            <p><strong>Start date:</strong> {employee.User.createdAt.toDateString()}</p>
-            <Link href={`/employees/${employee.id}/demographic`} className="text-blue-600 underline text-sm">Manage</Link>
-          </div>
-        </Card>
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Demographic</h2>
+            </div>
+            <div className="p-4 space-y-1 text-sm">
+              <p><strong>Start date:</strong> {employee.User.createdAt.toDateString()}</p>
+              <Link href={`/employees/${employee.id}/demographic`} className="text-blue-600 underline text-sm">Manage</Link>
+            </div>
+          </Card>
 
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Bank & Payroll</h2>
-          </div>
-          <div className="p-4 space-y-1 text-sm">
-            <p><strong>Bank:</strong> Hidden</p>
-            <Link href={`/employees/${employee.id}/bank-payroll`} className="text-blue-600 underline text-sm">Manage</Link>
-          </div>
-        </Card>
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Bank & Payroll</h2>
+            </div>
+            <div className="p-4 space-y-1 text-sm">
+              <p><strong>Bank:</strong> Hidden</p>
+              <Link href={`/employees/${employee.id}/bank-payroll`} className="text-blue-600 underline text-sm">Manage</Link>
+            </div>
+          </Card>
 
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Emergency Contacts</h2>
-          </div>
-          <div className="p-4 space-y-1 text-sm">
-            <p className="text-muted-foreground">Manage next-of-kin and contacts</p>
-            <Link href={`/employees/${employee.id}/emergency-contacts`} className="text-blue-600 underline text-sm">Manage</Link>
-          </div>
-        </Card>
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Emergency Contacts</h2>
+            </div>
+            <div className="p-4 space-y-1 text-sm">
+              <p className="text-muted-foreground">Manage next-of-kin and contacts</p>
+              <Link href={`/employees/${employee.id}/emergency-contacts`} className="text-blue-600 underline text-sm">Manage</Link>
+            </div>
+          </Card>
 
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Employment Details</h2>
-          </div>
-          <div className="p-4 space-y-1 text-sm">
-            <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
-            <p><strong>Department:</strong> {employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}</p>
-            <Link href={`/employees/${employee.id}/employment-details`} className="text-blue-600 underline text-sm">Manage</Link>
-          </div>
-        </Card>
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Employment Details</h2>
+            </div>
+            <div className="p-4 space-y-1 text-sm">
+              <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
+              <p><strong>Department:</strong> {employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}</p>
+              <Link href={`/employees/${employee.id}/employment-details`} className="text-blue-600 underline text-sm">Manage</Link>
+            </div>
+          </Card>
 
-        {/* Leave Balances + Leave Booking */}
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Leave Balances</h2>
-          </div>
-          <div className="p-4 space-y-4">
-            {(() => {
-              const leaveEntitlementsForPanel = employee.LeaveEntitlement.map((e: any) => ({
-                ...e,
-                eventCategory: {
-                  id: e.EventCategory.id,
-                  name: e.EventCategory.name,
-                  color: e.EventCategory.color,
-                },
-              }));
-              return (
-                <LeaveBalancePanel
-                  leaveEntitlements={leaveEntitlementsForPanel}
-                  employeeId={employee.id}
-                />
-              );
-            })()}
+          {/* Leave Balances + Leave Booking */}
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Leave Balances</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              {(() => {
+                const leaveEntitlementsForPanel = employee.LeaveEntitlement.map((e: any) => ({
+                  ...e,
+                  eventCategory: {
+                    id: e.EventCategory.id,
+                    name: e.EventCategory.name,
+                    color: e.EventCategory.color,
+                  },
+                }));
+                return (
+                  <LeaveBalancePanel
+                    leaveEntitlements={leaveEntitlementsForPanel}
+                    employeeId={employee.id}
+                  />
+                );
+              })()}
 
-            {/* ✅ Leave Booking Button */}
-            <AddLeaveRequestDialog
-              employeeId={employee.id}
-              isAdminOrManager={Boolean(isAdminOrManager)}
-            />
+              {/* ✅ Leave Booking Button */}
+              <AddLeaveRequestDialog
+                employeeId={employee.id}
+                isAdminOrManager={Boolean(isAdminOrManager)}
+              />
 
-            {/* ✅ Test Modal for Debugging */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="ghost">Open Test Modal</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Test Modal</DialogTitle>
-                  <DialogDescription>
-                    This confirms your Dialog component is functioning and opens
+              {/* ✅ Test Modal for Debugging */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost">Open Test Modal</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Test Modal</DialogTitle>
+                    <DialogDescription>
+                      This confirms your Dialog component is functioning and opens
+                      correctly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <p>
+                    If you can see this modal, your Dialog system is working
                     correctly.
-                  </DialogDescription>
-                </DialogHeader>
-                <p>
-                  If you can see this modal, your Dialog system is working
-                  correctly.
-                </p>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </Card>
+                  </p>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
-  </PageShell>
+    </PageShell>
   );
 }

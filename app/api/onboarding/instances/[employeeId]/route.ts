@@ -19,9 +19,10 @@ const mapStepType = (type: string) => {
 
 export async function GET(
   req: NextRequest,
-  context: { params: { employeeId: string } },
+  context: any,
 ) {
-  const { employeeId } = context.params;
+  const rawParams = context?.params;
+  const { employeeId } = rawParams?.then ? await rawParams : rawParams;
 
   if (!employeeId) {
     return NextResponse.json({ error: "employeeId required" }, { status: 400 });

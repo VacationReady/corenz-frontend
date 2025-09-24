@@ -6,7 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: any,
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,7 +23,8 @@ export async function POST(
     }
 
     // Get the original profile
-    const { id } = context.params;
+    const rawParams = context?.params;
+    const { id } = rawParams?.then ? await rawParams : rawParams;
     const originalProfile = await prisma.permissionProfile.findFirst({
       where: {
         id: id,

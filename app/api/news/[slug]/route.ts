@@ -7,14 +7,15 @@ import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
 interface Params {}
 
 // ✅ GET: Fetch a single news post
-export async function GET(req: NextRequest, context: { params: { slug: string } }) {
+export async function GET(req: NextRequest, context: any) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = context.params;
+  const rawParams = context?.params;
+  const { slug } = rawParams?.then ? await rawParams : rawParams;
   const post = await prisma.newsPost.findFirst({
     where: { slug: slug, companyId: session.user.companyId },
     include: { User: true },
@@ -36,14 +37,15 @@ export async function GET(req: NextRequest, context: { params: { slug: string } 
 }
 
 // ✅ PUT: Update a news post
-export async function PUT(req: NextRequest, context: { params: { slug: string } }) {
+export async function PUT(req: NextRequest, context: any) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = context.params;
+  const rawParams = context?.params;
+  const { slug } = rawParams?.then ? await rawParams : rawParams;
 
   const companyId = session.user.companyId;
 
@@ -112,14 +114,15 @@ export async function PUT(req: NextRequest, context: { params: { slug: string } 
 }
 
 // ✅ DELETE: Delete a news post
-export async function DELETE(req: NextRequest, context: { params: { slug: string } }) {
+export async function DELETE(req: NextRequest, context: any) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = context.params;
+  const rawParams = context?.params;
+  const { slug } = rawParams?.then ? await rawParams : rawParams;
 
   const companyId = session.user.companyId;
 

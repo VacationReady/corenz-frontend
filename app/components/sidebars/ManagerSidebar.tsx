@@ -92,8 +92,13 @@ export default function ManagerSidebar({
           <h2 className="text-lg font-bold text-foreground mb-2">
             Quick actions
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
             Navigate your workspace
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/80 border border-glass rounded-md px-1.5 py-0.5">
+              <kbd className="font-mono">Ctrl</kbd>
+              <span>+</span>
+              <kbd className="font-mono">K</kbd>
+            </span>
           </p>
         </div>
 

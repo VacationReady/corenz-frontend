@@ -1,5 +1,8 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { getNavItemsForRole } from "@/app/lib/nav-config";
 import {
   Command,
   CommandEmpty,
@@ -12,6 +15,10 @@ import {
 
 export function CommandPaletteMount() {
   const [open, setOpen] = React.useState(false);
+  const [recent, setRecent] = React.useState<Array<{ label: string; href: string }>>([]);
+  const { data: session } = useSession();
+  const role = (session?.user?.role as any) ?? undefined;
+  const router = useRouter();
 
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -35,6 +42,24 @@ export function CommandPaletteMount() {
     };
   }, []);
 
+  // Track recent pages in localStorage
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("recent-pages");
+      if (stored) setRecent(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const pushAndRemember = React.useCallback((href: string, label?: string) => {
+    setOpen(false);
+    router.push(href);
+    try {
+      const next = [{ label: label ?? href, href }, ...recent.filter((r) => r.href !== href)].slice(0, 5);
+      setRecent(next);
+      localStorage.setItem("recent-pages", JSON.stringify(next));
+    } catch {}
+  }, [recent, router]);
+
   if (!open) return null;
 
   return (
@@ -46,66 +71,31 @@ export function CommandPaletteMount() {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Navigate">
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/employees";
-                }}
-              >
-                Employees
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/documents";
-                }}
-              >
-                Documents
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/reports";
-                }}
-              >
-                Reports
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/news";
-                }}
-              >
-                News
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/settings";
-                }}
-              >
-                Settings
-              </CommandItem>
+              {getNavItemsForRole(role)?.map((item) => (
+                <CommandItem key={item.href} onSelect={() => pushAndRemember(item.href, item.label)}>
+                  {item.label}
+                </CommandItem>
+              ))}
             </CommandGroup>
             <CommandSeparator />
             <CommandGroup heading="Quick actions">
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/employees/new";
-                }}
-              >
-                Add employee
-              </CommandItem>
-              <CommandItem
-                onSelect={() => {
-                  setOpen(false);
-                  window.location.href = "/documents/new";
-                }}
-              >
+              <CommandItem onSelect={() => pushAndRemember("/employees/new", "Add employee")}>Add employee</CommandItem>
+              <CommandItem onSelect={() => pushAndRemember("/documents/new", "Upload document")}>
                 Upload document
               </CommandItem>
             </CommandGroup>
+            {recent.length > 0 && (
+              <>
+                <CommandSeparator />
+                <CommandGroup heading="Recent">
+                  {recent.map((r) => (
+                    <CommandItem key={r.href} onSelect={() => pushAndRemember(r.href, r.label)}>
+                      {r.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
           </CommandList>
         </Command>
       </div>

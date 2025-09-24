@@ -3,11 +3,11 @@
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { LogIn } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
 const MicrosoftIcon = () => (
@@ -27,12 +27,34 @@ export default function LoginClient() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState<"azure-ad" | "google" | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsOn, setCapsOn] = useState(false);
 
   const brandName = branding.shortName || branding.name;
   const logoSrc = branding.logoUrl || branding.squareLogoUrl || null;
   const loginSubtitle =
     branding.loginSubtitle?.trim() ||
     `Please log into your ${brandName} account`;
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("lastLoginEmail");
+      if (saved) setEmail(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const urlError = search?.get("error");
+    if (!urlError) return;
+    const message =
+      urlError === "OAuthAccountNotLinked"
+        ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
+        : urlError === "AccessDenied"
+        ? "Access denied. Please contact your administrator."
+        : "Unable to sign in. Please try again.";
+    setError(message);
+  }, [search]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,13 +87,28 @@ export default function LoginClient() {
           router.push("/dashboard");
         }
       } else {
-        setError("Invalid email or password");
+        const message =
+          res?.error === "CredentialsSignin"
+            ? "Invalid email or password"
+            : res?.error === "OAuthAccountNotLinked"
+            ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
+            : res?.error === "AccessDenied"
+            ? "Access denied. Please contact your administrator."
+            : "Unable to sign in. Please try again.";
+        setError(message);
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    try {
+      window.localStorage.setItem("lastLoginEmail", value);
+    } catch {}
   };
 
   return (
@@ -102,24 +139,41 @@ export default function LoginClient() {
             <Input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
               placeholder="you@example.com"
               required
-              disabled={loading}
+              disabled={loading || !!ssoLoading}
+              autoComplete="email"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
               Password
             </label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={loading}
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyUp={(e) => setCapsOn(e.getModifierState && e.getModifierState("CapsLock"))}
+                placeholder="••••••••"
+                required
+                disabled={loading || !!ssoLoading}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => setShowPassword((s) => !s)}
+                disabled={loading || !!ssoLoading}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {capsOn && (
+              <p className="mt-1 text-xs text-amber-600">Caps Lock is on</p>
+            )}
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button
@@ -128,6 +182,7 @@ export default function LoginClient() {
             loading={loading}
             loadingText="Signing in"
             icon={<LogIn className="h-4 w-4" />}
+            disabled={loading || !!ssoLoading}
           >
             Sign In
           </Button>
@@ -154,18 +209,32 @@ export default function LoginClient() {
           <Button
             variant="outline"
             className="w-full gap-2 bg-white dark:bg-gray-800"
-            onClick={() => signIn("azure-ad")}
+            onClick={() => {
+              if (loading || ssoLoading) return;
+              setSsoLoading("azure-ad");
+              setError("");
+              signIn("azure-ad");
+            }}
+            loading={ssoLoading === "azure-ad"}
+            disabled={loading || ssoLoading === "google"}
           >
             <MicrosoftIcon />
-            Log in with Microsoft
+            {ssoLoading === "azure-ad" ? "Redirecting…" : "Log in with Microsoft"}
           </Button>
           <Button
             variant="outline"
             className="w-full gap-2 bg-white dark:bg-gray-800"
-            onClick={() => signIn("google")}
+            onClick={() => {
+              if (loading || ssoLoading) return;
+              setSsoLoading("google");
+              setError("");
+              signIn("google");
+            }}
+            loading={ssoLoading === "google"}
+            disabled={loading || ssoLoading === "azure-ad"}
           >
             <FcGoogle className="h-5 w-5" />
-            Log in with Google
+            {ssoLoading === "google" ? "Redirecting…" : "Log in with Google"}
           </Button>
         </div>
       </div>

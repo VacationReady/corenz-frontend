@@ -61,7 +61,8 @@ export async function middleware(request: NextRequest) {
     // Rate limiting with timeout protection
     if (RATE_LIMIT_PATHS.some((p) => path.startsWith(p))) {
       try {
-        const ip = request.ip || requestHeaders.get("x-forwarded-for") || "unknown";
+        const forwardedFor = requestHeaders.get("x-forwarded-for");
+        const ip = forwardedFor?.split(",")[0]?.trim() || requestHeaders.get("x-real-ip") || "unknown";
         const tenantId = requestHeaders.get("x-company-id") || "public";
         const key = `${tenantId}:${ip}`;
         const limit = Number(process.env.RATE_LIMIT_MAX ?? "120");

@@ -7,9 +7,10 @@ import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 // GET: List submissions (HR/admin view)
 export async function GET(
   _: NextRequest,
-  context: { params: { id: string } },
+  context: any,
 ) {
-  const { id } = context.params;
+  const rawParams = context?.params;
+  const { id } = rawParams?.then ? await rawParams : rawParams;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -30,9 +31,10 @@ export async function GET(
 // POST: Employee submits a form
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } },
+  context: any,
 ) {
-  const { id } = context.params;
+  const rawParams = context?.params;
+  const { id } = rawParams?.then ? await rawParams : rawParams;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId || !session?.user?.id)

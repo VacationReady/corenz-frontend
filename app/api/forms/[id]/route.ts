@@ -4,14 +4,15 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // GET a single form by ID
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const form = await prisma.form.findFirst({
-    where: { id: params.id, companyId: session.user.companyId },
+    where: { id, companyId: session.user.companyId },
   });
 
   if (!form)
@@ -23,8 +24,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 // UPDATE a form
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -59,7 +61,7 @@ export async function PUT(
     const existingForm = await prisma.form.findFirst({
       where: {
         companyId: session.user.companyId,
-        id: { not: params.id },
+        id: { not: id },
         OR: [{ name }, { slug }],
       },
     });
@@ -96,7 +98,7 @@ export async function PUT(
     updateData.visibleToJobRoles = visibleToJobRoles;
 
   const updated = await prisma.form.update({
-    where: { id: params.id, companyId: session.user.companyId },
+    where: { id, companyId: session.user.companyId },
     data: updateData,
   });
 
@@ -106,15 +108,16 @@ export async function PUT(
 // DELETE a form
 export async function DELETE(
   _: Request,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await prisma.form.delete({
-    where: { id: params.id, companyId: session.user.companyId },
+    where: { id, companyId: session.user.companyId },
   });
 
   return NextResponse.json({ message: "Form deleted" });

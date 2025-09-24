@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 
 // GET: List submissions (HR/admin view)
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -13,7 +14,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
   const submissions = await prisma.formSubmission.findMany({
     where: {
-      formId: params.id,
+      formId: id,
       Form: { companyId: session.user.companyId },
     },
     include: { Employee: true },
@@ -26,8 +27,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 // POST: Employee submits a form
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId || !session?.user?.id)
@@ -54,7 +56,7 @@ export async function POST(
   const submission = await prisma.formSubmission.create({
     data: {
       id: crypto.randomUUID(),
-      formId: params.id,
+      formId: id,
       employeeId: targetEmployeeId,
       data,
     },
@@ -77,7 +79,7 @@ export async function POST(
     await createAuditLogs({
       companyId: session.user.companyId!,
       employeeId: targetEmployeeId,
-      section: `forms:${params.id}`,
+      section: `forms:${id}`,
       diffs,
       reasons: reasons || {},
       changedById: session.user.id!,

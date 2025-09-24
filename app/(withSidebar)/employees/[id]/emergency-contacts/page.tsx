@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -16,11 +17,8 @@ type Contact = {
   email?: string | null;
 };
 
-export default function EmergencyContactsPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EmergencyContactsPage() {
+  const { id } = useParams() as { id: string };
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [originalContacts, setOriginalContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,7 +28,7 @@ export default function EmergencyContactsPage({
   const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const load = async () => {
-    const res = await fetch(`/api/employees/${params.id}/emergency-contacts`);
+    const res = await fetch(`/api/employees/${id}/emergency-contacts`);
     if (!res.ok) return;
     const data: Contact[] = await res.json();
     setContacts(data);
@@ -142,7 +140,7 @@ export default function EmergencyContactsPage({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <HeaderWithHistory title="Emergency contacts" employeeId={params.id} section="emergency-contacts" />
+      <HeaderWithHistory title="Emergency contacts" employeeId={id} section="emergency-contacts" />
 
       <div className="flex justify-end">
         <Button onClick={addEmpty}>Add contact</Button>

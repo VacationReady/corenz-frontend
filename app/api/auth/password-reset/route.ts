@@ -33,10 +33,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
   }
 
-  const ip =
-    request.ip ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown";
+  const fwd = request.headers.get("x-forwarded-for");
+  const real = request.headers.get("x-real-ip");
+  const ip = (fwd?.split(",")[0]?.trim() || real || "unknown");
   const rateKey = `password-reset:${emailInput.toLowerCase()}:${ip}`;
 
   try {

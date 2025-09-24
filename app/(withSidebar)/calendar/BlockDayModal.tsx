@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import Checkbox from "@/components/ui/Checkbox";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { CalendarX2 } from "lucide-react";
 

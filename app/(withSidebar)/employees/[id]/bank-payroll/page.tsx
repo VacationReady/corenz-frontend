@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
@@ -50,7 +51,8 @@ interface InitialValuesState {
   kiwiSaverContribution: number | null;
 }
 
-export default function BankPayrollPage({ params }: { params: { id: string } }) {
+export default function BankPayrollPage() {
+  const { id } = useParams() as { id: string };
   const [form, setForm] = useState<FormState>({
     bankAccountNumber: "",
     irdNumber: "",
@@ -97,7 +99,7 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/employees/${params.id}/bank-payroll`);
+        const res = await fetch(`/api/employees/${id}/bank-payroll`);
         if (!res.ok) return;
         const data = await res.json();
         
@@ -126,7 +128,7 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
         setTouched({ bankAccountNumber: false, irdNumber: false });
       } catch {}
     })();
-  }, [params.id]);
+  }, [id]);
 
   const handleBankAccountChange = (value: string) => {
     const formatted = formatBankAccountNumber(value);
@@ -212,7 +214,7 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
     <div className="max-w-3xl mx-auto space-y-6">
       <HeaderWithHistory 
         title="Bank & Payroll" 
-        employeeId={params.id} 
+        employeeId={id} 
         section="bank-payroll" 
       />
 
@@ -387,13 +389,13 @@ export default function BankPayrollPage({ params }: { params: { id: string } }) 
 
       <div className="flex items-center justify-between">
         <Link
-          href={`/employees/${params.id}/documents`}
+          href={`/employees/${id}/documents`}
           className="text-sm underline"
         >
           View payslip history
         </Link>
         <EmployeeSaveButton
-          employeeId={params.id}
+          employeeId={id}
           endpoint="bank-payroll"
           initialValues={initialValues}
           currentValues={getCurrentValues()}

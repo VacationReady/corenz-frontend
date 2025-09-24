@@ -4,12 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import dynamic from "next/dynamic";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
-
-const AdminDashboardClient = dynamic(() => import("./AdminDashboardClient"), {
-  ssr: false,
-});
+import AdminDashboardClient from "./AdminDashboardWrapper";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);

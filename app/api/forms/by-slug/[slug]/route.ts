@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch form by slug
 export async function GET(
   req: NextRequest,
-  context: { params: { slug: string } },
+  context: any,
 ) {
   const session = await getServerSession(authOptions);
 
@@ -17,7 +17,8 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = context.params;
+  const rawParams = context?.params;
+  const { slug } = rawParams?.then ? await rawParams : rawParams;
   const url = new URL(req.url);
   const employeeId = url.searchParams.get("employeeId");
 

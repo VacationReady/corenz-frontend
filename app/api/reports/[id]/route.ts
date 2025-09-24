@@ -7,14 +7,15 @@ interface Params {}
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest, context: { params: { id: string } }) {
+export async function GET(req: NextRequest, context: any) {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session || !session.user?.companyId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const { id: idParam } = context.params;
+		const rawParams = context?.params;
+		const { id: idParam } = rawParams?.then ? await rawParams : rawParams;
 		const id = Number(idParam);
 		if (isNaN(id)) {
 			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
@@ -39,14 +40,15 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
 	}
 }
 
-export async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: any) {
 	try {
 		const session = await getServerSession(authOptions);
 		if (!session || !session.user?.companyId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const { id: idParam } = context.params;
+		const rawParams = context?.params;
+		const { id: idParam } = rawParams?.then ? await rawParams : rawParams;
 		const id = Number(idParam);
 		if (isNaN(id)) {
 			return NextResponse.json({ error: "Invalid ID" }, { status: 400 });

@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 
 interface RouteParams {}
 
-export async function POST(req: NextRequest, context: { params: { slug: string } }) {
+export async function POST(req: NextRequest, context: any) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = context.params;
+  const rawParams = context?.params;
+  const { slug } = rawParams?.then ? await rawParams : rawParams;
   const post = await prisma.newsPost.findFirst({
     where: {
       slug: slug,

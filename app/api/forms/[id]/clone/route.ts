@@ -7,9 +7,10 @@ import { Prisma } from "@prisma/client";
 
 export async function POST(
   _: NextRequest,
-  context: { params: { id: string } },
+  context: any,
 ) {
-  const { id } = context.params;
+  const rawParams = context?.params;
+  const { id } = rawParams?.then ? await rawParams : rawParams;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -18,14 +18,15 @@ async function getPostForCompany(slug: string, companyId: string) {
   });
 }
 
-export async function POST(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
+export async function POST(req: NextRequest, context: any) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = await context.params;
+  const rawParams = context?.params;
+  const { slug } = rawParams?.then ? await rawParams : rawParams;
   const post = await getPostForCompany(slug, session.user.companyId);
 
   if (!post) {

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET: Fetch a specific leave policy
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await context.params;
+    const { id } = context.params;
     const policy = await prisma.leavePolicy.findFirst({
       where: {
         id: id,
@@ -48,7 +48,7 @@ export async function GET(
 // PUT: Update a leave policy
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -74,7 +74,7 @@ export async function PUT(
     } = body;
 
     // Check if policy exists and belongs to company
-    const { id } = await context.params;
+    const { id } = context.params;
     const existingPolicy = await prisma.leavePolicy.findFirst({
       where: {
         id: id,
@@ -205,7 +205,7 @@ export async function PUT(
 // DELETE: Delete a leave policy
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -214,7 +214,7 @@ export async function DELETE(
     }
 
     // Check if policy exists and belongs to company
-    const { id } = await context.params;
+    const { id } = context.params;
     const existingPolicy = await prisma.leavePolicy.findFirst({
       where: {
         id: id,

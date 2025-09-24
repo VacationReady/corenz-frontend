@@ -14,9 +14,9 @@ async function parseBody(request: NextRequest) {
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ stepId: string }> },
+  context: { params: { stepId: string } },
 ) {
-  const { stepId } = await context.params;
+  const { stepId } = context.params;
   const body = await parseBody(request);
 
   // Optionally: validate user/company context here (auth/session)

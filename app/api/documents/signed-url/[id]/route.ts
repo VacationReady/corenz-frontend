@@ -6,9 +6,10 @@ import supabase from "@/lib/supabase-admin";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: any,
 ) {
-  const { id } = await context.params;
+  const rawParams = context?.params;
+  const { id } = rawParams?.then ? await rawParams : rawParams;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -164,7 +164,9 @@ export async function POST(req: NextRequest) {
       artifactPath = fileName;
     }
 
-    const ipAddress = req.headers.get("x-forwarded-for") || req.ip || undefined;
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const realIp = req.headers.get("x-real-ip");
+    const ipAddress = (forwardedFor?.split(",")[0]?.trim() || realIp || undefined);
     const userAgent = req.headers.get("user-agent") || undefined;
 
     const createdArtifact = await prisma.documentSignatureArtifact.create({

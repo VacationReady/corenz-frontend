@@ -17,6 +17,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { slug } = await context.params;
   const url = new URL(req.url);
   const employeeId = url.searchParams.get("employeeId");
 
@@ -58,7 +59,6 @@ export async function GET(
       console.log("🛠 Job Role:", userJobRole);
 
       // ✅ TEMP: manually test department match
-    const { slug } = await context.params;
     const formDebug = await prisma.form.findFirst({
         where: {
         slug: slug,

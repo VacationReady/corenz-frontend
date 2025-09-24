@@ -551,17 +551,15 @@ export async function DELETE(req: NextRequest) {
         tx.department.deleteMany({ where: { companyId } }),
       ]);
 
+      // Employees next (after dependents cleared), before deleting users
+      await tx.employee.deleteMany({ where: { companyId } });
+
       // Users and tokens
       if (userIds.length) {
         await tx.activationToken.deleteMany({ where: { userId: { in: userIds } } });
       }
-      await Promise.all([
-        tx.user.deleteMany({ where: { companyId } }),
-        tx.permissionProfile.deleteMany({ where: { companyId } }),
-      ]);
-
-      // Employees last (after dependents cleared)
-      await tx.employee.deleteMany({ where: { companyId } });
+      await tx.user.deleteMany({ where: { companyId } });
+      await tx.permissionProfile.deleteMany({ where: { companyId } });
 
       // Exit interview templates (delete after employee cascade removed submissions)
       await tx.exitInterviewFormTemplate.deleteMany({ where: { companyId } });

@@ -404,25 +404,31 @@ export async function DELETE(req: NextRequest) {
       const documentIds = documents.map((d) => d.id);
 
       // Email/news/notifications
-      await tx.newsReaction.deleteMany({ where: { companyId } });
-      await tx.newsBookmark.deleteMany({ where: { companyId } });
-      await tx.newsPost.deleteMany({ where: { companyId } });
-      await tx.transactionalNotificationPreference.deleteMany({ where: { companyId } });
-      await tx.notificationChannel.deleteMany({ where: { companyId } });
-      await tx.notificationSettings.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.newsReaction.deleteMany({ where: { companyId } }),
+        tx.newsBookmark.deleteMany({ where: { companyId } }),
+        tx.newsPost.deleteMany({ where: { companyId } }),
+        tx.transactionalNotificationPreference.deleteMany({ where: { companyId } }),
+        tx.notificationChannel.deleteMany({ where: { companyId } }),
+        tx.notificationSettings.deleteMany({ where: { companyId } }),
+      ]);
 
       // Approvals and leave
-      await tx.approvalWorkflow.deleteMany({ where: { companyId } });
-      await tx.leaveRequest.deleteMany({ where: { companyId } });
-      await tx.leavePolicyAssignment.deleteMany({ where: { companyId } });
-      await tx.leavePolicy.deleteMany({ where: { companyId } });
-      await tx.leaveEntitlement.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.approvalWorkflow.deleteMany({ where: { companyId } }),
+        tx.leaveRequest.deleteMany({ where: { companyId } }),
+        tx.leavePolicyAssignment.deleteMany({ where: { companyId } }),
+        tx.leavePolicy.deleteMany({ where: { companyId } }),
+        tx.leaveEntitlement.deleteMany({ where: { companyId } }),
+      ]);
 
       // Events and rules
-      await tx.eventRuleOverride.deleteMany({ where: { companyId } });
-      await tx.eventRule.deleteMany({ where: { companyId } });
-      await tx.eventSubcategory.deleteMany({ where: { companyId } });
-      await tx.eventCategory.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.eventRuleOverride.deleteMany({ where: { companyId } }),
+        tx.eventRule.deleteMany({ where: { companyId } }),
+        tx.eventSubcategory.deleteMany({ where: { companyId } }),
+        tx.eventCategory.deleteMany({ where: { companyId } }),
+      ]);
 
       // Forms
       await tx.formAssignment.deleteMany({
@@ -467,10 +473,12 @@ export async function DELETE(req: NextRequest) {
       if (documentIds.length) {
         await tx.documentSignatureArtifact.deleteMany({ where: { documentId: { in: documentIds } } });
       }
-      await tx.documentSignatureDepartment.deleteMany({ where: { Document: { companyId } } });
-      await tx.documentSignatureJobRole.deleteMany({ where: { Document: { companyId } } });
-      await tx.documentSignatureEmployee.deleteMany({ where: { Document: { companyId } } });
-      await tx.documentSignatureField.deleteMany({ where: { Document: { companyId } } });
+      await Promise.all([
+        tx.documentSignatureDepartment.deleteMany({ where: { Document: { companyId } } }),
+        tx.documentSignatureJobRole.deleteMany({ where: { Document: { companyId } } }),
+        tx.documentSignatureEmployee.deleteMany({ where: { Document: { companyId } } }),
+        tx.documentSignatureField.deleteMany({ where: { Document: { companyId } } }),
+      ]);
       await tx.documentAcknowledgement.deleteMany({
         where: {
           OR: [
@@ -479,16 +487,22 @@ export async function DELETE(req: NextRequest) {
           ],
         },
       });
-      await tx.trainingRecord.deleteMany({ where: { Employee: { companyId } } });
-      await tx.driverLicence.deleteMany({ where: { Employee: { companyId } } });
-      await tx.employmentCheck.deleteMany({ where: { Employee: { companyId } } });
+      await Promise.all([
+        tx.trainingRecord.deleteMany({ where: { Employee: { companyId } } }),
+        tx.driverLicence.deleteMany({ where: { Employee: { companyId } } }),
+        tx.employmentCheck.deleteMany({ where: { Employee: { companyId } } }),
+      ]);
+      // Exit interview submissions before offboarding (no cascade)
+      await tx.exitInterviewSubmission.deleteMany({ where: { EmployeeOffboarding: { Employee: { companyId } } } });
       await tx.employeeOffboarding.deleteMany({ where: { Employee: { companyId } } });
       await tx.document.deleteMany({ where: { companyId } });
 
       // HR core
-      await tx.employeePerformanceReview.deleteMany({ where: { companyId } });
-      await tx.employeeAuditLog.deleteMany({ where: { companyId } });
-      await tx.personalInfoAudit.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.employeePerformanceReview.deleteMany({ where: { companyId } }),
+        tx.employeeAuditLog.deleteMany({ where: { companyId } }),
+        tx.personalInfoAudit.deleteMany({ where: { companyId } }),
+      ]);
       await tx.permissionAudit.deleteMany({
         where: {
           OR: [
@@ -497,44 +511,54 @@ export async function DELETE(req: NextRequest) {
           ],
         },
       });
-      await tx.globalAuditLog.deleteMany({ where: { companyId } });
-      await tx.savedReport.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.globalAuditLog.deleteMany({ where: { companyId } }),
+        tx.savedReport.deleteMany({ where: { companyId } }),
+      ]);
 
       // Automation
-      await tx.automationExecution.deleteMany({ where: { companyId } });
-      await tx.automationJob.deleteMany({ where: { companyId } });
-      await tx.automationRule.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.automationExecution.deleteMany({ where: { companyId } }),
+        tx.automationJob.deleteMany({ where: { companyId } }),
+        tx.automationRule.deleteMany({ where: { companyId } }),
+      ]);
 
       // Options/config
-      await tx.genderOption.deleteMany({ where: { companyId } });
-      await tx.contractTypeOption.deleteMany({ where: { companyId } });
-      await tx.employmentTypeOption.deleteMany({ where: { companyId } });
-      await tx.notificationSettings.deleteMany({ where: { companyId } });
-      await tx.brandingConfiguration.deleteMany({ where: { companyId } });
-      await tx.sCIMConfiguration.deleteMany({ where: { companyId } });
-      await tx.sSOConfiguration.deleteMany({ where: { companyId } });
-      await tx.transactionalNotificationPreference.deleteMany({ where: { companyId } });
-      await tx.location.deleteMany({ where: { companyId } });
-      await tx.trainingProvider.deleteMany({ where: { companyId } });
-      await tx.course.deleteMany({ where: { companyId } });
-      await tx.expiryRule.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.genderOption.deleteMany({ where: { companyId } }),
+        tx.contractTypeOption.deleteMany({ where: { companyId } }),
+        tx.employmentTypeOption.deleteMany({ where: { companyId } }),
+        tx.notificationSettings.deleteMany({ where: { companyId } }),
+        tx.brandingConfiguration.deleteMany({ where: { companyId } }),
+        tx.sCIMConfiguration.deleteMany({ where: { companyId } }),
+        tx.sSOConfiguration.deleteMany({ where: { companyId } }),
+        tx.transactionalNotificationPreference.deleteMany({ where: { companyId } }),
+        tx.location.deleteMany({ where: { companyId } }),
+        tx.trainingProvider.deleteMany({ where: { companyId } }),
+        tx.course.deleteMany({ where: { companyId } }),
+        tx.expiryRule.deleteMany({ where: { companyId } }),
+      ]);
 
       // Working patterns
-      await tx.employeeWorkingPatternAssignment.deleteMany({
-        where: { Employee: { companyId } },
-      });
-      await tx.workingPattern.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.employeeWorkingPatternAssignment.deleteMany({ where: { Employee: { companyId } } }),
+        tx.workingPattern.deleteMany({ where: { companyId } }),
+      ]);
 
       // Relationships to roles/structures
-      await tx.jobRole.deleteMany({ where: { companyId } });
-      await tx.department.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.jobRole.deleteMany({ where: { companyId } }),
+        tx.department.deleteMany({ where: { companyId } }),
+      ]);
 
       // Users and tokens
       if (userIds.length) {
         await tx.activationToken.deleteMany({ where: { userId: { in: userIds } } });
       }
-      await tx.user.deleteMany({ where: { companyId } });
-      await tx.permissionProfile.deleteMany({ where: { companyId } });
+      await Promise.all([
+        tx.user.deleteMany({ where: { companyId } }),
+        tx.permissionProfile.deleteMany({ where: { companyId } }),
+      ]);
 
       // Employees last (after dependents cleared)
       await tx.employee.deleteMany({ where: { companyId } });
@@ -547,7 +571,7 @@ export async function DELETE(req: NextRequest) {
 
       // Finally, the company
       await tx.company.delete({ where: { id: companyId } });
-    });
+    }, { timeout: 120000, maxWait: 15000 });
 
     return NextResponse.json({ success: true });
   } catch (e) {

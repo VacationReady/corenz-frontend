@@ -74,10 +74,7 @@ export default function ReportsPreviewClient() {
   const { template, regionName } = useTenantRegion();
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
-    const base = reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
-    const ensure = (arr: string[], field: string) =>
-      arr.includes(field) ? arr : [...arr, field];
-    return ensure(ensure(base, "User.firstName"), "User.lastName");
+    return reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
   });
   const [reportConfig, setReportConfig] = useState<any>(null);
 

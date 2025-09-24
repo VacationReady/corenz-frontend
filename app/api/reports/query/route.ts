@@ -3,7 +3,6 @@ import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { hrReportFields } from "@/lib/hrReportFields";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -112,11 +111,8 @@ export async function POST(req: Request) {
 			filters: parsedBody.filters ?? [],
 		};
 
-		// Translate legacy keys first
-        // Always guarantee first and last name are present
+        // Translate legacy keys first
         let translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
-        const ensure = (arr: string[], f: string) => (arr.includes(f) ? arr : [...arr, f]);
-        translatedSelectedFields = ensure(ensure(translatedSelectedFields, "User.firstName"), "User.lastName");
         let translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
         let translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
 
@@ -128,13 +124,8 @@ export async function POST(req: Request) {
             translatedSort = { ...translatedSort, field: newSortField } as any;
         }
 
-		// Restrict selectedFields to allowed hrReportFields list
-        const baseAllowed = hrReportFields.map((f) => f.field);
-        const anchoredAllowed = baseAllowed.map(anchorFieldToLeave);
-        const allowedFieldSet = new Set([...baseAllowed, ...anchoredAllowed, "_computed.durationDays", "_computed.jobRoleName", "LeaveRequest.Employee.User.JobRole.name", "LeaveRequest.Employee.JobRole.name"]);
-		const sanitizedSelectedFields = translatedSelectedFields.filter((f) =>
-			allowedFieldSet.has(f),
-		);
+        // Do not restrict fields by an allowlist; accept all translated selections
+        const sanitizedSelectedFields = Array.from(new Set(translatedSelectedFields));
 
 		if (sanitizedSelectedFields.length === 0) {
 			return NextResponse.json(

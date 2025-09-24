@@ -487,7 +487,7 @@ function EmployeesContent() {
                           onClick={async () => {
                             if (
                               !confirm(
-                                "Are you sure you want to delete this employee?",
+                                "This is a hard delete. All data related to this employee (documents, forms, audits, leave, onboarding, etc.) will be permanently removed. Are you sure you want to proceed?",
                               )
                             )
                               return;

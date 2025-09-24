@@ -119,6 +119,7 @@ export async function DELETE(
     const companyId =
       employee.companyId ?? employee.User?.companyId ?? undefined;
 
+    // Extend interactive transaction timeout to handle many cascading deletes
     const transactionResult = await prisma.$transaction(async (tx) => {
       const pathsToRemove: string[] = [];
 
@@ -299,7 +300,7 @@ export async function DELETE(
       await tx.user.delete({ where: { id: userId } });
 
       return { deleted: true, pathsToRemove };
-    });
+    }, { timeout: 20000 });
 
     const { pathsToRemove, ...result } = transactionResult;
     const uniquePaths = Array.from(

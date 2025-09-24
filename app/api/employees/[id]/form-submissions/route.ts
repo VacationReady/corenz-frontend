@@ -5,9 +5,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const employeeId = id;
 
   const session = await getServerSession(authOptions);

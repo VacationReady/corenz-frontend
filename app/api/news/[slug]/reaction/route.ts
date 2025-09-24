@@ -29,7 +29,7 @@ async function getPostForCompany(slug: string, companyId: string) {
   });
 }
 
-export async function POST(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
+export async function POST(req: NextRequest, context: { params: { slug: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id || !session.user.companyId) {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ slug: 
     return NextResponse.json({ error: "Reaction is required" }, { status: 400 });
   }
 
-  const { slug } = await context.params;
+  const { slug } = context.params;
   const post = await getPostForCompany(slug, session.user.companyId);
 
   if (!post) {
@@ -78,14 +78,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ slug: 
   });
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ slug: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: { slug: string } }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { slug } = await context.params;
+  const { slug } = context.params;
   const post = await getPostForCompany(slug, session.user.companyId);
 
   if (!post) {

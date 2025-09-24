@@ -7,9 +7,9 @@ import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 // GET: List submissions (HR/admin view)
 export async function GET(
   _: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -30,9 +30,9 @@ export async function GET(
 // POST: Employee submits a form
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId || !session?.user?.id)

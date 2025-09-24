@@ -27,8 +27,8 @@ const WorkflowSchema = z.object({
   stages: z.array(StageSchema).min(1, "At least one stage is required"),
 });
 
-export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function GET(_req: NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -52,8 +52,8 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
   return NextResponse.json({ success: true, data: wf });
 }
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function PUT(req: NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
@@ -148,8 +148,8 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params;
+export async function DELETE(_req: NextRequest, context: { params: { id: string } }) {
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

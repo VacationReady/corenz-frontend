@@ -7,8 +7,8 @@ import supabase from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewsDetailPage(context: { params: Promise<{ slug: string }> }) {
-  const { slug } = await context.params;
+export default async function NewsDetailPage(context: { params: { slug: string } }) {
+  const { slug } = context.params;
   const session = await getServerSession(authOptions);
 
   const post = await prisma.newsPost.findFirst({

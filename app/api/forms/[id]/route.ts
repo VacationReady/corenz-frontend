@@ -6,9 +6,9 @@ import { prisma } from "@/lib/prisma";
 // GET a single form by ID
 export async function GET(
   _: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -27,9 +27,9 @@ export async function GET(
 // UPDATE a form
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)
@@ -111,9 +111,9 @@ export async function PUT(
 // DELETE a form
 export async function DELETE(
   _: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: { id: string } },
 ) {
-  const { id } = await context.params;
+  const { id } = context.params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId)

@@ -482,11 +482,13 @@ export async function DELETE(req: NextRequest) {
       await tx.trainingRecord.deleteMany({ where: { Employee: { companyId } } });
       await tx.driverLicence.deleteMany({ where: { Employee: { companyId } } });
       await tx.employmentCheck.deleteMany({ where: { Employee: { companyId } } });
+      await tx.employeeOffboarding.deleteMany({ where: { Employee: { companyId } } });
       await tx.document.deleteMany({ where: { companyId } });
 
       // HR core
       await tx.employeePerformanceReview.deleteMany({ where: { companyId } });
       await tx.employeeAuditLog.deleteMany({ where: { companyId } });
+      await tx.personalInfoAudit.deleteMany({ where: { companyId } });
       await tx.permissionAudit.deleteMany({
         where: {
           OR: [
@@ -518,6 +520,9 @@ export async function DELETE(req: NextRequest) {
       await tx.expiryRule.deleteMany({ where: { companyId } });
 
       // Working patterns
+      await tx.employeeWorkingPatternAssignment.deleteMany({
+        where: { Employee: { companyId } },
+      });
       await tx.workingPattern.deleteMany({ where: { companyId } });
 
       // Relationships to roles/structures
@@ -533,6 +538,12 @@ export async function DELETE(req: NextRequest) {
 
       // Employees last (after dependents cleared)
       await tx.employee.deleteMany({ where: { companyId } });
+
+      // Exit interview templates (delete after employee cascade removed submissions)
+      await tx.exitInterviewFormTemplate.deleteMany({ where: { companyId } });
+
+      // Miscellaneous tenant-scoped data without explicit relations
+      await tx.blackoutDay.deleteMany({ where: { companyId } });
 
       // Finally, the company
       await tx.company.delete({ where: { id: companyId } });

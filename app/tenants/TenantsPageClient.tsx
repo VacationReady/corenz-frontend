@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { AddTenantDialog } from "@/components/navigation/AddTenantDialog";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 interface TenantSummary {
   id: string;
@@ -174,6 +175,37 @@ export default function TenantsPageClient({
     [updateSession, currentCompanyId, tenants],
   );
 
+  const handleDeleteTenant = React.useCallback(
+    async (tenant: TenantSummary) => {
+      if (tenant.id === homeCompanyId) {
+        toast.error("Refusing to delete main production tenant");
+        return;
+      }
+      if (!confirm(`Delete tenant "${tenant.name}"? This cannot be undone.`)) {
+        return;
+      }
+      try {
+        const res = await fetch("/api/tenants", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ companyId: tenant.id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = data?.error || "Failed to delete tenant";
+          toast.error(msg);
+          return;
+        }
+        setTenants((prev) => prev.filter((t) => t.id !== tenant.id));
+        toast.success(`Deleted tenant "${tenant.name}"`);
+      } catch (e) {
+        console.error("Delete tenant error", e);
+        toast.error("Unexpected error while deleting tenant");
+      }
+    },
+    [homeCompanyId],
+  );
+
   const description = mainCompanyId
     ? `Only super admins from ${mainCompanyId} can access tenant management.`
     : "Only super admins on the main production tenant can access tenant management.";
@@ -269,6 +301,17 @@ export default function TenantsPageClient({
                   >
                     {isCurrent ? "Currently viewing" : "Switch to tenant"}
                   </Button>
+                  {!isHome && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={() => handleDeleteTenant(tenant)}
+                      icon={<Trash2 className="h-4 w-4" />}
+                      iconPosition="start"
+                    >
+                      Delete tenant
+                    </Button>
+                  )}
                 </div>
               </div>
             );

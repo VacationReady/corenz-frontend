@@ -12,8 +12,8 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  const headerList = headers();
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const headerList = await headers();
   const tenantId = headerList.get("x-company-id") ?? "default";
   const palette = getTenantPalette(tenantId);
 

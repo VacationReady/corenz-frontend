@@ -36,6 +36,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   const [newOption, setNewOption] = useState("");
   const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [selectedManagerEmployeeId, setSelectedManagerEmployeeId] = useState<string>("none");
 
   const canEdit =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
@@ -87,11 +88,20 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             email: e.email,
           })),
         );
+
+        // Initialize controlled manager selection once we have both form and employees
+        const currentManagerUserId = (form as any)?.manager?.id as string | undefined;
+        if (currentManagerUserId) {
+          const match = filtered.find((e: any) => e.userId === currentManagerUserId);
+          setSelectedManagerEmployeeId(match?.id ?? "none");
+        } else {
+          setSelectedManagerEmployeeId("none");
+        }
       } catch {
         // no-op
       }
     })();
-  }, [employeeId]);
+  }, [employeeId, form]);
 
   const [initialValues, setInitialValues] = useState<any | null>(null);
   useEffect(() => {
@@ -257,15 +267,11 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             <label className="block text-sm font-medium mb-1">Manager</label>
             {canEdit ? (
               <Select
-                value={
-                  // If explicitly set to empty, show placeholder (undefined)
-                  form.managerId !== undefined
-                    ? (form.managerId === "" ? undefined : form.managerId)
-                    : employees.find((e) => e.userId === form?.manager?.id)?.id || undefined
-                }
-                onValueChange={(v) =>
-                  setForm((f: any) => ({ ...f, managerId: v === "none" ? "" : v }))
-                }
+                value={selectedManagerEmployeeId}
+                onValueChange={(v) => {
+                  setSelectedManagerEmployeeId(v);
+                  setForm((f: any) => ({ ...f, managerId: v === "none" ? "" : v }));
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Line Manager" />

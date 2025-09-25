@@ -84,10 +84,17 @@ export default function EmployeeSaveButton({
 
   const performSave = async (reasons: Record<string, string>) => {
     try {
+      // Only send changed fields to avoid unintended diffs (e.g., Decimal vs number)
+      const changes = computeChanges(initialValues, currentValues);
+      const changedPayload: Record<string, any> = {};
+      for (const change of changes) {
+        changedPayload[change.field] = currentValues[change.field];
+      }
+
       const res = await fetch(`/api/employees/${employeeId}/${endpoint}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...currentValues, reasons }),
+        body: JSON.stringify({ ...changedPayload, reasons }),
       });
       
       if (!res.ok) {

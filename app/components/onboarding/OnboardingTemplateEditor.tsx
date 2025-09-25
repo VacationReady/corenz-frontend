@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import {
   X,
@@ -339,13 +338,7 @@ const StepEditor = React.memo(function StepEditor({
             maxLength={200}
           />
         </div>
-        <div>
-          <Label>Required?</Label>
-          <Switch
-            checked={!!step.required}
-            onChange={(val) => updateStep(idx, { required: val })}
-          />
-        </div>
+        {/* Required toggle removed - all steps are mandatory */}
 
         {/* --- Type-specific fields --- */}
         {step.type === "acknowledge-document" && (
@@ -577,6 +570,7 @@ export default function OnboardingTemplateEditor({
       jobRoles,
       steps: steps.map((s, i) => ({
         ...s,
+        required: true,
         order: i + 1,
         formId: s.formId || null,
         formFields: s.formFields || [],

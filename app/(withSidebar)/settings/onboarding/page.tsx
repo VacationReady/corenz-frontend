@@ -199,7 +199,7 @@ export default function OnboardingSettingsPage() {
       )}
 
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-3xl p-0">
+        <DialogContent className="max-w-6xl w-[min(95vw,1200px)] p-0">
           <OnboardingTemplateEditor
             template={editingTemplate}
             onSaved={() => {

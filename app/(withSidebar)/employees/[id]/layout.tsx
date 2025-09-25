@@ -128,14 +128,7 @@ export default async function EmployeeLayout({
       href: `/employees/${id}/personal-information`,
       label: "Personal information",
     },
-    {
-      href: `/employees/${id}/contact-info`,
-      label: "Contact Info",
-    },
-    {
-      href: `/employees/${id}/demographic`,
-      label: "Demographic",
-    },
+    // Merged into Personal information
     { href: `/employees/${id}/leave`, label: "Leave" },
     { href: `/employees/${id}/documents`, label: "Documents" },
     ...forms.map((form: any) => ({

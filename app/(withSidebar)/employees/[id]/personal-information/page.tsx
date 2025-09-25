@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth-options";
 import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
 import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
+import GenderSelectWithManage from "@/components/shared/GenderSelectWithManage";
 
 export default async function PersonalInformationPage(context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -38,7 +39,13 @@ export default async function PersonalInformationPage(context: { params: Promise
       },
     },
   });
-  const genderOptions: Array<{ id: string; label: string }> = [];
+  const genderOptions = employee.User.companyId
+    ? await prisma.genderOption.findMany({
+        where: { companyId: employee.User.companyId as string, active: true },
+        orderBy: { order: "asc" },
+        select: { id: true, label: true },
+      })
+    : [];
 
   if (!employee?.User) {
     return <div className="p-6">Employee not found.</div>;
@@ -109,7 +116,35 @@ export default async function PersonalInformationPage(context: { params: Promise
                   readOnly={!canEdit}
                 />
               </div>
-              {/* Date of birth moved to Demographic page */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Date of birth</label>
+                <Input
+                  name="dateOfBirth"
+                  type="date"
+                  defaultValue={
+                    user.dateOfBirth
+                      ? new Date(user.dateOfBirth).toISOString().substring(0, 10)
+                      : ""
+                  }
+                  readOnly={!canEdit}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Gender</label>
+                {canEdit ? (
+                  <GenderSelectWithManage
+                    value={user.genderOptionId ?? undefined}
+                    options={genderOptions}
+                  />
+                ) : (
+                  <Input
+                    readOnly
+                    defaultValue={
+                      genderOptions.find((g: any) => g.id === user.genderOptionId)?.label || ""
+                    }
+                  />
+                )}
+              </div>
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Street</label>
@@ -148,7 +183,6 @@ export default async function PersonalInformationPage(context: { params: Promise
                   />
                 </div>
               </div>
-              {/* Emergency contacts moved to dedicated screen */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2">
                 <div>
                   <label className="block text-sm font-medium mb-1">

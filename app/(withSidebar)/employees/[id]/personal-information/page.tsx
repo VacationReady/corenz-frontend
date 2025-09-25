@@ -39,9 +39,10 @@ export default async function PersonalInformationPage(context: { params: Promise
       },
     },
   });
-  const genderOptions = employee.User.companyId
+  const companyId = employee?.User?.companyId as string | undefined;
+  const genderOptions = companyId
     ? await prisma.genderOption.findMany({
-        where: { companyId: employee.User.companyId as string, active: true },
+        where: { companyId, active: true },
         orderBy: { order: "asc" },
         select: { id: true, label: true },
       })

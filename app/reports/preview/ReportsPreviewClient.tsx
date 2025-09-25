@@ -37,7 +37,7 @@ function getNested(obj: any, path: string): any {
   }, obj);
 }
 
-function parseFieldsParam(value: string | null): string[] {
+function parseFieldsParam(value: string | null | undefined): string[] {
   if (!value) return [];
 
   try {

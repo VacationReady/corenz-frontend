@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import NotificationsSectionBadge from "@/components/ui/NotificationsSectionBadge";
 
 export default async function EmployeeLayout({
   children,

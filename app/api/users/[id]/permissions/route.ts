@@ -174,7 +174,7 @@ export async function PATCH(
       if (existingPerUserProfile) {
         await prisma.permissionProfile.update({
           where: { id: existingPerUserProfile.id },
-          data: { permissions: customPermissions, builtIn: false },
+          data: { permissions: customPermissions, builtIn: false, updatedAt: new Date() },
         });
         profileIdToAssign = existingPerUserProfile.id;
       } else {
@@ -186,6 +186,7 @@ export async function PATCH(
             description: `Per-user overrides for ${id}`,
             permissions: customPermissions,
             builtIn: false,
+            updatedAt: new Date(),
           },
         });
         profileIdToAssign = created.id;

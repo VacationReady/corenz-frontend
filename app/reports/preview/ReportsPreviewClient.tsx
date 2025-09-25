@@ -37,6 +37,26 @@ function getNested(obj: any, path: string): any {
   }, obj);
 }
 
+function parseFieldsParam(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((field) => (typeof field === "string" ? field.trim() : ""))
+        .filter((field) => field.length > 0);
+    }
+  } catch {
+    // Fall back to comma separated values.
+  }
+
+  return value
+    .split(",")
+    .map((field) => field.trim())
+    .filter((field) => field.length > 0);
+}
+
 function downloadCSV(data: any[], columns: ColumnDefinition[]) {
   if (!data || data.length === 0) return;
 
@@ -73,9 +93,23 @@ export default function ReportsPreviewClient() {
   const { toast } = useToast();
   const { template, regionName } = useTenantRegion();
 
+  const initialFields = useMemo(() => parseFieldsParam(fieldsParam), [fieldsParam]);
+
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
-    return reportIdParam ? [] : fieldsParam ? fieldsParam.split(",") : [];
+    return reportIdParam ? [] : initialFields;
   });
+  useEffect(() => {
+    if (reportIdParam) return;
+    setSelectedFields((current) => {
+      if (
+        current.length === initialFields.length &&
+        current.every((field, index) => field === initialFields[index])
+      ) {
+        return current;
+      }
+      return initialFields;
+    });
+  }, [initialFields, reportIdParam]);
   const [reportConfig, setReportConfig] = useState<any>(null);
 
   const [data, setData] = useState<any[]>([]);

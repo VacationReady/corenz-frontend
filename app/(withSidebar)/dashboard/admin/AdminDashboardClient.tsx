@@ -5,7 +5,6 @@ import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import {
   Megaphone,
   FileText,
-  Mail,
   Users,
   ClipboardList,
   CalendarCheck2,
@@ -30,7 +29,7 @@ import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import AddDocumentModal from "@/components/documents/AddDocumentModal";
 import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/Input";
+ 
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -370,7 +369,7 @@ export default function AdminDashboardClient({
   // ---------------- Edit Employee Dialog state & helpers ----------------
   const [employeesForEdit, setEmployeesForEdit] = useState<any[] | null>(null);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
-  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<any | null>(null);
 
   useEffect(() => {
@@ -398,18 +397,17 @@ export default function AdminDashboardClient({
     };
   }, [editEmployeeOpen]);
 
-  const filteredEmployeesForEdit = useMemo(() => {
-    if (!employeesForEdit) return [];
-    const q = employeeSearch.trim().toLowerCase();
-    if (!q) return employeesForEdit;
-    return employeesForEdit.filter((e) => {
-      const first = (e.firstName || e.User?.firstName || "").toLowerCase();
-      const last = (e.lastName || e.User?.lastName || "").toLowerCase();
-      const email = (e.email || e.User?.email || "").toLowerCase();
-      const name = `${first} ${last}`.trim();
-      return name.includes(q) || email.includes(q);
+  const employeeOptions = useMemo(() => {
+    if (!employeesForEdit) return [] as { id: string; label: string }[];
+    return employeesForEdit.map((e: any) => {
+      const id = e.id || e.employeeId;
+      const first = e.firstName || e.User?.firstName || "";
+      const last = e.lastName || e.User?.lastName || "";
+      const email = e.email || e.User?.email || "";
+      const label = `${first} ${last}`.trim() || email || id;
+      return { id, label };
     });
-  }, [employeesForEdit, employeeSearch]);
+  }, [employeesForEdit]);
 
   const getEmployeeDisplay = (e: any) => {
     const first = e.firstName || e.User?.firstName || "";
@@ -439,7 +437,7 @@ export default function AdminDashboardClient({
   ];
 
   const resetEditEmployeeDialog = () => {
-    setEmployeeSearch("");
+    setSelectedEmployeeId("");
     setSelectedEmployeeForEdit(null);
   };
 
@@ -486,44 +484,45 @@ export default function AdminDashboardClient({
             description={
               selectedEmployeeForEdit
                 ? "Select a screen to edit for this employee"
-                : "Search and select an employee to edit"
+                : "Choose an employee to edit"
             }
           >
             {!selectedEmployeeForEdit ? (
               <div className="space-y-3">
-                <Input
-                  placeholder="Search by name or email..."
-                  value={employeeSearch}
-                  onChange={(e) => setEmployeeSearch(e.target.value)}
-                />
                 {loadingEmployees ? (
                   <div className="space-y-2">
                     <Skeleton className="h-5 w-full" />
                     <Skeleton className="h-5 w-5/6" />
                     <Skeleton className="h-5 w-3/4" />
                   </div>
-                ) : filteredEmployeesForEdit.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center">No employees found</p>
                 ) : (
-                  <ul className="max-h-80 overflow-auto divide-y divide-border rounded-lg border">
-                    {filteredEmployeesForEdit.slice(0, 50).map((e: any) => {
-                      const display = getEmployeeDisplay(e);
-                      const id = e.id || e.employeeId;
-                      return (
-                        <li
-                          key={id}
-                          className="flex items-center gap-3 p-3 hover:bg-muted/60 cursor-pointer"
-                          onClick={() => setSelectedEmployeeForEdit(e)}
-                        >
-                          <Avatar size={28} name={display.name} src={display.avatar} />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{display.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{display.sub}</p>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <>
+                    <Select value={selectedEmployeeId} onValueChange={(v) => setSelectedEmployeeId(v)}>
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Select employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employeeOptions.slice(0, 200).map((opt) => (
+                          <SelectItem key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex justify-end">
+                      <Button
+                        disabled={!selectedEmployeeId}
+                        onClick={() => {
+                          const selected = employeesForEdit?.find(
+                            (e: any) => (e.id || e.employeeId) === selectedEmployeeId,
+                          );
+                          if (selected) setSelectedEmployeeForEdit(selected);
+                        }}
+                      >
+                        Continue
+                      </Button>
+                    </div>
+                  </>
                 )}
               </div>
             ) : (

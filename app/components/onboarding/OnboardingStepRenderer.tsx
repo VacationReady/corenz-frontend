@@ -242,6 +242,16 @@ export default function OnboardingStepRenderer({
   // ✅ Fill Form
   if (step.type === "fill-form" || step.type === "form_fill") {
     if (step.formId) {
+      // Editor preview without employee context: show a neutral placeholder, not an error
+      if (!employeeId) {
+        return (
+          <Card className="p-4">
+            <div className="mb-2 font-semibold">{title}</div>
+            <div className="mb-3 text-sm">{desc}</div>
+            <div className="text-sm text-gray-500">Selected form will be displayed here during onboarding.</div>
+          </Card>
+        );
+      }
       if (!formType) {
         return (
           <Card className="p-4">

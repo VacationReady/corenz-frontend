@@ -133,8 +133,17 @@ function FormDropdown({
         ]);
         const fJson = await fRes.json();
         const bJson = await bRes.json();
+        const curated = Array.isArray(bJson) ? bJson : [];
+        // Add curated HRIS starter forms if not present
+        const curatedExtras = [
+          { slug: "demographics", name: "Demographic Information", description: "Equality & diversity details", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
+          { slug: "bank-details", name: "Bank Details", description: "Salary payment details", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
+          { slug: "emergency-contact", name: "Emergency Contact", description: "Primary emergency contact", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
+          { slug: "equipment-allocation", name: "Equipment Allocation", description: "Devices & assets issued", formType: "DATA_SCREEN", schema: { version: 2, sections: [] } },
+          { slug: "payroll-starter", name: "Payroll Starter", description: "Starter declaration & tax", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
+        ].filter((x) => !curated.some((c: any) => c.slug === x.slug));
         setForms(Array.isArray(fJson) ? fJson : []);
-        setBuiltins(Array.isArray(bJson) ? bJson : []);
+        setBuiltins([...curated, ...curatedExtras]);
       } catch {
         setForms([]);
         setBuiltins([]);

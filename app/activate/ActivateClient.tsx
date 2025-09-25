@@ -13,6 +13,7 @@ export default function ActivateClient() {
   const searchParams = useSearchParams();
   const token = searchParams?.get("token") ?? "";
   const redirect = searchParams?.get("redirect") ?? "/dashboard";
+  const companyId = searchParams?.get("companyId") ?? "";
 
   const { branding } = useTenantBranding();
 
@@ -66,7 +67,7 @@ export default function ActivateClient() {
       const res = await fetch("/api/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, password, companyId }),
       });
 
       const data = await res.json();

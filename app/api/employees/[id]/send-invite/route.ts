@@ -37,7 +37,9 @@ export async function POST(
       ? `/${employee.id}/onboarding`
       : `/dashboard`;
     const baseUrl = getAppBaseUrl();
-    const activationLink = `${baseUrl}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+    const activationLink = `${baseUrl}/activate?token=${activationToken}&companyId=${encodeURIComponent(
+      session.user.companyId,
+    )}&redirect=${encodeURIComponent(redirectPath)}`;
 
     const employeeName =
       `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||

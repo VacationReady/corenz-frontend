@@ -230,6 +230,22 @@ export async function POST(req: Request) {
       entitlementDays,
     } = createEmployeeSchema.parse(await req.json());
 
+    // ✅ Enforce global email uniqueness across all tenants
+    const existingAnywhere = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } as any },
+      select: { id: true, companyId: true, isActivated: true },
+    });
+    if (existingAnywhere && existingAnywhere.companyId !== companyId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "This email is already in use in another tenant. Please use a different email.",
+        },
+        { status: 400 },
+      );
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email_companyId: { email, companyId } },
     });
@@ -367,7 +383,9 @@ export async function POST(req: Request) {
     const redirectPath = normalizedTemplateId
       ? `/${employee.id}/onboarding`
       : `/dashboard`;
-    const activationLink = `${appBaseUrl}/activate?token=${activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+    const activationLink = `${appBaseUrl}/activate?token=${activationToken}&companyId=${encodeURIComponent(
+      companyId,
+    )}&redirect=${encodeURIComponent(redirectPath)}`;
 
     if (sendInviteNow) {
       const { html, text } = renderPeopleCoreEmail({

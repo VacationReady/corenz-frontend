@@ -96,6 +96,18 @@ export async function POST(req: NextRequest) {
   const { companyName, adminEmail, adminName } = parsed.data;
   const normalizedCompanyName = companyName.trim();
 
+  // ✅ Prevent creating tenant admin if email exists anywhere
+  const existingUserAnywhere = await prisma.user.findFirst({
+    where: { email: { equals: adminEmail.trim(), mode: "insensitive" } as any },
+    select: { id: true, companyId: true },
+  });
+  if (existingUserAnywhere) {
+    return NextResponse.json(
+      { error: "Admin email is already in use in another tenant" },
+      { status: 409 },
+    );
+  }
+
   const existingCompany = await prisma.company.findFirst({
     where: { name: normalizedCompanyName },
     select: { id: true },
@@ -292,7 +304,9 @@ export async function POST(req: NextRequest) {
     try {
       const appBaseUrl = getAppBaseUrl();
       const redirectPath = "/dashboard";
-      const activationLink = `${appBaseUrl}/activate?token=${result.activationToken}&redirect=${encodeURIComponent(redirectPath)}`;
+      const activationLink = `${appBaseUrl}/activate?token=${result.activationToken}&companyId=${encodeURIComponent(
+        result.company.id,
+      )}&redirect=${encodeURIComponent(redirectPath)}`;
       const { html, text } = renderPeopleCoreEmail({
         preheader: `Activate your PeopleCore account`,
         title: "You're invited to PeopleCore",

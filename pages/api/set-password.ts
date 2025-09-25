@@ -14,7 +14,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { token, password } = req.body;
+  const { token, password, companyId } = req.body;
 
   if (!token || !password) {
     return res.status(400).json({ error: "Missing token or password" });
@@ -51,7 +51,12 @@ export default async function handler(
       return res.status(404).json({ error: "User not found" });
     }
 
-    // 3. Get employee linked to user
+    // 3. Enforce tenant match if provided (defense-in-depth)
+    if (companyId && user.companyId !== companyId) {
+      return res.status(400).json({ error: "Activation link is not for this tenant" });
+    }
+
+    // 4. Get employee linked to user
     const employee = await prisma.employee.findUnique({
       where: { userId: user.id },
     });
@@ -60,10 +65,10 @@ export default async function handler(
       return res.status(404).json({ error: "Employee not found" });
     }
 
-    // 4. Hash new password
+    // 5. Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 5. Update user password and mark employee as active + activated
+    // 6. Update user password and mark employee as active + activated
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -80,12 +85,12 @@ export default async function handler(
       },
     });
 
-    // 6. Delete the token after use
+    // 7. Delete the token after use
     await prisma.activationToken.delete({
       where: { token },
     });
 
-    // 7. Notify admin that the user has activated/logged in
+    // 8. Notify admin that the user has activated/logged in
     try {
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN", companyId: user.companyId || undefined },

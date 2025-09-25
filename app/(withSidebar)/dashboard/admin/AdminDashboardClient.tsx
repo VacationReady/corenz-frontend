@@ -379,7 +379,7 @@ export default function AdminDashboardClient({
               <button
                 key={label}
                 onClick={() => {
-                  if (label === "Post News") router.push("/news");
+                  if (label === "Post News") router.push("/news/create");
                   if (label === "Add Employee") setModalOpen(true);
                   if (label === "Add Document") setAddDocumentOpen(true);
                 }}

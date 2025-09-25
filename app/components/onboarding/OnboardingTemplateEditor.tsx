@@ -136,11 +136,61 @@ function FormDropdown({
         const curated = Array.isArray(bJson) ? bJson : [];
         // Add curated HRIS starter forms if not present
         const curatedExtras = [
-          { slug: "demographics", name: "Demographic Information", description: "Equality & diversity details", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
-          { slug: "bank-details", name: "Bank Details", description: "Salary payment details", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
-          { slug: "emergency-contact", name: "Emergency Contact", description: "Primary emergency contact", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
-          { slug: "equipment-allocation", name: "Equipment Allocation", description: "Devices & assets issued", formType: "DATA_SCREEN", schema: { version: 2, sections: [] } },
-          { slug: "payroll-starter", name: "Payroll Starter", description: "Starter declaration & tax", formType: "SUBMISSION", schema: { version: 2, sections: [] } },
+          {
+            slug: "demographics",
+            name: "Demographic Information",
+            description: "Equality & diversity details",
+            formType: "SUBMISSION",
+            schema: [
+              { id: "gender", type: "select", label: "Gender", required: false, options: ["Female","Male","Non-binary","Prefer not to say"] },
+              { id: "ethnicity", type: "text", label: "Ethnicity", required: false },
+              { id: "disability", type: "checkbox", label: "Disability", required: false },
+            ],
+          },
+          {
+            slug: "bank-details",
+            name: "Bank Details",
+            description: "Salary payment details",
+            formType: "SUBMISSION",
+            schema: [
+              { id: "accountName", type: "text", label: "Account holder name", required: true },
+              { id: "sortCode", type: "text", label: "Sort code", required: true },
+              { id: "accountNumber", type: "text", label: "Account number", required: true },
+            ],
+          },
+          {
+            slug: "emergency-contact",
+            name: "Emergency Contact",
+            description: "Primary emergency contact",
+            formType: "SUBMISSION",
+            schema: [
+              { id: "contactName", type: "text", label: "Contact name", required: true },
+              { id: "relationship", type: "text", label: "Relationship", required: true },
+              { id: "contactPhone", type: "phone", label: "Phone number", required: true },
+            ],
+          },
+          {
+            slug: "equipment-allocation",
+            name: "Equipment Allocation",
+            description: "Devices & assets issued",
+            formType: "DATA_SCREEN",
+            schema: { version: 2, sections: [ { id: "s1", title: "Equipment", columns: 1, fields: [
+              { id: "laptop", type: "checkbox", label: "Laptop issued", required: false },
+              { id: "phone", type: "checkbox", label: "Phone issued", required: false },
+              { id: "notes", type: "textarea", label: "Notes", required: false },
+            ] } ] },
+          },
+          {
+            slug: "payroll-starter",
+            name: "Payroll Starter",
+            description: "Starter declaration & tax",
+            formType: "SUBMISSION",
+            schema: [
+              { id: "niNumber", type: "text", label: "National Insurance number", required: true },
+              { id: "taxCode", type: "text", label: "Initial tax code", required: false },
+              { id: "studentLoan", type: "checkbox", label: "Student loan?", required: false },
+            ],
+          },
         ].filter((x) => !curated.some((c: any) => c.slug === x.slug));
         setForms(Array.isArray(fJson) ? fJson : []);
         setBuiltins([...curated, ...curatedExtras]);

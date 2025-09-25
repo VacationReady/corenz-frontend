@@ -46,7 +46,20 @@ export function DynamicFormRenderer({
         if (!res.ok) throw new Error();
         const data = await res.json();
         console.log("✅ Loaded form schema:", data.schema);
-        setFields(data.schema || []);
+        // Normalise schema to legacy array shape expected by this renderer
+        let parsed: any[] = [];
+        const schema = data?.schema;
+        if (Array.isArray(schema)) {
+          parsed = schema;
+        } else if (schema && typeof schema === "object") {
+          const sections = Array.isArray(schema.sections)
+            ? schema.sections
+            : Array.isArray(schema.pages?.[0]?.sections)
+              ? schema.pages[0].sections
+              : [];
+          parsed = sections.flatMap((s: any) => Array.isArray(s.fields) ? s.fields : []);
+        }
+        setFields(parsed);
       } catch (err) {
         console.error("❌ Failed to load form:", err);
         toast.error("Failed to load form");

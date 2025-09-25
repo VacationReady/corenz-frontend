@@ -81,7 +81,7 @@ export default function LoginClient() {
 
         // If user has an active onboarding instance, redirect to their in-progress step
         try {
-          const empId = (result as any)?.user?.employeeId || (result as any)?.employeeId;
+          const empId = session?.user?.employeeId as string | undefined;
           if (empId) {
             const onboardingRes = await fetch(`/api/onboarding/instances/employee/${empId}`);
             if (onboardingRes.ok) {

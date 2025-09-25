@@ -30,6 +30,7 @@ import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import AddDocumentModal from "@/components/documents/AddDocumentModal";
 import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/Input";
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -45,6 +46,7 @@ export default function AdminDashboardClient({
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
+  const [editEmployeeOpen, setEditEmployeeOpen] = useState(false);
   const [detail, setDetail] = useState<any | null>(null);
   const [metrics, setMetrics] = useState<{
     headcount: number;
@@ -362,8 +364,174 @@ export default function AdminDashboardClient({
     { label: "Post News", icon: FileText },
     { label: "Add Employee", icon: UserPlus },
     { label: "Add Document", icon: FileText },
-    { label: "Email Employee", icon: Mail },
+    { label: "Edit Employee", icon: Users },
   ];
+
+  // ---------------- Edit Employee Dialog state & helpers ----------------
+  const [employeesForEdit, setEmployeesForEdit] = useState<any[] | null>(null);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (!editEmployeeOpen) return;
+    let active = true;
+    const loadEmployees = async () => {
+      setLoadingEmployees(true);
+      try {
+        const res = await fetch("/api/employees?status=all", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setEmployeesForEdit(Array.isArray(data) ? data : []);
+        } else {
+          if (active) setEmployeesForEdit([]);
+        }
+      } catch {
+        if (active) setEmployeesForEdit([]);
+      } finally {
+        if (active) setLoadingEmployees(false);
+      }
+    };
+    loadEmployees();
+    return () => {
+      active = false;
+    };
+  }, [editEmployeeOpen]);
+
+  const filteredEmployeesForEdit = useMemo(() => {
+    if (!employeesForEdit) return [];
+    const q = employeeSearch.trim().toLowerCase();
+    if (!q) return employeesForEdit;
+    return employeesForEdit.filter((e) => {
+      const first = (e.firstName || e.User?.firstName || "").toLowerCase();
+      const last = (e.lastName || e.User?.lastName || "").toLowerCase();
+      const email = (e.email || e.User?.email || "").toLowerCase();
+      const name = `${first} ${last}`.trim();
+      return name.includes(q) || email.includes(q);
+    });
+  }, [employeesForEdit, employeeSearch]);
+
+  const getEmployeeDisplay = (e: any) => {
+    const first = e.firstName || e.User?.firstName || "";
+    const last = e.lastName || e.User?.lastName || "";
+    const email = e.email || e.User?.email || "";
+    const name = `${first} ${last}`.trim() || email || "Unknown";
+    const avatar = e.User?.profileImageUrl || e.profileImageUrl;
+    const sub = e.departmentName || e.JobRole?.name || e.jobRoleName || e.User?.JobRole?.name || email;
+    return { name, email, avatar, sub };
+  };
+
+  const employeeScreens = (employeeId: string) => [
+    { label: "Overview", href: `/employees/${employeeId}/overview` },
+    { label: "Personal Information", href: `/employees/${employeeId}/personal-information` },
+    { label: "Employment Details", href: `/employees/${employeeId}/employment-details` },
+    { label: "Bank & Payroll", href: `/employees/${employeeId}/bank-payroll` },
+    { label: "Emergency Contacts", href: `/employees/${employeeId}/emergency-contacts` },
+    { label: "Documents", href: `/employees/${employeeId}/documents` },
+    { label: "Leave", href: `/employees/${employeeId}/leave` },
+    { label: "Performance", href: `/employees/${employeeId}/performance` },
+    { label: "Training", href: `/employees/${employeeId}/training` },
+    { label: "Driver Licenses", href: `/employees/${employeeId}/driver-licenses` },
+    { label: "Employment Checks", href: `/employees/${employeeId}/employment-checks` },
+    { label: "Onboarding", href: `/employees/${employeeId}/onboarding` },
+    { label: "Offboarding", href: `/employees/${employeeId}/offboarding` },
+    { label: "Settings", href: `/employees/${employeeId}/settings` },
+  ];
+
+  const resetEditEmployeeDialog = () => {
+    setEmployeeSearch("");
+    setSelectedEmployeeForEdit(null);
+  };
+
+  const EditEmployeeDialog = () => (
+    <Dialog
+      open={editEmployeeOpen}
+      onOpenChange={(open) => {
+        setEditEmployeeOpen(open);
+        if (!open) resetEditEmployeeDialog();
+      }}
+    >
+      <DialogContent
+        title={selectedEmployeeForEdit ? "Choose a screen" : "Edit Employee"}
+        description={
+          selectedEmployeeForEdit
+            ? "Select a screen to edit for this employee"
+            : "Search and select an employee to edit"
+        }
+      >
+        {!selectedEmployeeForEdit ? (
+          <div className="space-y-3">
+            <Input
+              placeholder="Search by name or email..."
+              value={employeeSearch}
+              onChange={(e) => setEmployeeSearch(e.target.value)}
+            />
+            {loadingEmployees ? (
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-5/6" />
+                <Skeleton className="h-5 w-3/4" />
+              </div>
+            ) : filteredEmployeesForEdit.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">No employees found</p>
+            ) : (
+              <ul className="max-h-80 overflow-auto divide-y divide-border rounded-lg border">
+                {filteredEmployeesForEdit.slice(0, 50).map((e: any) => {
+                  const display = getEmployeeDisplay(e);
+                  const id = e.id || e.employeeId;
+                  return (
+                    <li
+                      key={id}
+                      className="flex items-center gap-3 p-3 hover:bg-muted/60 cursor-pointer"
+                      onClick={() => setSelectedEmployeeForEdit(e)}
+                    {
+                      ...({} as any)
+                    }
+                    >
+                      <Avatar size={28} name={display.name} src={display.avatar} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{display.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{display.sub}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedEmployeeForEdit(null)}>
+                  Back
+                </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {getEmployeeDisplay(selectedEmployeeForEdit).name}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {employeeScreens(selectedEmployeeForEdit.id).map((s) => (
+                <Button
+                  key={s.href}
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    router.push(s.href);
+                    setEditEmployeeOpen(false);
+                    resetEditEmployeeDialog();
+                  }}
+                >
+                  {s.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 
   // Quick Actions Section
   if (section === "quick-actions") {
@@ -382,6 +550,7 @@ export default function AdminDashboardClient({
                   if (label === "Post News") router.push("/news/create");
                   if (label === "Add Employee") setModalOpen(true);
                   if (label === "Add Document") setAddDocumentOpen(true);
+                  if (label === "Edit Employee") setEditEmployeeOpen(true);
                 }}
                 className="flex flex-col items-center justify-center glass-subtle border-glass rounded-2xl p-4 hover-glass transition-glass hover-lift group"
               >
@@ -393,6 +562,7 @@ export default function AdminDashboardClient({
             ))}
           </div>
         </DashboardWidget>
+        <EditEmployeeDialog />
         <AddEmployeeModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}

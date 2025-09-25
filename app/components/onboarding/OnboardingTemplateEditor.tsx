@@ -575,8 +575,10 @@ export default function OnboardingTemplateEditor({
     toast.info(
       "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template",
     );
-    setSaving(true);
-    const body = {
+    try {
+      setSaving(true);
+      if (publish) setPublishing(true);
+      const body = {
       id: template?.id,
       name,
       description,
@@ -596,14 +598,16 @@ export default function OnboardingTemplateEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    setSaving(false);
-    setPublishing(false);
 
     if (res.ok) {
       toast.success(`Template ${publish ? "published" : "saved"}!`);
       onSaved();
     } else {
       toast.error("Error saving template");
+    }
+    } finally {
+      setSaving(false);
+      setPublishing(false);
     }
   };
 
@@ -763,10 +767,9 @@ export default function OnboardingTemplateEditor({
         </Button>
         <Button
           onClick={() => {
-            setPublishing(true);
             handleSave(true);
           }}
-          disabled={publishing || saving}
+          disabled={publishing || saving || !name.trim()}
         >
           {publishing ? "Publishing…" : "Publish"}
         </Button>

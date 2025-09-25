@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 export async function GET(
   _req: NextRequest,
@@ -152,6 +154,72 @@ export async function PATCH(
           : {}),
       },
     });
+
+    // If a manager was newly assigned, ensure they have MANAGER role and send notification
+    if (managerUserId && typeof managerUserId === "string") {
+      try {
+        const [managerUser, updatedEmployee] = await Promise.all([
+          prisma.user.findUnique({
+            where: { id: managerUserId },
+            select: { id: true, role: true, email: true, firstName: true, lastName: true, companyId: true },
+          }),
+          prisma.employee.findUnique({
+            where: { id: employee.id },
+            include: { User: { select: { id: true, firstName: true, lastName: true, email: true } } },
+          }),
+        ]);
+
+        if (managerUser && managerUser.companyId === session.user.companyId) {
+          // Auto-promote EMPLOYEE -> MANAGER and apply Manager permission profile if available
+          if (managerUser.role === "EMPLOYEE") {
+            const managerProfile = await prisma.permissionProfile.findFirst({
+              where: { companyId: session.user.companyId, name: { equals: "Manager", mode: "insensitive" } },
+              select: { id: true },
+            });
+            await prisma.user.update({
+              where: { id: managerUser.id },
+              data: {
+                role: "MANAGER",
+                ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
+              },
+            });
+          }
+
+          // Send notification email to the new manager about the new report
+          if (managerUser.email && updatedEmployee?.User) {
+            const employeeName = `${updatedEmployee.User.firstName ?? ""} ${updatedEmployee.User.lastName ?? ""}`.trim() || updatedEmployee.User.email || "Employee";
+            const baseUrl = getAppBaseUrl();
+            const link = `${baseUrl}/employees/${employee.id}/overview`;
+            const managerDisplayName = `${managerUser.firstName ?? ""} ${managerUser.lastName ?? ""}`.trim() || managerUser.email;
+
+            const { html, text } = renderPeopleCoreEmail({
+              preheader: `New report: ${employeeName}`,
+              title: "You have a new direct report",
+              intro: [
+                `Hi ${managerDisplayName},`,
+                `You have a new report: ${employeeName}.`,
+                "If you do not think this is right please contact HR ASAP.",
+              ],
+              ctas: { label: "View Employee", href: link },
+              outro: [
+                "This is an automated notification from PeopleCore.",
+              ],
+            });
+
+            await resend.emails.send({
+              from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
+              to: managerUser.email,
+              subject: `You have a new report — ${employeeName}`,
+              html,
+              text,
+            });
+          }
+        }
+      } catch (notifyErr) {
+        console.warn("Manager promotion/notification failed:", notifyErr);
+        // non-fatal
+      }
+    }
 
     return NextResponse.json({ ok: true, employee: updated });
   } catch (e: any) {

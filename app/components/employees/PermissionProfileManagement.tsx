@@ -102,7 +102,7 @@ export function PermissionProfileManagement({
     actions: { key: "read" | "edit" | "delete"; label: string }[];
   } | null>(null);
   const [customPermissionsDraft, setCustomPermissionsDraft] = useState<
-    Record<string, string[]>
+    Record<string, ("read" | "edit" | "delete")[]>
   >({});
 
   useEffect(() => {

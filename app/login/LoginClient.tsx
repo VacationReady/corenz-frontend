@@ -81,7 +81,17 @@ export default function LoginClient() {
 
         // If user has an active onboarding instance, redirect to their in-progress step
         try {
-          const empId = session?.user?.employeeId as string | undefined;
+          const userId = session?.user?.id as string | undefined;
+          const companyScopedEmployee = async (): Promise<string | null> => {
+            if (!userId) return null;
+            const resp = await fetch(`/api/employees?status=active&userId=${encodeURIComponent(userId)}`);
+            if (!resp.ok) return null;
+            const list = await resp.json();
+            const first = Array.isArray(list) ? list[0] : null;
+            return first?.id || null;
+          };
+
+          const empId = await companyScopedEmployee();
           if (empId) {
             const onboardingRes = await fetch(`/api/onboarding/instances/employee/${empId}`);
             if (onboardingRes.ok) {

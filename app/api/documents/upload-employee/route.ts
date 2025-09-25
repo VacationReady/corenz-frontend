@@ -51,6 +51,7 @@ const employeeUploadSchema = z.object({
   requiresSignature: booleanFromForm(false),
 });
 
+// Legacy handler (kept only if referenced elsewhere). Prefer the typed NextRequest handler below.
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.companyId) {

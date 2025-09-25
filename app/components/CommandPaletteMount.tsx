@@ -2,7 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { getNavItemsForRole } from "@/app/lib/nav-config";
+import { getNavItemsForRole } from "@/lib/nav-config";
 import {
   Command,
   CommandEmpty,

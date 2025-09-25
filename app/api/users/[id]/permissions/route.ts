@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { hasPermission, resolvePermissions } from "@/lib/permissions";
+import {
+  hasPermission,
+  resolvePermissions,
+  validatePermissions,
+} from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
@@ -103,7 +107,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { permissionProfileId, note } = body;
+    const { permissionProfileId, note, customPermissions } = body as {
+      permissionProfileId?: string | null;
+      note?: string;
+      customPermissions?: Record<string, ("read" | "edit" | "delete")[]>;
+    };
 
     // Validate that user exists and belongs to the same company
     const { id } = await context.params;
@@ -138,6 +146,14 @@ export async function PATCH(
       }
     }
 
+    // Validate custom permissions shape if provided
+    if (customPermissions && !validatePermissions(customPermissions as any)) {
+      return NextResponse.json(
+        { error: "Invalid custom permissions structure" },
+        { status: 400 },
+      );
+    }
+
     // Get old permissions for audit
     const oldPermissions = user.PermissionProfile
       ? typeof user.PermissionProfile.permissions === "string"
@@ -145,11 +161,42 @@ export async function PATCH(
         : (user.PermissionProfile.permissions as any)
       : null;
 
-    // Update user's permission profile
+    // Update user's permission profile and optional per-user overrides (stored via dedicated per-user profile)
+    // Strategy: If customPermissions provided, create or update a company-scoped PermissionProfile named per-user and link it.
+    let profileIdToAssign: string | null | undefined = permissionProfileId ?? undefined;
+
+    if (customPermissions) {
+      const perUserProfileName = `USER_${id}_OVERRIDES`;
+      const existingPerUserProfile = await prisma.permissionProfile.findFirst({
+        where: { companyId: session.user.companyId, name: perUserProfileName },
+      });
+
+      if (existingPerUserProfile) {
+        await prisma.permissionProfile.update({
+          where: { id: existingPerUserProfile.id },
+          data: { permissions: customPermissions, builtIn: false },
+        });
+        profileIdToAssign = existingPerUserProfile.id;
+      } else {
+        const created = await prisma.permissionProfile.create({
+          data: {
+            id: `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            companyId: session.user.companyId,
+            name: perUserProfileName,
+            description: `Per-user overrides for ${id}`,
+            permissions: customPermissions,
+            builtIn: false,
+          },
+        });
+        profileIdToAssign = created.id;
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: id },
       data: {
-        permissionProfileId: permissionProfileId || null,
+        permissionProfileId:
+          profileIdToAssign !== undefined ? profileIdToAssign : permissionProfileId || null,
       },
       include: {
         PermissionProfile: true,
@@ -172,7 +219,8 @@ export async function PATCH(
         employeeId: id,
         changedById: session.user.id,
         oldProfileId: user.permissionProfileId,
-        newProfileId: permissionProfileId,
+        newProfileId:
+          profileIdToAssign !== undefined ? profileIdToAssign : permissionProfileId,
         oldPermissions: oldPermissions
           ? JSON.parse(JSON.stringify(oldPermissions))
           : undefined,

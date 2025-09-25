@@ -41,6 +41,7 @@ import { ContextualHelpAssistant } from "@/components/settings/ContextualHelpAss
 import { SmartTooltip, QuickHelp } from "@/components/ui/SmartTooltip";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSession } from "next-auth/react";
 
 const holidaySettings = [
   {
@@ -117,18 +118,17 @@ const workflowSettings = [
   },
 ];
 
-const systemSettings = [
-  {
-    title: "Platform Settings",
-    href: "/settings/system",
-    icon: <Cog className="h-5 w-5 text-primary" />,
-  },
-  {
-    title: "Permissions",
-    href: "/settings/permissions",
-    icon: <Shield className="h-5 w-5 text-primary" />,
-  },
-];
+function getSystemSettings(role?: string) {
+  const base = [
+    {
+      title: "Platform Settings",
+      href: "/settings/system",
+      icon: <Cog className="h-5 w-5 text-primary" />,
+    },
+  ];
+  // Intentionally removed global Permissions UI; per-employee settings take precedence
+  return base;
+}
 
 function SettingSection({
   id,
@@ -221,6 +221,8 @@ function SettingSection({
 }
 
 export default function SettingsIndexPage() {
+  const { data: session } = useSession();
+  const role = session?.user?.role;
   const [activeTab, setActiveTab] = useState("quick-setup");
   const [completionData, setCompletionData] = useState<Record<string, { completed: number; total: number }>>({});
   const [showFirstTimeWelcome, setShowFirstTimeWelcome] = useState(false);
@@ -404,7 +406,7 @@ export default function SettingsIndexPage() {
                 label="System"
                 description="Core platform settings and administrative controls"
                 icon={<Settings className="w-5 h-5" />}
-                items={systemSettings}
+                items={getSystemSettings(role)}
                 completionStatus={completionData.system}
               />
             </Accordion>

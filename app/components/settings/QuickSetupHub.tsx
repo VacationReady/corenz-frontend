@@ -292,7 +292,8 @@ export function QuickSetupHub({
       "document-expiry": "/settings/expiry-alerts",
       "onboarding-template": "/settings/onboarding",
       "automation-rule": "/settings/automation-rules",
-      "permissions": "/settings/permissions",
+      // permissions wizard no longer routes to global permissions page
+      "permissions": "/employees",
     };
 
     if (routes[wizard.id]) {

@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { PermissionDiff } from "./PermissionDiff";
 import { ScreenPermissions } from "@/lib/permissions";
+import { PermissionEditor } from "./PermissionEditor";
 
 interface PermissionProfile {
   id: string;
@@ -96,6 +97,13 @@ export function PermissionProfileManagement({
   const [note, setNote] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [expandedAudits, setExpandedAudits] = useState<Set<string>>(new Set());
+  const [screensMeta, setScreensMeta] = useState<{
+    screens: { key: string; label: string }[];
+    actions: { key: "read" | "edit" | "delete"; label: string }[];
+  } | null>(null);
+  const [customPermissionsDraft, setCustomPermissionsDraft] = useState<
+    Record<string, string[]>
+  >({});
 
   useEffect(() => {
     fetchData();
@@ -116,6 +124,13 @@ export function PermissionProfileManagement({
       if (!profilesResponse.ok) throw new Error("Failed to fetch profiles");
       const profilesData = await profilesResponse.json();
       setAvailableProfiles(profilesData.profiles);
+
+      // Load screens/actions metadata
+      const screensRes = await fetch("/api/permissions/screens");
+      if (screensRes.ok) {
+        const sm = await screensRes.json();
+        setScreensMeta(sm);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load permission data");
@@ -159,6 +174,30 @@ export function PermissionProfileManagement({
       toast.error(
         error instanceof Error ? error.message : "Failed to update permissions",
       );
+    } finally {
+      setChanging(false);
+    }
+  };
+
+  const handleSaveCustom = async () => {
+    try {
+      setChanging(true);
+      const response = await fetch(`/api/users/${employeeId}/permissions`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customPermissions: customPermissionsDraft, note }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save custom permissions");
+      }
+      const updatedData = await response.json();
+      setUserPermissions(updatedData);
+      setNote("");
+      toast.success("Custom permissions saved");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setChanging(false);
     }
@@ -289,6 +328,37 @@ export function PermissionProfileManagement({
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Per-user overrides */}
+      {screensMeta && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Edit permissions
+            </CardTitle>
+            <CardDescription>
+              Toggle access per screen for this employee only.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PermissionEditor
+              screens={screensMeta.screens}
+              actions={screensMeta.actions}
+              value={customPermissionsDraft}
+              onChange={setCustomPermissionsDraft}
+            />
+            <div className="mt-3 flex gap-2">
+              <Button variant="outline" disabled={changing} onClick={() => setCustomPermissionsDraft({})}>
+                Reset
+              </Button>
+              <Button disabled={changing} onClick={handleSaveCustom}>
+                {changing ? "Saving..." : "Save overrides"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Audit Trail */}
       {userPermissions.auditTrail && userPermissions.auditTrail.length > 0 && (

@@ -27,6 +27,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   const { data: session } = useSession();
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState<Array<{ id: string; userId: string; firstName?: string | null; lastName?: string | null; email: string }>>([]);
   const [employmentTypes, setEmploymentTypes] = useState<Array<{ id: string; label: string }>>([]);
   const [contractTypes, setContractTypes] = useState<Array<{ id: string; label: string }>>([]);
   const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
@@ -64,6 +65,31 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
       setForm(data);
       setInitialValues(data);
       await reloadOptions();
+    })();
+  }, [employeeId]);
+
+  // Load employees for manager dropdown (exclude current employee)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/employees?status=active`);
+        if (!res.ok) return;
+        const list = await res.json();
+        const filtered = Array.isArray(list)
+          ? list.filter((e: any) => e.id !== employeeId)
+          : [];
+        setEmployees(
+          filtered.map((e: any) => ({
+            id: e.id,
+            userId: e.userId,
+            firstName: e.firstName ?? null,
+            lastName: e.lastName ?? null,
+            email: e.email,
+          })),
+        );
+      } catch {
+        // no-op
+      }
     })();
   }, [employeeId]);
 
@@ -229,10 +255,36 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Manager</label>
-            <Input
-              readOnly
-              value={form?.manager ? `${form.manager.firstName ?? ""} ${form.manager.lastName ?? ""}`.trim() : ""}
-            />
+            {canEdit ? (
+              <Select
+                value={
+                  // Prefer explicit selection if user changed it; otherwise derive from current manager's userId
+                  (form.managerId !== undefined
+                    ? form.managerId
+                    : (employees.find((e) => e.userId === form?.manager?.id)?.id)) || undefined
+                }
+                onValueChange={(v) => setForm((f: any) => ({ ...f, managerId: v }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Line Manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No manager</SelectItem>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {(emp.firstName || emp.lastName)
+                        ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+                        : emp.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                readOnly
+                value={form?.manager ? `${form.manager.firstName ?? ""} ${form.manager.lastName ?? ""}`.trim() : ""}
+              />
+            )}
           </div>
         </div>
       </Card>

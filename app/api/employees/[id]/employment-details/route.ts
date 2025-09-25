@@ -123,11 +123,30 @@ export async function PATCH(
       }
     }
 
+    // Handle manager change: translate selected manager (employeeId) -> manager's userId
+    let managerUserId: string | null | undefined = undefined;
+    if (Object.prototype.hasOwnProperty.call(updates, "managerId")) {
+      const managerEmployeeId = updates.managerId as string | null;
+      delete updates.managerId; // not a column on Employee
+
+      if (managerEmployeeId === "" || managerEmployeeId === null) {
+        managerUserId = null; // clear manager
+      } else if (typeof managerEmployeeId === "string") {
+        const mgr = await prisma.employee.findFirst({
+          where: { id: managerEmployeeId, companyId: session.user.companyId },
+          select: { userId: true },
+        });
+        managerUserId = mgr?.userId ?? null;
+      }
+    }
+
     const updated = await prisma.employee.update({
       where: { id: employee.id },
       data: {
         ...updates,
-        ...(updates.managerId ? { User: { update: { managerId: updates.managerId } } } : {}),
+        ...(managerUserId !== undefined
+          ? { User: { update: { managerId: managerUserId } } }
+          : {}),
         ...(updates.departmentId
           ? { User: { update: { departmentId: updates.departmentId } } }
           : {}),

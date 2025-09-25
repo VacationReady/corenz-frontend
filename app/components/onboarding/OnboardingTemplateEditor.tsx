@@ -160,7 +160,17 @@ function FormDropdown({
       if (!def) return;
       try {
         setCreating(true);
-        const res = await fetch("/api/forms", {
+        // 1) Reuse if it already exists by slug
+        const existingRes = await fetch(`/api/forms/by-slug/${encodeURIComponent(slug)}`);
+        if (existingRes.ok) {
+          const existing = await existingRes.json();
+          setForms((prev) => [existing, ...prev.filter((f) => f.id !== existing.id)]);
+          onChange(existing.id);
+          return;
+        }
+
+        // 2) Create if not existing yet
+        const createRes = await fetch("/api/forms", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -174,14 +184,26 @@ function FormDropdown({
             visibleToJobRoles: [],
           }),
         });
-        if (!res.ok) {
-          toast.error("Failed to create built-in form");
-          setCreating(false);
+        if (createRes.ok) {
+          const created = await createRes.json();
+          setForms((prev) => [created, ...prev]);
+          onChange(created.id);
           return;
         }
-        const created = await res.json();
-        setForms((prev) => [created, ...prev]);
-        onChange(created.id);
+
+        // 3) If server rejects (e.g., duplicate by name), try to find by name
+        const allRes = await fetch("/api/forms");
+        if (allRes.ok) {
+          const all = await allRes.json();
+          const found = (Array.isArray(all) ? all : []).find(
+            (f: any) => String(f.name).toLowerCase() === String(def.name).toLowerCase(),
+          );
+          if (found) {
+            onChange(found.id);
+            return;
+          }
+        }
+        toast.error("Failed to create built-in form");
       } catch {
         toast.error("Failed to create built-in form");
       } finally {

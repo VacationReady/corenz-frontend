@@ -1,6 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 const { execSync } = require("child_process");
+const { randomUUID } = require("crypto");
 
 const prisma = new PrismaClient();
 
@@ -38,6 +39,38 @@ async function main() {
 
   // ✅ 4. Admin User & Employees
   const hashedPassword = await bcrypt.hash("Admin123!", 10);
+  
+  // ✅ 4a. Create SUPER_ADMIN to manage tenants (Michael Dowdle)
+  const superAdmin = await prisma.user.upsert({
+    where: {
+      email_companyId: { email: "hi@peoplecore.co.nz", companyId: company.id },
+    },
+    update: {
+      role: "SUPER_ADMIN",
+      password: hashedPassword,
+    },
+    create: {
+      id: randomUUID(),
+      email: "hi@peoplecore.co.nz",
+      firstName: "Michael",
+      lastName: "Dowdle",
+      role: "SUPER_ADMIN",
+      password: hashedPassword,
+      companyId: company.id,
+      departmentId: department.id,
+      permissionProfileId: defaultProfile.id,
+    },
+  });
+  await prisma.employee.upsert({
+    where: { userId: superAdmin.id },
+    update: {},
+    create: {
+      userId: superAdmin.id,
+      departmentId: department.id,
+      companyId: company.id,
+      isActive: true,
+    },
+  });
   const adminUser = await prisma.user.upsert({
     where: {
       email_companyId: { email: "admin@peoplecore.com", companyId: company.id },
@@ -259,7 +292,23 @@ async function main() {
 
   // ✅ 8. Job Roles (compound unique)
   const jobRoles = ["Manager", "Employee", "Admin"];
+  const extraJobRoles = [
+    "HR Advisor",
+    "Software Engineer",
+    "Sales Executive",
+    "Finance Analyst",
+    "Operations Coordinator",
+    "Customer Support Representative",
+    "Marketing Manager",
+  ];
   for (const roleName of jobRoles) {
+    await prisma.jobRole.upsert({
+      where: { companyId_name: { companyId: company.id, name: roleName } },
+      update: {},
+      create: { name: roleName, companyId: company.id },
+    });
+  }
+  for (const roleName of extraJobRoles) {
     await prisma.jobRole.upsert({
       where: { companyId_name: { companyId: company.id, name: roleName } },
       update: {},
@@ -272,6 +321,13 @@ async function main() {
     "Auckland",
     "Wellington",
     "Christchurch",
+    "Hamilton",
+    "Tauranga",
+    "Dunedin",
+    "Queenstown",
+    "Napier",
+    "Palmerston North",
+    // retain a couple of overseas for variety
     "London",
     "Manchester",
   ];
@@ -282,6 +338,111 @@ async function main() {
       create: { name: locName },
     });
   }
+
+  // ✅ 11. Working Patterns (varied)
+  // Helper to create a working pattern with one or more weeks
+  async function createWorkingPatternIfMissing(name, description, weeks) {
+    const existing = await prisma.workingPattern.findFirst({
+      where: { name, companyId: company.id },
+    });
+    if (existing) return existing;
+    return prisma.workingPattern.create({
+      data: {
+        id: randomUUID(),
+        name,
+        description,
+        companyId: company.id,
+        updatedAt: new Date(),
+        WorkingPatternWeek: {
+          create: weeks.map((week, idx) => ({
+            id: randomUUID(),
+            weekNumber: week.weekNumber ?? idx + 1,
+            WorkingPatternDay: {
+              create: week.days.map((d) => ({ id: randomUUID(), day: d.day, type: d.type })),
+            },
+          })),
+        },
+      },
+    });
+  }
+
+  // Standard Mon-Fri
+  await createWorkingPatternIfMissing(
+    "Standard (Mon-Fri, 9am-5pm)",
+    "Standard Monday to Friday working pattern from 9am to 5pm",
+    [
+      {
+        weekNumber: 1,
+        days: [
+          { day: "Mon", type: "FULL_DAY" },
+          { day: "Tue", type: "FULL_DAY" },
+          { day: "Wed", type: "FULL_DAY" },
+          { day: "Thu", type: "FULL_DAY" },
+          { day: "Fri", type: "FULL_DAY" },
+        ],
+      },
+    ],
+  );
+
+  // Part-time 3 days (Mon, Wed, Fri)
+  await createWorkingPatternIfMissing(
+    "Part-time (Mon/Wed/Fri)",
+    "Part-time schedule working Monday, Wednesday, Friday",
+    [
+      {
+        weekNumber: 1,
+        days: [
+          { day: "Mon", type: "FULL_DAY" },
+          { day: "Wed", type: "FULL_DAY" },
+          { day: "Fri", type: "FULL_DAY" },
+        ],
+      },
+    ],
+  );
+
+  // School hours (Mon-Fri, half-day AM)
+  await createWorkingPatternIfMissing(
+    "School Hours (Mon-Fri, AM)",
+    "Half-day mornings Monday to Friday",
+    [
+      {
+        weekNumber: 1,
+        days: [
+          { day: "Mon", type: "HALF_DAY_AM" },
+          { day: "Tue", type: "HALF_DAY_AM" },
+          { day: "Wed", type: "HALF_DAY_AM" },
+          { day: "Thu", type: "HALF_DAY_AM" },
+          { day: "Fri", type: "HALF_DAY_AM" },
+        ],
+      },
+    ],
+  );
+
+  // 4-on / 4-off (two-week cycle, illustrative)
+  await createWorkingPatternIfMissing(
+    "4-on 4-off",
+    "Four days on, four days off (two-week cycle)",
+    [
+      {
+        weekNumber: 1,
+        days: [
+          { day: "Mon", type: "FULL_DAY" },
+          { day: "Tue", type: "FULL_DAY" },
+          { day: "Wed", type: "FULL_DAY" },
+          { day: "Thu", type: "FULL_DAY" },
+        ],
+      },
+      {
+        weekNumber: 2,
+        days: [
+          { day: "Tue", type: "FULL_DAY" },
+          { day: "Wed", type: "FULL_DAY" },
+          { day: "Thu", type: "FULL_DAY" },
+          { day: "Fri", type: "FULL_DAY" },
+        ],
+      },
+    ],
+  );
 
   // ✅ 10. Onboarding Template + Steps
   const onboardingTemplate = await prisma.onboardingTemplate.upsert({

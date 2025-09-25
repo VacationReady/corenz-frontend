@@ -316,7 +316,7 @@ export default function BankPayrollPage() {
                 </Tooltip>
               </div>
               <Select
-                value={form.taxCode}
+                value={form.taxCode || undefined}
                 onValueChange={(value) =>
                   setForm((prev) => ({ ...prev, taxCode: value as TaxCodeFormValue }))
                 }
@@ -325,7 +325,6 @@ export default function BankPayrollPage() {
                   <SelectValue placeholder="Select tax code" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not set</SelectItem>
                   {NZ_TAX_CODE_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}

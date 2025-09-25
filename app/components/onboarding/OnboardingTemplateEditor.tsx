@@ -28,6 +28,7 @@ import {
 import { DialogFooter } from "@/components/ui/dialog";
 import { StepPalette } from "./builder/StepPalette";
 import { OnboardingPreviewPane } from "./builder/OnboardingPreviewPane";
+import { StepsDroppableArea } from "./builder/StepsDroppableArea";
 
 // --- Step Types
 const STEP_TYPES = [
@@ -304,10 +305,9 @@ const StepEditor = React.memo(function StepEditor({
       className={`mb-3 relative bg-white rounded-2xl p-6 shadow-sm border ${
         isSelected ? "border-blue-500 ring-2 ring-blue-200" : ""
       }`}
-      onClick={onSelect}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center" onMouseDown={onSelect}>
           <GripVertical
             className="text-gray-400 cursor-grab w-4 h-4"
             {...attributes}
@@ -325,16 +325,20 @@ const StepEditor = React.memo(function StepEditor({
         <div>
           <Label>Step Title</Label>
           <Input
+            className="border border-gray-300"
             value={step.title}
             onChange={(e) => updateStep(idx, { title: e.target.value })}
+            onFocus={onSelect}
             maxLength={80}
           />
         </div>
         <div>
           <Label>Description</Label>
           <Input
+            className="border border-gray-300"
             value={step.description}
             onChange={(e) => updateStep(idx, { description: e.target.value })}
+            onFocus={onSelect}
             maxLength={200}
           />
         </div>
@@ -358,6 +362,7 @@ const StepEditor = React.memo(function StepEditor({
               className="w-full border rounded-md p-2"
               value={step.uploadType || ""}
               onChange={(e) => updateStep(idx, { uploadType: e.target.value })}
+              onFocus={onSelect}
             >
               <option value="">Select type…</option>
               <option value="passport">Passport</option>

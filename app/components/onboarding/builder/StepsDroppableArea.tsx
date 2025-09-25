@@ -9,9 +9,9 @@ export function StepsDroppableArea({ children }: { children: React.ReactNode }) 
 		<div
 			ref={setNodeRef}
 			className={
-				isOver
-					? "xl:col-span-2 border-2 border-dashed border-blue-300 rounded-xl p-2"
-					: "xl:col-span-2"
+				`xl:col-span-2 rounded-xl ${
+					isOver ? "border-2 border-dashed border-blue-300 bg-blue-50/30" : ""
+				}`
 			}
 		>
 			{children}

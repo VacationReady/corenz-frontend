@@ -311,14 +311,14 @@ const StepEditor = React.memo(function StepEditor({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`mb-3 relative bg-white rounded-2xl p-6 shadow-sm border ${
-        isSelected ? "border-blue-500 ring-2 ring-blue-200" : ""
+      className={`group mb-3 relative bg-white rounded-2xl p-6 border transition-all duration-150 ${
+        isSelected ? "border-blue-500 ring-2 ring-blue-200 shadow-md" : "border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300"
       }`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex gap-2 items-center" onMouseDown={onSelect}>
           <GripVertical
-            className="text-gray-400 cursor-grab w-4 h-4"
+            className="text-gray-400 cursor-grab w-4 h-4 opacity-70 group-hover:opacity-100"
             {...attributes}
             {...listeners}
           />
@@ -326,7 +326,7 @@ const StepEditor = React.memo(function StepEditor({
             {STEP_TYPES.find((t) => t.value === step.type)?.label}
           </span>
         </div>
-        <Button size="md" variant="ghost" onClick={() => removeStep(idx)}>
+        <Button size="md" variant="ghost" className="opacity-70 hover:opacity-100" onClick={() => removeStep(idx)}>
           <X className="w-4 h-4" />
         </Button>
       </div>
@@ -717,21 +717,30 @@ export default function OnboardingTemplateEditor({
 						/>
 						<StepsDroppableArea>
 							<SortableContext items={steps.map(getStepKey)}>
-								<div className="xl:col-span-2">
-									<div className="space-y-2">
-										{steps.map((step, idx) => (
-											<StepEditor
-												key={step.key}
-												step={step}
-												idx={idx}
-												updateStep={updateStep}
-												removeStep={removeStep}
-												onSelect={() => setSelectedIndex(idx)}
-												isSelected={selectedIndex === idx}
-											/>
-										))}
-									</div>
-								</div>
+                <div className="xl:col-span-2">
+                  <div className="space-y-2">
+                    {steps.map((step, idx) => (
+                      <div key={step.key} className="relative">
+                        {/* Insertion indicator above */}
+                        <div className="h-2 -mt-1">
+                          <div className="mx-2 border-t border-transparent group-[.dragging]:border-blue-300" />
+                        </div>
+                        <StepEditor
+                          step={step}
+                          idx={idx}
+                          updateStep={updateStep}
+                          removeStep={removeStep}
+                          onSelect={() => setSelectedIndex(idx)}
+                          isSelected={selectedIndex === idx}
+                        />
+                        {/* Insertion indicator below */}
+                        <div className="h-2 -mb-1">
+                          <div className="mx-2 border-t border-transparent group-[.dragging]:border-blue-300" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 							</SortableContext>
 						</StepsDroppableArea>
 						<OnboardingPreviewPane step={selectedIndex != null ? steps[selectedIndex] : null} />

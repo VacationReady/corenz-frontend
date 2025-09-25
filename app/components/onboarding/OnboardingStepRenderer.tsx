@@ -286,7 +286,7 @@ export default function OnboardingStepRenderer({
     }
 
     // Fallback for inline fields
-    if (step.formFields) {
+    if (Array.isArray(step.formFields)) {
       return (
         <Card className="p-4">
           <div className="mb-2 font-semibold">{title}</div>
@@ -298,7 +298,7 @@ export default function OnboardingStepRenderer({
               onComplete({ formResponse: formValues });
             }}
           >
-            {step.formFields.map((f, idx) => (
+            {(step.formFields || []).map((f, idx) => (
               <div key={idx} className="mb-2">
                 <label>{f.label}</label>
                 <Input

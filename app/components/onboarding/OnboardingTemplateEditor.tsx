@@ -622,21 +622,7 @@ export default function OnboardingTemplateEditor({
     </Accordion>
   );
 
-	function StepsDroppableArea({ children }: { children: React.ReactNode }) {
-		const { setNodeRef, isOver } = useDroppable({ id: "steps-canvas" });
-		return (
-			<div
-				ref={setNodeRef}
-				className={
-					isOver
-						? "xl:col-span-2 border-2 border-dashed border-blue-300 rounded-xl p-2"
-					: "xl:col-span-2"
-				}
-			>
-				{children}
-			</div>
-		);
-	}
+  
 
   const PreviewBlock = () => (
     <div className="bg-muted border p-6 rounded-xl mt-6 mb-4">

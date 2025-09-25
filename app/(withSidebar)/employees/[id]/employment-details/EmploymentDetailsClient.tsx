@@ -258,18 +258,20 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             {canEdit ? (
               <Select
                 value={
-                  // Prefer explicit selection if user changed it; otherwise derive from current manager's userId
-                  (form.managerId !== undefined
-                    ? form.managerId
-                    : (employees.find((e) => e.userId === form?.manager?.id)?.id)) || undefined
+                  // If explicitly set to empty, show placeholder (undefined)
+                  form.managerId !== undefined
+                    ? (form.managerId === "" ? undefined : form.managerId)
+                    : employees.find((e) => e.userId === form?.manager?.id)?.id || undefined
                 }
-                onValueChange={(v) => setForm((f: any) => ({ ...f, managerId: v }))}
+                onValueChange={(v) =>
+                  setForm((f: any) => ({ ...f, managerId: v === "none" ? "" : v }))
+                }
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Line Manager" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No manager</SelectItem>
+                  <SelectItem value="none">No manager</SelectItem>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {(emp.firstName || emp.lastName)

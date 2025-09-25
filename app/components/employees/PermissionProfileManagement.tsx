@@ -118,6 +118,15 @@ export function PermissionProfileManagement({
       if (!userResponse.ok) throw new Error("Failed to fetch user permissions");
       const userData = await userResponse.json();
       setUserPermissions(userData);
+      // Pre-populate editor with effective permissions so ticks/crosses reflect current access
+      if (userData?.effectivePermissions && typeof userData.effectivePermissions === "object") {
+        const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
+        Object.entries(userData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
+          const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
+          if (filtered.length > 0) mapped[screen] = filtered;
+        });
+        setCustomPermissionsDraft(mapped);
+      }
 
       // Fetch available profiles
       const profilesResponse = await fetch("/api/permissions");
@@ -164,6 +173,14 @@ export function PermissionProfileManagement({
 
       const updatedData = await response.json();
       setUserPermissions(updatedData);
+      if (updatedData?.effectivePermissions) {
+        const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
+        Object.entries(updatedData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
+          const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
+          if (filtered.length > 0) mapped[screen] = filtered;
+        });
+        setCustomPermissionsDraft(mapped);
+      }
       setSelectedProfileId("");
       setNote("");
       setShowConfirmDialog(false);
@@ -193,6 +210,14 @@ export function PermissionProfileManagement({
       }
       const updatedData = await response.json();
       setUserPermissions(updatedData);
+      if (updatedData?.effectivePermissions) {
+        const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
+        Object.entries(updatedData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
+          const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
+          if (filtered.length > 0) mapped[screen] = filtered;
+        });
+        setCustomPermissionsDraft(mapped);
+      }
       setNote("");
       toast.success("Custom permissions saved");
     } catch (err) {

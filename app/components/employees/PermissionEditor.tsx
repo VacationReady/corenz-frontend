@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Checkbox from "@/components/ui/Checkbox";
+import { Check, X } from "lucide-react";
 
 type ActionKey = "read" | "edit" | "delete";
 
@@ -61,12 +61,18 @@ export function PermissionEditor({
                 <td className="p-2">{s.label}</td>
                 {actions.map((a) => (
                   <td key={a.key} className="text-center p-2">
-                    <Checkbox
-                      checked={selected.has(a.key)}
-                      onCheckedChange={(checked) =>
-                        toggle(s.key, a.key, Boolean(checked))
-                      }
-                    />
+                    <button
+                      type="button"
+                      aria-pressed={selected.has(a.key)}
+                      onClick={() => toggle(s.key, a.key, !selected.has(a.key))}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md border hover:bg-gray-50"
+                    >
+                      {selected.has(a.key) ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <X className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
                   </td>
                 ))}
               </tr>

@@ -147,17 +147,7 @@ function FormDropdown({
               { id: "disability", type: "checkbox", label: "Disability", required: false },
             ],
           },
-          {
-            slug: "bank-details",
-            name: "Bank Details",
-            description: "Salary payment details",
-            formType: "SUBMISSION",
-            schema: [
-              { id: "accountName", type: "text", label: "Account holder name", required: true },
-              { id: "sortCode", type: "text", label: "Sort code", required: true },
-              { id: "accountNumber", type: "text", label: "Account number", required: true },
-            ],
-          },
+          // Prefer the persistent Bank & Payroll data screen instead of a submission form
           {
             slug: "emergency-contact",
             name: "Emergency Contact",

@@ -82,7 +82,7 @@ export default async function EmployeeLayout({
   });
 
   // FINAL QUERY: fetch forms with proper filter
-  const forms = await prisma.form.findMany({
+  let forms = await prisma.form.findMany({
     where: {
       companyId: employee.companyId || "",
       isActive: true,
@@ -118,6 +118,16 @@ export default async function EmployeeLayout({
     },
     orderBy: { name: "asc" },
   });
+
+  // Hide deprecated/duplicate screens (consolidated into Personal information)
+  const hiddenSlugs = new Set([
+    "bank-details", // replaced by Bank & Payroll data screen
+    "contact-information",
+    "contact-info",
+    "demographic",
+    "demographics",
+  ]);
+  forms = forms.filter((f: any) => !hiddenSlugs.has(f.slug));
 
   console.log("Final forms to show:", forms.length);
   console.log("=== END DEBUG INFO ===");

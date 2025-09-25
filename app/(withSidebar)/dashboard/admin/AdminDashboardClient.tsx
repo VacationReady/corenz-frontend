@@ -15,6 +15,7 @@ import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ export default function AdminDashboardClient({
   firstName,
   section,
 }: AdminDashboardClientProps) {
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
   const [detail, setDetail] = useState<any | null>(null);
@@ -377,6 +379,7 @@ export default function AdminDashboardClient({
               <button
                 key={label}
                 onClick={() => {
+                  if (label === "Post News") router.push("/news");
                   if (label === "Add Employee") setModalOpen(true);
                   if (label === "Add Document") setAddDocumentOpen(true);
                 }}

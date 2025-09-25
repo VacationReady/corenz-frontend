@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { DndContext, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, type DragEndEvent, useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/Input";
@@ -27,6 +27,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { DialogFooter } from "@/components/ui/dialog";
+import { StepPalette } from "./builder/StepPalette";
+import { OnboardingPreviewPane } from "./builder/OnboardingPreviewPane";
 
 // --- Step Types
 const STEP_TYPES = [
@@ -282,11 +284,15 @@ const StepEditor = React.memo(function StepEditor({
   idx,
   updateStep,
   removeStep,
+  onSelect,
+  isSelected,
 }: {
   step: any;
   idx: number;
   updateStep: (idx: number, data: any) => void;
   removeStep: (idx: number) => void;
+  onSelect?: () => void;
+  isSelected?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: getStepKey(step),
@@ -296,7 +302,10 @@ const StepEditor = React.memo(function StepEditor({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="mb-3 relative bg-white rounded-2xl p-6 shadow-sm border"
+      className={`mb-3 relative bg-white rounded-2xl p-6 shadow-sm border ${
+        isSelected ? "border-blue-500 ring-2 ring-blue-200" : ""
+      }`}
+      onClick={onSelect}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex gap-2 items-center">
@@ -455,6 +464,10 @@ export default function OnboardingTemplateEditor({
       : [],
   );
 
+	const [selectedIndex, setSelectedIndex] = useState<number | null>(
+		() => (template?.steps?.length ? 0 : null),
+	);
+
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
@@ -486,7 +499,11 @@ export default function OnboardingTemplateEditor({
   }, []);
 
   const addStep = useCallback((type: string) => {
-    setSteps((prev) => [...prev, createStep(type)]);
+		setSteps((prev) => {
+			const next = [...prev, createStep(type)];
+			setSelectedIndex(next.length - 1);
+			return next;
+		});
   }, []);
 
   const updateStep = useCallback((idx: number, data: any) => {
@@ -501,27 +518,46 @@ export default function OnboardingTemplateEditor({
     setSteps((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+	const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
     if (!over || active.id === over.id) {
       return;
     }
 
-    setSteps((prevSteps) => {
-      const oldIndex = prevSteps.findIndex(
-        (item) => getStepKey(item) === active.id,
-      );
-      const newIndex = prevSteps.findIndex(
-        (item) => getStepKey(item) === over.id,
-      );
+		// If dragging from the left palette, create a new step at the drop index
+		const dragged = (active.data?.current as any) || {};
+		if (dragged?.source === "step-palette" && dragged?.type) {
+			setSteps((prev) => {
+				const insertIndex = over.id === "steps-canvas"
+					? prev.length
+					: Math.max(
+						0,
+						prev.findIndex((item) => getStepKey(item) === over.id),
+					);
+				const next = [...prev];
+				next.splice(insertIndex === -1 ? prev.length : insertIndex, 0, createStep(dragged.type));
+				setSelectedIndex(insertIndex === -1 ? prev.length : insertIndex);
+				return next;
+			});
+			return;
+		}
 
-      if (oldIndex === -1 || newIndex === -1) {
-        return prevSteps;
-      }
+		// Reordering existing steps
+		setSteps((prevSteps) => {
+			const oldIndex = prevSteps.findIndex(
+				(item) => getStepKey(item) === active.id,
+			);
+			const newIndex = prevSteps.findIndex(
+				(item) => getStepKey(item) === over.id,
+			);
 
-      return arrayMove(prevSteps, oldIndex, newIndex);
-    });
+			if (oldIndex === -1 || newIndex === -1) {
+				return prevSteps;
+			}
+
+			return arrayMove(prevSteps, oldIndex, newIndex);
+		});
   }, []);
 
   const handleSave = async (publish = false) => {
@@ -563,7 +599,7 @@ export default function OnboardingTemplateEditor({
     }
   };
 
-  const StepTypePicker = () => (
+	const StepTypePicker = () => (
     <Accordion type="single" collapsible className="mt-3 mb-6">
       <AccordionItem value="step-types">
         <AccordionTrigger className="text-sm font-semibold">
@@ -587,6 +623,22 @@ export default function OnboardingTemplateEditor({
     </Accordion>
   );
 
+	function StepsDroppableArea({ children }: { children: React.ReactNode }) {
+		const { setNodeRef, isOver } = useDroppable({ id: "steps-canvas" });
+		return (
+			<div
+				ref={setNodeRef}
+				className={
+					isOver
+						? "xl:col-span-2 border-2 border-dashed border-blue-300 rounded-xl p-2"
+					: "xl:col-span-2"
+				}
+			>
+				{children}
+			</div>
+		);
+	}
+
   const PreviewBlock = () => (
     <div className="bg-muted border p-6 rounded-xl mt-6 mb-4">
       <h3 className="font-semibold mb-2">
@@ -605,7 +657,7 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 
-  return (
+	return (
     <div className="p-6">
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-2">
@@ -658,29 +710,40 @@ export default function OnboardingTemplateEditor({
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-1">Steps</h3>
-        <p className="text-gray-500 mb-2">
-          Drag and drop to reorder. Each step can require a document to be
-          acknowledged, uploaded, or a custom form.
-        </p>
-        <StepTypePicker />
-        <DndContext onDragEnd={handleDragEnd}>
-          <SortableContext items={steps.map(getStepKey)}>
-            <div className="space-y-2">
-              {steps.map((step, idx) => (
-                <StepEditor
-                  key={step.key}
-                  step={step}
-                  idx={idx}
-                  updateStep={updateStep}
-                  removeStep={removeStep}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      </div>
+			<div>
+				<h3 className="text-lg font-semibold mb-1">Steps</h3>
+				<p className="text-gray-500 mb-2">
+					Drag from the left to add steps. Drag within the list to reorder.
+				</p>
+				<StepTypePicker />
+				<DndContext onDragEnd={handleDragEnd}>
+					<div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+						<StepPalette
+							stepTypes={STEP_TYPES.map((t) => ({ value: t.value, label: t.label, icon: t.icon }))}
+						/>
+						<StepsDroppableArea>
+							<SortableContext items={steps.map(getStepKey)}>
+								<div className="xl:col-span-2">
+									<div className="space-y-2">
+										{steps.map((step, idx) => (
+											<StepEditor
+												key={step.key}
+												step={step}
+												idx={idx}
+												updateStep={updateStep}
+												removeStep={removeStep}
+												onSelect={() => setSelectedIndex(idx)}
+												isSelected={selectedIndex === idx}
+											/>
+										))}
+									</div>
+								</div>
+							</SortableContext>
+						</StepsDroppableArea>
+						<OnboardingPreviewPane step={selectedIndex != null ? steps[selectedIndex] : null} />
+					</div>
+				</DndContext>
+			</div>
 
       {steps.length > 0 && <PreviewBlock />}
 

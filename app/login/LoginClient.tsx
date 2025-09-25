@@ -79,6 +79,23 @@ export default function LoginClient() {
           return;
         }
 
+        // If user has an active onboarding instance, redirect to their in-progress step
+        try {
+          const empId = (result as any)?.user?.employeeId || (result as any)?.employeeId;
+          if (empId) {
+            const onboardingRes = await fetch(`/api/onboarding/instances/employee/${empId}`);
+            if (onboardingRes.ok) {
+              const instances = await onboardingRes.json();
+              const latest = Array.isArray(instances) ? instances[0] : null;
+              const hasActive = latest?.OnboardingStepInstance?.some((s: any) => s.status !== "completed");
+              if (hasActive) {
+                router.push(`/${empId}/onboarding`);
+                return;
+              }
+            }
+          }
+        } catch {}
+
         if (role === "ADMIN" || role === "SUPER_ADMIN") {
           router.push("/dashboard/admin");
         } else if (role === "MANAGER") {

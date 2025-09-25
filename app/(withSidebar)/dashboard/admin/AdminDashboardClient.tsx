@@ -443,95 +443,7 @@ export default function AdminDashboardClient({
     setSelectedEmployeeForEdit(null);
   };
 
-  const EditEmployeeDialog = () => (
-    <Dialog
-      open={editEmployeeOpen}
-      onOpenChange={(open) => {
-        setEditEmployeeOpen(open);
-        if (!open) resetEditEmployeeDialog();
-      }}
-    >
-      <DialogContent
-        title={selectedEmployeeForEdit ? "Choose a screen" : "Edit Employee"}
-        description={
-          selectedEmployeeForEdit
-            ? "Select a screen to edit for this employee"
-            : "Search and select an employee to edit"
-        }
-      >
-        {!selectedEmployeeForEdit ? (
-          <div className="space-y-3">
-            <Input
-              placeholder="Search by name or email..."
-              value={employeeSearch}
-              onChange={(e) => setEmployeeSearch(e.target.value)}
-            />
-            {loadingEmployees ? (
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-5 w-5/6" />
-                <Skeleton className="h-5 w-3/4" />
-              </div>
-            ) : filteredEmployeesForEdit.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">No employees found</p>
-            ) : (
-              <ul className="max-h-80 overflow-auto divide-y divide-border rounded-lg border">
-                {filteredEmployeesForEdit.slice(0, 50).map((e: any) => {
-                  const display = getEmployeeDisplay(e);
-                  const id = e.id || e.employeeId;
-                  return (
-                    <li
-                      key={id}
-                      className="flex items-center gap-3 p-3 hover:bg-muted/60 cursor-pointer"
-                      onClick={() => setSelectedEmployeeForEdit(e)}
-                    {
-                      ...({} as any)
-                    }
-                    >
-                      <Avatar size={28} name={display.name} src={display.avatar} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{display.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{display.sub}</p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSelectedEmployeeForEdit(null)}>
-                  Back
-                </Button>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {getEmployeeDisplay(selectedEmployeeForEdit).name}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {employeeScreens(selectedEmployeeForEdit.id).map((s) => (
-                <Button
-                  key={s.href}
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => {
-                    router.push(s.href);
-                    setEditEmployeeOpen(false);
-                    resetEditEmployeeDialog();
-                  }}
-                >
-                  {s.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
+  // (Dialog inlined below to avoid remounting per keystroke)
 
   // Quick Actions Section
   if (section === "quick-actions") {
@@ -562,7 +474,90 @@ export default function AdminDashboardClient({
             ))}
           </div>
         </DashboardWidget>
-        <EditEmployeeDialog />
+        <Dialog
+          open={editEmployeeOpen}
+          onOpenChange={(open) => {
+            setEditEmployeeOpen(open);
+            if (!open) resetEditEmployeeDialog();
+          }}
+        >
+          <DialogContent
+            title={selectedEmployeeForEdit ? "Choose a screen" : "Edit Employee"}
+            description={
+              selectedEmployeeForEdit
+                ? "Select a screen to edit for this employee"
+                : "Search and select an employee to edit"
+            }
+          >
+            {!selectedEmployeeForEdit ? (
+              <div className="space-y-3">
+                <Input
+                  placeholder="Search by name or email..."
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                />
+                {loadingEmployees ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-full" />
+                    <Skeleton className="h-5 w-5/6" />
+                    <Skeleton className="h-5 w-3/4" />
+                  </div>
+                ) : filteredEmployeesForEdit.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center">No employees found</p>
+                ) : (
+                  <ul className="max-h-80 overflow-auto divide-y divide-border rounded-lg border">
+                    {filteredEmployeesForEdit.slice(0, 50).map((e: any) => {
+                      const display = getEmployeeDisplay(e);
+                      const id = e.id || e.employeeId;
+                      return (
+                        <li
+                          key={id}
+                          className="flex items-center gap-3 p-3 hover:bg-muted/60 cursor-pointer"
+                          onClick={() => setSelectedEmployeeForEdit(e)}
+                        >
+                          <Avatar size={28} name={display.name} src={display.avatar} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{display.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{display.sub}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setSelectedEmployeeForEdit(null)}>
+                      Back
+                    </Button>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {getEmployeeDisplay(selectedEmployeeForEdit).name}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {employeeScreens(selectedEmployeeForEdit.id).map((s) => (
+                    <Button
+                      key={s.href}
+                      variant="outline"
+                      className="justify-start"
+                      onClick={() => {
+                        router.push(s.href);
+                        setEditEmployeeOpen(false);
+                        resetEditEmployeeDialog();
+                      }}
+                    >
+                      {s.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
         <AddEmployeeModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}

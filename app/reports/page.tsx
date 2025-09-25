@@ -22,7 +22,7 @@ interface SavedReport {
   id: number;
   name: string;
   category: string;
-  fields: string[]; // ✅ native array
+  fields: string[] | string | null;
   createdAt: string;
   createdBy: {
     email: string;
@@ -34,15 +34,22 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
   const breadcrumbs = useBreadcrumbs();
 
-  const fetchReports = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchReports = useCallback(
+    async ({ initial = false }: { initial?: boolean } = {}) => {
+      if (initial) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
 
-    try {
-      const res = await fetch("/api/reports");
+      setError(null);
+
+      try {
+        const res = await fetch("/api/reports");
 
       if (!res.ok) {
         let message = "Failed to load reports.";
@@ -58,10 +65,12 @@ export default function ReportsPage() {
 
       const data = await res.json();
       setReports(data);
-      toast({
-        title: "Reports loaded",
-        description: "Saved reports are up to date.",
-      });
+      if (!initial) {
+        toast({
+          title: "Reports updated",
+          description: "Saved reports have been refreshed.",
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch reports", err);
       const message =
@@ -75,17 +84,21 @@ export default function ReportsPage() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (initial) {
+        setLoading(false);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchReports();
+    void fetchReports({ initial: true });
   }, [fetchReports]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this report?")) return;
-    const previousReports = reports;
+    const previousReports = [...reports];
     const reportToDelete = reports.find((report) => report.id === id);
 
     setDeletingIds((prev) => [...prev, id]);
@@ -150,6 +163,13 @@ export default function ReportsPage() {
       breadcrumbs={breadcrumbs}
       action={
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => void fetchReports()}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </Button>
           <Button onClick={() => router.push("/reports/builder-new")}>
             + New Report Builder
           </Button>
@@ -169,7 +189,10 @@ export default function ReportsPage() {
               <p className="font-medium text-destructive">Unable to load reports</p>
               <p className="text-sm text-destructive/80">{error}</p>
             </div>
-            <Button variant="outline" onClick={() => void fetchReports()}>
+            <Button
+              variant="outline"
+              onClick={() => void fetchReports({ initial: reports.length === 0 })}
+            >
               Retry
             </Button>
           </div>
@@ -212,7 +235,10 @@ export default function ReportsPage() {
                     onClick={() => {
                       console.log("🧪 Raw report.fields:", report.fields);
 
-                      if (!report.fields) {
+                      if (
+                        !report.fields ||
+                        (Array.isArray(report.fields) && report.fields.length === 0)
+                      ) {
                         toast({
                           title: "Unable to open report",
                           description: "No fields were saved with this report configuration.",
@@ -221,9 +247,34 @@ export default function ReportsPage() {
                         return;
                       }
 
-                      const fieldArray = Array.isArray(report.fields)
-                        ? report.fields
-                        : JSON.parse(report.fields || "[]");
+                      let fieldArray: string[] = [];
+                      if (Array.isArray(report.fields)) {
+                        fieldArray = report.fields.filter(
+                          (field): field is string =>
+                            typeof field === "string" && field.trim() !== "",
+                        );
+                      } else if (typeof report.fields === "string") {
+                        try {
+                          const parsed = JSON.parse(report.fields || "[]");
+                          if (Array.isArray(parsed)) {
+                            fieldArray = parsed.filter(
+                              (field): field is string =>
+                                typeof field === "string" && field.trim() !== "",
+                            );
+                          } else {
+                            fieldArray = report.fields
+                              .split(",")
+                              .map((field) => field.trim())
+                              .filter((field) => field.length > 0);
+                          }
+                        } catch (parseError) {
+                          console.error("Failed to parse report fields", parseError);
+                          fieldArray = report.fields
+                            .split(",")
+                            .map((field) => field.trim())
+                            .filter((field) => field.length > 0);
+                        }
+                      }
 
                       if (!fieldArray.length) {
                         toast({
@@ -235,7 +286,8 @@ export default function ReportsPage() {
                       }
 
                       const params = new URLSearchParams();
-                      params.set("fields", fieldArray.join(","));
+                      params.set("fields", JSON.stringify(fieldArray));
+                      params.set("reportId", String(report.id));
                       params.set("returnTo", "/reports");
                       router.push(`/reports/preview?${params.toString()}`);
                     }}

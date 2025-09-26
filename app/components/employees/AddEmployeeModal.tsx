@@ -220,11 +220,19 @@ export default function AddEmployeeModal({
         Array.isArray(deptRes) ? deptRes : deptRes.departments || [],
       );
       setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-      setTemplates(
-        Array.isArray(templateRes)
-          ? (templateRes as OnboardingTemplate[])
-          : (templateRes.templates as OnboardingTemplate[]) || [],
-      );
+      const rawTemplates = Array.isArray(templateRes)
+        ? (templateRes as any[])
+        : (templateRes.templates as any[]) || [];
+
+      // Normalize possible API shapes -> ensure departments/jobRoles keys exist
+      const normalizedTemplates: OnboardingTemplate[] = rawTemplates.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        departments: (t.departments || t.Department || []).map((d: any) => ({ id: d.id })),
+        jobRoles: (t.jobRoles || t.JobRole || []).map((j: any) => ({ id: j.id })),
+      }));
+
+      setTemplates(normalizedTemplates);
       setWorkingPatterns(patternsRes);
     } catch {
       setError("Failed to load data");

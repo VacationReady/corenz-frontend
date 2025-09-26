@@ -50,7 +50,20 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "asc" },
   });
 
-  return NextResponse.json(templates);
+  // Normalize keys for clients: Department -> departments, JobRole -> jobRoles, OnboardingStep -> steps, User -> updatedBy
+  const normalized = templates.map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    isActive: t.isActive,
+    updatedAt: t.updatedAt,
+    updatedBy: t.User,
+    departments: t.Department,
+    jobRoles: t.JobRole,
+    steps: t.OnboardingStep,
+  }));
+
+  return NextResponse.json(normalized);
 }
 
 // ✅ POST - Create Template

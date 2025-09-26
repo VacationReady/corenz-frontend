@@ -144,11 +144,14 @@ export default function OnboardingSettingsPage() {
               <TableRow key={t.id}>
                 <TableCell className="font-semibold">{t.name}</TableCell>
                 <TableCell>
-                  {t.departments?.length
-                    ? t.departments.map((d) => d.name).join(", ")
-                    : t.jobRoles?.length
-                      ? t.jobRoles.map((j) => j.name).join(", ")
-                      : "All"}
+                  {(() => {
+                    const deptNames = (t.departments || []).map((d) => d.name);
+                    const roleNames = (t.jobRoles || []).map((j) => j.name);
+                    const parts = [] as string[];
+                    if (deptNames.length) parts.push(`Depts: ${deptNames.join(", ")}`);
+                    if (roleNames.length) parts.push(`Roles: ${roleNames.join(", ")}`);
+                    return parts.length ? parts.join(" • ") : "All";
+                  })()}
                 </TableCell>
                 <TableCell>{t.steps?.length || 0}</TableCell>
                 <TableCell>

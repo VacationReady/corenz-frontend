@@ -386,12 +386,12 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
           });
         }}
       >
-        <div className="grid grid-cols-1 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
           {/* Make palette narrower and non-sticky on smaller screens */}
           <div className="2xl:col-span-1 xl:col-span-1">
             <FieldPalette />
           </div>
-          <div className="xl:col-span-2 2xl:col-span-2">
+          <div className="xl:col-span-2">
             <FormCanvas
             sections={sections}
             setSections={setSections}
@@ -415,7 +415,9 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               </p>
             )}
           </div>
-          <FormPreview fields={sections.flatMap((s) => s.fields)} />
+          <div className="xl:col-span-1 xl:sticky xl:top-4 self-start">
+            <FormPreview fields={sections.flatMap((s) => s.fields)} />
+          </div>
         </div>
         <DragOverlay>
           {activeDragField ? (

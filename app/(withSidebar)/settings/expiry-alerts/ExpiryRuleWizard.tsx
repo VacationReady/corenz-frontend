@@ -224,16 +224,16 @@ export function ExpiryRuleWizard({
             <div className="space-y-3">
               <div>
                 <Label className="text-xs">Departments (optional)</Label>
-                <MultiSelect value={selectedDepartments} onValueChange={setSelectedDepartments} options={departments} placeholder="All departments" />
+                <MultiSelect selected={selectedDepartments} onChange={setSelectedDepartments} options={departments} placeholder="All departments" />
               </div>
               <div>
                 <Label className="text-xs">Job Roles (optional)</Label>
-                <MultiSelect value={selectedJobRoles} onValueChange={setSelectedJobRoles} options={jobRoles} placeholder="All roles" />
+                <MultiSelect selected={selectedJobRoles} onChange={setSelectedJobRoles} options={jobRoles} placeholder="All roles" />
               </div>
               {selectedField?.id === "EmploymentCheck.expiryDate" && (
                 <div>
                   <Label className="text-xs">Employment check types (optional)</Label>
-                  <MultiSelect value={typeOfCheck} onValueChange={setTypeOfCheck} options={checkTypes.map((t) => ({ value: t, label: t }))} placeholder="All types" />
+                  <MultiSelect selected={typeOfCheck} onChange={setTypeOfCheck} options={checkTypes.map((t) => ({ value: t, label: t }))} placeholder="All types" />
                 </div>
               )}
             </div>

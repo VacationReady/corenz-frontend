@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 interface Form {
   id: string;
   name: string;
+  slug?: string;
   description?: string;
   isActive: boolean;
   visibleToRoles?: string[];

@@ -81,6 +81,9 @@ function DocumentsContent() {
   const [requiresSignature, setRequiresSignature] = useState(false);
   const [signatureDueAt, setSignatureDueAt] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -224,15 +227,20 @@ function DocumentsContent() {
   }, [documents]);
 
   const categoryOptions: FilterOption[] = useMemo(() => {
-    const categories = documents
-      .map((doc) => doc.category)
-      .filter(Boolean)
-      .filter((cat, i, arr) => arr.indexOf(cat) === i);
+    const base = categoriesList.length
+      ? categoriesList
+      : Array.from(
+          new Set(
+            documents
+              .map((doc) => doc.category)
+              .filter((x): x is string => Boolean(x)) as string[],
+          ),
+        );
     return [
       { label: "All Categories", value: "all" },
-      ...categories.map((cat) => ({ label: cat!, value: cat! })),
+      ...base.map((cat) => ({ label: cat, value: cat })),
     ];
-  }, [documents]);
+  }, [documents, categoriesList]);
 
   const sortOptions: FilterOption[] = [
     { label: "Name", value: "name" },
@@ -651,7 +659,14 @@ function DocumentsContent() {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={(v) => { setCategory(v); if (v !== "__new__") setNewCategory(""); }}>
+                <Select value={category} onValueChange={(v) => {
+                  if (v === "__new__") {
+                    setManageCategoriesOpen(true);
+                  } else {
+                    setCategory(v);
+                    setNewCategory("");
+                  }
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -664,15 +679,6 @@ function DocumentsContent() {
                     <SelectItem value="__new__">+ Add new category</SelectItem>
                   </SelectContent>
                 </Select>
-                {category === "__new__" && (
-                  <Input
-                    className="mt-2"
-                    placeholder="New category name"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    onBlur={() => { if (newCategory.trim()) setCategory(newCategory.trim()); }}
-                  />
-                )}
               </div>
               <div>
                 <Label>Departments</Label>

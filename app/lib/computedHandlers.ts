@@ -40,6 +40,16 @@ export const computedHandlers: ComputedFieldRegistry = {
       const viaUser = item?.Employee?.User?.JobRole?.name;
       return viaEmployee || viaUser || null;
     },
+    "_computed.requesterFullName": (item) => {
+      const first = item?.User_LeaveRequest_requesterIdToUser?.firstName;
+      const last = item?.User_LeaveRequest_requesterIdToUser?.lastName;
+      return [first, last].filter(Boolean).join(" ") || null;
+    },
+    "_computed.approverFullName": (item) => {
+      const first = item?.User_LeaveRequest_approvedByIdToUser?.firstName;
+      const last = item?.User_LeaveRequest_approvedByIdToUser?.lastName;
+      return [first, last].filter(Boolean).join(" ") || null;
+    },
   },
 
   // ===========================
@@ -121,6 +131,27 @@ export const computedHandlers: ComputedFieldRegistry = {
         .join("")
         .toUpperCase();
     },
+    "_computed.managerFullName": (item) => {
+      const first = item?.User?.firstName;
+      const last = item?.User?.lastName;
+      return [first, last].filter(Boolean).join(" ") || null;
+    },
+    "_computed.primaryEmergencyContactName": (item) => {
+      const primary = item?.Employee?.EmergencyContact?.[0];
+      return primary?.name || null;
+    },
+    "_computed.primaryEmergencyContactRelationship": (item) => {
+      const primary = item?.Employee?.EmergencyContact?.[0];
+      return primary?.relationship || null;
+    },
+    "_computed.primaryEmergencyContactPhone": (item) => {
+      const primary = item?.Employee?.EmergencyContact?.[0];
+      return primary?.phone || null;
+    },
+    "_computed.primaryEmergencyContactEmail": (item) => {
+      const primary = item?.Employee?.EmergencyContact?.[0];
+      return primary?.email || null;
+    },
   },
 
   // ===========================
@@ -135,6 +166,13 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   WorkingPattern: {
     "_computed.description": (item) => `Pattern: ${item.name}`,
+  },
+
+  // ===========================
+  // Employee Offboarding
+  // ===========================
+  EmployeeOffboarding: {
+    "_computed.accessRemoved": (item) => Boolean(item?.accessRemovedAt),
   },
 
   // ===========================

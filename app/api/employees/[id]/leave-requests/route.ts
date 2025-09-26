@@ -250,9 +250,36 @@ export async function POST(
         leaveRequestId: newLeaveRequest.id,
         workflow: {
           ...workflow,
-          context: { requesterUserId: employee.User.id, managerUserId: employee.User.managerId ?? null },
+          context: {
+            requesterUserId: employee.User.id,
+            managerUserId: employee.User.managerId ?? null,
+            findFallbackAdminUserId: () => null,
+          },
         } as any,
       });
+
+      // If manager was missing and no decisions created, fallback to an ADMIN, rebuild plan
+      if (stages.some((s: any) => (s.decisions || []).length === 0)) {
+        const admin = await prisma.user.findFirst({
+          where: { companyId: session.user.companyId, role: "ADMIN" },
+          select: { id: true },
+        });
+        if (admin?.id) {
+          await prisma.leaveApprovalStage.deleteMany({ where: { leaveRequestId: newLeaveRequest.id } });
+          await createLeaveApprovalPlan({
+            prismaTx: prisma,
+            leaveRequestId: newLeaveRequest.id,
+            workflow: {
+              ...workflow,
+              context: {
+                requesterUserId: employee.User.id,
+                managerUserId: employee.User.managerId ?? null,
+                findFallbackAdminUserId: () => admin.id,
+              },
+            } as any,
+          });
+        }
+      }
 
       // Notify active approvers on first stage
       const first = stages.find((s: any) => s.isActive);

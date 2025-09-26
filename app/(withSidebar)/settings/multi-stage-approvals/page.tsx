@@ -69,7 +69,12 @@ export default function MultiStageApprovalsSettingsPage() {
         setEventCategories((Array.isArray(cats) ? cats : cats?.data || []).map((c: any) => ({ id: c.id, name: c.name })));
         setDepartments((Array.isArray(depts) ? depts : depts?.data || []).map((d: any) => ({ id: d.id, name: d.name })));
         setJobRoles(((roles && roles.jobRoles) || []).map((r: any) => ({ id: r.id, name: r.name })));
-        setEmployees((Array.isArray(emps) ? emps : emps?.data || []).map((e: any) => ({ id: e.User?.id || e.id, name: e.User?.name || `${e.User?.firstName ?? ""} ${e.User?.lastName ?? ""}`.trim() })));
+        const empArr = (Array.isArray(emps) ? emps : emps?.data || []).map((e: any) => {
+          const name = [e.firstName, e.lastName].filter(Boolean).join(" ") || e.email || e.User?.name || "Unnamed";
+          const id = e.userId || e.User?.id || e.id;
+          return { id, name };
+        });
+        setEmployees(empArr);
       } catch {}
     };
     run();

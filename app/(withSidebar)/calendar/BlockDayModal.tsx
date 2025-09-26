@@ -115,17 +115,23 @@ export default function BlockDayModal({
           </div>
 
           {!blockAll && (
-            <div className="space-y-1 max-h-40 overflow-y-auto border p-2 rounded">
-              {categories.map((cat) => (
-                <div key={cat.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={cat.id}
-                    checked={selected.includes(cat.id)}
-                    onCheckedChange={() => handleToggleCategory(cat.id)}
-                  />
-                  <span>{cat.name}</span>
-                </div>
-              ))}
+            <div className="space-y-1 max-h-40 overflow-y-auto border border-glass p-2 rounded-2xl">
+              {categories.map((cat) => {
+                const isChecked = selected.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleToggleCategory(cat.id)}
+                    className="w-full text-left"
+                  >
+                    <div className="flex items-center gap-2 rounded-xl px-2 py-1 hover:bg-muted/50 focus:bg-muted/50 focus:outline-none">
+                      <Checkbox id={cat.id} checked={isChecked} onCheckedChange={() => handleToggleCategory(cat.id)} />
+                      <span>{cat.name}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 

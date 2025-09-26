@@ -46,10 +46,17 @@ export async function createLeaveApprovalPlan({
     const decisions = await Promise.all(
       stage.approvers.map((appr) => {
         const type = appr.type ?? "USER";
-        const resolvedApproverId =
-          type === "MANAGER"
-            ? ((workflow as any).context?.managerUserId as string | undefined)
-            : (appr.userId as string | undefined);
+        let resolvedApproverId: string | undefined;
+        if (type === "MANAGER") {
+          // Prefer requester's manager; fallback to any ADMIN in company if missing.
+          const ctx = (workflow as any).context || {};
+          resolvedApproverId = ctx.managerUserId as string | undefined;
+          if (!resolvedApproverId && ctx.findFallbackAdminUserId) {
+            resolvedApproverId = ctx.findFallbackAdminUserId();
+          }
+        } else {
+          resolvedApproverId = appr.userId as string | undefined;
+        }
         if (!resolvedApproverId) {
           // Skip creating a decision if we cannot resolve the approver
           return Promise.resolve(null);

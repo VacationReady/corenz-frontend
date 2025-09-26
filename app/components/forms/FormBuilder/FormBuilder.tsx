@@ -386,14 +386,19 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
           });
         }}
       >
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-          <FieldPalette />
-          <FormCanvas
+        <div className="grid grid-cols-1 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {/* Make palette narrower and non-sticky on smaller screens */}
+          <div className="2xl:col-span-1 xl:col-span-1">
+            <FieldPalette />
+          </div>
+          <div className="xl:col-span-2 2xl:col-span-2">
+            <FormCanvas
             sections={sections}
             setSections={setSections}
             selectedField={selectedField}
             onSelectField={setSelectedField}
-          />
+            />
+          </div>
           <div className="xl:col-span-1 xl:sticky xl:top-4 self-start">
             {selectedField ? (
               <FieldEditor

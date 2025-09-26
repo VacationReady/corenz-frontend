@@ -65,33 +65,33 @@ function MetricsSummary() {
   );
 }
 
-function PendingLeaveApprovals() {
+function PendingApprovals() {
   const { data, error, isLoading, mutate } = useSWR(
-    "/api/leave-request?approvalStatus=PENDING",
+    "/api/approvals?status=PENDING",
     fetcher,
   );
   const { template, regionName } = useTenantRegion();
 
   const handleAction = async (id: string, action: "approve" | "decline") => {
-    await fetch(`/api/leave-request/${id}`, {
-      method: "PATCH",
+    await fetch(`/api/approvals/${id}`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
     });
     mutate();
   };
 
-  const items: any[] = Array.isArray((data as any)?.data)
-    ? (data as any).data
+  const items: any[] = Array.isArray((data as any)?.items)
+    ? (data as any).items
     : [];
 
   return (
     <DashboardWidget
-      title="Pending Leave Approvals"
+      title="Pending Approvals"
       icon={CalendarCheck2}
       action={
         <Link href="/dashboard/approvals" className="text-sm underline">
-          Approve Leave
+          Open Approvals
         </Link>
       }
     >
@@ -103,7 +103,7 @@ function PendingLeaveApprovals() {
         <EmptyState
           tone="brand"
           title="You're all caught up"
-          description="There aren't any leave requests waiting for approval."
+          description="There aren't any items waiting for approval."
           className="py-8"
           guidance={[
             template === "NZ"
@@ -141,16 +141,13 @@ function PendingLeaveApprovals() {
                 className="py-2 text-sm flex items-center justify-between gap-3"
               >
                 <div>
-                  <div className="font-medium">
-                    {r.employee?.user?.name ??
-                      r.employee?.user?.firstName ??
-                      "Employee"}
+                  <div className="font-medium flex items-center gap-2">
+                    <span className="inline-flex px-2 py-0.5 text-xs rounded bg-muted">{r.type}</span>
+                    <span>{r.title}</span>
                   </div>
-                  <div className="text-muted-foreground">
-                    {r.eventCategory?.name} —{" "}
-                    {new Date(r.startDate).toLocaleDateString()} to{" "}
-                    {new Date(r.endDate).toLocaleDateString()}
-                  </div>
+                  {r.subtitle && (
+                    <div className="text-muted-foreground">{r.subtitle}</div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -404,7 +401,7 @@ export default function ManagerDashboardPage() {
     >
       <DashboardGrid>
         <MetricsSummary />
-        <PendingLeaveApprovals />
+        <PendingApprovals />
         <TeamAbsenceOverview />
         <TeamInsights />
         <QuickLinks />

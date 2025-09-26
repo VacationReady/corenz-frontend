@@ -1202,6 +1202,10 @@ model TransactionalNotificationPreference {
   notifyAdmin    Boolean  @default(true)
   notifyManager  Boolean  @default(false)
   notifyEmployee Boolean  @default(false)
+  // Advanced recipient routing (optional; preserves backward compatibility)
+  recipientsJson         Json?
+  fallbackRecipientsJson Json?
+  escalationJson         Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -1209,6 +1213,48 @@ model TransactionalNotificationPreference {
 
   @@unique([companyId, section])
   @@index([companyId, section])
+}
+
+/// Transactional approvals created for audit-driven changes (e.g., bank details updates)
+model TransactionalApproval {
+  id           String        @id @default(cuid())
+  companyId    String
+  section      String
+  employeeId   String
+  requesterId  String
+  approverIds  String[]
+  status       ApprovalStatus @default(PENDING)
+  title        String?
+  subtitle     String?
+  diffSummary  Json?
+  createdAt    DateTime      @default(now())
+  approvedAt   DateTime?
+  approvedById String?
+
+  Company      Company       @relation(fields: [companyId], references: [id])
+  Employee     Employee      @relation(fields: [employeeId], references: [id])
+  User_TransactionalApproval_requesterIdToUser  User @relation("TransactionalApproval_requesterIdToUser", fields: [requesterId], references: [id])
+  User_TransactionalApproval_approvedByIdToUser User? @relation("TransactionalApproval_approvedByIdToUser", fields: [approvedById], references: [id])
+
+  @@index([companyId, status, createdAt])
+  @@index([companyId, section])
+}
+
+/// Log of dispatched transactional notifications (post-approval)
+model TransactionalNotificationLog {
+  id         String   @id @default(cuid())
+  companyId  String
+  approvalId String?
+  section    String
+  employeeId String
+  recipients String[]
+  status     String   // SENT | FAILED
+  createdAt  DateTime @default(now())
+  sentAt     DateTime?
+
+  Company    Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, section, createdAt])
 }
 
 model SCIMConfiguration {

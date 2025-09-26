@@ -13,6 +13,9 @@ const UpdatePreferencesSchema = z.object({
     notifyAdmin: z.boolean(),
     notifyManager: z.boolean(),
     notifyEmployee: z.boolean(),
+    recipientsJson: z.any().nullable().optional(),
+    fallbackRecipientsJson: z.any().nullable().optional(),
+    escalationJson: z.any().nullable().optional(),
   })),
 });
 
@@ -48,6 +51,9 @@ async function buildPreferencesResponse(companyId: string) {
       notifyEmployee: boolean;
       updatedAt: Date | null;
       isDefault: boolean;
+      recipientsJson?: any[];
+      fallbackRecipientsJson?: any[];
+      escalationJson?: any;
     }>;
   }> = {};
 
@@ -72,6 +78,9 @@ async function buildPreferencesResponse(companyId: string) {
       notifyEmployee: preference?.notifyEmployee ?? false,
       updatedAt: preference?.updatedAt || null,
       isDefault: !preference,
+      recipientsJson: (preference as any)?.recipientsJson ?? undefined,
+      fallbackRecipientsJson: (preference as any)?.fallbackRecipientsJson ?? undefined,
+      escalationJson: (preference as any)?.escalationJson ?? undefined,
     });
   }
 
@@ -94,6 +103,9 @@ async function buildPreferencesResponse(companyId: string) {
         notifyEmployee: preference?.notifyEmployee ?? baseFormsPreference?.notifyEmployee ?? false,
         updatedAt: preference?.updatedAt || null,
         isDefault: !preference,
+        recipientsJson: (preference as any)?.recipientsJson ?? undefined,
+        fallbackRecipientsJson: (preference as any)?.fallbackRecipientsJson ?? undefined,
+        escalationJson: (preference as any)?.escalationJson ?? undefined,
       });
     }
   }
@@ -180,6 +192,9 @@ export async function PUT(req: NextRequest) {
             notifyAdmin: pref.notifyAdmin,
             notifyManager: pref.notifyManager,
             notifyEmployee: pref.notifyEmployee,
+            recipientsJson: pref.recipientsJson ?? undefined,
+            fallbackRecipientsJson: pref.fallbackRecipientsJson ?? undefined,
+            escalationJson: pref.escalationJson ?? undefined,
           },
           create: {
             companyId,
@@ -187,6 +202,9 @@ export async function PUT(req: NextRequest) {
             notifyAdmin: pref.notifyAdmin,
             notifyManager: pref.notifyManager,
             notifyEmployee: pref.notifyEmployee,
+            recipientsJson: pref.recipientsJson ?? undefined,
+            fallbackRecipientsJson: pref.fallbackRecipientsJson ?? undefined,
+            escalationJson: pref.escalationJson ?? undefined,
           },
         });
       }

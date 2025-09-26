@@ -5,6 +5,8 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
@@ -35,6 +37,9 @@ interface SectionPreference {
   notifyEmployee: boolean;
   updatedAt: Date | null;
   isDefault: boolean;
+  recipientsJson?: any[];
+  fallbackRecipientsJson?: any[];
+  escalationJson?: any;
 }
 
 interface PreferenceGroup {
@@ -93,13 +98,16 @@ export default function TransactionalNotificationsPage() {
     try {
       setSaving(true);
       
-      // Flatten all sections for the API
+      // Flatten all sections for the API including advanced config if present
       const sections = groups.flatMap(group => 
         group.sections.map(section => ({
           section: section.section,
           notifyAdmin: section.notifyAdmin,
           notifyManager: section.notifyManager,
           notifyEmployee: section.notifyEmployee,
+          recipientsJson: section.recipientsJson ?? null,
+          fallbackRecipientsJson: section.fallbackRecipientsJson ?? null,
+          escalationJson: section.escalationJson ?? null,
         }))
       );
       
@@ -147,6 +155,121 @@ export default function TransactionalNotificationsPage() {
       })
     );
   };
+
+  // Minimal inline recipients editor (per section) - toggled via button
+  function RecipientsEditor({ value, onChange }: { value: any[] | undefined; onChange: (v: any[]) => void }) {
+    const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+    const [jobRoles, setJobRoles] = useState<{ id: string; name: string }[]>([]);
+    const [employees, setEmployees] = useState<{ id: string; name: string; departmentId?: string }[]>([]);
+    useEffect(() => {
+      (async () => {
+        const [d, r, e] = await Promise.all([
+          fetch('/api/departments').then(r => r.json()).catch(() => []),
+          fetch('/api/job-roles').then(r => r.json()).catch(() => []),
+          fetch('/api/employees?status=active').then(r => r.json()).catch(() => []),
+        ]);
+        setDepartments(Array.isArray(d) ? d : []);
+        setJobRoles(Array.isArray(r) ? r : []);
+        setEmployees(Array.isArray(e) ? e.map((x: any) => ({ id: x.id, name: `${x.firstName ?? ''} ${x.lastName ?? ''}`.trim(), departmentId: x.departmentId })) : []);
+      })();
+    }, []);
+
+    const rows = Array.isArray(value) && value.length ? value : [];
+    const setRows = (rows: any[]) => onChange(rows);
+
+    return (
+      <div className="space-y-3">
+        {rows.map((row: any, idx: number) => {
+          const filteredEmployees = row.type === 'DEPARTMENT'
+            ? employees.filter(e => !row.departmentId || e.departmentId === row.departmentId)
+            : employees;
+          return (
+            <div key={idx} className="border rounded p-3 space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                <Select value={row.type} onValueChange={(t) => {
+                  const next = [...rows];
+                  next[idx] = { type: t, employeeIds: [] };
+                  setRows(next);
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Recipient type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="EMPLOYEE">Employee(s)</SelectItem>
+                    <SelectItem value="DEPARTMENT">Department</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {row.type === 'DEPARTMENT' && (
+                  <Select value={row.departmentId ?? ''} onValueChange={(v) => {
+                    const next = [...rows];
+                    next[idx] = { ...row, departmentId: v, employeeIds: [] };
+                    setRows(next);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {row.type === 'DEPARTMENT' && (
+                  <Select value={row.jobRoleId ?? ''} onValueChange={(v) => {
+                    const next = [...rows];
+                    next[idx] = { ...row, jobRoleId: v || undefined };
+                    setRows(next);
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="(Optional) Job role" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All roles</SelectItem>
+                      {jobRoles.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {(row.type === 'DEPARTMENT' || row.type === 'EMPLOYEE') && (
+                  <MultiSelect
+                    options={(row.type === 'DEPARTMENT' ? filteredEmployees : employees).map((e) => ({ label: e.name, value: e.id }))}
+                    selected={row.employeeIds ?? []}
+                    onChange={(ids) => {
+                      const next = [...rows];
+                      next[idx] = { ...row, employeeIds: ids };
+                      setRows(next);
+                    }}
+                    placeholder={row.type === 'DEPARTMENT' ? 'Select 1+ employees (required)' : 'Select employees'}
+                  />
+                )}
+              </div>
+
+              {row.type === 'DEPARTMENT' && (
+                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                  Also notify the job role?
+                  <Switch
+                    checked={(row.includeJobRoleWithSpecificEmployees ?? true) as boolean}
+                    onChange={(v) => {
+                      const next = [...rows];
+                      next[idx] = { ...row, includeJobRoleWithSpecificEmployees: v };
+                      setRows(next);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setRows([...(rows || []), { type: 'ADMIN', employeeIds: [] }])}>Add row</Button>
+          {rows.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => setRows(rows.slice(0, -1))}>Remove last</Button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const applyToAll = (field: 'notifyAdmin' | 'notifyManager' | 'notifyEmployee', value: boolean) => {
     setGroups(prevGroups => 

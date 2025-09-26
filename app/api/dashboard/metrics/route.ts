@@ -38,8 +38,10 @@ export async function GET(req: Request) {
       headcount,
       managers,
       newStartersThisMonth,
-      pendingApprovalsMy,
-      pendingApprovalsAll,
+      pendingApprovalsMyLeave,
+      pendingApprovalsAllLeave,
+      pendingApprovalsMyTxn,
+      pendingApprovalsAllTxn,
     ] = await Promise.all([
       prisma.employee.count({
         where: {
@@ -84,6 +86,21 @@ export async function GET(req: Request) {
           },
         },
       }),
+      // transactional approvals - my
+      prisma.transactionalApproval.count({
+        where: {
+          companyId,
+          status: "PENDING",
+          approverIds: { has: session.user.id },
+        },
+      }),
+      // transactional approvals - all
+      prisma.transactionalApproval.count({
+        where: {
+          companyId,
+          status: "PENDING",
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -91,8 +108,8 @@ export async function GET(req: Request) {
       managers,
       newStartersThisMonth,
       pendingApprovals: {
-        my: pendingApprovalsMy,
-        all: canViewAllApprovals ? pendingApprovalsAll : undefined,
+        my: pendingApprovalsMyLeave + pendingApprovalsMyTxn,
+        all: canViewAllApprovals ? (pendingApprovalsAllLeave + pendingApprovalsAllTxn) : undefined,
       },
       canViewAllApprovals,
     });

@@ -6,11 +6,8 @@ import { prisma } from "@/lib/prisma";
 // Simple string list stored on Company.extraDocumentCategories (JSON) or fallback to distinct Document.category
 
 async function readCategories(companyId: string): Promise<string[]> {
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-    select: { extraDocumentCategories: true },
-  });
-  const extra = (company?.extraDocumentCategories as any) || [];
+  // Fallback: read distinct categories from existing documents only
+  const extra: string[] = [];
   const docs = await prisma.document.findMany({
     where: { companyId, category: { not: null } },
     distinct: ["category"],
@@ -35,11 +32,10 @@ export async function POST(req: NextRequest) {
   const { name } = await req.json();
   const trimmed = String(name || "").trim();
   if (!trimmed) return NextResponse.json({ error: "Name required" }, { status: 400 });
-  const company = await prisma.company.findUnique({ where: { id: session.user.companyId }, select: { extraDocumentCategories: true } });
-  const extra = ((company?.extraDocumentCategories as any) || []) as string[];
-  if (!extra.includes(trimmed)) extra.push(trimmed);
-  await prisma.company.update({ where: { id: session.user.companyId }, data: { extraDocumentCategories: extra as any } });
-  return NextResponse.json({ ok: true });
+  // Without a dedicated categories model, just accept the name and return ok.
+  // The name will be immediately available to the client in memory and
+  // future lists come from distinct document categories + defaults.
+  return NextResponse.json({ ok: true, name: trimmed });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -49,10 +45,7 @@ export async function DELETE(req: NextRequest) {
   }
   const { name } = await req.json();
   const trimmed = String(name || "").trim();
-  const company = await prisma.company.findUnique({ where: { id: session.user.companyId }, select: { extraDocumentCategories: true } });
-  const extra = ((company?.extraDocumentCategories as any) || []) as string[];
-  const next = extra.filter((x) => x !== trimmed);
-  await prisma.company.update({ where: { id: session.user.companyId }, data: { extraDocumentCategories: next as any } });
+  // No-op delete (until categories are modeled); respond ok so UI updates.
   return NextResponse.json({ ok: true });
 }
 

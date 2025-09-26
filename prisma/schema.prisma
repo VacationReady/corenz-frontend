@@ -118,18 +118,23 @@ model Company {
   website                             String?
   publicHolidayTemplate               PublicHolidayTemplate?
   publicHolidayRegion                 String?
+  ApprovalWorkflow                    ApprovalWorkflow[]
   AutomationExecution                 AutomationExecution[]
   AutomationJob                       AutomationJob[]
   AutomationRule                      AutomationRule[]
   BrandingConfiguration               BrandingConfiguration?
   ContractTypeOption                  ContractTypeOption[]
+  Course                              Course[]
   Department                          Department[]
   Document                            Document[]
   Employee                            Employee[]
+  EmployeePerformanceReview           EmployeePerformanceReview[]
   EmploymentTypeOption                EmploymentTypeOption[]
   EventCategory                       EventCategory[]
   EventRuleOverride                   EventRuleOverride[]
   EventSubcategory                    EventSubcategory[]
+  ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
+  ExpiryRule                          ExpiryRule[]
   Form                                Form[]
   GenderOption                        GenderOption[]
   GlobalAuditLog                      GlobalAuditLog[]
@@ -138,6 +143,10 @@ model Company {
   LeavePolicy                         LeavePolicy[]
   LeavePolicyAssignment               LeavePolicyAssignment[]
   LeaveRequest                        LeaveRequest[]
+  Location                            Location[]
+  NewsBookmark                        NewsBookmark[]
+  NewsPost                            NewsPost[]
+  NewsReaction                        NewsReaction[]
   NotificationChannel                 NotificationChannel[]
   NotificationSettings                NotificationSettings?
   OnboardingTemplate                  OnboardingTemplate[]
@@ -145,23 +154,10 @@ model Company {
   SCIMConfiguration                   SCIMConfiguration?
   SSOConfiguration                    SSOConfiguration?
   SavedReport                         SavedReport[]
+  TrainingProvider                    TrainingProvider[]
   TransactionalNotificationPreference TransactionalNotificationPreference[]
   User                                User[]
   WorkingPattern                      WorkingPattern[]
-  // Added back-relations for tenant scoping added to models
-  NewsPost                            NewsPost[]
-  Location                            Location[]
-  TrainingProvider                    TrainingProvider[]
-  Course                              Course[]
-  ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
-  ExpiryRule                          ExpiryRule[]
-  EmployeePerformanceReview           EmployeePerformanceReview[]
-  NewsReaction                        NewsReaction[]
-  NewsBookmark                        NewsBookmark[]
-  ApprovalWorkflow                    ApprovalWorkflow[]
-  // Back-relations for transactional approvals and logs
-  TransactionalApprovals              TransactionalApproval[]       @relation("Company_TransactionalApprovals")
-  TransactionalNotificationLogs       TransactionalNotificationLog[] @relation("Company_TransactionalNotificationLogs")
 }
 
 model ContractTypeOption {
@@ -178,9 +174,9 @@ model ContractTypeOption {
 model Course {
   id             String           @id
   name           String           @unique
-  TrainingRecord TrainingRecord[]
   companyId      String?
   Company        Company?         @relation(fields: [companyId], references: [id])
+  TrainingRecord TrainingRecord[]
 }
 
 model Department {
@@ -195,13 +191,13 @@ model Department {
   updatedAt                          DateTime
   Company                            Company                       @relation(fields: [companyId], references: [id])
   User_Department_headIdToUser       User?                         @relation("Department_headIdToUser", fields: [headId], references: [id])
+  DocumentSignatureDepartment        DocumentSignatureDepartment[]
+  DocumentSignatureField             DocumentSignatureField[]
   Employee                           Employee[]
   EventRuleOverride                  EventRuleOverride[]
   User_User_departmentIdToDepartment User[]                        @relation("User_departmentIdToDepartment")
   Document                           Document[]                    @relation("DocumentDepartments")
   OnboardingTemplate                 OnboardingTemplate[]          @relation("OnboardingTemplateDepartments")
-  DocumentSignatureDepartment        DocumentSignatureDepartment[]
-  DocumentSignatureField             DocumentSignatureField[]
 
   @@unique([companyId, name])
   @@unique([companyId, code])
@@ -232,21 +228,16 @@ model Document {
   Employee                  Employee?                     @relation(fields: [employeeId], references: [id])
   User                      User                          @relation(fields: [uploaderId], references: [id])
   DocumentAcknowledgement   DocumentAcknowledgement[]
+  SignatureArtifacts        DocumentSignatureArtifact[]
+  SignatureDepartments      DocumentSignatureDepartment[]
+  SignatureEmployees        DocumentSignatureEmployee[]
+  SignatureFields           DocumentSignatureField[]
+  SignatureJobRoles         DocumentSignatureJobRole[]
   DriverLicence             DriverLicence[]
   OnboardingStep            OnboardingStep[]
   TrainingRecord            TrainingRecord[]
   Department                Department[]                  @relation("DocumentDepartments")
   JobRole                   JobRole[]                     @relation("DocumentJobRoles")
-  SignatureArtifacts        DocumentSignatureArtifact[]
-  SignatureDepartments      DocumentSignatureDepartment[]
-  SignatureJobRoles         DocumentSignatureJobRole[]
-  SignatureEmployees        DocumentSignatureEmployee[]
-  SignatureFields           DocumentSignatureField[]
-}
-
-enum SignatureMethod {
-  DRAWN
-  TYPED
 }
 
 model DocumentSignatureArtifact {
@@ -268,8 +259,8 @@ model DocumentSignatureArtifact {
 model DocumentSignatureDepartment {
   documentId   String
   departmentId String
-  Document     Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   Department   Department @relation(fields: [departmentId], references: [id])
+  Document     Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@id([documentId, departmentId])
 }
@@ -297,10 +288,10 @@ model DocumentSignatureField {
   id                   String      @id
   documentId           String
   pageNumber           Int         @default(1)
-  x                    Float // 0..1 relative X
-  y                    Float // 0..1 relative Y
-  width                Float // 0..1 relative width
-  height               Float // 0..1 relative height
+  x                    Float
+  y                    Float
+  width                Float
+  height               Float
   label                String?
   required             Boolean     @default(true)
   assignedEmployeeId   String?
@@ -308,10 +299,10 @@ model DocumentSignatureField {
   assignedJobRoleId    String?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
-  Document             Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  Employee             Employee?   @relation(fields: [assignedEmployeeId], references: [id])
   Department           Department? @relation(fields: [assignedDepartmentId], references: [id])
+  Employee             Employee?   @relation(fields: [assignedEmployeeId], references: [id])
   JobRole              JobRole?    @relation(fields: [assignedJobRoleId], references: [id])
+  Document             Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
 }
@@ -374,7 +365,6 @@ model Employee {
   locationId                       String?
   startDate                        DateTime?
   bankAccountNumber                String?
-  irdNumber                        String?
   contractType                     String?
   employmentType                   String?
   hourlyRate                       Decimal?                           @db.Decimal(10, 2)
@@ -382,9 +372,13 @@ model Employee {
   kiwiSaverEnrolled                Boolean?
   salaryAmount                     Decimal?                           @db.Decimal(10, 2)
   siteLocation                     String?
+  irdNumber                        String?
   taxCode                          TaxCode?
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
+  DocumentSignatureArtifact        DocumentSignatureArtifact[]
+  DocumentSignatureEmployee        DocumentSignatureEmployee[]
+  DocumentSignatureField           DocumentSignatureField[]
   DriverLicence                    DriverLicence[]
   EmergencyContact                 EmergencyContact[]
   Company                          Company                            @relation(fields: [companyId], references: [id])
@@ -393,7 +387,9 @@ model Employee {
   OnboardingTemplate               OnboardingTemplate?                @relation(fields: [onboardingTemplateId], references: [id])
   User                             User                               @relation(fields: [userId], references: [id])
   WorkingPattern                   WorkingPattern?                    @relation(fields: [workingPatternId], references: [id])
+  EmployeeAuditLog                 EmployeeAuditLog[]
   EmployeeOffboarding              EmployeeOffboarding?
+  PerformanceReviews               EmployeePerformanceReview[]
   EmployeeWorkingPatternAssignment EmployeeWorkingPatternAssignment[]
   EmploymentCheck                  EmploymentCheck[]
   FormAssignment                   FormAssignment[]
@@ -403,13 +399,6 @@ model Employee {
   LeaveRequest                     LeaveRequest[]
   OnboardingInstance               OnboardingInstance[]
   TrainingRecord                   TrainingRecord[]
-  EmployeeAuditLog                 EmployeeAuditLog[]
-  PerformanceReviews               EmployeePerformanceReview[]
-  DocumentSignatureArtifact        DocumentSignatureArtifact[]
-  DocumentSignatureEmployee        DocumentSignatureEmployee[]
-  DocumentSignatureField           DocumentSignatureField[]
-  // Optional back-relation for transactional approvals
-  TransactionalApprovals           TransactionalApproval[] @relation("Employee_TransactionalApprovals")
 
   @@unique([companyId, irdNumber])
 }
@@ -427,8 +416,8 @@ model EmployeePerformanceReview {
   goals               Json?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  Employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   Company             Company  @relation(fields: [companyId], references: [id])
+  Employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   Reviewer            User?    @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
 
   @@index([employeeId, reviewDate])
@@ -562,6 +551,7 @@ model EventCategory {
   color             String?
   systemDefined     Boolean             @default(false)
   companyId         String
+  ApprovalWorkflow  ApprovalWorkflow[]
   Company           Company             @relation(fields: [companyId], references: [id])
   EventRule         EventRule[]
   EventRuleOverride EventRuleOverride[]
@@ -569,7 +559,6 @@ model EventCategory {
   LeaveEntitlement  LeaveEntitlement[]
   LeavePolicy       LeavePolicy[]
   LeaveRequest      LeaveRequest[]
-  ApprovalWorkflow  ApprovalWorkflow[]
 
   @@unique([companyId, name])
 }
@@ -658,10 +647,10 @@ model ExitInterviewFormTemplate {
   isActive                Boolean                   @default(true)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime
-  EmployeeOffboarding     EmployeeOffboarding[]
-  ExitInterviewSubmission ExitInterviewSubmission[]
   companyId               String?
+  EmployeeOffboarding     EmployeeOffboarding[]
   Company                 Company?                  @relation(fields: [companyId], references: [id])
+  ExitInterviewSubmission ExitInterviewSubmission[]
 
   @@index([isActive])
 }
@@ -809,13 +798,13 @@ model JobRole {
   payGrade                 String?
   updatedAt                DateTime
   companyId                String
+  DocumentSignatureField   DocumentSignatureField[]
+  DocumentSignatureJobRole DocumentSignatureJobRole[]
   Employee                 Employee[]
   Company                  Company                    @relation(fields: [companyId], references: [id])
   User                     User[]
   Document                 Document[]                 @relation("DocumentJobRoles")
   OnboardingTemplate       OnboardingTemplate[]       @relation("OnboardingTemplateJobRoles")
-  DocumentSignatureJobRole DocumentSignatureJobRole[]
-  DocumentSignatureField   DocumentSignatureField[]
 
   @@unique([companyId, name])
 }
@@ -902,13 +891,13 @@ model LeaveRequest {
   eventCategoryId                      String
   requesterId                          String
   companyId                            String
+  LeaveApprovalStage                   LeaveApprovalStage[]
   User_LeaveRequest_approvedByIdToUser User?                @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
   Company                              Company              @relation(fields: [companyId], references: [id])
   Employee                             Employee             @relation(fields: [employeeId], references: [id])
   EventCategory                        EventCategory        @relation(fields: [eventCategoryId], references: [id])
   User_LeaveRequest_requesterIdToUser  User                 @relation("LeaveRequest_requesterIdToUser", fields: [requesterId], references: [id])
   EventSubcategory                     EventSubcategory?    @relation(fields: [sickReasonId], references: [id])
-  LeaveApprovalStage                   LeaveApprovalStage[]
 }
 
 model Location {
@@ -929,18 +918,20 @@ model NewsPost {
   tags          String[]
   audience      Json
   attachments   String[]
-  coverImage    String?
   videoEmbedUrl String?
   sendEmail     Boolean        @default(false)
-  coverImageUrl String?
-  viewCount     Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime
-  User          User           @relation(fields: [authorId], references: [id])
+  coverImageUrl String?
   companyId     String?
+  viewCount     Int            @default(0)
+  coverImage    String?
+  bookmarks     NewsBookmark[]
+  User          User           @relation(fields: [authorId], references: [id])
   Company       Company?       @relation(fields: [companyId], references: [id])
   reactions     NewsReaction[]
-  bookmarks     NewsBookmark[]
+
+  @@index([companyId])
 }
 
 model NewsReaction {
@@ -1186,16 +1177,15 @@ model EmployeeAuditLog {
   id          String   @id @default(cuid())
   companyId   String
   employeeId  String
-  section     String // e.g. "personal-info", "bank-payroll"
+  section     String
   field       String
   oldValue    String?
   newValue    String?
-  reason      String // required
+  reason      String
   changedById String
   changedAt   DateTime @default(now())
-
-  Employee Employee @relation(fields: [employeeId], references: [id])
-  User     User     @relation("EmployeeAuditLog_changedByIdToUser", fields: [changedById], references: [id])
+  User        User     @relation("EmployeeAuditLog_changedByIdToUser", fields: [changedById], references: [id])
+  Employee    Employee @relation(fields: [employeeId], references: [id])
 
   @@index([employeeId, section, changedAt])
 }
@@ -1203,63 +1193,16 @@ model EmployeeAuditLog {
 model TransactionalNotificationPreference {
   id             String   @id @default(cuid())
   companyId      String
-  section        String // e.g. "personal-info", "forms", "forms:abc123"
+  section        String
   notifyAdmin    Boolean  @default(true)
   notifyManager  Boolean  @default(false)
   notifyEmployee Boolean  @default(false)
-  // Advanced recipient routing (optional; preserves backward compatibility)
-  recipientsJson         Json?
-  fallbackRecipientsJson Json?
-  escalationJson         Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  Company Company @relation(fields: [companyId], references: [id])
+  Company        Company  @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, section])
   @@index([companyId, section])
-}
-
-/// Transactional approvals created for audit-driven changes (e.g., bank details updates)
-model TransactionalApproval {
-  id           String        @id @default(cuid())
-  companyId    String
-  section      String
-  employeeId   String
-  requesterId  String
-  approverIds  String[]
-  status       ApprovalStatus @default(PENDING)
-  title        String?
-  subtitle     String?
-  diffSummary  Json?
-  createdAt    DateTime      @default(now())
-  approvedAt   DateTime?
-  approvedById String?
-
-  Company      Company       @relation("Company_TransactionalApprovals", fields: [companyId], references: [id])
-  Employee     Employee      @relation("Employee_TransactionalApprovals", fields: [employeeId], references: [id])
-  User_TransactionalApproval_requesterIdToUser  User @relation("TransactionalApproval_requesterIdToUser", fields: [requesterId], references: [id])
-  User_TransactionalApproval_approvedByIdToUser User? @relation("TransactionalApproval_approvedByIdToUser", fields: [approvedById], references: [id])
-
-  @@index([companyId, status, createdAt])
-  @@index([companyId, section])
-}
-
-/// Log of dispatched transactional notifications (post-approval)
-model TransactionalNotificationLog {
-  id         String   @id @default(cuid())
-  companyId  String
-  approvalId String?
-  section    String
-  employeeId String
-  recipients String[]
-  status     String   // SENT | FAILED
-  createdAt  DateTime @default(now())
-  sentAt     DateTime?
-
-  Company    Company  @relation("Company_TransactionalNotificationLogs", fields: [companyId], references: [id])
-
-  @@index([companyId, section, createdAt])
 }
 
 model SCIMConfiguration {
@@ -1309,9 +1252,9 @@ model SavedReport {
 model TrainingProvider {
   id             String           @id
   name           String           @unique
-  TrainingRecord TrainingRecord[]
   companyId      String?
   Company        Company?         @relation(fields: [companyId], references: [id])
+  TrainingRecord TrainingRecord[]
 }
 
 model TrainingRecord {
@@ -1363,21 +1306,27 @@ model User {
   pronouns                                                                 String?
   residencyStatus                                                          String?
   ActivationToken                                                          ActivationToken?
+  ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
   AutomationRule                                                           AutomationRule[]
   Department_Department_headIdToUser                                       Department[]                    @relation("Department_headIdToUser")
   Document                                                                 Document[]
   Employee                                                                 Employee?
+  EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser                      EmployeeAuditLog[]              @relation("EmployeeAuditLog_changedByIdToUser")
   EmployeeOffboarding_EmployeeOffboarding_accessRemovedByToUser            EmployeeOffboarding[]           @relation("EmployeeOffboarding_accessRemovedByToUser")
   EmployeeOffboarding_EmployeeOffboarding_assetsReturnedToToUser           EmployeeOffboarding[]           @relation("EmployeeOffboarding_assetsReturnedToToUser")
   EmployeeOffboarding_EmployeeOffboarding_handoverAssignedToToUser         EmployeeOffboarding[]           @relation("EmployeeOffboarding_handoverAssignedToToUser")
   EmployeeOffboarding_EmployeeOffboarding_hrReviewCompletedByToUser        EmployeeOffboarding[]           @relation("EmployeeOffboarding_hrReviewCompletedByToUser")
   EmployeeOffboarding_EmployeeOffboarding_initiatedByIdToUser              EmployeeOffboarding[]           @relation("EmployeeOffboarding_initiatedByIdToUser")
   EmployeeOffboarding_EmployeeOffboarding_interviewerUserIdToUser          EmployeeOffboarding[]           @relation("EmployeeOffboarding_interviewerUserIdToUser")
+  EmployeePerformanceReviewsAuthored                                       EmployeePerformanceReview[]     @relation("EmployeePerformanceReviewReviewer")
   FormAssignment                                                           FormAssignment[]
   GlobalAuditLog                                                           GlobalAuditLog[]
+  LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser             LeaveApprovalDecision[]         @relation("LeaveApprovalDecision_approverIdToUser")
   LeaveRequest_LeaveRequest_approvedByIdToUser                             LeaveRequest[]                  @relation("LeaveRequest_approvedByIdToUser")
   LeaveRequest_LeaveRequest_requesterIdToUser                              LeaveRequest[]                  @relation("LeaveRequest_requesterIdToUser")
+  NewsBookmarks                                                            NewsBookmark[]
   NewsPost                                                                 NewsPost[]
+  NewsReactions                                                            NewsReaction[]
   OffboardingTask_OffboardingTask_assignedToToUser                         OffboardingTask[]               @relation("OffboardingTask_assignedToToUser")
   OffboardingTask_OffboardingTask_completedByToUser                        OffboardingTask[]               @relation("OffboardingTask_completedByToUser")
   OnboardingAssignment                                                     OnboardingAssignment[]
@@ -1386,11 +1335,7 @@ model User {
   PermissionAudit_PermissionAudit_employeeIdToUser                         PermissionAudit[]               @relation("PermissionAudit_employeeIdToUser")
   PersonalInfoAudit_PersonalInfoAudit_changedByIdToUser                    PersonalInfoAudit[]             @relation("PersonalInfoAudit_changedByIdToUser")
   PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser                  PersonalInfoAudit[]             @relation("PersonalInfoAudit_subjectUserIdToUser")
-  EmployeeAuditLog_EmployeeAuditLog_changedByIdToUser                      EmployeeAuditLog[]              @relation("EmployeeAuditLog_changedByIdToUser")
-  EmployeePerformanceReviewsAuthored                                       EmployeePerformanceReview[]     @relation("EmployeePerformanceReviewReviewer")
   SavedReport                                                              SavedReport[]
-  NewsReactions                                                            NewsReaction[]
-  NewsBookmarks                                                            NewsBookmark[]
   Company                                                                  Company                         @relation(fields: [companyId], references: [id])
   Department_User_departmentIdToDepartment                                 Department?                     @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])
   GenderOption                                                             GenderOption?                   @relation(fields: [genderOptionId], references: [id])
@@ -1398,11 +1343,6 @@ model User {
   User                                                                     User?                           @relation("UserToUser", fields: [managerId], references: [id])
   other_User                                                               User[]                          @relation("UserToUser")
   PermissionProfile                                                        PermissionProfile?              @relation(fields: [permissionProfileId], references: [id])
-  ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
-  LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser             LeaveApprovalDecision[]         @relation("LeaveApprovalDecision_approverIdToUser")
-  // Back-relations for transactional approvals
-  TransactionalApproval_TransactionalApproval_requesterIdToUser            TransactionalApproval[]         @relation("TransactionalApproval_requesterIdToUser")
-  TransactionalApproval_TransactionalApproval_approvedByIdToUser           TransactionalApproval[]         @relation("TransactionalApproval_approvedByIdToUser")
 
   @@unique([email, companyId])
 }
@@ -1439,39 +1379,6 @@ model WorkingPatternWeek {
   WorkingPattern    WorkingPattern      @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
 
   @@unique([weekNumber, workingPatternId])
-}
-
-enum AccrualPeriod {
-  MONTHLY
-  QUARTERLY
-  ANNUALLY
-  WEEKLY
-}
-
-enum AccrualUnit {
-  DAYS
-  HOURS
-}
-
-enum ApprovalStatus {
-  PENDING
-  APPROVED
-  DECLINED
-  CANCELLED
-}
-
-// Approval workflow enums
-enum ApprovalScopeType {
-  COMPANY
-  DEPARTMENT
-  JOB_ROLE
-  EMPLOYEE
-}
-
-enum ApprovalStageMode {
-  SEQUENTIAL
-  FIRST_RESPONDER
-  UNANIMOUS
 }
 
 model ApprovalWorkflow {
@@ -1533,8 +1440,8 @@ model LeaveApprovalStage {
   completedAt     DateTime?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
-  leaveRequest    LeaveRequest            @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
   decisions       LeaveApprovalDecision[]
+  leaveRequest    LeaveRequest            @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
 
   @@index([leaveRequestId, order])
 }
@@ -1549,12 +1456,49 @@ model LeaveApprovalDecision {
   respondedAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
-  stage       LeaveApprovalStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
   approver    User               @relation("LeaveApprovalDecision_approverIdToUser", fields: [approverId], references: [id])
+  stage       LeaveApprovalStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
 
   @@unique([stageId, approverId])
   @@unique([stageId, order])
   @@index([approverId, status, isActive])
+}
+
+enum SignatureMethod {
+  DRAWN
+  TYPED
+}
+
+enum AccrualPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  WEEKLY
+}
+
+enum AccrualUnit {
+  DAYS
+  HOURS
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+enum ApprovalScopeType {
+  COMPANY
+  DEPARTMENT
+  JOB_ROLE
+  EMPLOYEE
+}
+
+enum ApprovalStageMode {
+  SEQUENTIAL
+  FIRST_RESPONDER
+  UNANIMOUS
 }
 
 enum AuditAction {
@@ -1727,18 +1671,18 @@ enum StaffingDensityBehavior {
 enum TaxCode {
   M
   ME
-  M_SL   @map("M SL")
-  ME_SL  @map("ME SL")
+  M_SL  @map("M SL")
+  ME_SL @map("ME SL")
   SB
-  SB_SL  @map("SB SL")
+  SB_SL @map("SB SL")
   S
-  S_SL   @map("S SL")
+  S_SL  @map("S SL")
   SH
-  SH_SL  @map("SH SL")
+  SH_SL @map("SH SL")
   ST
-  ST_SL  @map("ST SL")
+  ST_SL @map("ST SL")
   SA
-  SA_SL  @map("SA SL")
+  SA_SL @map("SA SL")
   SL
   SED
   STC

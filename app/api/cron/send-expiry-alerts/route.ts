@@ -6,7 +6,15 @@ import { sendExitInterviewFormInvite } from "@/lib/email/send";
 import { isTodayInLondon } from "@/lib/time";
 
 async function processCompany(companyId: string) {
-  const expiryRules = await prisma.expiryRule.findMany();
+  const expiryRules = await prisma.expiryRule.findMany({
+    where: {
+      OR: [
+        { companyId },
+        // Allow global rules if companyId is null for backward compatibility
+        { companyId: null as any },
+      ],
+    },
+  });
   const today = new Date();
 
   for (const rule of expiryRules) {

@@ -15,6 +15,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
+import Button from "@/components/ui/Button";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { ExpiryRuleWizard } from "./ExpiryRuleWizard";
 
 type ExpiryRule = {
   id: string;
@@ -38,6 +41,7 @@ export default function ExpirySettingsPage() {
     () => Object.keys(selected).filter((k) => selected[k]),
     [selected],
   );
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -157,6 +161,14 @@ export default function ExpirySettingsPage() {
         <>
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="mr-auto">
+              <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">Build Custom Expiry Workflow</Button>
+                </DialogTrigger>
+                <ExpiryRuleWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+              </Dialog>
+            </div>
             <div className="flex items-center gap-2">
               <label className="text-sm">Presets:</label>
               <select
@@ -308,6 +320,7 @@ export default function ExpirySettingsPage() {
           </Table>
         </>
       )}
+      {/* Wizard lives at root to avoid overflow clipping */}
     </PageShell>
   );
 }

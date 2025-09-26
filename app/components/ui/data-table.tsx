@@ -21,6 +21,7 @@ interface DataTableProps<TData, TValue> {
   getRowId?: (row: TData, index: number) => string;
   selectionActionBar?: (selectedRows: TData[]) => ReactNode;
   onSelectionChange?: (selectedRows: TData[]) => void;
+  onFilteredRowsChange?: (rows: TData[]) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -30,6 +31,7 @@ export function DataTable<TData, TValue>({
   getRowId,
   selectionActionBar,
   onSelectionChange,
+  onFilteredRowsChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -93,6 +95,14 @@ export function DataTable<TData, TValue>({
     if (onSelectionChange) onSelectionChange(selectedRows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(table.getState().rowSelection)]);
+
+  // Notify consumer when filtered rows change
+  useEffect(() => {
+    if (!onFilteredRowsChange) return;
+    const rows = table.getRowModel().rows.map((r) => r.original as TData);
+    onFilteredRowsChange(rows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(table.getState().columnFilters), JSON.stringify(table.getState().sorting), JSON.stringify(data)]);
 
   return (
     <div className="space-y-4">

@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { hrReportTemplates, ReportTemplate } from "@/lib/hrReportFields";
+import { hrReportTemplates, ReportTemplate, hrReportFields } from "@/lib/hrReportFields";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration, { ReportFilter, SortConfig } from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
@@ -243,6 +243,7 @@ function TemplateSelection({
   selectedTemplate?: ReportTemplate;
   onSelectTemplate: (template: ReportTemplate | undefined) => void;
 }) {
+  const totalSelectableFields = hrReportFields.length;
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -294,7 +295,7 @@ function TemplateSelection({
                   {template.description}
                 </p>
                 <div className="text-xs text-muted-foreground">
-                  {template.defaultFields.length} fields included
+                  {template.defaultFields.length} default fields • {totalSelectableFields} available
                 </div>
               </div>
             </div>

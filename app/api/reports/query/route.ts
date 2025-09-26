@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
+import { getFieldByKey } from "@/lib/hrReportFields";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -105,11 +106,25 @@ export async function POST(req: Request) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		const parsedBody = reportQuerySchema.parse(await req.json());
-		const { selectedFields, filters = [], pagination, sort } = {
-			...parsedBody,
-			filters: parsedBody.filters ?? [],
-		};
+        const parsedBody = reportQuerySchema.parse(await req.json());
+        const { selectedFields: requestedFields, filters = [], pagination, sort } = {
+                ...parsedBody,
+                filters: parsedBody.filters ?? [],
+        };
+
+        // Expand computed field dependencies before any translation
+        const initialFieldSet = new Set<string>(requestedFields as string[]);
+        for (const fieldKey of initialFieldSet) {
+            const definition = getFieldByKey(fieldKey);
+            if (definition?.dependsOn) {
+                for (const dependency of definition.dependsOn) {
+                    if (typeof dependency === "string" && dependency.trim().length > 0) {
+                        initialFieldSet.add(dependency);
+                    }
+                }
+            }
+        }
+        const selectedFields = Array.from(initialFieldSet);
 
         // Translate legacy keys first
         let translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
@@ -134,18 +149,42 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// Enforce tenant boundaries across common models by appending a hidden filter per model
-		const tenantCompanyId = session.user.companyId;
-		const modelsWithCompanyId = [
-			"User","Employee","Department","JobRole","LeaveRequest","LeaveEntitlement",
-			"EventCategory","EventSubcategory","TrainingRecord","Course","TrainingProvider",
-			"Document","EmploymentCheck","EmployeeOffboarding","SavedReport",
-		];
+                // Enforce tenant boundaries across every model exposed through the reporting API.
+                const tenantCompanyId = session.user.companyId;
+                const tenantScopedFilters = [
+                        { field: "User.companyId" },
+                        { field: "Employee.companyId" },
+                        { field: "Department.companyId" },
+                        { field: "JobRole.companyId" },
+                        { field: "LeaveRequest.companyId" },
+                        { field: "LeaveEntitlement.companyId" },
+                        { field: "EventCategory.companyId" },
+                        { field: "EventSubcategory.companyId" },
+                        { field: "Document.companyId" },
+                        { field: "SavedReport.companyId" },
+                        { field: "WorkingPattern.companyId" },
+                        { field: "GenderOption.companyId" },
+                        { field: "Course.companyId", operator: "in", includeNull: true },
+                        { field: "TrainingProvider.companyId", operator: "in", includeNull: true },
+                        { field: "TrainingRecord.Employee.companyId" },
+                        { field: "EmploymentCheck.Employee.companyId" },
+                        { field: "DriverLicence.Employee.companyId" },
+                        { field: "EmployeeOffboarding.Employee.companyId" },
+                ] satisfies Array<{
+                        field: string;
+                        operator?: Operator;
+                        includeNull?: boolean;
+                }>;
 
-		const enforcedFilters = Array.isArray(translatedFilters) ? [...translatedFilters] : [];
-		for (const model of modelsWithCompanyId) {
-			enforcedFilters.push({ field: `${model}.companyId`, operator: "equals", value: tenantCompanyId });
-		}
+                const enforcedFilters = Array.isArray(translatedFilters) ? [...translatedFilters] : [];
+                for (const { field, operator = "equals", includeNull } of tenantScopedFilters) {
+                        const value = operator === "in"
+                                ? includeNull
+                                        ? [tenantCompanyId, null]
+                                        : [tenantCompanyId]
+                                : tenantCompanyId;
+                        enforcedFilters.push({ field, operator, value });
+                }
 
 		// Build and execute the constrained query
 		const { queries } = buildDynamicQuery({

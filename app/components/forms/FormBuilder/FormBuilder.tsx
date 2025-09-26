@@ -126,9 +126,10 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
     // Add new field from palette
     const dragged = active.data?.current as
-      | { type: string; label: string; defaults?: Partial<FormField> }
+      | { kind?: string; type: string; label: string; defaults?: Partial<FormField> }
       | undefined;
-    if (dragged) {
+    // Only add new when the source is the palette
+    if (dragged && dragged.kind === "palette") {
       const defaults = (dragged as any)?.defaults || {};
       const newField: FormField = {
         id: uuidv4(),
@@ -157,7 +158,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     // Reorder/move existing fields (within or across sections)
     const activeId = String(active.id);
     const overId = String(over.id);
-    if (!dragged && activeId) {
+    if (activeId) {
       setSections((prev) => {
         // Locate source section and index
         const srcSectionIndex = prev.findIndex((s) => s.fields.some((f) => f.id === activeId));

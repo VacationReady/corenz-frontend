@@ -178,7 +178,8 @@ function DraggableField({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: field.type,
-      data: field,
+      // Mark palette drags so the canvas can distinguish from sortable drags
+      data: { kind: "palette", ...field },
     });
 
   const style = {

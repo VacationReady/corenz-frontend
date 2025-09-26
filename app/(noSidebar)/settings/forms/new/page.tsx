@@ -5,14 +5,14 @@ import { PageShell } from "@/components/ui/PageShell";
 import FormBuilder from "@/components/forms/FormBuilder/FormBuilder";
 import { toast } from "sonner";
 
-export default function NewFormPage() {
+export default function NewFormPageNoSidebar() {
   const router = useRouter();
 
   const breadcrumbItems = [
-    { label: 'Settings', href: '/settings' },
-    { label: 'Forms & Surveys', href: '/settings/forms' },
-    { label: 'Create Form', isCurrentPage: true }
-  ]
+    { label: "Settings", href: "/settings" },
+    { label: "Forms & Surveys", href: "/settings/forms" },
+    { label: "Create Form", isCurrentPage: true },
+  ];
 
   const handleSave = async (data: {
     name: string;
@@ -45,8 +45,13 @@ export default function NewFormPage() {
       description="Build a new form using the builder"
       breadcrumbs={{ items: breadcrumbItems }}
       showHomeIcon={false}
+      className="bg-content-panel"
     >
-      <FormBuilder onSave={handleSave} />
+      <div className="max-w-screen-2xl mx-auto">
+        <FormBuilder onSave={handleSave} />
+      </div>
     </PageShell>
   );
 }
+
+

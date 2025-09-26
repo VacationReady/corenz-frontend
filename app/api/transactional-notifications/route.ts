@@ -181,7 +181,7 @@ export async function PUT(req: NextRequest) {
       for (const pref of sections) {
         updatedSections.add(pref.section);
         
-        await tx.transactionalNotificationPreference.upsert({
+        await (tx as any).transactionalNotificationPreference.upsert({
           where: {
             companyId_section: {
               companyId,

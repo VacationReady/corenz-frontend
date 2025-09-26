@@ -255,14 +255,31 @@ export default function SettingsIndexPage() {
   // Add help presets to items
   const holidaySettingsWithHelp = holidaySettings.map(item => ({
     ...item,
-    helpPreset: item.title === "Working Patterns" ? "workingPattern" : 
-               item.title === "Leave Policies" ? "leavePolicy" :
-               item.title === "Multi-stage Approvals" ? "approvalWorkflow" : undefined
+    helpPreset:
+      item.title === "Working Patterns" ? "workingPattern" :
+      item.title === "Public Holiday Templates" ? "publicHolidays" :
+      item.title === "Expiry Alerts" ? "expiryAlerts" :
+      item.title === "Event Rules" ? "eventRules" :
+      item.title === "Event Manager" ? "eventManager" :
+      item.title === "Leave Policies" ? "leavePolicy" :
+      item.title === "Multi-stage Approvals" ? "approvalWorkflow" : undefined
   }));
 
   const workflowSettingsWithHelp = workflowSettings.map(item => ({
     ...item,
-    helpPreset: item.title === "Automation Rules" ? "automation" : undefined
+    helpPreset:
+      item.title === "Automation Rules" ? "automation" :
+      item.title === "Transactional Notifications" ? "notifications" : undefined
+  }));
+
+  const onboardingSettingsWithHelp = onboardingSettings.map(item => ({
+    ...item,
+    helpPreset: item.title === "Onboarding Templates" ? "onboardingTemplates" : undefined
+  }));
+
+  const documentSettingsWithHelp = documentSettings.map(item => ({
+    ...item,
+    helpPreset: item.title === "Document Types" ? "documentTypes" : undefined
   }));
 
   return (
@@ -374,7 +391,7 @@ export default function SettingsIndexPage() {
                 label="Onboarding"
                 description="Configure employee onboarding templates and workflows"
                 icon={<UserPlus className="w-5 h-5" />}
-                items={onboardingSettings}
+                items={onboardingSettingsWithHelp}
                 completionStatus={completionData.onboarding}
               />
               <SettingSection
@@ -382,7 +399,7 @@ export default function SettingsIndexPage() {
                 label="Documents"
                 description="Set up document types and management policies"
                 icon={<FileStack className="w-5 h-5" />}
-                items={documentSettings}
+                items={documentSettingsWithHelp}
                 completionStatus={completionData.documents}
               />
               <SettingSection

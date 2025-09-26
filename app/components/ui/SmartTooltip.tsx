@@ -179,6 +179,46 @@ export const tooltipPresets = {
       "Affects holiday entitlement calculations"
     ],
   },
+  publicHolidays: {
+    title: "Public Holiday Templates",
+    description: "Use pre-built country/region calendars and assign them to locations or employees.",
+    example: "United Kingdom (England & Wales) – 2025",
+    tips: [
+      "Assign different templates per region or site",
+      "Add company-specific holidays on top of templates",
+      "Review next year's calendars annually"
+    ],
+  },
+  expiryAlerts: {
+    title: "Expiry Alerts",
+    description: "Configure reminders for documents and time-bound items before they expire.",
+    example: "Notify employee and HR 30/60/90 days before passport expiry",
+    tips: [
+      "Choose recipients and channels (email/in-app)",
+      "Escalate alerts when overdue",
+      "Pair with automation rules for follow-ups"
+    ],
+  },
+  eventRules: {
+    title: "Event Rules",
+    description: "Define how events (leave types, sickness, training) interact, clash, or require coverage.",
+    example: "Block annual leave when staffing density falls below 60%",
+    tips: [
+      "Create rules per department or role",
+      "Use blackout periods for critical dates",
+      "Test rules before enabling across the org"
+    ],
+  },
+  eventManager: {
+    title: "Event Manager",
+    description: "Create and manage company-wide events and blackout days that affect booking.",
+    example: "Financial year-end blackout: 25–31 Mar",
+    tips: [
+      "Tag events by category for reporting",
+      "Limit visibility to specific groups if needed",
+      "Review annually to keep calendars tidy"
+    ],
+  },
   leavePolicy: {
     title: "Leave Policies",
     description: "Set rules for how leave is earned, requested, and approved. Controls accrual rates and eligibility.",
@@ -200,6 +240,16 @@ export const tooltipPresets = {
       "Configure escalation if approvers don't respond"
     ],
   },
+  forms: {
+    title: "Forms & Surveys",
+    description: "Design forms to collect data and run surveys with role-based access.",
+    example: "Quarterly engagement survey for all employees",
+    tips: [
+      "Reuse templates for consistency",
+      "Use logic to show only relevant questions",
+      "Export results to CSV for analysis"
+    ],
+  },
   automation: {
     title: "Automation Rules",
     description: "Create triggers and actions to automate repetitive HR tasks. Reduces manual work and ensures consistency.",
@@ -210,6 +260,46 @@ export const tooltipPresets = {
       "Monitor automation logs regularly"
     ],
     videoUrl: "/help/automation-setup",
+  },
+  notifications: {
+    title: "Transactional Notifications",
+    description: "Configure event-driven emails and in-app messages sent to employees and managers.",
+    example: "Notify approver when a leave request is submitted",
+    tips: [
+      "Personalize templates with variables",
+      "Enable only the events you need",
+      "Use preview to test before enabling"
+    ],
+  },
+  onboardingTemplates: {
+    title: "Onboarding Templates",
+    description: "Standardize new hire journeys with tasks, documents and milestones.",
+    example: "IT setup, policy acknowledgements, first-week checklist",
+    tips: [
+      "Tailor templates by department or role",
+      "Include owners and due dates for accountability",
+      "Track progress in reports"
+    ],
+  },
+  documentTypes: {
+    title: "Document Types",
+    description: "Define categories and rules for company and employee documents.",
+    example: "Right-to-work, Certifications, Policies",
+    tips: [
+      "Require renewal dates where applicable",
+      "Set visibility and retention rules",
+      "Link to expiry alerts for reminders"
+    ],
+  },
+  platformSettings: {
+    title: "Platform Settings",
+    description: "Organization-wide settings such as regions, permissions, and branding.",
+    example: "Default time zone, working week, company logo",
+    tips: [
+      "Set defaults before inviting users",
+      "Restrict access with permission profiles",
+      "Review audit logs after major changes"
+    ],
   },
 };
 

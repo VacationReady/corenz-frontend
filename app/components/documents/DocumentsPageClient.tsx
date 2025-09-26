@@ -749,6 +749,80 @@ function DocumentsContent() {
           </DialogContent>
         </Dialog>
 
+        {/* Manage Categories Modal */}
+        <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage Categories</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-2 max-h-60 overflow-auto border rounded p-2">
+                {categoryOptions
+                  .filter((o) => o.value !== "all")
+                  .map((opt) => (
+                    <div key={opt.value} className="flex items-center justify-between gap-2">
+                      <span className="text-sm">{opt.label}</span>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/document-categories", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ name: opt.value }),
+                            });
+                            if (!res.ok) throw new Error("Failed to delete category");
+                            setCategoriesList((prev) => prev.filter((x) => x !== opt.value));
+                            if (category === opt.value) setCategory("");
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ))}
+                {categoryOptions.filter((o) => o.value !== "all").length === 0 && (
+                  <p className="text-sm text-muted-foreground">No categories yet.</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="New category name"
+                />
+                <Button
+                  onClick={async () => {
+                    const name = newCategoryName.trim();
+                    if (!name) return;
+                    try {
+                      const res = await fetch("/api/document-categories", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name }),
+                      });
+                      if (!res.ok) throw new Error("Failed to add category");
+                      setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
+                      setCategory(name);
+                      setNewCategoryName("");
+                    } catch (e: any) {
+                      toast.error(e.message);
+                    }
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setManageCategoriesOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Place before send (post-upload) */}
         <FieldPlacementModal
           isOpen={isPlacementBeforeSendOpen}

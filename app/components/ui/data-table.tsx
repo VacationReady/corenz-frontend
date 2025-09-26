@@ -169,7 +169,7 @@ export function DataTable<TData, TValue>({
                                 column: header.column,
                               })
                             : (meta?.filter?.options as { label: string; value: string }[] | undefined));
-                          if (!options) {
+                          if (!options || (Array.isArray(options) && options.length === 0)) {
                             const values = Array.from(
                               new Set(
                                 header.getContext().table

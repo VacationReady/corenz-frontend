@@ -159,6 +159,9 @@ model Company {
   NewsReaction                        NewsReaction[]
   NewsBookmark                        NewsBookmark[]
   ApprovalWorkflow                    ApprovalWorkflow[]
+  // Back-relations for transactional approvals and logs
+  TransactionalApprovals              TransactionalApproval[]       @relation("Company_TransactionalApprovals")
+  TransactionalNotificationLogs       TransactionalNotificationLog[] @relation("Company_TransactionalNotificationLogs")
 }
 
 model ContractTypeOption {
@@ -405,6 +408,8 @@ model Employee {
   DocumentSignatureArtifact        DocumentSignatureArtifact[]
   DocumentSignatureEmployee        DocumentSignatureEmployee[]
   DocumentSignatureField           DocumentSignatureField[]
+  // Optional back-relation for transactional approvals
+  TransactionalApprovals           TransactionalApproval[] @relation("Employee_TransactionalApprovals")
 
   @@unique([companyId, irdNumber])
 }
@@ -1231,8 +1236,8 @@ model TransactionalApproval {
   approvedAt   DateTime?
   approvedById String?
 
-  Company      Company       @relation(fields: [companyId], references: [id])
-  Employee     Employee      @relation(fields: [employeeId], references: [id])
+  Company      Company       @relation("Company_TransactionalApprovals", fields: [companyId], references: [id])
+  Employee     Employee      @relation("Employee_TransactionalApprovals", fields: [employeeId], references: [id])
   User_TransactionalApproval_requesterIdToUser  User @relation("TransactionalApproval_requesterIdToUser", fields: [requesterId], references: [id])
   User_TransactionalApproval_approvedByIdToUser User? @relation("TransactionalApproval_approvedByIdToUser", fields: [approvedById], references: [id])
 
@@ -1252,7 +1257,7 @@ model TransactionalNotificationLog {
   createdAt  DateTime @default(now())
   sentAt     DateTime?
 
-  Company    Company  @relation(fields: [companyId], references: [id])
+  Company    Company  @relation("Company_TransactionalNotificationLogs", fields: [companyId], references: [id])
 
   @@index([companyId, section, createdAt])
 }
@@ -1395,6 +1400,9 @@ model User {
   PermissionProfile                                                        PermissionProfile?              @relation(fields: [permissionProfileId], references: [id])
   ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
   LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser             LeaveApprovalDecision[]         @relation("LeaveApprovalDecision_approverIdToUser")
+  // Back-relations for transactional approvals
+  TransactionalApproval_TransactionalApproval_requesterIdToUser            TransactionalApproval[]         @relation("TransactionalApproval_requesterIdToUser")
+  TransactionalApproval_TransactionalApproval_approvedByIdToUser           TransactionalApproval[]         @relation("TransactionalApproval_approvedByIdToUser")
 
   @@unique([email, companyId])
 }

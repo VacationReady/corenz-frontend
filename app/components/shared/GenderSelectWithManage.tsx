@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
-import ManageGenderOptionsModal from "@/components/shared/ManageGenderOptionsModal";
+import NewGenderOptionModal from "@/components/shared/NewGenderOptionModal";
 
 type GenderOption = { id: string; label: string };
 
@@ -69,10 +69,7 @@ export default function GenderSelectWithManage({
             </SelectItem>
           ))}
           <div className="px-2 py-2">
-            <Button
-              variant="ghost"
-              onClick={() => setOpenManage(true)}
-            >
+            <Button variant="ghost" onClick={() => setOpenManage(true)}>
               + Add new option
             </Button>
           </div>
@@ -80,7 +77,7 @@ export default function GenderSelectWithManage({
       </Select>
 
       {openManage && (
-        <ManageGenderOptionsModal
+        <NewGenderOptionModal
           onClose={async () => {
             setOpenManage(false);
             await refresh();

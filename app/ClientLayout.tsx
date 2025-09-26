@@ -82,7 +82,7 @@ export default function ClientLayout({
   if (loading) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-app-background">
+    <div className="flex min-h-screen flex-col">
       <TopBar
         hasSidebar={hasSidebar}
         onOpenMobileSidebar={hasSidebar ? handleOpenMobileSidebar : undefined}
@@ -93,7 +93,11 @@ export default function ClientLayout({
             {getSidebar("desktop")}
           </aside>
         )}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <div className="min-h-full">
+            {children}
+          </div>
+        </main>
       </div>
 
       {hasSidebar && (
@@ -102,10 +106,10 @@ export default function ClientLayout({
           onOpenChange={setMobileSidebarOpen}
         >
           <DialogPrimitive.Portal>
-            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden" />
+            <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md lg:hidden animate-fadeIn" />
             <DialogPrimitive.Content
               aria-label="Navigation"
-              className="fixed inset-y-0 left-0 z-50 flex w-[min(90vw,20rem)] max-w-sm overflow-y-auto bg-app-background/95 p-0 shadow-2xl focus:outline-none lg:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(85vw,20rem)] max-w-sm glass-ultra shadow-2xl animate-slideInLeft focus:outline-none lg:hidden"
             >
               {getSidebar("mobile")}
             </DialogPrimitive.Content>

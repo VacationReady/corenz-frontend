@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
-import clsx from "clsx";
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -14,12 +12,19 @@ import {
   Network,
   Megaphone,
   Settings,
-  Menu,
   BarChart3,
-  X,
   LogOut,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
+import {
+  SidebarContainer,
+  SidebarHeader,
+  SidebarSection,
+  SidebarItem,
+  SidebarAction,
+  SidebarProfile,
+  SidebarFooter,
+} from "@/components/navigation/SidebarPrimitives";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
@@ -32,14 +37,11 @@ export default function AdminSidebar({
   onMobileNavigate,
   onMobileClose,
 }: SidebarProps) {
+  const { data: session } = useSession();
   const { branding } = useTenantBranding();
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed(!collapsed);
-  const pathname = usePathname();
   const isMobile = variant === "mobile";
-  const headerPadding = isMobile ? "px-6 py-6" : "px-8 py-8";
-  const sectionPadding = isMobile ? "px-6 py-5" : "px-8 py-6";
-  const navPadding = isMobile ? "px-4" : "px-6";
 
   const brandName = branding.shortName || branding.name;
   const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
@@ -49,221 +51,103 @@ export default function AdminSidebar({
     void signOut({ callbackUrl: "/login" });
   };
 
-  return (
-    <div
-      className={clsx(
-        "transition-all duration-300 flex flex-col",
-        isMobile ? "h-full w-full max-w-sm p-4" : "min-h-screen m-4 ml-6",
-        isMobile ? "w-full" : collapsed ? "w-16" : "w-80",
-      )}
-    >
-      {/* Glassmorphism Container */}
-      <div className="glass rounded-3xl shadow-glass h-full flex flex-col overflow-hidden">
-        {/* Logo Section */}
-        <div
-          className={clsx(
-            "flex items-center justify-between border-b border-glass",
-            headerPadding,
-          )}
-        >
-          <div
-            className={clsx(
-              "flex items-center transition-opacity duration-200",
-              collapsed ? "opacity-0 w-0" : "opacity-100",
-            )}
-          >
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm overflow-hidden">
-              {brandLogo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={brandLogo}
-                  alt={`${brandName} logo`}
-                  className="h-8 w-8 object-contain"
-                />
-              ) : (
-                <span className="text-primary-foreground font-bold text-lg">
-                  {branding.initials}
-                </span>
-              )}
-            </div>
-            <h1 className="font-bold text-foreground text-2xl">{brandName}</h1>
-          </div>
-          {isMobile && onMobileClose ? (
-            <button
-              onClick={onMobileClose}
-              className="p-3 hover-glass rounded-2xl transition-glass"
-            >
-              <X className="w-6 h-6 text-foreground" />
-              <span className="sr-only">Close navigation</span>
-            </button>
-          ) : (
-            <button
-              onClick={toggleSidebar}
-              className="p-3 hover-glass rounded-2xl transition-glass"
-            >
-              {collapsed ? (
-                <Menu className="w-6 h-6 text-foreground" />
-              ) : (
-                <X className="w-6 h-6 text-foreground" />
-              )}
-              <span className="sr-only">Toggle sidebar width</span>
-            </button>
-          )}
-        </div>
-
-        {/* Quick Actions Header */}
-        {!collapsed && (
-          <div className={clsx("space-y-1", sectionPadding)}>
-            <h2 className="text-lg font-bold text-foreground mb-2">
-              Quick actions
-            </h2>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              Navigate your workspace
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/80 border border-glass rounded-md px-1.5 py-0.5">
-                <kbd className="font-mono">Ctrl</kbd>
-                <span>+</span>
-                <kbd className="font-mono">K</kbd>
-              </span>
-            </p>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav
-          className={clsx(
-            "flex-1 pb-6",
-            navPadding,
-            isMobile && "overflow-y-auto",
-          )}
-        >
-          <div className="space-y-8">
-            {/* Core Section */}
-            <div>
-              {!collapsed && (
-                <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                  Core
-                </h3>
-              )}
-              <ul className="space-y-2">
-                {coreLinks.map((link) => (
-                  <SidebarLink
-                    key={link.href}
-                    href={link.href}
-                    icon={link.icon}
-                    label={link.label}
-                    collapsed={collapsed}
-                    active={pathname === link.href}
-                    onNavigate={onMobileNavigate}
-                  />
-                ))}
-              </ul>
-            </div>
-
-            {/* HR Tools Section */}
-            <div>
-              {!collapsed && (
-                <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                  HR Tools
-                </h3>
-              )}
-              <ul className="space-y-2">
-                {hrToolsLinks.map((link) => (
-                  <SidebarLink
-                    key={link.href}
-                    href={link.href}
-                    icon={link.icon}
-                    label={link.label}
-                    collapsed={collapsed}
-                    active={pathname === link.href}
-                    onNavigate={onMobileNavigate}
-                  />
-                ))}
-              </ul>
-            </div>
-          </div>
-        </nav>
-
-        {/* Settings & Logout */}
-        <div
-          className={clsx(
-            "border-t border-glass",
-            isMobile ? "px-6 py-5" : "px-6 py-6",
-          )}
-        >
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover-glass rounded-2xl transition-glass"
-          >
-            <LogOut size={20} />
-            {!collapsed && <span className="font-medium">Logout</span>}
-          </button>
-        </div>
-      </div>
+  const logoElement = brandLogo ? (
+    <img
+      src={brandLogo}
+      alt={`${brandName} logo`}
+      className="w-full h-full object-contain"
+    />
+  ) : (
+    <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-depth-1">
+      <span className="text-primary-foreground font-bold text-lg">
+        {branding.initials}
+      </span>
     </div>
   );
-}
 
-function SidebarLink({
-  href,
-  icon,
-  label,
-  collapsed,
-  active,
-  onNavigate,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  collapsed: boolean;
-  active: boolean;
-  onNavigate?: () => void;
-}) {
   return (
-    <li>
-      <Link
-        href={href}
-        className={clsx(
-          "flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass relative group",
-          "hover-glass",
-          active
-            ? "bg-primary text-primary-foreground shadow-warm"
-            : "text-foreground",
+    <div className={isMobile ? "h-full w-full" : "p-4"}>
+      <SidebarContainer collapsed={collapsed} variant={variant}>
+        <SidebarHeader
+          logo={logoElement}
+          title={brandName}
+          collapsed={collapsed}
+          onToggle={variant === "desktop" ? toggleSidebar : undefined}
+          onClose={onMobileClose}
+          variant={variant}
+        />
+
+        {/* Main Navigation */}
+        <div className="flex-1 overflow-y-auto py-4">
+          <SidebarSection title="Core" collapsed={collapsed}>
+            {coreLinks.map((link) => (
+              <SidebarItem
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                label={link.label}
+                collapsed={collapsed}
+                onClick={onMobileNavigate}
+              />
+            ))}
+          </SidebarSection>
+
+          <SidebarSection title="HR Tools" collapsed={collapsed}>
+            {hrToolsLinks.map((link) => (
+              <SidebarItem
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                label={link.label}
+                collapsed={collapsed}
+                onClick={onMobileNavigate}
+              />
+            ))}
+          </SidebarSection>
+        </div>
+
+        {/* User Profile */}
+        {session?.user && (
+          <SidebarProfile
+            user={session.user}
+            collapsed={collapsed}
+          />
         )}
-        onClick={() => onNavigate?.()}
-      >
-        <div className="flex-shrink-0 w-6 h-6">{icon}</div>
-        {!collapsed && (
-          <span className="truncate font-medium text-base">{label}</span>
-        )}
-        {collapsed && (
-          <div className="absolute left-full ml-4 px-3 py-2 glass rounded-2xl shadow-glass opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-            <span className="text-sm font-medium text-foreground">{label}</span>
-          </div>
-        )}
-      </Link>
-    </li>
+
+        {/* Logout */}
+        <div className="p-3">
+          <SidebarAction
+            icon={LogOut}
+            label="Logout"
+            onClick={handleLogout}
+            collapsed={collapsed}
+            variant="danger"
+          />
+        </div>
+      </SidebarContainer>
+    </div>
   );
 }
 
 const coreLinks = [
   {
     href: "/dashboard/admin",
-    icon: <LayoutDashboard size={24} />,
+    icon: LayoutDashboard,
     label: "Dashboard",
   },
   {
     href: "/dashboard/approvals",
-    icon: <ClipboardCheck size={24} />,
+    icon: ClipboardCheck,
     label: "Approvals",
   },
-  { href: "/employees", icon: <Users size={24} />, label: "Employees" },
-  { href: "/calendar", icon: <Calendar size={24} />, label: "Calendar" },
+  { href: "/employees", icon: Users, label: "Employees" },
+  { href: "/calendar", icon: Calendar, label: "Calendar" },
 ];
 
 const hrToolsLinks = [
-  { href: "/documents", icon: <FileText size={24} />, label: "Documents" },
-  { href: "/reports", icon: <BarChart3 size={24} />, label: "Reports" },
-  { href: "/org-chart", icon: <Network size={24} />, label: "Org Chart" },
-  { href: "/news", icon: <Megaphone size={24} />, label: "News" },
-  { href: "/settings", icon: <Settings size={24} />, label: "Settings" },
+  { href: "/documents", icon: FileText, label: "Documents" },
+  { href: "/reports", icon: BarChart3, label: "Reports" },
+  { href: "/org-chart", icon: Network, label: "Org Chart" },
+  { href: "/news", icon: Megaphone, label: "News" },
+  { href: "/settings", icon: Settings, label: "Settings" },
 ];

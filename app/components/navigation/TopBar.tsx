@@ -216,18 +216,16 @@ export default function TopBar({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 glass-strong border-b border-glass shadow-depth-1">
         <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
           {hasSidebar && onOpenMobileSidebar ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 rounded-xl p-0 text-muted-foreground hover:text-foreground lg:hidden"
+            <button
+              className="glass-subtle h-10 w-10 rounded-xl p-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover-glass transition-glass lg:hidden"
               onClick={onOpenMobileSidebar}
               aria-label="Open navigation menu"
             >
               <Menu className="h-5 w-5" />
-            </Button>
+            </button>
           ) : null}
 
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -237,12 +235,12 @@ export default function TopBar({
                 onValueChange={handleTenantChange}
                 disabled={tenantsLoading || isSwitchingTenant || tenants.length === 0}
               >
-                <SelectTrigger className="w-[240px] rounded-xl border border-white/30 bg-white/80 backdrop-blur">
+                <SelectTrigger className="w-[240px] glass-strong rounded-2xl shadow-depth-1 hover-lift transition-glass">
                   <SelectValue placeholder={tenantPlaceholder}>
                     {currentTenant?.name}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-white/40 bg-white/90 backdrop-blur">
+                <SelectContent className="glass-ultra rounded-2xl shadow-xl border-glass">
                   {tenants.map((option) => (
                     <SelectItem key={option.id} value={option.id}>
                       {option.name}
@@ -261,8 +259,8 @@ export default function TopBar({
               <span
                 className={
                   isImpersonating
-                    ? "rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
-                    : "rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700"
+                    ? "glass-subtle rounded-full px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-300/30 shadow-depth-1"
+                    : "glass-subtle rounded-full px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-300/30 shadow-depth-1"
                 }
               >
                 {isImpersonating ? "Impersonating" : "Main tenant"}
@@ -273,36 +271,32 @@ export default function TopBar({
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event("command-palette:open"))}
-                className="hidden items-center gap-3 rounded-xl border border-white/30 bg-white/70 px-3 py-2 text-sm text-muted-foreground shadow-glass transition hover:text-foreground hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-white sm:flex"
+                className="hidden items-center gap-3 glass rounded-2xl px-4 py-2.5 text-sm text-muted-foreground hover-glass hover-lift transition-glass focus-ring sm:flex min-w-[200px]"
               >
                 <Search className="h-4 w-4" />
-                <span className="whitespace-nowrap">Search the workspace</span>
-                <kbd className="ml-auto hidden rounded-md border border-white/40 bg-white/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground sm:block">
+                <span className="whitespace-nowrap">Search workspace</span>
+                <kbd className="ml-auto glass-subtle rounded-lg px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
                   {modifierKey}+K
                 </kbd>
               </button>
 
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => window.dispatchEvent(new Event("command-palette:open"))}
-                className="h-10 w-10 rounded-xl p-0 text-muted-foreground hover:text-foreground sm:hidden"
+                className="glass-subtle h-10 w-10 rounded-xl p-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover-glass transition-glass sm:hidden"
                 aria-label="Open global search"
               >
                 <Search className="h-5 w-5" />
-              </Button>
+              </button>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative h-10 w-10 rounded-xl p-0 text-muted-foreground hover:text-foreground"
+              <button
+                className="glass-subtle relative h-10 w-10 rounded-xl p-0 flex items-center justify-center text-muted-foreground hover:text-foreground hover-glass transition-glass"
                 aria-label="View notifications"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute right-2 top-2 block h-2 w-2 rounded-full bg-destructive" />
-              </Button>
+                <span className="absolute right-2 top-2 block h-2 w-2 rounded-full bg-destructive animate-pulse shadow-glow-sm" />
+              </button>
 
-              <div className="flex items-center gap-3 rounded-xl border border-white/30 bg-white/70 px-2 py-1.5 shadow-glass">
+              <div className="glass-strong flex items-center gap-3 rounded-2xl px-3 py-2 shadow-depth-1 hover-lift transition-glass">
                 <Avatar
                   src={session?.user?.image ?? null}
                   name={session?.user?.name || session?.user?.email || "User"}

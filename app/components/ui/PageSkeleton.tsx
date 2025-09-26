@@ -13,7 +13,7 @@ const GRID_COLUMNS: Record<GridColumnOption, string> = {
 
 const LINE_WIDTHS = ["w-full", "w-11/12", "w-4/5", "w-2/3"];
 
-type SectionSkeletonVariant = "rows" | "grid" | "table";
+type SectionSkeletonVariant = "rows" | "grid" | "table" | "cards" | "dashboard";
 
 export interface SectionSkeletonProps {
   /**
@@ -77,42 +77,103 @@ export function SectionSkeleton({
           {Array.from({ length: items }).map((_, index) => (
             <div
               key={index}
-              className="space-y-3 rounded-xl border border-border bg-card/50 p-4"
+              className="glass-subtle rounded-2xl p-4 space-y-3 animate-pulse"
             >
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-4 w-2/3 glass-subtle rounded-xl" />
+              <Skeleton className="h-4 w-1/2 glass-subtle rounded-xl" />
+              <Skeleton className="h-10 w-full glass-subtle rounded-xl" />
             </div>
           ))}
         </div>
       );
       break;
-    case "table":
+    case "cards":
       body = (
-        <div className="space-y-3">
-          <div className="hidden items-center justify-between gap-4 rounded-xl border border-border bg-muted/20 px-4 py-3 md:flex">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-16" />
-          </div>
-          {Array.from({ length: rows }).map((_, index) => (
+        <div className={cn("grid gap-6", columnClass)}>
+          {Array.from({ length: items }).map((_, index) => (
             <div
               key={index}
-              className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-card/50 px-4 py-4 md:grid-cols-6 md:items-center"
+              className="glass-card rounded-3xl shadow-depth-1 overflow-hidden"
             >
-              <Skeleton className="col-span-2 h-4 w-5/6 md:w-4/5" />
-              <Skeleton className="col-span-1 h-4 w-2/3" />
-              <Skeleton className="col-span-1 h-4 w-1/2" />
-              <Skeleton className="col-span-1 h-4 w-1/2" />
-              <div className="col-span-1 flex items-center justify-end gap-2">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <Skeleton className="h-8 w-20 rounded-full" />
+              <div className="glass-subtle p-6 border-b border-glass">
+                <Skeleton className="h-5 w-3/4 glass-subtle rounded-xl" />
+              </div>
+              <div className="p-6 space-y-4">
+                <Skeleton className="h-4 w-full glass-subtle rounded-xl" />
+                <Skeleton className="h-4 w-5/6 glass-subtle rounded-xl" />
+                <Skeleton className="h-4 w-4/6 glass-subtle rounded-xl" />
               </div>
             </div>
           ))}
+        </div>
+      );
+      break;
+    case "dashboard":
+      body = (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Metric Cards */}
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={`metric-${index}`} className="glass-card rounded-2xl p-6 shadow-depth-1">
+              <Skeleton className="h-4 w-20 glass-subtle rounded-xl mb-3" />
+              <Skeleton className="h-8 w-32 glass-subtle rounded-xl mb-2" />
+              <Skeleton className="h-3 w-16 glass-subtle rounded-xl" />
+            </div>
+          ))}
+          {/* Chart Area */}
+          <div className="col-span-1 lg:col-span-2 glass-card rounded-3xl p-6 shadow-depth-1">
+            <Skeleton className="h-5 w-32 glass-subtle rounded-xl mb-4" />
+            <Skeleton className="h-64 w-full glass-subtle rounded-2xl" />
+          </div>
+          {/* Activity Feed */}
+          <div className="col-span-1 lg:col-span-2 glass-card rounded-3xl p-6 shadow-depth-1">
+            <Skeleton className="h-5 w-28 glass-subtle rounded-xl mb-4" />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={`activity-${idx}`} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full glass-subtle" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3 w-3/4 glass-subtle rounded-xl" />
+                    <Skeleton className="h-3 w-1/2 glass-subtle rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+      break;
+    case "table":
+      body = (
+        <div className="glass-strong rounded-2xl shadow-depth-2 overflow-hidden">
+          <div className="glass-subtle border-b border-glass px-6 py-3">
+            <div className="hidden md:flex items-center justify-between gap-4">
+              <Skeleton className="h-4 w-48 glass-subtle rounded-xl" />
+              <Skeleton className="h-4 w-32 glass-subtle rounded-xl" />
+              <Skeleton className="h-4 w-24 glass-subtle rounded-xl" />
+              <Skeleton className="h-4 w-24 glass-subtle rounded-xl" />
+              <Skeleton className="h-4 w-24 glass-subtle rounded-xl" />
+              <Skeleton className="h-4 w-16 glass-subtle rounded-xl" />
+            </div>
+          </div>
+          <div className="divide-y divide-glass">
+            {Array.from({ length: rows }).map((_, index) => (
+              <div
+                key={index}
+                className="px-6 py-4 hover:glass-subtle transition-glass"
+              >
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-6 md:items-center">
+                  <Skeleton className="col-span-2 h-4 w-5/6 md:w-4/5 glass-subtle rounded-xl" />
+                  <Skeleton className="col-span-1 h-4 w-2/3 glass-subtle rounded-xl" />
+                  <Skeleton className="col-span-1 h-4 w-1/2 glass-subtle rounded-xl" />
+                  <Skeleton className="col-span-1 h-4 w-1/2 glass-subtle rounded-xl" />
+                  <div className="col-span-1 flex items-center justify-end gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full glass-subtle" />
+                    <Skeleton className="h-8 w-20 rounded-full glass-subtle" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       );
       break;
@@ -136,17 +197,17 @@ export function SectionSkeleton({
     return (
       <div
         className={cn(
-          "rounded-2xl border border-border bg-card shadow-sm",
+          "glass-card rounded-3xl shadow-depth-2",
           className,
         )}
       >
         {(showHeader || showAction) && (
-          <div className="flex flex-col gap-3 border-b border-border px-6 py-4 md:flex-row md:items-center md:justify-between">
+          <div className="glass-subtle border-b border-glass px-6 py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-2">
-              <Skeleton className="h-5 w-40" />
-              {showHeader && <Skeleton className="h-4 w-64" />}
+              <Skeleton className="h-5 w-40 glass-subtle rounded-xl" />
+              {showHeader && <Skeleton className="h-4 w-64 glass-subtle rounded-xl" />}
             </div>
-            {showAction && <Skeleton className="h-10 w-28 rounded-lg" />}
+            {showAction && <Skeleton className="h-10 w-28 glass-subtle rounded-xl" />}
           </div>
         )}
         <div className="space-y-4 px-6 py-6">

@@ -2,8 +2,10 @@ import React from "react";
 import clsx from "clsx";
 import { LucideIcon } from "lucide-react";
 import Button from "./Button";
+import { GlassSurface } from "./GlassSurface";
 
 type EmptyStateTone = "default" | "brand" | "success" | "warning" | "danger";
+type EmptyStateVariant = "default" | "glass" | "elevated" | "minimal";
 
 type GuidanceItem =
   | React.ReactNode
@@ -19,10 +21,15 @@ interface EmptyStateProps {
   description?: React.ReactNode;
   guidance?: GuidanceItem[];
   tone?: EmptyStateTone;
+  variant?: EmptyStateVariant;
   action?: {
     label: string;
     onClick: () => void;
-    variant?: "primary" | "secondary" | "outline";
+    variant?: "primary" | "secondary" | "outline" | "glass";
+  };
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
   };
   className?: string;
 }
@@ -34,45 +41,44 @@ const toneStyles: Record<EmptyStateTone, {
   title: string;
   description: string;
   marker: string;
+  glow?: string;
 }> = {
   default: {
     container: "",
-    iconWrapper: "bg-muted text-muted-foreground",
+    iconWrapper: "glass-subtle",
     iconColor: "text-muted-foreground",
     title: "text-foreground",
     description: "text-muted-foreground",
     marker: "text-muted-foreground",
   },
   brand: {
-    container: "bg-primary/5",
-    iconWrapper: "bg-primary/10 text-primary",
+    container: "bg-gradient-to-br from-primary/5 to-primary/10",
+    iconWrapper: "glass bg-gradient-to-br from-primary/20 to-primary/10",
     iconColor: "text-primary",
     title: "text-foreground",
     description: "text-primary-800 dark:text-primary-200",
     marker: "text-primary",
+    glow: "shadow-glow-sm",
   },
   success: {
-    container: "bg-emerald-500/10",
-    iconWrapper:
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    container: "bg-gradient-to-br from-emerald-500/5 to-emerald-500/10",
+    iconWrapper: "glass bg-gradient-to-br from-emerald-500/20 to-emerald-500/10",
     iconColor: "text-emerald-700 dark:text-emerald-300",
     title: "text-emerald-800 dark:text-emerald-200",
     description: "text-emerald-700 dark:text-emerald-300",
     marker: "text-emerald-500 dark:text-emerald-300",
   },
   warning: {
-    container: "bg-amber-500/10",
-    iconWrapper:
-      "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    container: "bg-gradient-to-br from-amber-500/5 to-amber-500/10",
+    iconWrapper: "glass bg-gradient-to-br from-amber-500/20 to-amber-500/10",
     iconColor: "text-amber-700 dark:text-amber-300",
     title: "text-amber-800 dark:text-amber-200",
     description: "text-amber-700 dark:text-amber-300",
     marker: "text-amber-500 dark:text-amber-300",
   },
   danger: {
-    container: "bg-red-500/10",
-    iconWrapper:
-      "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+    container: "bg-gradient-to-br from-red-500/5 to-red-500/10",
+    iconWrapper: "glass bg-gradient-to-br from-red-500/20 to-red-500/10",
     iconColor: "text-red-700 dark:text-red-300",
     title: "text-red-800 dark:text-red-200",
     description: "text-red-700 dark:text-red-300",
@@ -98,28 +104,25 @@ export function EmptyState({
   description,
   guidance,
   tone = "default",
+  variant = "default",
   action,
+  secondaryAction,
   className,
 }: EmptyStateProps) {
   const toneStyle = toneStyles[tone] ?? toneStyles.default;
 
-  return (
-    <div
-      className={clsx(
-        "flex flex-col items-center justify-center gap-4 rounded-lg py-10 px-6 text-center",
-        toneStyle.container,
-        className,
-      )}
-    >
+  const content = (
+    <>
       {illustration ? (
-        <div className="mb-2 flex w-full items-center justify-center">
+        <div className="mb-4 flex w-full items-center justify-center animate-fadeIn">
           {illustration}
         </div>
       ) : Icon ? (
         <div
           className={clsx(
-            "flex h-16 w-16 items-center justify-center rounded-full",
+            "flex h-16 w-16 items-center justify-center rounded-2xl shadow-depth-1 mb-4",
             toneStyle.iconWrapper,
+            toneStyle.glow,
           )}
         >
           <Icon className={clsx("h-8 w-8", toneStyle.iconColor)} />
@@ -142,43 +145,113 @@ export function EmptyState({
       </div>
 
       {guidance && guidance.length > 0 ? (
-        <div className="mt-2 w-full max-w-md text-left">
-          <ul className="space-y-3 text-sm">
-            {guidance.map((item, index) => (
-              <li key={index} className="flex items-start gap-3">
-                <span
-                  className={clsx(
-                    "mt-1 block h-2 w-2 rounded-full",
-                    toneStyle.marker,
-                  )}
-                />
-                {isGuidanceObject(item) ? (
-                  <div className="space-y-1">
-                    {item.title ? (
-                      <div className={clsx("font-medium", toneStyle.title)}>
-                        {item.title}
+        <div className="mt-4 w-full max-w-md">
+          <div className="glass-subtle rounded-xl p-4 text-left">
+            <ul className="space-y-3 text-sm">
+              {guidance.map((item, index) => (
+                <li key={index} className="flex items-start gap-3">
+                  <span
+                    className={clsx(
+                      "mt-1 block h-2 w-2 rounded-full flex-shrink-0",
+                      toneStyle.marker,
+                    )}
+                  />
+                  {isGuidanceObject(item) ? (
+                    <div className="space-y-1">
+                      {item.title ? (
+                        <div className={clsx("font-medium", toneStyle.title)}>
+                          {item.title}
+                        </div>
+                      ) : null}
+                      <div className={clsx(toneStyle.description)}>
+                        {item.description}
                       </div>
-                    ) : null}
-                    <div className={clsx(toneStyle.description)}>
-                      {item.description}
                     </div>
-                  </div>
-                ) : (
-                  <div className={clsx(toneStyle.description)}>{item}</div>
-                )}
-              </li>
-            ))}
-          </ul>
+                  ) : (
+                    <div className={clsx(toneStyle.description)}>{item}</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : null}
 
-      {action ? (
-        <div className="mt-4">
-          <Button onClick={action.onClick} variant={action.variant || "primary"}>
-            {action.label}
-          </Button>
+      {(action || secondaryAction) ? (
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+          {action && (
+            <Button 
+              onClick={action.onClick} 
+              variant={action.variant || "primary"}
+              glow={tone === "brand"}
+            >
+              {action.label}
+            </Button>
+          )}
+          {secondaryAction && (
+            <Button
+              onClick={secondaryAction.onClick}
+              variant="ghost"
+            >
+              {secondaryAction.label}
+            </Button>
+          )}
         </div>
       ) : null}
+    </>
+  );
+
+  if (variant === "glass") {
+    return (
+      <GlassSurface
+        intensity="strong"
+        size="lg"
+        className={clsx(
+          "flex flex-col items-center justify-center text-center",
+          className,
+        )}
+      >
+        {content}
+      </GlassSurface>
+    );
+  }
+
+  if (variant === "elevated") {
+    return (
+      <div
+        className={clsx(
+          "glass-card shadow-depth-2 rounded-3xl p-10 flex flex-col items-center justify-center text-center",
+          toneStyle.container,
+          className,
+        )}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  if (variant === "minimal") {
+    return (
+      <div
+        className={clsx(
+          "flex flex-col items-center justify-center gap-4 py-10 px-6 text-center",
+          className,
+        )}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        "glass-subtle rounded-2xl p-10 flex flex-col items-center justify-center gap-4 text-center",
+        toneStyle.container,
+        className,
+      )}
+    >
+      {content}
     </div>
   );
 }

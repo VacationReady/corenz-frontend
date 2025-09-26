@@ -1,19 +1,40 @@
 import * as React from "react";
-
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto bg-card rounded-xl shadow-lg border border-enhanced">
-    <table
-      ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
-      {...props}
-    />
-  </div>
-));
+interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
+  variant?: "default" | "glass" | "minimal" | "striped";
+  size?: "sm" | "md" | "lg";
+}
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  ({ className, variant = "glass", size = "md", ...props }, ref) => {
+    const containerClasses = {
+      default: "glass-card shadow-depth-2",
+      glass: "glass-strong shadow-depth-2",
+      minimal: "glass-subtle shadow-depth-1",
+      striped: "glass shadow-depth-1",
+    }[variant];
+
+    return (
+      <div className={cn(
+        "relative w-full overflow-auto rounded-2xl",
+        containerClasses
+      )}>
+        <table
+          ref={ref}
+          className={cn(
+            "w-full caption-bottom",
+            size === "sm" && "text-xs",
+            size === "md" && "text-sm",
+            size === "lg" && "text-base",
+            className
+          )}
+          {...props}
+        />
+      </div>
+    );
+  }
+);
 Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<
@@ -23,7 +44,8 @@ const TableHeader = React.forwardRef<
   <thead
     ref={ref}
     className={cn(
-      "bg-card-header sticky top-0 z-10 [&_tr]:border-b [&_tr]:border-enhanced",
+      "glass-subtle border-b border-glass sticky top-0 z-10",
+      "[&_tr]:border-b [&_tr]:border-glass",
       className,
     )}
     {...props}
@@ -37,7 +59,11 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
+    className={cn(
+      "[&_tr:last-child]:border-0",
+      "[&_tr:nth-child(even)]:bg-black/[0.02] dark:[&_tr:nth-child(even)]:bg-white/[0.02]",
+      className
+    )}
     {...props}
   />
 ));
@@ -50,7 +76,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+      "glass-subtle border-t border-glass font-medium [&>tr]:last:border-b-0",
       className,
     )}
     {...props}
@@ -60,12 +86,16 @@ TableFooter.displayName = "TableFooter";
 
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableRowElement> & {
+    hoverable?: boolean;
+  }
+>(({ className, hoverable = true, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-enhanced transition-smooth hover:bg-section-background data-[state=selected]:bg-accent",
+      "border-b border-glass transition-premium",
+      hoverable && "hover:glass-subtle cursor-pointer",
+      "data-[state=selected]:glass data-[state=selected]:shadow-depth-1",
       className,
     )}
     {...props}
@@ -80,7 +110,8 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-4 text-left align-middle font-semibold text-foreground text-sm [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "h-12 px-4 text-left align-middle font-semibold text-foreground",
+      "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
       className,
     )}
     {...props}
@@ -95,7 +126,8 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "p-4 align-middle text-sm text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "px-4 py-3 align-middle text-foreground",
+      "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
       className,
     )}
     {...props}

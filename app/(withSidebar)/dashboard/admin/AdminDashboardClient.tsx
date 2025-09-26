@@ -732,29 +732,31 @@ export default function AdminDashboardClient({
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-primary mb-1">
-                      {approvalsCount}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      pending approvals
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-3 flex-shrink-0 flex-wrap gap-3">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-primary mb-1">
+                        {approvalsCount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        pending approvals
+                      </p>
+                    </div>
                     <Button
                       asChild
-                      size="md"
+                      size="sm"
                       variant="ghost"
-                      className="px-2 text-sm text-muted-foreground hover:text-foreground"
+                      className="px-0 h-auto text-sm text-muted-foreground hover:text-foreground"
                       icon={<ArrowRight className="w-4 h-4" />}
                       iconPosition="end"
                     >
                       <Link href="/dashboard/approvals">View All</Link>
                     </Button>
+                  </div>
+                  <div className="flex items-center">
                     <Button
-                      size="md"
-                      className="whitespace-nowrap"
+                      size="sm"
+                      className="whitespace-nowrap shadow-none hover:shadow-none"
                       onClick={async () => {
                         try {
                           const qs = new URLSearchParams({ status: "PENDING" });

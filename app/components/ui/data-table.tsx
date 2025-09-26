@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { Input } from "@/components/ui/Input";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Checkbox } from "@/components/ui/Checkbox";
 
 interface DataTableProps<TData, TValue> {

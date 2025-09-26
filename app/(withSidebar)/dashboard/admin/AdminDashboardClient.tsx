@@ -247,15 +247,11 @@ export default function AdminDashboardClient({
           const qs = new URLSearchParams({ status: "PENDING", limit: "5" });
           if (scope) qs.set("scope", scope);
           if (departmentId) qs.set("departmentId", departmentId);
-          const res = await fetch(`/api/leave-request?${qs.toString()}`, {
+          const res = await fetch(`/api/approvals?${qs.toString()}`, {
             cache: "no-store",
           });
           const data = await res.json();
-          const parsed = Array.isArray(data)
-            ? data
-            : Array.isArray(data?.data)
-              ? data.data
-              : [];
+          const parsed = Array.isArray(data?.items) ? data.items : [];
           if (active) setItems(parsed);
         } catch {
           if (active) setItems([]);
@@ -271,11 +267,10 @@ export default function AdminDashboardClient({
 
     const action = async (id: string, action: "approve" | "decline") => {
       try {
-        const item = items?.find((i) => i.id === id);
-        const res = await fetch(`/api/leave-request/${id}`, {
-          method: "PATCH",
+        const res = await fetch(`/api/approvals/${id}`, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item?.myDecision?.id ? { action, decisionId: item.myDecision.id } : { action }),
+          body: JSON.stringify({ action }),
         });
         if (res.ok) {
           toast.success(action === "approve" ? "Approved" : "Declined");
@@ -317,13 +312,8 @@ export default function AdminDashboardClient({
               className="flex items-center justify-between gap-3 text-left hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
               onClick={async () => {
                 try {
-                  const res = await fetch(`/api/leave-request/${it.id}`);
-                  const data = await res.json();
-                  if (data?.success) {
-                    window.dispatchEvent(
-                      new CustomEvent("open-leave-detail", { detail: data.data }),
-                    );
-                  }
+                  // optional: navigate to approvals page
+                  window.location.href = "/dashboard/approvals";
                 } catch {}
               }}
             >
@@ -335,9 +325,7 @@ export default function AdminDashboardClient({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{name}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {(it.eventCategory?.name || it.type)} •{" "}
-                  {new Date(it.startDate).toLocaleDateString()} →{" "}
-                  {new Date(it.endDate).toLocaleDateString()}
+                  {it.type ?? "Approval"}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

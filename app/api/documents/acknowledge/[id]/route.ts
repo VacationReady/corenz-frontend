@@ -74,11 +74,12 @@ export async function GET(
 
       // ✅ Split acknowledged vs pending
       const acknowledgedIds = acknowledgements.map((ack: any) => ack.employeeId);
+      // Note: Prisma include returns PascalCase relation properties (Employee, User, Department, JobRole)
       const acknowledged = acknowledgements.map((ack: any) => ({
-        name: ack.employee.user.name,
-        email: ack.employee.user.email,
-        department: ack.employee.department?.name || "—",
-        jobRole: ack.employee.user.jobRole?.name || "—",
+        name: ack.Employee.User.name,
+        email: ack.Employee.User.email,
+        department: ack.Employee.Department?.name || "—",
+        jobRole: ack.Employee.User.JobRole?.name || "—",
         acknowledgedAt: ack.acknowledgedAt,
       }));
 

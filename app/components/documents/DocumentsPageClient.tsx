@@ -484,6 +484,7 @@ function DocumentsContent() {
                 <TableHead>Department</TableHead>
                 <TableHead>Job Role</TableHead>
                 <TableHead>Access</TableHead>
+                <TableHead>Read Receipt</TableHead>
                 <TableHead>Signatures</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
@@ -544,6 +545,13 @@ function DocumentsContent() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
+                      {doc.requiresAck ? (
+                        <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">✓ Required</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       {doc.requiresSignature ? (
                         <div className="text-xs">
                           <div>
@@ -558,12 +566,12 @@ function DocumentsContent() {
                                 {doc.signatureTargetCount - (doc.signatureOutstandingCount || 0)} / {doc.signatureTargetCount}
                               </span>
                             ) : (
-                              <span className="text-muted-foreground">—</span>
+                              <span className="text-destructive">✕</span>
                             )}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
+                        <span className="text-destructive text-xs">✕</span>
                       )}
                     </TableCell>
                     <TableCell>

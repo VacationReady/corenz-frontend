@@ -414,7 +414,7 @@ export async function dispatchTransactionalNotifications({
     const toEmails = recipientUsers.map(u => u.email).filter(Boolean) as string[];
     if (toEmails.length) {
       await resend.emails.send({ from: FROM_EMAIL, to: toEmails, subject: `Approval needed: ${sectionConfig.label} - ${employeeName}`, html, text });
-      await prisma.transactionalNotificationLog.create({
+      await (prisma as any).transactionalNotificationLog.create({
         data: {
           companyId,
           approvalId: approval.id,

@@ -189,7 +189,7 @@ export default function TransactionalNotificationsPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
                 <Select value={row.type} onValueChange={(t) => {
                   const next = [...rows];
-                  next[idx] = { type: t, employeeIds: [] };
+                  next[idx] = { type: t as any, employeeIds: [] } as any;
                   setRows(next);
                 }}>
                   <SelectTrigger><SelectValue placeholder="Recipient type" /></SelectTrigger>
@@ -219,12 +219,12 @@ export default function TransactionalNotificationsPage() {
                 {row.type === 'DEPARTMENT' && (
                   <Select value={row.jobRoleId ?? ''} onValueChange={(v) => {
                     const next = [...rows];
-                    next[idx] = { ...row, jobRoleId: v || undefined };
+                    next[idx] = { ...row, jobRoleId: (v === '_ALL_' ? undefined : v) };
                     setRows(next);
                   }}>
                     <SelectTrigger><SelectValue placeholder="(Optional) Job role" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All roles</SelectItem>
+                      <SelectItem value="_ALL_">All roles</SelectItem>
                       {jobRoles.map((r) => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}

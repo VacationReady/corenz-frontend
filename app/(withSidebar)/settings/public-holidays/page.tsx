@@ -17,6 +17,7 @@ export default function PublicHolidaysSettingsPage() {
   const [regions, setRegions] = useState<{ value: string; label: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [previewHolidays, setPreviewHolidays] = useState<Array<{ title: string; start: string }>>([]);
 
   useEffect(() => {
     (async () => {
@@ -31,6 +32,28 @@ export default function PublicHolidaysSettingsPage() {
       setLoading(false);
     })();
   }, []);
+
+  // Load a preview list when selection changes
+  useEffect(() => {
+    const loadPreview = async () => {
+      setPreviewHolidays([]);
+      if (!value) return;
+      const year = new Date().getFullYear();
+      const from = new Date(Date.UTC(year, 0, 1)).toISOString();
+      const to = new Date(Date.UTC(year, 11, 31, 23, 59, 59)).toISOString();
+      try {
+        const qs = new URLSearchParams({ from, to, template: value, ...(region ? { region } : {}) });
+        const res = await fetch(`/api/public-holidays?${qs.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = (Array.isArray(data) ? data : []).map((e: any) => ({ title: e.title, start: e.start }));
+          items.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          setPreviewHolidays(items);
+        }
+      } catch {}
+    };
+    loadPreview();
+  }, [value, region]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -105,6 +128,21 @@ export default function PublicHolidaysSettingsPage() {
               <option key={r.value} value={r.value}>{r.label}</option>
             ))}
           </select>
+          {/* Preview list */}
+          {previewHolidays.length > 0 && (
+            <div className="mt-6">
+              <div className="mb-2 font-medium">Bank holidays this year</div>
+              <ul className="list-disc pl-5 space-y-1">
+                {previewHolidays.map((h, idx) => (
+                  <li key={`${h.start}-${idx}`} className="text-sm">
+                    {new Date(h.start).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                    {": "}
+                    {h.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
       )}
     </PageShell>

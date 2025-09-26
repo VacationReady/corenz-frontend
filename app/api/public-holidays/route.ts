@@ -45,6 +45,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const from = searchParams.get("from");
     const to = searchParams.get("to");
+    // Optional preview overrides
+    const templateOverride = searchParams.get("template") as Template | null;
+    const regionOverride = searchParams.get("region");
     if (!from || !to) {
       return NextResponse.json({ error: "from and to are required" }, { status: 400 });
     }
@@ -52,10 +55,10 @@ export async function GET(req: NextRequest) {
       where: { id: companyIdFromSession },
       select: { publicHolidayTemplate: true, publicHolidayRegion: true, id: true },
     });
-    const template = (company?.publicHolidayTemplate ?? null) as Template | null;
+    const template = (templateOverride || company?.publicHolidayTemplate || null) as Template | null;
     if (!template) return NextResponse.json([]);
     const country = mapTemplateToCountry(template);
-    const subdivision = company?.publicHolidayRegion || undefined; // e.g., NZ-WGN, AU-NSW, GB-SCT
+    const subdivision = (regionOverride || company?.publicHolidayRegion || undefined) as string | undefined; // e.g., NZ-WGN, AU-NSW, GB-SCT
 
     const cacheKey = buildCacheKey({ companyId: company!.id, template, region: subdivision || null, from, to });
     const cached = CACHE.get(cacheKey);

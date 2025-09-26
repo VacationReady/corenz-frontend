@@ -248,7 +248,10 @@ export async function POST(
       const stages = await createLeaveApprovalPlan({
         prismaTx: prisma,
         leaveRequestId: newLeaveRequest.id,
-        workflow,
+        workflow: {
+          ...workflow,
+          context: { requesterUserId: employee.User.id, managerUserId: employee.User.managerId ?? null },
+        } as any,
       });
 
       // Notify active approvers on first stage

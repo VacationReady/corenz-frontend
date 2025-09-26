@@ -5,7 +5,16 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { hasPermission } from "@/lib/permissions";
 
-const ApproverSchema = z.object({ userId: z.string().min(1), order: z.number().int().nonnegative() });
+const ApproverSchema = z
+  .object({
+    type: z.enum(["USER", "MANAGER"]).default("USER"),
+    userId: z.string().optional(),
+    order: z.number().int().nonnegative(),
+  })
+  .refine((v) => (v.type === "USER" ? !!v.userId : true), {
+    message: "userId is required when type is USER",
+    path: ["userId"],
+  });
 const StageSchema = z.object({
   name: z.string().optional().nullable(),
   mode: z.enum(["SEQUENTIAL", "FIRST_RESPONDER", "UNANIMOUS"]),
@@ -65,7 +74,8 @@ export async function GET() {
       order: s.order,
       approvers: s.approvers.map((a) => ({
         id: a.id,
-        userId: a.userId,
+        type: a.type as any,
+        userId: a.userId ?? null,
         name: a.user?.name ?? null,
         email: a.user?.email ?? null,
         order: a.order,
@@ -124,7 +134,8 @@ export async function POST(req: Request) {
           await tx.approvalWorkflowStageApprover.create({
             data: {
               stageId: stage.id,
-              userId: appr.userId,
+              type: appr.type as any,
+              userId: appr.type === "USER" ? (appr.userId as string) : null,
               order: appr.order,
             },
           });

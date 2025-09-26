@@ -97,7 +97,7 @@ export default function MultiStageApprovalsSettingsPage() {
     setEmployeeIds(w.scope?.employeeIds || []);
     setPriority(w.priority ?? 0);
     setIsActive(Boolean(w.isActive));
-    setStages((w.stages || []).map((s: any) => ({ name: s.name || "", mode: s.mode, order: s.order, approvers: (s.approvers || []).map((a: any) => ({ userId: a.userId, order: a.order })) })));
+    setStages((w.stages || []).map((s: any) => ({ name: s.name || "", mode: s.mode, order: s.order, approvers: (s.approvers || []).map((a: any) => ({ type: a.type || (a.userId ? "USER" : "MANAGER"), userId: a.userId || undefined, order: a.order })) })));
     setOpen(true);
   }
 
@@ -123,7 +123,7 @@ export default function MultiStageApprovalsSettingsPage() {
             name: s.name || undefined,
             mode: s.mode,
             order: typeof s.order === "number" ? s.order : idx,
-            approvers: (s.approvers || []).map((a: any, ix: number) => ({ userId: a.userId, order: typeof a.order === "number" ? a.order : ix })),
+            approvers: (s.approvers || []).map((a: any, ix: number) => ({ type: a.type || (a.userId ? "USER" : "MANAGER"), userId: a.userId || undefined, order: typeof a.order === "number" ? a.order : ix })),
           }))
           .sort((a: any, b: any) => a.order - b.order),
       } as any;
@@ -299,25 +299,34 @@ export default function MultiStageApprovalsSettingsPage() {
                     <div className="mt-1 space-y-1">
                       {(s.approvers || []).map((a: any, ix: number) => (
                         <div key={ix} className="flex gap-2 items-center">
-                          <div className="flex-1">
-                            <Command className="border rounded">
-                              <CommandInput placeholder="Search employees..." />
-                              <CommandList>
-                                <CommandEmpty>No results found.</CommandEmpty>
-                                <CommandGroup>
-                                  {employees.map((emp) => (
-                                    <CommandItem key={emp.id} value={emp.name} onSelect={() => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, userId: emp.id } : y) } : x))}>
-                                      {emp.name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
+                          <div className="flex-1 flex gap-2">
+                            <Select value={a.type || (a.userId ? "USER" : "MANAGER")} onValueChange={(v) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, type: v, userId: v === "USER" ? (y.userId || "") : undefined } : y) } : x))}>
+                              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="MANAGER">Manager</SelectItem>
+                                <SelectItem value="USER">Specific employee</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            { (a.type || (a.userId ? "USER" : "MANAGER")) === "USER" && (
+                              <Command className="border rounded flex-1">
+                                <CommandInput placeholder="Search employees..." />
+                                <CommandList>
+                                  <CommandEmpty>No results found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {employees.map((emp) => (
+                                      <CommandItem key={emp.id} value={emp.name} onSelect={() => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, userId: emp.id, type: "USER" } : y) } : x))}>
+                                        {emp.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            )}
                           </div>
                           <Input placeholder="Order" value={String(a.order ?? ix)} onChange={(e) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, order: Number(e.target.value) || 0 } : y) } : x))} />
                         </div>
                       ))}
-                      <Button size="sm" variant="outline" onClick={() => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: [...(x.approvers || []), { userId: "", order: (x.approvers?.length ?? 0) }] } : x))}>Add approver</Button>
+                      <Button size="sm" variant="outline" onClick={() => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: [...(x.approvers || []), { type: "MANAGER", userId: undefined, order: (x.approvers?.length ?? 0) }] } : x))}>Add approver</Button>
                     </div>
                   </div>
                 ))}

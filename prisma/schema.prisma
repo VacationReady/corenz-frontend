@@ -1419,12 +1419,14 @@ model ApprovalWorkflowStage {
 model ApprovalWorkflowStageApprover {
   id      String                @id @default(cuid())
   stageId String
-  userId  String
+  type    ApproverType          @default(USER)
+  userId  String?
   order   Int
   stage   ApprovalWorkflowStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  user    User                  @relation("ApprovalWorkflowStageApprover_userIdToUser", fields: [userId], references: [id])
+  user    User?                 @relation("ApprovalWorkflowStageApprover_userIdToUser", fields: [userId], references: [id])
 
   @@unique([stageId, order])
+  // Unique per user only when a user is provided
   @@unique([stageId, userId])
 }
 
@@ -1499,6 +1501,11 @@ enum ApprovalStageMode {
   SEQUENTIAL
   FIRST_RESPONDER
   UNANIMOUS
+}
+
+enum ApproverType {
+  USER
+  MANAGER
 }
 
 enum AuditAction {

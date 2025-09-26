@@ -15,8 +15,13 @@ export async function createLeaveApprovalPlan({
       name: string | null;
       mode: ApprovalStageMode;
       order: number;
-      approvers: Array<{ order: number; userId: string }>;
+      approvers: Array<{ order: number; userId?: string; type?: "USER" | "MANAGER" }>;
     }>;
+  };
+  // Optional context for resolving dynamic approvers like MANAGER
+  context?: {
+    requesterUserId?: string;
+    managerUserId?: string | null;
   };
 }) {
   const createdStages = [] as any[];
@@ -39,20 +44,29 @@ export async function createLeaveApprovalPlan({
       isSequential ? order === 0 : true;
 
     const decisions = await Promise.all(
-      stage.approvers.map((appr) =>
-        (prismaTx as any).leaveApprovalDecision.create({
+      stage.approvers.map((appr) => {
+        const type = appr.type ?? "USER";
+        const resolvedApproverId =
+          type === "MANAGER"
+            ? ((workflow as any).context?.managerUserId as string | undefined)
+            : (appr.userId as string | undefined);
+        if (!resolvedApproverId) {
+          // Skip creating a decision if we cannot resolve the approver
+          return Promise.resolve(null);
+        }
+        return (prismaTx as any).leaveApprovalDecision.create({
           data: {
             stageId: stageRow.id,
-            approverId: appr.userId,
+            approverId: resolvedApproverId,
             order: appr.order,
             status: "PENDING",
             isActive: makeActive(appr.order),
           },
-        }),
-      ),
+        });
+      }),
     );
 
-    createdStages.push({ ...stageRow, decisions });
+    createdStages.push({ ...stageRow, decisions: decisions.filter(Boolean) });
   }
 
   return createdStages;

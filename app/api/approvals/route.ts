@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       title: `${d.stage.leaveRequest.Employee.User?.firstName ?? "Employee"} — ${d.stage.leaveRequest.EventCategory?.name ?? "Leave"}`,
       subtitle: `${new Date(d.stage.leaveRequest.startDate).toLocaleDateString()} to ${new Date(d.stage.leaveRequest.endDate).toLocaleDateString()}`,
     })),
-    ...txnApprovals.map((t) => ({
+    ...txnApprovals.map((t: any) => ({
       id: t.id,
       type: "TRANSACTIONAL" as const,
       title: t.title ?? "Transactional change",

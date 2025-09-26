@@ -1701,7 +1701,8 @@ video {
   .glass-subtle {
     background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    /* More visible default border for inputs/controls */
+    border: 1px solid hsl(var(--border));
   }
 
   .dark .glass {
@@ -1725,11 +1726,12 @@ video {
   }
 
   .border-glass {
-    border-color: rgba(255, 255, 255, 0.4);
+    /* Align border utility with theme border token for better contrast */
+    border-color: hsl(var(--border));
   }
 
   .dark .border-glass {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: hsl(var(--border));
   }
 
   /* Enhanced Shadows */

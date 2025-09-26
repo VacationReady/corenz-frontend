@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -38,7 +39,8 @@ export default function AddDocumentModal({
   const [employeeId, setEmployeeId] = useState("");
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [newCategory, setNewCategory] = useState("");
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,7 +108,7 @@ export default function AddDocumentModal({
     if (open) loadData();
   }, [open]);
 
-  const categories = [
+  const [categoriesList, setCategoriesList] = useState<string[]>([
     "Contract",
     "Visa",
     "Right to Work",
@@ -116,7 +118,14 @@ export default function AddDocumentModal({
     "Policy",
     "Performance Review",
     "Other",
-  ];
+  ]);
+
+  const addCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setCategoriesList((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    setCategory(trimmed);
+  };
 
   const handleSubmit = async () => {
     if (!title || !file || !user?.id) {
@@ -359,12 +368,21 @@ export default function AddDocumentModal({
 
         <div>
           <Label>Category</Label>
-          <Select onValueChange={(v) => { setCategory(v); if (v !== "__new__") setNewCategory(""); }}>
+          <Select
+            value={category || undefined}
+            onValueChange={(v) => {
+              if (v === "__new__") {
+                setIsAddCategoryOpen(true);
+              } else {
+                setCategory(v);
+              }
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((cat) => (
+              {categoriesList.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
                 </SelectItem>
@@ -372,15 +390,6 @@ export default function AddDocumentModal({
               <SelectItem value="__new__">+ Add new category</SelectItem>
             </SelectContent>
           </Select>
-          {category === "__new__" && (
-            <Input
-              className="mt-2"
-              placeholder="New category name"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              onBlur={() => { if (newCategory.trim()) setCategory(newCategory.trim()); }}
-            />
-          )}
         </div>
 
         <div>
@@ -520,6 +529,36 @@ export default function AddDocumentModal({
           )
         )}
       </DialogContent>
+    {/* Add Category Modal */}
+    <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Add new category</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="newCategoryName">Category name</Label>
+          <Input
+            id="newCategoryName"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            placeholder="e.g. Payroll Form"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setIsAddCategoryOpen(false); setNewCategoryName(""); }}>Cancel</Button>
+          <Button
+            onClick={() => {
+              if (!newCategoryName.trim()) return;
+              addCategory(newCategoryName);
+              setNewCategoryName("");
+              setIsAddCategoryOpen(false);
+            }}
+          >
+            Add
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
       {/* Placement before upload (local) */}
       <FieldPlacementModal
         isOpen={isPlacementBeforeSendOpen}

@@ -172,8 +172,9 @@ export function DataTable<TData, TValue>({
                           if (!options) {
                             const values = Array.from(
                               new Set(
-                                header.table.getPreFilteredRowModel().rows
-                                  .map((r) => r.getValue(header.column.id))
+                                header.getContext().table
+                                  .getPreFilteredRowModel()
+                                  .rows.map((r) => r.getValue(header.column.id))
                                   .map((v) => (v ?? "").toString())
                                   .filter((v) => v.length > 0),
                               ),

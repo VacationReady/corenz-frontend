@@ -6,19 +6,6 @@ import { authOptions } from "@/lib/auth-options";
 // Slugs must be unique per company.
 const BUILTIN_SCREENS = [
   {
-    slug: "contact-info",
-    name: "Contact Information",
-    description: "Address and basic contact details",
-    formType: "DATA_SCREEN",
-    schema: [
-      { id: "addressStreet", type: "text", label: "Street", required: false },
-      { id: "addressCity", type: "text", label: "City", required: false },
-      { id: "addressPostcode", type: "text", label: "Postcode", required: false },
-      { id: "addressCountry", type: "text", label: "Country", required: false },
-      { id: "phone", type: "text", label: "Phone", required: false },
-    ],
-  },
-  {
     slug: "demographic",
     name: "Demographic",
     description: "Voluntary demographic information",

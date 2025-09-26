@@ -52,6 +52,14 @@ export default function FormsPage() {
           f.name.toLowerCase().includes(query.toLowerCase()) ||
           (f.description || "").toLowerCase().includes(query.toLowerCase()),
       )
+      // Hide unwanted built-ins by name or slug
+      .filter((f) => {
+        const name = (f.name || "").toLowerCase();
+        const slug = (f.slug || "").toLowerCase();
+        if (name.includes("bank details") || slug.includes("bank-details")) return false;
+        if (name.includes("contact information") || slug.includes("contact-info")) return false;
+        return true;
+      })
       .filter((f) =>
         status === "all"
           ? true

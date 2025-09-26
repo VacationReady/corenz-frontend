@@ -43,8 +43,7 @@ export default function NewGenderOptionModal({
     load();
   }, []);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!name.trim()) {
       setError("Name is required.");
       return;
@@ -117,7 +116,7 @@ export default function NewGenderOptionModal({
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="space-y-3">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -128,9 +127,11 @@ export default function NewGenderOptionModal({
             <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
               Close
             </Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add"}</Button>
+            <Button type="button" onClick={handleSubmit} disabled={loading}>
+              {loading ? "Saving..." : "Add"}
+            </Button>
           </div>
-        </form>
+        </div>
       </Card>
     </div>
   );

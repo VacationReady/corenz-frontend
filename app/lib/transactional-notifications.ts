@@ -307,8 +307,9 @@ export async function dispatchTransactionalNotifications({
       const users: { id: string; email: string | null }[] = [];
       const seen = new Set<string>();
 
-      const advanced = preference?.recipientsJson as any[] | undefined;
-      const fallback = preference?.fallbackRecipientsJson as any[] | undefined;
+      const prefAny = preference as any;
+      const advanced = prefAny?.recipientsJson as any[] | undefined;
+      const fallback = prefAny?.fallbackRecipientsJson as any[] | undefined;
 
       async function addByRole(role: "ADMIN" | "MANAGER" | "EMPLOYEE") {
         if (role === "ADMIN") {

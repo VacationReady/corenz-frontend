@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await prisma.transactionalApproval.update({
+  await (prisma as any).transactionalApproval.update({
     where: { id },
     data: {
       status: action === "approve" ? "APPROVED" : "DECLINED",

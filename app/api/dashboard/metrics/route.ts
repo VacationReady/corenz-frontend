@@ -87,7 +87,7 @@ export async function GET(req: Request) {
         },
       }),
       // transactional approvals - my
-      prisma.transactionalApproval.count({
+      (prisma as any).transactionalApproval.count({
         where: {
           companyId,
           status: "PENDING",
@@ -95,7 +95,7 @@ export async function GET(req: Request) {
         },
       }),
       // transactional approvals - all
-      prisma.transactionalApproval.count({
+      (prisma as any).transactionalApproval.count({
         where: {
           companyId,
           status: "PENDING",

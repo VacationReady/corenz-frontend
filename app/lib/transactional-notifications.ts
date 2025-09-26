@@ -378,7 +378,7 @@ export async function dispatchTransactionalNotifications({
     const employeeName = employee.User ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email : 'Employee';
     const diffSummary = { count: diffs.length, fields: diffs.map(d => d.field) };
 
-    const approval = await prisma.transactionalApproval.create({
+    const approval = await (prisma as any).transactionalApproval.create({
       data: {
         companyId,
         section,

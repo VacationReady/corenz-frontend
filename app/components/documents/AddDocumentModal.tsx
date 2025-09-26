@@ -108,17 +108,47 @@ export default function AddDocumentModal({
     if (open) loadData();
   }, [open]);
 
-  const [categoriesList, setCategoriesList] = useState<string[]>([
-    "Contract",
-    "Visa",
-    "Right to Work",
-    "Passport",
-    "Training Certificate",
-    "ID Document",
-    "Policy",
-    "Performance Review",
-    "Other",
-  ]);
+  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
+
+  const loadCategories = async () => {
+    try {
+      const res = await fetch("/api/document-categories");
+      if (res.ok) {
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : data?.categories || [];
+        setCategoriesList(items);
+      } else {
+        // Fallback defaults if API not available
+        setCategoriesList([
+          "Contract",
+          "Visa",
+          "Right to Work",
+          "Passport",
+          "Training Certificate",
+          "ID Document",
+          "Policy",
+          "Performance Review",
+          "Other",
+        ]);
+      }
+    } catch {
+      setCategoriesList([
+        "Contract",
+        "Visa",
+        "Right to Work",
+        "Passport",
+        "Training Certificate",
+        "ID Document",
+        "Policy",
+        "Performance Review",
+        "Other",
+      ]);
+    }
+  };
+  useEffect(() => {
+    if (open) loadCategories();
+  }, [open]);
 
   const addCategory = (name: string) => {
     const trimmed = name.trim();
@@ -372,7 +402,7 @@ export default function AddDocumentModal({
             value={category || undefined}
             onValueChange={(v) => {
               if (v === "__new__") {
-                setIsAddCategoryOpen(true);
+                setManageCategoriesOpen(true);
               } else {
                 setCategory(v);
               }
@@ -529,33 +559,74 @@ export default function AddDocumentModal({
           )
         )}
       </DialogContent>
-    {/* Add Category Modal */}
-    <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-      <DialogContent className="max-w-sm">
+    {/* Manage Categories Modal */}
+    <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add new category</DialogTitle>
+          <DialogTitle>Manage Categories</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2">
-          <Label htmlFor="newCategoryName">Category name</Label>
-          <Input
-            id="newCategoryName"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="e.g. Payroll Form"
-          />
+        <div className="space-y-3">
+          <div className="space-y-2 max-h-60 overflow-auto border rounded p-2">
+            {categoriesList.map((c) => (
+              <div key={c} className="flex items-center justify-between gap-2">
+                <span className="text-sm">{c}</span>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/document-categories", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: c }),
+                      });
+                      if (!res.ok) throw new Error("Failed to delete category");
+                      setCategoriesList((prev) => prev.filter((x) => x !== c));
+                      if (category === c) setCategory("");
+                    } catch (e: any) {
+                      toast.error(e.message);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            ))}
+            {categoriesList.length === 0 && (
+              <p className="text-sm text-muted-foreground">No categories yet.</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="New category name"
+            />
+            <Button
+              onClick={async () => {
+                const name = newCategoryName.trim();
+                if (!name) return;
+                try {
+                  const res = await fetch("/api/document-categories", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name }),
+                  });
+                  if (!res.ok) throw new Error("Failed to add category");
+                  setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
+                  setCategory(name);
+                  setNewCategoryName("");
+                } catch (e: any) {
+                  toast.error(e.message);
+                }
+              }}
+            >
+              Add
+            </Button>
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => { setIsAddCategoryOpen(false); setNewCategoryName(""); }}>Cancel</Button>
-          <Button
-            onClick={() => {
-              if (!newCategoryName.trim()) return;
-              addCategory(newCategoryName);
-              setNewCategoryName("");
-              setIsAddCategoryOpen(false);
-            }}
-          >
-            Add
-          </Button>
+          <Button variant="outline" onClick={() => setManageCategoriesOpen(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

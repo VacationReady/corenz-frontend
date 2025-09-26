@@ -54,6 +54,7 @@ export default function TransactionalNotificationsPage() {
   const [groups, setGroups] = useState<PreferenceGroup[]>([]);
   const [originalGroups, setOriginalGroups] = useState<PreferenceGroup[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [openAdvanced, setOpenAdvanced] = useState<Record<string, boolean>>({});
 
   // Track which accordion items are open
   const [openAccordions, setOpenAccordions] = useState<string[]>([]);
@@ -488,8 +489,37 @@ export default function TransactionalNotificationsPage() {
                                 onChange={(value) => updateSection(group.id, section.section, 'notifyEmployee', value)}
                               />
                             </div>
+                            <div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setOpenAdvanced((prev) => ({ ...prev, [section.section]: !prev[section.section] }));
+                                }}
+                              >
+                                {openAdvanced[section.section] ? "Hide advanced" : "Recipients..."}
+                              </Button>
+                            </div>
                           </div>
                         </div>
+                        {openAdvanced[section.section] && (
+                          <div className="mt-4 border rounded-md p-3 bg-muted/30">
+                            <div className="text-xs text-muted-foreground mb-2">
+                              Configure advanced recipients such as Department, Job role, and Specific employees.
+                            </div>
+                            <RecipientsEditor
+                              value={section.recipientsJson as any}
+                              onChange={(rows) => {
+                                setGroups((prev) => prev.map((g) => (
+                                  g.id !== group.id ? g : {
+                                    ...g,
+                                    sections: g.sections.map((s) => s.section === section.section ? { ...s, recipientsJson: rows, isDefault: false } : s)
+                                  }
+                                )));
+                              }}
+                            />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}

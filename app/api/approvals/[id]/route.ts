@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
 
   // Fallback to transactional approval
-  const txn = await prisma.transactionalApproval.findUnique({ where: { id } });
+  const txn = await (prisma as any).transactionalApproval.findUnique({ where: { id } });
   if (!txn || txn.companyId !== session.user.companyId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

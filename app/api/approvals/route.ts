@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   });
 
   // Transactional approvals
-  const txnApprovals = await prisma.transactionalApproval.findMany({
+  const txnApprovals = await (prisma as any).transactionalApproval.findMany({
     where: {
       companyId,
       status: status as any,

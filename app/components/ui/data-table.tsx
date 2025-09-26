@@ -66,9 +66,33 @@ export function DataTable<TData, TValue>({
     }) as unknown as ColumnDef<TData, TValue>;
   }, [enableRowSelection]);
 
+  // Support multi-select filters via column meta
+  const enhancedColumns = useMemo(() => {
+    const multiSelectFilterFn = (row: any, columnId: string, filterValues: string[]) => {
+      if (!Array.isArray(filterValues) || filterValues.length === 0) return true;
+      if (filterValues.includes("all")) return true;
+      const cellValue = row.getValue(columnId);
+      const normalized = (cellValue ?? "").toString();
+      return filterValues.includes(normalized);
+    };
+
+    // Attach filterFn to columns that declare meta.filter.type === 'multi'
+    const attachFilterFn = (col: ColumnDef<TData, TValue>): ColumnDef<TData, TValue> => {
+      const anyCol = col as any;
+      const isMulti = anyCol?.meta?.filter?.type === "multi";
+      if (isMulti && !anyCol.filterFn) {
+        return { ...(col as any), filterFn: multiSelectFilterFn } as ColumnDef<TData, TValue>;
+      }
+      return col;
+    };
+
+    return columns.map(attachFilterFn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(columns)]);
+
   const columnsWithSelection = useMemo(
-    () => (selectionColumn ? ([selectionColumn, ...columns] as ColumnDef<TData, TValue>[]) : columns),
-    [selectionColumn, columns],
+    () => (selectionColumn ? ([selectionColumn, ...enhancedColumns] as ColumnDef<TData, TValue>[]) : enhancedColumns),
+    [selectionColumn, enhancedColumns],
   );
 
   const table = useReactTable({
@@ -119,10 +143,7 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b">
                 {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-4 py-2 text-left text-sm font-medium align-top"
-                  >
+                  <th key={header.id} className="px-4 py-2 text-left text-sm font-medium align-top">
                     <div className="flex flex-col gap-2">
                       <div
                         className="cursor-pointer select-none inline-flex items-center gap-1"
@@ -137,15 +158,42 @@ export function DataTable<TData, TValue>({
                           desc: " 🔽",
                         }[header.column.getIsSorted() as string] ?? null}
                       </div>
-                      {header.column.getCanFilter() && (
-                        <Input
-                          placeholder={`Filter ${header.column.id}`}
-                          value={(header.column.getFilterValue() ?? "") as string}
-                          onChange={(e) => header.column.setFilterValue(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-9"
-                        />
-                      )}
+                      {header.column.getCanFilter() && (() => {
+                        const meta: any = header.column.columnDef.meta || {};
+                        const filterType = meta?.filter?.type || "text";
+                        if (filterType === "multi") {
+                          // Build options from meta or unique pre-filtered values
+                          let options = (meta?.filter?.options as { label: string; value: string }[] | undefined);
+                          if (!options) {
+                            const values = Array.from(
+                              new Set(
+                                header.table.getPreFilteredRowModel().rows
+                                  .map((r) => r.getValue(header.column.id))
+                                  .map((v) => (v ?? "").toString())
+                                  .filter((v) => v.length > 0),
+                              ),
+                            );
+                            options = values.map((v) => ({ label: v, value: v }));
+                          }
+                          return (
+                            <MultiSelect
+                              options={options}
+                              value={(header.column.getFilterValue() as string[]) || []}
+                              onValueChange={(vals) => header.column.setFilterValue(vals)}
+                              placeholder={`Select ${header.column.id}...`}
+                            />
+                          );
+                        }
+                        return (
+                          <Input
+                            placeholder={`Filter ${header.column.id}`}
+                            value={(header.column.getFilterValue() ?? "") as string}
+                            onChange={(e) => header.column.setFilterValue(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-9"
+                          />
+                        );
+                      })()}
                     </div>
                   </th>
                 ))}

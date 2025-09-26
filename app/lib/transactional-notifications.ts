@@ -299,6 +299,9 @@ export async function dispatchTransactionalNotifications({
       return;
     }
 
+    const emp = employee; // non-null after guard
+    const act = actor;    // non-null after guard
+
     // Helper: resolve recipients from advanced config if available, otherwise fallback to boolean flags
     async function resolveRecipientUsers(): Promise<{ id: string; email: string | null }[]> {
       const users: { id: string; email: string | null }[] = [];
@@ -312,12 +315,12 @@ export async function dispatchTransactionalNotifications({
           const admins = await prisma.user.findMany({ where: { companyId, role: "ADMIN" } });
           for (const u of admins) if (!seen.has(u.id)) { seen.add(u.id); users.push({ id: u.id, email: u.email }); }
         } else if (role === "MANAGER") {
-          if (employee.User?.managerId) {
-            const m = await prisma.user.findUnique({ where: { id: employee.User.managerId } });
+          if (emp.User?.managerId) {
+            const m = await prisma.user.findUnique({ where: { id: emp.User.managerId } });
             if (m && !seen.has(m.id)) { seen.add(m.id); users.push({ id: m.id, email: m.email }); }
           }
         } else if (role === "EMPLOYEE") {
-          if (employee.User && !seen.has(employee.User.id)) { seen.add(employee.User.id); users.push({ id: employee.User.id, email: employee.User.email }); }
+          if (emp.User && !seen.has(emp.User.id)) { seen.add(emp.User.id); users.push({ id: emp.User.id, email: emp.User.email }); }
         }
       }
 
@@ -361,8 +364,8 @@ export async function dispatchTransactionalNotifications({
       }
 
       // Remove actor
-      if (actor?.id) {
-        const idx = users.findIndex((u) => u.id === actor.id);
+      if (act.id) {
+        const idx = users.findIndex((u) => u.id === act.id);
         if (idx >= 0) users.splice(idx, 1);
       }
       return users;

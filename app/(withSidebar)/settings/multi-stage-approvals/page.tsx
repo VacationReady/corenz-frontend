@@ -37,6 +37,8 @@ export default function MultiStageApprovalsSettingsPage() {
   const [priority, setPriority] = useState<number>(0);
   const [isActive, setIsActive] = useState(true);
   const [stages, setStages] = useState<any[]>([]);
+  // Global rule that applies across stages
+  const [workflowMode, setWorkflowMode] = useState("SEQUENTIAL");
 
   const load = async () => {
     setLoading(true);
@@ -83,7 +85,9 @@ export default function MultiStageApprovalsSettingsPage() {
     setEmployeeIds([]);
     setPriority(0);
     setIsActive(true);
-    setStages([{ name: "", mode: "SEQUENTIAL", order: 0, approvers: [] }]);
+    setWorkflowMode("SEQUENTIAL");
+    // Default one stage with Manager approver
+    setStages([{ order: 0, approvers: [{ type: "MANAGER", userId: undefined, order: 0 }] }]);
     setOpen(true);
   }
 
@@ -97,14 +101,33 @@ export default function MultiStageApprovalsSettingsPage() {
     setEmployeeIds(w.scope?.employeeIds || []);
     setPriority(w.priority ?? 0);
     setIsActive(Boolean(w.isActive));
-    setStages((w.stages || []).map((s: any) => ({ name: s.name || "", mode: s.mode, order: s.order, approvers: (s.approvers || []).map((a: any) => ({ type: a.type || (a.userId ? "USER" : "MANAGER"), userId: a.userId || undefined, order: a.order })) })));
+    // Use first stage's mode as workflow-level rule (all stages will save with the same mode)
+    setWorkflowMode(((w.stages || [])[0]?.mode) || "SEQUENTIAL");
+    setStages((w.stages || []).map((s: any) => ({ order: s.order, approvers: [
+      (() => {
+        const a = (s.approvers || [])[0];
+        return { type: a?.type || (a?.userId ? "USER" : "MANAGER"), userId: a?.userId || undefined, order: 0 };
+      })(),
+    ] })));
     setOpen(true);
   }
 
   async function save() {
     try {
-      if (!name || !eventCategoryId || stages.length === 0 || stages.some((s) => !s.approvers || s.approvers.length === 0)) {
-        toast.error("Please fill name, event category and ensure each stage has at least one approver.");
+      if (!name || !eventCategoryId || stages.length === 0) {
+        toast.error("Please fill name, event category and add at least one stage.");
+        return;
+      }
+      if (stages.some((s) => !s.approvers || s.approvers.length !== 1)) {
+        toast.error("Each stage must have exactly one approver.");
+        return;
+      }
+      const anyMissing = stages.some((s) => {
+        const a = s.approvers[0];
+        return !a || (a.type === "USER" && !a.userId);
+      });
+      if (anyMissing) {
+        toast.error("Select an approver for every stage.");
         return;
       }
       const payload = {
@@ -120,10 +143,13 @@ export default function MultiStageApprovalsSettingsPage() {
         isActive,
         stages: stages
           .map((s, idx) => ({
-            name: s.name || undefined,
-            mode: s.mode,
+            name: undefined,
+            mode: workflowMode,
             order: typeof s.order === "number" ? s.order : idx,
-            approvers: (s.approvers || []).map((a: any, ix: number) => ({ type: a.type || (a.userId ? "USER" : "MANAGER"), userId: a.userId || undefined, order: typeof a.order === "number" ? a.order : ix })),
+            approvers: [(() => {
+              const a = s.approvers[0];
+              return { type: a.type, userId: a.type === "USER" ? a.userId : undefined, order: 0 };
+            })()],
           }))
           .sort((a: any, b: any) => a.order - b.order),
       } as any;
@@ -154,9 +180,9 @@ export default function MultiStageApprovalsSettingsPage() {
   } as const;
 
   const modeHelp = {
-    SEQUENTIAL: "Approvers must approve in the listed order.",
-    FIRST_RESPONDER: "Any one approver can approve to complete the stage.",
-    UNANIMOUS: "All listed approvers must approve.",
+    SEQUENTIAL: "Stages are approved in sequence (Stage 1 → Stage 2 → …).",
+    FIRST_RESPONDER: "All stages are requested in parallel; first approval completes the workflow.",
+    UNANIMOUS: "All stages must approve; requested in parallel.",
   } as const;
 
   return (
@@ -272,65 +298,49 @@ export default function MultiStageApprovalsSettingsPage() {
                 </div>
               )}
             </div>
-            {/* Minimal stage builder */}
+            {/* Stage builder: one approver per stage */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">Stages</div>
-                <Button size="sm" variant="outline" onClick={() => setStages((prev) => [...prev, { name: "", mode: "SEQUENTIAL", order: prev.length, approvers: [] }])}>Add stage</Button>
+                <Button size="sm" variant="outline" onClick={() => setStages((prev) => [...prev, { order: prev.length, approvers: [{ type: "MANAGER", userId: undefined, order: 0 }] }])}>Add stage</Button>
               </div>
               <div className="space-y-2">
                 {stages.map((s, idx) => (
                   <div key={idx} className="rounded border p-2">
                     <div className="flex gap-2 items-start">
                       <div className="flex-1">
-                        <Input placeholder={`Stage ${idx + 1} name (optional)`} value={s.name} onChange={(e) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))} />
-                        <p className="text-xs text-muted-foreground mt-1">{(modeHelp as any)[s.mode]}</p>
+                        <label className="text-xs text-muted-foreground">Approver</label>
+                        <Select value={(s.approvers?.[0]?.type === "MANAGER") ? "MANAGER" : (s.approvers?.[0]?.userId || "")} onValueChange={(v) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: [{ type: v === "MANAGER" ? "MANAGER" : "USER", userId: v === "MANAGER" ? undefined : v, order: 0 }] } : x))}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select approver" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MANAGER">Manager</SelectItem>
+                            {employees.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <Select value={s.mode} onValueChange={(v) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, mode: v } : x))}>
-                        <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="SEQUENTIAL">Approve in sequence</SelectItem>
-                          <SelectItem value="FIRST_RESPONDER">First responder wins</SelectItem>
-                          <SelectItem value="UNANIMOUS">Everyone must approve</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">Approvers</div>
-                    <div className="mt-1 space-y-1">
-                      {(s.approvers || []).map((a: any, ix: number) => (
-                        <div key={ix} className="flex gap-2 items-center">
-                          <div className="flex-1 flex gap-2">
-                            <Select value={a.type || (a.userId ? "USER" : "MANAGER")} onValueChange={(v) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, type: v, userId: v === "USER" ? (y.userId || "") : undefined } : y) } : x))}>
-                              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="MANAGER">Manager</SelectItem>
-                                <SelectItem value="USER">Specific employee</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            { (a.type || (a.userId ? "USER" : "MANAGER")) === "USER" && (
-                              <Command className="border rounded flex-1">
-                                <CommandInput placeholder="Search employees..." />
-                                <CommandList>
-                                  <CommandEmpty>No results found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {employees.map((emp) => (
-                                      <CommandItem key={emp.id} value={emp.name} onSelect={() => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, userId: emp.id, type: "USER" } : y) } : x))}>
-                                        {emp.name}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            )}
-                          </div>
-                          <Input placeholder="Order" value={String(a.order ?? ix)} onChange={(e) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: x.approvers.map((y: any, j: number) => j === ix ? { ...y, order: Number(e.target.value) || 0 } : y) } : x))} />
-                        </div>
-                      ))}
-                      <Button size="sm" variant="outline" onClick={() => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: [...(x.approvers || []), { type: "MANAGER", userId: undefined, order: (x.approvers?.length ?? 0) }] } : x))}>Add approver</Button>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+            {/* Global approval rule */}
+            <div>
+              <label className="text-xs text-muted-foreground">Rule</label>
+              <Select value={workflowMode} onValueChange={setWorkflowMode}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SEQUENTIAL">Approve in sequence</SelectItem>
+                  <SelectItem value="FIRST_RESPONDER">First responder wins</SelectItem>
+                  <SelectItem value="UNANIMOUS">Everyone must approve</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">{(modeHelp as any)[workflowMode]}</p>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

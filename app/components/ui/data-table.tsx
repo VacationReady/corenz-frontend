@@ -112,21 +112,6 @@ export function DataTable<TData, TValue>({
           <div className="flex items-center gap-2">{selectionActionBar(selectedRows)}</div>
         </div>
       )}
-      <div className="flex items-center gap-2">
-        {table
-          .getAllColumns()
-          .map((column) =>
-            column.getCanFilter() ? (
-              <Input
-                key={column.id}
-                placeholder={`Filter ${column.id}`}
-                value={(column.getFilterValue() ?? "") as string}
-                onChange={(e) => column.setFilterValue(e.target.value)}
-                className="max-w-xs"
-              />
-            ) : null,
-          )}
-      </div>
       <div className="rounded-md border overflow-x-auto">
         <table className="min-w-full border-collapse">
           <thead className="bg-muted">
@@ -135,17 +120,32 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    onClick={header.column.getToggleSortingHandler()}
-                    className="cursor-pointer px-4 py-2 text-left text-sm font-medium"
+                    className="px-4 py-2 text-left text-sm font-medium align-top"
                   >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                    {{
-                      asc: " 🔼",
-                      desc: " 🔽",
-                    }[header.column.getIsSorted() as string] ?? null}
+                    <div className="flex flex-col gap-2">
+                      <div
+                        className="cursor-pointer select-none inline-flex items-center gap-1"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {{
+                          asc: " 🔼",
+                          desc: " 🔽",
+                        }[header.column.getIsSorted() as string] ?? null}
+                      </div>
+                      {header.column.getCanFilter() && (
+                        <Input
+                          placeholder={`Filter ${header.column.id}`}
+                          value={(header.column.getFilterValue() ?? "") as string}
+                          onChange={(e) => header.column.setFilterValue(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-9"
+                        />
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>

@@ -40,6 +40,7 @@ export function ExpiryRuleWizard({
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>([]);
   const [typeOfCheck, setTypeOfCheck] = useState<string[]>([]);
+  const [checkTypes, setCheckTypes] = useState<string[]>([]);
 
   // Channels and recipients
   const [channels, setChannels] = useState<string[]>(["email"]);
@@ -67,7 +68,7 @@ export function ExpiryRuleWizard({
         setDepartments((deps || []).map((d: any) => ({ value: d.id, label: d.name })));
         const jr = Array.isArray(roles) ? roles : roles?.jobRoles || [];
         setJobRoles(jr.map((r: any) => ({ value: r.id, label: r.name })));
-        // For typeOfCheck we keep strings directly
+        setCheckTypes(Array.isArray(types) ? types : []);
       })
       .catch(() => {
         /* soft fail */
@@ -232,7 +233,7 @@ export function ExpiryRuleWizard({
               {selectedField?.id === "EmploymentCheck.expiryDate" && (
                 <div>
                   <Label className="text-xs">Employment check types (optional)</Label>
-                  <MultiSelect value={typeOfCheck} onValueChange={setTypeOfCheck} options={([] as string[]).map((t) => ({ value: t, label: t }))} placeholder="All types" />
+                  <MultiSelect value={typeOfCheck} onValueChange={setTypeOfCheck} options={checkTypes.map((t) => ({ value: t, label: t }))} placeholder="All types" />
                 </div>
               )}
             </div>
@@ -243,7 +244,7 @@ export function ExpiryRuleWizard({
               <div>
                 <Label className="text-xs">Channels</Label>
                 <div className="flex gap-3 text-sm">
-                  {(["email", "slack", "teams"]) as string[]).map((c) => (
+                  {( ["email", "slack", "teams"] as string[] ).map((c) => (
                     <label key={c} className="flex items-center gap-1">
                       <input type="checkbox" checked={channels.includes(c)} onChange={(e) => {
                         setChannels((prev) => e.target.checked ? Array.from(new Set([...prev, c])) : prev.filter((x) => x !== c));

@@ -1138,68 +1138,6 @@ export const hrReportFields: HRReportField[] = [
                 sortable: true,
                 description: "Reference to supporting training documentation",
         },
-        {
-                model: "EmployeePerformanceReview",
-                field: "EmployeePerformanceReview.reviewDate",
-                label: "Performance Review Date",
-                type: "date",
-                category: "performance",
-                filterable: true,
-                sortable: true,
-                description: "Date of the performance review",
-        },
-        {
-                model: "EmployeePerformanceReview",
-                field: "EmployeePerformanceReview.rating",
-                label: "Performance Rating",
-                type: "number",
-                category: "performance",
-                filterable: true,
-                sortable: true,
-                description: "Overall rating assigned during the review",
-        },
-        {
-                model: "EmployeePerformanceReview",
-                field: "EmployeePerformanceReview.summary",
-                label: "Performance Summary",
-                type: "string",
-                category: "performance",
-                filterable: true,
-                sortable: false,
-                description: "Summary notes from the performance review",
-        },
-
-        // Forms & Assignments
-        {
-                model: "FormAssignment",
-                field: "FormAssignment.dueDate",
-                label: "Form Due Date",
-                type: "date",
-                category: "forms",
-                filterable: true,
-                sortable: true,
-                description: "Due date for assigned forms",
-        },
-        {
-                model: "FormAssignment",
-                field: "FormAssignment.status",
-                label: "Form Assignment Status",
-                type: "string",
-                category: "forms",
-                filterable: true,
-                sortable: true,
-                description: "Current status of the form assignment",
-        },
-        {
-                model: "FormAssignment",
-                field: "FormAssignment.completedAt",
-                label: "Form Completed At",
-                type: "date",
-                category: "forms",
-                filterable: true,
-                sortable: true,
-                description: "Timestamp when the form was completed",
-        },
 ];
 
 // Helper functions
@@ -1307,9 +1245,7 @@ export const hrReportTemplates: ReportTemplate[] = [
                         "Course.name",
                         "TrainingRecord.dateCompleted",
                         "TrainingRecord.expiryDate",
-                        "TrainingProvider.name",
-                        "EmployeePerformanceReview.reviewDate",
-                        "EmployeePerformanceReview.rating"
+                        "TrainingProvider.name"
                 ],
         },
         {

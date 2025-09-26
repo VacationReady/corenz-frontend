@@ -9,6 +9,7 @@ import {
   ClipboardList,
   CalendarCheck2,
   UserPlus,
+  ArrowRight,
 } from "lucide-react";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { Switch } from "@/components/ui/switch";
@@ -740,14 +741,19 @@ export default function AdminDashboardClient({
                       pending approvals
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Link href="/dashboard/approvals">
-                      <Button size="sm" variant="outline">
-                        View All
-                      </Button>
-                    </Link>
+                  <div className="flex items-center gap-3">
                     <Button
-                      size="sm"
+                      asChild
+                      size="md"
+                      variant="ghost"
+                      className="px-2 text-sm text-muted-foreground hover:text-foreground"
+                      icon={<ArrowRight className="w-4 h-4" />}
+                      iconPosition="end"
+                    >
+                      <Link href="/dashboard/approvals">View All</Link>
+                    </Button>
+                    <Button
+                      size="md"
                       className="whitespace-nowrap"
                       onClick={async () => {
                         try {

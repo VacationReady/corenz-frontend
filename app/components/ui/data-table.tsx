@@ -165,7 +165,7 @@ export function DataTable<TData, TValue>({
                           // Build options from meta or unique pre-filtered values
                           let options = (typeof meta?.filter?.options === "function"
                             ? meta.filter.options({
-                                table: header.table,
+                                table: header.getContext().table,
                                 column: header.column,
                               })
                             : (meta?.filter?.options as { label: string; value: string }[] | undefined));

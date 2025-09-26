@@ -14,18 +14,29 @@ interface Option {
 
 interface MultiSelectProps {
   options: Option[];
-  selected: string[];
-  onChange: (values: string[]) => void;
+  selected?: string[];
+  value?: string[];
+  onChange?: (values: string[]) => void;
+  onValueChange?: (values: string[]) => void;
   placeholder?: string;
 }
 
 export function MultiSelect({
   options,
   selected,
+  value,
   onChange,
+  onValueChange,
   placeholder = "Select options...",
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const resolvedSelected = selected ?? value ?? [];
+  const handleChange = onChange ?? onValueChange;
+
+  if (!handleChange) {
+    throw new Error("MultiSelect requires an onChange or onValueChange handler");
+  }
 
   // ✅ Dynamically determine "All" label & value
   const isDepartment = placeholder.toLowerCase().includes("department");
@@ -41,19 +52,19 @@ export function MultiSelect({
   }, [options, allOption]);
 
   console.log("Options (final):", fullOptions);
-  console.log("Selected (values):", selected);
+  console.log("Selected (values):", resolvedSelected);
 
   const toggleValue = (value: string) => {
     console.log("Clicked:", value);
-    console.log("Selected before:", selected);
+    console.log("Selected before:", resolvedSelected);
 
     if (value === allOption.value) {
       // ✅ Reset to just "all"
-      onChange([allOption.value]);
+      handleChange([allOption.value]);
       console.log("Reset to ALL:", [allOption.value]);
     } else {
       // ✅ Remove "all" if selecting a specific
-      let updated = selected.filter((v) => v !== allOption.value);
+      let updated = resolvedSelected.filter((v) => v !== allOption.value);
 
       if (updated.includes(value)) {
         updated = updated.filter((v) => v !== value);
@@ -69,14 +80,14 @@ export function MultiSelect({
         console.log("Fallback to ALL:", updated);
       }
 
-      onChange(updated);
+      handleChange(updated);
       console.log("Selected after:", updated);
     }
   };
 
   // ✅ Map selected values to display labels
   const selectedLabels = fullOptions
-    .filter((opt) => selected.includes(opt.value))
+    .filter((opt) => resolvedSelected.includes(opt.value))
     .map((opt) => opt.label);
 
   return (
@@ -125,7 +136,7 @@ export function MultiSelect({
                 }}
                 className={cn(
                   "flex w-full items-center px-3 py-2 text-sm text-left",
-                  selected.includes(option.value)
+                  resolvedSelected.includes(option.value)
                     ? "bg-gray-50"
                     : "hover:bg-gray-100",
                 )}
@@ -133,7 +144,7 @@ export function MultiSelect({
                 <Check
                   className={cn(
                     "mr-2 h-4 w-4",
-                    selected.includes(option.value)
+                    resolvedSelected.includes(option.value)
                       ? "opacity-100"
                       : "opacity-0",
                   )}

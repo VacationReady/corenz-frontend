@@ -194,6 +194,9 @@ function EmployeesContent() {
         id: "name",
         header: "Name",
         accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+        meta: {
+          filter: { type: "multi" },
+        },
         cell: ({ row }) => {
           const emp = row.original as Employee;
           return (
@@ -221,11 +224,25 @@ function EmployeesContent() {
       {
         accessorKey: "departmentName",
         header: "Department",
+        meta: {
+          filter: {
+            type: "multi",
+            options: ({ departments }: any) =>
+              (departments || []).map((d: any) => ({ label: d.name, value: d.name })),
+          },
+        },
         cell: ({ row }) => row.original.departmentName || "-",
       },
       {
         accessorKey: "jobRoleName",
         header: "Job Role",
+        meta: {
+          filter: {
+            type: "multi",
+            options: ({ jobRoles }: any) =>
+              (jobRoles || []).map((j: any) => ({ label: j.name, value: j.name })),
+          },
+        },
         cell: ({ row }) => row.original.jobRoleName || "-",
       },
       { accessorKey: "email", header: "Email", cell: ({ row }) => row.original.email || "-" },
@@ -233,6 +250,15 @@ function EmployeesContent() {
         id: "status",
         header: "Status",
         accessorFn: (row) => (row.isActive ? "Active" : "Archived"),
+        meta: {
+          filter: {
+            type: "multi",
+            options: [
+              { label: "Active", value: "Active" },
+              { label: "Archived", value: "Archived" },
+            ],
+          },
+        },
         cell: ({ row }) => (
           row.original.isActive ? (
             <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
@@ -322,7 +348,7 @@ function EmployeesContent() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeTab],
+    [activeTab, departments, jobRoles],
   );
 
   // Export CSV

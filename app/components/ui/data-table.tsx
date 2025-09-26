@@ -163,7 +163,12 @@ export function DataTable<TData, TValue>({
                         const filterType = meta?.filter?.type || "text";
                         if (filterType === "multi") {
                           // Build options from meta or unique pre-filtered values
-                          let options = (meta?.filter?.options as { label: string; value: string }[] | undefined);
+                          let options = (typeof meta?.filter?.options === "function"
+                            ? meta.filter.options({
+                                table: header.table,
+                                column: header.column,
+                              })
+                            : (meta?.filter?.options as { label: string; value: string }[] | undefined));
                           if (!options) {
                             const values = Array.from(
                               new Set(

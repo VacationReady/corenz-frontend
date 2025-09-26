@@ -1,7 +1,7 @@
 "use client";
 
-import React, { Fragment } from "react";
-import { Menu, Transition } from "@headlessui/react";
+import React, { Fragment, useLayoutEffect, useRef, useState } from "react";
+import { Menu, Transition, Portal } from "@headlessui/react";
 import { cn } from "@/lib/utils"; // If you don&apos;t have this, replace with className joins.
 
 type DropdownMenuProps = {
@@ -15,27 +15,54 @@ export function DropdownMenu({
   children,
   align = "right",
 }: DropdownMenuProps) {
+  const buttonRef = useRef<HTMLDivElement | null>(null);
+  const [positionStyles, setPositionStyles] = useState<React.CSSProperties>({});
+
   return (
     <Menu as="div" className="relative inline-block text-left">
-      <Menu.Button as={Fragment}>{trigger}</Menu.Button>
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <Menu.Items
-          className={cn(
-            "absolute z-50 mt-2 w-40 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
-            align === "right" ? "right-0" : "left-0",
-          )}
-        >
-          {children}
-        </Menu.Items>
-      </Transition>
+      {({ open }) => {
+        // Compute fixed positioning relative to the trigger so the menu
+        // can escape scroll/overflow containers via a portal.
+        useLayoutEffect(() => {
+          if (!open || !buttonRef.current) return;
+          const rect = buttonRef.current.getBoundingClientRect();
+          const top = rect.bottom + 8; // gap similar to mt-2
+          if (align === "right") {
+            setPositionStyles({ top, right: Math.max(window.innerWidth - rect.right, 0) });
+          } else {
+            setPositionStyles({ top, left: Math.max(rect.left, 0) });
+          }
+        }, [open, align]);
+
+        return (
+          <>
+            <Menu.Button ref={buttonRef as any} as="div" className="inline-block">
+              {trigger}
+            </Menu.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Portal>
+                <Menu.Items
+                  className={cn(
+                    "fixed z-50 w-40 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
+                    align === "right" ? "origin-top-right" : "origin-top-left",
+                  )}
+                  style={positionStyles}
+                >
+                  {children}
+                </Menu.Items>
+              </Portal>
+            </Transition>
+          </>
+        );
+      }}
     </Menu>
   );
 }

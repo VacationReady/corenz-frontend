@@ -14,6 +14,8 @@ import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { Input } from "@/components/ui/Input";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -23,6 +25,8 @@ interface DataTableProps<TData, TValue> {
   selectionActionBar?: (selectedRows: TData[]) => ReactNode;
   onSelectionChange?: (selectedRows: TData[]) => void;
   onFilteredRowsChange?: (rows: TData[]) => void;
+  // When this value changes, all active column filters are cleared
+  resetFiltersAt?: number;
 }
 
 export function DataTable<TData, TValue>({
@@ -33,6 +37,7 @@ export function DataTable<TData, TValue>({
   selectionActionBar,
   onSelectionChange,
   onFilteredRowsChange,
+  resetFiltersAt,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -129,6 +134,13 @@ export function DataTable<TData, TValue>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(table.getState().columnFilters), JSON.stringify(table.getState().sorting), JSON.stringify(data)]);
 
+  // External reset for filters only
+  useEffect(() => {
+    if (typeof resetFiltersAt === "number") {
+      setColumnFilters([]);
+    }
+  }, [resetFiltersAt]);
+
   return (
     <div className="space-y-4">
       {enableRowSelection && selectionActionBar && selectedRows.length > 0 && (
@@ -143,8 +155,8 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b">
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-4 py-2 text-left text-sm font-medium align-top">
-                    <div className="flex flex-col gap-2">
+                  <th key={header.id} className="px-4 py-2 text-left text-sm font-medium align-middle">
+                    <div className="flex items-center gap-1">
                       <div
                         className="cursor-pointer select-none inline-flex items-center gap-1"
                         onClick={header.column.getToggleSortingHandler()}
@@ -158,48 +170,63 @@ export function DataTable<TData, TValue>({
                           desc: " 🔽",
                         }[header.column.getIsSorted() as string] ?? null}
                       </div>
-                      {header.column.getCanFilter() && (() => {
-                        const meta: any = header.column.columnDef.meta || {};
-                        const filterType = meta?.filter?.type || "text";
-                        if (filterType === "multi") {
-                          // Build options from meta or unique pre-filtered values
-                          let options = (typeof meta?.filter?.options === "function"
-                            ? meta.filter.options({
-                                table: header.getContext().table,
-                                column: header.column,
-                              })
-                            : (meta?.filter?.options as { label: string; value: string }[] | undefined));
-                          if (!options || (Array.isArray(options) && options.length === 0)) {
-                            const values = Array.from(
-                              new Set(
-                                header.getContext().table
-                                  .getPreFilteredRowModel()
-                                  .rows.map((r) => r.getValue(header.column.id))
-                                  .map((v) => (v ?? "").toString())
-                                  .filter((v) => v.length > 0),
-                              ),
-                            );
-                            options = values.map((v) => ({ label: v, value: v }));
-                          }
-                          return (
-                            <MultiSelect
-                              options={options}
-                              value={(header.column.getFilterValue() as string[]) || []}
-                              onValueChange={(vals) => header.column.setFilterValue(vals)}
-                              placeholder={`Select ${header.column.id}...`}
-                            />
-                          );
-                        }
-                        return (
-                          <Input
-                            placeholder={`Filter ${header.column.id}`}
-                            value={(header.column.getFilterValue() ?? "") as string}
-                            onChange={(e) => header.column.setFilterValue(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-9"
-                          />
-                        );
-                      })()}
+                      {header.column.getCanFilter() && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded hover:bg-muted/60 text-muted-foreground"
+                              aria-label={`Filter ${header.column.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="p-2 w-60">
+                            {(() => {
+                              const meta: any = header.column.columnDef.meta || {};
+                              const filterType = meta?.filter?.type || "text";
+                              if (filterType === "multi") {
+                                let options = (typeof meta?.filter?.options === "function"
+                                  ? meta.filter.options({
+                                      table: header.getContext().table,
+                                      column: header.column,
+                                    })
+                                  : (meta?.filter?.options as { label: string; value: string }[] | undefined));
+                                if (!options || (Array.isArray(options) && options.length === 0)) {
+                                  const values = Array.from(
+                                    new Set(
+                                      header.getContext().table
+                                        .getPreFilteredRowModel()
+                                        .rows.map((r) => r.getValue(header.column.id))
+                                        .map((v) => (v ?? "").toString())
+                                        .filter((v) => v.length > 0),
+                                    ),
+                                  );
+                                  options = values.map((v) => ({ label: v, value: v }));
+                                }
+                                return (
+                                  <MultiSelect
+                                    options={options}
+                                    value={(header.column.getFilterValue() as string[]) || []}
+                                    onValueChange={(vals) => header.column.setFilterValue(vals)}
+                                    placeholder={`Select ${header.column.id}...`}
+                                  />
+                                );
+                              }
+                              return (
+                                <Input
+                                  placeholder={`Filter ${header.column.id}...`}
+                                  value={(header.column.getFilterValue() ?? "") as string}
+                                  onChange={(e) => header.column.setFilterValue(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-9"
+                                />
+                              );
+                            })()}
+                          </PopoverContent>
+                        </Popover>
+                      )}
                     </div>
                   </th>
                 ))}

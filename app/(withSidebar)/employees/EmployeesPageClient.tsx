@@ -63,6 +63,7 @@ function EmployeesContent() {
   const [activeTab, setActiveTab] = useState("active");
   const [error, setError] = useState("");
   const [visibleEmployees, setVisibleEmployees] = useState<Employee[]>([]);
+  const [resetFiltersTick, setResetFiltersTick] = useState(0);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -403,22 +404,31 @@ function EmployeesContent() {
 
       {/* Column filters are rendered by DataTable at the top of the table */}
 
-      {/* Employee Status Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="active" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Active ({employees.filter((emp) => emp.isActive).length})
-          </TabsTrigger>
-          <TabsTrigger value="archived" className="flex items-center gap-2">
-            <Archive className="w-4 h-4" />
-            Archived ({employees.filter((emp) => !emp.isActive).length})
-          </TabsTrigger>
-          <TabsTrigger value="all" className="flex items-center gap-2">
-            All ({employees.length})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Employee Status Tabs with Reset filters */}
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="active" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Active ({employees.filter((emp) => emp.isActive).length})
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="flex items-center gap-2">
+              <Archive className="w-4 h-4" />
+              Archived ({employees.filter((emp) => !emp.isActive).length})
+            </TabsTrigger>
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              All ({employees.length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button
+          variant="ghost"
+          onClick={() => setResetFiltersTick((t) => t + 1)}
+          className="text-sm"
+        >
+          Reset filters
+        </Button>
+      </div>
 
       {/* Employee Table with column filters */}
       <div className="bg-card rounded-xl shadow-lg border border-enhanced overflow-hidden p-4">
@@ -427,6 +437,7 @@ function EmployeesContent() {
           data={employees}
           getRowId={(row) => row.id}
           onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
+          resetFiltersAt={resetFiltersTick}
         />
       </div>
 

@@ -25,6 +25,8 @@ interface DataTableProps<TData, TValue> {
   selectionActionBar?: (selectedRows: TData[]) => ReactNode;
   onSelectionChange?: (selectedRows: TData[]) => void;
   onFilteredRowsChange?: (rows: TData[]) => void;
+  // When this value changes, all active column filters are cleared
+  resetFiltersAt?: number;
 }
 
 export function DataTable<TData, TValue>({
@@ -35,6 +37,7 @@ export function DataTable<TData, TValue>({
   selectionActionBar,
   onSelectionChange,
   onFilteredRowsChange,
+  resetFiltersAt,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -130,6 +133,13 @@ export function DataTable<TData, TValue>({
     onFilteredRowsChange(rows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(table.getState().columnFilters), JSON.stringify(table.getState().sorting), JSON.stringify(data)]);
+
+  // External reset for filters only
+  useEffect(() => {
+    if (typeof resetFiltersAt === "number") {
+      setColumnFilters([]);
+    }
+  }, [resetFiltersAt]);
 
   return (
     <div className="space-y-4">

@@ -72,9 +72,9 @@ export async function GET() {
       name: s.name,
       mode: s.mode,
       order: s.order,
-      approvers: s.approvers.map((a) => ({
+      approvers: s.approvers.map((a: any) => ({
         id: a.id,
-        type: a.type as any,
+        type: (a as any).type ?? "USER",
         userId: a.userId ?? null,
         name: a.user?.name ?? null,
         email: a.user?.email ?? null,
@@ -132,12 +132,12 @@ export async function POST(req: Request) {
         });
         for (const appr of st.approvers) {
           await tx.approvalWorkflowStageApprover.create({
-            data: {
+            data: ({
               stageId: stage.id,
               type: appr.type as any,
-              userId: appr.type === "USER" ? (appr.userId as string) : null,
+              userId: appr.type === "USER" ? (appr.userId as string) : undefined,
               order: appr.order,
-            },
+            } as any),
           });
         }
       }

@@ -128,7 +128,12 @@ export async function PUT(req: NextRequest, context: any) {
         });
         for (const appr of st.approvers) {
           await tx.approvalWorkflowStageApprover.create({
-            data: { stageId: stage.id, type: appr.type as any, userId: appr.type === "USER" ? (appr.userId as string) : null, order: appr.order },
+            data: ({
+              stageId: stage.id,
+              type: appr.type as any,
+              userId: appr.type === "USER" ? (appr.userId as string) : undefined,
+              order: appr.order,
+            } as any),
           });
         }
       }

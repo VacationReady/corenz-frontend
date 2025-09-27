@@ -1914,11 +1914,11 @@ video {
 
   /* Focus States */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 focus:ring-offset-2 focus:ring-offset-background;
   }
 
   .focus-ring-subtle {
-    @apply focus:outline-none focus:ring-1 focus:ring-primary/30 focus:ring-offset-1 focus:ring-offset-background;
+    @apply focus:outline-none focus:ring-1 focus:ring-primary focus:ring-opacity-30 focus:ring-offset-1 focus:ring-offset-background;
   }
 
   /* Active States */

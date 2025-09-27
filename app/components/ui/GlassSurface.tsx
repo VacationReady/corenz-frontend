@@ -77,10 +77,11 @@ export function GlassSurface({
     className
   );
 
-  if (asChild) {
-    return React.cloneElement(children as React.ReactElement, {
-      className: cn((children as React.ReactElement).props.className, classes),
-      ...props,
+  if (asChild && React.isValidElement(children)) {
+    const childEl = children as React.ReactElement<any>;
+    return React.cloneElement(childEl, {
+      className: cn(childEl.props?.className, classes),
+      ...(props as any),
     });
   }
 

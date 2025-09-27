@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Input } from "@/components/ui/Input";
 
 import { cn } from "@/lib/utils";
 
@@ -29,39 +30,89 @@ const SelectTrigger = React.forwardRef<
 ));
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 
+type SelectContentProps = React.ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Content
+> & {
+  enableSearch?: boolean;
+  searchThreshold?: number;
+};
+
+function getNodeText(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(getNodeText).join(" ");
+  if (React.isValidElement(node)) return getNodeText((node as any).props?.children);
+  return "";
+}
+
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      ref={ref}
-      className={cn(
-        "relative z-50 min-w-[8rem] overflow-hidden rounded-md border border-popover bg-popover text-popover-foreground shadow-md animate-in fade-in-80",
-        position === "popper" && "translate-y-1",
-        className,
-      )}
-      position={position}
-      {...props}
-    >
-      <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1">
-        <ChevronUp className="h-4 w-4" />
-      </SelectPrimitive.ScrollUpButton>
-      <SelectPrimitive.Viewport
+  SelectContentProps
+>(({ className, children, position = "popper", enableSearch, searchThreshold = 10, ...props }, ref) => {
+  const [query, setQuery] = React.useState("");
+  const childrenArray = React.Children.toArray(children);
+  const numItems = React.useMemo(
+    () =>
+      childrenArray.filter(
+        (child) =>
+          React.isValidElement(child) &&
+          ((child as any).type?.displayName === SelectPrimitive.Item.displayName),
+      ).length,
+    [childrenArray],
+  );
+  const shouldShowSearch = (enableSearch ?? numItems >= searchThreshold);
+
+  const filteredChildren = React.useMemo(() => {
+    if (!shouldShowSearch || query.trim() === "") return childrenArray;
+    const q = query.trim().toLowerCase();
+    return childrenArray.filter((child) => {
+      if (!React.isValidElement(child)) return true;
+      const displayName = (child as any).type?.displayName;
+      if (displayName !== SelectPrimitive.Item.displayName) return true;
+      const text = getNodeText((child as any).props?.children).toLowerCase();
+      return text.includes(q);
+    });
+  }, [childrenArray, query, shouldShowSearch]);
+
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        ref={ref}
         className={cn(
-          "p-1",
-          position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+          "relative z-50 min-w-[8rem] overflow-hidden rounded-md border border-popover bg-popover text-popover-foreground shadow-md animate-in fade-in-80",
+          position === "popper" && "translate-y-1",
+          className,
         )}
+        position={position}
+        {...props}
       >
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1">
-        <ChevronDown className="h-4 w-4" />
-      </SelectPrimitive.ScrollDownButton>
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-));
+        <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1">
+          <ChevronUp className="h-4 w-4" />
+        </SelectPrimitive.ScrollUpButton>
+        {shouldShowSearch && (
+          <div className="p-2 border-b bg-background sticky top-0 z-10">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search..."
+            />
+          </div>
+        )}
+        <SelectPrimitive.Viewport
+          className={cn(
+            "p-1 max-h-80 overflow-auto",
+            position === "popper" &&
+              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+          )}
+        >
+          {filteredChildren}
+        </SelectPrimitive.Viewport>
+        <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1">
+          <ChevronDown className="h-4 w-4" />
+        </SelectPrimitive.ScrollDownButton>
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  );
+});
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<

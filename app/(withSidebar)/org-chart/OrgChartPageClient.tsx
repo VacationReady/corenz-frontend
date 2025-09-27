@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -49,7 +48,7 @@ const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;
 const HORIZONTAL_SPACING = 80;
 const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
-const VERTICAL_SPACING = 88;
+const VERTICAL_SPACING = 120;
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
 const VERTICAL_MARGIN_BOTTOM = 120;
@@ -870,8 +869,8 @@ function OrgChartPageClient() {
           `Q ${options.x} ${options.y + options.height} ${options.x} ${options.y + options.height - radius}`,
           `V ${options.y + radius}`,
           `Q ${options.x} ${options.y} ${options.x + radius} ${options.y}`,
-          'Z',
-        ].join(' ');
+          "Z",
+        ].join(" ");
 
         options.page.drawSvgPath(path, {
           borderColor: options.borderColor,
@@ -987,7 +986,9 @@ function OrgChartPageClient() {
         effectiveLines.forEach((line, index) => {
           const lineWidth = bodyFont.widthOfTextAtSize(line, badgeFontSize);
           const textX =
-            badgeX + badgePaddingX + Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
+            badgeX +
+            badgePaddingX +
+            Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
           page.drawText(line, {
             x: textX,
             y: badgeTextY,

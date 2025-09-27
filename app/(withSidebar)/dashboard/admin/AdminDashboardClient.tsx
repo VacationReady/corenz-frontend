@@ -65,6 +65,11 @@ export default function AdminDashboardClient({
   const [selectedDepartment, setSelectedDepartment] = useState<string | "all">(
     "all",
   );
+  const [docActionItems, setDocActionItems] = useState<{
+    ack: Array<{ id: string; name: string }>;
+    sign: Array<{ id: string; name: string }>;
+    loading: boolean;
+  }>({ ack: [], sign: [], loading: true });
 
   useEffect(() => {
     const handler = (e: any) => setDetail(e.detail);
@@ -148,6 +153,87 @@ export default function AdminDashboardClient({
       ) : null}
     </Dialog>
   );
+  
+  // ---------------- Documents Action Items (Ack & Sign) ----------------
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setDocActionItems((prev) => ({ ...prev, loading: true }));
+        // Fetch documents visible to current user (company-scoped)
+        const [companyDocsRes, employeeDocsRes] = await Promise.all([
+          fetch(`/api/documents/list-company`, { cache: "no-store" }),
+          employeeId
+            ? fetch(`/api/documents/list-employee?employeeId=${employeeId}`, {
+                cache: "no-store",
+              })
+            : Promise.resolve({ ok: false, json: async () => [] as any[] } as Response),
+        ]);
+        const companyDocs = companyDocsRes.ok
+          ? ((await companyDocsRes.json()) as any[])
+          : [];
+        const employeeDocs = employeeDocsRes.ok
+          ? ((await employeeDocsRes.json()) as any[])
+          : [];
+        const docs: any[] = [...companyDocs, ...employeeDocs];
+        // De-duplicate by id
+        const uniqueDocsMap = new Map<string, any>();
+        for (const d of docs) {
+          if (d && d.id && !uniqueDocsMap.has(d.id)) uniqueDocsMap.set(d.id, d);
+        }
+        const uniqueDocs = Array.from(uniqueDocsMap.values());
+
+        // Limit to a reasonable number to avoid too many network calls
+        const candidates = uniqueDocs
+          .filter((d) => d?.requiresAck || d?.requiresSignature)
+          .slice(0, 20);
+
+        const ackChecks = await Promise.all(
+          candidates.map(async (d) => {
+            if (!d?.requiresAck) return { id: d.id, name: d.name, needed: false };
+            try {
+              const r = await fetch(`/api/documents/acknowledge/${d.id}/me`, {
+                cache: "no-store",
+              });
+              const j = await r.json();
+              return { id: d.id, name: d.name, needed: !j?.acknowledged };
+            } catch {
+              return { id: d.id, name: d.name, needed: true };
+            }
+          }),
+        );
+
+        const signChecks = await Promise.all(
+          candidates.map(async (d) => {
+            if (!d?.requiresSignature) return { id: d.id, name: d.name, needed: false };
+            try {
+              const r = await fetch(`/api/documents/signatures/${d.id}/me`, {
+                cache: "no-store",
+              });
+              const j = await r.json();
+              return { id: d.id, name: d.name, needed: !j?.signed };
+            } catch {
+              return { id: d.id, name: d.name, needed: true };
+            }
+          }),
+        );
+
+        if (!isMounted) return;
+        setDocActionItems({
+          ack: ackChecks.filter((x) => x.needed).slice(0, 5).map(({ id, name }) => ({ id, name })),
+          sign: signChecks.filter((x) => x.needed).slice(0, 5).map(({ id, name }) => ({ id, name })),
+          loading: false,
+        });
+      } catch {
+        if (!isMounted) return;
+        setDocActionItems({ ack: [], sign: [], loading: false });
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [employeeId]);
   
   useEffect(() => {
     let isMounted = true;
@@ -812,6 +898,48 @@ export default function AdminDashboardClient({
           </div>
         </DashboardWidget>
         <LeaveDetailDialog />
+        {/* Documents requiring your action */}
+        <div className="mt-4">
+          <DashboardWidget title="Documents" icon={ClipboardList} className="h-full">
+            {docActionItems.loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : docActionItems.ack.length === 0 && docActionItems.sign.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center">No document actions pending</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
+                  <ul className="space-y-2">
+                    {docActionItems.ack.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="truncate">{d.name}</span>
+                        <Button asChild size="sm" variant="outline">
+                          <a href={`/documents?open=${d.id}`}>Open</a>
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-sm font-semibold mb-2">Signatures</div>
+                  <ul className="space-y-2">
+                    {docActionItems.sign.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                        <span className="truncate">{d.name}</span>
+                        <Button asChild size="sm" variant="outline">
+                          <a href={`/documents?open=${d.id}`}>Open</a>
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </DashboardWidget>
+        </div>
       </div>
     );
   }

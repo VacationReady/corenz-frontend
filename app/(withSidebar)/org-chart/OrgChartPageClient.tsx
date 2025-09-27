@@ -33,6 +33,8 @@ import {
   Building2,
   UserCircle2,
   Sparkles,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -40,15 +42,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 
-const NODE_WIDTH = 240;
-const NODE_HEIGHT = 160;
+const NODE_WIDTH = 256;
+const NODE_HEIGHT = 216;
 const HORIZONTAL_SPACING = 80;
 const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
 const VERTICAL_SPACING = 120;
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
 const VERTICAL_MARGIN_BOTTOM = 120;
+const MIN_ZOOM = 0.6;
+const MAX_ZOOM = 1.6;
+const ZOOM_STEP = 0.1;
 
 interface ApiEmployee {
   id: string;
@@ -120,6 +126,7 @@ function OrgChartPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([
@@ -470,6 +477,30 @@ function OrgChartPageClient() {
     setRoleFilter("all");
   };
 
+  const handleZoomOut = () => {
+    setZoom((current) => {
+      const next = Math.max(
+        MIN_ZOOM,
+        parseFloat((current - ZOOM_STEP).toFixed(2)),
+      );
+      return next;
+    });
+  };
+
+  const handleZoomIn = () => {
+    setZoom((current) => {
+      const next = Math.min(
+        MAX_ZOOM,
+        parseFloat((current + ZOOM_STEP).toFixed(2)),
+      );
+      return next;
+    });
+  };
+
+  const handleZoomReset = () => {
+    setZoom(1);
+  };
+
   const handleExport = useCallback(async () => {
     if (!filteredForest.length) {
       toast.error("There is nothing to export yet.");
@@ -540,6 +571,146 @@ function OrgChartPageClient() {
           color: rgb(0.55, 0.22, 0.22),
         });
       }
+
+      const flattenedForExport = flattenTree(filteredForest);
+      const avatarCache = new Map<string, PDFImage | null>();
+      const uniqueAvatarUrls = Array.from(
+        new Set(
+          flattenedForExport
+            .map((node) => node.profileImageUrl)
+            .filter((url): url is string => Boolean(url)),
+        ),
+      );
+
+      await Promise.all(
+        uniqueAvatarUrls.map(async (url) => {
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`Unable to load avatar for export (${response.status})`);
+            }
+
+            const contentType = response.headers
+              .get("content-type")
+              ?.toLowerCase();
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            let image: PDFImage | null = null;
+
+            if (contentType?.includes("png") || url.toLowerCase().endsWith(".png")) {
+              image = await pdfDoc.embedPng(bytes);
+            } else if (
+              contentType?.includes("jpeg") ||
+              contentType?.includes("jpg") ||
+              /\.jpe?g($|\?)/.test(url.toLowerCase())
+            ) {
+              image = await pdfDoc.embedJpg(bytes);
+            }
+
+            avatarCache.set(url, image);
+          } catch (avatarError) {
+            console.warn("Unable to embed avatar in org chart export", avatarError);
+            avatarCache.set(url, null);
+          }
+        }),
+      );
+
+      const wrapText = (
+        value: string,
+        font: PDFFont,
+        size: number,
+        maxWidth: number,
+      ) => {
+        if (!value.trim()) return [];
+
+        const words = value.split(/\s+/);
+        const lines: string[] = [];
+        let currentLine = "";
+
+        const addLine = (line: string) => {
+          if (line.trim()) {
+            lines.push(line.trim());
+          }
+        };
+
+        words.forEach((word) => {
+          if (!word) return;
+          const tentative = currentLine ? `${currentLine} ${word}` : word;
+          const width = font.widthOfTextAtSize(tentative, size);
+
+          if (width <= maxWidth) {
+            currentLine = tentative;
+            return;
+          }
+
+          if (currentLine) {
+            addLine(currentLine);
+            currentLine = "";
+          }
+
+          if (font.widthOfTextAtSize(word, size) <= maxWidth) {
+            currentLine = word;
+            return;
+          }
+
+          let slice = "";
+          for (const char of word) {
+            const test = `${slice}${char}`;
+            if (font.widthOfTextAtSize(test, size) > maxWidth && slice) {
+              addLine(slice);
+              slice = char;
+            } else {
+              slice = test;
+            }
+          }
+          if (slice) {
+            currentLine = slice;
+          }
+        });
+
+        if (currentLine) {
+          addLine(currentLine);
+        }
+
+        return lines;
+      };
+
+      const drawTextLines = (
+        lines: string[],
+        {
+          x,
+          top,
+          font,
+          size,
+          color,
+          lineHeight,
+        }: {
+          x: number;
+          top: number;
+          font: PDFFont;
+          size: number;
+          color: ReturnType<typeof rgb>;
+          lineHeight: number;
+        },
+      ) => {
+        let cursor = top;
+        lines.forEach((line) => {
+          page.drawText(line, {
+            x,
+            y: cursor - size,
+            size,
+            font,
+            color,
+          });
+          cursor -= lineHeight;
+        });
+        return cursor;
+      };
+
+      const getInitials = (fullName: string) => {
+        const parts = fullName.trim().split(/\s+/).slice(0, 2);
+        if (!parts.length) return "?";
+        return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
+      };
 
       const topDownPositions = new Map<string, { x: number; y: number }>();
       let currentLeft = Math.max(
@@ -615,79 +786,272 @@ function OrgChartPageClient() {
       const highlightBorder = rgb(0.32, 0.55, 0.93);
       const baseBorder = rgb(0.75, 0.8, 0.86);
       const cardFill = rgb(0.97, 0.98, 1);
+      const labelColor = rgb(0.46, 0.49, 0.58);
+      const valueColor = rgb(0.34, 0.37, 0.44);
+      const nameColor = rgb(0.12, 0.16, 0.24);
+      const titleColor = rgb(0.36, 0.4, 0.5);
 
-      const truncate = (value: string, length: number) =>
-        value.length > length ? `${value.slice(0, length - 1)}…` : value;
+      const badgeColors: Record<OrgEmployee["role"], ReturnType<typeof rgb>> = {
+        ADMIN: rgb(0.32, 0.52, 0.98),
+        MANAGER: rgb(0.95, 0.67, 0.28),
+        EMPLOYEE: rgb(0.6, 0.66, 0.76),
+      };
+
+      const drawRoundedRectangle = (
+        options: {
+          page: PDFPage;
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+          radius: number;
+          borderColor: RGB;
+          borderWidth: number;
+          color: RGB;
+          opacity: number;
+        },
+      ) => {
+        const radius = Math.min(
+          options.radius,
+          options.width / 2,
+          options.height / 2,
+        );
+
+        const path = [
+          `M ${options.x + radius} ${options.y}`,
+          `H ${options.x + options.width - radius}`,
+          `Q ${options.x + options.width} ${options.y} ${options.x + options.width} ${options.y + radius}`,
+          `V ${options.y + options.height - radius}`,
+          `Q ${options.x + options.width} ${options.y + options.height} ${options.x + options.width - radius} ${options.y + options.height}`,
+          `H ${options.x + radius}`,
+          `Q ${options.x} ${options.y + options.height} ${options.x} ${options.y + options.height - radius}`,
+          `V ${options.y + radius}`,
+          `Q ${options.x} ${options.y} ${options.x + radius} ${options.y}`,
+          "Z",
+        ].join(" ");
+
+        options.page.drawSvgPath(path, {
+          borderColor: options.borderColor,
+          borderWidth: options.borderWidth,
+          color: options.color,
+          opacity: options.opacity,
+        });
+      };
 
       const drawNode = (node: OrgNode) => {
         const pos = topDownPositions.get(node.id);
         if (!pos) return;
 
         const rectY = pageHeight - pos.y - NODE_HEIGHT;
+        const cardPadding = 22;
+        const avatarSize = 52;
+        const avatarX = pos.x + cardPadding;
+        const avatarY = rectY + NODE_HEIGHT - cardPadding - avatarSize;
+        const avatarCenterX = avatarX + avatarSize / 2;
+        const avatarCenterY = avatarY + avatarSize / 2;
 
-        page.drawRectangle({
+        drawRoundedRectangle({
+          page,
           x: pos.x,
           y: rectY,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
-          borderWidth: 1.5,
+          radius: 20,
+          borderWidth: 1.6,
           borderColor: node.isMatch ? highlightBorder : baseBorder,
           color: cardFill,
           opacity: node.isMatch ? 1 : 0.98,
         });
 
-        const nameYTop = pos.y + NODE_HEIGHT - 24;
-        const nameYPdf = pageHeight - nameYTop;
-        page.drawText(truncate(node.fullName, 32), {
-          x: pos.x + 18,
-          y: nameYPdf,
-          size: 12,
+        page.drawCircle({
+          x: avatarCenterX,
+          y: avatarCenterY,
+          size: avatarSize / 2,
+          borderColor: node.isMatch ? highlightBorder : rgb(0.82, 0.85, 0.92),
+          borderWidth: node.isMatch ? 2 : 1.2,
+          color: rgb(0.95, 0.97, 1),
+        });
+
+        const avatarImage = node.profileImageUrl
+          ? avatarCache.get(node.profileImageUrl) ?? null
+          : null;
+        if (avatarImage) {
+          const inset = avatarSize * 0.18;
+          const imageSize = avatarSize - inset * 2;
+          page.drawImage(avatarImage, {
+            x: avatarX + inset,
+            y: avatarY + inset,
+            width: imageSize,
+            height: imageSize,
+          });
+        } else {
+          const initials = getInitials(node.fullName);
+          const initialsSize = 16;
+          const initialsWidth = titleFont.widthOfTextAtSize(
+            initials,
+            initialsSize,
+          );
+          page.drawText(initials, {
+            x: avatarCenterX - initialsWidth / 2,
+            y: avatarCenterY - initialsSize / 2,
+            size: initialsSize,
+            font: titleFont,
+            color: rgb(0.44, 0.5, 0.63),
+          });
+        }
+
+        const badgeLabel = roleLabels[node.role].toUpperCase();
+        const badgeFontSize = 9;
+        const badgePaddingX = 10;
+        const badgePaddingY = 6;
+        const badgeTextWidth = bodyFont.widthOfTextAtSize(
+          badgeLabel,
+          badgeFontSize,
+        );
+        const badgeWidth = badgeTextWidth + badgePaddingX * 2;
+        const badgeHeight = badgeFontSize + badgePaddingY * 2;
+        const badgeX = pos.x + NODE_WIDTH - cardPadding - badgeWidth;
+        const badgeY = rectY + NODE_HEIGHT - cardPadding - badgeHeight + 6;
+
+        // Use rounded rectangle helper for a pill badge (pdf-lib doesn't support borderRadius on rectangles)
+        drawRoundedRectangle({
+          page,
+          x: badgeX,
+          y: badgeY,
+          width: badgeWidth,
+          height: badgeHeight,
+          radius: 999,
+          borderColor: badgeColors[node.role],
+          borderWidth: 1,
+          color: rgb(0.97, 0.98, 1),
+          opacity: 1,
+        });
+        page.drawText(badgeLabel, {
+          x: badgeX + badgePaddingX,
+          y: badgeY + badgePaddingY - 2,
+          size: badgeFontSize,
+          font: bodyFont,
+          color: badgeColors[node.role],
+        });
+
+        const textStartX = avatarX + avatarSize + 16;
+        const contentWidth = NODE_WIDTH - cardPadding * 2 - avatarSize - 16;
+        let headerTop = rectY + NODE_HEIGHT - cardPadding;
+
+        const nameLines = wrapText(node.fullName, titleFont, 14, contentWidth);
+        headerTop = drawTextLines(nameLines, {
+          x: textStartX,
+          top: headerTop,
           font: titleFont,
-          color: rgb(0.12, 0.16, 0.24),
+          size: 14,
+          color: nameColor,
+          lineHeight: 18,
         });
 
         const title = node.jobTitle ?? "Role not assigned";
-        const titleYPdf = nameYPdf - 16;
-        page.drawText(truncate(title, 36), {
-          x: pos.x + 18,
-          y: titleYPdf,
+        headerTop -= 4;
+        const titleLines = wrapText(title, bodyFont, 11, contentWidth);
+        headerTop = drawTextLines(titleLines, {
+          x: textStartX,
+          top: headerTop,
+          font: bodyFont,
+          size: 11,
+          color: titleColor,
+          lineHeight: 14,
+        });
+
+        const emailLines = wrapText(node.email, bodyFont, 10, contentWidth);
+        headerTop -= 2;
+        headerTop = drawTextLines(emailLines, {
+          x: textStartX,
+          top: headerTop,
+          font: bodyFont,
           size: 10,
-          font: bodyFont,
-          color: rgb(0.36, 0.4, 0.5),
+          color: valueColor,
+          lineHeight: 13,
         });
 
-        const department = node.department ?? "No department";
-        const departmentYPdf = titleYPdf - 18;
-        page.drawText(truncate(`Dept: ${department}`, 40), {
-          x: pos.x + 18,
-          y: departmentYPdf,
-          size: 9,
-          font: bodyFont,
-          color: rgb(0.44, 0.48, 0.56),
-        });
-
-        const manager = node.managerName ?? "Reports to leadership";
-        const managerYPdf = departmentYPdf - 16;
-        page.drawText(truncate(`Reports to: ${manager}`, 46), {
-          x: pos.x + 18,
-          y: managerYPdf,
-          size: 9,
-          font: bodyFont,
-          color: rgb(0.5, 0.32, 0.32),
-        });
-
-        page.drawText(
-          `${roleLabels[node.role]} • ${node.children.length} direct ${
-            node.children.length === 1 ? "report" : "reports"
-          }`,
-          {
-            x: pos.x + 18,
-            y: rectY + 18,
-            size: 9,
-            font: bodyFont,
-            color: rgb(0.35, 0.39, 0.48),
-          },
+        const headerHeight = Math.max(
+          avatarSize,
+          rectY + NODE_HEIGHT - cardPadding - headerTop,
         );
+        const dividerY = rectY + NODE_HEIGHT - cardPadding - headerHeight - 12;
+
+        page.drawLine({
+          start: { x: pos.x + cardPadding, y: dividerY },
+          end: { x: pos.x + NODE_WIDTH - cardPadding, y: dividerY },
+          thickness: 0.7,
+          color: rgb(0.87, 0.9, 0.95),
+        });
+
+        let detailsTop = dividerY - 10;
+        const detailsWidth = NODE_WIDTH - cardPadding * 2;
+
+        const detailEntries = [
+          {
+            label: "Department",
+            valueLines: wrapText(
+              node.department ?? "No department",
+              bodyFont,
+              10,
+              detailsWidth,
+            ),
+          },
+          {
+            label: "Reports to",
+            valueLines: wrapText(
+              node.managerName ?? "Reports to leadership",
+              bodyFont,
+              10,
+              detailsWidth,
+            ),
+          },
+        ];
+
+        const directReportLines = node.children.length
+          ? node.children
+              .slice(0, 5)
+              .flatMap((child) =>
+                wrapText(
+                  `${child.fullName}${
+                    child.jobTitle ? ` — ${child.jobTitle}` : ""
+                  }`,
+                  bodyFont,
+                  10,
+                  detailsWidth,
+                ),
+              )
+          : ["No direct reports"];
+
+        if (node.children.length > 5) {
+          directReportLines.push(
+            `+${node.children.length - 5} more direct ${
+              node.children.length - 5 === 1 ? "report" : "reports"
+            }`,
+          );
+        }
+
+        detailEntries.push({ label: "Direct reports", valueLines: directReportLines });
+
+        detailEntries.forEach(({ label, valueLines }) => {
+          detailsTop = drawTextLines([label], {
+            x: pos.x + cardPadding,
+            top: detailsTop,
+            font: bodyFont,
+            size: 9,
+            color: labelColor,
+            lineHeight: 12,
+          }) - 2;
+
+          detailsTop = drawTextLines(valueLines, {
+            x: pos.x + cardPadding,
+            top: detailsTop,
+            font: bodyFont,
+            size: 10,
+            color: valueColor,
+            lineHeight: 13,
+          }) - 6;
+        });
 
         node.children.forEach(drawNode);
       };
@@ -808,7 +1172,7 @@ function OrgChartPageClient() {
           ))}
         </div>
 
-        <div className="glass-subtle rounded-3xl border border-glass p-6 shadow-depth-1">
+        <div className="glass-subtle relative z-20 rounded-3xl border border-glass p-6 shadow-depth-1">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" />
             Refine your org chart
@@ -860,7 +1224,7 @@ function OrgChartPageClient() {
                 <SelectTrigger>
                   <SelectValue placeholder="All roles" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50">
                   <SelectItem value="all">All roles</SelectItem>
                   <SelectItem value="ADMIN">Admins</SelectItem>
                   <SelectItem value="MANAGER">Managers</SelectItem>
@@ -891,7 +1255,7 @@ function OrgChartPageClient() {
           </div>
         </div>
 
-        <div className="glass-strong rounded-3xl border border-glass/60 p-4 shadow-depth-1">
+        <div className="glass-strong relative z-10 rounded-3xl border border-glass/60 p-4 shadow-depth-1">
           {loading ? (
             <div className="flex min-h-[320px] items-center justify-center">
               <LoadingSpinner size="lg" showText text="Loading org chart" />
@@ -932,39 +1296,91 @@ function OrgChartPageClient() {
               }
             />
           ) : (
-            <div className="relative overflow-auto">
-              <div
-                className="relative mx-auto"
-                style={{ width: `${layout.width}px`, height: `${layout.height}px` }}
-              >
-                <svg
-                  className="pointer-events-none absolute inset-0"
-                  width={layout.width}
-                  height={layout.height}
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <span>Zoom</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleZoomOut}
+                      disabled={zoom <= MIN_ZOOM}
+                      aria-label="Zoom out"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <span className="w-14 text-center text-xs font-semibold text-foreground">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleZoomIn}
+                      disabled={zoom >= MAX_ZOOM}
+                      aria-label="Zoom in"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleZoomReset}
+                      disabled={zoom === 1}
+                      aria-label="Reset zoom"
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="relative overflow-x-auto overflow-y-visible">
+                <div
+                  className="relative mx-auto"
+                  style={{
+                    width: `${layout.width * zoom}px`,
+                    height: `${layout.height * zoom}px`,
+                  }}
                 >
-                  {connections.map((segment, index) => (
-                    <path
-                      key={index}
-                      d={segment.d}
-                      fill="none"
-                      stroke="rgba(148, 163, 184, 0.6)"
-                      strokeWidth={1.4}
-                      strokeLinecap="round"
-                    />
-                  ))}
-                </svg>
+                  <div
+                    className="absolute left-0 top-0"
+                    style={{
+                      width: `${layout.width}px`,
+                      height: `${layout.height}px`,
+                      transform: `scale(${zoom})`,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <svg
+                      className="pointer-events-none absolute inset-0"
+                      width={layout.width}
+                      height={layout.height}
+                    >
+                      {connections.map((segment, index) => (
+                        <path
+                          key={index}
+                          d={segment.d}
+                          fill="none"
+                          stroke="rgba(148, 163, 184, 0.6)"
+                          strokeWidth={1.4}
+                          strokeLinecap="round"
+                        />
+                      ))}
+                    </svg>
 
-                {flattenedNodes.map((node) => {
-                  const position = layout.positions.get(node.id);
-                  if (!position) return null;
-                  return (
-                    <OrgNodeCard
-                      key={node.id}
-                      node={node}
-                      position={position}
-                    />
-                  );
-                })}
+                    {flattenedNodes.map((node) => {
+                      const position = layout.positions.get(node.id);
+                      if (!position) return null;
+                      return (
+                        <OrgNodeCard
+                          key={node.id}
+                          node={node}
+                          position={position}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -996,7 +1412,7 @@ function OrgNodeCard({
     >
       <div
         className={cn(
-          "group flex h-full w-full flex-col justify-between rounded-[28px] border bg-white/80 p-5 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
+          "group flex h-full w-full flex-col gap-5 overflow-hidden rounded-[28px] border bg-white/80 p-6 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
           node.isMatch
             ? "border-primary/50 shadow-[0_18px_40px_rgba(59,130,246,0.25)] ring-2 ring-primary/40"
             : "border-slate-200/70",
@@ -1025,7 +1441,7 @@ function OrgNodeCard({
           <Badge
             variant="outline"
             className={cn(
-              "shrink-0 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+              "shrink-0 self-start px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
               roleBadgeClasses[node.role],
             )}
           >
@@ -1033,7 +1449,7 @@ function OrgNodeCard({
           </Badge>
         </div>
 
-        <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
+        <div className="grid flex-1 content-start gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="truncate" title={node.department ?? undefined}>

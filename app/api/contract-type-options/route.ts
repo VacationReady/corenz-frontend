@@ -1,59 +1,57 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 
 export async function GET() {
+  await ensurePrismaConnected();
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) return NextResponse.json([], { status: 200 });
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const items = await prisma.contractTypeOption.findMany({
     where: { companyId: session.user.companyId },
     orderBy: { order: "asc" },
+    select: { id: true, label: true },
   });
   return NextResponse.json(items);
 }
 
 export async function POST(req: Request) {
+  await ensurePrismaConnected();
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const body = await req.json();
-  const created = await prisma.contractTypeOption.create({
-    data: { id: crypto.randomUUID(), companyId: session.user.companyId, label: body.label, order: body.order ?? 0 },
-  });
-  return NextResponse.json(created, { status: 201 });
-}
-
-export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const body = await req.json();
-  // Ensure update is constrained to the company
-  const updated = await prisma.contractTypeOption.updateMany({
-    where: { id: body.id, companyId: session.user.companyId },
-    data: { label: body.label, order: body.order },
-  });
-  if (updated.count === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  // Refetch to return the updated record
-  const item = await prisma.contractTypeOption.findFirst({ where: { id: body.id, companyId: session.user.companyId } });
-  return NextResponse.json(item);
+  const { label } = (await req.json()) as { label?: string };
+  if (!label || !label.trim()) {
+    return NextResponse.json({ error: "Label required" }, { status: 400 });
+  }
+  const created = await prisma.contractTypeOption.create({
+    data: {
+      id: crypto.randomUUID(),
+      companyId: session.user.companyId,
+      label: label.trim(),
+    },
+    select: { id: true, label: true },
+  });
+  return NextResponse.json(created);
 }
 
 export async function DELETE(req: Request) {
+  await ensurePrismaConnected();
   const session = await getServerSession(authOptions);
-  if (!session?.user?.companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const body = await req.json();
-  // Scope delete to the current company
-  const result = await prisma.contractTypeOption.deleteMany({ where: { id: body.id, companyId: session.user.companyId } });
-  if (result.count === 0) {
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id } = (await req.json()) as { id?: string };
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  const item = await prisma.contractTypeOption.findUnique({ where: { id } });
+  if (!item || item.companyId !== session.user.companyId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  await prisma.contractTypeOption.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
-
-
 

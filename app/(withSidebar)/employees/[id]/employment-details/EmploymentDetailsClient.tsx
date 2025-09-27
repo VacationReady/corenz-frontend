@@ -37,6 +37,10 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [selectedManagerEmployeeId, setSelectedManagerEmployeeId] = useState<string>("none");
+  // Control select open states so they close when opening Manage dialog
+  const [employmentSelectOpen, setEmploymentSelectOpen] = useState(false);
+  const [contractSelectOpen, setContractSelectOpen] = useState(false);
+  const [locationSelectOpen, setLocationSelectOpen] = useState(false);
 
   const canEdit =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
@@ -161,6 +165,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             </div>
             {canEdit ? (
               <Select
+                open={employmentSelectOpen}
+                onOpenChange={setEmploymentSelectOpen}
                 value={form.employmentType || undefined}
                 onValueChange={(v) => setForm((f: any) => ({ ...f, employmentType: v }))}
               >
@@ -174,7 +180,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
                     </SelectItem>
                   ))}
                   <div className="px-2 py-2">
-                    <Button variant="ghost" onClick={() => { setManageKind("employment"); setManageOpen(true); }}>+ Add new option</Button>
+                    <Button variant="ghost" onClick={() => { setEmploymentSelectOpen(false); setManageKind("employment"); setManageOpen(true); }}>+ Add new option</Button>
                   </div>
                 </SelectContent>
               </Select>
@@ -191,6 +197,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             </div>
             {canEdit ? (
               <Select
+                open={contractSelectOpen}
+                onOpenChange={setContractSelectOpen}
                 value={form.contractType || undefined}
                 onValueChange={(v) => setForm((f: any) => ({ ...f, contractType: v }))}
               >
@@ -204,7 +212,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
                     </SelectItem>
                   ))}
                   <div className="px-2 py-2">
-                    <Button variant="ghost" onClick={() => { setManageKind("contract"); setManageOpen(true); }}>+ Add new option</Button>
+                    <Button variant="ghost" onClick={() => { setContractSelectOpen(false); setManageKind("contract"); setManageOpen(true); }}>+ Add new option</Button>
                   </div>
                 </SelectContent>
               </Select>
@@ -221,20 +229,22 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             </div>
             {canEdit ? (
               <Select
-                value={form.siteLocation || undefined}
-                onValueChange={(v) => setForm((f: any) => ({ ...f, siteLocation: v }))}
+                open={locationSelectOpen}
+                onOpenChange={setLocationSelectOpen}
+                value={form.locationId || undefined}
+                onValueChange={(v) => setForm((f: any) => ({ ...f, locationId: v }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select site location" />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((l) => (
-                    <SelectItem key={l.id} value={l.name}>
+                    <SelectItem key={l.id} value={l.id}>
                       {l.name}
                     </SelectItem>
                   ))}
                   <div className="px-2 py-2">
-                    <Button variant="ghost" onClick={() => { setManageKind("location"); setManageOpen(true); }}>+ Add new option</Button>
+                    <Button variant="ghost" onClick={() => { setLocationSelectOpen(false); setManageKind("location"); setManageOpen(true); }}>+ Add new option</Button>
                   </div>
                 </SelectContent>
               </Select>

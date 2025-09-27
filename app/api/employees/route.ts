@@ -50,6 +50,9 @@ const createEmployeeSchema = z.object({
   jobRoleId: optionalTrimmedString,
   departmentId: optionalTrimmedString,
   managerId: optionalTrimmedString,
+  locationId: optionalTrimmedString,
+  siteLocation: optionalTrimmedString,
+  contractType: optionalTrimmedString,
   sendInviteNow: z.boolean().optional(),
   onboardingTemplateId: z
     .string({ required_error: "Need to select onboarding template" })
@@ -225,6 +228,9 @@ export async function POST(req: Request) {
       jobRoleId,
       departmentId,
       managerId,
+      locationId,
+      siteLocation,
+      contractType,
       sendInviteNow = false,
       onboardingTemplateId,
       holidayYear,
@@ -312,6 +318,16 @@ export async function POST(req: Request) {
     const normalizedTemplateId =
       onboardingTemplateId === "none" ? undefined : onboardingTemplateId;
 
+    // Derive siteLocation label if missing and locationId is provided
+    let siteLocationLabel: string | undefined = siteLocation || undefined;
+    if (!siteLocationLabel && locationId) {
+      const loc = await prisma.location.findFirst({
+        where: { id: locationId, OR: [{ companyId }, { companyId: null }] },
+        select: { name: true },
+      });
+      siteLocationLabel = loc?.name ?? undefined;
+    }
+
     const employee = await prisma.employee.create({
       data: {
         id: crypto.randomUUID(),
@@ -327,6 +343,9 @@ export async function POST(req: Request) {
         OnboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }
           : undefined,
+        locationId: locationId || undefined,
+        siteLocation: siteLocationLabel,
+        contractType: contractType || undefined,
       },
     });
 

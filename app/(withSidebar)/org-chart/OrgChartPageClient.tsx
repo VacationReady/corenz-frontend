@@ -301,11 +301,11 @@ function OrgChartPageClient() {
 
       const matchesDepartment =
         !departmentFilter ||
-        (node.departmentId && departmentFilter.has(node.departmentId));
+        (node.departmentId ? departmentFilter.has(node.departmentId) : false);
 
       const matchesJobRole =
         !jobRoleFilter ||
-        (node.jobRoleId && jobRoleFilter.has(node.jobRoleId));
+        (node.jobRoleId ? jobRoleFilter.has(node.jobRoleId) : false);
 
       const matchesRole = !roleValue || node.role === roleValue;
 
@@ -657,7 +657,14 @@ function OrgChartPageClient() {
       filteredForest.forEach(drawNode);
 
       const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const arrayBuffer =
+        pdfBytes.buffer instanceof ArrayBuffer
+          ? pdfBytes.buffer.slice(
+              pdfBytes.byteOffset,
+              pdfBytes.byteOffset + pdfBytes.byteLength,
+            )
+          : Uint8Array.from(pdfBytes).buffer;
+      const blob = new Blob([arrayBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

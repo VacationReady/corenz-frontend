@@ -44,8 +44,8 @@ import {
 } from "@/components/ui/popover";
 import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 
-const NODE_WIDTH = 256;
-const NODE_HEIGHT = 216;
+const NODE_WIDTH = 288;
+const NODE_HEIGHT = 224;
 const HORIZONTAL_SPACING = 80;
 const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
 const VERTICAL_SPACING = 120;
@@ -904,34 +904,59 @@ function OrgChartPageClient() {
         const badgeFontSize = 9;
         const badgePaddingX = 10;
         const badgePaddingY = 6;
-        const badgeTextWidth = bodyFont.widthOfTextAtSize(
+        const badgeLineHeight = badgeFontSize + 2;
+        const maxBadgeWidth = Math.max(1, NODE_WIDTH - cardPadding * 2);
+        const badgeLines = wrapText(
           badgeLabel,
+          bodyFont,
           badgeFontSize,
+          Math.max(1, maxBadgeWidth - badgePaddingX * 2),
         );
-        const badgeWidth = badgeTextWidth + badgePaddingX * 2;
-        const badgeHeight = badgeFontSize + badgePaddingY * 2;
+        const effectiveLines = badgeLines.length ? badgeLines : [badgeLabel];
+        const widestLine = effectiveLines.reduce((widest, line) => {
+          const width = bodyFont.widthOfTextAtSize(line, badgeFontSize);
+          return Math.max(widest, width);
+        }, 0);
+        const badgeWidth = Math.min(
+          maxBadgeWidth,
+          widestLine + badgePaddingX * 2,
+        );
+        const badgeHeight =
+          effectiveLines.length * badgeLineHeight + badgePaddingY * 2;
         const badgeX = pos.x + NODE_WIDTH - cardPadding - badgeWidth;
         const badgeY = rectY + NODE_HEIGHT - cardPadding - badgeHeight + 6;
 
-        // Use rounded rectangle helper for a pill badge (pdf-lib doesn't support borderRadius on rectangles)
         drawRoundedRectangle({
           page,
           x: badgeX,
           y: badgeY,
           width: badgeWidth,
           height: badgeHeight,
-          radius: 999,
+          radius: Math.min(badgeHeight / 2, badgeWidth / 2),
+          color: rgb(0.97, 0.98, 1),
           borderColor: badgeColors[node.role],
           borderWidth: 1,
-          color: rgb(0.97, 0.98, 1),
           opacity: 1,
         });
-        page.drawText(badgeLabel, {
-          x: badgeX + badgePaddingX,
-          y: badgeY + badgePaddingY - 2,
-          size: badgeFontSize,
-          font: bodyFont,
-          color: badgeColors[node.role],
+
+        let badgeTextY =
+          badgeY + badgeHeight - badgePaddingY - badgeFontSize - 2;
+        effectiveLines.forEach((line, index) => {
+          const lineWidth = bodyFont.widthOfTextAtSize(line, badgeFontSize);
+          const textX =
+            badgeX +
+            badgePaddingX +
+            Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
+          page.drawText(line, {
+            x: textX,
+            y: badgeTextY,
+            size: badgeFontSize,
+            font: bodyFont,
+            color: badgeColors[node.role],
+          });
+          if (index < effectiveLines.length - 1) {
+            badgeTextY -= badgeLineHeight;
+          }
         });
 
         const textStartX = avatarX + avatarSize + 16;
@@ -1418,8 +1443,8 @@ function OrgNodeCard({
             : "border-slate-200/70",
         )}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <Avatar
               src={node.profileImageUrl ?? undefined}
               name={node.fullName}
@@ -1441,7 +1466,8 @@ function OrgNodeCard({
           <Badge
             variant="outline"
             className={cn(
-              "shrink-0 self-start px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+              "w-fit max-w-full self-start whitespace-normal px-3 py-1 text-center text-[11px] font-semibold uppercase tracking-wide",
+              "flex-wrap justify-center",
               roleBadgeClasses[node.role],
             )}
           >

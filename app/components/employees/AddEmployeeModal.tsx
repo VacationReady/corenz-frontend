@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
+import NewLocationModal from "@/components/shared/NewLocationModal";
+import NewContractTypeModal from "@/components/shared/NewContractTypeModal";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 
@@ -149,6 +151,8 @@ export default function AddEmployeeModal({
   const [departments, setDepartments] = useState<any[]>([]);
   const [jobRoles, setJobRoles] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
+  const [contractTypes, setContractTypes] = useState<Array<{ id: string; label: string }>>([]);
   interface OnboardingTemplate {
     id: string;
     name: string;
@@ -160,7 +164,14 @@ export default function AddEmployeeModal({
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+  const [isLocationModalOpen, setLocationModalOpen] = useState(false);
+  const [isContractTypeModalOpen, setContractTypeModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Control Select open states so the list closes when launching modals
+  const [isDeptSelectOpen, setIsDeptSelectOpen] = useState(false);
+  const [isRoleSelectOpen, setIsRoleSelectOpen] = useState(false);
+  const [isLocationSelectOpen, setIsLocationSelectOpen] = useState(false);
+  const [isContractTypeSelectOpen, setIsContractTypeSelectOpen] = useState(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -180,6 +191,9 @@ export default function AddEmployeeModal({
     permissionProfileId: undefined as string | undefined,
     departmentId: undefined as string | undefined,
     jobRoleId: undefined as string | undefined,
+    siteLocation: undefined as string | undefined,
+    locationId: undefined as string | undefined,
+    contractType: undefined as string | undefined,
     managerId: undefined as string | undefined,
     onboardingTemplateId: undefined as string | undefined,
     // Step 2 fields
@@ -205,13 +219,15 @@ export default function AddEmployeeModal({
 
   const fetchData = async () => {
     try {
-      const [empRes, deptRes, roleRes, templateRes, patternsRes] =
+      const [empRes, deptRes, roleRes, templateRes, patternsRes, locationsRes, contractTypeRes] =
         await Promise.all([
           fetch("/api/employees").then((r) => r.json()),
           fetch("/api/departments").then((r) => r.json()),
           fetch("/api/job-roles").then((r) => r.json()),
           fetch("/api/onboarding/templates").then((r) => r.json()),
           fetch("/api/working-patterns").then((r) => r.json()),
+          fetch("/api/locations").then((r) => r.json()),
+          fetch("/api/contract-type-options").then((r) => r.json()),
         ]);
 
       // API returns flattened employees with id, firstName, lastName, etc.
@@ -234,6 +250,8 @@ export default function AddEmployeeModal({
 
       setTemplates(normalizedTemplates);
       setWorkingPatterns(patternsRes);
+      setLocations(Array.isArray(locationsRes) ? locationsRes : []);
+      setContractTypes(Array.isArray(contractTypeRes) ? contractTypeRes : []);
     } catch {
       setError("Failed to load data");
     }
@@ -525,6 +543,8 @@ export default function AddEmployeeModal({
         departmentId: formData.departmentId || "",
         jobRoleId: formData.jobRoleId || "",
         managerId: formData.managerId || "",
+        contractType: formData.contractType || "",
+        locationId: formData.locationId || "",
         // No profile picker; allow backend defaults
         permissionProfileId: "",
         holidayYear: formData.holidayYear || "",
@@ -564,6 +584,9 @@ export default function AddEmployeeModal({
         permissionProfileId: undefined,
         departmentId: undefined,
         jobRoleId: undefined,
+        siteLocation: undefined,
+        locationId: undefined,
+        contractType: undefined,
         managerId: undefined,
         onboardingTemplateId: undefined,
         holidayYear: undefined,
@@ -732,6 +755,8 @@ export default function AddEmployeeModal({
                 </div>
 
                 <Select
+                  open={isDeptSelectOpen}
+                  onOpenChange={setIsDeptSelectOpen}
                   value={formData.departmentId || undefined}
                   onValueChange={(value) => {
                     setShowAllTemplates(false);
@@ -748,7 +773,7 @@ export default function AddEmployeeModal({
                       </SelectItem>
                     ))}
                     <div className="px-2 py-2">
-                      <Button type="button" variant="ghost" onClick={() => setDeptModalOpen(true)}>
+                      <Button type="button" variant="ghost" onClick={() => { setIsDeptSelectOpen(false); setDeptModalOpen(true); }}>
                         + Add new department
                       </Button>
                     </div>
@@ -756,6 +781,8 @@ export default function AddEmployeeModal({
                 </Select>
 
                 <Select
+                  open={isRoleSelectOpen}
+                  onOpenChange={setIsRoleSelectOpen}
                   value={formData.jobRoleId || undefined}
                   onValueChange={(value) => {
                     setShowAllTemplates(false);
@@ -772,8 +799,54 @@ export default function AddEmployeeModal({
                       </SelectItem>
                     ))}
                     <div className="px-2 py-2">
-                      <Button type="button" variant="ghost" onClick={() => setRoleModalOpen(true)}>
+                      <Button type="button" variant="ghost" onClick={() => { setIsRoleSelectOpen(false); setRoleModalOpen(true); }}>
                         + Add new job role
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  open={isLocationSelectOpen}
+                  onOpenChange={setIsLocationSelectOpen}
+                  value={formData.locationId || undefined}
+                  onValueChange={(value) => setFormData({ ...formData, locationId: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-2">
+                      <Button type="button" variant="ghost" onClick={() => { setIsLocationSelectOpen(false); setLocationModalOpen(true); }}>
+                        + Add new location
+                      </Button>
+                    </div>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  open={isContractTypeSelectOpen}
+                  onOpenChange={setIsContractTypeSelectOpen}
+                  value={formData.contractType || undefined}
+                  onValueChange={(value) => setFormData({ ...formData, contractType: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Contract Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contractTypes.map((t) => (
+                      <SelectItem key={t.id} value={t.label}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                    <div className="px-2 py-2">
+                      <Button type="button" variant="ghost" onClick={() => { setIsContractTypeSelectOpen(false); setContractTypeModalOpen(true); }}>
+                        + Add new contract type
                       </Button>
                     </div>
                   </SelectContent>
@@ -1124,6 +1197,22 @@ export default function AddEmployeeModal({
         <NewJobRoleModal
           onClose={() => {
             setRoleModalOpen(false);
+            fetchData();
+          }}
+        />
+      )}
+      {isLocationModalOpen && (
+        <NewLocationModal
+          onClose={() => {
+            setLocationModalOpen(false);
+            fetchData();
+          }}
+        />
+      )}
+      {isContractTypeModalOpen && (
+        <NewContractTypeModal
+          onClose={() => {
+            setContractTypeModalOpen(false);
             fetchData();
           }}
         />

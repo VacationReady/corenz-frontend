@@ -133,6 +133,7 @@ export async function GET(req: Request) {
             role: true,
             createdAt: true,
             profileImageUrl: true,
+            managerId: true,
           },
         },
         Department: {
@@ -177,6 +178,7 @@ export async function GET(req: Request) {
           phone: emp.User.phone,
           role: emp.User.role,
           createdAt: emp.User.createdAt,
+          managerUserId: emp.User.managerId ?? null,
           departmentId: emp.Department?.id ?? null,
           departmentName: emp.Department?.name ?? null,
           jobRoleId: emp.JobRole?.id ?? null,

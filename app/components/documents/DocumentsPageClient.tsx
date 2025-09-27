@@ -495,15 +495,15 @@ function DocumentsContent() {
             </TableHeader>
             <TableBody>
               {filteredDocuments.map((doc) => {
-                const docDepartments = Array.isArray((doc as any).departments)
-                  ? (doc as any).departments
+                const docDepartments: Array<{ id: string; name: string }> = Array.isArray((doc as any).departments)
+                  ? ((doc as any).departments as Array<{ id: string; name: string }>)
                   : Array.isArray((doc as any).Department)
-                    ? (doc as any).Department
+                    ? ((doc as any).Department as Array<{ id: string; name: string }>)
                     : [];
-                const docJobRoles = Array.isArray((doc as any).jobRoles)
-                  ? (doc as any).jobRoles
+                const docJobRoles: Array<{ id: string; name: string }> = Array.isArray((doc as any).jobRoles)
+                  ? ((doc as any).jobRoles as Array<{ id: string; name: string }>)
                   : Array.isArray((doc as any).JobRole)
-                    ? (doc as any).JobRole
+                    ? ((doc as any).JobRole as Array<{ id: string; name: string }>)
                     : [];
                 const accessList = [
                   doc.canViewAdmin ? "Admin" : null,

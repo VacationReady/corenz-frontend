@@ -36,6 +36,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
         include: { EventCategory: true },
         where: { EventCategory: { isActive: true } },
       },
+      Department: { select: { name: true } },
       User: {
         select: {
           firstName: true,
@@ -148,7 +149,19 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             </div>
             <div className="p-4 space-y-1 text-sm">
               <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
-              <p><strong>Department:</strong> {employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}</p>
+              <p>
+                <strong>Department:</strong>{" "}
+                {employee.Department?.name || employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}
+              </p>
+              <p>
+                <strong>Manager:</strong>{" "}
+                {employee.User.User
+                  ? `${employee.User.User.firstName ?? ""} ${employee.User.User.lastName ?? ""}`.trim() || "N/A"
+                  : "N/A"}
+              </p>
+              <p>
+                <strong>Location:</strong> {employee.siteLocation || "N/A"}
+              </p>
               <Link href={`/employees/${employee.id}/employment-details`} className="text-blue-600 underline text-sm">Manage</Link>
             </div>
           </Card>

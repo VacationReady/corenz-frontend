@@ -1084,14 +1084,9 @@ function OrgChartPageClient() {
 
       const pdfBytes = await pdfDoc.save();
 
-      let exportBuffer: ArrayBuffer | Uint8Array;
-      if (pdfBytes instanceof Uint8Array) {
-        exportBuffer = pdfBytes;
-      } else if (pdfBytes instanceof ArrayBuffer) {
-        exportBuffer = pdfBytes;
-      } else {
-        exportBuffer = Uint8Array.from(pdfBytes as ArrayLike<number>);
-      }
+      const exportBuffer = pdfBytes instanceof Uint8Array
+        ? pdfBytes
+        : new Uint8Array(pdfBytes as ArrayBufferLike | ArrayLike<number>);
 
       const blob = new Blob([exportBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);

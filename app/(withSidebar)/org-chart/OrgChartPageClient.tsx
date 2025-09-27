@@ -35,6 +35,8 @@ import {
   Sparkles,
   ZoomIn,
   ZoomOut,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,13 +44,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 
-const NODE_WIDTH = 256;
-const NODE_HEIGHT = 216;
+const NODE_WIDTH = 288;
+const NODE_HEIGHT = 224;
 const HORIZONTAL_SPACING = 80;
 const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
-const VERTICAL_SPACING = 120;
+const VERTICAL_SPACING = 64;
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
 const VERTICAL_MARGIN_BOTTOM = 120;
@@ -56,12 +59,55 @@ const MIN_ZOOM = 0.6;
 const MAX_ZOOM = 1.6;
 const ZOOM_STEP = 0.1;
 
+const isArrayBufferLike = (value: unknown): value is ArrayBufferLike =>
+  typeof value === "object" &&
+  value !== null &&
+  "byteLength" in value &&
+  typeof (value as { byteLength: unknown }).byteLength === "number";
+
+const toUint8Array = (value: unknown): Uint8Array => {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    if (ArrayBuffer.isView(value as ArrayBufferView)) {
+      const view = value as ArrayBufferView;
+      return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+    }
+
+    if (isArrayBufferLike(value)) {
+      return new Uint8Array(value);
+    }
+
+    if (
+      "buffer" in value &&
+      isArrayBufferLike((value as { buffer: unknown }).buffer)
+    ) {
+      const view = value as ArrayLike<number> & {
+        buffer: ArrayBufferLike;
+        byteOffset?: number;
+        byteLength?: number;
+      };
+      const { buffer } = view;
+      const offset =
+        typeof view.byteOffset === "number" ? view.byteOffset : 0;
+      const length =
+        typeof view.byteLength === "number" ? view.byteLength : undefined;
+      return new Uint8Array(buffer, offset, length);
+    }
+  }
+
+  return Uint8Array.from(value as ArrayLike<number>);
+};
+
 interface ApiEmployee {
   id: string;
   userId: string;
   firstName?: string | null;
   lastName?: string | null;
   email: string;
+  phone?: string | null;
   role: "ADMIN" | "MANAGER" | "EMPLOYEE";
   departmentId?: string | null;
   departmentName?: string | null;
@@ -77,6 +123,7 @@ interface OrgEmployee {
   userId: string;
   fullName: string;
   email: string;
+  phone: string | null;
   jobTitle: string | null;
   jobRoleId: string | null;
   department: string | null;
@@ -127,6 +174,10 @@ function OrgChartPageClient() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<OrgEmployee | null>(
+    null,
+  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([
@@ -163,13 +214,25 @@ function OrgChartPageClient() {
           data.map((raw) => {
             const emp = raw as Partial<ApiEmployee> & Record<string, unknown>;
 
+            const safeRole: ApiEmployee["role"] = (() => {
+              switch (emp.role) {
+                case "ADMIN":
+                case "MANAGER":
+                case "EMPLOYEE":
+                  return emp.role;
+                default:
+                  return "EMPLOYEE";
+              }
+            })();
+
             return {
               id: String(emp.id ?? ""),
               userId: String(emp.userId ?? ""),
               firstName: (emp.firstName as string | null | undefined) ?? null,
               lastName: (emp.lastName as string | null | undefined) ?? null,
               email: String(emp.email ?? ""),
-              role: (emp.role ?? "EMPLOYEE") as ApiEmployee["role"],
+              phone: (emp.phone as string | null | undefined) ?? null,
+              role: safeRole,
               departmentId: (emp.departmentId as string | null | undefined) ?? null,
               departmentName:
                 (emp.departmentName as string | null | undefined) ?? null,
@@ -230,6 +293,7 @@ function OrgChartPageClient() {
         userId: emp.userId,
         fullName: safeName,
         email: emp.email,
+        phone: emp.phone ?? null,
         jobTitle: emp.jobRoleName ?? null,
         jobRoleId: emp.jobRoleId ?? null,
         department: emp.departmentName ?? null,
@@ -500,6 +564,18 @@ function OrgChartPageClient() {
   const handleZoomReset = () => {
     setZoom(1);
   };
+
+  const handleOpenContact = useCallback((employee: OrgEmployee) => {
+    setSelectedContact(employee);
+    setContactDialogOpen(true);
+  }, []);
+
+  const handleContactDialogChange = useCallback((open: boolean) => {
+    setContactDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedContact(null), 0);
+    }
+  }, []);
 
   const handleExport = useCallback(async () => {
     if (!filteredForest.length) {
@@ -904,34 +980,59 @@ function OrgChartPageClient() {
         const badgeFontSize = 9;
         const badgePaddingX = 10;
         const badgePaddingY = 6;
-        const badgeTextWidth = bodyFont.widthOfTextAtSize(
+        const badgeLineHeight = badgeFontSize + 2;
+        const maxBadgeWidth = Math.max(1, NODE_WIDTH - cardPadding * 2);
+        const badgeLines = wrapText(
           badgeLabel,
+          bodyFont,
           badgeFontSize,
+          Math.max(1, maxBadgeWidth - badgePaddingX * 2),
         );
-        const badgeWidth = badgeTextWidth + badgePaddingX * 2;
-        const badgeHeight = badgeFontSize + badgePaddingY * 2;
+        const effectiveLines = badgeLines.length ? badgeLines : [badgeLabel];
+        const widestLine = effectiveLines.reduce((widest, line) => {
+          const width = bodyFont.widthOfTextAtSize(line, badgeFontSize);
+          return Math.max(widest, width);
+        }, 0);
+        const badgeWidth = Math.min(
+          maxBadgeWidth,
+          widestLine + badgePaddingX * 2,
+        );
+        const badgeHeight =
+          effectiveLines.length * badgeLineHeight + badgePaddingY * 2;
         const badgeX = pos.x + NODE_WIDTH - cardPadding - badgeWidth;
         const badgeY = rectY + NODE_HEIGHT - cardPadding - badgeHeight + 6;
 
-        // Use rounded rectangle helper for a pill badge (pdf-lib doesn't support borderRadius on rectangles)
         drawRoundedRectangle({
           page,
           x: badgeX,
           y: badgeY,
           width: badgeWidth,
           height: badgeHeight,
-          radius: 999,
+          radius: Math.min(badgeHeight / 2, badgeWidth / 2),
+          color: rgb(0.97, 0.98, 1),
           borderColor: badgeColors[node.role],
           borderWidth: 1,
-          color: rgb(0.97, 0.98, 1),
           opacity: 1,
         });
-        page.drawText(badgeLabel, {
-          x: badgeX + badgePaddingX,
-          y: badgeY + badgePaddingY - 2,
-          size: badgeFontSize,
-          font: bodyFont,
-          color: badgeColors[node.role],
+
+        let badgeTextY =
+          badgeY + badgeHeight - badgePaddingY - badgeFontSize - 2;
+        effectiveLines.forEach((line, index) => {
+          const lineWidth = bodyFont.widthOfTextAtSize(line, badgeFontSize);
+          const textX =
+            badgeX +
+            badgePaddingX +
+            Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
+          page.drawText(line, {
+            x: textX,
+            y: badgeTextY,
+            size: badgeFontSize,
+            font: bodyFont,
+            color: badgeColors[node.role],
+          });
+          if (index < effectiveLines.length - 1) {
+            badgeTextY -= badgeLineHeight;
+          }
         });
 
         const textStartX = avatarX + avatarSize + 16;
@@ -1059,14 +1160,22 @@ function OrgChartPageClient() {
       filteredForest.forEach(drawNode);
 
       const pdfBytes = await pdfDoc.save();
-      const arrayBuffer =
-        pdfBytes.buffer instanceof ArrayBuffer
-          ? pdfBytes.buffer.slice(
-              pdfBytes.byteOffset,
-              pdfBytes.byteOffset + pdfBytes.byteLength,
-            )
-          : Uint8Array.from(pdfBytes).buffer;
-      const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+
+      const exportBuffer = toUint8Array(pdfBytes);
+
+      let normalizedBuffer: ArrayBuffer;
+      const baseBuffer = exportBuffer.buffer;
+
+      if (typeof (baseBuffer as ArrayBuffer).slice === "function") {
+        const arrayBuffer = baseBuffer as ArrayBuffer;
+        const start = exportBuffer.byteOffset;
+        const end = exportBuffer.byteOffset + exportBuffer.byteLength;
+        normalizedBuffer = arrayBuffer.slice(start, end);
+      } else {
+        normalizedBuffer = exportBuffer.slice().buffer as ArrayBuffer;
+      }
+
+      const blob = new Blob([normalizedBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -1376,6 +1485,7 @@ function OrgChartPageClient() {
                           key={node.id}
                           node={node}
                           position={position}
+                          onContactRequest={handleOpenContact}
                         />
                       );
                     })}
@@ -1386,6 +1496,82 @@ function OrgChartPageClient() {
           )}
         </div>
       </div>
+      <Dialog
+        open={contactDialogOpen && Boolean(selectedContact)}
+        onOpenChange={handleContactDialogChange}
+      >
+        <DialogContent
+          title={selectedContact?.fullName}
+          description={
+            selectedContact
+              ? [
+                  selectedContact.jobTitle ?? "Role not assigned",
+                  selectedContact.department ?? "No department",
+                ]
+                  .filter(Boolean)
+                  .join(" • ")
+              : undefined
+          }
+        >
+          {selectedContact ? (
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <Avatar
+                  src={selectedContact.profileImageUrl ?? undefined}
+                  name={selectedContact.fullName}
+                  size={56}
+                  className="shadow-depth-2"
+                />
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-lg font-semibold text-foreground">
+                      {selectedContact.fullName}
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "whitespace-nowrap px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                        roleBadgeClasses[selectedContact.role],
+                      )}
+                    >
+                      {roleLabels[selectedContact.role]}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedContact.managerName
+                      ? `Reports to ${selectedContact.managerName}`
+                      : "Reports to leadership"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 p-3">
+                  <Mail className="h-5 w-5 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Email
+                    </p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {selectedContact.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 p-3">
+                  <Phone className="h-5 w-5 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Mobile number
+                    </p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {selectedContact.phone ?? "Not provided"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
@@ -1393,9 +1579,11 @@ function OrgChartPageClient() {
 function OrgNodeCard({
   node,
   position,
+  onContactRequest,
 }: {
   node: OrgNode;
   position: { x: number; y: number };
+  onContactRequest: (employee: OrgEmployee) => void;
 }) {
   const directReports = node.children.length;
   const managerLabel = node.managerName ?? "Reports to leadership";
@@ -1412,14 +1600,24 @@ function OrgNodeCard({
     >
       <div
         className={cn(
-          "group flex h-full w-full flex-col gap-5 overflow-hidden rounded-[28px] border bg-white/80 p-6 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
+          "group flex h-full w-full cursor-pointer flex-col gap-5 overflow-hidden rounded-[28px] border bg-white/80 p-6 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:bg-slate-950/70",
           node.isMatch
             ? "border-primary/50 shadow-[0_18px_40px_rgba(59,130,246,0.25)] ring-2 ring-primary/40"
             : "border-slate-200/70",
         )}
+        role="button"
+        tabIndex={0}
+        aria-label={`View contact details for ${node.fullName}`}
+        onClick={() => onContactRequest(node)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onContactRequest(node);
+          }
+        }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <Avatar
               src={node.profileImageUrl ?? undefined}
               name={node.fullName}
@@ -1441,7 +1639,8 @@ function OrgNodeCard({
           <Badge
             variant="outline"
             className={cn(
-              "shrink-0 self-start px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+              "w-fit max-w-full self-start whitespace-normal px-3 py-1 text-center text-[11px] font-semibold uppercase tracking-wide",
+              "flex-wrap justify-center",
               roleBadgeClasses[node.role],
             )}
           >
@@ -1472,6 +1671,12 @@ function OrgNodeCard({
                   <button
                     type="button"
                     className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.stopPropagation();
+                      }
+                    }}
                   >
                     {directReports} direct {directReports === 1 ? "report" : "reports"}
                   </button>

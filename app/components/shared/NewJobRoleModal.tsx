@@ -11,7 +11,7 @@ export default function NewJobRoleModal({
   onAdded,
 }: {
   onClose: () => void;
-  onAdded?: () => void;
+  onAdded?: (created: { id: string; name: string }) => void;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -52,11 +52,13 @@ export default function NewJobRoleModal({
         setError(data.error || "Failed to create job role.");
         return;
       }
+      const payload = await res.json();
+      const created = payload?.jobRole || payload; // handle both shapes
       mutate("/api/audience");
-      onAdded?.();
+      onAdded?.(created);
       setName("");
-      await load();
       setError("");
+      onClose();
     } catch {
       setError("Network error.");
     } finally {

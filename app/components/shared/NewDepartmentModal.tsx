@@ -11,7 +11,7 @@ export default function NewDepartmentModal({
   onAdded,
 }: {
   onClose: () => void;
-  onAdded?: () => void;
+  onAdded?: (created: { id: string; name: string }) => void;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -52,11 +52,12 @@ export default function NewDepartmentModal({
         setError(data.error || "Failed to create department.");
         return;
       }
+      const created = await res.json();
       mutate("/api/audience");
-      onAdded?.();
+      onAdded?.(created);
       setName("");
-      await load();
       setError("");
+      onClose();
     } catch {
       setError("Network error.");
     } finally {

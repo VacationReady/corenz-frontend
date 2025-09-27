@@ -1190,6 +1190,16 @@ export default function AddEmployeeModal({
             setDeptModalOpen(false);
             fetchData();
           }}
+          onAdded={(created) => {
+            setDeptModalOpen(false);
+            // Ensure list includes the created dept then select it
+            setDepartments((prev) => {
+              const exists = prev.some((d: any) => d.id === created.id);
+              return exists ? prev : [...prev, created];
+            });
+            setFormData((prev) => ({ ...prev, departmentId: created.id }));
+            setIsDeptSelectOpen(false);
+          }}
         />
       )}
 
@@ -1199,6 +1209,15 @@ export default function AddEmployeeModal({
             setRoleModalOpen(false);
             fetchData();
           }}
+          onAdded={(created) => {
+            setRoleModalOpen(false);
+            setJobRoles((prev) => {
+              const exists = prev.some((j: any) => j.id === created.id);
+              return exists ? prev : [...prev, created];
+            });
+            setFormData((prev) => ({ ...prev, jobRoleId: created.id }));
+            setIsRoleSelectOpen(false);
+          }}
         />
       )}
       {isLocationModalOpen && (
@@ -1206,6 +1225,15 @@ export default function AddEmployeeModal({
           onClose={() => {
             setLocationModalOpen(false);
             fetchData();
+          }}
+          onAdded={(created) => {
+            setLocationModalOpen(false);
+            setLocations((prev) => {
+              const exists = prev.some((l: any) => l.id === created.id);
+              return exists ? prev : [...prev, created];
+            });
+            setFormData((prev) => ({ ...prev, locationId: created.id }));
+            setIsLocationSelectOpen(false);
           }}
         />
       )}

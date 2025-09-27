@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { Calendar, User, Receipt, Bell } from "lucide-react";
@@ -150,11 +151,11 @@ function DocumentActionItems({ employeeId }: { employeeId: string }) {
     fetcher,
   );
 
-  const [pendingAck, setPendingAck] = React.useState<Array<{ id: string; name: string }>>([]);
-  const [pendingSign, setPendingSign] = React.useState<Array<{ id: string; name: string }>>([]);
-  const [checking, setChecking] = React.useState(false);
+  const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
+  const [pendingSign, setPendingSign] = useState<Array<{ id: string; name: string }>>([]);
+  const [checking, setChecking] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const run = async () => {
       if (loadingEmp || loadingCo) return;
       const all = [...(Array.isArray(employeeDocs) ? employeeDocs : []), ...(Array.isArray(companyDocs) ? companyDocs : [])];

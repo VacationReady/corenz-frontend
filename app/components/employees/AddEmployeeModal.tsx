@@ -1190,7 +1190,8 @@ export default function AddEmployeeModal({
             setDeptModalOpen(false);
             fetchData();
           }}
-          onAdded={(created) => {
+      onAdded={(created) => {
+        if (!created) return;
             setDeptModalOpen(false);
             // Ensure list includes the created dept then select it
             setDepartments((prev) => {
@@ -1209,7 +1210,8 @@ export default function AddEmployeeModal({
             setRoleModalOpen(false);
             fetchData();
           }}
-          onAdded={(created) => {
+      onAdded={(created) => {
+        if (!created) return;
             setRoleModalOpen(false);
             setJobRoles((prev) => {
               const exists = prev.some((j: any) => j.id === created.id);
@@ -1226,7 +1228,8 @@ export default function AddEmployeeModal({
             setLocationModalOpen(false);
             fetchData();
           }}
-          onAdded={(created) => {
+      onAdded={(created) => {
+        if (!created) return;
             setLocationModalOpen(false);
             setLocations((prev) => {
               const exists = prev.some((l: any) => l.id === created.id);

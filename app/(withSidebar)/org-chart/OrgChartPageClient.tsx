@@ -927,15 +927,17 @@ function OrgChartPageClient() {
         const badgeX = pos.x + NODE_WIDTH - cardPadding - badgeWidth;
         const badgeY = rectY + NODE_HEIGHT - cardPadding - badgeHeight + 6;
 
-        page.drawRectangle({
+        drawRoundedRectangle({
+          page,
           x: badgeX,
           y: badgeY,
           width: badgeWidth,
           height: badgeHeight,
+          radius: Math.min(badgeHeight / 2, badgeWidth / 2),
           color: rgb(0.97, 0.98, 1),
           borderColor: badgeColors[node.role],
           borderWidth: 1,
-          borderRadius: 999,
+          opacity: 1,
         });
 
         let badgeTextY =

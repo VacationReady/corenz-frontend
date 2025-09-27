@@ -190,6 +190,12 @@ export const breadcrumbConfigs = {
       { label: "Profile", isCurrentPage: true },
     ],
   },
+  orgChart: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Org Chart", isCurrentPage: true },
+    ],
+  },
   // Form-specific breadcrumbs
   formDetail: (formName: string) => ({
     items: [

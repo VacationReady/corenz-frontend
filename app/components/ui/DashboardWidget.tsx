@@ -23,6 +23,9 @@ export function DashboardWidget({
       title={title}
       icon={<Icon className="w-5 h-5 text-primary" />}
       action={action}
+      variant="elevated"
+      hoverable
+      glow
       className={className}
     >
       {children}

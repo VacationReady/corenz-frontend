@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -36,10 +35,16 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const NODE_WIDTH = 240;
-const NODE_HEIGHT = 130;
+const NODE_HEIGHT = 160;
 const HORIZONTAL_SPACING = 80;
+const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
 const VERTICAL_SPACING = 120;
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
@@ -91,6 +96,21 @@ const roleBadgeClasses: Record<OrgEmployee["role"], string> = {
   ADMIN: "border-primary/30 bg-primary/10 text-primary",
   MANAGER: "border-amber-400/40 bg-amber-400/15 text-amber-600",
   EMPLOYEE: "border-slate-300 bg-slate-200/40 text-slate-600",
+};
+
+type LayoutConfig = {
+  nodeWidth: number;
+  nodeHeight: number;
+  horizontalSpacing: number;
+  rootSpacing: number;
+  verticalSpacing: number;
+};
+
+type MeasuredOrgNode = {
+  node: OrgNode;
+  width: number;
+  depth: number;
+  children: MeasuredOrgNode[];
 };
 
 function OrgChartPageClient() {
@@ -347,36 +367,35 @@ function OrgChartPageClient() {
       };
     }
 
-    const levels = collectLevels(filteredForest);
-    const rowWidths = levels.map(
-      (level) =>
-        level.length * NODE_WIDTH +
-        Math.max(0, level.length - 1) * HORIZONTAL_SPACING,
+    const config: LayoutConfig = {
+      nodeWidth: NODE_WIDTH,
+      nodeHeight: NODE_HEIGHT,
+      horizontalSpacing: HORIZONTAL_SPACING,
+      rootSpacing: ROOT_HORIZONTAL_SPACING,
+      verticalSpacing: VERTICAL_SPACING,
+    };
+
+    const { measuredForest, maxDepth, forestWidth } = measureOrgForest(
+      filteredForest,
+      config,
     );
-    const maxRowWidth = rowWidths.length
-      ? Math.max(...rowWidths)
-      : NODE_WIDTH;
-    const width = Math.max(
-      maxRowWidth + HORIZONTAL_MARGIN * 2,
-      720,
-    );
+
+    const width = Math.max(forestWidth + HORIZONTAL_MARGIN * 2, 720);
     const height =
       VERTICAL_MARGIN_TOP +
-      levels.length * NODE_HEIGHT +
-      Math.max(0, levels.length - 1) * VERTICAL_SPACING +
+      maxDepth * NODE_HEIGHT +
+      Math.max(0, maxDepth - 1) * VERTICAL_SPACING +
       VERTICAL_MARGIN_BOTTOM;
 
     const positions = new Map<string, { x: number; y: number }>();
+    let currentLeft = (width - forestWidth) / 2;
+    const top = VERTICAL_MARGIN_TOP;
 
-    levels.forEach((level, levelIndex) => {
-      const rowWidth = rowWidths[levelIndex];
-      const startX = (width - rowWidth) / 2;
-      const y = VERTICAL_MARGIN_TOP + levelIndex * (NODE_HEIGHT + VERTICAL_SPACING);
-
-      level.forEach((node, nodeIndex) => {
-        const x = startX + nodeIndex * (NODE_WIDTH + HORIZONTAL_SPACING);
-        positions.set(node.id, { x, y });
-      });
+    measuredForest.forEach((tree, index) => {
+      assignMeasuredPositions(tree, config, currentLeft, top, positions);
+      if (index < measuredForest.length - 1) {
+        currentLeft += tree.width + ROOT_HORIZONTAL_SPACING;
+      }
     });
 
     return { width, height, positions };
@@ -462,25 +481,28 @@ function OrgChartPageClient() {
       const pdfLib = await import("pdf-lib");
       const { PDFDocument, rgb, StandardFonts } = pdfLib;
 
-      const levels = collectLevels(filteredForest);
-      const rowWidths = levels.map(
-        (level) =>
-          level.length * NODE_WIDTH +
-          Math.max(0, level.length - 1) * HORIZONTAL_SPACING,
-      );
-      const maxRowWidth = rowWidths.length
-        ? Math.max(...rowWidths)
-        : NODE_WIDTH;
-      const pageWidth = Math.max(
-        842,
-        maxRowWidth + HORIZONTAL_MARGIN * 2,
+      const config: LayoutConfig = {
+        nodeWidth: NODE_WIDTH,
+        nodeHeight: NODE_HEIGHT,
+        horizontalSpacing: HORIZONTAL_SPACING,
+        rootSpacing: ROOT_HORIZONTAL_SPACING,
+        verticalSpacing: VERTICAL_SPACING,
+      };
+
+      const { measuredForest, maxDepth, forestWidth } = measureOrgForest(
+        filteredForest,
+        config,
       );
 
       const pdfTopMargin = 140;
       const pdfBottomMargin = 80;
       const totalTreeHeight =
-        levels.length * NODE_HEIGHT +
-        Math.max(0, levels.length - 1) * VERTICAL_SPACING;
+        maxDepth * NODE_HEIGHT +
+        Math.max(0, maxDepth - 1) * VERTICAL_SPACING;
+      const pageWidth = Math.max(
+        842,
+        forestWidth + HORIZONTAL_MARGIN * 2,
+      );
       const pageHeight = Math.max(
         595,
         pdfTopMargin + totalTreeHeight + pdfBottomMargin,
@@ -519,57 +541,67 @@ function OrgChartPageClient() {
         });
       }
 
-      const positions = new Map<string, { x: number; y: number }>();
-      const firstRowY = pageHeight - pdfTopMargin - NODE_HEIGHT;
+      const topDownPositions = new Map<string, { x: number; y: number }>();
+      let currentLeft = Math.max(
+        (pageWidth - forestWidth) / 2,
+        HORIZONTAL_MARGIN,
+      );
 
-      levels.forEach((level, levelIndex) => {
-        const rowWidth = rowWidths[levelIndex];
-        const startX = (pageWidth - rowWidth) / 2;
-        const y = firstRowY - levelIndex * (NODE_HEIGHT + VERTICAL_SPACING);
+      measuredForest.forEach((tree, index) => {
+        assignMeasuredPositions(
+          tree,
+          config,
+          currentLeft,
+          pdfTopMargin,
+          topDownPositions,
+        );
 
-        level.forEach((node, idx) => {
-          const x = startX + idx * (NODE_WIDTH + HORIZONTAL_SPACING);
-          positions.set(node.id, { x, y });
-        });
+        if (index < measuredForest.length - 1) {
+          currentLeft += tree.width + ROOT_HORIZONTAL_SPACING;
+        }
       });
 
       const lineColor = rgb(0.73, 0.78, 0.86);
 
       const drawConnections = (node: OrgNode) => {
-        const parentPos = positions.get(node.id);
+        const parentPos = topDownPositions.get(node.id);
         if (!parentPos) return;
 
         node.children.forEach((child) => {
-          const childPos = positions.get(child.id);
+          const childPos = topDownPositions.get(child.id);
           if (!childPos) return;
 
           const parentCenterX = parentPos.x + NODE_WIDTH / 2;
-          const parentBottomY = parentPos.y;
+          const parentBottomY = parentPos.y + NODE_HEIGHT;
           const childCenterX = childPos.x + NODE_WIDTH / 2;
-          const childTopY = childPos.y + NODE_HEIGHT;
+          const childTopY = childPos.y;
           const midY = parentBottomY + (childTopY - parentBottomY) / 2;
 
+          const pdfParentBottomY = pageHeight - parentBottomY;
+          const pdfMidY = pageHeight - midY;
+          const pdfChildTopY = pageHeight - childTopY;
+
           page.drawLine({
-            start: { x: parentCenterX, y: parentBottomY },
-            end: { x: parentCenterX, y: midY },
+            start: { x: parentCenterX, y: pdfParentBottomY },
+            end: { x: parentCenterX, y: pdfMidY },
             thickness: 1.2,
             color: lineColor,
           });
           page.drawLine({
             start: {
               x: Math.min(parentCenterX, childCenterX),
-              y: midY,
+              y: pdfMidY,
             },
             end: {
               x: Math.max(parentCenterX, childCenterX),
-              y: midY,
+              y: pdfMidY,
             },
             thickness: 1.2,
             color: lineColor,
           });
           page.drawLine({
-            start: { x: childCenterX, y: midY },
-            end: { x: childCenterX, y: childTopY },
+            start: { x: childCenterX, y: pdfMidY },
+            end: { x: childCenterX, y: pdfChildTopY },
             thickness: 1.2,
             color: lineColor,
           });
@@ -588,12 +620,14 @@ function OrgChartPageClient() {
         value.length > length ? `${value.slice(0, length - 1)}…` : value;
 
       const drawNode = (node: OrgNode) => {
-        const pos = positions.get(node.id);
+        const pos = topDownPositions.get(node.id);
         if (!pos) return;
+
+        const rectY = pageHeight - pos.y - NODE_HEIGHT;
 
         page.drawRectangle({
           x: pos.x,
-          y: pos.y,
+          y: rectY,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
           borderWidth: 1.5,
@@ -602,37 +636,41 @@ function OrgChartPageClient() {
           opacity: node.isMatch ? 1 : 0.98,
         });
 
-        const nameY = pos.y + NODE_HEIGHT - 24;
+        const nameYTop = pos.y + NODE_HEIGHT - 24;
+        const nameYPdf = pageHeight - nameYTop;
         page.drawText(truncate(node.fullName, 32), {
           x: pos.x + 18,
-          y: nameY,
+          y: nameYPdf,
           size: 12,
           font: titleFont,
           color: rgb(0.12, 0.16, 0.24),
         });
 
         const title = node.jobTitle ?? "Role not assigned";
+        const titleYPdf = nameYPdf - 16;
         page.drawText(truncate(title, 36), {
           x: pos.x + 18,
-          y: nameY - 16,
+          y: titleYPdf,
           size: 10,
           font: bodyFont,
           color: rgb(0.36, 0.4, 0.5),
         });
 
         const department = node.department ?? "No department";
+        const departmentYPdf = titleYPdf - 18;
         page.drawText(truncate(`Dept: ${department}`, 40), {
           x: pos.x + 18,
-          y: nameY - 34,
+          y: departmentYPdf,
           size: 9,
           font: bodyFont,
           color: rgb(0.44, 0.48, 0.56),
         });
 
         const manager = node.managerName ?? "Reports to leadership";
+        const managerYPdf = departmentYPdf - 16;
         page.drawText(truncate(`Reports to: ${manager}`, 46), {
           x: pos.x + 18,
-          y: nameY - 50,
+          y: managerYPdf,
           size: 9,
           font: bodyFont,
           color: rgb(0.5, 0.32, 0.32),
@@ -644,7 +682,7 @@ function OrgChartPageClient() {
           }`,
           {
             x: pos.x + 18,
-            y: pos.y + 18,
+            y: rectY + 18,
             size: 9,
             font: bodyFont,
             color: rgb(0.35, 0.39, 0.48),
@@ -958,7 +996,7 @@ function OrgNodeCard({
     >
       <div
         className={cn(
-          "group h-full w-full rounded-[28px] border bg-white/80 p-5 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
+          "group flex h-full w-full flex-col justify-between rounded-[28px] border bg-white/80 p-5 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
           node.isMatch
             ? "border-primary/50 shadow-[0_18px_40px_rgba(59,130,246,0.25)] ring-2 ring-primary/40"
             : "border-slate-200/70",
@@ -972,11 +1010,14 @@ function OrgNodeCard({
               size={48}
               className="shadow-depth-2"
             />
-            <div>
-              <p className="text-base font-semibold text-foreground">
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-foreground" title={node.fullName}>
                 {node.fullName}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p
+                className="truncate text-sm text-muted-foreground"
+                title={node.jobTitle ?? undefined}
+              >
                 {node.jobTitle ?? "Role not assigned"}
               </p>
             </div>
@@ -984,7 +1025,7 @@ function OrgNodeCard({
           <Badge
             variant="outline"
             className={cn(
-              "px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+              "shrink-0 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
               roleBadgeClasses[node.role],
             )}
           >
@@ -994,46 +1035,71 @@ function OrgNodeCard({
 
         <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-slate-400" />
-            <span>{node.department ?? "No department"}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <UserCircle2 className="h-4 w-4 text-slate-400" />
-            <span>{managerLabel}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-slate-400" />
-            <span>
-              {directReports === 0
-                ? "No direct reports"
-                : `${directReports} direct ${
-                    directReports === 1 ? "report" : "reports"
-                  }`}
+            <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
+            <span className="truncate" title={node.department ?? undefined}>
+              {node.department ?? "No department"}
             </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <UserCircle2 className="h-4 w-4 shrink-0 text-slate-400" />
+            <span className="truncate" title={managerLabel}>
+              {managerLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4 shrink-0 text-slate-400" />
+            {directReports === 0 ? (
+              <span>No direct reports</span>
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    {directReports} direct {directReports === 1 ? "report" : "reports"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="w-80 max-h-80 overflow-y-auto p-4"
+                >
+                  <p className="text-sm font-semibold text-foreground">
+                    Direct reports
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {node.children.map((child) => (
+                      <div key={child.id} className="flex items-center gap-3">
+                        <Avatar
+                          src={child.profileImageUrl ?? undefined}
+                          name={child.fullName}
+                          size={40}
+                        />
+                        <div className="min-w-0">
+                          <p
+                            className="truncate text-sm font-medium text-foreground"
+                            title={child.fullName}
+                          >
+                            {child.fullName}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground" title={child.jobTitle ?? undefined}>
+                            {child.jobTitle ?? "Role not assigned"}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground" title={child.department ?? undefined}>
+                            {child.department ?? "No department"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function collectLevels(nodes: OrgNode[]): OrgNode[][] {
-  const levels: OrgNode[][] = [];
-  const queue: Array<{ node: OrgNode; depth: number }> = nodes.map((node) => ({
-    node,
-    depth: 0,
-  }));
-
-  while (queue.length > 0) {
-    const { node, depth } = queue.shift()!;
-    if (!levels[depth]) {
-      levels[depth] = [];
-    }
-    levels[depth].push(node);
-    node.children.forEach((child) => queue.push({ node: child, depth: depth + 1 }));
-  }
-
-  return levels;
 }
 
 function flattenTree(nodes: OrgNode[]): OrgNode[] {
@@ -1048,6 +1114,89 @@ function flattenTree(nodes: OrgNode[]): OrgNode[] {
 
 function countNodes(nodes: OrgNode[]): number {
   return nodes.reduce((acc, node) => acc + 1 + countNodes(node.children), 0);
+}
+
+function measureOrgNode(node: OrgNode, config: LayoutConfig): MeasuredOrgNode {
+  if (!node.children.length) {
+    return {
+      node,
+      width: config.nodeWidth,
+      depth: 1,
+      children: [],
+    };
+  }
+
+  const measuredChildren = node.children.map((child) =>
+    measureOrgNode(child, config),
+  );
+
+  const childrenWidth = measuredChildren.reduce((acc, child, index) => {
+    return (
+      acc +
+      child.width +
+      (index > 0 ? config.horizontalSpacing : 0)
+    );
+  }, 0);
+
+  const width = Math.max(config.nodeWidth, childrenWidth);
+  const depth =
+    1 + Math.max(...measuredChildren.map((child) => child.depth));
+
+  return { node, width, depth, children: measuredChildren };
+}
+
+function measureOrgForest(
+  forest: OrgNode[],
+  config: LayoutConfig,
+): {
+  measuredForest: MeasuredOrgNode[];
+  maxDepth: number;
+  forestWidth: number;
+} {
+  if (!forest.length) {
+    return { measuredForest: [], maxDepth: 0, forestWidth: 0 };
+  }
+
+  const measuredForest = forest.map((node) => measureOrgNode(node, config));
+  const maxDepth = Math.max(...measuredForest.map((tree) => tree.depth));
+  const forestWidth = measuredForest.reduce((acc, tree, index) => {
+    return (
+      acc + tree.width + (index > 0 ? config.rootSpacing : 0)
+    );
+  }, 0);
+
+  return { measuredForest, maxDepth, forestWidth };
+}
+
+function assignMeasuredPositions(
+  measured: MeasuredOrgNode,
+  config: LayoutConfig,
+  left: number,
+  top: number,
+  positions: Map<string, { x: number; y: number }>,
+) {
+  const nodeX = left + (measured.width - config.nodeWidth) / 2;
+  positions.set(measured.node.id, { x: nodeX, y: top });
+
+  if (!measured.children.length) {
+    return;
+  }
+
+  const childrenWidth = measured.children.reduce((acc, child, index) => {
+    return (
+      acc +
+      child.width +
+      (index > 0 ? config.horizontalSpacing : 0)
+    );
+  }, 0);
+
+  let currentLeft = left + (measured.width - childrenWidth) / 2;
+  const childTop = top + config.nodeHeight + config.verticalSpacing;
+
+  measured.children.forEach((child) => {
+    assignMeasuredPositions(child, config, currentLeft, childTop, positions);
+    currentLeft += child.width + config.horizontalSpacing;
+  });
 }
 
 export default OrgChartPageClient;

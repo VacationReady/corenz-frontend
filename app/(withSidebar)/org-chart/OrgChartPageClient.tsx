@@ -35,6 +35,8 @@ import {
   Sparkles,
   ZoomIn,
   ZoomOut,
+  Mail,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,13 +44,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 
 const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;
 const HORIZONTAL_SPACING = 80;
 const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
-const VERTICAL_SPACING = 120;
+const VERTICAL_SPACING = 64;
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
 const VERTICAL_MARGIN_BOTTOM = 120;
@@ -104,6 +107,7 @@ interface ApiEmployee {
   firstName?: string | null;
   lastName?: string | null;
   email: string;
+  phone?: string | null;
   role: "ADMIN" | "MANAGER" | "EMPLOYEE";
   departmentId?: string | null;
   departmentName?: string | null;
@@ -119,6 +123,7 @@ interface OrgEmployee {
   userId: string;
   fullName: string;
   email: string;
+  phone: string | null;
   jobTitle: string | null;
   jobRoleId: string | null;
   department: string | null;
@@ -169,6 +174,10 @@ function OrgChartPageClient() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<OrgEmployee | null>(
+    null,
+  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([
@@ -222,6 +231,7 @@ function OrgChartPageClient() {
               firstName: (emp.firstName as string | null | undefined) ?? null,
               lastName: (emp.lastName as string | null | undefined) ?? null,
               email: String(emp.email ?? ""),
+              phone: (emp.phone as string | null | undefined) ?? null,
               role: safeRole,
               departmentId: (emp.departmentId as string | null | undefined) ?? null,
               departmentName:
@@ -283,6 +293,7 @@ function OrgChartPageClient() {
         userId: emp.userId,
         fullName: safeName,
         email: emp.email,
+        phone: emp.phone ?? null,
         jobTitle: emp.jobRoleName ?? null,
         jobRoleId: emp.jobRoleId ?? null,
         department: emp.departmentName ?? null,
@@ -553,6 +564,18 @@ function OrgChartPageClient() {
   const handleZoomReset = () => {
     setZoom(1);
   };
+
+  const handleOpenContact = useCallback((employee: OrgEmployee) => {
+    setSelectedContact(employee);
+    setContactDialogOpen(true);
+  }, []);
+
+  const handleContactDialogChange = useCallback((open: boolean) => {
+    setContactDialogOpen(open);
+    if (!open) {
+      setTimeout(() => setSelectedContact(null), 0);
+    }
+  }, []);
 
   const handleExport = useCallback(async () => {
     if (!filteredForest.length) {
@@ -1462,6 +1485,7 @@ function OrgChartPageClient() {
                           key={node.id}
                           node={node}
                           position={position}
+                          onContactRequest={handleOpenContact}
                         />
                       );
                     })}
@@ -1472,6 +1496,82 @@ function OrgChartPageClient() {
           )}
         </div>
       </div>
+      <Dialog
+        open={contactDialogOpen && Boolean(selectedContact)}
+        onOpenChange={handleContactDialogChange}
+      >
+        <DialogContent
+          title={selectedContact?.fullName}
+          description={
+            selectedContact
+              ? [
+                  selectedContact.jobTitle ?? "Role not assigned",
+                  selectedContact.department ?? "No department",
+                ]
+                  .filter(Boolean)
+                  .join(" • ")
+              : undefined
+          }
+        >
+          {selectedContact ? (
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <Avatar
+                  src={selectedContact.profileImageUrl ?? undefined}
+                  name={selectedContact.fullName}
+                  size={56}
+                  className="shadow-depth-2"
+                />
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-lg font-semibold text-foreground">
+                      {selectedContact.fullName}
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "whitespace-nowrap px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                        roleBadgeClasses[selectedContact.role],
+                      )}
+                    >
+                      {roleLabels[selectedContact.role]}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedContact.managerName
+                      ? `Reports to ${selectedContact.managerName}`
+                      : "Reports to leadership"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-3">
+                <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 p-3">
+                  <Mail className="h-5 w-5 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Email
+                    </p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {selectedContact.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 p-3">
+                  <Phone className="h-5 w-5 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Mobile number
+                    </p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {selectedContact.phone ?? "Not provided"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
@@ -1479,9 +1579,11 @@ function OrgChartPageClient() {
 function OrgNodeCard({
   node,
   position,
+  onContactRequest,
 }: {
   node: OrgNode;
   position: { x: number; y: number };
+  onContactRequest: (employee: OrgEmployee) => void;
 }) {
   const directReports = node.children.length;
   const managerLabel = node.managerName ?? "Reports to leadership";
@@ -1498,11 +1600,21 @@ function OrgNodeCard({
     >
       <div
         className={cn(
-          "group flex h-full w-full flex-col gap-5 overflow-hidden rounded-[28px] border bg-white/80 p-6 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
+          "group flex h-full w-full cursor-pointer flex-col gap-5 overflow-hidden rounded-[28px] border bg-white/80 p-6 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:bg-slate-950/70",
           node.isMatch
             ? "border-primary/50 shadow-[0_18px_40px_rgba(59,130,246,0.25)] ring-2 ring-primary/40"
             : "border-slate-200/70",
         )}
+        role="button"
+        tabIndex={0}
+        aria-label={`View contact details for ${node.fullName}`}
+        onClick={() => onContactRequest(node)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onContactRequest(node);
+          }
+        }}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -1559,6 +1671,12 @@ function OrgNodeCard({
                   <button
                     type="button"
                     className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.stopPropagation();
+                      }
+                    }}
                   >
                     {directReports} direct {directReports === 1 ? "report" : "reports"}
                   </button>

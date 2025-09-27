@@ -170,6 +170,8 @@ export default function AddEmployeeModal({
   // Control Select open states so the list closes when launching modals
   const [isDeptSelectOpen, setIsDeptSelectOpen] = useState(false);
   const [isRoleSelectOpen, setIsRoleSelectOpen] = useState(false);
+  const [isLocationSelectOpen, setIsLocationSelectOpen] = useState(false);
+  const [isContractTypeSelectOpen, setIsContractTypeSelectOpen] = useState(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -582,6 +584,9 @@ export default function AddEmployeeModal({
         permissionProfileId: undefined,
         departmentId: undefined,
         jobRoleId: undefined,
+        siteLocation: undefined,
+        locationId: undefined,
+        contractType: undefined,
         managerId: undefined,
         onboardingTemplateId: undefined,
         holidayYear: undefined,
@@ -802,6 +807,8 @@ export default function AddEmployeeModal({
                 </Select>
 
                 <Select
+                  open={isLocationSelectOpen}
+                  onOpenChange={setIsLocationSelectOpen}
                   value={formData.locationId || undefined}
                   onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                 >
@@ -815,7 +822,7 @@ export default function AddEmployeeModal({
                       </SelectItem>
                     ))}
                     <div className="px-2 py-2">
-                      <Button type="button" variant="ghost" onClick={() => setLocationModalOpen(true)}>
+                      <Button type="button" variant="ghost" onClick={() => { setIsLocationSelectOpen(false); setLocationModalOpen(true); }}>
                         + Add new location
                       </Button>
                     </div>
@@ -823,6 +830,8 @@ export default function AddEmployeeModal({
                 </Select>
 
                 <Select
+                  open={isContractTypeSelectOpen}
+                  onOpenChange={setIsContractTypeSelectOpen}
                   value={formData.contractType || undefined}
                   onValueChange={(value) => setFormData({ ...formData, contractType: value })}
                 >
@@ -836,7 +845,7 @@ export default function AddEmployeeModal({
                       </SelectItem>
                     ))}
                     <div className="px-2 py-2">
-                      <Button type="button" variant="ghost" onClick={() => setContractTypeModalOpen(true)}>
+                      <Button type="button" variant="ghost" onClick={() => { setIsContractTypeSelectOpen(false); setContractTypeModalOpen(true); }}>
                         + Add new contract type
                       </Button>
                     </div>
@@ -1188,6 +1197,22 @@ export default function AddEmployeeModal({
         <NewJobRoleModal
           onClose={() => {
             setRoleModalOpen(false);
+            fetchData();
+          }}
+        />
+      )}
+      {isLocationModalOpen && (
+        <NewLocationModal
+          onClose={() => {
+            setLocationModalOpen(false);
+            fetchData();
+          }}
+        />
+      )}
+      {isContractTypeModalOpen && (
+        <NewContractTypeModal
+          onClose={() => {
+            setContractTypeModalOpen(false);
             fetchData();
           }}
         />

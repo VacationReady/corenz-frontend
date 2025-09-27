@@ -80,6 +80,28 @@ export default function MultiStageApprovalsSettingsPage() {
     run();
   }, []);
 
+  const defaultWorkflowCard = useMemo(() => {
+    return {
+      id: "__default__",
+      name: "Default (Manager Approval)",
+      eventCategory: { id: "__all__", name: "All leave types" },
+      scope: { type: "COMPANY" },
+      priority: -1,
+      isActive: true,
+      stages: [
+        {
+          id: "__default_stage__",
+          name: null,
+          mode: "SEQUENTIAL",
+          order: 0,
+          approvers: [
+            { id: "__default_appr__", type: "MANAGER", userId: null, name: null, email: null, order: 0 },
+          ],
+        },
+      ],
+    } as any;
+  }, []);
+
   function openCreate() {
     setEditing(null);
     setName("");
@@ -200,41 +222,62 @@ export default function MultiStageApprovalsSettingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {loading ? (
           <div>Loading...</div>
-        ) : workflows.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No workflows yet</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Create your first approval workflow to start multi-stage approvals.</p>
-            </CardContent>
-          </Card>
         ) : (
-          workflows.map((w: any) => (
-            <Card key={w.id} className="border-enhanced">
+          <>
+            {/* Always show the Default fallback workflow card */}
+            <Card key={defaultWorkflowCard.id} className="border-enhanced">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{w.name}</CardTitle>
-                  <Badge variant={w.isActive ? "default" : "secondary"}>{w.isActive ? "Active" : "Inactive"}</Badge>
+                  <CardTitle className="text-base">{defaultWorkflowCard.name}</CardTitle>
+                  <Badge variant="secondary">System default</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Event</span><span className="font-medium">{w.eventCategory?.name}</span></div>
-                <div className="flex justify-between"><span>Scope</span><span className="font-medium">{w.scope?.type}</span></div>
-                <div className="flex justify-between"><span>Stages</span><span className="font-medium">{w.stages?.length ?? 0}</span></div>
-                <div className="flex justify-between"><span>Priority</span><span className="font-medium">{w.priority ?? 0}</span></div>
-                <div className="pt-2 flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => openEdit(w)}>Edit</Button>
-                  <Button size="sm" variant="danger" onClick={async () => {
-                    const ok = confirm("Delete this workflow?");
-                    if (!ok) return;
-                    const res = await fetch(`/api/approval-workflows/${w.id}`, { method: "DELETE" });
-                    if (res.ok) { toast.success("Workflow deleted"); load(); } else { toast.error("Failed to delete"); }
-                  }}>Delete</Button>
-                </div>
+                <div className="flex justify-between"><span>Event</span><span className="font-medium">{defaultWorkflowCard.eventCategory?.name}</span></div>
+                <div className="flex justify-between"><span>Scope</span><span className="font-medium">{defaultWorkflowCard.scope?.type}</span></div>
+                <div className="flex justify-between"><span>Stages</span><span className="font-medium">1</span></div>
+                <div className="flex justify-between"><span>Approver</span><span className="font-medium">Manager</span></div>
+                <p className="text-xs text-muted-foreground pt-1">Used automatically when no matching workflow exists.</p>
               </CardContent>
             </Card>
-          ))
+
+            {workflows.length === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>No custom workflows yet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Default manager approval is active. Create a workflow to override for specific cases.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              workflows.map((w: any) => (
+                <Card key={w.id} className="border-enhanced">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{w.name}</CardTitle>
+                      <Badge variant={w.isActive ? "default" : "secondary"}>{w.isActive ? "Active" : "Inactive"}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between"><span>Event</span><span className="font-medium">{w.eventCategory?.name}</span></div>
+                    <div className="flex justify-between"><span>Scope</span><span className="font-medium">{w.scope?.type}</span></div>
+                    <div className="flex justify-between"><span>Stages</span><span className="font-medium">{w.stages?.length ?? 0}</span></div>
+                    <div className="flex justify-between"><span>Priority</span><span className="font-medium">{w.priority ?? 0}</span></div>
+                    <div className="pt-2 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEdit(w)}>Edit</Button>
+                      <Button size="sm" variant="danger" onClick={async () => {
+                        const ok = confirm("Delete this workflow?");
+                        if (!ok) return;
+                        const res = await fetch(`/api/approval-workflows/${w.id}`, { method: "DELETE" });
+                        if (res.ok) { toast.success("Workflow deleted"); load(); } else { toast.error("Failed to delete"); }
+                      }}>Delete</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </>
         )}
       </div>
 

@@ -295,24 +295,71 @@ export async function POST(
         });
       }
     } else {
-      // Fallback to manager email if no workflow
-      if (employee.User.managerId) {
-        const manager = await prisma.user.findFirst({
-          where: { id: employee.User.managerId, companyId: session.user.companyId },
-          select: { email: true, name: true },
+      // Fallback: if no workflow exists, create a single-stage plan to Manager
+      let approverUserId: string | null = employee.User.managerId ?? null;
+
+      // If no manager, fallback to any ADMIN in the same company
+      if (!approverUserId) {
+        const admin = await prisma.user.findFirst({
+          where: { companyId: session.user.companyId, role: "ADMIN" },
+          select: { id: true },
         });
-        if (manager?.email) {
-          const employeeFullName =
-            `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
-            "Employee";
-          await sendLeaveNotification({
-            to: manager.email,
-            subject: `New Leave Request from ${employeeFullName}`,
-            employeeName: employeeFullName,
-            type: EventCategoryName,
-            startDate,
-            endDate,
+        approverUserId = admin?.id ?? null;
+      }
+
+      if (approverUserId) {
+        // Create a synthetic one-stage approval directly on the leave request
+        const stage = await prisma.leaveApprovalStage.create({
+          data: {
+            leaveRequestId: newLeaveRequest.id,
+            name: null,
+            order: 0,
+            mode: "SEQUENTIAL",
+            status: "PENDING",
+            isActive: true,
+          },
+        });
+
+        await prisma.leaveApprovalDecision.create({
+          data: {
+            stageId: stage.id,
+            approverId: approverUserId,
+            order: 0,
+            status: "PENDING",
+            isActive: true,
+          },
+        });
+
+        // Notify the approver
+        const lrFull = await prisma.leaveRequest.findUnique({
+          where: { id: newLeaveRequest.id },
+          include: { Employee: { include: { User: true } } },
+        });
+        await notifyApproversForStage({
+          stage: { ...stage, decisions: await prisma.leaveApprovalDecision.findMany({ where: { stageId: stage.id }, include: { approver: true } }) } as any,
+          leaveRequest: lrFull as any,
+          eventCategoryName: EventCategoryName,
+        });
+      } else {
+        // As a last resort, send an email to the manager if any (legacy behavior)
+        if (employee.User.managerId) {
+          const manager = await prisma.user.findFirst({
+            where: { id: employee.User.managerId, companyId: session.user.companyId },
+            select: { email: true, name: true },
           });
+          if (manager?.email) {
+            const employeeFullName =
+              `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+              "Employee";
+            await sendLeaveNotification({
+              to: manager.email,
+              subject: `New Leave Request from ${employeeFullName}`,
+              employeeName: employeeFullName,
+              type: EventCategoryName,
+              startDate,
+              endDate,
+            });
+          }
         }
       }
     }

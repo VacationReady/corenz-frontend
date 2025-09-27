@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -828,8 +827,8 @@ function OrgChartPageClient() {
           `Q ${options.x} ${options.y + options.height} ${options.x} ${options.y + options.height - radius}`,
           `V ${options.y + radius}`,
           `Q ${options.x} ${options.y} ${options.x + radius} ${options.y}`,
-          'Z',
-        ].join(' ');
+          "Z",
+        ].join(" ");
 
         options.page.drawSvgPath(path, {
           borderColor: options.borderColor,
@@ -945,7 +944,9 @@ function OrgChartPageClient() {
         effectiveLines.forEach((line, index) => {
           const lineWidth = bodyFont.widthOfTextAtSize(line, badgeFontSize);
           const textX =
-            badgeX + badgePaddingX + Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
+            badgeX +
+            badgePaddingX +
+            Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
           page.drawText(line, {
             x: textX,
             y: badgeTextY,
@@ -1084,9 +1085,24 @@ function OrgChartPageClient() {
 
       const pdfBytes = await pdfDoc.save();
 
-      const exportBuffer = pdfBytes instanceof Uint8Array
-        ? pdfBytes
-        : new Uint8Array(pdfBytes as ArrayBufferLike | ArrayLike<number>);
+      // Robust handling to support both return types (Uint8Array, ArrayBuffer-like)
+      let exportBuffer: Uint8Array;
+      if (pdfBytes instanceof Uint8Array) {
+        exportBuffer = pdfBytes;
+      } else if (pdfBytes instanceof ArrayBuffer) {
+        exportBuffer = new Uint8Array(pdfBytes);
+      } else if ((pdfBytes as any)?.buffer instanceof ArrayBuffer) {
+        const u8 = pdfBytes as unknown as {
+          buffer: ArrayBuffer;
+          byteOffset?: number;
+          byteLength?: number;
+        };
+        const offset = (u8 as any).byteOffset ?? 0;
+        const length = (u8 as any).byteLength ?? ((u8.buffer as ArrayBuffer).byteLength - offset);
+        exportBuffer = new Uint8Array(u8.buffer, offset, length);
+      } else {
+        exportBuffer = Uint8Array.from(pdfBytes as any);
+      }
 
       const blob = new Blob([exportBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -1256,7 +1272,7 @@ function OrgChartPageClient() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary">
                 Showing {visibleEmployees} of {totalEmployees} people

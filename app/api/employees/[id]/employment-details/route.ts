@@ -28,6 +28,7 @@ export async function GET(
         Department: {
           select: { id: true, name: true },
         },
+        // Optionally join Location if we later add relation
       },
     });
     if (!employee) {
@@ -38,6 +39,7 @@ export async function GET(
       employmentType: employee.employmentType,
       contractType: employee.contractType,
       siteLocation: employee.siteLocation,
+      locationId: employee.locationId,
       startDate: employee.startDate,
       department: employee.Department,
       manager: employee.User?.User,
@@ -81,6 +83,7 @@ export async function PATCH(
       "employmentType",
       "contractType",
       "siteLocation",
+      "locationId",
       "startDate",
       "departmentId",
       "managerId",
@@ -139,6 +142,21 @@ export async function PATCH(
           select: { userId: true },
         });
         managerUserId = mgr?.userId ?? null;
+      }
+    }
+
+    // If locationId provided, look up label and mirror into siteLocation for display
+    if (Object.prototype.hasOwnProperty.call(updates, "locationId")) {
+      const locId = updates.locationId as string | undefined | null;
+      if (locId) {
+        const loc = await prisma.location.findFirst({
+          where: { id: locId, OR: [{ companyId: session.user.companyId }, { companyId: null }] },
+          select: { name: true },
+        });
+        if (loc) updates.siteLocation = loc.name;
+      } else if (locId === null || locId === "") {
+        updates.locationId = null;
+        updates.siteLocation = null;
       }
     }
 

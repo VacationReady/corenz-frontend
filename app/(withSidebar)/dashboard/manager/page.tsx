@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
 import DashboardGrid from "@/components/ui/DashboardGrid";
@@ -72,11 +72,11 @@ function DocumentActionItems() {
     fetcher,
   );
 
-  const [pendingAck, setPendingAck] = React.useState<Array<{ id: string; name: string }>>([]);
-  const [pendingSign, setPendingSign] = React.useState<Array<{ id: string; name: string }>>([]);
-  const [checking, setChecking] = React.useState(false);
+  const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
+  const [pendingSign, setPendingSign] = useState<Array<{ id: string; name: string }>>([]);
+  const [checking, setChecking] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const run = async () => {
       if (loadingCo) return;
       const all = Array.isArray(docsCompany) ? docsCompany : [];

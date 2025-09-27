@@ -205,13 +205,24 @@ function OrgChartPageClient() {
           data.map((raw) => {
             const emp = raw as Partial<ApiEmployee> & Record<string, unknown>;
 
+            const safeRole: ApiEmployee["role"] = (() => {
+              switch (emp.role) {
+                case "ADMIN":
+                case "MANAGER":
+                case "EMPLOYEE":
+                  return emp.role;
+                default:
+                  return "EMPLOYEE";
+              }
+            })();
+
             return {
               id: String(emp.id ?? ""),
               userId: String(emp.userId ?? ""),
               firstName: (emp.firstName as string | null | undefined) ?? null,
               lastName: (emp.lastName as string | null | undefined) ?? null,
               email: String(emp.email ?? ""),
-              role: (emp.role ?? "EMPLOYEE") as ApiEmployee["role"],
+              role: safeRole,
               departmentId: (emp.departmentId as string | null | undefined) ?? null,
               departmentName:
                 (emp.departmentName as string | null | undefined) ?? null,

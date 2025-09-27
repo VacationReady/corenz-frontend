@@ -56,6 +56,48 @@ const MIN_ZOOM = 0.6;
 const MAX_ZOOM = 1.6;
 const ZOOM_STEP = 0.1;
 
+const isArrayBufferLike = (value: unknown): value is ArrayBufferLike =>
+  typeof value === "object" &&
+  value !== null &&
+  "byteLength" in value &&
+  typeof (value as { byteLength: unknown }).byteLength === "number";
+
+const toUint8Array = (value: unknown): Uint8Array => {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    if (ArrayBuffer.isView(value as ArrayBufferView)) {
+      const view = value as ArrayBufferView;
+      return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+    }
+
+    if (isArrayBufferLike(value)) {
+      return new Uint8Array(value);
+    }
+
+    if (
+      "buffer" in value &&
+      isArrayBufferLike((value as { buffer: unknown }).buffer)
+    ) {
+      const view = value as ArrayLike<number> & {
+        buffer: ArrayBufferLike;
+        byteOffset?: number;
+        byteLength?: number;
+      };
+      const { buffer } = view;
+      const offset =
+        typeof view.byteOffset === "number" ? view.byteOffset : 0;
+      const length =
+        typeof view.byteLength === "number" ? view.byteLength : undefined;
+      return new Uint8Array(buffer, offset, length);
+    }
+  }
+
+  return Uint8Array.from(value as ArrayLike<number>);
+};
+
 interface ApiEmployee {
   id: string;
   userId: string;
@@ -1084,14 +1126,22 @@ function OrgChartPageClient() {
       filteredForest.forEach(drawNode);
 
       const pdfBytes = await pdfDoc.save();
-      const arrayBuffer =
-        pdfBytes.buffer instanceof ArrayBuffer
-          ? pdfBytes.buffer.slice(
-              pdfBytes.byteOffset,
-              pdfBytes.byteOffset + pdfBytes.byteLength,
-            )
-          : Uint8Array.from(pdfBytes).buffer;
-      const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+
+      const exportBuffer = toUint8Array(pdfBytes);
+
+      let normalizedBuffer: ArrayBuffer;
+      const baseBuffer = exportBuffer.buffer;
+
+      if (typeof (baseBuffer as ArrayBuffer).slice === "function") {
+        const arrayBuffer = baseBuffer as ArrayBuffer;
+        const start = exportBuffer.byteOffset;
+        const end = exportBuffer.byteOffset + exportBuffer.byteLength;
+        normalizedBuffer = arrayBuffer.slice(start, end);
+      } else {
+        normalizedBuffer = exportBuffer.slice().buffer as ArrayBuffer;
+      }
+
+      const blob = new Blob([normalizedBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

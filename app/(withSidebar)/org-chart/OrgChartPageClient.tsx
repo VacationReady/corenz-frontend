@@ -1128,7 +1128,19 @@ function OrgChartPageClient() {
 
       const exportBuffer = toUint8Array(pdfBytes);
 
-      const blob = new Blob([exportBuffer], { type: "application/pdf" });
+      let normalizedBuffer: ArrayBuffer;
+      const baseBuffer = exportBuffer.buffer;
+
+      if (typeof (baseBuffer as ArrayBuffer).slice === "function") {
+        const arrayBuffer = baseBuffer as ArrayBuffer;
+        const start = exportBuffer.byteOffset;
+        const end = exportBuffer.byteOffset + exportBuffer.byteLength;
+        normalizedBuffer = arrayBuffer.slice(start, end);
+      } else {
+        normalizedBuffer = exportBuffer.slice().buffer as ArrayBuffer;
+      }
+
+      const blob = new Blob([normalizedBuffer], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;

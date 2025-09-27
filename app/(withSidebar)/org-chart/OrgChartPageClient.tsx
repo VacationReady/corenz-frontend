@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -904,8 +903,8 @@ function OrgChartPageClient() {
           `Q ${options.x} ${options.y + options.height} ${options.x} ${options.y + options.height - radius}`,
           `V ${options.y + radius}`,
           `Q ${options.x} ${options.y} ${options.x + radius} ${options.y}`,
-          'Z',
-        ].join(' ');
+          "Z",
+        ].join(" ");
 
         options.page.drawSvgPath(path, {
           borderColor: options.borderColor,
@@ -1021,7 +1020,9 @@ function OrgChartPageClient() {
         effectiveLines.forEach((line, index) => {
           const lineWidth = bodyFont.widthOfTextAtSize(line, badgeFontSize);
           const textX =
-            badgeX + badgePaddingX + Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
+            badgeX +
+            badgePaddingX +
+            Math.max(0, (badgeWidth - badgePaddingX * 2 - lineWidth) / 2);
           page.drawText(line, {
             x: textX,
             y: badgeTextY,
@@ -1665,21 +1666,21 @@ function OrgNodeCard({
             {directReports === 0 ? (
               <span>No direct reports</span>
             ) : (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.stopPropagation();
-                        }
-                      }}
-                    >
-                      {directReports} direct {directReports === 1 ? "report" : "reports"}
-                    </button>
-                  </PopoverTrigger>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.stopPropagation();
+                      }
+                    }}
+                  >
+                    {directReports} direct {directReports === 1 ? "report" : "reports"}
+                  </button>
+                </PopoverTrigger>
                 <PopoverContent
                   align="start"
                   className="w-80 max-h-80 overflow-y-auto p-4"

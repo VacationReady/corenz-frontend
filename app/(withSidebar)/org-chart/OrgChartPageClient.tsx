@@ -33,6 +33,8 @@ import {
   Building2,
   UserCircle2,
   Sparkles,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,13 +44,16 @@ import {
 } from "@/components/ui/popover";
 
 const NODE_WIDTH = 240;
-const NODE_HEIGHT = 160;
+const NODE_HEIGHT = 184;
 const HORIZONTAL_SPACING = 80;
 const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
 const VERTICAL_SPACING = 120;
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
 const VERTICAL_MARGIN_BOTTOM = 120;
+const MIN_ZOOM = 0.6;
+const MAX_ZOOM = 1.6;
+const ZOOM_STEP = 0.1;
 
 interface ApiEmployee {
   id: string;
@@ -120,6 +125,7 @@ function OrgChartPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([
@@ -468,6 +474,30 @@ function OrgChartPageClient() {
     setSelectedDepartments(["all"]);
     setSelectedJobRoles(["all"]);
     setRoleFilter("all");
+  };
+
+  const handleZoomOut = () => {
+    setZoom((current) => {
+      const next = Math.max(
+        MIN_ZOOM,
+        parseFloat((current - ZOOM_STEP).toFixed(2)),
+      );
+      return next;
+    });
+  };
+
+  const handleZoomIn = () => {
+    setZoom((current) => {
+      const next = Math.min(
+        MAX_ZOOM,
+        parseFloat((current + ZOOM_STEP).toFixed(2)),
+      );
+      return next;
+    });
+  };
+
+  const handleZoomReset = () => {
+    setZoom(1);
   };
 
   const handleExport = useCallback(async () => {
@@ -932,39 +962,91 @@ function OrgChartPageClient() {
               }
             />
           ) : (
-            <div className="relative overflow-auto">
-              <div
-                className="relative mx-auto"
-                style={{ width: `${layout.width}px`, height: `${layout.height}px` }}
-              >
-                <svg
-                  className="pointer-events-none absolute inset-0"
-                  width={layout.width}
-                  height={layout.height}
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <span>Zoom</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleZoomOut}
+                      disabled={zoom <= MIN_ZOOM}
+                      aria-label="Zoom out"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <span className="w-14 text-center text-xs font-semibold text-foreground">
+                      {Math.round(zoom * 100)}%
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleZoomIn}
+                      disabled={zoom >= MAX_ZOOM}
+                      aria-label="Zoom in"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleZoomReset}
+                      disabled={zoom === 1}
+                      aria-label="Reset zoom"
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="relative overflow-auto">
+                <div
+                  className="relative mx-auto"
+                  style={{
+                    width: `${layout.width * zoom}px`,
+                    height: `${layout.height * zoom}px`,
+                  }}
                 >
-                  {connections.map((segment, index) => (
-                    <path
-                      key={index}
-                      d={segment.d}
-                      fill="none"
-                      stroke="rgba(148, 163, 184, 0.6)"
-                      strokeWidth={1.4}
-                      strokeLinecap="round"
-                    />
-                  ))}
-                </svg>
+                  <div
+                    className="absolute left-0 top-0"
+                    style={{
+                      width: `${layout.width}px`,
+                      height: `${layout.height}px`,
+                      transform: `scale(${zoom})`,
+                      transformOrigin: "top left",
+                    }}
+                  >
+                    <svg
+                      className="pointer-events-none absolute inset-0"
+                      width={layout.width}
+                      height={layout.height}
+                    >
+                      {connections.map((segment, index) => (
+                        <path
+                          key={index}
+                          d={segment.d}
+                          fill="none"
+                          stroke="rgba(148, 163, 184, 0.6)"
+                          strokeWidth={1.4}
+                          strokeLinecap="round"
+                        />
+                      ))}
+                    </svg>
 
-                {flattenedNodes.map((node) => {
-                  const position = layout.positions.get(node.id);
-                  if (!position) return null;
-                  return (
-                    <OrgNodeCard
-                      key={node.id}
-                      node={node}
-                      position={position}
-                    />
-                  );
-                })}
+                    {flattenedNodes.map((node) => {
+                      const position = layout.positions.get(node.id);
+                      if (!position) return null;
+                      return (
+                        <OrgNodeCard
+                          key={node.id}
+                          node={node}
+                          position={position}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -996,7 +1078,7 @@ function OrgNodeCard({
     >
       <div
         className={cn(
-          "group flex h-full w-full flex-col justify-between rounded-[28px] border bg-white/80 p-5 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
+          "group flex h-full w-full flex-col justify-between overflow-hidden rounded-[28px] border bg-white/80 p-5 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 dark:bg-slate-950/70",
           node.isMatch
             ? "border-primary/50 shadow-[0_18px_40px_rgba(59,130,246,0.25)] ring-2 ring-primary/40"
             : "border-slate-200/70",
@@ -1025,7 +1107,7 @@ function OrgNodeCard({
           <Badge
             variant="outline"
             className={cn(
-              "shrink-0 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+              "shrink-0 self-start px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
               roleBadgeClasses[node.role],
             )}
           >

@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -828,8 +827,8 @@ function OrgChartPageClient() {
           `Q ${options.x} ${options.y + options.height} ${options.x} ${options.y + options.height - radius}`,
           `V ${options.y + radius}`,
           `Q ${options.x} ${options.y} ${options.x + radius} ${options.y}`,
-          'Z',
-        ].join(' ');
+          "Z",
+        ].join(" ");
 
         options.page.drawSvgPath(path, {
           borderColor: options.borderColor,
@@ -914,15 +913,18 @@ function OrgChartPageClient() {
         const badgeX = pos.x + NODE_WIDTH - cardPadding - badgeWidth;
         const badgeY = rectY + NODE_HEIGHT - cardPadding - badgeHeight + 6;
 
-        page.drawRectangle({
+        // Use rounded rectangle helper for a pill badge (pdf-lib doesn't support borderRadius on rectangles)
+        drawRoundedRectangle({
+          page,
           x: badgeX,
           y: badgeY,
           width: badgeWidth,
           height: badgeHeight,
-          color: rgb(0.97, 0.98, 1),
+          radius: 999,
           borderColor: badgeColors[node.role],
           borderWidth: 1,
-          borderRadius: 999,
+          color: rgb(0.97, 0.98, 1),
+          opacity: 1,
         });
         page.drawText(badgeLabel, {
           x: badgeX + badgePaddingX,

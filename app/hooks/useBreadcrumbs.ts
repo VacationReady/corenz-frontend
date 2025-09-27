@@ -138,6 +138,9 @@ export function useBreadcrumbs(
       case "profile":
         return breadcrumbConfigs.profile;
 
+      case "org-chart":
+        return breadcrumbConfigs.orgChart;
+
       default:
         return null;
     }

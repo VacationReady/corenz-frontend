@@ -79,7 +79,7 @@ export function SidebarHeader({
           </div>
         )}
         {!collapsed && title && (
-          <h1 className="font-semibold text-lg text-foreground truncate">
+          <h1 className="font-semibold text-xl text-foreground truncate">
             {title}
           </h1>
         )}
@@ -167,7 +167,7 @@ export function SidebarItem({
       href={href}
       onClick={onClick}
       className={clsx(
-        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-glass",
+        "group flex items-center gap-4 rounded-xl px-4 py-3 text-base font-medium transition-glass",
         isActive
           ? "glass-strong text-primary shadow-depth-1"
           : "text-foreground hover:glass-subtle hover:text-foreground",
@@ -177,7 +177,7 @@ export function SidebarItem({
       <Icon className={clsx(
         "flex-shrink-0 transition-colors",
         isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-        collapsed ? "w-5 h-5" : "w-4 h-4"
+        collapsed ? "w-6 h-6" : "w-5 h-5"
       )} />
       
       {!collapsed && (
@@ -185,7 +185,7 @@ export function SidebarItem({
           <span className="flex-1 truncate">{label}</span>
           {badge !== undefined && (
             <span className={clsx(
-              "glass-subtle px-2 py-0.5 text-xs rounded-full",
+              "glass-subtle px-2.5 py-0.5 text-sm rounded-full",
               isActive ? "text-primary" : "text-muted-foreground"
             )}>
               {badge}
@@ -242,14 +242,14 @@ export function SidebarAction({
     <button
       onClick={onClick}
       className={clsx(
-        "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-glass",
+        "group flex w-full items-center gap-4 rounded-xl px-4 py-3 text-base font-medium transition-glass",
         variantClasses,
         collapsed && "justify-center"
       )}
     >
       <Icon className={clsx(
         "flex-shrink-0",
-        collapsed ? "w-5 h-5" : "w-4 h-4"
+        collapsed ? "w-6 h-6" : "w-5 h-5"
       )} />
       {!collapsed && <span className="flex-1 text-left">{label}</span>}
     </button>
@@ -313,11 +313,11 @@ export function SidebarProfile({
         
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
+            <p className="text-base font-medium text-foreground truncate">
               {user.name || user.email || "User"}
             </p>
             {user.role && (
-              <p className="text-xs text-muted-foreground capitalize">
+              <p className="text-sm text-muted-foreground capitalize">
                 {user.role.toLowerCase()}
               </p>
             )}

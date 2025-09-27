@@ -11,7 +11,7 @@ export default function NewJobRoleModal({
   onAdded,
 }: {
   onClose: () => void;
-  onAdded?: (created: { id: string; name: string }) => void;
+  onAdded?: (created?: { id: string; name: string }) => void;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");

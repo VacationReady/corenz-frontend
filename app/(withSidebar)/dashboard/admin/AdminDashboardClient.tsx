@@ -371,15 +371,14 @@ export default function AdminDashboardClient({
             : [];
           // Sign profile image URLs for avatars when needed
           const signedCache = new Map<string, string>();
-          async function sign(path?: string | null): Promise<string | null> {
-            if (!path) return null;
-            if (path.startsWith("http")) return path;
-            if (signedCache.has(path)) return signedCache.get(path)!;
+          async function signByUser(userId?: string | null): Promise<string | null> {
+            if (!userId) return null;
+            if (signedCache.has(userId)) return signedCache.get(userId)!;
             try {
-              const r = await fetch(`/api/storage/sign?path=${encodeURIComponent(path)}`);
+              const r = await fetch(`/api/users/${encodeURIComponent(userId)}/profile-image`);
               const j = await r.json().catch(() => ({}));
               const url = j?.url ?? null;
-              if (url) signedCache.set(path, url);
+              if (url) signedCache.set(userId, url);
               return url;
             } catch {
               return null;
@@ -387,16 +386,30 @@ export default function AdminDashboardClient({
           }
           // sign actor avatars for txn items
           for (const it of txnItems) {
-            if (it.actor?.profileImageUrl && !it.actorAvatarUrl) {
-              it.actorAvatarUrl = await sign(it.actor.profileImageUrl);
+            // Try requester id first
+            if (!it.actorAvatarUrl && it.actor?.id) {
+              it.actorAvatarUrl = await signByUser(it.actor.id);
             }
-            // fallback: employee avatar if actor missing or signing failed
-            if (!it.actorAvatarUrl && it.employee?.user?.profileImageUrl) {
-              const fallback = await sign(it.employee.user.profileImageUrl);
+            // fallback: employee user id
+            if (!it.actorAvatarUrl && (it.employee?.user as any)?.id) {
+              const fallback = await signByUser((it.employee?.user as any).id);
               if (fallback) it.actorAvatarUrl = fallback;
             }
           }
-          const merged = [...txnItems, ...leaveItems].slice(0, 5);
+          // Map leave items into modal-friendly structure
+          const normalizedLeave = leaveItems.map((r: any) => {
+            const name = r?.employee?.name || r?.title?.split(" — ")?.[0] || "Employee";
+            return {
+              id: r.id,
+              type: r.typeName || r.type || "Leave",
+              employee: { user: { name } },
+              employeeDisplayName: name,
+              dates: r.dates || r.subtitle,
+              mode: "leave",
+              source: "leave",
+            };
+          });
+          const merged = [...txnItems, ...normalizedLeave].slice(0, 5);
           if (active) setItems(merged);
         } catch {
           if (active) setItems([]);
@@ -470,7 +483,15 @@ export default function AdminDashboardClient({
                   });
                   return;
                 }
-                  window.location.href = "/dashboard/approvals";
+                // Leave approval: open inline modal with essential details
+                setApprovalItem({
+                  id: it.id,
+                  employee: { name },
+                  employeeDisplayName: it.employeeDisplayName,
+                  type: it.type || "Leave",
+                  dates: it.dates,
+                  mode: "leave",
+                });
               }}
             >
               <Avatar
@@ -1067,7 +1088,10 @@ export default function AdminDashboardClient({
                       if (approvalItem.mode === "txn") {
                         await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "decline", comment: "Declined" }) });
                       } else {
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                      // Require comment
+                      const comment = prompt("Add a short reason for declining:")?.trim();
+                      if (!comment) return;
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
                       }
                     } finally {
                       setApprovalItem(null);

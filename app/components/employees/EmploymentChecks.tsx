@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/Table";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import ChangeReasonModal, { ChangeInfo } from "@/components/audit/ChangeReasonModal";
 
 export default function EmploymentChecks({
   employeeId,
@@ -45,6 +46,9 @@ export default function EmploymentChecks({
   const [dateOfExpiry, setDateOfExpiry] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isReasonOpen, setIsReasonOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 
   useEffect(() => {
     const fetchChecks = async () => {
@@ -80,59 +84,46 @@ export default function EmploymentChecks({
       return;
     }
 
-    setLoading(true);
+    // Prepare FormData and open reasons modal
+    const formData = new FormData();
+    if (file) formData.append("file", file);
+    formData.append("typeOfCheck", typeOfCheck);
+    formData.append("documentNumber", documentNumber);
+    formData.append("dateOfIssue", dateOfIssue);
+    formData.append("expiryDate", dateOfExpiry);
+    formData.append("employeeId", employeeId);
 
-    try {
-      const formData = new FormData();
-      if (file) formData.append("file", file);
-      formData.append("typeOfCheck", typeOfCheck);
-      formData.append("documentNumber", documentNumber);
-      formData.append("dateOfIssue", dateOfIssue);
-      formData.append("expiryDate", dateOfExpiry);
-      formData.append("employeeId", employeeId);
+    // Build change summary for audit reasons
+    const changes: ChangeInfo[] = [
+      {
+        field: "typeOfCheck",
+        oldValue: editMode ? String(selectedCheck?.typeOfCheck || "") : "",
+        newValue: String(typeOfCheck || ""),
+      },
+      {
+        field: "documentNumber",
+        oldValue: editMode ? String(selectedCheck?.documentNumber || "") : "",
+        newValue: String(documentNumber || ""),
+      },
+      {
+        field: "dateOfIssue",
+        oldValue: editMode
+          ? String(selectedCheck?.dateOfIssue ? selectedCheck.dateOfIssue.slice(0, 10) : "")
+          : "",
+        newValue: String(dateOfIssue || ""),
+      },
+      {
+        field: "expiryDate",
+        oldValue: editMode
+          ? String(selectedCheck?.expiryDate ? selectedCheck.expiryDate.slice(0, 10) : "")
+          : "",
+        newValue: String(dateOfExpiry || ""),
+      },
+    ];
 
-      const url = editMode
-        ? `/api/employment-checks/update/${selectedCheck.id}`
-        : "/api/employment-checks/create";
-      const method = editMode ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        body: formData,
-      });
-
-      if (res.ok) {
-        const updatedCheck = await res.json();
-        toast.success(
-          editMode ? "Employment Check updated" : "Employment Check created",
-        );
-
-        if (editMode) {
-          setChecks((prev) =>
-            prev.map((c) => (c.id === updatedCheck.id ? updatedCheck : c)),
-          );
-        } else {
-          setChecks((prev) => [updatedCheck, ...prev]);
-        }
-
-        // reset form
-        setTypeOfCheck("");
-        setDocumentNumber("");
-        setDateOfIssue("");
-        setDateOfExpiry("");
-        setFile(null);
-        setOpen(false);
-        setEditMode(false);
-        setSelectedCheck(null);
-      } else {
-        toast.error("Failed to save Employment Check");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("An error occurred");
-    }
-
-    setLoading(false);
+    setPendingFormData(formData);
+    setPendingChanges(changes);
+    setIsReasonOpen(true);
   };
 
   return (
@@ -274,6 +265,68 @@ export default function EmploymentChecks({
           ))}
         </TableBody>
       </Table>
+      <ChangeReasonModal
+        isOpen={isReasonOpen}
+        onClose={() => {
+          setIsReasonOpen(false);
+          setPendingChanges([]);
+          setPendingFormData(null);
+          setLoading(false);
+        }}
+        changes={pendingChanges}
+        onSubmit={async (reasons) => {
+          if (!pendingFormData) return;
+          try {
+            setLoading(true);
+            pendingFormData.append("reasons", JSON.stringify(reasons));
+            const url = editMode
+              ? `/api/employment-checks/${selectedCheck.id}`
+              : "/api/employment-checks/create";
+            const method = editMode ? "PATCH" : "POST";
+
+            const res = await fetch(url, {
+              method,
+              body: pendingFormData,
+            });
+
+            if (res.ok) {
+              const updatedCheck = await res.json();
+              toast.success(
+                editMode ? "Employment Check updated" : "Employment Check created",
+              );
+
+              if (editMode) {
+                setChecks((prev) =>
+                  prev.map((c) => (c.id === updatedCheck.id ? updatedCheck : c)),
+                );
+              } else {
+                setChecks((prev) => [updatedCheck, ...prev]);
+              }
+
+              // reset form
+              setTypeOfCheck("");
+              setDocumentNumber("");
+              setDateOfIssue("");
+              setDateOfExpiry("");
+              setFile(null);
+              setOpen(false);
+              setEditMode(false);
+              setSelectedCheck(null);
+            } else {
+              const msg = await res.json().catch(() => ({} as any));
+              toast.error(msg?.error || "Failed to save Employment Check");
+            }
+          } catch (error) {
+            console.error(error);
+            toast.error("An error occurred");
+          } finally {
+            setLoading(false);
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingFormData(null);
+          }
+        }}
+      />
     </div>
   );
 }

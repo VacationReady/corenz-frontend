@@ -390,6 +390,11 @@ export default function AdminDashboardClient({
             if (it.actor?.profileImageUrl && !it.actorAvatarUrl) {
               it.actorAvatarUrl = await sign(it.actor.profileImageUrl, it.actor?.id || null);
             }
+            // fallback: employee avatar if actor missing or signing failed
+            if (!it.actorAvatarUrl && it.employee?.user?.profileImageUrl) {
+              const fallback = await sign(it.employee.user.profileImageUrl, it.employee?.user?.id || null);
+              if (fallback) it.actorAvatarUrl = fallback;
+            }
           }
           const merged = [...txnItems, ...leaveItems].slice(0, 5);
           if (active) setItems(merged);
@@ -471,7 +476,7 @@ export default function AdminDashboardClient({
               <Avatar
                 size={28}
                 name={(it.actorDisplayName || it.actor?.name || name)}
-                src={(it.actorAvatarUrl || it.actor?.profileImageUrl || undefined) as any}
+                src={(it.actorAvatarUrl ?? undefined) as any}
               />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{name}</p>
@@ -1012,7 +1017,7 @@ export default function AdminDashboardClient({
                   <Avatar
                     size={40}
                     name={(approvalItem.actorDisplayName || approvalItem.actor?.name || approvalItem.employee?.name || "?")}
-                    src={(approvalItem.actorAvatarUrl || approvalItem.actor?.profileImageUrl || undefined) as any}
+                    src={(approvalItem.actorAvatarUrl ?? undefined) as any}
                   />
                   <div>
                     <div className="font-medium">{approvalItem.type ?? "Request"}</div>

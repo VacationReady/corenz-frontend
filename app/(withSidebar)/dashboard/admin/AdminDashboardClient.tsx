@@ -371,13 +371,13 @@ export default function AdminDashboardClient({
             : [];
           // Sign profile image URLs for avatars when needed
           const signedCache = new Map<string, string>();
-          async function sign(path?: string | null, userId?: string | null): Promise<string | null> {
+          async function sign(path?: string | null): Promise<string | null> {
             if (!path) return null;
             if (path.startsWith("http")) return path;
             if (signedCache.has(path)) return signedCache.get(path)!;
             try {
-              const r = await fetch(`/api/users/${encodeURIComponent(userId || "")}/profile-image`);
-              const j = await r.json();
+              const r = await fetch(`/api/storage/sign?path=${encodeURIComponent(path)}`);
+              const j = await r.json().catch(() => ({}));
               const url = j?.url ?? null;
               if (url) signedCache.set(path, url);
               return url;
@@ -388,11 +388,11 @@ export default function AdminDashboardClient({
           // sign actor avatars for txn items
           for (const it of txnItems) {
             if (it.actor?.profileImageUrl && !it.actorAvatarUrl) {
-              it.actorAvatarUrl = await sign(it.actor.profileImageUrl, it.actor?.id || null);
+              it.actorAvatarUrl = await sign(it.actor.profileImageUrl);
             }
             // fallback: employee avatar if actor missing or signing failed
             if (!it.actorAvatarUrl && it.employee?.user?.profileImageUrl) {
-              const fallback = await sign(it.employee.user.profileImageUrl, it.employee?.user?.id || null);
+              const fallback = await sign(it.employee.user.profileImageUrl);
               if (fallback) it.actorAvatarUrl = fallback;
             }
           }
@@ -470,7 +470,7 @@ export default function AdminDashboardClient({
                   });
                   return;
                 }
-                window.location.href = "/dashboard/approvals";
+                  window.location.href = "/dashboard/approvals";
               }}
             >
               <Avatar
@@ -1024,8 +1024,8 @@ export default function AdminDashboardClient({
                     <div className="text-muted-foreground text-xs">
                       Requested by {approvalItem.actorDisplayName || approvalItem.actor?.name || "Someone"}
                       {approvalItem.employeeDisplayName || approvalItem.employee?.name ? ` • For ${approvalItem.employeeDisplayName || approvalItem.employee?.name}` : ""}
-                    </div>
                   </div>
+                </div>
                 </div>
                 {approvalItem.mode === "txn" && Array.isArray(approvalItem.diffs) && approvalItem.diffs.length > 0 ? (
                   <div className="rounded-lg border p-2">
@@ -1067,7 +1067,7 @@ export default function AdminDashboardClient({
                       if (approvalItem.mode === "txn") {
                         await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "decline", comment: "Declined" }) });
                       } else {
-                        await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
                       }
                     } finally {
                       setApprovalItem(null);
@@ -1078,7 +1078,7 @@ export default function AdminDashboardClient({
                       if (approvalItem.mode === "txn") {
                         await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "approve" }) });
                       } else {
-                        await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
                       }
                     } finally {
                       setApprovalItem(null);

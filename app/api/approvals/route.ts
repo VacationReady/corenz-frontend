@@ -56,12 +56,29 @@ export async function GET(req: NextRequest) {
     : [];
 
   const items = [
-    ...leaveDecisions.map((d) => ({
-      id: d.id,
-      type: "LEAVE" as const,
-      title: `${d.stage.leaveRequest.Employee.User?.firstName ?? "Employee"} — ${d.stage.leaveRequest.EventCategory?.name ?? "Leave"}`,
-      subtitle: `${new Date(d.stage.leaveRequest.startDate).toLocaleDateString()} to ${new Date(d.stage.leaveRequest.endDate).toLocaleDateString()}`,
-    })),
+    ...leaveDecisions.map((d) => {
+      const user = d.stage.leaveRequest.Employee.User as any;
+      const displayName = (user?.name && user.name.trim()) || `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || user?.email || "Employee";
+      const type = d.stage.leaveRequest.EventCategory?.name ?? "Leave";
+      const start = new Date(d.stage.leaveRequest.startDate);
+      const end = new Date(d.stage.leaveRequest.endDate);
+      return {
+        id: d.id,
+        type: "LEAVE" as const,
+        title: `${displayName} — ${type}`,
+        subtitle: `${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
+        // New fields used by dashboard modal for richer context
+        leaveRequestId: d.stage.leaveRequestId,
+        employee: { name: displayName, userId: user?.id ?? null, profileImageUrl: user?.profileImageUrl ?? null },
+        employeeId: d.stage.leaveRequest.employeeId,
+        eventCategoryId: d.stage.leaveRequest.eventCategoryId,
+        startDate: d.stage.leaveRequest.startDate,
+        endDate: d.stage.leaveRequest.endDate,
+        dates: `${start.toLocaleDateString()} → ${end.toLocaleDateString()}`,
+        typeName: type,
+        source: "leave" as const,
+      };
+    }),
     ...txnApprovals.map((t: any) => ({
       id: t.id,
       type: "TRANSACTIONAL" as const,

@@ -434,9 +434,12 @@ export default function AdminDashboardClient({
                   setApprovalItem({
                     id: it.id,
                     employee: { name },
+                    employeeDisplayName: it.employeeDisplayName,
                     type: it.type,
                     diffs: it.diffs,
                     mode: "txn",
+                    actorDisplayName: it.actorDisplayName,
+                    actorAvatarUrl: it.actorAvatarUrl,
                   });
                   return;
                 }

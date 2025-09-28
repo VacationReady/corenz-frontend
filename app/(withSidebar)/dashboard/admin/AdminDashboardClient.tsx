@@ -893,53 +893,51 @@ export default function AdminDashboardClient({
                     }
                   />
                 </div>
+              {/* Documents subsection inside Action items */}
+              <div className="border-t pt-3 mt-3">
+                {docActionItems.loading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                ) : docActionItems.ack.length === 0 && docActionItems.sign.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No document actions pending</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
+                      <ul className="space-y-2">
+                        {docActionItems.ack.map((d) => (
+                          <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span className="truncate">{d.name}</span>
+                            <Button asChild size="sm" variant="outline">
+                              <a href={`/documents?open=${d.id}`}>Open</a>
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold mb-2">Signatures</div>
+                      <ul className="space-y-2">
+                        {docActionItems.sign.map((d) => (
+                          <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span className="truncate">{d.name}</span>
+                            <Button asChild size="sm" variant="outline">
+                              <a href={`/documents?open=${d.id}`}>Open</a>
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
               </>
             )}
           </div>
         </DashboardWidget>
-        <LeaveDetailDialog />
-        {/* Documents requiring your action */}
-        <div className="mt-4">
-          <DashboardWidget title="Documents" icon={ClipboardList} className="h-full">
-            {docActionItems.loading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            ) : docActionItems.ack.length === 0 && docActionItems.sign.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center">No document actions pending</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
-                  <ul className="space-y-2">
-                    {docActionItems.ack.map((d) => (
-                      <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="truncate">{d.name}</span>
-                        <Button asChild size="sm" variant="outline">
-                          <a href={`/documents?open=${d.id}`}>Open</a>
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold mb-2">Signatures</div>
-                  <ul className="space-y-2">
-                    {docActionItems.sign.map((d) => (
-                      <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="truncate">{d.name}</span>
-                        <Button asChild size="sm" variant="outline">
-                          <a href={`/documents?open=${d.id}`}>Open</a>
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-          </DashboardWidget>
-        </div>
+      <LeaveDetailDialog />
       </div>
     );
   }

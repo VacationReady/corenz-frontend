@@ -154,7 +154,7 @@ function DocumentActionItems() {
   return (
     <>
     <DashboardWidget title="Action Items" icon={CheckSquare}>
-      {loadingAny ? (
+          {loadingAny ? (
         <div className="space-y-2">
           <Skeleton className="h-4 w-5/6" />
           <Skeleton className="h-4 w-2/3" />
@@ -169,18 +169,23 @@ function DocumentActionItems() {
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-semibold">Approvals</div>
               </div>
-              {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
+                  {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No pending approvals.</p>
               ) : (
                 <ul className="space-y-2">
-                  {(approvals.items as any[]).slice(0, 5).map((r: any) => (
-                    <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate">{r.title ?? r.type}</span>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => { setApprovalItem(r); }}>Review</Button>
-                      </div>
-                    </li>
-                  ))}
+                      {(approvals.items as any[]).slice(0, 5).map((r: any) => {
+                        const title = r?.title ?? r?.type ?? "Approval";
+                        const dates = r?.dates ?? r?.subtitle;
+                        return (
+                          <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span className="truncate">{title}</span>
+                            <div className="flex gap-2">
+                              {dates ? <span className="text-muted-foreground hidden sm:inline">{dates}</span> : null}
+                              <Button size="sm" onClick={() => { setApprovalItem(r); }}>Review</Button>
+                            </div>
+                          </li>
+                        );
+                      })}
                 </ul>
               )}
             </div>
@@ -261,7 +266,9 @@ function DocumentActionItems() {
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={async () => {
                 try {
-                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                  const comment = prompt("Add a short reason for declining:")?.trim();
+                  if (!comment) return; // required
+                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
                 } finally {
                   setApprovalItem(null); mutateApprovals();
                 }

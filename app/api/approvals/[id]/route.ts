@@ -23,8 +23,8 @@ export async function POST(
     const comment = (body?.comment ?? "").toString().trim();
 
     if (!action || !["approve", "decline"].includes(action)) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-    }
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
 
     // Ensure decision exists and belongs to this company and user (authorization)
     const decision = await prisma.leaveApprovalDecision.findUnique({
@@ -78,7 +78,8 @@ export async function POST(
       actorUserId: session.user.id,
     });
 
-    return NextResponse.json({ success: true, data: { leaveRequestId: result.leaveRequest.id } });
+    // Return the leaveRequestId we already know from the decision's stage to avoid nullable typing
+    return NextResponse.json({ success: true, data: { leaveRequestId: decision.stage.leaveRequestId } });
   } catch (error: any) {
     console.error("[APPROVALS_DECISION_POST]", error);
     return NextResponse.json(

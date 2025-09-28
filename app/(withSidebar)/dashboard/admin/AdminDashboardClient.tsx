@@ -369,6 +369,28 @@ export default function AdminDashboardClient({
                 };
               })
             : [];
+          // Sign profile image URLs for avatars when needed
+          const signedCache = new Map<string, string>();
+          async function sign(path?: string | null, userId?: string | null): Promise<string | null> {
+            if (!path) return null;
+            if (path.startsWith("http")) return path;
+            if (signedCache.has(path)) return signedCache.get(path)!;
+            try {
+              const r = await fetch(`/api/users/${encodeURIComponent(userId || "")}/profile-image`);
+              const j = await r.json();
+              const url = j?.url ?? null;
+              if (url) signedCache.set(path, url);
+              return url;
+            } catch {
+              return null;
+            }
+          }
+          // sign actor avatars for txn items
+          for (const it of txnItems) {
+            if (it.actor?.profileImageUrl && !it.actorAvatarUrl) {
+              it.actorAvatarUrl = await sign(it.actor.profileImageUrl, it.actor?.id || null);
+            }
+          }
           const merged = [...txnItems, ...leaveItems].slice(0, 5);
           if (active) setItems(merged);
         } catch {

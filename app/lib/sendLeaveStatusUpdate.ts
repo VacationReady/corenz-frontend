@@ -9,6 +9,7 @@ interface LeaveStatusUpdateParams {
   startDate: string;
   endDate: string;
   status: "APPROVED" | "DECLINED";
+  comment?: string;
 }
 
 export async function sendLeaveStatusUpdate({
@@ -19,6 +20,7 @@ export async function sendLeaveStatusUpdate({
   startDate,
   endDate,
   status,
+  comment,
 }: LeaveStatusUpdateParams) {
   try {
     const formattedStart = new Date(startDate).toLocaleDateString();
@@ -41,6 +43,14 @@ export async function sendLeaveStatusUpdate({
             `Status: ${status}`,
           ],
         },
+        ...(status === "DECLINED" && comment
+          ? [
+              {
+                title: "Manager's Comment",
+                description: [comment],
+              },
+            ]
+          : []),
       ],
       ctas: {
         label: "View Leave in PeopleCore",

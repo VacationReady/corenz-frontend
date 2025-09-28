@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import { Calendar, User, Receipt, Bell } from "lucide-react";
+import { Calendar, User, Bell } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
@@ -224,49 +224,7 @@ function ActionItems({ employeeId }: { employeeId: string }) {
   );
 }
 
-function MyDocuments({ employeeId }: { employeeId: string }) {
-  const { data, error, isLoading } = useSWR(
-    `/api/documents/list-employee?employeeId=${employeeId}`,
-    fetcher,
-  );
-  const docs = Array.isArray(data) ? data : [];
-
-  return (
-    <DashboardWidget
-      title="My Documents"
-      icon={Receipt}
-      action={
-        <Link href="/documents" className="text-sm underline">
-          View all documents
-        </Link>
-      }
-    >
-      {isLoading ? (
-        <WidgetLoading />
-      ) : error ? (
-        <WidgetError message="Failed to load documents." />
-      ) : docs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No documents awaiting action.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {docs.slice(0, 5).map((d: any) => (
-            <li
-              key={d.id}
-              className="text-sm flex items-center justify-between"
-            >
-              <span>{d.name}</span>
-              <Link href={`/documents`} className="text-xs underline">
-                Open
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </DashboardWidget>
-  );
-}
+// Removed separate MyDocuments widget; document acknowledgements are shown in ActionItems
 
 
 function QuickActions({ employeeId }: { employeeId?: string }) {
@@ -328,7 +286,6 @@ export default function EmployeeDashboardClient({
     <>
       {employeeId && <UpcomingLeave employeeId={employeeId} />}
       {employeeId && <ActionItems employeeId={employeeId} />}
-      {employeeId && <MyDocuments employeeId={employeeId} />}
       <QuickActions employeeId={employeeId} />
       <WellbeingSpotlight />
     </>

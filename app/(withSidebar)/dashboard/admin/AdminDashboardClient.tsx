@@ -69,7 +69,10 @@ export default function AdminDashboardClient({
     ack: Array<{ id: string; name: string }>;
     sign: Array<{ id: string; name: string }>;
     loading: boolean;
-  }>({ ack: [], sign: [], loading: true });
+    urlMap?: Record<string, string | undefined>;
+  }>({ ack: [], sign: [], loading: true, urlMap: {} });
+  const [approvalItem, setApprovalItem] = useState<any | null>(null);
+  const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
 
   useEffect(() => {
     const handler = (e: any) => setDetail(e.detail);
@@ -219,10 +222,13 @@ export default function AdminDashboardClient({
         );
 
         if (!isMounted) return;
+        const urlMap: Record<string, string | undefined> = {};
+        uniqueDocs.forEach((d) => { if (d?.id) urlMap[d.id] = d.url; });
         setDocActionItems({
           ack: ackChecks.filter((x) => x.needed).slice(0, 5).map(({ id, name }) => ({ id, name })),
           sign: signChecks.filter((x) => x.needed).slice(0, 5).map(({ id, name }) => ({ id, name })),
           loading: false,
+          urlMap,
         });
       } catch {
         if (!isMounted) return;
@@ -782,7 +788,7 @@ export default function AdminDashboardClient({
           className="h-full flex flex-col"
           action={
             metrics?.canViewAllApprovals ? (
-              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-2 text-xs">
                 <span
                   className={
                     !approvalsScopeMy
@@ -910,26 +916,24 @@ export default function AdminDashboardClient({
                         {docActionItems.ack.map((d) => (
                           <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
                             <span className="truncate">{d.name}</span>
-                            <Button asChild size="sm" variant="outline">
-                              <a href={`/documents?open=${d.id}`}>Open</a>
-                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setDocItem({ id: d.id, name: d.name, url: docActionItems.urlMap?.[d.id] })}>Open</Button>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div>
-                      <div className="text-sm font-semibold mb-2">Signatures</div>
-                      <ul className="space-y-2">
-                        {docActionItems.sign.map((d) => (
-                          <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                            <span className="truncate">{d.name}</span>
-                            <Button asChild size="sm" variant="outline">
-                              <a href={`/documents?open=${d.id}`}>Open</a>
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    {docActionItems.sign.length > 0 && (
+                      <div>
+                        <div className="text-sm font-semibold mb-2">Signatures</div>
+                        <ul className="space-y-2">
+                          {docActionItems.sign.map((d) => (
+                            <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="truncate">{d.name}</span>
+                              <Button size="sm" variant="outline" onClick={() => setDocItem({ id: d.id, name: d.name, url: docActionItems.urlMap?.[d.id] })}>Open</Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -937,7 +941,84 @@ export default function AdminDashboardClient({
             )}
           </div>
         </DashboardWidget>
-      <LeaveDetailDialog />
+        {/* Inline Approval Modal */}
+        {approvalItem ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="glass rounded-2xl w-full max-w-xl border border-glass p-4 shadow-depth-2 bg-background">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-base font-semibold">Approve request</div>
+                <button className="text-sm text-muted-foreground" onClick={() => setApprovalItem(null)}>Close</button>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                    {(approvalItem.employee?.name || "?").split(" ").map((p: string) => p[0]).slice(0,2).join("")}
+                  </div>
+                  <div>
+                    <div className="font-medium">{approvalItem.employee?.name ?? "Employee"}</div>
+                    <div className="text-muted-foreground">{approvalItem.type ?? "Request"}</div>
+                  </div>
+                </div>
+                {approvalItem.dates ? (<div>Dates: {approvalItem.dates}</div>) : null}
+                {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
+                  <div className="rounded-lg border p-2">
+                    <div className="text-xs font-semibold mb-1">Potential clashes</div>
+                    <ul className="text-xs list-disc pl-4 space-y-1">
+                      {approvalItem.conflicts.map((c: any, i: number) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={async () => {
+                    try {
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                    } finally {
+                      setApprovalItem(null);
+                    }
+                  }}>Decline</Button>
+                  <Button onClick={async () => {
+                    try {
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                    } finally {
+                      setApprovalItem(null);
+                    }
+                  }}>Approve</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {/* Inline Document Preview & Acknowledge */}
+        {docItem ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="glass rounded-2xl w-full max-w-3xl border border-glass p-4 shadow-depth-2 bg-background">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-base font-semibold">{docItem.name}</div>
+                <button className="text-sm text-muted-foreground" onClick={() => setDocItem(null)}>Close</button>
+              </div>
+              {docItem.url ? (
+                <div className="rounded border overflow-hidden mb-3">
+                  <embed src={`${docItem.url}#toolbar=0&navpanes=0&scrollbar=1`} type="application/pdf" className="w-full h-[60vh]" />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mb-3">Preview not available.</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDocItem(null)}>Close</Button>
+                <Button onClick={async () => {
+                  try {
+                    await fetch("/api/documents/acknowledge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: docItem.id }) });
+                  } finally {
+                    setDocActionItems((prev) => ({ ...prev, ack: prev.ack.filter((x) => x.id !== docItem.id) }));
+                    setDocItem(null);
+                  }
+                }}>Acknowledge</Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }

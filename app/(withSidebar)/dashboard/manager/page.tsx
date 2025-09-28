@@ -97,9 +97,7 @@ function DocumentActionItems() {
     "/api/approvals?status=PENDING",
     fetcher,
   );
-  const [approvalOpen, setApprovalOpen] = useState(false);
   const [approvalItem, setApprovalItem] = useState<any | null>(null);
-  const [docOpen, setDocOpen] = useState(false);
   const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
 
   const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
@@ -153,6 +151,7 @@ function DocumentActionItems() {
   const loadingAny = loadingCo || checking || loadingApprovals;
 
   return (
+    <>
     <DashboardWidget title="Action Items" icon={CheckSquare}>
       {loadingAny ? (
         <div className="space-y-2">
@@ -177,7 +176,7 @@ function DocumentActionItems() {
                     <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate">{r.title ?? r.type}</span>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => { setApprovalItem(r); setApprovalOpen(true); }}>Review</Button>
+                        <Button size="sm" onClick={() => { setApprovalItem(r); }}>Review</Button>
                       </div>
                     </li>
                   ))}
@@ -197,7 +196,7 @@ function DocumentActionItems() {
                       const all = Array.isArray(docsCompany) ? docsCompany : [];
                       const doc = all.find((x: any) => x?.id === d.id);
                       setDocItem({ id: d.id, name: d.name, url: doc?.url });
-                      setDocOpen(true);
+                      
                     }}>Open</Button>
                 </li>
               ))}
@@ -214,7 +213,7 @@ function DocumentActionItems() {
                         const all = Array.isArray(docsCompany) ? docsCompany : [];
                         const doc = all.find((x: any) => x?.id === d.id);
                         setDocItem({ id: d.id, name: d.name, url: doc?.url });
-                        setDocOpen(true);
+                        
                       }}>Open</Button>
                     </li>
                   ))}
@@ -231,7 +230,7 @@ function DocumentActionItems() {
         <div className="glass rounded-2xl w-full max-w-xl border border-glass p-4 shadow-depth-2 bg-background">
           <div className="flex items-center justify-between mb-3">
             <div className="text-base font-semibold">Approve request</div>
-            <button className="text-sm text-muted-foreground" onClick={() => { setApprovalOpen(false); setApprovalItem(null); }}>Close</button>
+            <button className="text-sm text-muted-foreground" onClick={() => { setApprovalItem(null); }}>Close</button>
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-3">
@@ -263,14 +262,14 @@ function DocumentActionItems() {
                 try {
                   await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
                 } finally {
-                  setApprovalItem(null); setApprovalOpen(false); mutateApprovals();
+                  setApprovalItem(null); mutateApprovals();
                 }
               }}>Decline</Button>
               <Button onClick={async () => {
                 try {
                   await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
                 } finally {
-                  setApprovalItem(null); setApprovalOpen(false); mutateApprovals();
+                  setApprovalItem(null); mutateApprovals();
                 }
               }}>Approve</Button>
             </div>
@@ -284,7 +283,7 @@ function DocumentActionItems() {
         <div className="glass rounded-2xl w-full max-w-3xl border border-glass p-4 shadow-depth-2 bg-background">
           <div className="flex items-center justify-between mb-3">
             <div className="text-base font-semibold">{docItem.name}</div>
-            <button className="text-sm text-muted-foreground" onClick={() => { setDocItem(null); setDocOpen(false); }}>Close</button>
+            <button className="text-sm text-muted-foreground" onClick={() => { setDocItem(null); }}>Close</button>
           </div>
           {docItem.url ? (
             <div className="rounded border overflow-hidden mb-3">
@@ -294,19 +293,20 @@ function DocumentActionItems() {
             <p className="text-sm text-muted-foreground mb-3">Preview not available.</p>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setDocItem(null); setDocOpen(false); }}>Close</Button>
+            <Button variant="outline" onClick={() => { setDocItem(null); }}>Close</Button>
             <Button onClick={async () => {
               try {
                 await fetch("/api/documents/acknowledge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: docItem.id }) });
               } finally {
                 setPendingAck((prev) => prev.filter((x) => x.id !== docItem.id));
-                setDocItem(null); setDocOpen(false);
+                setDocItem(null);
               }
             }}>Acknowledge</Button>
           </div>
         </div>
       </div>
     )}
+    </>
   );
 }
 // Removed legacy PendingApprovals widget; approvals are surfaced in Action Items

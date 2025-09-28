@@ -156,6 +156,7 @@ model Company {
   SavedReport                         SavedReport[]
   TrainingProvider                    TrainingProvider[]
   TransactionalNotificationPreference TransactionalNotificationPreference[]
+  TransactionalChangeRequest          TransactionalChangeRequest[]
   User                                User[]
   WorkingPattern                      WorkingPattern[]
 }
@@ -399,6 +400,7 @@ model Employee {
   LeaveRequest                     LeaveRequest[]
   OnboardingInstance               OnboardingInstance[]
   TrainingRecord                   TrainingRecord[]
+  TransactionalChangeRequest       TransactionalChangeRequest[]
 
   @@unique([companyId, irdNumber])
 }
@@ -1372,6 +1374,8 @@ model User {
   User                                                                     User?                           @relation("UserToUser", fields: [managerId], references: [id])
   other_User                                                               User[]                          @relation("UserToUser")
   PermissionProfile                                                        PermissionProfile?              @relation(fields: [permissionProfileId], references: [id])
+  TransactionalChangeRequest_Requester                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_requesterIdToUser")
+  TransactionalChangeRequest_DecidedBy                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_decidedByIdToUser")
 
   @@unique([email, companyId])
 }

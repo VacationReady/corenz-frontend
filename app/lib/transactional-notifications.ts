@@ -406,12 +406,12 @@ export async function dispatchTransactionalNotifications({
     const employeeName = employee.User
       ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email
       : 'Employee';
+    const actorName = act.name || act.email || 'A user';
     const { html, text } = renderPeopleCoreEmail({
-      preheader: `Approval needed: ${sectionConfig.label} change for ${employeeName}`,
-      title: `Approval requested: ${sectionConfig.label}`,
+      preheader: `${actorName} made a change to ${employeeName}'s ${sectionConfig.label}`,
+      title: "Approval requested",
       intro: [
-        `${act.name || act.email} submitted changes to ${employeeName}'s ${sectionConfig.label}.`,
-        `Please review and approve in Action Items.`,
+        `${actorName} has made a change to ${employeeName}'s ${sectionConfig.label}. Please log in to review and approve.`,
       ],
       sections: [
         { title: "Summary", description: [
@@ -419,7 +419,7 @@ export async function dispatchTransactionalNotifications({
           `Changes: ${diffs.length}`,
         ] },
       ],
-      ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+      ctas: { label: "Open Dashboard", href: `${baseUrl}/dashboard` },
       outro: ["PeopleCore HRIS System"],
     });
     const toEmails = recipientUsers.map((u) => u.email).filter(Boolean) as string[];

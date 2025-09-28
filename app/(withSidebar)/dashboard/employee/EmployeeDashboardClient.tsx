@@ -114,7 +114,14 @@ function ActionItems({ employeeId }: { employeeId: string }) {
     run();
   }, [employeeDocs, companyDocs, loadingEmp, loadingCo]);
 
-  const loadingAny = isLoading || loadingEmp || loadingCo || checking;
+  // Transactional change requests assigned to me
+  const { data: txnAssigned, isLoading: loadingTxn } = useSWR(
+    `/api/transactional-change-requests?scope=assigned`,
+    fetcher,
+  );
+  const txnItems = Array.isArray(txnAssigned?.data) ? txnAssigned.data : [];
+
+  const loadingAny = isLoading || loadingEmp || loadingCo || checking || loadingTxn;
 
   return (
     <DashboardWidget title="Action Items" icon={Bell}>
@@ -141,6 +148,47 @@ function ActionItems({ employeeId }: { employeeId: string }) {
                       </Link>
                     </li>
                   ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-semibold mb-2">Approvals</div>
+            {txnItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No approvals pending.</p>
+            ) : (
+              <ul className="space-y-2">
+                {txnItems.slice(0, 5).map((r: any) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate">Change: {r.section}</span>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await fetch(`/api/transactional-change-requests`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: r.id, action: "decline", comment: "Declined" }),
+                          });
+                        }}
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          await fetch(`/api/transactional-change-requests`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: r.id, action: "approve" }),
+                          });
+                        }}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
           </div>

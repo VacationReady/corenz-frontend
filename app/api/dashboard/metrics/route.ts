@@ -86,33 +86,14 @@ export async function GET(req: Request) {
           },
         },
       }),
-      // transactional approvals - my (guard if model not present yet)
-      (() => {
-        const txn = (prisma as any).transactionalApproval;
-        if (txn && typeof txn.count === "function") {
-          return txn.count({
-            where: {
-              companyId,
-              status: "PENDING",
-              approverIds: { has: session.user.id },
-            },
-          });
-        }
-        return Promise.resolve(0);
-      })(),
+      // transactional approvals - my
+      (prisma as any).transactionalChangeRequest.count({
+        where: { companyId, status: "PENDING", approverIds: { has: session.user.id } },
+      }),
       // transactional approvals - all
-      (() => {
-        const txn = (prisma as any).transactionalApproval;
-        if (txn && typeof txn.count === "function") {
-          return txn.count({
-            where: {
-              companyId,
-              status: "PENDING",
-            },
-          });
-        }
-        return Promise.resolve(0);
-      })(),
+      (prisma as any).transactionalChangeRequest.count({
+        where: { companyId, status: "PENDING" },
+      }),
     ]);
 
     return NextResponse.json({

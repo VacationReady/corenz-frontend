@@ -337,15 +337,25 @@ export default function AdminDashboardClient({
       const load = async () => {
         setLoading(true);
         try {
+          // Gather both leave approvals and transactional change requests
           const qs = new URLSearchParams({ status: "PENDING", limit: "5" });
           if (scope) qs.set("scope", scope);
           if (departmentId) qs.set("departmentId", departmentId);
-          const res = await fetch(`/api/approvals?${qs.toString()}`, {
-            cache: "no-store",
-          });
-          const data = await res.json();
-          const parsed = Array.isArray(data?.items) ? data.items : [];
-          if (active) setItems(parsed);
+          const [leaveRes, txnRes] = await Promise.all([
+            fetch(`/api/approvals?${qs.toString()}`, { cache: "no-store" }),
+            fetch(`/api/transactional-change-requests?scope=${scope === "all" ? "all" : "assigned"}`, { cache: "no-store" }),
+          ]);
+          const leaveData = await leaveRes.json().catch(() => ({}));
+          const txnData = await txnRes.json().catch(() => ({}));
+          const leaveItems = Array.isArray(leaveData?.items) ? leaveData.items : [];
+          const txnItems = Array.isArray(txnData?.data) ? txnData.data.map((r: any) => ({
+            id: r.id,
+            type: `Change: ${r.section}`,
+            employee: { user: { firstName: r.employee?.User?.firstName, lastName: r.employee?.User?.lastName, name: r.employee?.User?.name } },
+            source: "txn",
+          })) : [];
+          const merged = [...txnItems, ...leaveItems].slice(0, 5);
+          if (active) setItems(merged);
         } catch {
           if (active) setItems([]);
         } finally {
@@ -360,11 +370,11 @@ export default function AdminDashboardClient({
 
     const action = async (id: string, action: "approve" | "decline") => {
       try {
-        const res = await fetch(`/api/approvals/${id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action }),
-        });
+        // Try leave approvals first; if 404, try transactional
+        let res = await fetch(`/api/approvals/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+        if (res.status === 404) {
+          res = await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, action, comment: action === "decline" ? "Declined from dashboard" : undefined }) });
+        }
         if (res.ok) {
           toast.success(action === "approve" ? "Approved" : "Declined");
           setItems((prev) => (prev ? prev.filter((x) => x.id !== id) : prev));

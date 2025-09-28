@@ -84,7 +84,13 @@ export async function POST(request: Request) {
         preheader: previewText || subject,
         title: subject,
         intro: ["Hi there,", previewText || "We wanted to share an update with you."],
-        body: paragraphs,
+        sections: paragraphs.length
+          ? [
+              {
+                description: paragraphs,
+              },
+            ]
+          : undefined,
         ctas: ctaLabel && ctaUrl ? { label: ctaLabel, href: ctaUrl } : undefined,
         outro,
       });
@@ -134,7 +140,13 @@ export async function POST(request: Request) {
           preheader: previewText || subject,
           title: subject,
           intro: [greeting, previewText || "We wanted to share an update with you."],
-          body: paragraphs,
+          sections: paragraphs.length
+            ? [
+                {
+                  description: paragraphs,
+                },
+              ]
+            : undefined,
           ctas:
             ctaLabel && ctaUrl
               ? { label: ctaLabel, href: ctaUrl.startsWith("http") ? ctaUrl : `${baseUrl}${ctaUrl}` }

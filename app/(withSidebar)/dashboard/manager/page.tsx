@@ -97,6 +97,10 @@ function DocumentActionItems() {
     "/api/approvals?status=PENDING",
     fetcher,
   );
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [approvalItem, setApprovalItem] = useState<any | null>(null);
+  const [docOpen, setDocOpen] = useState(false);
+  const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
 
   const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
   const [pendingSign, setPendingSign] = useState<Array<{ id: string; name: string }>>([]);
@@ -164,7 +168,6 @@ function DocumentActionItems() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-semibold">Approvals</div>
-                <Link href="/dashboard/approvals" className="text-xs underline">Open Approvals</Link>
               </div>
               {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No pending approvals.</p>
@@ -174,20 +177,7 @@ function DocumentActionItems() {
                     <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate">{r.title ?? r.type}</span>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={async () => {
-                          try {
-                            await fetch(`/api/approvals/${r.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
-                          } finally {
-                            mutateApprovals();
-                          }
-                        }}>Approve</Button>
-                        <Button size="sm" variant="outline" onClick={async () => {
-                          try {
-                            await fetch(`/api/approvals/${r.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
-                          } finally {
-                            mutateApprovals();
-                          }
-                        }}>Reject</Button>
+                        <Button size="sm" onClick={() => { setApprovalItem(r); setApprovalOpen(true); }}>Review</Button>
                       </div>
                     </li>
                   ))}
@@ -203,30 +193,120 @@ function DocumentActionItems() {
               {pendingAck.map((d) => (
                 <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="truncate">{d.name}</span>
-                  <Link href={`/documents?open=${d.id}`} className="text-xs underline">
-                    Open
-                  </Link>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const all = Array.isArray(docsCompany) ? docsCompany : [];
+                      const doc = all.find((x: any) => x?.id === d.id);
+                      setDocItem({ id: d.id, name: d.name, url: doc?.url });
+                      setDocOpen(true);
+                    }}>Open</Button>
                 </li>
               ))}
             </ul>
           </div>
-          <div>
-            <div className="text-sm font-semibold mb-2">Signatures</div>
-            <ul className="space-y-2">
-              {pendingSign.map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="truncate">{d.name}</span>
-                  <Link href={`/documents?open=${d.id}`} className="text-xs underline">
-                    Open
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            {pendingSign.length > 0 && (
+              <div>
+                <div className="text-sm font-semibold mb-2">Signatures</div>
+                <ul className="space-y-2">
+                  {pendingSign.map((d) => (
+                    <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate">{d.name}</span>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        const all = Array.isArray(docsCompany) ? docsCompany : [];
+                        const doc = all.find((x: any) => x?.id === d.id);
+                        setDocItem({ id: d.id, name: d.name, url: doc?.url });
+                        setDocOpen(true);
+                      }}>Open</Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}
     </DashboardWidget>
+    /* Approval Review Modal */
+    {approvalItem && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="glass rounded-2xl w-full max-w-xl border border-glass p-4 shadow-depth-2 bg-background">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-base font-semibold">Approve request</div>
+            <button className="text-sm text-muted-foreground" onClick={() => { setApprovalOpen(false); setApprovalItem(null); }}>Close</button>
+          </div>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-3">
+              {/* Avatar fallback: first letters */}
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                {(approvalItem.employee?.name || "?").split(" ").map((p: string) => p[0]).slice(0,2).join("")}
+              </div>
+              <div>
+                <div className="font-medium">{approvalItem.employee?.name ?? "Employee"}</div>
+                <div className="text-muted-foreground">{approvalItem.type ?? "Request"}</div>
+              </div>
+            </div>
+            {approvalItem.dates ? (
+              <div>Dates: {approvalItem.dates}</div>
+            ) : null}
+            {/* Conflicts list if provided */}
+            {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
+              <div className="rounded-lg border p-2">
+                <div className="text-xs font-semibold mb-1">Potential clashes</div>
+                <ul className="text-xs list-disc pl-4 space-y-1">
+                  {approvalItem.conflicts.map((c: any, i: number) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={async () => {
+                try {
+                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                } finally {
+                  setApprovalItem(null); setApprovalOpen(false); mutateApprovals();
+                }
+              }}>Decline</Button>
+              <Button onClick={async () => {
+                try {
+                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                } finally {
+                  setApprovalItem(null); setApprovalOpen(false); mutateApprovals();
+                }
+              }}>Approve</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    {/* Document Preview + Acknowledge Modal */}
+    {docItem && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="glass rounded-2xl w-full max-w-3xl border border-glass p-4 shadow-depth-2 bg-background">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-base font-semibold">{docItem.name}</div>
+            <button className="text-sm text-muted-foreground" onClick={() => { setDocItem(null); setDocOpen(false); }}>Close</button>
+          </div>
+          {docItem.url ? (
+            <div className="rounded border overflow-hidden mb-3">
+              <embed src={`${docItem.url}#toolbar=0&navpanes=0&scrollbar=1`} type="application/pdf" className="w-full h-[60vh]" />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mb-3">Preview not available.</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setDocItem(null); setDocOpen(false); }}>Close</Button>
+            <Button onClick={async () => {
+              try {
+                await fetch("/api/documents/acknowledge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: docItem.id }) });
+              } finally {
+                setPendingAck((prev) => prev.filter((x) => x.id !== docItem.id));
+                setDocItem(null); setDocOpen(false);
+              }
+            }}>Acknowledge</Button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 }
 // Removed legacy PendingApprovals widget; approvals are surfaced in Action Items

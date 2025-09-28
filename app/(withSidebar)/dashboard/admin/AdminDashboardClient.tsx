@@ -396,7 +396,20 @@ export default function AdminDashboardClient({
               if (fallback) it.actorAvatarUrl = fallback;
             }
           }
-          const merged = [...txnItems, ...leaveItems].slice(0, 5);
+          // Map leave items into modal-friendly structure
+          const normalizedLeave = leaveItems.map((r: any) => {
+            const name = r?.employee?.name || r?.title?.split(" — ")?.[0] || "Employee";
+            return {
+              id: r.id,
+              type: r.typeName || r.type || "Leave",
+              employee: { user: { name } },
+              employeeDisplayName: name,
+              dates: r.dates || r.subtitle,
+              mode: "leave",
+              source: "leave",
+            };
+          });
+          const merged = [...txnItems, ...normalizedLeave].slice(0, 5);
           if (active) setItems(merged);
         } catch {
           if (active) setItems([]);
@@ -470,7 +483,15 @@ export default function AdminDashboardClient({
                   });
                   return;
                 }
-                  window.location.href = "/dashboard/approvals";
+                // Leave approval: open inline modal with essential details
+                setApprovalItem({
+                  id: it.id,
+                  employee: { name },
+                  employeeDisplayName: it.employeeDisplayName,
+                  type: it.type || "Leave",
+                  dates: it.dates,
+                  mode: "leave",
+                });
               }}
             >
               <Avatar
@@ -1067,7 +1088,10 @@ export default function AdminDashboardClient({
                       if (approvalItem.mode === "txn") {
                         await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "decline", comment: "Declined" }) });
                       } else {
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                      // Require comment
+                      const comment = prompt("Add a short reason for declining:")?.trim();
+                      if (!comment) return;
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
                       }
                     } finally {
                       setApprovalItem(null);

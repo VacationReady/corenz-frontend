@@ -446,7 +446,11 @@ export default function AdminDashboardClient({
                 window.location.href = "/dashboard/approvals";
               }}
             >
-              <Avatar size={28} name={(it.actorDisplayName || it.actor?.name || name)} src={it.actorAvatarUrl || it.actor?.profileImageUrl || it.employee?.user?.profileImageUrl} />
+              <Avatar
+                size={28}
+                name={(it.actorDisplayName || it.actor?.name || name)}
+                src={(it.actorAvatarUrl || it.actor?.profileImageUrl || undefined) as any}
+              />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{name}</p>
                 <p className="text-xs text-muted-foreground truncate">
@@ -983,7 +987,11 @@ export default function AdminDashboardClient({
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <Avatar size={40} name={(approvalItem.actorDisplayName || approvalItem.actor?.name || approvalItem.employee?.name || "?")} src={approvalItem.actorAvatarUrl || approvalItem.actor?.profileImageUrl} />
+                  <Avatar
+                    size={40}
+                    name={(approvalItem.actorDisplayName || approvalItem.actor?.name || approvalItem.employee?.name || "?")}
+                    src={(approvalItem.actorAvatarUrl || approvalItem.actor?.profileImageUrl || undefined) as any}
+                  />
                   <div>
                     <div className="font-medium">{approvalItem.type ?? "Request"}</div>
                     <div className="text-muted-foreground text-xs">

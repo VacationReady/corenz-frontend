@@ -117,10 +117,10 @@ export default async function AdminDashboardPage() {
             />
           </div>
 
-          {/* Bottom Row - 2 cards filling remaining space */}
+          {/* Bottom Row - Action items given more width */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0 overflow-hidden">
-            {/* Action Items - Fixed height container */}
-            <div className="flex flex-col min-h-0">
+            {/* Action Items - wider on large screens */}
+            <div className="lg:col-span-2 flex flex-col min-h-0">
               <AdminDashboardClient
                 employeeId={user.Employee.id}
                 firstName={user.firstName ?? ""}
@@ -128,8 +128,8 @@ export default async function AdminDashboardPage() {
               />
             </div>
 
-            {/* News Widget - spans 3 columns with fixed height container */}
-            <div className="lg:col-span-3 flex flex-col min-h-0">
+            {/* News Widget - reduced width and on the right */}
+            <div className="lg:col-span-2 flex flex-col min-h-0">
               <AdminDashboardClient
                 employeeId={user.Employee.id}
                 firstName={user.firstName ?? ""}

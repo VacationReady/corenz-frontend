@@ -14,6 +14,7 @@ import {
   Settings,
   BarChart3,
   LogOut,
+  ListChecks,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
@@ -104,6 +105,29 @@ export default function AdminSidebar({
               />
             ))}
           </SidebarSection>
+
+          <SidebarSection title="Bulk actions" collapsed={collapsed}>
+            {bulkActionLinks.map((link) => (
+              <SidebarItem
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                label={link.label}
+                collapsed={collapsed}
+                onClick={onMobileNavigate}
+              />
+            ))}
+          </SidebarSection>
+
+          <SidebarSection collapsed={collapsed}>
+            <SidebarItem
+              href={settingsLink.href}
+              icon={settingsLink.icon}
+              label={settingsLink.label}
+              collapsed={collapsed}
+              onClick={onMobileNavigate}
+            />
+          </SidebarSection>
         </div>
 
         {/* User Profile */}
@@ -149,5 +173,14 @@ const hrToolsLinks = [
   { href: "/reports", icon: BarChart3, label: "Reports" },
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },
-  { href: "/settings", icon: Settings, label: "Settings" },
 ];
+
+const bulkActionLinks = [
+  {
+    href: "/bulk-actions",
+    icon: ListChecks,
+    label: "Bulk actions",
+  },
+];
+
+const settingsLink = { href: "/settings", icon: Settings, label: "Settings" };

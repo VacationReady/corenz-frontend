@@ -327,8 +327,7 @@ export default function EmployeeDashboardClient({
   return (
     <>
       {employeeId && <UpcomingLeave employeeId={employeeId} />}
-      {employeeId && <PendingTasks employeeId={employeeId} />} 
-      {employeeId && <DocumentActionItems employeeId={employeeId} />}
+      {employeeId && <ActionItems employeeId={employeeId} />}
       {employeeId && <MyDocuments employeeId={employeeId} />}
       <QuickActions employeeId={employeeId} />
       <WellbeingSpotlight />

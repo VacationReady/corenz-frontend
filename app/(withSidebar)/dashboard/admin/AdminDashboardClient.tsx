@@ -32,6 +32,48 @@ import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
  
+function EntitlementProjection({
+  employeeId,
+  eventCategoryId,
+  startDate,
+  endDate,
+}: {
+  employeeId: string;
+  eventCategoryId: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [entsRes, dedRes] = await Promise.all([
+          fetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
+          fetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
+        ]);
+        const ents = await entsRes.json();
+        const ded = await dedRes.json().catch(() => ({ deduction: null }));
+        const ent = Array.isArray(ents)
+          ? ents.find((e: any) => e?.eventCategory?.id === eventCategoryId)
+          : null;
+        if (!ent || typeof ded?.deduction !== "number") {
+          if (active) setText(null);
+          return;
+        }
+        const after = (ent.totalDays - ent.usedDays - ded.deduction);
+        if (active) setText(`Total entitlement after approved: ${after.toFixed(2)} days`);
+      } catch {
+        if (active) setText(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [employeeId, eventCategoryId, startDate, endDate]);
+  return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
+}
+
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -405,6 +447,11 @@ export default function AdminDashboardClient({
               employee: { user: { name } },
               employeeDisplayName: name,
               dates: r.dates || r.subtitle,
+              // entitlement projection inputs
+              employeeId: r.employeeId,
+              eventCategoryId: r.eventCategoryId,
+              startDate: r.startDate,
+              endDate: r.endDate,
               mode: "leave",
               source: "leave",
             };
@@ -490,6 +537,10 @@ export default function AdminDashboardClient({
                   employeeDisplayName: it.employeeDisplayName,
                   type: it.type || "Leave",
                   dates: it.dates,
+                  employeeId: it.employeeId,
+                  eventCategoryId: it.eventCategoryId,
+                  startDate: it.startDate,
+                  endDate: it.endDate,
                   mode: "leave",
                 });
               }}
@@ -1072,6 +1123,15 @@ export default function AdminDashboardClient({
                   </div>
                 ) : null}
                 {approvalItem.dates ? (<div>Dates: {approvalItem.dates}</div>) : null}
+                {/* Entitlement after approval (optimistic projection) */}
+                {approvalItem.mode === "leave" && approvalItem.employeeId && approvalItem.eventCategoryId && (
+                  <EntitlementProjection
+                    employeeId={approvalItem.employeeId}
+                    eventCategoryId={approvalItem.eventCategoryId}
+                    startDate={approvalItem.startDate}
+                    endDate={approvalItem.endDate}
+                  />
+                )}
                 {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
                   <div className="rounded-lg border p-2">
                     <div className="text-xs font-semibold mb-1">Potential clashes</div>

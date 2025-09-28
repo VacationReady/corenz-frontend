@@ -99,6 +99,48 @@ function DocumentActionItems() {
     fetcher,
   );
   const [approvalItem, setApprovalItem] = useState<any | null>(null);
+
+  function EntitlementProjection({
+    employeeId,
+    eventCategoryId,
+    startDate,
+    endDate,
+  }: {
+    employeeId: string;
+    eventCategoryId: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    const [text, setText] = useState<string | null>(null);
+    useEffect(() => {
+      let active = true;
+      (async () => {
+        try {
+          const [entsRes, dedRes] = await Promise.all([
+            fetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
+            fetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
+          ]);
+          const ents = await entsRes.json();
+          const ded = await dedRes.json().catch(() => ({ deduction: null }));
+          const ent = Array.isArray(ents)
+            ? ents.find((e: any) => e?.eventCategory?.id === eventCategoryId)
+            : null;
+          if (!ent || typeof ded?.deduction !== "number") {
+            if (active) setText(null);
+            return;
+          }
+          const after = (ent.totalDays - ent.usedDays - ded.deduction);
+          if (active) setText(`Total entitlement after approved: ${after.toFixed(2)} days`);
+        } catch {
+          if (active) setText(null);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [employeeId, eventCategoryId, startDate, endDate]);
+    return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
+  }
   const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
 
   const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
@@ -173,7 +215,7 @@ function DocumentActionItems() {
                 <p className="text-sm text-muted-foreground">No pending approvals.</p>
               ) : (
                 <ul className="space-y-2">
-                      {(approvals.items as any[]).slice(0, 5).map((r: any) => {
+                  {(approvals.items as any[]).slice(0, 5).map((r: any) => {
                         const title = r?.title ?? r?.type ?? "Approval";
                         const dates = r?.dates ?? r?.subtitle;
                         return (
@@ -251,6 +293,14 @@ function DocumentActionItems() {
             </div>
             {approvalItem.dates ? (
               <div>Dates: {approvalItem.dates}</div>
+            ) : null}
+            {approvalItem?.employeeId && approvalItem?.eventCategoryId && approvalItem?.startDate && approvalItem?.endDate ? (
+              <EntitlementProjection
+                employeeId={approvalItem.employeeId}
+                eventCategoryId={approvalItem.eventCategoryId}
+                startDate={approvalItem.startDate}
+                endDate={approvalItem.endDate}
+              />
             ) : null}
             {/* Conflicts list if provided */}
             {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (

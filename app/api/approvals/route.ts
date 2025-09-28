@@ -70,6 +70,10 @@ export async function GET(req: NextRequest) {
         // New fields used by dashboard modal for richer context
         leaveRequestId: d.stage.leaveRequestId,
         employee: { name: displayName, userId: user?.id ?? null, profileImageUrl: user?.profileImageUrl ?? null },
+        employeeId: d.stage.leaveRequest.employeeId,
+        eventCategoryId: d.stage.leaveRequest.eventCategoryId,
+        startDate: d.stage.leaveRequest.startDate,
+        endDate: d.stage.leaveRequest.endDate,
         dates: `${start.toLocaleDateString()} → ${end.toLocaleDateString()}`,
         typeName: type,
         source: "leave" as const,

@@ -23,7 +23,6 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/Skeleton";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
-import { useSession } from "next-auth/react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 

@@ -7,15 +7,7 @@ import { authOptions } from "@/lib/auth-options";
 import { isAdminOrManager as isAdminOrManagerHelper } from "@/lib/roles";
 import { PageShell } from "@/components/ui/PageShell";
 import { User } from "lucide-react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import Button from "@/components/ui/Button";
+ 
 import { prisma } from "@/lib/prisma";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import ProfileAvatarUploader from "./ProfileAvatarWrapper";
@@ -194,26 +186,6 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                 employeeId={employee.id}
                 isAdminOrManager={Boolean(isAdminOrManager)}
               />
-
-              {/* ✅ Test Modal for Debugging */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost">Open Test Modal</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Test Modal</DialogTitle>
-                    <DialogDescription>
-                      This confirms your Dialog component is functioning and opens
-                      correctly.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <p>
-                    If you can see this modal, your Dialog system is working
-                    correctly.
-                  </p>
-                </DialogContent>
-              </Dialog>
             </div>
           </Card>
         </div>

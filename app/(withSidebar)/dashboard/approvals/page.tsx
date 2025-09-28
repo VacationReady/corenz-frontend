@@ -216,7 +216,8 @@ export default function ApprovalsPage() {
                 to <strong>{new Date(req.endDate).toLocaleDateString()}</strong>
               </p>
               <p>
-                Employee: {req.employee.user.name} ({req.employee.user.email})
+                Employee: {req.employee?.user?.name ?? "Employee"}
+                {req.employee?.user?.email ? ` (${req.employee.user.email})` : ""}
               </p>
               <p>Reason: {req.reason || "N/A"}</p>
               <StageTimeline stages={req.approvalStages} />

@@ -8,6 +8,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -154,6 +155,8 @@ function DocumentActionItems({ employeeId }: { employeeId: string }) {
   const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
   const [pendingSign, setPendingSign] = useState<Array<{ id: string; name: string }>>([]);
   const [checking, setChecking] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string }>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -218,9 +221,21 @@ function DocumentActionItems({ employeeId }: { employeeId: string }) {
               {pendingAck.map((d) => (
                 <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="truncate">{d.name}</span>
-                  <Link href={`/documents?open=${d.id}`} className="text-xs underline">
-                    Open
-                  </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const allDocs = [
+                        ...(Array.isArray(employeeDocs) ? employeeDocs : []),
+                        ...(Array.isArray(companyDocs) ? companyDocs : []),
+                      ];
+                      const doc = allDocs.find((x: any) => x?.id === d.id);
+                      setPreviewDoc({ id: d.id, name: d.name, url: doc?.url });
+                      setPreviewOpen(true);
+                    }}
+                  >
+                    Preview
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -240,6 +255,55 @@ function DocumentActionItems({ employeeId }: { employeeId: string }) {
           </div>
         </div>
       )}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{previewDoc?.name || "Document"}</DialogTitle>
+          </DialogHeader>
+          {previewDoc && (
+            <div className="space-y-3">
+              {previewDoc.url ? (
+                <div className="rounded border overflow-hidden">
+                  <embed
+                    src={(previewDoc.url || "") + "#toolbar=0&navpanes=0&scrollbar=1"}
+                    type="application/pdf"
+                    className="w-full h-[70vh]"
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Preview not available.</p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPreviewOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!previewDoc) return;
+                    try {
+                      await fetch("/api/documents/acknowledge", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ documentId: previewDoc.id }),
+                      });
+                    } finally {
+                      // remove from pending list and close
+                      setPendingAck((prev) => prev.filter((x) => x.id !== previewDoc.id));
+                      setPreviewOpen(false);
+                      setPreviewDoc(null);
+                    }
+                  }}
+                >
+                  Acknowledge
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardWidget>
   );
 }

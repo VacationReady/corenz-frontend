@@ -87,6 +87,9 @@ export function useBreadcrumbs(
       case "calendar":
         return breadcrumbConfigs.calendar;
 
+      case "bulk-actions":
+        return breadcrumbConfigs.bulkActions;
+
       case "settings":
         if (pathSegments.length === 1) {
           return breadcrumbConfigs.settings;

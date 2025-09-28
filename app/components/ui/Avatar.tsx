@@ -11,6 +11,7 @@ type AvatarProps = {
 };
 
 export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
+  const [failed, setFailed] = React.useState(false);
   const initials = React.useMemo(() => {
     const safe = (name || "").trim();
     if (!safe) return "?";
@@ -25,7 +26,7 @@ export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
     minWidth: size,
   } as React.CSSProperties;
 
-  if (src) {
+  if (src && !failed) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
@@ -33,6 +34,8 @@ export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
         alt={name || "avatar"}
         className={cn("rounded-full object-cover bg-muted", className)}
         style={dimension}
+        onError={() => setFailed(true)}
+        decoding="async"
       />
     );
   }

@@ -351,7 +351,9 @@ export default function AdminDashboardClient({
           const txnItems = Array.isArray(txnData?.data) ? txnData.data.map((r: any) => ({
             id: r.id,
             type: `Change: ${r.section}`,
-            employee: { user: { firstName: r.employee?.User?.firstName, lastName: r.employee?.User?.lastName, name: r.employee?.User?.name } },
+            employee: { user: { firstName: r.employee?.User?.firstName, lastName: r.employee?.User?.lastName, name: r.employee?.User?.name, profileImageUrl: r.employee?.User?.profileImageUrl } },
+            actor: r.Requester || r.requester || null,
+            diffs: r.diffs,
             source: "txn",
           })) : [];
           const merged = [...txnItems, ...leaveItems].slice(0, 5);
@@ -414,17 +416,21 @@ export default function AdminDashboardClient({
               key={it.id}
               className="flex items-center justify-between gap-3 text-left hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
               onClick={async () => {
-                try {
-                  // optional: navigate to approvals page
-                  window.location.href = "/dashboard/approvals";
-                } catch {}
+                // Open inline modal with diff preview when it's a transactional item
+                if (it.source === "txn") {
+                  setApprovalItem({
+                    id: it.id,
+                    employee: { name },
+                    type: it.type,
+                    diffs: it.diffs,
+                    mode: "txn",
+                  });
+                  return;
+                }
+                window.location.href = "/dashboard/approvals";
               }}
             >
-              <Avatar
-                size={28}
-                name={name}
-                src={it.employee?.user?.profileImageUrl}
-              />
+              <Avatar size={28} name={(it.actor?.name || name)} src={it.actor?.profileImageUrl || it.employee?.user?.profileImageUrl} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{name}</p>
                 <p className="text-xs text-muted-foreground truncate">
@@ -969,6 +975,29 @@ export default function AdminDashboardClient({
                     <div className="text-muted-foreground">{approvalItem.type ?? "Request"}</div>
                   </div>
                 </div>
+                {approvalItem.mode === "txn" && Array.isArray(approvalItem.diffs) && approvalItem.diffs.length > 0 ? (
+                  <div className="rounded-lg border p-2">
+                    <div className="text-xs font-semibold mb-1">Changes</div>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-muted-foreground">
+                          <th className="text-left py-1 pr-2">Field</th>
+                          <th className="text-left py-1 pr-2">Old</th>
+                          <th className="text-left py-1">New</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {approvalItem.diffs.map((d: any, i: number) => (
+                          <tr key={i} className="align-top">
+                            <td className="py-1 pr-2 font-medium">{d.field}</td>
+                            <td className="py-1 pr-2 text-muted-foreground break-all">{String(d.oldValue ?? "")}</td>
+                            <td className="py-1 break-all">{String(d.newValue ?? "")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
                 {approvalItem.dates ? (<div>Dates: {approvalItem.dates}</div>) : null}
                 {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
                   <div className="rounded-lg border p-2">
@@ -983,14 +1012,22 @@ export default function AdminDashboardClient({
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={async () => {
                     try {
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                      if (approvalItem.mode === "txn") {
+                        await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "decline", comment: "Declined" }) });
+                      } else {
+                        await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                      }
                     } finally {
                       setApprovalItem(null);
                     }
                   }}>Decline</Button>
                   <Button onClick={async () => {
                     try {
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                      if (approvalItem.mode === "txn") {
+                        await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "approve" }) });
+                      } else {
+                        await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                      }
                     } finally {
                       setApprovalItem(null);
                     }

@@ -12,6 +12,12 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const status = (url.searchParams.get("status") || "PENDING").toUpperCase();
   const scope = url.searchParams.get("scope") || "my"; // my | all
+  const limitParam = url.searchParams.get("limit");
+  const take = (() => {
+    const n = limitParam ? parseInt(limitParam, 10) : NaN;
+    if (Number.isNaN(n)) return 20;
+    return Math.max(1, Math.min(50, n));
+  })();
 
   const companyId = session.user.companyId;
   const approverId = session.user.id;
@@ -31,20 +37,23 @@ export async function GET(req: NextRequest) {
         },
       },
     },
-    take: 20,
+    take,
     orderBy: { createdAt: "desc" },
   });
 
   // Transactional approvals
-  const txnApprovals = await (prisma as any).transactionalApproval.findMany({
-    where: {
-      companyId,
-      status: status as any,
-      ...(scope === "my" ? { approverIds: { has: approverId } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+  const maybePrisma: any = prisma as any;
+  const txnApprovals = maybePrisma.transactionalApproval?.findMany
+    ? await maybePrisma.transactionalApproval.findMany({
+        where: {
+          companyId,
+          status: status as any,
+          ...(scope === "my" ? { approverIds: { has: approverId } } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take,
+      })
+    : [];
 
   const items = [
     ...leaveDecisions.map((d) => ({

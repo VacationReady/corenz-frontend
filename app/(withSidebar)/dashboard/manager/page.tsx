@@ -22,6 +22,8 @@ import {
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/Skeleton";
+import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
+import { useSession } from "next-auth/react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -525,6 +527,8 @@ function TeamInsights() {
 }
 
 export default function ManagerDashboardPage() {
+  const { data: session } = useSession();
+  const employeeId = (session?.user as any)?.employeeId as string | undefined;
   return (
     <PageShell
       title="Manager Dashboard"
@@ -563,6 +567,7 @@ export default function ManagerDashboardPage() {
       }
     >
       <DashboardGrid>
+        {employeeId && <LeaveSummaryCard employeeId={employeeId} />}
         <MetricsSummary />
         <TeamAbsenceOverview />
         <TeamInsights />

@@ -707,6 +707,7 @@ model Form {
   slug                 String
   formType             FormType         @default(SUBMISSION)
   visibleToRoles       String[]         @default([])
+  transactionalEnabled Boolean          @default(false)
   Company              Company          @relation(fields: [companyId], references: [id])
   FormAssignment       FormAssignment[]
   FormDataRecord       FormDataRecord[]
@@ -1203,6 +1204,34 @@ model TransactionalNotificationPreference {
 
   @@unique([companyId, section])
   @@index([companyId, section])
+}
+
+// Generic approval for transactional profile changes (e.g., compliance, personal info)
+model TransactionalChangeRequest {
+  id            String   @id @default(cuid())
+  companyId     String
+  employeeId    String
+  section       String   // e.g., "employment-checks"
+  action        String   // CREATE | UPDATE | DELETE
+  targetId      String?  // existing record id for update/delete
+  payload       Json     // proposed new values
+  oldValues     Json?    // original values for context
+  diffs         Json     // array of { field, oldValue, newValue }
+  reasons       Json     // field -> reason
+  requesterId   String
+  approverIds   String[]
+  status        ApprovalStatus @default(PENDING)
+  decisionComment String?
+  decidedById   String?
+  decidedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  Company       Company  @relation(fields: [companyId], references: [id])
+  Employee      Employee @relation(fields: [employeeId], references: [id])
+  Requester     User     @relation("TransactionalChangeRequest_requesterIdToUser", fields: [requesterId], references: [id])
+  DecidedBy     User?    @relation("TransactionalChangeRequest_decidedByIdToUser", fields: [decidedById], references: [id])
+
+  @@index([companyId, employeeId, section, status])
 }
 
 model SCIMConfiguration {

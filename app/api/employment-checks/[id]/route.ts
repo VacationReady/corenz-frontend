@@ -7,6 +7,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { randomUUID } from "crypto";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
+import { getTransactionalRecipients } from "@/lib/transactional-notifications";
+import { resend } from "@/lib/resend";
+import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function PATCH(
   req: NextRequest,
@@ -77,16 +80,20 @@ export async function PATCH(
     signedUrl = signed?.signedUrl;
   }
 
-  const updated = await prisma.employmentCheck.update({
-    where: { id },
-    data: {
-      typeOfCheck,
-      documentNumber,
-      dateOfIssue: new Date(dateOfIssue),
-      expiryDate: new Date(expiryDate),
-      ...(documentUrl && { documentUrl }),
-    },
-  });
+  const isAdmin = session.user.role === "ADMIN";
+  let updated: any = existing;
+  if (isAdmin) {
+    updated = await prisma.employmentCheck.update({
+      where: { id },
+      data: {
+        typeOfCheck,
+        documentNumber,
+        dateOfIssue: new Date(dateOfIssue),
+        expiryDate: new Date(expiryDate),
+        ...(documentUrl && { documentUrl }),
+      },
+    });
+  }
 
   if (!signedUrl && updated.documentUrl) {
     const { data: signedExisting } = await supabase.storage
@@ -95,19 +102,18 @@ export async function PATCH(
     signedUrl = signedExisting?.signedUrl;
   }
 
-  // Audit logs
-  try {
-    if (existing) {
-      const diffs = computeDiffs(
-        existing,
-        { ...existing, typeOfCheck, documentNumber, dateOfIssue: new Date(dateOfIssue), expiryDate: new Date(expiryDate), ...(documentUrl && { documentUrl }) },
-        ["typeOfCheck", "documentNumber", "dateOfIssue", "expiryDate", "documentUrl"] as const,
-      );
-      if (diffs.length > 0) {
-        const requiresReasons = diffs.some(diffRequiresReason);
-        if (requiresReasons && !reasons) {
-          return NextResponse.json({ error: "Reasons required" }, { status: 400 });
-        }
+  const diffs = computeDiffs(
+    existing,
+    { ...existing, typeOfCheck, documentNumber, dateOfIssue: new Date(dateOfIssue), expiryDate: new Date(expiryDate), ...(documentUrl && { documentUrl }) },
+    ["typeOfCheck", "documentNumber", "dateOfIssue", "expiryDate", "documentUrl"] as const,
+  );
+  if (diffs.length > 0) {
+    const requiresReasons = diffs.some(diffRequiresReason);
+    if (requiresReasons && !reasons) {
+      return NextResponse.json({ error: "Reasons required" }, { status: 400 });
+    }
+    if (isAdmin) {
+      try {
         await createAuditLogs({
           companyId: existing.Employee.companyId,
           employeeId: existing.employeeId,
@@ -116,11 +122,80 @@ export async function PATCH(
           reasons: reasons || {},
           changedById: session.user.id,
         });
+      } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+    } else {
+      // Create pending change request for approval
+      const recipients = await getTransactionalRecipients({
+        companyId: session.user.companyId!,
+        employeeId: existing.employeeId,
+        section: "employment-checks",
+        changedById: session.user.id,
+      });
+      const approverIds = recipients.map((r) => r.id);
+      await (prisma as any).transactionalChangeRequest.create({
+        data: {
+          companyId: session.user.companyId!,
+          employeeId: existing.employeeId,
+          section: "employment-checks",
+          action: "UPDATE",
+          targetId: existing.id,
+          payload: {
+            typeOfCheck,
+            documentNumber,
+            dateOfIssue,
+            expiryDate,
+            ...(documentUrl && { documentUrl }),
+          },
+          oldValues: {
+            typeOfCheck: existing.typeOfCheck,
+            documentNumber: existing.documentNumber,
+            dateOfIssue: existing.dateOfIssue,
+            expiryDate: existing.expiryDate,
+            documentUrl: existing.documentUrl,
+          },
+          diffs,
+          reasons: reasons || {},
+          requesterId: session.user.id,
+          approverIds,
+        },
+      });
+
+      // Notify approvers
+      const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
+      if (toEmails.length) {
+        const baseUrl = getAppBaseUrl();
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: `Approval needed: Employment Checks change`,
+          title: `Approval requested: Employment Checks`,
+          intro: [
+            `${session.user.email} submitted changes to Employment Checks for approval.`,
+          ],
+          sections: [
+            { title: "Summary", description: [
+              `Document: ${documentNumber}`,
+              `Issue: ${dateOfIssue}`,
+              `Expiry: ${expiryDate}`,
+            ] },
+          ],
+          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+          outro: ["PeopleCore HRIS System"],
+        });
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
+          to: toEmails,
+          subject: `Approval needed: Employment Checks`,
+          html,
+          text,
+        });
       }
     }
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ...updated, documentUrl: signedUrl ?? null });
+  if (isAdmin) {
+    return NextResponse.json({ ...updated, documentUrl: signedUrl ?? null });
+  } else {
+    return NextResponse.json({ success: true, pendingApproval: true, message: "Submitted for approval" });
+  }
 }

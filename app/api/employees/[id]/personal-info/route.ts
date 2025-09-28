@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { computeDiffs, createAuditLogs, diffRequiresReason, serialize } from "@/lib/audit-helpers";
+import { getTransactionalRecipients } from "@/lib/transactional-notifications";
+import { resend } from "@/lib/resend";
+import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function PATCH(
   req: NextRequest,
@@ -15,10 +18,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Require admin
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const isAdmin = session.user.role === "ADMIN";
 
     const employee = await prisma.employee.findUnique({
       where: { id },
@@ -69,26 +69,71 @@ export async function PATCH(
         );
       }
 
-      try {
-        await createAuditLogs({
+      if (isAdmin) {
+        try {
+          await createAuditLogs({
+            companyId: session.user.companyId!,
+            employeeId: employee.id,
+            section: "personal-info",
+            diffs,
+            reasons: (reasons as Record<string, string>) || {},
+            changedById: session.user.id,
+          });
+        } catch (error: any) {
+          return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+      } else {
+        const recipients = await getTransactionalRecipients({
           companyId: session.user.companyId!,
           employeeId: employee.id,
           section: "personal-info",
-          diffs,
-          reasons: (reasons as Record<string, string>) || {},
           changedById: session.user.id,
         });
-      } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        const approverIds = recipients.map((r) => r.id);
+        await (prisma as any).transactionalChangeRequest.create({
+          data: {
+            companyId: session.user.companyId!,
+            employeeId: employee.id,
+            section: "personal-info",
+            action: "UPDATE",
+            targetId: before.id,
+            payload: updates,
+            oldValues: allowed.reduce((acc: any, k) => { acc[k] = (before as any)[k]; return acc; }, {}),
+            diffs,
+            reasons: (reasons as Record<string, string>) || {},
+            requesterId: session.user.id,
+            approverIds,
+          },
+        });
+
+        const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
+        if (toEmails.length) {
+          const baseUrl = getAppBaseUrl();
+          const { html, text } = renderPeopleCoreEmail({
+            preheader: "Approval needed: Personal Information",
+            title: "Approval requested: Personal Information",
+            ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+            sections: [ { title: "Summary", description: [ `Fields changed: ${diffs.length}` ] } ],
+            outro: ["PeopleCore HRIS System"],
+          });
+          await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Personal Information", html, text });
+        }
       }
     }
 
-    const updated = await prisma.user.update({
-      where: { id: before.id },
-      data: updates,
-    });
+    let updated: any = null;
+    if (isAdmin) {
+      updated = await prisma.user.update({
+        where: { id: before.id },
+        data: updates,
+      });
+    }
 
-    return NextResponse.json({ ok: true, user: updated });
+    if (isAdmin) {
+      return NextResponse.json({ ok: true, user: updated });
+    } else {
+      return NextResponse.json({ success: true, pendingApproval: true });
+    }
   } catch (e: any) {
     console.error("[personal-info-update]", e);
     return NextResponse.json(

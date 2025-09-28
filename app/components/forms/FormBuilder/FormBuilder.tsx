@@ -60,6 +60,7 @@ interface FormBuilderProps {
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
+    transactionalEnabled?: boolean;
   }) => void | Promise<void>;
   initialData?: {
     name: string;
@@ -70,6 +71,7 @@ interface FormBuilderProps {
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
+    transactionalEnabled?: boolean;
   };
 }
 
@@ -108,6 +110,9 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   );
   const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN">(
     initialData?.formType || "SUBMISSION",
+  );
+  const [transactionalEnabled, setTransactionalEnabled] = useState<boolean>(
+    Boolean(initialData?.transactionalEnabled) || false,
   );
   const vis = useVisibility({
     roles: initialData?.visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
@@ -224,6 +229,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
       visibleToRoles: vis.roles,
       visibleToDepartments: vis.departments,
       visibleToJobRoles: vis.jobRoles,
+      transactionalEnabled,
     });
 
     toast.success("Form saved successfully");
@@ -306,6 +312,12 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               className="min-h-[80px]"
             />
           </div>
+        </div>
+        <div className="mt-4">
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={transactionalEnabled} onChange={(e) => setTransactionalEnabled(e.target.checked)} />
+            Add to transactional notifications (approval & emails)
+          </label>
         </div>
       </div>
 

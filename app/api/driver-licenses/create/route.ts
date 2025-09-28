@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
+import { getTransactionalRecipients } from "@/lib/transactional-notifications";
+import { resend } from "@/lib/resend";
+import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -64,41 +67,103 @@ export async function POST(req: Request) {
     documentId = doc.id; // ✅ now valid
   }
 
-  const licence = await prisma.driverLicence.create({
-    data: {
-      id: crypto.randomUUID(),
-      employeeId,
-      type,
-      licenceNumber,
-      issueDate,
-      expiryDate,
-      documentId,
-      updatedAt: new Date(),
-    },
+  const isAdmin = session.user.role === "ADMIN";
+  let licence: any = null;
+  const diffs = formatDiffsForFormData({
+    type,
+    licenceNumber,
+    issueDate,
+    expiryDate,
+    documentId,
   });
 
-  // Build and write audit logs
-  try {
-    const valueSummary: Record<string, any> = {
-      type,
-      licenceNumber,
-      issueDate,
-      expiryDate,
-      documentId,
-    };
-    const diffs = formatDiffsForFormData(valueSummary);
-    await createAuditLogs({
+  if (isAdmin) {
+    licence = await prisma.driverLicence.create({
+      data: {
+        id: crypto.randomUUID(),
+        employeeId,
+        type,
+        licenceNumber,
+        issueDate,
+        expiryDate,
+        documentId,
+        updatedAt: new Date(),
+      },
+    });
+  } else {
+    const recipients = await getTransactionalRecipients({
       companyId: session.user.companyId!,
       employeeId,
       section: "driver-licenses",
-      diffs,
-      reasons,
       changedById: session.user.id,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    const approverIds = recipients.map((r) => r.id);
+    await (prisma as any).transactionalChangeRequest.create({
+      data: {
+        companyId: session.user.companyId!,
+        employeeId,
+        section: "driver-licenses",
+        action: "CREATE",
+        targetId: null,
+        payload: { type, licenceNumber, issueDate, expiryDate, documentId },
+        oldValues: {},
+        diffs,
+        reasons,
+        requesterId: session.user.id,
+        approverIds,
+      },
+    });
+
+    const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
+    if (toEmails.length) {
+      const baseUrl = getAppBaseUrl();
+      const { html, text } = renderPeopleCoreEmail({
+        preheader: "Approval needed: Driver License",
+        title: "Approval requested: Driver License",
+        sections: [
+          {
+            title: "Summary",
+            description: [
+              `Type: ${type}`,
+              `Licence: ${licenceNumber}`,
+              `Issue: ${issueDate.toISOString().slice(0, 10)}`,
+              `Expiry: ${expiryDate.toISOString().slice(0, 10)}`,
+            ],
+          },
+        ],
+        ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+        outro: ["PeopleCore HRIS System"],
+      });
+      await resend.emails.send({
+        from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
+        to: toEmails,
+        subject: "Approval needed: Driver License",
+        html,
+        text,
+      });
+    }
   }
 
-  return NextResponse.json(licence);
+  // Build and write audit logs (admin immediate only)
+  if (isAdmin) {
+    try {
+      await createAuditLogs({
+        companyId: session.user.companyId!,
+        employeeId,
+        section: "driver-licenses",
+        diffs,
+        reasons,
+        changedById: session.user.id,
+      });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+  }
+
+  if (isAdmin) {
+    return NextResponse.json(licence);
+  } else {
+    return NextResponse.json({ success: true, pendingApproval: true });
+  }
 }
 

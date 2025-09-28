@@ -375,31 +375,43 @@ export async function dispatchTransactionalNotifications({
     const recipientUsers = await resolveRecipientUsers();
     if (!recipientUsers.length) return;
 
-    // Create approval task targeting recipient users
-    const employeeName = employee.User ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email : 'Employee';
-    const diffSummary = { count: diffs.length, fields: diffs.map(d => d.field) };
+    // If actor is ADMIN, send immediate update email; otherwise send approval request
+    const isAdminActor = (act as any).role === "ADMIN";
+    if (isAdminActor) {
+      const employeeName = employee.User
+        ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email
+        : 'Employee';
+      const { html, text } = buildTransactionalEmail({
+        employee: employee as any,
+        actor: act as any,
+        sectionConfig,
+        diffs,
+        reasons,
+      });
+      const toEmails = recipientUsers.map((u) => u.email).filter(Boolean) as string[];
+      if (toEmails.length) {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: toEmails,
+          subject: `${sectionConfig.label} updated - ${employeeName}`,
+          html,
+          text,
+        });
+      }
+      return;
+    }
 
-    const approval = await (prisma as any).transactionalApproval.create({
-      data: {
-        companyId,
-        section,
-        employeeId,
-        requesterId: changedById,
-        approverIds: recipientUsers.map(u => u.id),
-        title: `${sectionConfig.label} change for ${employeeName}`,
-        subtitle: `${diffs.length} field${diffs.length === 1 ? '' : 's'} changed`,
-        diffSummary,
-      },
-    });
-
-    // Send approval email to approvers with CTA to Approvals
+    // Non-admin actor: send approval request email (no immediate change applied)
     const baseUrl = getAppBaseUrl();
+    const employeeName = employee.User
+      ? `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim() || employee.User.email
+      : 'Employee';
     const { html, text } = renderPeopleCoreEmail({
       preheader: `Approval needed: ${sectionConfig.label} change for ${employeeName}`,
       title: `Approval requested: ${sectionConfig.label}`,
       intro: [
-        `${actor.name || actor.email} submitted changes to ${employeeName}'s ${sectionConfig.label}.`,
-        `Please review and approve in Quick Actions.`,
+        `${act.name || act.email} submitted changes to ${employeeName}'s ${sectionConfig.label}.`,
+        `Please review and approve in Action Items.`,
       ],
       sections: [
         { title: "Summary", description: [
@@ -407,27 +419,111 @@ export async function dispatchTransactionalNotifications({
           `Changes: ${diffs.length}`,
         ] },
       ],
-      ctas: { label: "Open Approvals", href: `${baseUrl}/dashboard/approvals` },
+      ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
       outro: ["PeopleCore HRIS System"],
     });
-
-    const toEmails = recipientUsers.map(u => u.email).filter(Boolean) as string[];
+    const toEmails = recipientUsers.map((u) => u.email).filter(Boolean) as string[];
     if (toEmails.length) {
-      await resend.emails.send({ from: FROM_EMAIL, to: toEmails, subject: `Approval needed: ${sectionConfig.label} - ${employeeName}`, html, text });
-      await (prisma as any).transactionalNotificationLog.create({
-        data: {
-          companyId,
-          approvalId: approval.id,
-          section,
-          employeeId,
-          recipients: toEmails,
-          status: "SENT",
-          sentAt: new Date(),
-        },
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: toEmails,
+        subject: `Approval needed: ${sectionConfig.label} - ${employeeName}`,
+        html,
+        text,
       });
     }
   } catch (error) {
     // Log but don't throw - we don't want notification failures to break audit logging
     console.error('Failed to send transactional notifications:', error);
   }
+}
+
+// Helper to expose recipients resolution for API routes that need to create approval items
+export async function getTransactionalRecipients({
+  companyId,
+  employeeId,
+  section,
+  changedById,
+}: {
+  companyId: string;
+  employeeId: string;
+  section: string;
+  changedById: string;
+}): Promise<{ id: string; email: string | null }[]> {
+  // Reuse the internal logic by partially executing until recipients are computed
+  const preference = await resolveTransactionalPreference(companyId, section);
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    include: { User: true, Department: true },
+  });
+  const actor = await prisma.user.findUnique({ where: { id: changedById } });
+  if (!employee || !actor) return [];
+
+  const emp = employee;
+  const act = actor;
+
+  const users: { id: string; email: string | null }[] = [];
+  const seen = new Set<string>();
+
+  async function addByRole(role: "ADMIN" | "MANAGER" | "EMPLOYEE") {
+    if (role === "ADMIN") {
+      const admins = await prisma.user.findMany({ where: { companyId, role: "ADMIN" } });
+      for (const u of admins) if (!seen.has(u.id)) { seen.add(u.id); users.push({ id: u.id, email: u.email }); }
+    } else if (role === "MANAGER") {
+      if (emp.User?.managerId) {
+        const m = await prisma.user.findUnique({ where: { id: emp.User.managerId } });
+        if (m && !seen.has(m.id)) { seen.add(m.id); users.push({ id: m.id, email: m.email }); }
+      }
+    } else if (role === "EMPLOYEE") {
+      if (emp.User && !seen.has(emp.User.id)) { seen.add(emp.User.id); users.push({ id: emp.User.id, email: emp.User.email }); }
+    }
+  }
+
+  const prefAny = preference as any;
+  const advanced = prefAny?.recipientsJson as any[] | undefined;
+  const fallback = prefAny?.fallbackRecipientsJson as any[] | undefined;
+
+  async function addByDepartment(deptId?: string, jobRoleId?: string | null, employeeIds?: string[], includeJobRole?: boolean) {
+    if (Array.isArray(employeeIds) && employeeIds.length) {
+      const list = await prisma.user.findMany({ where: { id: { in: employeeIds }, companyId } });
+      for (const u of list) if (!seen.has(u.id)) { seen.add(u.id); users.push({ id: u.id, email: u.email }); }
+    }
+    if (includeJobRole && jobRoleId) {
+      const list = await prisma.user.findMany({ where: { companyId, jobRoleId, ...(deptId ? { departmentId: deptId } : {}) } });
+      for (const u of list) if (!seen.has(u.id)) { seen.add(u.id); users.push({ id: u.id, email: u.email }); }
+    }
+  }
+
+  if (advanced && advanced.length) {
+    for (const r of advanced) {
+      if (r.type === "ADMIN" || r.type === "MANAGER" || r.type === "EMPLOYEE") {
+        await addByRole(r.type);
+      } else if (r.type === "DEPARTMENT") {
+        await addByDepartment(r.departmentId, r.jobRoleId ?? null, r.employeeIds ?? [], r.includeJobRoleWithSpecificEmployees ?? true);
+      }
+    }
+    if (users.length === 0 && Array.isArray(fallback)) {
+      for (const r of fallback) {
+        if (r.type === "ADMIN" || r.type === "MANAGER" || r.type === "EMPLOYEE") {
+          await addByRole(r.type);
+        } else if (r.type === "DEPARTMENT") {
+          await addByDepartment(r.departmentId, r.jobRoleId ?? null, r.employeeIds ?? [], r.includeJobRoleWithSpecificEmployees ?? true);
+        }
+      }
+    }
+  } else {
+    const notifyAdmin = preference?.notifyAdmin ?? true;
+    const notifyManager = preference?.notifyManager ?? false;
+    const notifyEmployee = preference?.notifyEmployee ?? false;
+    if (notifyAdmin) await addByRole("ADMIN");
+    if (notifyManager) await addByRole("MANAGER");
+    if (notifyEmployee) await addByRole("EMPLOYEE");
+  }
+
+  // Remove actor
+  if (act.id) {
+    const idx = users.findIndex((u) => u.id === act.id);
+    if (idx >= 0) users.splice(idx, 1);
+  }
+  return users;
 }

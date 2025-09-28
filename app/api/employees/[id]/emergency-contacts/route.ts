@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
+import { getTransactionalRecipients } from "@/lib/transactional-notifications";
+import { resend } from "@/lib/resend";
+import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function GET(
   _req: NextRequest,
@@ -47,9 +50,7 @@ export async function POST(
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const isAdmin = session.user.role === "ADMIN";
 
     const employee = await prisma.employee.findFirst({
       where: { id, companyId: session.user.companyId },
@@ -76,25 +77,71 @@ export async function POST(
       );
     }
 
-    const contact = await prisma.emergencyContact.create({
-      data: { id: crypto.randomUUID(), employeeId: employee.id, ...contactData },
-    });
+    let contact: any = null;
+    if (isAdmin) {
+      contact = await prisma.emergencyContact.create({
+        data: { id: crypto.randomUUID(), employeeId: employee.id, ...contactData },
+      });
+    }
 
     // Create audit log for contact creation
-    await createAuditLogs({
-      companyId: session.user.companyId!,
-      employeeId: employee.id,
-      section: "emergency-contacts",
-      diffs: [{
-        field: "__create__",
-        oldValue: null,
-        newValue: JSON.stringify(contactData),
-      }],
-      reasons: { "__create__": reason },
-      changedById: session.user.id,
-    });
+    if (isAdmin) {
+      await createAuditLogs({
+        companyId: session.user.companyId!,
+        employeeId: employee.id,
+        section: "emergency-contacts",
+        diffs: [{
+          field: "__create__",
+          oldValue: null,
+          newValue: JSON.stringify(contactData),
+        }],
+        reasons: { "__create__": reason },
+        changedById: session.user.id,
+      });
+    } else {
+      const diffs = [{ field: "__create__", oldValue: null, newValue: JSON.stringify(contactData) }];
+      const recipients = await getTransactionalRecipients({
+        companyId: session.user.companyId!,
+        employeeId: employee.id,
+        section: "emergency-contacts",
+        changedById: session.user.id,
+      });
+      const approverIds = recipients.map((r) => r.id);
+      await (prisma as any).transactionalChangeRequest.create({
+        data: {
+          companyId: session.user.companyId!,
+          employeeId: employee.id,
+          section: "emergency-contacts",
+          action: "CREATE",
+          targetId: null,
+          payload: contactData,
+          oldValues: {},
+          diffs,
+          reasons: { "__create__": reason },
+          requesterId: session.user.id,
+          approverIds,
+        },
+      });
 
-    return NextResponse.json(contact, { status: 201 });
+      const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
+      if (toEmails.length) {
+        const baseUrl = getAppBaseUrl();
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: "Approval needed: Emergency Contacts",
+          title: "Approval requested: Emergency Contacts",
+          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+          sections: [ { title: "Summary", description: [ `New contact: ${contactData.name}` ] } ],
+          outro: ["PeopleCore HRIS System"],
+        });
+        await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Emergency Contacts", html, text });
+      }
+    }
+
+    if (isAdmin) {
+      return NextResponse.json(contact, { status: 201 });
+    } else {
+      return NextResponse.json({ success: true, pendingApproval: true }, { status: 201 });
+    }
   } catch (e: any) {
     console.error("[emergency-contacts-post]", e);
     return NextResponse.json(
@@ -114,9 +161,7 @@ export async function PATCH(
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const isAdmin = session.user.role === "ADMIN";
 
     const employee = await prisma.employee.findFirst({
       where: { id, companyId: session.user.companyId },
@@ -171,26 +216,67 @@ export async function PATCH(
         );
       }
 
-      try {
-        await createAuditLogs({
+      if (isAdmin) {
+        try {
+          await createAuditLogs({
+            companyId: session.user.companyId!,
+            employeeId: employee.id,
+            section: "emergency-contacts",
+            diffs,
+            reasons: reasons || {},
+            changedById: session.user.id,
+          });
+        } catch (error: any) {
+          return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+      } else {
+        const recipients = await getTransactionalRecipients({
           companyId: session.user.companyId!,
           employeeId: employee.id,
           section: "emergency-contacts",
-          diffs,
-          reasons: reasons || {},
           changedById: session.user.id,
         });
-      } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        const approverIds = recipients.map((r) => r.id);
+        await (prisma as any).transactionalChangeRequest.create({
+          data: {
+            companyId: session.user.companyId!,
+            employeeId: employee.id,
+            section: "emergency-contacts",
+            action: "UPDATE",
+            targetId: existingContact.id,
+            payload: updates,
+            oldValues: allowed.reduce((acc: any, k) => { acc[k] = (existingContact as any)[k]; return acc; }, {}),
+            diffs,
+            reasons: reasons || {},
+            requesterId: session.user.id,
+            approverIds,
+          },
+        });
+
+        const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
+        if (toEmails.length) {
+          const baseUrl = getAppBaseUrl();
+          const { html, text } = renderPeopleCoreEmail({
+            preheader: "Approval needed: Emergency Contacts",
+            title: "Approval requested: Emergency Contacts",
+            ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+            sections: [ { title: "Summary", description: [ `Fields changed: ${diffs.length}` ] } ],
+            outro: ["PeopleCore HRIS System"],
+          });
+          await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Emergency Contacts", html, text });
+        }
       }
     }
 
-    const updated = await prisma.emergencyContact.update({
-      where: { id: body.id },
-      data: updates,
-    });
-    
-    return NextResponse.json(updated);
+    if (isAdmin) {
+      const updated = await prisma.emergencyContact.update({
+        where: { id: body.id },
+        data: updates,
+      });
+      return NextResponse.json(updated);
+    } else {
+      return NextResponse.json({ success: true, pendingApproval: true });
+    }
   } catch (e: any) {
     console.error("[emergency-contacts-patch]", e);
     return NextResponse.json(
@@ -210,9 +296,7 @@ export async function DELETE(
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const isAdmin = session.user.role === "ADMIN";
 
     const employee = await prisma.employee.findFirst({
       where: { id, companyId: session.user.companyId },
@@ -240,27 +324,68 @@ export async function DELETE(
       return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
-    // Create audit log before deletion
-    await createAuditLogs({
-      companyId: session.user.companyId!,
-      employeeId: employee.id,
-      section: "emergency-contacts",
-      diffs: [{
-        field: "__delete__",
-        oldValue: JSON.stringify({
-          name: contactToDelete.name,
-          relationship: contactToDelete.relationship,
-          phone: contactToDelete.phone,
-          email: contactToDelete.email,
-        }),
-        newValue: null,
-      }],
-      reasons: { "__delete__": body.reason },
-      changedById: session.user.id,
-    });
+    if (isAdmin) {
+      // Create audit log before deletion
+      await createAuditLogs({
+        companyId: session.user.companyId!,
+        employeeId: employee.id,
+        section: "emergency-contacts",
+        diffs: [{
+          field: "__delete__",
+          oldValue: JSON.stringify({
+            name: contactToDelete.name,
+            relationship: contactToDelete.relationship,
+            phone: contactToDelete.phone,
+            email: contactToDelete.email,
+          }),
+          newValue: null,
+        }],
+        reasons: { "__delete__": body.reason },
+        changedById: session.user.id,
+      });
 
-    await prisma.emergencyContact.delete({ where: { id: body.id } });
-    return NextResponse.json({ ok: true });
+      await prisma.emergencyContact.delete({ where: { id: body.id } });
+      return NextResponse.json({ ok: true });
+    } else {
+      const diffs = [{ field: "__delete__", oldValue: JSON.stringify({ name: contactToDelete.name, relationship: contactToDelete.relationship, phone: contactToDelete.phone, email: contactToDelete.email }), newValue: null }];
+      const recipients = await getTransactionalRecipients({
+        companyId: session.user.companyId!,
+        employeeId: employee.id,
+        section: "emergency-contacts",
+        changedById: session.user.id,
+      });
+      const approverIds = recipients.map((r) => r.id);
+      await (prisma as any).transactionalChangeRequest.create({
+        data: {
+          companyId: session.user.companyId!,
+          employeeId: employee.id,
+          section: "emergency-contacts",
+          action: "DELETE",
+          targetId: contactToDelete.id,
+          payload: {},
+          oldValues: { name: contactToDelete.name, relationship: contactToDelete.relationship, phone: contactToDelete.phone, email: contactToDelete.email },
+          diffs,
+          reasons: { "__delete__": body.reason },
+          requesterId: session.user.id,
+          approverIds,
+        },
+      });
+
+      const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
+      if (toEmails.length) {
+        const baseUrl = getAppBaseUrl();
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: "Approval needed: Emergency Contacts",
+          title: "Approval requested: Emergency Contacts",
+          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+          sections: [ { title: "Summary", description: [ `Delete contact: ${contactToDelete.name}` ] } ],
+          outro: ["PeopleCore HRIS System"],
+        });
+        await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Emergency Contacts", html, text });
+      }
+
+      return NextResponse.json({ success: true, pendingApproval: true });
+    }
   } catch (e: any) {
     console.error("[emergency-contacts-delete]", e);
     return NextResponse.json(

@@ -20,6 +20,10 @@ export async function GET(req: NextRequest) {
     const items = await (prisma as any).transactionalChangeRequest.findMany({
       where: { companyId, requesterId: session.user.id },
       orderBy: { createdAt: "desc" },
+      include: {
+        Requester: true,
+        Employee: { include: { User: true } },
+      },
     });
     return NextResponse.json({ success: true, data: items });
   }
@@ -27,6 +31,10 @@ export async function GET(req: NextRequest) {
   const items = await (prisma as any).transactionalChangeRequest.findMany({
     where: { companyId, approverIds: { has: session.user.id }, status: "PENDING" },
     orderBy: { createdAt: "desc" },
+    include: {
+      Requester: true,
+      Employee: { include: { User: true } },
+    },
   });
   return NextResponse.json({ success: true, data: items });
 }

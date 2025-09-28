@@ -29,6 +29,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
 import AddDocumentModal from "@/components/documents/AddDocumentModal";
 import { StageTimeline } from "@/components/approvals/StageTimeline";
+import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
  
 
@@ -351,9 +352,10 @@ export default function AdminDashboardClient({
           const txnItems = Array.isArray(txnData?.data) ? txnData.data.map((r: any) => ({
             id: r.id,
             type: `Change: ${r.section}`,
-            employee: { user: { firstName: r.employee?.User?.firstName, lastName: r.employee?.User?.lastName, name: r.employee?.User?.name, profileImageUrl: r.employee?.User?.profileImageUrl } },
-            actor: r.Requester || r.requester || null,
+            employee: { user: { firstName: r.Employee?.User?.firstName, lastName: r.Employee?.User?.lastName, name: r.Employee?.User?.name, profileImageUrl: r.Employee?.User?.profileImageUrl } },
+            actor: r.Requester || null,
             diffs: r.diffs,
+            reasons: r.reasons,
             source: "txn",
           })) : [];
           const merged = [...txnItems, ...leaveItems].slice(0, 5);
@@ -967,12 +969,13 @@ export default function AdminDashboardClient({
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                    {(approvalItem.employee?.name || "?").split(" ").map((p: string) => p[0]).slice(0,2).join("")}
-                  </div>
+                  <Avatar size={40} name={(approvalItem.actor?.name || approvalItem.employee?.name || "?")} src={approvalItem.actor?.profileImageUrl} />
                   <div>
-                    <div className="font-medium">{approvalItem.employee?.name ?? "Employee"}</div>
-                    <div className="text-muted-foreground">{approvalItem.type ?? "Request"}</div>
+                    <div className="font-medium">{approvalItem.type ?? "Request"}</div>
+                    <div className="text-muted-foreground text-xs">
+                      Requested by {approvalItem.actor?.name || "Someone"}
+                      {approvalItem.employee?.name ? ` • For ${approvalItem.employee?.name}` : ""}
+                    </div>
                   </div>
                 </div>
                 {approvalItem.mode === "txn" && Array.isArray(approvalItem.diffs) && approvalItem.diffs.length > 0 ? (
@@ -989,9 +992,9 @@ export default function AdminDashboardClient({
                       <tbody>
                         {approvalItem.diffs.map((d: any, i: number) => (
                           <tr key={i} className="align-top">
-                            <td className="py-1 pr-2 font-medium">{d.field}</td>
-                            <td className="py-1 pr-2 text-muted-foreground break-all">{String(d.oldValue ?? "")}</td>
-                            <td className="py-1 break-all">{String(d.newValue ?? "")}</td>
+                            <td className="py-1 pr-2 font-medium">{labelForField(d.field)}</td>
+                            <td className="py-1 pr-2 text-muted-foreground break-all">{formatAuditValue(String(d.oldValue ?? ""))}</td>
+                            <td className="py-1 break-all">{formatAuditValue(String(d.newValue ?? ""))}</td>
                           </tr>
                         ))}
                       </tbody>

@@ -112,7 +112,6 @@ export async function POST(request: Request) {
           data: {
             salaryAmount: after.salaryAmount,
             hourlyRate: after.hourlyRate,
-            updatedAt: new Date(),
           },
         });
 

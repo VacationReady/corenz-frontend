@@ -6,6 +6,9 @@ import EmployeeDashboardClient from "./EmployeeDashboardClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
+import { User } from "lucide-react";
 
 export default async function EmployeeDashboard() {
   const session = await getServerSession(authOptions);
@@ -28,6 +31,13 @@ export default async function EmployeeDashboard() {
           { label: "Employee" },
         ],
       }}
+      action={
+        employeeId ? (
+          <Link href={`/employees/${employeeId}/overview`}>
+            <Button size="sm" icon={<User className="h-4 w-4" />}>View profile</Button>
+          </Link>
+        ) : null
+      }
     >
       <DashboardGrid>
         {employeeId && <LeaveBalanceWidget employeeId={employeeId} />}

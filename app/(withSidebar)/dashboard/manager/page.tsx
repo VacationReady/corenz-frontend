@@ -23,6 +23,7 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/Skeleton";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
+import { User } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -511,6 +512,11 @@ export default function ManagerDashboardPage() {
       }}
       action={
         <div className="flex items-center gap-2">
+          {employeeId && (
+            <Link href={`/employees/${employeeId}/overview`}>
+              <Button size="sm" variant="outline" icon={<User className="h-4 w-4" />}>View profile</Button>
+            </Link>
+          )}
           <div className="relative">
             <input
               aria-label="Search team"

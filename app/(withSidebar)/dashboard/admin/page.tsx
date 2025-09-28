@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import AdminDashboardClient from "./AdminDashboardClient";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
+import { User } from "lucide-react";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -75,13 +78,18 @@ export default async function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-sm">
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full glass-subtle rounded-2xl border-glass px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-glass"
-              />
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <Link href={`/employees/${user.Employee.id}/overview`}>
+                <Button size="sm" variant="outline" icon={<User className="h-4 w-4" />}>View profile</Button>
+              </Link>
+              <div className="relative max-w-sm">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full glass-subtle rounded-2xl border-glass px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition-glass"
+                />
+              </div>
             </div>
           </div>
         </div>

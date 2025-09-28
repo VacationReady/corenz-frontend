@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
 import DashboardGrid from "@/components/ui/DashboardGrid";
@@ -17,8 +18,6 @@ import {
   FileBarChart2,
   UserPlus,
   CheckSquare,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -27,7 +26,45 @@ import { Skeleton } from "@/components/ui/Skeleton";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 function MetricsSummary() {
-  const { data, error, isLoading } = useSWR("/api/dashboard/metrics", fetcher);
+  const { data: session } = useSession();
+  const { data, error, isLoading } = useSWR("/api/employees?status=active", fetcher);
+
+  const metrics = useMemo(() => {
+    if (!Array.isArray(data) || !session?.user?.id) return null;
+    const me = session.user.id as string;
+    const employees: any[] = data;
+    // Build map by userId for quick lookup and compute team closure
+    const byManager = new Map<string, string[]>();
+    employees.forEach((e: any) => {
+      const mgr = e.managerUserId || null;
+      if (!mgr) return;
+      if (!byManager.has(mgr)) byManager.set(mgr, []);
+      byManager.get(mgr)!.push(e.userId);
+    });
+    const team = new Set<string>();
+    let frontier: string[] = byManager.get(me) || [];
+    while (frontier.length) {
+      const next: string[] = [];
+      for (const uid of frontier) {
+        if (team.has(uid)) continue;
+        team.add(uid);
+        const children = byManager.get(uid) || [];
+        for (const c of children) if (!team.has(c)) next.push(c);
+      }
+      frontier = next;
+    }
+
+    const teamEmployees = employees.filter((e: any) => team.has(e.userId));
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const newStartersThisMonth = teamEmployees.filter((e: any) => {
+      const created = e.createdAt ? new Date(e.createdAt) : null;
+      return created ? created >= startOfMonth : false;
+    }).length;
+
+    return { headcount: teamEmployees.length, newStartersThisMonth };
+  }, [data, session]);
+
   return (
     <DashboardWidget title="Team Metrics" icon={FileBarChart2}>
       {isLoading ? (
@@ -38,28 +75,12 @@ function MetricsSummary() {
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="p-3 rounded bg-muted/30">
             <div className="text-muted-foreground">Headcount</div>
-            <div className="text-lg font-semibold">{data?.headcount ?? 0}</div>
+            <div className="text-lg font-semibold">{metrics?.headcount ?? 0}</div>
           </div>
           <div className="p-3 rounded bg-muted/30">
             <div className="text-muted-foreground">New starters</div>
-            <div className="text-lg font-semibold">
-              {data?.newStartersThisMonth ?? 0}
-            </div>
+            <div className="text-lg font-semibold">{metrics?.newStartersThisMonth ?? 0}</div>
           </div>
-          <div className="p-3 rounded bg-muted/30">
-            <div className="text-muted-foreground">Pending approvals</div>
-            <div className="text-lg font-semibold">
-              {data?.pendingApprovals?.my ?? 0}
-            </div>
-          </div>
-          {data?.canViewAllApprovals && (
-            <div className="p-3 rounded bg-muted/30">
-              <div className="text-muted-foreground">All pending</div>
-              <div className="text-lg font-semibold">
-                {data?.pendingApprovals?.all ?? 0}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </DashboardWidget>
@@ -69,6 +90,10 @@ function MetricsSummary() {
 function DocumentActionItems() {
   const { data: docsCompany, error: errCo, isLoading: loadingCo } = useSWR(
     "/api/documents/list-company",
+    fetcher,
+  );
+  const { data: approvals, error: approvalsError, isLoading: loadingApprovals, mutate: mutateApprovals } = useSWR(
+    "/api/approvals?status=PENDING",
     fetcher,
   );
 
@@ -120,7 +145,7 @@ function DocumentActionItems() {
     run();
   }, [docsCompany, loadingCo]);
 
-  const loadingAny = loadingCo || checking;
+  const loadingAny = loadingCo || checking || loadingApprovals;
 
   return (
     <DashboardWidget title="Action Items" icon={CheckSquare}>
@@ -129,10 +154,48 @@ function DocumentActionItems() {
           <Skeleton className="h-4 w-5/6" />
           <Skeleton className="h-4 w-2/3" />
         </div>
-      ) : pendingAck.length === 0 && pendingSign.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No document actions pending.</p>
+      ) : (Array.isArray(approvals?.items) ? approvals.items.length : 0) === 0 && pendingAck.length === 0 && pendingSign.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No action items pending.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          {/* Approvals */}
+          {approvalsError ? null : (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-semibold">Approvals</div>
+                <Link href="/dashboard/approvals" className="text-xs underline">Open Approvals</Link>
+              </div>
+              {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">No pending approvals.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {(approvals.items as any[]).slice(0, 5).map((r: any) => (
+                    <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate">{r.title ?? r.type}</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={async () => {
+                          try {
+                            await fetch(`/api/approvals/${r.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                          } finally {
+                            mutateApprovals();
+                          }
+                        }}>Approve</Button>
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          try {
+                            await fetch(`/api/approvals/${r.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                          } finally {
+                            mutateApprovals();
+                          }
+                        }}>Reject</Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          {/* Documents */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
             <ul className="space-y-2">
@@ -158,6 +221,7 @@ function DocumentActionItems() {
                 </li>
               ))}
             </ul>
+          </div>
           </div>
         </div>
       )}
@@ -500,7 +564,6 @@ export default function ManagerDashboardPage() {
     >
       <DashboardGrid>
         <MetricsSummary />
-        <PendingApprovals />
         <TeamAbsenceOverview />
         <TeamInsights />
         <QuickLinks />

@@ -349,15 +349,26 @@ export default function AdminDashboardClient({
           const leaveData = await leaveRes.json().catch(() => ({}));
           const txnData = await txnRes.json().catch(() => ({}));
           const leaveItems = Array.isArray(leaveData?.items) ? leaveData.items : [];
-          const txnItems = Array.isArray(txnData?.data) ? txnData.data.map((r: any) => ({
-            id: r.id,
-            type: `Change: ${r.section}`,
-            employee: { user: { firstName: r.Employee?.User?.firstName, lastName: r.Employee?.User?.lastName, name: r.Employee?.User?.name, profileImageUrl: r.Employee?.User?.profileImageUrl } },
-            actor: r.Requester || null,
-            diffs: r.diffs,
-            reasons: r.reasons,
-            source: "txn",
-          })) : [];
+          const txnItems = Array.isArray(txnData?.data)
+            ? txnData.data.map((r: any) => {
+                const empUser = r.Employee?.User || {};
+                const reqUser = r.Requester || {};
+                const employeeDisplayName = (empUser.name && empUser.name.trim()) || `${empUser.firstName ?? ""} ${empUser.lastName ?? ""}`.trim() || empUser.email || "Employee";
+                const actorDisplayName = (reqUser.name && reqUser.name.trim()) || `${reqUser.firstName ?? ""} ${reqUser.lastName ?? ""}`.trim() || reqUser.email || "Unknown";
+                return {
+                  id: r.id,
+                  type: `Change: ${r.section}`,
+                  employee: { user: empUser },
+                  employeeDisplayName,
+                  actor: reqUser,
+                  actorDisplayName,
+                  actorAvatarUrl: reqUser.profileImageUrl || null,
+                  diffs: r.diffs,
+                  reasons: r.reasons,
+                  source: "txn",
+                };
+              })
+            : [];
           const merged = [...txnItems, ...leaveItems].slice(0, 5);
           if (active) setItems(merged);
         } catch {
@@ -410,7 +421,7 @@ export default function AdminDashboardClient({
     return (
       <ul className="space-y-2">
         {items.map((it) => {
-          const name =
+          const name = it.employeeDisplayName ||
             it.employee?.user?.name ||
             `${it.employee?.user?.firstName ?? ""} ${it.employee?.user?.lastName ?? ""}`.trim();
           return (
@@ -432,7 +443,7 @@ export default function AdminDashboardClient({
                 window.location.href = "/dashboard/approvals";
               }}
             >
-              <Avatar size={28} name={(it.actor?.name || name)} src={it.actor?.profileImageUrl || it.employee?.user?.profileImageUrl} />
+              <Avatar size={28} name={(it.actorDisplayName || it.actor?.name || name)} src={it.actorAvatarUrl || it.actor?.profileImageUrl || it.employee?.user?.profileImageUrl} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{name}</p>
                 <p className="text-xs text-muted-foreground truncate">
@@ -969,12 +980,12 @@ export default function AdminDashboardClient({
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-3">
-                  <Avatar size={40} name={(approvalItem.actor?.name || approvalItem.employee?.name || "?")} src={approvalItem.actor?.profileImageUrl} />
+                  <Avatar size={40} name={(approvalItem.actorDisplayName || approvalItem.actor?.name || approvalItem.employee?.name || "?")} src={approvalItem.actorAvatarUrl || approvalItem.actor?.profileImageUrl} />
                   <div>
                     <div className="font-medium">{approvalItem.type ?? "Request"}</div>
                     <div className="text-muted-foreground text-xs">
-                      Requested by {approvalItem.actor?.name || "Someone"}
-                      {approvalItem.employee?.name ? ` • For ${approvalItem.employee?.name}` : ""}
+                      Requested by {approvalItem.actorDisplayName || approvalItem.actor?.name || "Someone"}
+                      {approvalItem.employeeDisplayName || approvalItem.employee?.name ? ` • For ${approvalItem.employeeDisplayName || approvalItem.employee?.name}` : ""}
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/ui/PageShell";
 import DashboardGrid from "@/components/ui/DashboardGrid";
-import LeaveBalanceWidget from "@/components/dashboard/LeaveBalanceWidget";
+import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import EmployeeDashboardClient from "./EmployeeDashboardClient";
 import { getServerSession } from "next-auth";
@@ -40,7 +40,7 @@ export default async function EmployeeDashboard() {
       }
     >
       <DashboardGrid>
-        {employeeId && <LeaveBalanceWidget employeeId={employeeId} />}
+        {employeeId && <LeaveSummaryCard employeeId={employeeId} />}
         <NewsWidget limit={5} />
         <EmployeeDashboardClient employeeId={employeeId} />
       </DashboardGrid>

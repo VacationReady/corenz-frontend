@@ -11,16 +11,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
-import {
-  List,
-  CalendarDays,
-  Trash2,
-  GraduationCap,
-  Heart,
-  Stethoscope,
-  Smile,
-  Palmtree,
-} from "lucide-react";
+import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, Palmtree } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
@@ -489,8 +480,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         {count > 0 ? (
           <div className="mt-5 space-y-1">
             {entries.map(([label, n]) => (
-              <div key={label} className="flex items-center gap-1 text-[11px]">
-                <span className={`inline-flex items-center gap-1 text-white px-1.5 py-0.5 rounded ${getCategoryColor(label)}`}>
+              <div key={label} className="w-full text-[11px]">
+                <span className={`cz-chip ${getCategoryColor(label)} text-white`}>
                   {getCategoryIcon(label)}
                   <span className="font-medium">{label}</span>
                   <span className="opacity-90">{n}</span>

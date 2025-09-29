@@ -47,7 +47,7 @@ import {
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+// Sparkles already included above via grouped lucide-react import
 
 const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;

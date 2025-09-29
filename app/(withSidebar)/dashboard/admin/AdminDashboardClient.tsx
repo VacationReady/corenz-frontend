@@ -551,6 +551,7 @@ export default function AdminDashboardClient({
                   eventCategoryId: it.eventCategoryId,
                   startDate: it.startDate,
                   endDate: it.endDate,
+                  actorAvatarUrl: it.actorAvatarUrl,
                   mode: "leave",
                 });
               }}

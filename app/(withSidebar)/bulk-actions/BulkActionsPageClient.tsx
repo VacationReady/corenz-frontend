@@ -38,6 +38,8 @@ import {
   PlaneTakeoff,
   Megaphone,
   ListChecks,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -87,6 +89,8 @@ export default function BulkActionsPageClient() {
   const [providers, setProviders] = useState<Option[]>([]);
   const [eventCategories, setEventCategories] = useState<Option[]>([]);
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
+  const [isEmployeeListCollapsed, setIsEmployeeListCollapsed] =
+    useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
@@ -542,9 +546,7 @@ export default function BulkActionsPageClient() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span>
-                  Showing {filteredEmployees.length.toLocaleString()} of
-                  {" "}
-                  {employees.length.toLocaleString()} employees
+                  Showing {filteredEmployees.length.toLocaleString()} of {employees.length.toLocaleString()} employees
                 </span>
                 <Badge variant="secondary">
                   {statusLabel[filters.status]}
@@ -558,93 +560,125 @@ export default function BulkActionsPageClient() {
                   </span>
                 )}
               </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto flex items-center gap-1"
+                onClick={() =>
+                  setIsEmployeeListCollapsed((previous) => !previous)
+                }
+                aria-expanded={!isEmployeeListCollapsed}
+              >
+                {isEmployeeListCollapsed ? (
+                  <>
+                    <ChevronDown className="h-4 w-4" aria-hidden />
+                    Show employee list
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="h-4 w-4" aria-hidden />
+                    Hide employee list
+                  </>
+                )}
+              </Button>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Department
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Job role
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60 bg-background">
-                  {loading ? (
+            {isEmployeeListCollapsed ? (
+              <div className="flex flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-muted/40 bg-muted/20 px-6 py-12 text-center text-sm text-muted-foreground">
+                <ListChecks className="h-5 w-5" aria-hidden />
+                <p>
+                  Employee list hidden. Use filters to adjust your cohort or
+                  show the list to review individual selections.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-3xl border border-glass">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/40">
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-sm">
-                        Loading employees…
-                      </td>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <Checkbox
+                          checked={selectionState}
+                          onCheckedChange={() => toggleSelectAllFiltered()}
+                          aria-label="Select all filtered employees"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Employee
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Department
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Job role
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Status
+                      </th>
                     </tr>
-                  ) : filteredEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr
-                          key={employee.id}
-                          className={isSelected ? "bg-primary/5" : undefined}
-                        >
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() =>
-                                toggleEmployeeSelection(employee.id)
-                              }
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {employee.email}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {employee.departmentName ?? "—"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">
-                            {employee.jobRoleName ?? "—"}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {employee.isActive ? (
-                              <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge className="border-rose-200 bg-rose-50 text-rose-700" variant="outline">
-                                Inactive
-                              </Badge>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border/60 bg-background">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm">
+                          Loading employees…
+                        </td>
+                      </tr>
+                    ) : filteredEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm">
+                          No employees match your filters yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEmployees.map((employee) => {
+                        const isSelected = selectedIds.has(employee.id);
+                        return (
+                          <tr
+                            key={employee.id}
+                            className={isSelected ? "bg-primary/5" : undefined}
+                          >
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() =>
+                                  toggleEmployeeSelection(employee.id)
+                                }
+                                aria-label={`Select ${employee.name}`}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium text-foreground">
+                              <div>{employee.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {employee.email}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                              {employee.departmentName ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
+                              {employee.jobRoleName ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {employee.isActive ? (
+                                <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                                  Active
+                                </Badge>
+                              ) : (
+                                <Badge className="border-rose-200 bg-rose-50 text-rose-700" variant="outline">
+                                  Inactive
+                                </Badge>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </Card>
 

@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 import { FieldPalette } from "./FieldPalette";
 import { FormCanvas } from "./FormCanvas";
@@ -128,6 +138,16 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     departments: initialData?.visibleToDepartments || [],
     jobRoles: initialData?.visibleToJobRoles || [],
   });
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      pressDelay: 150,
+      activationConstraint: { tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const slugIsValid = useMemo(() => /^[a-z0-9-]+$/.test(formSlug), [formSlug]);
 
@@ -377,6 +397,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
           <div className="col-span-12 lg:col-span-6">
             <DndContext
+              sensors={sensors}
               onDragEnd={handleDragEnd}
               onDragStart={(event) => {
                 const dragged = event.active.data?.current as

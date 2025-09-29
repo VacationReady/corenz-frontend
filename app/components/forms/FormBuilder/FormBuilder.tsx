@@ -397,7 +397,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   sections={sections}
                   setSections={setSections}
                   selectedField={selectedField}
-                  setSelectedField={setSelectedField}
+                  onSelectField={setSelectedField}
                 />
               </div>
               <DragOverlay>

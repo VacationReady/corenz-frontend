@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/Card";
 import { ReportTemplate, hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary } from "@/lib/reportLibrary";
-import type { ReportFilter, SortConfig } from "@/lib/reportFilters";
+import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
@@ -106,6 +106,30 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
 
   const canMoveForward = canProceed();
 
+const allowedOperators: FilterOperator[] = [
+  "equals",
+  "not_equals",
+  "contains",
+  "not_contains",
+  "starts_with",
+  "ends_with",
+  "greater_than",
+  "less_than",
+  "greater_than_equal",
+  "less_than_equal",
+  "between",
+  "is_null",
+  "is_not_null",
+  "in",
+  "not_in",
+  "date_equals",
+  "date_before",
+  "date_after",
+  "date_between",
+  "date_in_last",
+  "date_in_next",
+];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 overflow-y-auto">
       <Card className="flex min-h-0 w-full max-w-5xl max-h-[90vh] flex-col overflow-y-auto">
@@ -183,7 +207,9 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
                   template?.suggestedFilters?.map((filter, index) => ({
                     id: `filter_${index}`,
                     field: filter.field,
-                    operator: filter.operator,
+                    operator: allowedOperators.includes(filter.operator as FilterOperator)
+                      ? (filter.operator as FilterOperator)
+                      : "equals",
                     value: filter.value,
                     value2: filter.value2,
                   })) || [],

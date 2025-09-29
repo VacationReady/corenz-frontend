@@ -99,6 +99,48 @@ function DocumentActionItems() {
     fetcher,
   );
   const [approvalItem, setApprovalItem] = useState<any | null>(null);
+
+  function EntitlementProjection({
+    employeeId,
+    eventCategoryId,
+    startDate,
+    endDate,
+  }: {
+    employeeId: string;
+    eventCategoryId: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    const [text, setText] = useState<string | null>(null);
+    useEffect(() => {
+      let active = true;
+      (async () => {
+        try {
+          const [entsRes, dedRes] = await Promise.all([
+            fetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
+            fetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
+          ]);
+          const ents = await entsRes.json();
+          const ded = await dedRes.json().catch(() => ({ deduction: null }));
+          const ent = Array.isArray(ents)
+            ? ents.find((e: any) => e?.eventCategory?.id === eventCategoryId)
+            : null;
+          if (!ent || typeof ded?.deduction !== "number") {
+            if (active) setText(null);
+            return;
+          }
+          const after = (ent.totalDays - ent.usedDays - ded.deduction);
+          if (active) setText(`Total entitlement after approved: ${after.toFixed(2)} days`);
+        } catch {
+          if (active) setText(null);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [employeeId, eventCategoryId, startDate, endDate]);
+    return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
+  }
   const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
 
   const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
@@ -154,7 +196,7 @@ function DocumentActionItems() {
   return (
     <>
     <DashboardWidget title="Action Items" icon={CheckSquare}>
-      {loadingAny ? (
+          {loadingAny ? (
         <div className="space-y-2">
           <Skeleton className="h-4 w-5/6" />
           <Skeleton className="h-4 w-2/3" />
@@ -169,18 +211,23 @@ function DocumentActionItems() {
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-semibold">Approvals</div>
               </div>
-              {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
+                  {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">No pending approvals.</p>
               ) : (
                 <ul className="space-y-2">
-                  {(approvals.items as any[]).slice(0, 5).map((r: any) => (
-                    <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate">{r.title ?? r.type}</span>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => { setApprovalItem(r); }}>Review</Button>
-                      </div>
-                    </li>
-                  ))}
+                  {(approvals.items as any[]).slice(0, 5).map((r: any) => {
+                        const title = r?.title ?? r?.type ?? "Approval";
+                        const dates = r?.dates ?? r?.subtitle;
+                        return (
+                          <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span className="truncate">{title}</span>
+                            <div className="flex gap-2">
+                              {dates ? <span className="text-muted-foreground hidden sm:inline">{dates}</span> : null}
+                              <Button size="sm" onClick={() => { setApprovalItem(r); }}>Review</Button>
+                            </div>
+                          </li>
+                        );
+                      })}
                 </ul>
               )}
             </div>
@@ -247,6 +294,14 @@ function DocumentActionItems() {
             {approvalItem.dates ? (
               <div>Dates: {approvalItem.dates}</div>
             ) : null}
+            {approvalItem?.employeeId && approvalItem?.eventCategoryId && approvalItem?.startDate && approvalItem?.endDate ? (
+              <EntitlementProjection
+                employeeId={approvalItem.employeeId}
+                eventCategoryId={approvalItem.eventCategoryId}
+                startDate={approvalItem.startDate}
+                endDate={approvalItem.endDate}
+              />
+            ) : null}
             {/* Conflicts list if provided */}
             {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
               <div className="rounded-lg border p-2">
@@ -261,7 +316,9 @@ function DocumentActionItems() {
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={async () => {
                 try {
-                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                  const comment = prompt("Add a short reason for declining:")?.trim();
+                  if (!comment) return; // required
+                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
                 } finally {
                   setApprovalItem(null); mutateApprovals();
                 }

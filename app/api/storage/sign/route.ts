@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ url: data?.signedUrl ?? null });
-  } catch (error: any) {
+  } catch (e: any) {
     return NextResponse.json(
-      { error: error?.message ?? "Failed to sign URL" },
+      { error: e?.message ?? "Failed to sign URL" },
       { status: 500 },
     );
   }

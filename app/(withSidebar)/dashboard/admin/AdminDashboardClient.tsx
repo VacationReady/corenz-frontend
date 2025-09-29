@@ -32,6 +32,48 @@ import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
  
+function EntitlementProjection({
+  employeeId,
+  eventCategoryId,
+  startDate,
+  endDate,
+}: {
+  employeeId: string;
+  eventCategoryId: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [entsRes, dedRes] = await Promise.all([
+          fetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
+          fetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
+        ]);
+        const ents = await entsRes.json();
+        const ded = await dedRes.json().catch(() => ({ deduction: null }));
+        const ent = Array.isArray(ents)
+          ? ents.find((e: any) => e?.eventCategory?.id === eventCategoryId)
+          : null;
+        if (!ent || typeof ded?.deduction !== "number") {
+          if (active) setText(null);
+          return;
+        }
+        const after = (ent.totalDays - ent.usedDays - ded.deduction);
+        if (active) setText(`Total entitlement after approved: ${after.toFixed(2)} days`);
+      } catch {
+        if (active) setText(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [employeeId, eventCategoryId, startDate, endDate]);
+  return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
+}
+
 
 interface AdminDashboardClientProps {
   employeeId: string;
@@ -371,15 +413,14 @@ export default function AdminDashboardClient({
             : [];
           // Sign profile image URLs for avatars when needed
           const signedCache = new Map<string, string>();
-          async function sign(path?: string | null): Promise<string | null> {
-            if (!path) return null;
-            if (path.startsWith("http")) return path;
-            if (signedCache.has(path)) return signedCache.get(path)!;
+          async function signByUser(userId?: string | null): Promise<string | null> {
+            if (!userId) return null;
+            if (signedCache.has(userId)) return signedCache.get(userId)!;
             try {
-              const r = await fetch(`/api/storage/sign?path=${encodeURIComponent(path)}`);
+              const r = await fetch(`/api/users/${encodeURIComponent(userId)}/profile-image`);
               const j = await r.json().catch(() => ({}));
               const url = j?.url ?? null;
-              if (url) signedCache.set(path, url);
+              if (url) signedCache.set(userId, url);
               return url;
             } catch {
               return null;
@@ -387,16 +428,35 @@ export default function AdminDashboardClient({
           }
           // sign actor avatars for txn items
           for (const it of txnItems) {
-            if (it.actor?.profileImageUrl && !it.actorAvatarUrl) {
-              it.actorAvatarUrl = await sign(it.actor.profileImageUrl);
+            // Try requester id first
+            if (!it.actorAvatarUrl && it.actor?.id) {
+              it.actorAvatarUrl = await signByUser(it.actor.id);
             }
-            // fallback: employee avatar if actor missing or signing failed
-            if (!it.actorAvatarUrl && it.employee?.user?.profileImageUrl) {
-              const fallback = await sign(it.employee.user.profileImageUrl);
+            // fallback: employee user id
+            if (!it.actorAvatarUrl && (it.employee?.user as any)?.id) {
+              const fallback = await signByUser((it.employee?.user as any).id);
               if (fallback) it.actorAvatarUrl = fallback;
             }
           }
-          const merged = [...txnItems, ...leaveItems].slice(0, 5);
+          // Map leave items into modal-friendly structure
+          const normalizedLeave = leaveItems.map((r: any) => {
+            const name = r?.employee?.name || r?.title?.split(" — ")?.[0] || "Employee";
+            return {
+              id: r.id,
+              type: r.typeName || r.type || "Leave",
+              employee: { user: { name } },
+              employeeDisplayName: name,
+              dates: r.dates || r.subtitle,
+              // entitlement projection inputs
+              employeeId: r.employeeId,
+              eventCategoryId: r.eventCategoryId,
+              startDate: r.startDate,
+              endDate: r.endDate,
+              mode: "leave",
+              source: "leave",
+            };
+          });
+          const merged = [...txnItems, ...normalizedLeave].slice(0, 5);
           if (active) setItems(merged);
         } catch {
           if (active) setItems([]);
@@ -470,7 +530,19 @@ export default function AdminDashboardClient({
                   });
                   return;
                 }
-                  window.location.href = "/dashboard/approvals";
+                // Leave approval: open inline modal with essential details
+                setApprovalItem({
+                  id: it.id,
+                  employee: { name },
+                  employeeDisplayName: it.employeeDisplayName,
+                  type: it.type || "Leave",
+                  dates: it.dates,
+                  employeeId: it.employeeId,
+                  eventCategoryId: it.eventCategoryId,
+                  startDate: it.startDate,
+                  endDate: it.endDate,
+                  mode: "leave",
+                });
               }}
             >
               <Avatar
@@ -1051,6 +1123,15 @@ export default function AdminDashboardClient({
                   </div>
                 ) : null}
                 {approvalItem.dates ? (<div>Dates: {approvalItem.dates}</div>) : null}
+                {/* Entitlement after approval (optimistic projection) */}
+                {approvalItem.mode === "leave" && approvalItem.employeeId && approvalItem.eventCategoryId && (
+                  <EntitlementProjection
+                    employeeId={approvalItem.employeeId}
+                    eventCategoryId={approvalItem.eventCategoryId}
+                    startDate={approvalItem.startDate}
+                    endDate={approvalItem.endDate}
+                  />
+                )}
                 {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
                   <div className="rounded-lg border p-2">
                     <div className="text-xs font-semibold mb-1">Potential clashes</div>
@@ -1067,7 +1148,10 @@ export default function AdminDashboardClient({
                       if (approvalItem.mode === "txn") {
                         await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "decline", comment: "Declined" }) });
                       } else {
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline" }) });
+                      // Require comment
+                      const comment = prompt("Add a short reason for declining:")?.trim();
+                      if (!comment) return;
+                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
                       }
                     } finally {
                       setApprovalItem(null);

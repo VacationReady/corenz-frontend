@@ -142,6 +142,12 @@ export const breadcrumbConfigs = {
       { label: "Calendar", isCurrentPage: true },
     ],
   },
+  bulkActions: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Bulk actions", isCurrentPage: true },
+    ],
+  },
   settings: {
     items: [
       { label: "Dashboard", href: "/dashboard" },

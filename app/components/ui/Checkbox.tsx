@@ -12,8 +12,8 @@ const Checkbox = React.forwardRef<
   <CheckboxPrimitive.Root
     ref={ref}
     className={clsx(
-      // Ensure checkbox has a visible border in all themes
-      "peer h-4 w-4 shrink-0 rounded border border-glass ring-offset-background transition-glass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary/30",
+      // Ensure checkbox has a visible outline in both light and dark themes
+      "peer h-4 w-4 shrink-0 rounded border border-border/80 bg-background ring-offset-background transition-glass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary",
       className,
     )}
     {...props}

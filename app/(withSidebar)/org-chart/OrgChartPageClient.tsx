@@ -36,8 +36,8 @@ import {
   ZoomOut,
   Mail,
   Phone,
+  Sparkles,
 } from "lucide-react";
-import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Popover,

@@ -778,6 +778,48 @@ export const hrReportFields: HRReportField[] = [
 		sortable: true,
                 description: "Leave days carried over from previous period",
         },
+	{
+		model: "LeaveEntitlement",
+		field: "LeaveEntitlement.Employee.User.firstName",
+		label: "Employee First Name",
+		type: "string",
+		category: "time-off",
+		filterable: true,
+		sortable: true,
+		description: "First name of the employee for this entitlement",
+		isPII: true,
+	},
+	{
+		model: "LeaveEntitlement",
+		field: "LeaveEntitlement.Employee.User.lastName",
+		label: "Employee Last Name",
+		type: "string",
+		category: "time-off",
+		filterable: true,
+		sortable: true,
+		description: "Last name of the employee for this entitlement",
+		isPII: true,
+	},
+	{
+		model: "LeaveEntitlement",
+		field: "LeaveEntitlement.Employee.Department.name",
+		label: "Employee Department",
+		type: "string",
+		category: "time-off",
+		filterable: true,
+		sortable: true,
+		description: "Department associated with the entitlement",
+	},
+	{
+		model: "LeaveEntitlement",
+		field: "LeaveEntitlement.Employee.JobRole.name",
+		label: "Employee Job Role",
+		type: "string",
+		category: "time-off",
+		filterable: true,
+		sortable: true,
+		description: "Job role linked to the entitlement",
+	},
 
         // Documents & Compliance
         {
@@ -1178,92 +1220,5 @@ export type ReportTemplate = {
 	}>;
 };
 
-export const hrReportTemplates: ReportTemplate[] = [
-	{
-		id: "employee-directory",
-		name: "Employee Directory",
-		description: "Complete list of all active employees with contact information",
-		category: "people",
-                icon: "👥",
-                defaultFields: [
-                        "User.firstName",
-                        "User.lastName",
-                        "User.email",
-                        "User.phone",
-                        "User.Department_User_departmentIdToDepartment.name",
-                        "User.JobRole.name",
-                        "Employee.isActive",
-                        "Employee.salaryAmount",
-                        "Employee.hourlyRate"
-                ],
-                suggestedFilters: [
-                        { field: "Employee.isActive", operator: "equals", value: true }
-                ],
-        },
-	{
-		id: "leave-summary",
-		name: "Leave Summary Report",
-		description: "Overview of leave balances and usage across the organization",
-		category: "time-off",
-                icon: "📅",
-                defaultFields: [
-                        "User.firstName",
-                        "User.lastName",
-                        "User.Department_User_departmentIdToDepartment.name",
-                        "LeaveEntitlement.totalDays",
-                        "LeaveEntitlement.usedDays",
-                        "LeaveEntitlement.carryoverDays"
-                ],
-        },
-        {
-                id: "compliance-tracker",
-		name: "Compliance Tracker",
-		description: "Track employment checks and document expiry dates",
-		category: "documents",
-                icon: "📋",
-                defaultFields: [
-                        "User.firstName",
-                        "User.lastName",
-                        "EmploymentCheck.typeOfCheck",
-                        "EmploymentCheck.documentNumber",
-                        "EmploymentCheck.expiryDate",
-                        "EmploymentCheck.documentUrl",
-                        "DriverLicence.type",
-                        "DriverLicence.licenceNumber",
-                        "DriverLicence.expiryDate"
-                ],
-        },
-        {
-                id: "training-report",
-		name: "Training Report",
-		description: "Overview of employee training completion and upcoming renewals",
-		category: "performance",
-                icon: "📈",
-                defaultFields: [
-                        "User.firstName",
-                        "User.lastName",
-                        "Course.name",
-                        "TrainingRecord.dateCompleted",
-                        "TrainingRecord.expiryDate",
-                        "TrainingProvider.name"
-                ],
-        },
-        {
-                id: "department-overview",
-		name: "Department Overview",
-		description: "Departmental breakdown of employees and key metrics",
-		category: "employment",
-                icon: "🏢",
-                defaultFields: [
-                        "User.Department_User_departmentIdToDepartment.name",
-                        "User.firstName",
-                        "User.lastName",
-                        "User.JobRole.name",
-                        "Employee.isActive",
-                        "WorkingPattern.name",
-                        "User.User.firstName",
-                        "User.User.lastName"
-                ],
-        },
-];
+export const hrReportTemplates: ReportTemplate[] = [];
 

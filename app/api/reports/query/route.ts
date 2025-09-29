@@ -112,6 +112,8 @@ export async function POST(req: Request) {
                 filters: parsedBody.filters ?? [],
         };
 
+		const companyId = session.user.companyId;
+
         // Expand computed field dependencies before any translation
         const initialFieldSet = new Set<string>(requestedFields as string[]);
         for (const fieldKey of initialFieldSet) {
@@ -150,7 +152,7 @@ export async function POST(req: Request) {
 		}
 
                 // Enforce tenant boundaries across every model exposed through the reporting API.
-                const tenantCompanyId = session.user.companyId;
+		const tenantCompanyId = session.user.companyId;
                 const tenantScopedFilters = [
                         { field: "User.companyId" },
                         { field: "Employee.companyId" },
@@ -207,9 +209,9 @@ export async function POST(req: Request) {
                         : {};
 
                 // @ts-ignore dynamic access
-                const total = await (prisma[model] as any).count(countArgs);
-                // @ts-ignore dynamic access
-                let results = await (prisma[model] as any).findMany(primary.prismaQuery);
+		const total = await (prisma[model] as any).count(countArgs);
+		// @ts-ignore dynamic access
+		let results = await (prisma[model] as any).findMany(primary.prismaQuery);
                 results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
 
                 return NextResponse.json({

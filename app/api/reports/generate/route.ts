@@ -48,9 +48,12 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = await reportDefinitions[
-      reportType as keyof typeof reportDefinitions
-    ].query(normalizedFilters, normalizedPagination);
+    const definition = reportDefinitions[reportType as keyof typeof reportDefinitions];
+    const companyId = session.user.companyId;
+
+    const data = await definition.query(normalizedFilters, normalizedPagination, {
+      companyId,
+    });
 
     return NextResponse.json({ data });
   } catch (error) {

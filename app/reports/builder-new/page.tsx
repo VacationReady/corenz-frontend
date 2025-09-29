@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { formatLondon } from "@/lib/time";
-import type { BreadcrumbConfig } from "@/types/breadcrumb";
+import { useSearchParams } from "next/navigation";
+import { reportLibrary } from "@/lib/reportLibrary";
 
 interface RecentReport {
   id: number;
@@ -25,6 +26,7 @@ interface RecentReport {
 
 export default function NewReportBuilderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [showWizard, setShowWizard] = useState(false);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
@@ -166,6 +168,15 @@ export default function NewReportBuilderPage() {
   };
 
   const handleCancelWizard = () => setShowWizard(false);
+
+  useEffect(() => {
+    const templateId = searchParams.get("templateId");
+    if (!templateId) return;
+    const templateExists = reportLibrary.some((entry) => entry.id === templateId);
+    if (templateExists) {
+      setShowWizard(true);
+    }
+  }, [searchParams]);
 
   if (showWizard) {
     return (

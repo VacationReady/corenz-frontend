@@ -11,9 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { hrReportTemplates, ReportTemplate, hrReportFields } from "@/lib/hrReportFields";
+import { ReportTemplate, hrReportFields } from "@/lib/hrReportFields";
+import { reportLibrary } from "@/lib/reportLibrary";
+import type { ReportFilter, SortConfig } from "@/lib/reportFilters";
 import FieldSelection from "./FieldSelection";
-import FilterConfiguration, { ReportFilter, SortConfig } from "./FilterConfiguration";
+import FilterConfiguration from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
 
 export type WizardStep = "template" | "fields" | "filters" | "preview";
@@ -171,22 +173,24 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
 
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {currentStep === "template" && (
-              <TemplateSelection
-                selectedTemplate={config.template}
-                onSelectTemplate={(template) => {
-                  updateConfig({
-                    template,
-                    selectedFields: template?.defaultFields || [],
-                    filters:
-                      template?.suggestedFilters?.map((f, index) => ({
-                        id: `filter_${index}`,
-                        field: f.field,
-                        operator: f.operator as any,
-                        value: f.value,
-                      })) || [],
-                  });
-                }}
-              />
+          <TemplateSelection
+            selectedTemplate={config.template}
+            onSelectTemplate={(template) => {
+              updateConfig({
+                template,
+                selectedFields: template?.defaultFields || [],
+                filters:
+                  template?.suggestedFilters?.map((f, index) => ({
+                    id: `filter_${index}`,
+                    field: f.field,
+                    operator: f.operator,
+                    value: f.value,
+                    value2: f.value2,
+                  })) || [],
+                sort: template?.defaultSort,
+              });
+            }}
+          />
             )}
 
             {currentStep === "fields" && (
@@ -243,7 +247,6 @@ function TemplateSelection({
   selectedTemplate?: ReportTemplate;
   onSelectTemplate: (template: ReportTemplate | undefined) => void;
 }) {
-  const totalSelectableFields = hrReportFields.length;
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -274,7 +277,7 @@ function TemplateSelection({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {hrReportTemplates.map((template) => (
+        {reportLibrary.map((template) => (
           <div
             key={template.id}
             className={cn(
@@ -295,7 +298,7 @@ function TemplateSelection({
                   {template.description}
                 </p>
                 <div className="text-xs text-muted-foreground">
-                  {template.defaultFields.length} default fields • {totalSelectableFields} available
+                  {template.defaultFields.length} default fields
                 </div>
               </div>
             </div>

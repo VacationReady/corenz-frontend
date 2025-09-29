@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { FileText } from "lucide-react";
+import { FileText, Library } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -163,6 +163,12 @@ export default function ReportsPage() {
       breadcrumbs={breadcrumbs}
       action={
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/reports/library")}
+          >
+            <Library className="h-4 w-4 mr-2" /> Library
+          </Button>
           <Button
             variant="outline"
             onClick={() => void fetchReports()}

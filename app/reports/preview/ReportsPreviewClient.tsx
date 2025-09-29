@@ -22,6 +22,7 @@ import {
 import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
+import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
 import { ArrowLeft, X } from "lucide-react";
 import Papa from "papaparse";
@@ -90,16 +91,48 @@ export default function ReportsPreviewClient() {
   const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
   const reportIdParam = searchParams?.get("reportId");
+  const templateIdParam = searchParams?.get("templateId") ?? undefined;
+  const engineParam = searchParams?.get("engine") ?? "dynamic";
+  const reportTypeParam = searchParams?.get("reportType") ?? undefined;
   const { toast } = useToast();
   const { template, regionName } = useTenantRegion();
 
   const initialFields = useMemo(() => parseFieldsParam(fieldsParam), [fieldsParam]);
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
-    return reportIdParam ? [] : initialFields;
+    if (reportIdParam) return [];
+    if (templateIdParam && engineParam === "dynamic") {
+      const template = reportLibrary.find((entry) => entry.id === templateIdParam);
+      if (template) {
+        return template.defaultFields;
+      }
+    }
+    return initialFields;
   });
   useEffect(() => {
     if (reportIdParam) return;
+
+    if (templateIdParam && engineParam === "dynamic") {
+      const template = reportLibrary.find((entry) => entry.id === templateIdParam);
+      if (template) {
+        setLibraryTemplate(template);
+        setSelectedFields(template.defaultFields);
+        setActiveFilters(
+          template.suggestedFilters?.map((filter, index) => ({
+            id: `filter_${index}`,
+            field: filter.field,
+            operator: filter.operator,
+            value: filter.value,
+            value2: filter.value2,
+          })) || [],
+        );
+        if (template.defaultSort) {
+          setActiveSort(template.defaultSort);
+        }
+        return;
+      }
+    }
+
     setSelectedFields((current) => {
       if (
         current.length === initialFields.length &&
@@ -109,8 +142,9 @@ export default function ReportsPreviewClient() {
       }
       return initialFields;
     });
-  }, [initialFields, reportIdParam]);
+  }, [initialFields, reportIdParam, templateIdParam, engineParam]);
   const [reportConfig, setReportConfig] = useState<any>(null);
+  const [, setLibraryTemplate] = useState<ReportLibraryEntry | null>(null);
 
   const [data, setData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
@@ -264,48 +298,70 @@ export default function ReportsPreviewClient() {
 
   // Load report configuration if reportId is provided
   useEffect(() => {
-    if (!reportIdParam) return;
-    const loadReport = async () => {
-      setLoadingReport(true);
-      try {
-        const res = await fetch(`/api/reports/${reportIdParam}`);
-        if (!res.ok) throw new Error(`Failed to load report: ${res.status}`);
-        const report = await res.json();
-        setReportConfig(report);
+    if (reportIdParam) {
+      const loadReport = async () => {
+        setLoadingReport(true);
+        try {
+          const res = await fetch(`/api/reports/${reportIdParam}`);
+          if (!res.ok) throw new Error(`Failed to load report: ${res.status}`);
+          const report = await res.json();
+          setReportConfig(report);
 
-        const savedFilters = Array.isArray(report?.filters)
-          ? report.filters
-          : report?.filters
-          ? [report.filters]
-          : [];
-        setActiveFilters(savedFilters);
+          const savedFilters = Array.isArray(report?.filters)
+            ? report.filters
+            : report?.filters
+            ? [report.filters]
+            : [];
+          setActiveFilters(savedFilters);
 
-        // pagination from report if present
-        const savedPagination =
-          report?.pagination && typeof report.pagination === "object"
-            ? { ...{ page: 1, limit: 50 }, ...report.pagination }
-            : { page: 1, limit: 50 };
-        setPage(savedPagination.page ?? 1);
-        setPageSize(savedPagination.limit ?? 50);
+          const savedPagination =
+            report?.pagination && typeof report.pagination === "object"
+              ? { ...{ page: 1, limit: 50 }, ...report.pagination }
+              : { page: 1, limit: 50 };
+          setPage(savedPagination.page ?? 1);
+          setPageSize(savedPagination.limit ?? 50);
 
-        const savedSort =
-          report?.sort && typeof report.sort === "object" && report.sort.field
-            ? {
-                field: report.sort.field,
-                direction: (report.sort.direction || "asc") as "asc" | "desc",
-              }
-            : null;
-        setActiveSort(savedSort);
+          const savedSort =
+            report?.sort && typeof report.sort === "object" && report.sort.field
+              ? {
+                  field: report.sort.field,
+                  direction: (report.sort.direction || "asc") as "asc" | "desc",
+                }
+              : null;
+          setActiveSort(savedSort);
 
-        setSelectedFields(report.fields || []);
-      } catch (error) {
-        console.error("❌ Error loading report:", error);
-      } finally {
+          setSelectedFields(report.fields || []);
+        } catch (error) {
+          console.error("❌ Error loading report:", error);
+        } finally {
+          setLoadingReport(false);
+        }
+      };
+      void loadReport();
+      return;
+    }
+
+    if (templateIdParam && engineParam === "custom" && reportTypeParam) {
+      const template = reportLibrary.find((entry) => entry.id === templateIdParam);
+      if (template) {
+        setLibraryTemplate(template);
+        setSelectedFields(template.defaultFields);
+        setActiveFilters(
+          template.suggestedFilters?.map((filter, index) => ({
+            id: `filter_${index}`,
+            field: filter.field,
+            operator: filter.operator,
+            value: filter.value,
+            value2: filter.value2,
+          })) || [],
+        );
+        if (template.defaultSort) {
+          setActiveSort(template.defaultSort);
+        }
         setLoadingReport(false);
       }
-    };
-    loadReport();
-  }, [reportIdParam]);
+    }
+  }, [reportIdParam, templateIdParam, engineParam, reportTypeParam]);
 
   // ensure sort remains valid when fields change
   useEffect(() => {
@@ -392,6 +448,28 @@ export default function ReportsPreviewClient() {
   // Helper to fetch a specific page (used by both initial load and full export)
   const fetchReportPage = useCallback(
     async (pageToFetch: number, limitToFetch: number) => {
+      if (engineParam === "custom" && reportTypeParam) {
+        const res = await fetch("/api/reports/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reportType: reportTypeParam,
+            filters: Object.fromEntries(
+              (Array.isArray(activeFilters) ? activeFilters : []).map((filter: any) => [
+                filter.field,
+                filter.operator === "between" || filter.operator === "date_between"
+                  ? { value: filter.value, value2: filter.value2 }
+                  : filter.value,
+              ]),
+            ),
+            pagination: { page: pageToFetch, limit: limitToFetch, sortBy: activeSort?.field, sortOrder: activeSort?.direction },
+          }),
+        });
+        const json = await res.json();
+        const results = Array.isArray(json.data) ? json.data : [];
+        return { results, totalCount: results.length };
+      }
+
       const sortToSend =
         activeSort && activeSort.field
           ? { field: activeSort.field, direction: activeSort.direction || "asc" }
@@ -413,7 +491,14 @@ export default function ReportsPreviewClient() {
         typeof json.total === "number" ? json.total : results.length;
       return { results, totalCount };
     },
-    [effectiveSelectedFields, activeFilters, activeSort, defaultSort],
+    [
+      effectiveSelectedFields,
+      activeFilters,
+      activeSort,
+      defaultSort,
+      engineParam,
+      reportTypeParam,
+    ],
   );
 
   // Load report data when fields are available

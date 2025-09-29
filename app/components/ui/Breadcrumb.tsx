@@ -175,6 +175,13 @@ export const breadcrumbConfigs = {
       { label: section, isCurrentPage: true },
     ],
   }),
+  reportsLibrary: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Reports", href: "/reports" },
+      { label: "Library", isCurrentPage: true },
+    ],
+  },
   // Offboarding section
   offboarding: {
     items: [

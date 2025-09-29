@@ -126,7 +126,12 @@ export function useBreadcrumbs(
           builder: "Report Builder",
           create: "Create Report",
           preview: "Preview",
+          library: "Library",
         };
+
+        if (reportsSection === "library") {
+          return breadcrumbConfigs.reportsLibrary;
+        }
 
         return breadcrumbConfigs.reportsSection(
           reportsSectionLabels[reportsSection] || reportsSection,

@@ -32,12 +32,12 @@ import {
   Briefcase,
   Building2,
   UserCircle2,
-  Sparkles,
   ZoomIn,
   ZoomOut,
   Mail,
   Phone,
 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Popover,

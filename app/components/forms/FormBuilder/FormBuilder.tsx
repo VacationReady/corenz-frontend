@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 

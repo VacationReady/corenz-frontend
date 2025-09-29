@@ -89,7 +89,7 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
     setConfig(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const canProceed = () => {
+const canProceed = () => {
     switch (currentStep) {
       case "template":
         return true; // Can always proceed from template selection

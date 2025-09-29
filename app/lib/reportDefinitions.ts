@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
 import { prisma } from "@/lib/prisma";
 
+type SortOrder = "asc" | "desc";
+
 type ReportQueryFn = (
   filters: Record<string, any>,
   pagination: Record<string, any>,
@@ -20,13 +22,13 @@ function normalizePagination(input: Record<string, any>) {
   const limit = Math.min(500, Math.max(1, Number(input?.limit) || 50));
   const skip = (page - 1) * limit;
   const sortBy = typeof input?.sortBy === "string" && input.sortBy.length > 0 ? input.sortBy : null;
-  const sortOrder = input?.sortOrder === "desc" ? "desc" : "asc";
+  const sortOrder: SortOrder = input?.sortOrder === "desc" ? "desc" : "asc";
   return { page, limit, skip, sortBy, sortOrder };
 }
 
-function buildSort(sortBy: string | null, sortOrder: "asc" | "desc") {
+function buildSort(sortBy: string | null, sortOrder: SortOrder) {
   if (!sortBy) return undefined;
-  return { [sortBy]: sortOrder } as Record<string, "asc" | "desc">;
+  return { [sortBy]: sortOrder } as Record<string, SortOrder>;
 }
 
 function enforceCompanyId(where: Record<string, any>, companyId: string) {

@@ -464,7 +464,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               View All Forms
             </Button>
           </div>
-          <FormPreview sections={sections} />
+          <FormPreview fields={sections.flatMap((section) => section.fields)} />
         </div>
       </div>
     </div>

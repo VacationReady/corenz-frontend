@@ -60,7 +60,6 @@ export async function GET(req: Request) {
       prisma.employee.count({
         where: {
           companyId,
-          isActive: true,
           ...(departmentId ? { departmentId } : {}),
           startDate: { gte: thirtyDaysAgo, lte: now },
         },

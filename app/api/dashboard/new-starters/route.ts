@@ -25,7 +25,6 @@ export async function GET(req: Request) {
     const employees = await prisma.employee.findMany({
       where: {
         companyId,
-        isActive: true,
         ...(departmentId ? { departmentId } : {}),
         startDate: { gte: thirtyDaysAgo, lte: now },
       },

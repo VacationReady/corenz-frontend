@@ -16,7 +16,6 @@ import {
   Users,
   BarChart3,
   Search,
-  FileBarChart2,
   UserPlus,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -155,16 +154,16 @@ function QuickLinks() {
             size="sm"
             icon={<UserPlus className="h-4 w-4" />}
           >
-            Add Employee
+            View Team
           </Button>
         </Link>
-        <Link href="/reports">
+        <Link href="/calendar">
           <Button
             variant="outline"
             size="sm"
-            icon={<FileBarChart2 className="h-4 w-4" />}
+            icon={<CalendarCheck2 className="h-4 w-4" />}
           >
-            Run Report
+            Team Calendar
           </Button>
         </Link>
       </div>
@@ -307,15 +306,6 @@ export default function ManagerDashboardPage() {
         <Link href="/employees">
           <Button size="sm" icon={<UserPlus className="h-4 w-4" />}>
             Add Employee
-          </Button>
-        </Link>
-        <Link href="/reports">
-          <Button
-            size="sm"
-            variant="outline"
-            icon={<FileBarChart2 className="h-4 w-4" />}
-          >
-            Run Report
           </Button>
         </Link>
         </div>

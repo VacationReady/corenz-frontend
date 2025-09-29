@@ -101,22 +101,38 @@ export async function GET(req: Request) {
     else if (status === "archived") whereCondition.isActive = false;
     // If status is "all", no isActive filter is applied
 
-    // Access control: ADMIN can list all; MANAGER limited to themselves + direct reports
+    // Access control: ADMIN can list all; MANAGER limited to direct and indirect reports
     if (session.user.role === "MANAGER") {
-      // Fetch subordinates of the current manager (by User relation)
-      const subordinates = await prisma.user.findMany({
-        where: { managerId: session.user.id, companyId: session.user.companyId },
-        select: { id: true },
-      });
-      const subordinateUserIds = subordinates.map((u) => u.id);
-
-      // Allowed employee userIds are: self and subordinates
-      const allowedUserIds = [session.user.id, ...subordinateUserIds];
+      // Function to recursively get all direct and indirect reports
+      const getAllSubordinates = async (managerId: string): Promise<string[]> => {
+        const directReports = await prisma.user.findMany({
+          where: { managerId, companyId: session.user.companyId },
+          select: { id: true },
+        });
+        
+        const subordinateIds = directReports.map(u => u.id);
+        const allSubordinates = [...subordinateIds];
+        
+        // Recursively get indirect reports
+        for (const subId of subordinateIds) {
+          const indirectReports = await getAllSubordinates(subId);
+          allSubordinates.push(...indirectReports);
+        }
+        
+        return allSubordinates;
+      };
+      
+      // Get all direct and indirect reports
+      const allSubordinateUserIds = await getAllSubordinates(session.user.id);
+      
+      // Note: Managers should NOT see themselves in the employee list, only their reports
+      // This makes it clear this is a team management view
+      const allowedUserIds = allSubordinateUserIds;
 
       // Combine with any existing whereCondition
       whereCondition.user = {
         ...(whereCondition.user || {}),
-        id: { in: allowedUserIds },
+        id: { in: allowedUserIds.length > 0 ? allowedUserIds : ['no-match'] }, // Ensure empty array doesn't return all
       };
     }
 

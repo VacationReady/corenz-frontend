@@ -173,24 +173,24 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
 
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {currentStep === "template" && (
-          <TemplateSelection
-            selectedTemplate={config.template}
-            onSelectTemplate={(template) => {
-              updateConfig({
-                template,
-                selectedFields: template?.defaultFields || [],
+            <TemplateSelection
+              selectedTemplate={config.template}
+              onSelectTemplate={(template) => {
+                updateConfig({
+                  template,
+                  selectedFields: template?.defaultFields || [],
                 filters:
-                  template?.suggestedFilters?.map((f, index) => ({
+                  template?.suggestedFilters?.map((filter, index) => ({
                     id: `filter_${index}`,
-                    field: f.field,
-                    operator: f.operator,
-                    value: f.value,
-                    value2: f.value2,
+                    field: filter.field,
+                    operator: filter.operator,
+                    value: filter.value,
+                    value2: filter.value2,
                   })) || [],
                 sort: template?.defaultSort,
-              });
-            }}
-          />
+                });
+              }}
+            />
             )}
 
             {currentStep === "fields" && (

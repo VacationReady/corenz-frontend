@@ -1,6 +1,3 @@
-export {}
-
-import { type HRReportField, hrReportFields } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig } from "@/lib/reportFilters";
 
 export interface ReportLibraryEntry {
@@ -62,8 +59,16 @@ export const reportLibrary: ReportLibraryEntry[] = [
     ],
     suggestedFilters: [
       { field: "LeaveRequest.approvalStatus", operator: "equals", value: "APPROVED" },
-      { field: "LeaveRequest.startDate", operator: "date_before", value: new Date().toISOString() },
-      { field: "LeaveRequest.endDate", operator: "date_after", value: new Date().toISOString() },
+      {
+        field: "LeaveRequest.startDate",
+        operator: "date_before",
+        value: new Date().toISOString(),
+      },
+      {
+        field: "LeaveRequest.endDate",
+        operator: "date_after",
+        value: new Date().toISOString(),
+      },
     ],
     defaultSort: { field: "LeaveRequest.startDate", direction: "asc" },
   },
@@ -369,11 +374,5 @@ export const reportLibrary: ReportLibraryEntry[] = [
 
 export function getReportLibrary() {
   return reportLibrary;
-}
-
-export function resolveFields(fieldKeys: string[]): HRReportField[] {
-  return fieldKeys
-    .map((key) => hrReportFields.find((field) => field.field === key))
-    .filter((field): field is HRReportField => Boolean(field));
 }
 

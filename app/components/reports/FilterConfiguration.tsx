@@ -95,15 +95,21 @@ export default function FilterConfiguration({
     onUpdateFilters([...filters, newFilter]);
   };
 
-  const updateFilter = (filterId: string, updates: Partial<ReportFilter>) => {
-    const updatedFilters = filters.map(filter => 
-      filter.id === filterId ? { ...filter, ...updates } : filter
-    );
+  const filterKey = (filter: ReportFilter, index: number) => filter.id ?? `filter_${index}`;
+
+  const updateFilter = (filterKeyValue: string, updates: Partial<ReportFilter>) => {
+    const updatedFilters = filters.map((filter, idx) => {
+      if (filterKey(filter, idx) === filterKeyValue) {
+        return { ...filter, id: filter.id ?? filterKeyValue, ...updates };
+      }
+      return filter;
+    });
     onUpdateFilters(updatedFilters);
   };
 
-  const removeFilter = (filterId: string) => {
-    onUpdateFilters(filters.filter(f => f.id !== filterId));
+  const removeFilter = (filterKeyValue: string) => {
+    const remaining = filters.filter((filter, idx) => filterKey(filter, idx) !== filterKeyValue);
+    onUpdateFilters(remaining);
   };
 
   const clearAllFilters = () => {
@@ -227,16 +233,19 @@ export default function FilterConfiguration({
         {/* Filter List */}
         {filters.length > 0 && (
           <div className="space-y-4">
-            {filters.map((filter, index) => (
-              <FilterRow
-                key={filter.id}
-                filter={filter}
-                availableFields={availableFields}
-                isFirst={index === 0}
-                onUpdate={(updates) => updateFilter(filter.id, updates)}
-                onRemove={() => removeFilter(filter.id)}
-              />
-            ))}
+            {filters.map((filter, index) => {
+              const filterKeyValue = filterKey(filter, index);
+              return (
+                <FilterRow
+                  key={filterKeyValue}
+                  filter={filter}
+                  availableFields={availableFields}
+                  isFirst={index === 0}
+                  onUpdate={(updates) => updateFilter(filterKeyValue, updates)}
+                  onRemove={() => removeFilter(filterKeyValue)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -261,7 +270,7 @@ function FilterRow({
   const selectedField = getFieldByKey(filter.field);
   const fieldType = selectedField?.type || "string";
   const availableOperators = operatorsByType[fieldType] || operatorsByType.string;
-  
+
   const requiresNoValue = operatorsWithoutValue.includes(filter.operator);
   const requiresTwoValues = operatorsWithTwoValues.includes(filter.operator);
 

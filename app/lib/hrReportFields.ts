@@ -1,3 +1,4 @@
+
 // Enhanced HR-focused report fields with categories and metadata
 export type HRReportField = {
 	model: string;
@@ -778,48 +779,6 @@ export const hrReportFields: HRReportField[] = [
 		sortable: true,
                 description: "Leave days carried over from previous period",
         },
-	{
-		model: "LeaveEntitlement",
-		field: "LeaveEntitlement.Employee.User.firstName",
-		label: "Employee First Name",
-		type: "string",
-		category: "time-off",
-		filterable: true,
-		sortable: true,
-		description: "First name of the employee for this entitlement",
-		isPII: true,
-	},
-	{
-		model: "LeaveEntitlement",
-		field: "LeaveEntitlement.Employee.User.lastName",
-		label: "Employee Last Name",
-		type: "string",
-		category: "time-off",
-		filterable: true,
-		sortable: true,
-		description: "Last name of the employee for this entitlement",
-		isPII: true,
-	},
-	{
-		model: "LeaveEntitlement",
-		field: "LeaveEntitlement.Employee.Department.name",
-		label: "Employee Department",
-		type: "string",
-		category: "time-off",
-		filterable: true,
-		sortable: true,
-		description: "Department associated with the entitlement",
-	},
-	{
-		model: "LeaveEntitlement",
-		field: "LeaveEntitlement.Employee.JobRole.name",
-		label: "Employee Job Role",
-		type: "string",
-		category: "time-off",
-		filterable: true,
-		sortable: true,
-		description: "Job role linked to the entitlement",
-	},
 
         // Documents & Compliance
         {
@@ -1217,7 +1176,9 @@ export type ReportTemplate = {
 		field: string;
 		operator: string;
 		value?: any;
+		value2?: any;
 	}>;
+	defaultSort?: { field: string; direction: "asc" | "desc" };
 };
 
 export const hrReportTemplates: ReportTemplate[] = [];

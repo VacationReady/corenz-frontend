@@ -341,7 +341,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               <Label className="text-sm font-medium text-muted-foreground">
                 Form Type
               </Label>
-              <Select value={formType} onValueChange={setFormType}>
+              <Select value={formType} onValueChange={(value) => setFormType(value as "SUBMISSION" | "DATA_SCREEN")}>
                 <SelectTrigger className="glass-subtle border-white/20 focus:border-primary/50">
                   <SelectValue />
                 </SelectTrigger>

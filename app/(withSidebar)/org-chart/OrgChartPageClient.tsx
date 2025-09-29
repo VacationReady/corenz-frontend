@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/popover";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
+import { motion } from "framer-motion";
 
 const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;

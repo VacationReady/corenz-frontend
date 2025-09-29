@@ -1009,8 +1009,7 @@ export default function AdminDashboardClient({
     );
   }
 
-  // Removed old action items implementation
-  /*
+  /* Removed old action items implementation
         <DashboardWidget
           title="Action items"
           icon={ClipboardList}
@@ -1166,7 +1165,6 @@ export default function AdminDashboardClient({
                   </div>
                 )}
               </div>
-              </>
             )}
           </div>
         </DashboardWidget>
@@ -1301,6 +1299,6 @@ export default function AdminDashboardClient({
   }
   */
 
-  // Default fallback - should not happen
+  // Default fallback - should not happen  
   return null;
 }

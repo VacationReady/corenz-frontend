@@ -84,6 +84,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     resolveTenantTimeSettings(null, null),
   );
   const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
+  const [dailyCategoryCounts, setDailyCategoryCounts] = useState<Record<string, Record<string, number>>>({});
   const [thresholds, setThresholds] = useState<{ defaultMaxConcurrent?: number } | null>(null);
   const [presentCategories, setPresentCategories] = useState<string[]>([]);
   const [leaveEventsInRange, setLeaveEventsInRange] = useState<any[]>([]);
@@ -287,6 +288,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       );
       setPresentCategories(cats);
       const counts: Record<string, number> = {};
+      const categoryCounts: Record<string, Record<string, number>> = {};
       const rangeStart = new Date(fetchInfo.startStr);
       const rangeEnd = new Date(fetchInfo.endStr);
       for (const ev of data as any[]) {
@@ -296,14 +298,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         const last = new Date(Math.min(end.getTime(), rangeEnd.getTime()));
         cur.setHours(0, 0, 0, 0);
         last.setHours(0, 0, 0, 0);
+        const label = (ev.categoryName as string) || "Other";
         for (let d = new Date(cur); d <= last; d.setDate(d.getDate() + 1)) {
           const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
             d.getDate(),
           ).padStart(2, "0")}`;
           counts[key] = (counts[key] || 0) + 1;
+          if (!categoryCounts[key]) categoryCounts[key] = {};
+          categoryCounts[key][label] = (categoryCounts[key][label] || 0) + 1;
         }
       }
       setDailyCounts(counts);
+      setDailyCategoryCounts(categoryCounts);
       successCallback(data);
     } catch (error) {
       console.warn("Leave events fetch error", error);
@@ -462,14 +468,32 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     const key = dateKey(d);
     const count = dailyCounts[key] || 0;
     const isBlackout = blackoutDateKeys.has(key);
+    const cats = dailyCategoryCounts[key] || {};
+    const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const more = Object.keys(cats).length - entries.length;
     return (
       <div className="cz-daycell__inner">
         {isBlackout ? (
           <div className="cz-badge cz-badge--danger">Blocked</div>
-        ) : count > 0 ? (
-          <div className="cz-badge cz-badge--info">{count}</div>
         ) : null}
         <div className="cz-daycell__date">{arg.dayNumberText}</div>
+        {count > 0 ? (
+          <div className="mt-5 space-y-1">
+            {entries.map(([label, n]) => (
+              <div key={label} className="flex items-center gap-1 text-[11px]">
+                <span className={`inline-flex items-center gap-1 text-white px-1.5 py-0.5 rounded ${getCategoryColor(
+                  label,
+                )}`}>
+                  <span className="font-medium">{label}</span>
+                  <span className="opacity-90">{n}</span>
+                </span>
+              </div>
+            ))}
+            {more > 0 ? (
+              <div className="text-[10px] text-muted-foreground">+{more} more</div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   };
@@ -768,7 +792,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               dateClick={(arg) => {
                 setInspectorDate(arg.date);
                 setSelectedDay(arg.date);
-                setRefreshTrigger((prev) => !prev);
               }}
               eventClick={handleEventClick}
               eventContent={renderEventContent}

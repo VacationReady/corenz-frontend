@@ -47,6 +47,7 @@ import {
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
 const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;
@@ -133,6 +134,7 @@ interface OrgEmployee {
   profileImageUrl: string | null;
   managerUserId: string | null;
   managerName: string | null;
+  permissionProfileName?: string | null;
 }
 
 interface OrgNode extends OrgEmployee {
@@ -1644,13 +1646,22 @@ function OrgNodeCard({
                 <p className="text-sm text-muted-foreground truncate" title={node.jobTitle ?? undefined}>
                   {node.jobTitle ?? "Role not assigned"}
                 </p>
+                {node.permissionProfileName && (
+                  <span
+                    className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-primary/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary"
+                    title={node.permissionProfileName}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span className="truncate">{node.permissionProfileName}</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <Badge
               variant="outline"
               className={cn(
-                "shrink-0 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider",
+                "shrink-0 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap",
                 "bg-gradient-to-r border-0 shadow-md",
                 node.role === "ADMIN" && "from-primary/20 to-primary/10 text-primary",
                 node.role === "MANAGER" && "from-amber-500/20 to-amber-500/10 text-amber-600",

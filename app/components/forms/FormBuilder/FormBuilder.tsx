@@ -141,8 +141,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, {
-      pressDelay: 150,
-      activationConstraint: { tolerance: 8 },
+      activationConstraint: { delay: 150, tolerance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,

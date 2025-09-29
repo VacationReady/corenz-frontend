@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
@@ -159,7 +159,7 @@ export default function AdminDashboardClient({
           title="Leave request"
           description={[detail.employee?.department, detail.type]
             .filter(Boolean)
-            .join(" • ") || undefined}
+            .join(" â€¢ ") || undefined}
           actions={
             <>
               <Button variant="outline" onClick={() => handleDetailAction("decline")}>
@@ -185,7 +185,7 @@ export default function AdminDashboardClient({
             </div>
             <div className="text-sm space-y-1">
               <div>
-                Dates: {new Date(detail.startDate).toLocaleDateString()} →{" "}
+                Dates: {new Date(detail.startDate).toLocaleDateString()} â†’{" "}
                 {new Date(detail.endDate).toLocaleDateString()}
               </div>
               {detail.reason && <div>Reason: {detail.reason}</div>}
@@ -444,7 +444,7 @@ export default function AdminDashboardClient({
           }
           // Map leave items into modal-friendly structure
           const normalizedLeave = leaveItems.map((r: any) => {
-            const name = r?.employee?.name || r?.title?.split(" — ")?.[0] || "Employee";
+            const name = r?.employee?.name || r?.title?.split(" â€” ")?.[0] || "Employee";
             const employeeUserId = r?.employee?.userId ?? null;
             const initial: any = {
               id: r.id,
@@ -856,7 +856,7 @@ export default function AdminDashboardClient({
                           {ev.employee?.name ?? ev.title}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {new Date(ev.start).toLocaleDateString()} •{" "}
+                          {new Date(ev.start).toLocaleDateString()} â€¢{" "}
                           {ev.reason || ev.title}
                         </p>
                       </div>
@@ -970,7 +970,7 @@ export default function AdminDashboardClient({
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{ns.name}</p>
                       <p className="text-xs text-muted-foreground truncate">
-                        Start: {new Date(ns.startDate).toLocaleDateString()} {ns.department ? `• ${ns.department}` : ""}
+                        Start: {new Date(ns.startDate).toLocaleDateString()} {ns.department ? `â€¢ ${ns.department}` : ""}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
@@ -1008,296 +1008,6 @@ export default function AdminDashboardClient({
       </div>
     );
   }
-
-  /* Removed old action items implementation
-        <DashboardWidget
-          title="Action items"
-          icon={ClipboardList}
-          className="h-full flex flex-col"
-          action={
-            metrics?.canViewAllApprovals ? (
-                <div className="flex items-center gap-2 text-xs">
-                <span
-                  className={
-                    !approvalsScopeMy
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                  }
-                >
-                  All
-                </span>
-                <Switch
-                  checked={approvalsScopeMy}
-                  onChange={setApprovalsScopeMy}
-                />
-                <span
-                  className={
-                    approvalsScopeMy
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                  }
-                >
-                  My
-                </span>
-              </div>
-            ) : undefined
-          }
-        >
-          <div className="flex-1 flex flex-col space-y-3 min-h-0">
-            {loadingMetrics || !metrics ? (
-              <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-3 flex-shrink-0 flex-wrap gap-3">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary mb-1">
-                        {approvalsCount}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        pending approvals
-                      </p>
-                    </div>
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="ghost"
-                      className="px-0 h-auto text-sm text-muted-foreground hover:text-foreground"
-                      icon={<ArrowRight className="w-4 h-4" />}
-                      iconPosition="end"
-                    >
-                      <Link href="/dashboard/approvals">View All</Link>
-                    </Button>
-                  </div>
-                  <div className="flex items-center">
-                    <Button
-                      size="sm"
-                      className="whitespace-nowrap shadow-none hover:shadow-none"
-                      onClick={async () => {
-                        try {
-                          const qs = new URLSearchParams({ status: "PENDING" });
-                          if (metrics?.canViewAllApprovals)
-                            qs.set("scope", approvalsScopeMy ? "my" : "all");
-                          if (selectedDepartment !== "all")
-                            qs.set("departmentId", selectedDepartment);
-                          qs.set("limit", "5");
-                          const res = await fetch(
-                            `/api/leave-request?${qs.toString()}`,
-                            { cache: "no-store" },
-                          );
-                          const data = await res.json();
-                          if (!data?.success) return;
-                          const first = data.data?.[0];
-                          if (!first) return;
-                          await fetch(`/api/leave-request/${first.id}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(first?.myDecision?.id ? { action: "approve", decisionId: first.myDecision.id } : { action: "approve" }),
-                          });
-                          const metricsRes = await fetch(
-                            `/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`,
-                            { cache: "no-store" },
-                          );
-                          if (metricsRes.ok)
-                            setMetrics(await metricsRes.json());
-                        } catch {}
-                      }}
-                    >
-                      Quick Approve
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex-1 min-h-0 overflow-auto">
-                  <CompactApprovalsList
-                    scope={
-                      metrics?.canViewAllApprovals
-                        ? approvalsScopeMy
-                          ? "my"
-                          : "all"
-                        : undefined
-                    }
-                    departmentId={
-                      selectedDepartment !== "all"
-                        ? selectedDepartment
-                        : undefined
-                    }
-                  />
-                </div>
-              {/* Documents subsection inside Action items */}
-              <div className="border-t pt-3 mt-3">
-                {docActionItems.loading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-5/6" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                ) : docActionItems.ack.length === 0 && docActionItems.sign.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No document actions pending</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
-                      <ul className="space-y-2">
-                        {docActionItems.ack.map((d) => (
-                          <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                            <span className="truncate">{d.name}</span>
-                            <Button size="sm" variant="outline" onClick={() => setDocItem({ id: d.id, name: d.name, url: docActionItems.urlMap?.[d.id] })}>Open</Button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    {docActionItems.sign.length > 0 && (
-                      <div>
-                        <div className="text-sm font-semibold mb-2">Signatures</div>
-                        <ul className="space-y-2">
-                          {docActionItems.sign.map((d) => (
-                            <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                              <span className="truncate">{d.name}</span>
-                              <Button size="sm" variant="outline" onClick={() => setDocItem({ id: d.id, name: d.name, url: docActionItems.urlMap?.[d.id] })}>Open</Button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </DashboardWidget>
-        {/* Inline Approval Modal */}
-        {approvalItem ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="glass rounded-2xl w-full max-w-xl border border-glass p-4 shadow-depth-2 bg-background">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-base font-semibold">Approve request</div>
-                <button className="text-sm text-muted-foreground" onClick={() => setApprovalItem(null)}>Close</button>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <Avatar
-                    size={40}
-                    name={(approvalItem.actorDisplayName || approvalItem.actor?.name || approvalItem.employee?.name || "?")}
-                    src={(approvalItem.actorAvatarUrl ?? undefined) as any}
-                  />
-                  <div>
-                    <div className="font-medium">{approvalItem.type ?? "Request"}</div>
-                    <div className="text-muted-foreground text-xs">
-                      Requested by {approvalItem.actorDisplayName || approvalItem.actor?.name || "Someone"}
-                      {approvalItem.employeeDisplayName || approvalItem.employee?.name ? ` • For ${approvalItem.employeeDisplayName || approvalItem.employee?.name}` : ""}
-                  </div>
-                </div>
-                </div>
-                {approvalItem.mode === "txn" && Array.isArray(approvalItem.diffs) && approvalItem.diffs.length > 0 ? (
-                  <div className="rounded-lg border p-2">
-                    <div className="text-xs font-semibold mb-1">Changes</div>
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-muted-foreground">
-                          <th className="text-left py-1 pr-2">Field</th>
-                          <th className="text-left py-1 pr-2">Old</th>
-                          <th className="text-left py-1">New</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {approvalItem.diffs.map((d: any, i: number) => (
-                          <tr key={i} className="align-top">
-                            <td className="py-1 pr-2 font-medium">{labelForField(d.field)}</td>
-                            <td className="py-1 pr-2 text-muted-foreground break-all">{formatAuditValue(String(d.oldValue ?? ""))}</td>
-                            <td className="py-1 break-all">{formatAuditValue(String(d.newValue ?? ""))}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
-                {approvalItem.dates ? (<div>Dates: {approvalItem.dates}</div>) : null}
-                {/* Entitlement after approval (optimistic projection) */}
-                {approvalItem.mode === "leave" && approvalItem.employeeId && approvalItem.eventCategoryId && (
-                  <EntitlementProjection
-                    employeeId={approvalItem.employeeId}
-                    eventCategoryId={approvalItem.eventCategoryId}
-                    startDate={approvalItem.startDate}
-                    endDate={approvalItem.endDate}
-                  />
-                )}
-                {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
-                  <div className="rounded-lg border p-2">
-                    <div className="text-xs font-semibold mb-1">Potential clashes</div>
-                    <ul className="text-xs list-disc pl-4 space-y-1">
-                      {approvalItem.conflicts.map((c: any, i: number) => (
-                        <li key={i}>{c}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={async () => {
-                    try {
-                      if (approvalItem.mode === "txn") {
-                        await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "decline", comment: "Declined" }) });
-                      } else {
-                      // Require comment
-                      const comment = prompt("Add a short reason for declining:")?.trim();
-                      if (!comment) return;
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
-                      }
-                    } finally {
-                      setApprovalItem(null);
-                    }
-                  }}>Decline</Button>
-                  <Button onClick={async () => {
-                    try {
-                      if (approvalItem.mode === "txn") {
-                        await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: approvalItem.id, action: "approve" }) });
-                      } else {
-                      await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
-                      }
-                    } finally {
-                      setApprovalItem(null);
-                    }
-                  }}>Approve</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-        {/* Inline Document Preview & Acknowledge */}
-        {docItem ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="glass rounded-2xl w-full max-w-3xl border border-glass p-4 shadow-depth-2 bg-background">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-base font-semibold">{docItem.name}</div>
-                <button className="text-sm text-muted-foreground" onClick={() => setDocItem(null)}>Close</button>
-              </div>
-              {docItem.url ? (
-                <div className="rounded border overflow-hidden mb-3">
-                  <embed src={`${docItem.url}#toolbar=0&navpanes=0&scrollbar=1`} type="application/pdf" className="w-full h-[60vh]" />
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground mb-3">Preview not available.</p>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setDocItem(null)}>Close</Button>
-                <Button onClick={async () => {
-                  try {
-                    await fetch("/api/documents/acknowledge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: docItem.id }) });
-                  } finally {
-                    setDocActionItems((prev) => ({ ...prev, ack: prev.ack.filter((x) => x.id !== docItem.id) }));
-                    setDocItem(null);
-                  }
-                }}>Acknowledge</Button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-  */
 
   // Default fallback - should not happen  
   return null;

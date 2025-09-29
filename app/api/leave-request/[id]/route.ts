@@ -168,9 +168,12 @@ export async function PATCH(
     if (action === "approve") {
       const totalDays: number[] = [];
       let currentDate = new Date(leave.startDate);
+      // Business rule: endDate is return-to-work (exclusive)
       const endDate = new Date(leave.endDate);
+      const exclusiveEnd = new Date(endDate);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
 
-      while (currentDate <= endDate) {
+      while (currentDate <= exclusiveEnd) {
         const deduction = await calculateLeaveDeduction(
           leave.employeeId,
           currentDate,

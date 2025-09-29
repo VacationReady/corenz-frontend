@@ -14,6 +14,7 @@ import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { formatLondon } from "@/lib/time";
 import { useSearchParams } from "next/navigation";
 import { reportLibrary } from "@/lib/reportLibrary";
+import type { BreadcrumbConfig } from "@/types/breadcrumb";
 
 interface RecentReport {
   id: number;

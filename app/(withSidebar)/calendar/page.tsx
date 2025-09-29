@@ -39,6 +39,7 @@ import {
   formatTenantDate,
   type TenantTimeSettings,
 } from "@/lib/calendar/timezone";
+import AddHolidayModal from "./AddHolidayModal";
 
 interface Department {
   id: string;
@@ -103,6 +104,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [blackoutIdsByDay, setBlackoutIdsByDay] = useState<Record<string, string[]>>({});
   const calendarRef = useRef<FullCalendar | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
+  const [holidayModalOpen, setHolidayModalOpen] = useState(false);
 
   const inspectorBlackoutKey = inspectorDate
     ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
@@ -425,63 +427,51 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     })();
   }, []);
 
-  const dayCellDidMount = (arg: any) => {
+  const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const getHeatLevel = (count: number) => {
+    if (count >= 7) return 5;
+    if (count >= 5) return 4;
+    if (count >= 4) return 3;
+    if (count >= 3) return 2;
+    if (count >= 1) return 1;
+    return 0;
+  };
+
+  const dayCellClassNames = (arg: any) => {
     const d = arg.date as Date;
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate(),
-    ).padStart(2, "0")}`;
+    const key = dateKey(d);
     const count = dailyCounts[key] || 0;
-    const el: HTMLElement = arg.el;
-    const prev = el.querySelector(".capacity-badge");
-    if (prev && prev.parentElement) prev.parentElement.removeChild(prev);
+    const level = getHeatLevel(count);
+    const today = new Date();
+    const isToday = today.toDateString() === d.toDateString();
+    const isSelected = selectedDay && selectedDay.toDateString() === d.toDateString();
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    const isToday = (() => {
-      const t = new Date();
-      return t.toDateString() === d.toDateString();
-    })();
-    if (blackoutDateKeys.has(key)) {
-      el.style.backgroundColor = "rgba(239,68,68,0.18)";
-      const badge = document.createElement("div");
-      badge.className =
-        "capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-red-600 text-white px-1.5 py-0.5";
-      badge.textContent = "Blocked";
-      el.style.position = el.style.position || "relative";
-      el.appendChild(badge);
-      const prevLock = el.querySelector(".blackout-lock");
-      if (prevLock && prevLock.parentElement) prevLock.parentElement.removeChild(prevLock as any);
-      const lock = document.createElement("div");
-      lock.className = "blackout-lock absolute bottom-1 left-1 text-[12px]";
-      lock.textContent = "🔒";
-      el.appendChild(lock);
-    } else if (count > 0) {
-      let alpha = getHeatAlpha(count);
-      el.style.backgroundColor = `rgba(59, 130, 246, ${alpha})`;
-      const badge = document.createElement("div");
-      badge.className =
-        "capacity-badge absolute top-1 left-1 text-[10px] leading-none rounded-full bg-blue-600 text-white px-1.5 py-0.5";
-      badge.textContent = String(count);
-      el.style.position = el.style.position || "relative";
-      el.appendChild(badge);
-    } else {
-      el.style.backgroundColor = isWeekend ? "rgba(0,0,0,0.035)" : "";
-    }
-    const prevRing = el.querySelector(".today-ring");
-    if (prevRing && prevRing.parentElement) prevRing.parentElement.removeChild(prevRing);
-    if (isToday) {
-      const ring = document.createElement("div");
-      ring.className = "today-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-sky-400";
-      el.style.position = el.style.position || "relative";
-      el.appendChild(ring);
-    }
-    const prevSelect = el.querySelector(".selected-day-ring");
-    if (prevSelect && prevSelect.parentElement) prevSelect.parentElement.removeChild(prevSelect);
-    if (selectedDay && selectedDay.toDateString() === d.toDateString()) {
-      const sel = document.createElement("div");
-      sel.className =
-        "selected-day-ring pointer-events-none absolute inset-0 rounded-md ring-2 ring-yellow-300 bg-yellow-50/40";
-      el.style.position = el.style.position || "relative";
-      el.appendChild(sel);
-    }
+    return [
+      "cz-daycell",
+      blackoutDateKeys.has(key) && "cz-daycell--blackout",
+      level > 0 && `cz-daycell--heat-${level}`,
+      isToday && "cz-daycell--today",
+      isSelected && "cz-daycell--selected",
+      isWeekend && "cz-daycell--weekend",
+    ].filter(Boolean);
+  };
+
+  const dayCellContent = (arg: any) => {
+    const d = arg.date as Date;
+    const key = dateKey(d);
+    const count = dailyCounts[key] || 0;
+    const isBlackout = blackoutDateKeys.has(key);
+    return (
+      <div className="cz-daycell__inner">
+        {isBlackout ? (
+          <div className="cz-badge cz-badge--danger">Blocked</div>
+        ) : count > 0 ? (
+          <div className="cz-badge cz-badge--info">{count}</div>
+        ) : null}
+        <div className="cz-daycell__date">{arg.dayNumberText}</div>
+      </div>
+    );
   };
 
   const renderEventContent = (content: EventContentArg) => {
@@ -782,7 +772,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               }}
               eventClick={handleEventClick}
               eventContent={renderEventContent}
-              dayCellDidMount={dayCellDidMount}
+              dayCellClassNames={dayCellClassNames}
+              dayCellContent={dayCellContent}
+              fixedWeekCount={false}
               height="auto"
               key={`${tenantTimeSettings.timeZone}-${refreshTrigger ? "refresh-on" : "refresh-off"}`}
               timeZone={tenantTimeSettings.timeZone}
@@ -822,6 +814,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               }}
             >
               Block day
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (inspectorDate) {
+                  setHolidayModalOpen(true);
+                } else {
+                  toast.error("Select a day to add a holiday");
+                }
+              }}
+            >
+              Add holiday
             </Button>
             {inspectorDate
               ? (() => {
@@ -905,6 +909,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           refreshEvents={refreshCalendar}
         />
       )}
+      <AddHolidayModal
+        open={holidayModalOpen}
+        setOpen={setHolidayModalOpen}
+        defaultDate={inspectorDate}
+        onSubmitted={refreshCalendar}
+      />
     </PageShell>
   );
 }

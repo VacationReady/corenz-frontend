@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 
@@ -29,10 +32,28 @@ export async function GET(
   }
 
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!session.user?.companyId) {
+      return NextResponse.json(
+        { error: "Company context required" },
+        { status: 403 },
+      );
+    }
+
     const instance = await prisma.onboardingInstance.findFirst({
-      where: { employeeId, status: { in: ["active", "in_progress"] } },
+      where: {
+        employeeId,
+        status: { in: ["active", "in_progress"] },
+        Employee: { companyId: session.user.companyId },
+      },
       orderBy: { startedAt: "desc" },
       include: {
+        Employee: { select: { companyId: true } },
         OnboardingStepInstance: true, // OnboardingStepInstance records (instance-specific status)
         OnboardingTemplate: {
           include: {
@@ -48,6 +69,22 @@ export async function GET(
     });
 
     if (!instance) {
+      const mismatchedInstance = await prisma.onboardingInstance.findFirst({
+        where: {
+          employeeId,
+          status: { in: ["active", "in_progress"] },
+        },
+        select: {
+          Employee: { select: { companyId: true } },
+        },
+      });
+
+      if (mismatchedInstance?.Employee?.companyId !== undefined) {
+        if (mismatchedInstance.Employee.companyId !== session.user.companyId) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+
       return NextResponse.json(
         { error: "No active onboarding found" },
         { status: 404 },

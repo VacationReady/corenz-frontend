@@ -171,7 +171,7 @@ export default function NewReportBuilderPage() {
   const handleCancelWizard = () => setShowWizard(false);
 
   useEffect(() => {
-    const templateId = searchParams.get("templateId");
+    const templateId = searchParams?.get?.("templateId");
     if (!templateId) return;
     const templateExists = reportLibrary.some((entry) => entry.id === templateId);
     if (templateExists) {

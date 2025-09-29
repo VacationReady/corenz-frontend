@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
 import DashboardGrid from "@/components/ui/DashboardGrid";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
+import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
@@ -17,11 +18,9 @@ import {
   Search,
   FileBarChart2,
   UserPlus,
-  CheckSquare,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/Skeleton";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import { User } from "lucide-react";
 
@@ -89,295 +88,7 @@ function MetricsSummary() {
   );
 }
 
-function DocumentActionItems() {
-  const { data: docsCompany, error: errCo, isLoading: loadingCo } = useSWR(
-    "/api/documents/list-company",
-    fetcher,
-  );
-  const { data: approvals, error: approvalsError, isLoading: loadingApprovals, mutate: mutateApprovals } = useSWR(
-    "/api/approvals?status=PENDING",
-    fetcher,
-  );
-  const [approvalItem, setApprovalItem] = useState<any | null>(null);
-
-  function EntitlementProjection({
-    employeeId,
-    eventCategoryId,
-    startDate,
-    endDate,
-  }: {
-    employeeId: string;
-    eventCategoryId: string;
-    startDate: string;
-    endDate: string;
-  }) {
-    const [text, setText] = useState<string | null>(null);
-    useEffect(() => {
-      let active = true;
-      (async () => {
-        try {
-          const [entsRes, dedRes] = await Promise.all([
-            fetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
-            fetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
-          ]);
-          const ents = await entsRes.json();
-          const ded = await dedRes.json().catch(() => ({ deduction: null }));
-          const ent = Array.isArray(ents)
-            ? ents.find((e: any) => e?.eventCategory?.id === eventCategoryId)
-            : null;
-          if (!ent || typeof ded?.deduction !== "number") {
-            if (active) setText(null);
-            return;
-          }
-          const after = (ent.totalDays - ent.usedDays - ded.deduction);
-          if (active) setText(`Total entitlement after approved: ${after.toFixed(2)} days`);
-        } catch {
-          if (active) setText(null);
-        }
-      })();
-      return () => {
-        active = false;
-      };
-    }, [employeeId, eventCategoryId, startDate, endDate]);
-    return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
-  }
-  const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
-
-  const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
-  const [pendingSign, setPendingSign] = useState<Array<{ id: string; name: string }>>([]);
-  const [checking, setChecking] = useState(false);
-
-  useEffect(() => {
-    const run = async () => {
-      if (loadingCo) return;
-      const all = Array.isArray(docsCompany) ? docsCompany : [];
-      const map = new Map<string, any>();
-      for (const d of all) if (d?.id && !map.has(d.id)) map.set(d.id, d);
-      const docs = Array.from(map.values())
-        .filter((d) => d?.requiresAck || d?.requiresSignature)
-        .slice(0, 20);
-      setChecking(true);
-      try {
-        const ack = await Promise.all(
-          docs.map(async (d) => {
-            if (!d?.requiresAck) return null;
-            try {
-              const r = await fetch(`/api/documents/acknowledge/${d.id}/me`, { cache: "no-store" });
-              const j = await r.json();
-              return j?.acknowledged ? null : { id: d.id, name: d.name };
-            } catch {
-              return { id: d.id, name: d.name };
-            }
-          }),
-        );
-        const sign = await Promise.all(
-          docs.map(async (d) => {
-            if (!d?.requiresSignature) return null;
-            try {
-              const r = await fetch(`/api/documents/signatures/${d.id}/me`, { cache: "no-store" });
-              const j = await r.json();
-              return j?.signed ? null : { id: d.id, name: d.name };
-            } catch {
-              return { id: d.id, name: d.name };
-            }
-          }),
-        );
-        setPendingAck(ack.filter(Boolean).slice(0, 5) as any);
-        setPendingSign(sign.filter(Boolean).slice(0, 5) as any);
-      } finally {
-        setChecking(false);
-      }
-    };
-    run();
-  }, [docsCompany, loadingCo]);
-
-  const loadingAny = loadingCo || checking || loadingApprovals;
-
-  return (
-    <>
-    <DashboardWidget title="Action Items" icon={CheckSquare}>
-          {loadingAny ? (
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      ) : (Array.isArray(approvals?.items) ? approvals.items.length : 0) === 0 && pendingAck.length === 0 && pendingSign.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No action items pending.</p>
-      ) : (
-        <div className="space-y-4">
-          {/* Approvals */}
-          {approvalsError ? null : (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-semibold">Approvals</div>
-              </div>
-                  {(Array.isArray(approvals?.items) ? approvals.items : []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No pending approvals.</p>
-              ) : (
-                <ul className="space-y-2">
-                      {(approvals.items as any[]).slice(0, 5).map((r: any) => {
-                        const title = r?.title ?? r?.type ?? "Approval";
-                        const dates = r?.dates ?? r?.subtitle;
-                        return (
-                          <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-                            <span className="truncate">{title}</span>
-                            <div className="flex gap-2">
-                              {dates ? <span className="text-muted-foreground hidden sm:inline">{dates}</span> : null}
-                              <Button size="sm" onClick={async () => {
-                                // Enrich with signed avatar URL
-                                try {
-                                  if (!r.actorAvatarUrl && r?.employee?.userId) {
-                                    const resp = await fetch(`/api/users/${encodeURIComponent(r.employee.userId)}/profile-image`);
-                                    const j = await resp.json().catch(() => ({}));
-                                    if (j?.url) r.actorAvatarUrl = j.url;
-                                  }
-                                } catch {}
-                                setApprovalItem({ ...r });
-                              }}>Review</Button>
-                            </div>
-                          </li>
-                        );
-                      })}
-                </ul>
-              )}
-            </div>
-          )}
-          {/* Documents */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
-            <ul className="space-y-2">
-              {pendingAck.map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span className="truncate">{d.name}</span>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const all = Array.isArray(docsCompany) ? docsCompany : [];
-                      const doc = all.find((x: any) => x?.id === d.id);
-                      setDocItem({ id: d.id, name: d.name, url: doc?.url });
-                      
-                    }}>Open</Button>
-                </li>
-              ))}
-            </ul>
-          </div>
-            {pendingSign.length > 0 && (
-              <div>
-                <div className="text-sm font-semibold mb-2">Signatures</div>
-                <ul className="space-y-2">
-                  {pendingSign.map((d) => (
-                    <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate">{d.name}</span>
-                      <Button size="sm" variant="outline" onClick={() => {
-                        const all = Array.isArray(docsCompany) ? docsCompany : [];
-                        const doc = all.find((x: any) => x?.id === d.id);
-                        setDocItem({ id: d.id, name: d.name, url: doc?.url });
-                        
-                      }}>Open</Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </DashboardWidget>
-    /* Approval Review Modal */
-    {approvalItem && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="glass rounded-2xl w-full max-w-xl border border-glass p-4 shadow-depth-2 bg-background">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-base font-semibold">Approve request</div>
-            <button className="text-sm text-muted-foreground" onClick={() => { setApprovalItem(null); }}>Close</button>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center gap-3">
-              {/* Avatar fallback: first letters */}
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                {(approvalItem.employee?.name || "?").split(" ").map((p: string) => p[0]).slice(0,2).join("")}
-              </div>
-              <div>
-                <div className="font-medium">{approvalItem.employee?.name ?? "Employee"}</div>
-                <div className="text-muted-foreground">{approvalItem.type ?? "Request"}</div>
-              </div>
-            </div>
-            {approvalItem.dates ? (
-              <div>Dates: {approvalItem.dates}</div>
-            ) : null}
-            {approvalItem?.employeeId && approvalItem?.eventCategoryId && approvalItem?.startDate && approvalItem?.endDate ? (
-              <EntitlementProjection
-                employeeId={approvalItem.employeeId}
-                eventCategoryId={approvalItem.eventCategoryId}
-                startDate={approvalItem.startDate}
-                endDate={approvalItem.endDate}
-              />
-            ) : null}
-            {/* Conflicts list if provided */}
-            {Array.isArray(approvalItem.conflicts) && approvalItem.conflicts.length > 0 && (
-              <div className="rounded-lg border p-2">
-                <div className="text-xs font-semibold mb-1">Potential clashes</div>
-                <ul className="text-xs list-disc pl-4 space-y-1">
-                  {approvalItem.conflicts.map((c: any, i: number) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={async () => {
-                try {
-                  const comment = prompt("Add a short reason for declining:")?.trim();
-                  if (!comment) return; // required
-                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decline", comment }) });
-                } finally {
-                  setApprovalItem(null); mutateApprovals();
-                }
-              }}>Decline</Button>
-              <Button onClick={async () => {
-                try {
-                  await fetch(`/api/approvals/${approvalItem.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
-                } finally {
-                  setApprovalItem(null); mutateApprovals();
-                }
-              }}>Approve</Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-    {/* Document Preview + Acknowledge Modal */}
-    {docItem && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="glass rounded-2xl w-full max-w-3xl border border-glass p-4 shadow-depth-2 bg-background">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-base font-semibold">{docItem.name}</div>
-            <button className="text-sm text-muted-foreground" onClick={() => { setDocItem(null); }}>Close</button>
-          </div>
-          {docItem.url ? (
-            <div className="rounded border overflow-hidden mb-3">
-              <embed src={`${docItem.url}#toolbar=0&navpanes=0&scrollbar=1`} type="application/pdf" className="w-full h-[60vh]" />
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground mb-3">Preview not available.</p>
-          )}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setDocItem(null); }}>Close</Button>
-            <Button onClick={async () => {
-              try {
-                await fetch("/api/documents/acknowledge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId: docItem.id }) });
-              } finally {
-                setPendingAck((prev) => prev.filter((x) => x.id !== docItem.id));
-                setDocItem(null);
-              }
-            }}>Acknowledge</Button>
-          </div>
-        </div>
-      </div>
-    )}
-    </>
-  );
-}
-// Removed legacy PendingApprovals widget; approvals are surfaced in Action Items
+// Removed old DocumentActionItems component - now using UnifiedActionItems
 
 function TeamAbsenceOverview() {
   const today = useMemo(() => new Date(), []);
@@ -616,7 +327,7 @@ export default function ManagerDashboardPage() {
         <TeamAbsenceOverview />
         <TeamInsights />
         <QuickLinks />
-        <DocumentActionItems />
+        <UnifiedActionItems employeeId={employeeId} isManager={true} />
         <NewsWidget limit={3} />
       </DashboardGrid>
     </PageShell>

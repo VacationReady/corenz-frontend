@@ -31,6 +31,7 @@ import AddDocumentModal from "@/components/documents/AddDocumentModal";
 import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
  
 function EntitlementProjection({
   employeeId,
@@ -1003,6 +1004,13 @@ export default function AdminDashboardClient({
   if (section === "action-items") {
     return (
       <div className="h-full flex flex-col">
+        <UnifiedActionItems employeeId={employeeId} isManager={true} />
+      </div>
+    );
+  }
+
+  // Removed old action items implementation
+  /*
         <DashboardWidget
           title="Action items"
           icon={ClipboardList}
@@ -1291,6 +1299,7 @@ export default function AdminDashboardClient({
       </div>
     );
   }
+  */
 
   // Default fallback - should not happen
   return null;

@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
+import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { Calendar, User, Bell } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -56,223 +55,7 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
   );
 }
 
-function ActionItems({ employeeId }: { employeeId: string }) {
-  // Onboarding tasks
-  const { data, error, isLoading } = useSWR(
-    employeeId ? `/api/onboarding/instances/employee/${employeeId}` : null,
-    fetcher,
-  );
-  const instances = Array.isArray(data) ? data : [];
-  const steps = instances.flatMap((inst: any) =>
-    Array.isArray(inst?.OnboardingStepInstance) ? inst.OnboardingStepInstance : [],
-  );
-
-  // Document acknowledgements
-  const { data: employeeDocs, isLoading: loadingEmp } = useSWR(
-    employeeId ? `/api/documents/list-employee?employeeId=${employeeId}` : null,
-    fetcher,
-  );
-  const { data: companyDocs, isLoading: loadingCo } = useSWR(
-    `/api/documents/list-company`,
-    fetcher,
-  );
-  const [pendingAck, setPendingAck] = useState<Array<{ id: string; name: string }>>([]);
-  const [checking, setChecking] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string }>(null);
-
-  useEffect(() => {
-    const run = async () => {
-      if (loadingEmp || loadingCo) return;
-      const all = [
-        ...(Array.isArray(employeeDocs) ? employeeDocs : []),
-        ...(Array.isArray(companyDocs) ? companyDocs : []),
-      ];
-      const map = new Map<string, any>();
-      for (const d of all) if (d?.id && !map.has(d.id)) map.set(d.id, d);
-      const docs = Array.from(map.values())
-        .filter((d) => d?.requiresAck)
-        .slice(0, 20);
-      setChecking(true);
-      try {
-        const ack = await Promise.all(
-          docs.map(async (d) => {
-            try {
-              const r = await fetch(`/api/documents/acknowledge/${d.id}/me`, { cache: "no-store" });
-              const j = await r.json();
-              return j?.acknowledged ? null : { id: d.id, name: d.name };
-            } catch {
-              return { id: d.id, name: d.name };
-            }
-          }),
-        );
-        setPendingAck(ack.filter(Boolean).slice(0, 5) as any);
-      } finally {
-        setChecking(false);
-      }
-    };
-    run();
-  }, [employeeDocs, companyDocs, loadingEmp, loadingCo]);
-
-  // Transactional change requests assigned to me
-  const { data: txnAssigned, isLoading: loadingTxn } = useSWR(
-    `/api/transactional-change-requests?scope=assigned`,
-    fetcher,
-  );
-  const txnItems = Array.isArray(txnAssigned?.data) ? txnAssigned.data : [];
-
-  const loadingAny = isLoading || loadingEmp || loadingCo || checking || loadingTxn;
-
-  return (
-    <DashboardWidget title="Action Items" icon={Bell}>
-      {loadingAny ? (
-        <WidgetLoading />
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <div className="text-sm font-semibold mb-2">Tasks</div>
-            {error ? (
-              <WidgetError message="Failed to load tasks." />
-            ) : steps.filter((s: any) => s.status !== "completed").length === 0 ? (
-              <p className="text-sm text-muted-foreground">No outstanding tasks.</p>
-            ) : (
-              <ul className="space-y-2">
-                {steps
-                  .filter((s: any) => s.status !== "completed")
-                  .slice(0, 5)
-                  .map((s: any) => (
-                    <li key={s.id} className="text-sm flex items-center justify-between">
-                      <span>{s.label}</span>
-                      <Link href={`/onboarding`} className="text-xs underline">
-                        Complete
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
-          <div>
-            <div className="text-sm font-semibold mb-2">Approvals</div>
-            {txnItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No approvals pending.</p>
-            ) : (
-              <ul className="space-y-2">
-                {txnItems.slice(0, 5).map((r: any) => (
-                  <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate">Change: {r.section}</span>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await fetch(`/api/transactional-change-requests`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ id: r.id, action: "decline", comment: "Declined" }),
-                          });
-                        }}
-                      >
-                        Decline
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={async () => {
-                          await fetch(`/api/transactional-change-requests`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ id: r.id, action: "approve" }),
-                          });
-                        }}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div>
-            <div className="text-sm font-semibold mb-2">Read acknowledgements</div>
-            {pendingAck.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No document acknowledgements pending.</p>
-            ) : (
-              <ul className="space-y-2">
-                {pendingAck.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate">{d.name}</span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const allDocs = [
-                          ...(Array.isArray(employeeDocs) ? employeeDocs : []),
-                          ...(Array.isArray(companyDocs) ? companyDocs : []),
-                        ];
-                        const doc = allDocs.find((x: any) => x?.id === d.id);
-                        setPreviewDoc({ id: d.id, name: d.name, url: doc?.url });
-                        setPreviewOpen(true);
-                      }}
-                    >
-                      Preview
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{previewDoc?.name || "Document"}</DialogTitle>
-          </DialogHeader>
-          {previewDoc && (
-            <div className="space-y-3">
-              {previewDoc.url ? (
-                <div className="rounded border overflow-hidden">
-                  <embed
-                    src={(previewDoc.url || "") + "#toolbar=0&navpanes=0&scrollbar=1"}
-                    type="application/pdf"
-                    className="w-full h-[70vh]"
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Preview not available.</p>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setPreviewOpen(false)}>
-                  Close
-                </Button>
-                <Button
-                  onClick={async () => {
-                    if (!previewDoc) return;
-                    try {
-                      await fetch("/api/documents/acknowledge", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ documentId: previewDoc.id }),
-                      });
-                    } finally {
-                      setPendingAck((prev) => prev.filter((x) => x.id !== previewDoc.id));
-                      setPreviewOpen(false);
-                      setPreviewDoc(null);
-                    }
-                  }}
-                >
-                  Acknowledge
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </DashboardWidget>
-  );
-}
-
-// Removed separate MyDocuments widget; document acknowledgements are shown in ActionItems
+// Removed old ActionItems component - now using UnifiedActionItems
 
 
 function QuickActions({ employeeId }: { employeeId?: string }) {
@@ -333,7 +116,7 @@ export default function EmployeeDashboardClient({
   return (
     <>
       {employeeId && <UpcomingLeave employeeId={employeeId} />}
-      {employeeId && <ActionItems employeeId={employeeId} />}
+      {employeeId && <UnifiedActionItems employeeId={employeeId} />}
       <QuickActions employeeId={employeeId} />
       <WellbeingSpotlight />
     </>

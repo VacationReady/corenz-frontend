@@ -480,7 +480,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         {count > 0 ? (
           <div className="mt-5 space-y-1">
             {entries.map(([label, n]) => (
-              <div key={label} className="flex items-center gap-1 text-[11px]">
+              <div key={label} className="w-full text-[11px]">
                 <span className={`cz-chip ${getCategoryColor(label)} text-white`}>
                   {getCategoryIcon(label)}
                   <span className="font-medium">{label}</span>

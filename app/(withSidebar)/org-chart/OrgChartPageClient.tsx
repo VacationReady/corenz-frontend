@@ -1585,52 +1585,8 @@ function OrgNodeCard({
   position: { x: number; y: number };
   onContactRequest: (employee: OrgEmployee) => void;
 }) {
-  const directReportsCount = node.children.length;
-  const indirectReports = getIndirectReports(node);
-  const indirectReportsCount = indirectReports.length;
+  const directReports = node.children.length;
   const managerLabel = node.managerName ?? "Reports to leadership";
-
-  const renderReportItem = (report: OrgNode) => (
-    <div key={report.id} className="flex items-start gap-3">
-      <Avatar
-        src={report.profileImageUrl ?? undefined}
-        name={report.fullName}
-        size={40}
-      />
-      <div className="min-w-0 space-y-1">
-        <p
-          className="truncate text-sm font-medium text-foreground"
-          title={report.fullName}
-        >
-          {report.fullName}
-        </p>
-        <p
-          className="truncate text-xs text-muted-foreground"
-          title={report.jobTitle ?? undefined}
-        >
-          {report.jobTitle ?? "Role not assigned"}
-        </p>
-        <p
-          className="truncate text-xs text-muted-foreground"
-          title={report.department ?? undefined}
-        >
-          {report.department ?? "No department"}
-        </p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-          <span className="truncate" title={report.email}>
-            {report.email}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-          <span className="truncate" title={report.phone ?? undefined}>
-            {report.phone ?? "Not provided"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div
@@ -1642,12 +1598,17 @@ function OrgNodeCard({
         height: NODE_HEIGHT,
       }}
     >
-      <div
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.3 }}
         className={cn(
-          "group flex h-full w-full cursor-pointer flex-col gap-5 overflow-hidden rounded-[28px] border bg-white/80 p-6 shadow-depth-1 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:bg-slate-950/70",
-          node.isMatch
-            ? "border-primary/50 shadow-[0_18px_40px_rgba(59,130,246,0.25)] ring-2 ring-primary/40"
-            : "border-slate-200/70",
+          "group relative h-full w-full cursor-pointer overflow-hidden",
+          "glass-premium rounded-3xl shadow-premium",
+          "transition-all duration-300 hover-lift-premium",
+          "border border-white/40",
+          node.isMatch && "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
         )}
         role="button"
         tabIndex={0}
@@ -1660,121 +1621,179 @@ function OrgNodeCard({
           }
         }}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Avatar
-              src={node.profileImageUrl ?? undefined}
-              name={node.fullName}
-              size={48}
-              className="shadow-depth-2"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-foreground" title={node.fullName}>
-                {node.fullName}
-              </p>
-              <p
-                className="truncate text-sm text-muted-foreground"
-                title={node.jobTitle ?? undefined}
-              >
-                {node.jobTitle ?? "Role not assigned"}
-              </p>
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+
+        <div className="relative p-6 h-full flex flex-col">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-xl opacity-50 blur" />
+                <Avatar
+                  src={node.profileImageUrl ?? undefined}
+                  name={node.fullName}
+                  size={52}
+                  className="relative shadow-premium border-2 border-white"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-base text-foreground truncate" title={node.fullName}>
+                  {node.fullName}
+                </p>
+                <p className="text-sm text-muted-foreground truncate" title={node.jobTitle ?? undefined}>
+                  {node.jobTitle ?? "Role not assigned"}
+                </p>
+              </div>
+            </div>
+
+            <Badge
+              variant="outline"
+              className={cn(
+                "shrink-0 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider",
+                "bg-gradient-to-r border-0 shadow-md",
+                node.role === "ADMIN" && "from-primary/20 to-primary/10 text-primary",
+                node.role === "MANAGER" && "from-amber-500/20 to-amber-500/10 text-amber-600",
+                node.role === "EMPLOYEE" && "from-slate-500/20 to-slate-500/10 text-slate-600",
+              )}
+            >
+              {roleLabels[node.role]}
+            </Badge>
+          </div>
+
+          <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent mb-3" />
+
+          <div className="space-y-2 text-sm flex-1">
+            <div className="flex items-center gap-2 group/item">
+              <Building2 className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
+              <span className="truncate text-muted-foreground group-hover/item:text-foreground transition-colors">
+                {node.department ?? "No department"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 group/item">
+              <UserCircle2 className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
+              <span className="truncate text-muted-foreground group-hover/item:text-foreground transition-colors">
+                {managerLabel}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 group/item">
+              <Briefcase className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
+              {directReports === 0 ? (
+                <span className="text-muted-foreground">No direct reports</span>
+              ) : (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.stopPropagation();
+                        }
+                      }}
+                    >
+                      {directReports} direct {directReports === 1 ? "report" : "reports"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80 max-h-80 overflow-y-auto p-4">
+                    <p className="text-sm font-semibold text-foreground">Direct reports</p>
+                    <div className="mt-3 space-y-3">
+                      {node.children.map((report) => (
+                        <div key={report.id} className="flex items-start gap-3">
+                          <Avatar
+                            src={report.profileImageUrl ?? undefined}
+                            name={report.fullName}
+                            size={40}
+                          />
+                          <div className="min-w-0 space-y-1">
+                            <p className="truncate text-sm font-medium text-foreground" title={report.fullName}>
+                              {report.fullName}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground" title={report.jobTitle ?? undefined}>
+                              {report.jobTitle ?? "Role not assigned"}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground" title={report.department ?? undefined}>
+                              {report.department ?? "No department"}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                              <span className="truncate" title={report.email}>
+                                {report.email}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                              <span className="truncate" title={report.phone ?? undefined}>
+                                {report.phone ?? "Not provided"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 group/item">
+              <GitBranch className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
+              {node.children.length === 0 ? (
+                <span className="text-muted-foreground">No indirect reports</span>
+              ) : (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.stopPropagation();
+                        }
+                      }}
+                    >
+                      {getIndirectReports(node).length} indirect
+                      {getIndirectReports(node).length === 1 ? " report" : " reports"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80 max-h-80 overflow-y-auto p-4">
+                    <p className="text-sm font-semibold text-foreground">Indirect reports</p>
+                    <div className="mt-3 space-y-3">
+                      {getIndirectReports(node).map((report) => (
+                        <div key={report.id} className="flex items-start gap-3">
+                          <Avatar
+                            src={report.profileImageUrl ?? undefined}
+                            name={report.fullName}
+                            size={40}
+                          />
+                          <div className="min-w-0 space-y-1">
+                            <p className="truncate text-sm font-medium text-foreground" title={report.fullName}>
+                              {report.fullName}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground" title={report.jobTitle ?? undefined}>
+                              {report.jobTitle ?? "Role not assigned"}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground" title={report.department ?? undefined}>
+                              {report.department ?? "No department"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
-          <Badge
-            variant="outline"
-            className={cn(
-              "w-fit max-w-full self-start whitespace-normal px-3 py-1 text-center text-[11px] font-semibold uppercase tracking-wide",
-              "flex-wrap justify-center",
-              roleBadgeClasses[node.role],
-            )}
-          >
-            {roleLabels[node.role]}
-          </Badge>
         </div>
 
-        <div className="grid flex-1 content-start gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="truncate" title={node.department ?? undefined}>
-              {node.department ?? "No department"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <UserCircle2 className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="truncate" title={managerLabel}>
-              {managerLabel}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4 shrink-0 text-slate-400" />
-            {directReportsCount === 0 ? (
-              <span>No direct reports</span>
-            ) : (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.stopPropagation();
-                      }
-                    }}
-                  >
-                    {directReportsCount} direct {directReportsCount === 1 ? "report" : "reports"}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-80 max-h-80 overflow-y-auto p-4"
-                >
-                  <p className="text-sm font-semibold text-foreground">
-                    Direct reports
-                  </p>
-                  <div className="mt-3 space-y-3">
-                    {node.children.map((child) => renderReportItem(child))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <GitBranch className="h-4 w-4 shrink-0 text-slate-400" />
-            {indirectReportsCount === 0 ? (
-              <span>No indirect reports</span>
-            ) : (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.stopPropagation();
-                      }
-                    }}
-                  >
-                    {indirectReportsCount} indirect {indirectReportsCount === 1 ? "report" : "reports"}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-80 max-h-80 overflow-y-auto p-4"
-                >
-                  <p className="text-sm font-semibold text-foreground">
-                    Indirect reports
-                  </p>
-                  <div className="mt-3 space-y-3">
-                    {indirectReports.map((report) => renderReportItem(report))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-[hsl(var(--sunset-2))]/10" />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

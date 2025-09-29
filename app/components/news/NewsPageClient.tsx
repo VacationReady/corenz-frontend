@@ -23,8 +23,10 @@ import {
   Hash,
   Sparkles,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import { FilterOption } from "@/types/filter";
+import { formatDistanceToNow } from "date-fns";
 
 interface NewsPost {
   id: string;
@@ -522,61 +524,95 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
         />
       </div>
 
-      {/* News Grid/List */}
-      <AnimatePresence mode="wait">
-        {filteredPosts.length === 0 ? (
+      {/* News Grid */}
+      {filteredPosts.length === 0 ? (
+        <div className="text-center text-muted-foreground py-12">
+          No news posts match your filters just yet.
+        </div>
+      ) : (
+        <AnimatePresence mode="popLayout">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-16 text-center"
+            key={viewMode}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           >
-            <div className="p-4 bg-muted/50 rounded-full mb-4">
-              <Sparkles className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              No news posts found
-            </h3>
-            <p className="text-muted-foreground max-w-md">
-              {filters.search ||
-              filters.authors.length > 0 ||
-              filters.categories.length > 0
-                ? "Try adjusting your filters or search terms to find what you're looking for."
-                : "Be the first to share news with your team!"}
-            </p>
-            {canPost && !filters.search && (
-              <Link href="/news/create">
-                <button className="mt-6 px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:scale-105 transition-all duration-200">
-                  Create First Post
-                </button>
-              </Link>
-            )}
+            <motion.div
+              layout
+              className={cn(
+                "transition-all duration-500",
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "space-y-4"
+              )}
+            >
+              {filteredPosts.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.5,
+                    delay: index * 0.05,
+                    ease: [0.4, 0, 0.2, 1],
+                  }}
+                  whileHover={{ y: -8 }}
+                  className="group relative"
+                >
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary via-[hsl(var(--sunset-2))] to-[hsl(var(--sunset-3))] rounded-3xl opacity-0 group-hover:opacity-100 blur transition duration-500" />
+                  <div className="relative glass-premium rounded-3xl overflow-hidden shadow-premium hover-lift-premium">
+                    {viewMode === "grid" ? (
+                      <div className="h-full">
+                        <NewsSpotlightCard
+                          post={post}
+                          variant="default"
+                          index={index}
+                          showActions
+                          showStats
+                          onBookmark={() => handleBookmarkToggle(post)}
+                          onReact={(type) => handleReactionChange(post, type)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex gap-6 p-6">
+                        {post.coverImage && (
+                          <div className="relative w-48 h-32 rounded-2xl overflow-hidden shrink-0">
+                            <img
+                              src={post.coverImage}
+                              alt=""
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                            {post.title}
+                          </h3>
+                          <p className="text-muted-foreground line-clamp-2 mb-4">
+                            {post.excerpt || "No excerpt available"}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-muted-foreground">
+                              {formatDistanceToNow(new Date(post.publishedAt || post.createdAt))} ago
+                            </span>
+                            {post.views && (
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Eye className="w-4 h-4" />
+                                {post.views}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
           </motion.div>
-        ) : (
-          <motion.div
-            layout
-            className={cn(
-              "grid gap-6",
-              viewMode === "grid"
-                ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
-                : "grid-cols-1 max-w-4xl mx-auto"
-            )}
-          >
-            {filteredPosts.map((post, index) => (
-              <NewsSpotlightCard
-                key={post.id}
-                post={post}
-                variant={viewMode === "list" ? "compact" : "default"}
-                index={index}
-                showActions
-                showStats
-                onBookmark={() => handleBookmarkToggle(post)}
-                onReact={(type) => handleReactionChange(post, type)}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
+      )}
 
       {/* Load More Section */}
       {filteredPosts.length >= 12 && (

@@ -228,6 +228,20 @@ module.exports = {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.05)" },
         },
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'glow-pulse': {
+          '0%, 100%': { 
+            boxShadow: '0 0 20px rgba(var(--primary-rgb), 0.5)',
+            transform: 'scale(1)',
+          },
+          '50%': { 
+            boxShadow: '0 0 40px rgba(var(--primary-rgb), 0.8)',
+            transform: 'scale(1.02)',
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -246,6 +260,10 @@ module.exports = {
         aurora: "aurora 15s ease infinite",
         fadeScale: "fadeScale 0.3s ease-out",
         breathe: "breathe 4s ease-in-out infinite",
+        'float-slow': 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'gradient-shift': 'gradient-shift 8s ease infinite',
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
       },
     },
   },

@@ -13,8 +13,17 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { FormField, FormSection, AnyFormSchema, upgradeLegacySchema } from "@/api/forms/[id]/types";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RotateCcw, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 function useSlug(initialName: string, initialSlug: string) {
   const [name, setName] = useState(initialName);
@@ -235,224 +244,229 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     toast.success("Form saved successfully");
   };
 
+  const goToForms = () => {
+    window.location.href = "/forms";
+  };
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Simple helper banner for HR authors */}
-      <TooltipProvider>
-        <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-md p-3 flex items-start gap-3">
-          <Info className="h-5 w-5 mt-0.5" />
-          <div className="text-sm leading-5">
-            <p className="font-medium">How to build your form</p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>Drag fields from the left into a section. Use the “1/2/3 col” selector for multi-column layouts.</li>
-              <li>Click a field to edit its label, help text and options. Validation ensures required questions are answered.</li>
-              <li>Use Logic to show a field only when previous answers match your conditions (e.g. Department equals Sales).</li>
-            </ul>
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button type="button" className="ml-auto text-xs text-blue-700 underline">Tips</button>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="max-w-xs">
-              Group related questions with Sections; keep pages short. Choose “Data Screen” for profile screens you’ll edit over time.
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </TooltipProvider>
-      {/* Form Metadata */}
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
-        <h3 className="font-semibold mb-3 text-lg">Form Details</h3>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Form Name <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={formName}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Enter form name"
-              className={
-                !formName.trim() ? "border-red-500 focus:ring-red-500" : ""
-              }
-            />
-            {!formName.trim() && (
-              <p className="text-xs text-red-600 mt-1">Name is required</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Path (slug) <span className="text-red-500">*</span>
-            </label>
-            <Input
-              value={formSlug}
-              onChange={(e) => setFormSlug(e.target.value)}
-              placeholder="form-path"
-              className={`font-mono text-sm ${!formSlug.trim() || !slugIsValid ? "border-red-500 focus:ring-red-500" : ""}`}
-            />
-            {!formSlug.trim() && (
-              <p className="text-xs text-red-600 mt-1">Slug is required</p>
-            )}
-            {formSlug.trim() && !slugIsValid && (
-              <p className="text-xs text-red-600 mt-1">
-                Only lowercase letters, numbers and hyphens are allowed
-              </p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              Used in URL: /employees/[id]/{"{"}formSlug{"}"}
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <Textarea
-              value={formDescription}
-              onChange={(e) => setFormDescription(e.target.value)}
-              placeholder="Optional form description"
-              className="min-h-[80px]"
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={transactionalEnabled} onChange={(e) => setTransactionalEnabled(e.target.checked)} />
-            Add to transactional notifications (approval & emails)
-          </label>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-background to-primary/5 p-6">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[hsl(var(--sunset-2))]/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Form Type Selection */}
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
-        <h3 className="font-semibold mb-3 text-lg">Form Type</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              formType === "SUBMISSION"
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-            onClick={() => setFormType("SUBMISSION")}
-          >
-            <div className="flex items-center mb-2">
-              <input
-                type="radio"
-                checked={formType === "SUBMISSION"}
-                onChange={() => setFormType("SUBMISSION")}
-                className="mr-2"
-              />
-              <h4 className="font-medium">Submission Form</h4>
+      <div className="relative z-10 max-w-7xl mx-auto">
+        <div className="glass-premium rounded-3xl p-8 mb-6 shadow-premium">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+            <div className="flex-1 space-y-3">
+              <div>
+                <h1 className="text-3xl font-bold text-gradient-premium mb-2">
+                  Form Builder
+                </h1>
+                <p className="text-muted-foreground">
+                  Create dynamic forms with drag-and-drop simplicity
+                </p>
+              </div>
+              <TooltipProvider>
+                <div className="glass-subtle rounded-2xl border border-white/20 p-4 flex items-start gap-3">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <Info className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">Quick tips</p>
+                    <p>Drag elements from the left, drop them onto the canvas, then fine-tune on the right.</p>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="ml-auto text-xs font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        More
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      Use sections to organise long forms. Pick “Data Screen” for data that evolves over time.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </div>
-            <p className="text-sm text-gray-600">
-              One-time form submissions. Data is submitted and stored as
-              records.
-            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={goToForms}>
+                Cancel
+              </Button>
+              <Button
+                onClick={saveForm}
+                disabled={false || !slugIsValid}
+                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-premium px-6"
+              >
+                {false ? "Saving..." : "Save Form"}
+              </Button>
+            </div>
           </div>
-          <div
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              formType === "DATA_SCREEN"
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-            onClick={() => setFormType("DATA_SCREEN")}
-          >
-            <div className="flex items-center mb-2">
-              <input
-                type="radio"
-                checked={formType === "DATA_SCREEN"}
-                onChange={() => setFormType("DATA_SCREEN")}
-                className="mr-2"
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Form Name
+              </Label>
+              <Input
+                value={formName}
+                onChange={(event) => handleNameChange(event.target.value)}
+                placeholder="Enter form name"
+                className="glass-subtle border-white/20 focus:border-primary/50 transition-colors"
               />
-              <h4 className="font-medium">Data Screen</h4>
             </div>
-            <p className="text-sm text-gray-600">
-              Persistent data that can be viewed, edited, and updated. Perfect
-              for employee profiles.
-            </p>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-muted-foreground">
+                URL Slug
+              </Label>
+              <Input
+                value={formSlug}
+                onChange={(event) => setFormSlug(event.target.value)}
+                placeholder="form-url-slug"
+                className={cn(
+                  "glass-subtle border-white/20 transition-colors",
+                  slugIsValid ? "focus:border-primary/50" : "border-destructive/50",
+                )}
+              />
+              {!slugIsValid ? (
+                <p className="text-xs text-destructive">
+                  Slug must be unique and contain only lowercase letters, numbers, or hyphens.
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Form Type
+              </Label>
+              <Select value={formType} onValueChange={setFormType}>
+                <SelectTrigger className="glass-subtle border-white/20 focus:border-primary/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass-premium">
+                  <SelectItem value="SUBMISSION">Submission Form</SelectItem>
+                  <SelectItem value="DATA_SCREEN">Data Screen</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Visibility Settings */}
-      <VisibilitySettings
-        visibleToRoles={vis.roles}
-        visibleToDepartments={vis.departments}
-        visibleToJobRoles={vis.jobRoles}
-        onChange={(v) => {
-          vis.setRoles(v.visibleToRoles);
-          vis.setDepartments(v.visibleToDepartments);
-          vis.setJobRoles(v.visibleToJobRoles);
-        }}
-      />
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-3">
+            <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gradient-premium">
+                  Form Elements
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSections(initialSections)}
+                  className="hover:text-primary"
+                  aria-label="Reset builder"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </Button>
+              </div>
+              <FieldPalette />
+            </div>
+          </div>
 
-      <DndContext
-        onDragEnd={handleDragEnd}
-        onDragStart={(e) => {
-      const dragged = e.active.data?.current as
-        | { type: string; label: string; defaults?: Partial<FormField> }
-        | undefined;
-          if (!dragged) return;
-          setActiveDragField({
-            id: "temp",
-            type: dragged.type,
-            label: dragged.label,
-            required: false,
-          });
-        }}
-      >
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
-          {/* Make palette narrower and non-sticky on smaller screens */}
-          <div className="2xl:col-span-1 xl:col-span-1">
-            <FieldPalette />
+          <div className="col-span-12 lg:col-span-6">
+            <DndContext
+              onDragEnd={handleDragEnd}
+              onDragStart={(event) => {
+                const dragged = event.active.data?.current as
+                  | { type: string; label: string; defaults?: Partial<FormField> }
+                  | undefined;
+                if (!dragged) return;
+                setActiveDragField({
+                  id: "temp",
+                  type: dragged.type,
+                  label: dragged.label,
+                  required: false,
+                });
+              }}
+              onDragCancel={() => setActiveDragField(null)}
+            >
+              <div className="glass-premium rounded-3xl p-8 min-h-[600px] shadow-premium">
+                <FormCanvas
+                  sections={sections}
+                  setSections={setSections}
+                  selectedField={selectedField}
+                  setSelectedField={setSelectedField}
+                />
+              </div>
+              <DragOverlay>
+                {activeDragField ? (
+                  <div className="glass-premium rounded-xl p-4 shadow-xl">
+                    {activeDragField.label}
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           </div>
-          <div className="xl:col-span-2">
-            <FormCanvas
-            sections={sections}
-            setSections={setSections}
-            selectedField={selectedField}
-            onSelectField={setSelectedField}
-            />
-          </div>
-          <div className="xl:col-span-1 xl:sticky xl:top-4 self-start">
+
+          <div className="col-span-12 lg:col-span-3">
             {selectedField ? (
-              <FieldEditor
-                key={selectedField.id}
-                field={selectedField}
-                onChange={(updated) => {
-                  setSections((prev) => prev.map((s) => ({ ...s, fields: s.fields.map((f) => (f.id === updated.id ? updated : f)) })));
-                  setSelectedField(updated);
-                }}
-              />
+              <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gradient-premium">
+                    Field Properties
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedField(null)}
+                    className="hover:text-primary"
+                    aria-label="Clear selection"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                <FieldEditor
+                  key={selectedField.id}
+                  field={selectedField}
+                  onChange={(updated) => {
+                    setSections((prev) =>
+                      prev.map((section) => ({
+                        ...section,
+                        fields: section.fields.map((field) =>
+                          field.id === updated.id ? updated : field,
+                        ),
+                      })),
+                    );
+                    setSelectedField(updated);
+                  }}
+                />
+              </div>
             ) : (
-              <p className="text-gray-500 italic mt-4">
+              <div className="glass-subtle rounded-3xl p-6 border-2 border-dashed border-white/20 text-center text-muted-foreground">
                 Select a field to edit its properties
-              </p>
+              </div>
             )}
           </div>
-          <div className="xl:col-span-1 xl:sticky xl:top-4 self-start">
-            <FormPreview fields={sections.flatMap((s) => s.fields)} />
-          </div>
         </div>
-        <DragOverlay>
-          {activeDragField ? (
-            <div className="p-2 px-3 bg-white border rounded shadow text-sm font-medium shadow-lg">
-              {activeDragField.label}
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
 
-      <Button
-        onClick={saveForm}
-        className="self-end mt-4"
-        disabled={
-          !formName.trim() ||
-          sections.flatMap((s) => s.fields).length === 0 ||
-          !vis.roles.length ||
-          !slugIsValid
-        }
-      >
-        Save Form
-      </Button>
+        <div className="mt-6 glass-premium rounded-3xl p-8 shadow-premium">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gradient-premium">
+              Form Preview
+            </h3>
+            <Button
+              variant="outline"
+              onClick={goToForms}
+              className="glass-subtle border-white/20 hover:border-primary/50"
+            >
+              View All Forms
+            </Button>
+          </div>
+          <FormPreview sections={sections} />
+        </div>
+      </div>
     </div>
   );
 }

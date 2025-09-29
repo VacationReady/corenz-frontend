@@ -11,7 +11,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
-import { List, CalendarDays, Trash2 } from "lucide-react";
+import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Tooth, PalmTree } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
@@ -481,9 +481,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           <div className="mt-5 space-y-1">
             {entries.map(([label, n]) => (
               <div key={label} className="flex items-center gap-1 text-[11px]">
-                <span className={`inline-flex items-center gap-1 text-white px-1.5 py-0.5 rounded ${getCategoryColor(
-                  label,
-                )}`}>
+                <span className={`inline-flex items-center gap-1 text-white px-1.5 py-0.5 rounded ${getCategoryColor(label)}`}>
+                  {getCategoryIcon(label)}
                   <span className="font-medium">{label}</span>
                   <span className="opacity-90">{n}</span>
                 </span>
@@ -570,15 +569,27 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const getCategoryColor = (name: string) => {
     const key = (name || "").toLowerCase();
-    if (key.includes("annual")) return "bg-emerald-500";
-    if (key.includes("holiday")) return "bg-emerald-500";
+    if (key.includes("annual") || key.includes("holiday")) return "bg-emerald-500";
     if (key.includes("sick")) return "bg-amber-500";
     if (key.includes("training")) return "bg-indigo-500";
-    if (key.includes("parent")) return "bg-pink-500";
-    if (key.includes("bereave")) return "bg-purple-500";
+    if (key.includes("maternity") || key.includes("parent")) return "bg-pink-500";
+    if (key.includes("compassion") || key.includes("bereave")) return "bg-purple-500";
+    if (key.includes("doctor")) return "bg-teal-500";
+    if (key.includes("dentist")) return "bg-sky-500";
     if (key.includes("unpaid")) return "bg-slate-500";
     if (key.includes("toil") || key.includes("lieu")) return "bg-sky-500";
     return "bg-blue-500";
+  };
+
+  const getCategoryIcon = (name: string) => {
+    const key = (name || "").toLowerCase();
+    if (key.includes("annual") || key.includes("holiday")) return <PalmTree className="h-3 w-3" />;
+    if (key.includes("training")) return <GraduationCap className="h-3 w-3" />;
+    if (key.includes("maternity") || key.includes("parent")) return <Heart className="h-3 w-3" />;
+    if (key.includes("compassion") || key.includes("bereave")) return <Heart className="h-3 w-3" />;
+    if (key.includes("doctor")) return <Stethoscope className="h-3 w-3" />;
+    if (key.includes("dentist")) return <Tooth className="h-3 w-3" />;
+    return null;
   };
 
   const formatEventRange = (start: string, end?: string) => {

@@ -432,7 +432,7 @@ async function main() {
     });
   }
 
-  // ✅ 5. Create system-defined EventCategories
+  // ✅ 5. Create system-defined EventCategories (with expanded set and colors)
   const systemCategories = [
     {
       name: "Annual Leave",
@@ -448,6 +448,46 @@ async function main() {
       requiresApproval: false,
       adminOnly: false,
       color: "#FF0000",
+      systemDefined: true,
+    },
+    {
+      name: "Training",
+      categoryType: "TIME_OFF",
+      requiresApproval: true,
+      adminOnly: false,
+      color: "#4F46E5", // indigo
+      systemDefined: true,
+    },
+    {
+      name: "Maternity Leave",
+      categoryType: "TIME_OFF",
+      requiresApproval: true,
+      adminOnly: false,
+      color: "#EC4899", // pink
+      systemDefined: true,
+    },
+    {
+      name: "Compassionate Leave",
+      categoryType: "TIME_OFF",
+      requiresApproval: true,
+      adminOnly: false,
+      color: "#8B5CF6", // purple
+      systemDefined: true,
+    },
+    {
+      name: "Doctor Appointment",
+      categoryType: "TIME_OFF",
+      requiresApproval: false,
+      adminOnly: false,
+      color: "#14B8A6", // teal
+      systemDefined: true,
+    },
+    {
+      name: "Dentist Appointment",
+      categoryType: "TIME_OFF",
+      requiresApproval: false,
+      adminOnly: false,
+      color: "#0EA5E9", // sky
       systemDefined: true,
     },
   ];

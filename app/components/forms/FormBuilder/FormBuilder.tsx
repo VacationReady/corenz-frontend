@@ -373,45 +373,45 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 lg:col-span-3">
-            <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gradient-premium">
-                  Form Elements
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSections(initialSections)}
-                  className="hover:text-primary"
-                  aria-label="Reset builder"
-                >
-                  <RotateCcw className="h-5 w-5" />
-                </Button>
+        <DndContext
+          sensors={sensors}
+          onDragEnd={handleDragEnd}
+          onDragStart={(event) => {
+            const dragged = event.active.data?.current as
+              | { type: string; label: string; defaults?: Partial<FormField> }
+              | undefined;
+            if (!dragged) return;
+            setActiveDragField({
+              id: "temp",
+              type: dragged.type,
+              label: dragged.label,
+              required: false,
+            });
+          }}
+          onDragCancel={() => setActiveDragField(null)}
+        >
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 lg:col-span-3">
+              <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gradient-premium">
+                    Form Elements
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSections(initialSections)}
+                    className="hover:text-primary"
+                    aria-label="Reset builder"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                  </Button>
+                </div>
+                <FieldPalette />
               </div>
-              <FieldPalette />
             </div>
-          </div>
 
-          <div className="col-span-12 lg:col-span-6">
-            <DndContext
-              sensors={sensors}
-              onDragEnd={handleDragEnd}
-              onDragStart={(event) => {
-                const dragged = event.active.data?.current as
-                  | { type: string; label: string; defaults?: Partial<FormField> }
-                  | undefined;
-                if (!dragged) return;
-                setActiveDragField({
-                  id: "temp",
-                  type: dragged.type,
-                  label: dragged.label,
-                  required: false,
-                });
-              }}
-              onDragCancel={() => setActiveDragField(null)}
-            >
+            <div className="col-span-12 lg:col-span-6">
               <div className="glass-premium rounded-3xl p-8 min-h-[600px] shadow-premium">
                 <FormCanvas
                   sections={sections}
@@ -420,56 +420,56 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   onSelectField={setSelectedField}
                 />
               </div>
-              <DragOverlay>
-                {activeDragField ? (
-                  <div className="glass-premium rounded-xl p-4 shadow-xl">
-                    {activeDragField.label}
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          </div>
+            </div>
 
-          <div className="col-span-12 lg:col-span-3">
-            {selectedField ? (
-              <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gradient-premium">
-                    Field Properties
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSelectedField(null)}
-                    className="hover:text-primary"
-                    aria-label="Clear selection"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
+            <div className="col-span-12 lg:col-span-3">
+              {selectedField ? (
+                <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gradient-premium">
+                      Field Properties
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedField(null)}
+                      className="hover:text-primary"
+                      aria-label="Clear selection"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <FieldEditor
+                    key={selectedField.id}
+                    field={selectedField}
+                    onChange={(updated) => {
+                      setSections((prev) =>
+                        prev.map((section) => ({
+                          ...section,
+                          fields: section.fields.map((field) =>
+                            field.id === updated.id ? updated : field,
+                          ),
+                        })),
+                      );
+                      setSelectedField(updated);
+                    }}
+                  />
                 </div>
-                <FieldEditor
-                  key={selectedField.id}
-                  field={selectedField}
-                  onChange={(updated) => {
-                    setSections((prev) =>
-                      prev.map((section) => ({
-                        ...section,
-                        fields: section.fields.map((field) =>
-                          field.id === updated.id ? updated : field,
-                        ),
-                      })),
-                    );
-                    setSelectedField(updated);
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="glass-subtle rounded-3xl p-6 border-2 border-dashed border-white/20 text-center text-muted-foreground">
-                Select a field to edit its properties
-              </div>
-            )}
+              ) : (
+                <div className="glass-subtle rounded-3xl p-6 border-2 border-dashed border-white/20 text-center text-muted-foreground">
+                  Select a field to edit its properties
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+          <DragOverlay>
+            {activeDragField ? (
+              <div className="glass-premium rounded-xl p-4 shadow-xl">
+                {activeDragField.label}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
 
         <div className="mt-6 glass-premium rounded-3xl p-8 shadow-premium">
           <div className="flex items-center justify-between mb-6">

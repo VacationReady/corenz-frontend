@@ -161,7 +161,10 @@ export async function POST(req: Request) {
     // ✅ Upload to Supabase
     const { data, error } = await supabase.storage
       .from("documents")
-      .upload(fileName, buffer);
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
     if (error) {
       console.error("Supabase upload error:", error);
       return NextResponse.json(

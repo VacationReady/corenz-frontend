@@ -481,7 +481,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           <div className="mt-5 space-y-1">
             {entries.map(([label, n]) => (
               <div key={label} className="flex items-center gap-1 text-[11px]">
-                <span className={`inline-flex items-center gap-1 text-white px-1.5 py-0.5 rounded ${getCategoryColor(label)}`}>
+                <span className={`cz-chip ${getCategoryColor(label)} text-white`}>
                   {getCategoryIcon(label)}
                   <span className="font-medium">{label}</span>
                   <span className="opacity-90">{n}</span>

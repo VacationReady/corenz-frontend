@@ -6,6 +6,7 @@ import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";
 import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import { z } from "zod";
 
@@ -224,10 +225,50 @@ export async function POST(
         updatedAt: new Date(),
       },
     });
+    
+    // Auto-approve immediately when created by ADMIN or SUPER_ADMIN
+    if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
+      try {
+        const totalDays: number[] = [];
+        let currentDate = new Date(newLeaveRequest.startDate);
+        const endInclusive = new Date(newLeaveRequest.endDate);
+        // Deduction uses inclusive range of away days (return-to-work exclusive)
+        const exclusiveEnd = new Date(endInclusive);
+        exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
 
-    // If fast-tracked by admin (immediate approval), keep legacy flow
-    if (newLeaveRequest.approvalStatus === "APPROVED") {
-      return NextResponse.json({ success: true, data: newLeaveRequest });
+        while (currentDate <= exclusiveEnd) {
+          const deduction = await calculateLeaveDeduction(employeeId, currentDate);
+          totalDays.push(deduction);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
+
+        const approved = await prisma.$transaction(async (tx) => {
+          const entitlement = await tx.leaveEntitlement.findFirst({
+            where: { employeeId, eventCategoryId: EventCategoryId },
+          });
+
+          if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+            throw new Error("Insufficient leave balance.");
+          }
+
+          await tx.leaveEntitlement.update({
+            where: { id: entitlement.id },
+            data: { usedDays: entitlement.usedDays + totalDeduction },
+          });
+
+          return tx.leaveRequest.update({
+            where: { id: newLeaveRequest.id },
+            data: { approvalStatus: "APPROVED", approvedById: session.user.id },
+          });
+        });
+
+        return NextResponse.json({ success: true, data: approved });
+      } catch (e: any) {
+        console.error("Auto-approve by admin failed:", e);
+        // Fall through to workflow path if deduction failed for any reason
+      }
     }
 
     // Resolve workflow for this request

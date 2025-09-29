@@ -19,16 +19,16 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase.storage
       .from("documents")
       .createSignedUrl(path, 60 * 5);
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
     return NextResponse.json({ url: data?.signedUrl ?? null });
   } catch (e: any) {
     return NextResponse.json(
-      { error: e?.message || "Server error" },
+      { error: e?.message ?? "Failed to sign URL" },
       { status: 500 },
     );
   }
 }
-
-

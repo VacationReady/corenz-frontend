@@ -66,7 +66,7 @@ function MetricsSummary() {
   }, [data, session]);
 
   return (
-    <DashboardWidget title="Team Metrics" icon={FileBarChart2}>
+    <DashboardWidget title="Team Metrics" icon={BarChart3}>
       {isLoading ? (
         <WidgetLoading />
       ) : error ? (

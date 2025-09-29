@@ -11,7 +11,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
-import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, PalmTree } from "lucide-react";
+import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, Palmtree } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
@@ -583,7 +583,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const getCategoryIcon = (name: string) => {
     const key = (name || "").toLowerCase();
-    if (key.includes("annual") || key.includes("holiday")) return <PalmTree className="h-3 w-3" />;
+    if (key.includes("annual") || key.includes("holiday")) return <Palmtree className="h-3 w-3" />;
     if (key.includes("training")) return <GraduationCap className="h-3 w-3" />;
     if (key.includes("maternity") || key.includes("parent")) return <Heart className="h-3 w-3" />;
     if (key.includes("compassion") || key.includes("bereave")) return <Heart className="h-3 w-3" />;

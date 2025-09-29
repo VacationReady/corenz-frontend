@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
@@ -277,7 +277,28 @@ function TeamInsights() {
 
 export default function ManagerDashboardPage() {
   const { data: session } = useSession();
-  const employeeId = (session?.user as any)?.employeeId as string | undefined;
+  const sessionEmployeeId = (session?.user as any)?.employeeId as string | undefined;
+  const [employeeId, setEmployeeId] = useState<string | undefined>(sessionEmployeeId);
+
+  // Fallback: some managers may not have employeeId on the session; resolve via API
+  useEffect(() => {
+    let active = true;
+    const resolve = async () => {
+      if (employeeId) return;
+      const userId = (session?.user as any)?.id as string | undefined;
+      if (!userId) return;
+      try {
+        const res = await fetch(`/api/employees?status=active&userId=${encodeURIComponent(userId)}`, { cache: "no-store" });
+        const data = await res.json().catch(() => []);
+        const emp = Array.isArray(data) ? data[0] : null;
+        if (active && emp?.id) setEmployeeId(emp.id as string);
+      } catch {
+        // no-op
+      }
+    };
+    resolve();
+    return () => { active = false; };
+  }, [session, employeeId]);
   return (
     <PageShell
       title="Manager Dashboard"

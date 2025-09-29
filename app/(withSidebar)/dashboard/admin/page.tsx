@@ -15,6 +15,10 @@ export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) redirect("/login");
+  const role = session.user.role;
+  if (!(role === "ADMIN" || role === "SUPER_ADMIN")) {
+    redirect("/unauthorized");
+  }
   const isSuperAdmin = session.user.role === "SUPER_ADMIN";
 
   const user = await prisma.user.findUnique({

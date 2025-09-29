@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FormField, TableColumn, ComparisonOperator } from "@/api/forms/[id]/types";
+import { FormField, TableColumn } from "@/api/forms/[id]/types";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,13 +68,12 @@ export function FieldEditor({
       </div>
 
       <Tabs defaultValue="basics">
-        <TabsList className="grid grid-cols-4 w-full mb-2">
+        <TabsList className="grid grid-cols-3 w-full mb-2">
           <TabsTrigger value="basics">Basics</TabsTrigger>
           <TabsTrigger value="validation">Validation</TabsTrigger>
           <TabsTrigger value="data">Data</TabsTrigger>
-          <TabsTrigger value="logic">Logic</TabsTrigger>
         </TabsList>
-        <div className="text-xs text-gray-500 -mt-1 mb-2">Tip: Start with Basics for the label and help text. Use Data for options. Validation makes answers required. Logic shows fields only when conditions match.</div>
+        <div className="text-xs text-gray-500 -mt-1 mb-2">Tip: Start with Basics for the label and help text. Use Data for options. Validation makes answers required.</div>
 
         <TabsContent value="basics">
           <div className="space-y-4">
@@ -541,65 +540,7 @@ export function FieldEditor({
           </div>
         </TabsContent>
 
-        {/* Logic Tab */}
-        <TabsContent value="logic">
-          <div className="space-y-3">
-            <div className="text-sm font-medium">Visibility Conditions</div>
-            <div className="space-y-2">
-              {((field.logic?.visibleWhen?.all || []).length === 0 && (field.logic?.visibleWhen?.any || []).length === 0) && (
-                <div className="text-xs text-gray-500">No conditions. Field is always visible.</div>
-              )}
-              {/* Simple editor for AND conditions */}
-              {(field.logic?.visibleWhen?.all || []).map((cond, idx) => (
-                <div key={`and-${idx}`} className="grid grid-cols-4 gap-2">
-                  <Input
-                    value={cond.fieldId}
-                    onChange={(e) => {
-                      const next = { ...(field.logic || {}), visibleWhen: { ...(field.logic?.visibleWhen || {}), all: [ ...(field.logic?.visibleWhen?.all || []) ] } };
-                      next.visibleWhen!.all![idx] = { ...cond, fieldId: e.target.value };
-                      onChange({ ...field, logic: next });
-                    }}
-                    placeholder="Field ID"
-                  />
-                  <select
-                    className="border rounded px-2 py-2 text-sm"
-                    value={cond.operator}
-                    onChange={(e) => {
-                      const next = { ...(field.logic || {}), visibleWhen: { ...(field.logic?.visibleWhen || {}), all: [ ...(field.logic?.visibleWhen?.all || []) ] } };
-                      next.visibleWhen!.all![idx] = { ...cond, operator: e.target.value as ComparisonOperator };
-                      onChange({ ...field, logic: next });
-                    }}
-                  >
-                    {(["equals","notEquals","contains","notContains","greaterThan","greaterOrEqual","lessThan","lessOrEqual","isEmpty","isNotEmpty"] as ComparisonOperator[]).map(op => (
-                      <option key={op} value={op}>{op}</option>
-                    ))}
-                  </select>
-                  <Input
-                    value={cond.value ?? ""}
-                    onChange={(e) => {
-                      const next = { ...(field.logic || {}), visibleWhen: { ...(field.logic?.visibleWhen || {}), all: [ ...(field.logic?.visibleWhen?.all || []) ] } };
-                      next.visibleWhen!.all![idx] = { ...cond, value: e.target.value };
-                      onChange({ ...field, logic: next });
-                    }}
-                    placeholder="Value"
-                  />
-                  <Button type="button" size="sm" variant="outline" className="h-9" onClick={() => {
-                    const nextAll = (field.logic?.visibleWhen?.all || []).filter((_, i) => i !== idx);
-                    onChange({ ...field, logic: { ...(field.logic || {}), visibleWhen: { ...(field.logic?.visibleWhen || {}), all: nextAll } } });
-                  }}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" size="sm" variant="outline" className="h-8 px-2" onClick={() => {
-                const nextAll = [ ...(field.logic?.visibleWhen?.all || []), { fieldId: "", operator: "equals" as ComparisonOperator, value: "" } ];
-                onChange({ ...field, logic: { ...(field.logic || {}), visibleWhen: { ...(field.logic?.visibleWhen || {}), all: nextAll } } });
-              }}>
-                <Plus className="h-4 w-4 mr-1" /> Add AND Condition
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
+        {/* Logic UI removed */}
       </Tabs>
     </div>
   );

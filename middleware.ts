@@ -33,6 +33,32 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
+    // Authentication / RBAC for dashboard routes
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
+    // Require auth for dashboard routes
+    if (path.startsWith("/dashboard")) {
+      if (!token) {
+        return NextResponse.redirect(new URL("/login", request.url));
+      }
+
+      const role = String((token as any)?.role || "");
+
+      // Admin-only dashboard
+      if (path.startsWith("/dashboard/admin")) {
+        if (!(role === "ADMIN" || role === "SUPER_ADMIN")) {
+          return NextResponse.redirect(new URL("/unauthorized", request.url));
+        }
+      }
+
+      // Manager and above
+      if (path.startsWith("/dashboard/manager")) {
+        if (!(role === "MANAGER" || role === "ADMIN" || role === "SUPER_ADMIN")) {
+          return NextResponse.redirect(new URL("/unauthorized", request.url));
+        }
+      }
+    }
+
     // Origin checking for restricted methods
     if (RESTRICTED_METHODS.includes(request.method)) {
       const origin = request.headers.get("origin");
@@ -48,9 +74,9 @@ export async function middleware(request: NextRequest) {
     // Add company ID header if not present
     if (!requestHeaders.has("x-company-id")) {
       try {
-        const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-        if (token?.companyId) {
-          requestHeaders.set("x-company-id", String(token.companyId));
+        const tokenForHeader = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        if (tokenForHeader?.companyId) {
+          requestHeaders.set("x-company-id", String(tokenForHeader.companyId));
         }
       } catch (error) {
         console.warn("Failed to get token:", error);

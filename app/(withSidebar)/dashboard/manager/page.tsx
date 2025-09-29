@@ -215,7 +215,7 @@ function DocumentActionItems() {
                 <p className="text-sm text-muted-foreground">No pending approvals.</p>
               ) : (
                 <ul className="space-y-2">
-                  {(approvals.items as any[]).slice(0, 5).map((r: any) => {
+                      {(approvals.items as any[]).slice(0, 5).map((r: any) => {
                         const title = r?.title ?? r?.type ?? "Approval";
                         const dates = r?.dates ?? r?.subtitle;
                         return (
@@ -223,7 +223,17 @@ function DocumentActionItems() {
                             <span className="truncate">{title}</span>
                             <div className="flex gap-2">
                               {dates ? <span className="text-muted-foreground hidden sm:inline">{dates}</span> : null}
-                              <Button size="sm" onClick={() => { setApprovalItem(r); }}>Review</Button>
+                              <Button size="sm" onClick={async () => {
+                                // Enrich with signed avatar URL
+                                try {
+                                  if (!r.actorAvatarUrl && r?.employee?.userId) {
+                                    const resp = await fetch(`/api/users/${encodeURIComponent(r.employee.userId)}/profile-image`);
+                                    const j = await resp.json().catch(() => ({}));
+                                    if (j?.url) r.actorAvatarUrl = j.url;
+                                  }
+                                } catch {}
+                                setApprovalItem({ ...r });
+                              }}>Review</Button>
                             </div>
                           </li>
                         );

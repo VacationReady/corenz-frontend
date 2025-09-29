@@ -441,7 +441,8 @@ export default function AdminDashboardClient({
           // Map leave items into modal-friendly structure
           const normalizedLeave = leaveItems.map((r: any) => {
             const name = r?.employee?.name || r?.title?.split(" — ")?.[0] || "Employee";
-            return {
+            const employeeUserId = r?.employee?.userId ?? null;
+            const initial: any = {
               id: r.id,
               type: r.typeName || r.type || "Leave",
               employee: { user: { name } },
@@ -452,10 +453,19 @@ export default function AdminDashboardClient({
               eventCategoryId: r.eventCategoryId,
               startDate: r.startDate,
               endDate: r.endDate,
+              employeeUserId,
               mode: "leave",
               source: "leave",
             };
+            return initial;
           });
+          // sign avatars for leave items using employee userId
+          for (const it of normalizedLeave) {
+            if (!it.actorAvatarUrl && it.employeeUserId) {
+              const url = await signByUser(it.employeeUserId);
+              if (url) it.actorAvatarUrl = url;
+            }
+          }
           const merged = [...txnItems, ...normalizedLeave].slice(0, 5);
           if (active) setItems(merged);
         } catch {

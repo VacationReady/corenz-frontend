@@ -116,6 +116,9 @@ export default function AdminDashboardClient({
   }>({ ack: [], sign: [], loading: true, urlMap: {} });
   const [approvalItem, setApprovalItem] = useState<any | null>(null);
   const [docItem, setDocItem] = useState<{ id: string; name: string; url?: string } | null>(null);
+  const [newStartersOpen, setNewStartersOpen] = useState(false);
+  const [newStarters, setNewStarters] = useState<any[] | null>(null);
+  const [loadingNewStarters, setLoadingNewStarters] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => setDetail(e.detail);
@@ -828,7 +831,20 @@ export default function AdminDashboardClient({
                   )
                   .slice(0, 4)
                   .map((ev) => (
-                    <li key={ev.id} className="flex items-center gap-3">
+                    <li
+                      key={ev.id}
+                      className="flex items-center gap-3 hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
+                      onClick={() => {
+                        try {
+                          const d = new Date(ev.start);
+                          const y = d.getFullYear();
+                          const m = String(d.getMonth() + 1).padStart(2, "0");
+                          const day = String(d.getDate()).padStart(2, "0");
+                          const iso = `${y}-${m}-${day}`;
+                          router.push(`/calendar?date=${iso}`);
+                        } catch (_err) {}
+                      }}
+                    >
                       <Avatar
                         size={32}
                         name={ev.employee?.name}
@@ -856,7 +872,8 @@ export default function AdminDashboardClient({
   // People Metrics Section
   if (section === "people-metrics") {
     return (
-      <DashboardWidget title="People Metrics" icon={Users} className="h-full">
+      <>
+        <DashboardWidget title="People Metrics" icon={Users} className="h-full">
         <div className="space-y-4">
           {/* Department Filter */}
           <div className="mb-4">
@@ -904,14 +921,72 @@ export default function AdminDashboardClient({
                 <span className="text-sm text-muted-foreground">
                   New Starters
                 </span>
-                <span className="text-2xl font-bold text-primary">
+                <button
+                  className="text-2xl font-bold text-primary hover:underline"
+                  onClick={async () => {
+                    try {
+                      setNewStartersOpen(true);
+                      setLoadingNewStarters(true);
+                      const qs = new URLSearchParams();
+                      if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                      const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`, { cache: "no-store" });
+                      const data = await res.json();
+                      setNewStarters(Array.isArray(data?.items) ? data.items : []);
+                    } catch {
+                      setNewStarters([]);
+                    } finally {
+                      setLoadingNewStarters(false);
+                    }
+                  }}
+                >
                   {metrics.newStartersThisMonth}
-                </span>
+                </button>
               </div>
             </div>
           )}
         </div>
       </DashboardWidget>
+      {newStartersOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="glass rounded-2xl w-full max-w-2xl border border-glass p-4 shadow-depth-2 bg-background">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-base font-semibold">New starters (last 30 days)</div>
+              <button className="text-sm text-muted-foreground" onClick={() => setNewStartersOpen(false)}>Close</button>
+            </div>
+            {loadingNewStarters ? (
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-5/6" />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
+            ) : !newStarters || newStarters.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No starters in the last 30 days.</p>
+            ) : (
+              <ul className="divide-y">
+                {newStarters.map((ns) => (
+                  <li key={ns.employeeId} className="py-2 flex items-center gap-3">
+                    <Avatar size={32} name={ns.name} src={ns.profileImageUrl || undefined} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{ns.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        Start: {new Date(ns.startDate).toLocaleDateString()} {ns.department ? `• ${ns.department}` : ""}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-xs text-muted-foreground">Onboarding</div>
+                      <div className="text-sm font-medium">
+                        {ns.onboarding?.status === "completed" ? "Completed" : `${ns.onboarding?.percent ?? 0}%`}
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => router.push(`/employees/${ns.employeeId}/onboarding`)}>Open</Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : null}
+      </>
     );
   }
 

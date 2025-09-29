@@ -31,8 +31,8 @@ export async function GET(req: Request) {
     const canViewAllApprovals = hasPermission(user as any, "leave-requests", "edit");
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(now.getDate() - 30);
 
     const [
       headcount,
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
           companyId,
           isActive: true,
           ...(departmentId ? { departmentId } : {}),
-          User: { createdAt: { gte: startOfMonth, lt: startOfNextMonth } },
+          startDate: { gte: thirtyDaysAgo, lte: now },
         },
       }),
       // my: count of active pending decisions for current user

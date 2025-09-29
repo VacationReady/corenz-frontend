@@ -173,12 +173,6 @@ export default function ReportsPage() {
           <Button onClick={() => router.push("/reports/builder-new")}>
             + New Report Builder
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/reports/builder")}
-          >
-            Legacy Builder
-          </Button>
         </div>
       }
     >

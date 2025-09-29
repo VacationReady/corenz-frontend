@@ -185,9 +185,32 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     const dep = searchParams.get("department") || "";
     const view = searchParams.get("view") || "";
     const query = searchParams.get("q") || "";
+    const dateParam = searchParams.get("date") || "";
     updateFilter("departments", dep ? [dep] : []);
     updateFilter("search", query);
     if (view === "list") setCurrentView("listMonth");
+    // If date query is present (YYYY-MM-DD), navigate calendar to that date and highlight it
+    if (dateParam) {
+      const parts = dateParam.split("-");
+      if (parts.length === 3) {
+        const [yy, mm, dd] = parts;
+        const y = Number(yy);
+        const m = Number(mm);
+        const d = Number(dd);
+        const parsed = !isNaN(y) && !isNaN(m) && !isNaN(d)
+          ? new Date(y, m - 1, d)
+          : null;
+        if (parsed && !isNaN(parsed.getTime())) {
+          setSelectedDay(parsed);
+          // Defer until calendar ref is ready
+          setTimeout(() => {
+            try {
+              calendarRef.current?.getApi().gotoDate(parsed);
+            } catch {}
+          }, 0);
+        }
+      }
+    }
     initializedFromUrl.current = true;
   }, [searchParams, updateFilter]);
 

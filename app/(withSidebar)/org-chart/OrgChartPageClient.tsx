@@ -1585,8 +1585,52 @@ function OrgNodeCard({
   position: { x: number; y: number };
   onContactRequest: (employee: OrgEmployee) => void;
 }) {
-  const directReports = node.children.length;
+  const directReportsCount = node.children.length;
+  const indirectReports = getIndirectReports(node);
+  const indirectReportsCount = indirectReports.length;
   const managerLabel = node.managerName ?? "Reports to leadership";
+
+  const renderReportItem = (report: OrgNode) => (
+    <div key={report.id} className="flex items-start gap-3">
+      <Avatar
+        src={report.profileImageUrl ?? undefined}
+        name={report.fullName}
+        size={40}
+      />
+      <div className="min-w-0 space-y-1">
+        <p
+          className="truncate text-sm font-medium text-foreground"
+          title={report.fullName}
+        >
+          {report.fullName}
+        </p>
+        <p
+          className="truncate text-xs text-muted-foreground"
+          title={report.jobTitle ?? undefined}
+        >
+          {report.jobTitle ?? "Role not assigned"}
+        </p>
+        <p
+          className="truncate text-xs text-muted-foreground"
+          title={report.department ?? undefined}
+        >
+          {report.department ?? "No department"}
+        </p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="truncate" title={report.email}>
+            {report.email}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="truncate" title={report.phone ?? undefined}>
+            {report.phone ?? "Not provided"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -1663,7 +1707,7 @@ function OrgNodeCard({
           </div>
           <div className="flex items-center gap-2">
             <Briefcase className="h-4 w-4 shrink-0 text-slate-400" />
-            {directReports === 0 ? (
+            {directReportsCount === 0 ? (
               <span>No direct reports</span>
             ) : (
               <Popover>
@@ -1678,7 +1722,7 @@ function OrgNodeCard({
                       }
                     }}
                   >
-                    {directReports} direct {directReports === 1 ? "report" : "reports"}
+                    {directReportsCount} direct {directReportsCount === 1 ? "report" : "reports"}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -1689,29 +1733,41 @@ function OrgNodeCard({
                     Direct reports
                   </p>
                   <div className="mt-3 space-y-3">
-                    {node.children.map((child) => (
-                      <div key={child.id} className="flex items-center gap-3">
-                        <Avatar
-                          src={child.profileImageUrl ?? undefined}
-                          name={child.fullName}
-                          size={40}
-                        />
-                        <div className="min-w-0">
-                          <p
-                            className="truncate text-sm font-medium text-foreground"
-                            title={child.fullName}
-                          >
-                            {child.fullName}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground" title={child.jobTitle ?? undefined}>
-                            {child.jobTitle ?? "Role not assigned"}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground" title={child.department ?? undefined}>
-                            {child.department ?? "No department"}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {node.children.map((child) => renderReportItem(child))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4 shrink-0 text-slate-400" />
+            {indirectReportsCount === 0 ? (
+              <span>No indirect reports</span>
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.stopPropagation();
+                      }
+                    }}
+                  >
+                    {indirectReportsCount} indirect {indirectReportsCount === 1 ? "report" : "reports"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  className="w-80 max-h-80 overflow-y-auto p-4"
+                >
+                  <p className="text-sm font-semibold text-foreground">
+                    Indirect reports
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {indirectReports.map((report) => renderReportItem(report))}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -1720,6 +1776,21 @@ function OrgNodeCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function collectDescendants(nodes: OrgNode[]): OrgNode[] {
+  const result: OrgNode[] = [];
+  nodes.forEach((child) => {
+    result.push(child);
+    result.push(...collectDescendants(child.children));
+  });
+  return result;
+}
+
+function getIndirectReports(node: OrgNode): OrgNode[] {
+  return collectDescendants(node.children).filter(
+    (descendant) => descendant.managerUserId !== node.userId,
   );
 }
 

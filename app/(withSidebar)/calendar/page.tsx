@@ -447,14 +447,14 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     const isToday = today.toDateString() === d.toDateString();
     const isSelected = selectedDay && selectedDay.toDateString() === d.toDateString();
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    return [
+    return ([
       "cz-daycell",
       blackoutDateKeys.has(key) && "cz-daycell--blackout",
       level > 0 && `cz-daycell--heat-${level}`,
       isToday && "cz-daycell--today",
       isSelected && "cz-daycell--selected",
       isWeekend && "cz-daycell--weekend",
-    ].filter(Boolean);
+    ] as (string | false)[]).filter((v): v is string => Boolean(v));
   };
 
   const dayCellContent = (arg: any) => {

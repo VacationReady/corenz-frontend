@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 
 export async function GET(req: NextRequest) {
@@ -16,9 +17,29 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const document = await prisma.document.findFirst({
+      where: { path },
+      select: { id: true, companyId: true, path: true },
+    });
+
+    if (!document) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
+    if (document.companyId !== session.user.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const tenantPrefix = `${session.user.companyId}/`;
+    if (document.path.includes("/") && document.path.startsWith(tenantPrefix)) {
+      if (!path.startsWith(tenantPrefix)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
     const { data, error } = await supabase.storage
       .from("documents")
-      .createSignedUrl(path, 60 * 5);
+      .createSignedUrl(document.path, 60 * 5);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

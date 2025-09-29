@@ -1,6 +1,9 @@
 // app/api/onboarding/step/[stepId]/complete/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // Util: Parse JSON body (works for Next.js App Router POST)
@@ -20,8 +23,11 @@ export async function POST(
   const { stepId } = rawParams?.then ? await rawParams : rawParams;
   const body = await parseBody(request);
 
-  // Optionally: validate user/company context here (auth/session)
-  // const session = await getServerSession(...)
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.companyId || !session.user.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     // 1. Find step instance (and onboardingInstance, employee, company for security)
@@ -45,8 +51,25 @@ export async function POST(
       return NextResponse.json({ error: "Step not found." }, { status: 404 });
     }
 
-    // Optionally: Ensure only assigned employee can complete this step!
-    // e.g. check session.user.id === stepInstance.OnboardingInstance.Employee.User.id
+    const onboardingEmployee = stepInstance.OnboardingInstance?.Employee;
+    const onboardingUser = onboardingEmployee?.User;
+
+    if (!onboardingEmployee || !onboardingUser) {
+      return NextResponse.json({ error: "Step not accessible." }, { status: 404 });
+    }
+
+    if (onboardingUser.companyId !== session.user.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const allowedRoles = new Set(["ADMIN", "MANAGER", "SUPER_ADMIN"]);
+
+    if (
+      session.user.id !== onboardingUser.id &&
+      !allowedRoles.has(session.user.role)
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // 2. Mark step as completed
     await prisma.onboardingStepInstance.update({
@@ -71,15 +94,6 @@ export async function POST(
     // 4. (Optional) Handle uploaded file - link to Document table if you have fileUrl
     if (body.fileUrl) {
       // You already have Document model; insert a new document and associate it to this step
-      const employee = stepInstance.OnboardingInstance.Employee;
-      const user = employee.User;
-
-      if (!user.companyId) {
-        throw new Error(
-          "CompanyId missing for uploader user. Cannot create document.",
-        );
-      }
-
       await prisma.document.create({
         data: {
           id: `document_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -88,9 +102,9 @@ export async function POST(
           path: body.filePath || body.fileUrl,
           size: body.fileSize || 0,
           type: body.fileType || "other",
-          employeeId: employee.id,
-          uploaderId: user.id,
-          companyId: user.companyId, // now always a string
+          employeeId: onboardingEmployee.id,
+          uploaderId: session.user.id,
+          companyId: session.user.companyId, // use validated tenant context
           // ...other fields
         },
       });

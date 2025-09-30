@@ -826,24 +826,26 @@ export default function AutomationRulesPage() {
       showHomeIcon={false}
     >
       <div className="flex h-[calc(100vh-12rem)]">
-        {/* Left Sidebar - Rules List */}
+        {/* Left Sidebar - Only show list when editing an existing rule */}
+        {builderMode === "edit" && (
           <div className="w-80 flex-shrink-0">
-          <AutomationRuleList
-            rules={rules}
-            selectedRuleId={selectedRule?.id}
-            loading={loading}
-            onCreateNew={openCreateDialog}
-            onSelectRule={(rule) => {
-              setFormData(rule);
-              setSelectedRule(rule);
-            }}
-            onEditRule={openEditDialog}
-            onDeleteRule={deleteRule}
-            onToggleStatus={toggleRuleStatus}
-            onRunTest={runDryTest}
-            onDuplicateRule={handleDuplicateRule}
-          />
-        </div>
+            <AutomationRuleList
+              rules={rules}
+              selectedRuleId={selectedRule?.id}
+              loading={loading}
+              onCreateNew={openCreateDialog}
+              onSelectRule={(rule) => {
+                setFormData(rule);
+                setSelectedRule(rule);
+              }}
+              onEditRule={openEditDialog}
+              onDeleteRule={deleteRule}
+              onToggleStatus={toggleRuleStatus}
+              onRunTest={runDryTest}
+              onDuplicateRule={handleDuplicateRule}
+            />
+          </div>
+        )}
 
         {/* Main Builder Area */}
         <div className="flex-1 flex">

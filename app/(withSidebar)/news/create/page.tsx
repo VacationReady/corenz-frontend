@@ -51,6 +51,11 @@ interface NewsDraftPayload {
     locations?: string[];
   };
   isDraft: boolean;
+  // UI-only cover controls (autosaved locally)
+  coverFit?: "cover" | "contain";
+  coverHeightPx?: number;
+  coverObjectPositionX?: number; // 0-100
+  coverObjectPositionY?: number; // 0-100
 }
 
 const hasMeaningfulDraft = (draft: NewsDraftPayload | null | undefined) => {
@@ -146,6 +151,10 @@ export default function CreateNewsPostPage() {
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
   const [coverStoragePath, setCoverStoragePath] = useState<string | null>(null);
+  const [coverFit, setCoverFit] = useState<"cover" | "contain">("cover");
+  const [coverHeightPx, setCoverHeightPx] = useState<number>(192);
+  const [coverObjectPositionX, setCoverObjectPositionX] = useState<number>(50);
+  const [coverObjectPositionY, setCoverObjectPositionY] = useState<number>(50);
   const [videoUrl, setVideoUrl] = useState("");
   const [attachmentItems, setAttachmentItems] = useState<
     FileDropzoneItem<NewsUploadMeta>[]
@@ -185,6 +194,10 @@ export default function CreateNewsPostPage() {
     sendEmail: false,
     audience: { type: "all" },
     isDraft: false,
+    coverFit: "cover",
+    coverHeightPx: 192,
+    coverObjectPositionX: 50,
+    coverObjectPositionY: 50,
   });
   const restorePromptedRef = useRef(false);
 
@@ -204,6 +217,10 @@ export default function CreateNewsPostPage() {
       setTitle("");
       setContent(null);
       setCoverImage("");
+      setCoverFit("cover");
+      setCoverHeightPx(192);
+      setCoverObjectPositionX(50);
+      setCoverObjectPositionY(50);
       setVideoUrl("");
       setAttachmentItems([]);
       setTags([]);
@@ -414,6 +431,10 @@ export default function CreateNewsPostPage() {
       title,
       content,
       coverImage,
+      coverFit,
+      coverHeightPx,
+      coverObjectPositionX,
+      coverObjectPositionY,
       videoUrl,
       tags,
       pinned,
@@ -426,6 +447,10 @@ export default function CreateNewsPostPage() {
     title,
     content,
     coverImage,
+    coverFit,
+    coverHeightPx,
+    coverObjectPositionX,
+    coverObjectPositionY,
     videoUrl,
     tags,
     pinned,
@@ -504,6 +529,22 @@ export default function CreateNewsPostPage() {
         setTitle(parsed?.title || "");
         setContent(parsed?.content ?? null);
         setCoverImage(parsed?.coverImage || "");
+        setCoverFit((parsed as any)?.coverFit === "contain" ? "contain" : "cover");
+        setCoverHeightPx(
+          typeof (parsed as any)?.coverHeightPx === "number"
+            ? Math.min(600, Math.max(120, (parsed as any).coverHeightPx))
+            : 192,
+        );
+        setCoverObjectPositionX(
+          typeof (parsed as any)?.coverObjectPositionX === "number"
+            ? Math.min(100, Math.max(0, (parsed as any).coverObjectPositionX))
+            : 50,
+        );
+        setCoverObjectPositionY(
+          typeof (parsed as any)?.coverObjectPositionY === "number"
+            ? Math.min(100, Math.max(0, (parsed as any).coverObjectPositionY))
+            : 50,
+        );
         setVideoUrl(parsed?.videoUrl || "");
         setTags(parsed?.tags || []);
         setPinned(Boolean(parsed?.pinned));
@@ -690,20 +731,91 @@ export default function CreateNewsPostPage() {
                   helperText="Images are stored securely in your tenant bucket."
                 />
                 {coverImage && (
-                  <div className="relative mt-2 rounded-lg overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={coverImage}
-                      alt="Cover"
-                      className="w-full h-48 object-cover"
-                    />
-                    <button
-                      onClick={clearCover}
-                      className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white transition hover:bg-black/70"
-                      type="button"
+                  <div className="space-y-3">
+                    <div
+                      className="relative mt-2 rounded-lg overflow-hidden bg-muted"
+                      style={{ height: `${coverHeightPx}px` }}
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={coverImage}
+                        alt="Cover"
+                        className="w-full h-full"
+                        style={{
+                          objectFit: coverFit,
+                          objectPosition: `${coverObjectPositionX}% ${coverObjectPositionY}%`,
+                        }}
+                      />
+                      <button
+                        onClick={clearCover}
+                        className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white transition hover:bg-black/70"
+                        type="button"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Cover controls */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex items-center gap-3">
+                        <label className="text-xs text-muted-foreground w-24">Fit</label>
+                        <select
+                          value={coverFit}
+                          onChange={(e) => setCoverFit(e.target.value as any)}
+                          className={cn(
+                            "px-2 py-1 text-sm bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
+                          )}
+                        >
+                          <option value="cover">Cover (crop)</option>
+                          <option value="contain">Contain (fit)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <label className="text-xs text-muted-foreground w-24">Height</label>
+                        <input
+                          type="range"
+                          min={120}
+                          max={600}
+                          step={4}
+                          value={coverHeightPx}
+                          onChange={(e) => setCoverHeightPx(parseInt(e.target.value, 10))}
+                          className="flex-1"
+                        />
+                        <span className="text-xs tabular-nums w-12 text-right">{coverHeightPx}px</span>
+                      </div>
+
+                      {coverFit === "cover" && (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs text-muted-foreground w-24">Position X</label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={1}
+                              value={coverObjectPositionX}
+                              onChange={(e) => setCoverObjectPositionX(parseInt(e.target.value, 10))}
+                              className="flex-1"
+                            />
+                            <span className="text-xs tabular-nums w-12 text-right">{coverObjectPositionX}%</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs text-muted-foreground w-24">Position Y</label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={1}
+                              value={coverObjectPositionY}
+                              onChange={(e) => setCoverObjectPositionY(parseInt(e.target.value, 10))}
+                              className="flex-1"
+                            />
+                            <span className="text-xs tabular-nums w-12 text-right">{coverObjectPositionY}%</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -931,9 +1043,17 @@ export default function CreateNewsPostPage() {
         <div className="space-y-6">
           {/* Cover Image */}
           {coverImage ? (
-            <div className="rounded-xl overflow-hidden border border-border">
+            <div className="rounded-xl overflow-hidden border border-border bg-muted" style={{ height: `${coverHeightPx}px` }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={coverImage} alt="Cover" className="w-full h-56 object-cover" />
+              <img
+                src={coverImage}
+                alt="Cover"
+                className="w-full h-full"
+                style={{
+                  objectFit: coverFit,
+                  objectPosition: `${coverObjectPositionX}% ${coverObjectPositionY}%`,
+                }}
+              />
             </div>
           ) : null}
 

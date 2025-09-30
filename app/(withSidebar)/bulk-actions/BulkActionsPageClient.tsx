@@ -89,6 +89,7 @@ export default function BulkActionsPageClient() {
   const [providers, setProviders] = useState<Option[]>([]);
   const [eventCategories, setEventCategories] = useState<Option[]>([]);
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
+  const [requestedAction, setRequestedAction] = useState<ActionType | null>(null);
   const [isEmployeeListCollapsed, setIsEmployeeListCollapsed] =
     useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -368,6 +369,29 @@ export default function BulkActionsPageClient() {
     ? "indeterminate"
     : false;
 
+  const handleConfigure = useCallback(
+    (action: ActionType) => {
+      if (selectedIds.size === 0) {
+        setRequestedAction(action);
+        setIsEmployeeListCollapsed(false);
+        toast.message("Select employees to continue", {
+          description: "Pick one or more employees, then the configuration will open automatically.",
+        });
+        return;
+      }
+      setActiveAction(action);
+      setRequestedAction(null);
+    },
+    [selectedIds.size],
+  );
+
+  useEffect(() => {
+    if (requestedAction && selectedIds.size > 0) {
+      setActiveAction(requestedAction);
+      setRequestedAction(null);
+    }
+  }, [requestedAction, selectedIds.size]);
+
   const actionCards: Array<{
     id: ActionType;
     title: string;
@@ -475,6 +499,14 @@ export default function BulkActionsPageClient() {
                 </Button>
               </div>
             </div>
+
+            {requestedAction && selectedIds.size === 0 && (
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                Select employees to continue configuring {
+                  actionCards.find((c) => c.id === requestedAction)?.title || "this action"
+                }.
+              </div>
+            )}
 
             <div className="grid gap-4 lg:grid-cols-4">
               <div className="lg:col-span-2 space-y-2">
@@ -690,8 +722,7 @@ export default function BulkActionsPageClient() {
               icon={card.icon}
               action={
                 <Button
-                  onClick={() => setActiveAction(card.id)}
-                  disabled={selectedIds.size === 0}
+                  onClick={() => handleConfigure(card.id)}
                 >
                   Configure
                 </Button>

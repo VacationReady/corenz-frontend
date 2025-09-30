@@ -8,7 +8,7 @@ import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import AdminDashboardClient from "./AdminDashboardClient";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { User } from "lucide-react";
+import { User, Mail, Bot } from "lucide-react";
 import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
 import { Avatar } from "@/components/ui/Avatar";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
@@ -120,6 +120,18 @@ export default async function AdminDashboardPage() {
                 <Link href={`/employees/${user.Employee.id}/overview`}>
                   <Button className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-premium">
                     <User className="h-4 w-4 mr-2" /> View profile
+                  </Button>
+                </Link>
+                {/* Email Employee */}
+                <Link href="/bulk-actions?action=messaging">
+                  <Button variant="outline">
+                    <Mail className="h-4 w-4 mr-2" /> Email Employee
+                  </Button>
+                </Link>
+                {/* AI Chatbot */}
+                <Link href="/assistant">
+                  <Button className="bg-gradient-to-r from-primary via-[hsl(var(--sunset-2))] to-[hsl(var(--sunset-3))] hover:from-primary/90 hover:via-[hsl(var(--sunset-2))]/90 hover:to-[hsl(var(--sunset-3))]/90 shadow-premium">
+                    <Bot className="h-4 w-4 mr-2" /> AI Chatbot
                   </Button>
                 </Link>
                 <div className="relative">

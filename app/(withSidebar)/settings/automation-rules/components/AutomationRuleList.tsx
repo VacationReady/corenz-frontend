@@ -255,37 +255,42 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                       <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="secondary"
+                        variant="ghost"
+                        pill
                         onClick={() => {
                           const url = `/settings/automation-rules?preview=${encodeURIComponent(t.id)}`;
                           window.location.href = url;
                         }}
+                        className="h-8 px-3"
                       >
+                        <Search className="w-4 h-4 mr-1" />
                         Preview
                       </Button>
                       {t.isInstalled ? (
                         <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
                       ) : (
-                          <Button
-                            size="sm"
-                            onClick={async () => {
-                              const res = await fetch("/api/automation-rules/templates", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ templateId: t.id, customizations: { autoActivate: true } }),
-                              });
-                              if (res.ok) {
-                                // Refresh templates and rules without reloading the whole app
-                                const updated = await fetch("/api/automation-rules/templates").then(r => r.json());
-                                setTemplates(updated.templates || []);
-                                // Soft prompt to user to switch to Active tab by re-render from parent fetch
-                                window.location.reload();
-                              }
-                            }}
-                          >
-                            Use template
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          pill
+                          className="h-8 px-3"
+                          onClick={async () => {
+                            const res = await fetch("/api/automation-rules/templates", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ templateId: t.id, customizations: { autoActivate: true } }),
+                            });
+                            if (res.ok) {
+                              const updated = await fetch("/api/automation-rules/templates").then(r => r.json());
+                              setTemplates(updated.templates || []);
+                              window.location.reload();
+                            }
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                      )}
                       </div>
                     </CardContent>
                   </Card>

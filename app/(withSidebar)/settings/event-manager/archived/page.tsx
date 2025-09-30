@@ -3,15 +3,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { PageShell } from "@/components/ui/PageShell";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ArchivedEventManagerPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const breadcrumbs = {
     items: [
       { label: "Settings", href: "/settings" },
@@ -26,6 +29,7 @@ export default function ArchivedEventManagerPage() {
 
   const fetchArchivedCategories = async () => {
     try {
+      setIsLoading(true);
       const res = await fetch("/api/event-categories/archived");
       const data = await res.json();
       console.log("Fetched archived categories:", data);
@@ -37,6 +41,8 @@ export default function ArchivedEventManagerPage() {
     } catch (error) {
       console.error("Error fetching archived categories:", error);
       toast.error("An error occurred while fetching archived categories.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,67 +96,60 @@ export default function ArchivedEventManagerPage() {
 
   return (
     <PageShell title="Archived Event Categories" breadcrumbs={breadcrumbs} showHomeIcon={false}>
-      <Card className="p-4">
-        {categories.length === 0 ? (
-          <p className="text-sm text-gray-500">No archived categories found.</p>
-        ) : (
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className="border rounded p-3 bg-white shadow-sm"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">{category.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {category.categoryType ?? ""}
-                    </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Archived Categories</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading && (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+              ))}
+            </div>
+          )}
+          {!isLoading && categories.length === 0 && (
+            <EmptyState title="No archived categories" description="When you archive categories, they'll appear here so you can reactivate them later." variant="minimal" />
+          )}
+          {!isLoading && categories.length > 0 && (
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <div key={category.id} className="glass-card rounded-2xl p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{category.name}</p>
+                      <p className="text-sm text-muted-foreground">{category.categoryType ?? ""}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={() => handleReactivateCategory(category.id)}>Reactivate</Button>
+                      <Button size="icon" variant="ghost" onClick={() => toggleExpand(category.id)}>
+                        {expanded === category.id ? (
+                          <ChevronUpIcon className="w-5 h-5" />
+                        ) : (
+                          <ChevronDownIcon className="w-5 h-5" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleReactivateCategory(category.id)}
-                    >
-                      Reactivate
-                    </Button>
-                    <button onClick={() => toggleExpand(category.id)}>
-                      {expanded === category.id ? (
-                        <ChevronUpIcon className="w-5 h-5" />
-                      ) : (
-                        <ChevronDownIcon className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
 
-                {expanded === category.id && category.subcategories && (
-                  <div className="mt-4 space-y-2">
-                    {category.subcategories.map((sub: any) => (
-                      <div
-                        key={sub.id}
-                        className="flex justify-between items-center border rounded p-2 bg-gray-50"
-                      >
-                        <div>
-                          <p className="font-medium">{sub.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {sub.defaultPaidStatus} | Archived
-                          </p>
+                  {expanded === category.id && category.subcategories && (
+                    <div className="mt-4 space-y-2">
+                      {category.subcategories.map((sub: any) => (
+                        <div key={sub.id} className="flex items-center justify-between glass-subtle rounded-xl p-3">
+                          <div>
+                            <p className="font-medium">{sub.name}</p>
+                            <p className="text-sm text-muted-foreground">{sub.defaultPaidStatus} | Archived</p>
+                          </div>
+                          <Button size="sm" onClick={() => handleReactivateSubcategory(sub.id)}>Reactivate</Button>
                         </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleReactivateSubcategory(sub.id)}
-                        >
-                          Reactivate
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </PageShell>
   );

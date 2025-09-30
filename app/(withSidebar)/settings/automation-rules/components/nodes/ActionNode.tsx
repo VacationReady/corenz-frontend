@@ -11,6 +11,7 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
         selected ? "border-green-500 shadow-lg" : "border-green-200",
         "bg-gradient-to-br from-green-50 to-white",
       )}
+      data-drag-handle
     >
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">

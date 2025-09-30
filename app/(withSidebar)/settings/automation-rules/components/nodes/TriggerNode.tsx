@@ -12,6 +12,7 @@ export const TriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
         selected ? "border-blue-500 shadow-lg" : "border-blue-200",
         "bg-gradient-to-br from-blue-50 to-white",
       )}
+      data-drag-handle
     >
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">

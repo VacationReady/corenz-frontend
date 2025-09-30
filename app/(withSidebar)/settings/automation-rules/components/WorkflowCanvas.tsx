@@ -207,6 +207,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             }}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            dragHandle=".rf-drag"
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             fitView
@@ -220,10 +221,10 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
-            <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="bg-white/90 backdrop-blur">
+            <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="glass-strong">
               Templates
             </Button>
-            <Button variant="outline" size="sm" onClick={autoLayout} className="bg-white/90 backdrop-blur">
+            <Button variant="ghost" size="sm" onClick={autoLayout} className="glass-strong">
               Auto Layout
             </Button>
           </div>
@@ -233,19 +234,19 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                 Unsaved changes
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={exportWorkflow} className="bg-white/90 backdrop-blur" aria-label="Export">
+            <Button variant="ghost" size="sm" onClick={exportWorkflow} className="glass-strong" aria-label="Export">
               <Download className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="bg-white/90 backdrop-blur"
+              className="glass-strong"
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
-            <Button variant="outline" size="sm" onClick={onTest} disabled={!isValid} className="bg-white/90 backdrop-blur">
+            <Button variant="ghost" size="sm" onClick={onTest} disabled={!isValid} className="glass-strong">
               <TestTube className="h-4 w-4 mr-2" />
               Test
             </Button>

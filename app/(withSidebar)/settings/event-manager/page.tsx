@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { Switch } from "@headlessui/react";
+import { Switch } from "@/components/ui/switch";
 import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AddCategoryModal from "@/components/AddCategoryModal";
@@ -12,6 +12,8 @@ import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { PageShell } from "@/components/ui/PageShell";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
 export default function EventManagerPage() {
@@ -36,6 +38,7 @@ export default function EventManagerPage() {
   );
   // Disable while saving
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     fetchCategories();
@@ -43,6 +46,7 @@ export default function EventManagerPage() {
 
   const fetchCategories = async () => {
     try {
+      setIsLoading(true);
       if (statusFilter === "active") {
         const res = await fetch("/api/event-categories", { cache: "no-store" });
         const data = await res.json();
@@ -65,6 +69,8 @@ export default function EventManagerPage() {
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
   const filteredCategories = useMemo(() => {
@@ -182,179 +188,149 @@ export default function EventManagerPage() {
       breadcrumbs={breadcrumbConfigs.settingsSection("Event Manager")}
       showHomeIcon={false}
     >
-      <Card className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Event Categories</h2>
-          <Button onClick={() => setIsModalOpen(true)}>
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Add Category
-          </Button>
-        </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Event Categories</CardTitle>
+            <Button onClick={() => setIsModalOpen(true)} icon={<PlusIcon className="w-4 h-4" />}>
+              Add Category
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Search & Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-2">
+            <Input
+              placeholder="Search categories or subcategories..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="TIME_OFF">Time Off</SelectItem>
+                <SelectItem value="WORKING_EVENT">Working Event</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={adminOnlyFilter} onValueChange={(v: any) => setAdminOnlyFilter(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Admin Only" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Admin Only: All</SelectItem>
+                <SelectItem value="yes">Admin Only: Yes</SelectItem>
+                <SelectItem value="no">Admin Only: No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Search & Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
-          <Input
-            placeholder="Search categories or subcategories..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Select
-            value={statusFilter}
-            onValueChange={(v: any) => setStatusFilter(v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={typeFilter}
-            onValueChange={(v: any) => setTypeFilter(v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="TIME_OFF">Time Off</SelectItem>
-              <SelectItem value="WORKING_EVENT">Working Event</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={adminOnlyFilter}
-            onValueChange={(v: any) => setAdminOnlyFilter(v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Admin Only" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Admin Only: All</SelectItem>
-              <SelectItem value="yes">Admin Only: Yes</SelectItem>
-              <SelectItem value="no">Admin Only: No</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          {filteredCategories.map((category) => (
-            <div
-              key={category.id}
-              className="border rounded p-3 bg-white shadow-sm"
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{category.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {category.categoryType ?? ""}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  {["requiresApproval", "adminOnly", "isActive"].map((key) => (
-                    <div key={key} className="flex items-center space-x-1">
-                      <span className="text-sm capitalize">
-                        {key === "requiresApproval"
-                          ? "Requires Approval"
-                          : key === "adminOnly"
+          <div className="space-y-2">
+            {isLoading && (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+                ))}
+              </div>
+            )}
+            {!isLoading && filteredCategories.length === 0 && (
+              <EmptyState
+                title="No matching categories"
+                description="Try adjusting the search or filters."
+                variant="minimal"
+              />
+            )}
+            {!isLoading && filteredCategories.map((category) => (
+              <div key={category.id} className="glass-card rounded-2xl p-4 shadow-depth-1">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">{category.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {category.categoryType ?? ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {["requiresApproval", "adminOnly", "isActive"].map((key) => (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="text-sm whitespace-nowrap">
+                          {key === "requiresApproval"
+                            ? "Requires Approval"
+                            : key === "adminOnly"
                             ? "Admin Only"
                             : "Active"}
-                      </span>
-                      <Switch
-                        checked={!!category[key]}
-                        onChange={(val) =>
-                          handleToggleCategory(
-                            category.id,
-                            key as any,
-                            Boolean(val),
-                          )
-                        }
-                        disabled={
-                          category.systemDefined ||
-                          savingKey === `${category.id}:${key}`
-                        }
-                        className={cn(
-                          category[key] ? "bg-green-500" : "bg-gray-300",
-                          "relative inline-flex h-5 w-10 items-center rounded-full",
-                          category.systemDefined ||
+                        </span>
+                        <Switch
+                          checked={!!category[key]}
+                          onChange={(val) =>
+                            handleToggleCategory(
+                              category.id,
+                              key as any,
+                              Boolean(val),
+                            )
+                          }
+                          disabled={
+                            category.systemDefined ||
                             savingKey === `${category.id}:${key}`
-                            ? "opacity-50 cursor-not-allowed"
-                            : "",
-                        )}
-                        title={
-                          category.systemDefined
-                            ? "System category, cannot edit"
-                            : ""
-                        }
-                      >
-                        <span
-                          className={cn(
-                            category[key] ? "translate-x-6" : "translate-x-1",
-                            "inline-block h-4 w-4 transform rounded-full bg-white transition",
-                          )}
+                          }
+                          title={category.systemDefined ? "System category, cannot edit" : ""}
                         />
-                      </Switch>
-                    </div>
-                  ))}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleArchiveCategory(category.id)}
-                    disabled={category.systemDefined}
-                  >
-                    Archive
-                  </Button>
-                  <button onClick={() => toggleExpand(category.id)}>
-                    {expanded === category.id ? (
-                      <ChevronUpIcon className="w-5 h-5" />
-                    ) : (
-                      <ChevronDownIcon className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {expanded === category.id && category.subcategories && (
-                <div className="mt-4 space-y-2">
-                  {category.subcategories.map((sub: any) => (
-                    <div
-                      key={sub.id}
-                      className="flex justify-between items-center border rounded p-2 bg-gray-50"
+                      </div>
+                    ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleArchiveCategory(category.id)}
+                      disabled={category.systemDefined}
                     >
-                      <div>
-                        <p className="font-medium">{sub.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {sub.defaultPaidStatus} |{" "}
-                          {sub.isActive ? "Active" : "Archived"}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button size="sm">Edit</Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleArchiveSubcategory(sub.id)}
-                        >
-                          Archive
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    className="mt-2"
-                    onClick={() =>
-                      handleOpenAddSubcategory(category.id, category.name)
-                    }
-                  >
-                    <PlusIcon className="w-4 h-4 mr-1" />
-                    Add Subcategory
-                  </Button>
+                      Archive
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => toggleExpand(category.id)}>
+                      {expanded === category.id ? (
+                        <ChevronUpIcon className="w-5 h-5" />
+                      ) : (
+                        <ChevronDownIcon className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+
+                {expanded === category.id && category.subcategories && (
+                  <div className="mt-4 space-y-2">
+                    {category.subcategories.map((sub: any) => (
+                      <div
+                        key={sub.id}
+                        className="flex justify-between items-center glass-subtle rounded-xl p-3"
+                      >
+                        <InlineSubcategoryEditor sub={sub} onArchived={() => handleArchiveSubcategory(sub.id)} />
+                      </div>
+                    ))}
+                    <Button
+                      variant="secondary"
+                      className="mt-1"
+                      onClick={() =>
+                        handleOpenAddSubcategory(category.id, category.name)
+                      }
+                      icon={<PlusIcon className="w-4 h-4" />}
+                    >
+                      Add Subcategory
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
       </Card>
 
       {/* Add Category Modal */}
@@ -373,5 +349,51 @@ export default function EventManagerPage() {
         parentCategoryName={selectedCategoryName}
       />
     </PageShell>
+  );
+}
+
+function InlineSubcategoryEditor({ sub, onArchived }: { sub: any; onArchived: () => void }) {
+  const [name, setName] = useState<string>(sub.name);
+  const [paid, setPaid] = useState<"PAID" | "UNPAID">(sub.defaultPaidStatus);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+
+  useEffect(() => {
+    setHasChanges(name !== sub.name || paid !== sub.defaultPaidStatus);
+  }, [name, paid, sub.name, sub.defaultPaidStatus]);
+
+  const save = async () => {
+    try {
+      setIsSaving(true);
+      const res = await fetch(`/api/event-subcategories/${sub.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, defaultPaidStatus: paid }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to save");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="w-full flex items-center justify-between gap-3">
+      <div className="min-w-0 flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Subcategory name" />
+        <select
+          value={paid}
+          onChange={(e) => setPaid(e.target.value as "PAID" | "UNPAID")}
+          className="glass-subtle rounded-xl px-3 py-2 text-sm"
+        >
+          <option value="PAID">Paid</option>
+          <option value="UNPAID">Unpaid</option>
+        </select>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Button size="sm" variant="secondary" disabled={!hasChanges} loading={isSaving} onClick={save}>Save</Button>
+        <Button size="sm" variant="ghost" onClick={onArchived}>Archive</Button>
+      </div>
+    </div>
   );
 }

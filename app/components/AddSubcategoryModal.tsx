@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, ChangeEvent } from "react";
-import { Dialog } from "@headlessui/react";
 import Button from "@/components/ui/Button";
 import { PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/Input";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
@@ -67,44 +67,27 @@ export default function AddSubcategoryModal({
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-    >
-      <Dialog.Panel className="bg-white w-full max-w-md rounded shadow-lg p-6 space-y-4">
-        <Dialog.Title className="text-lg font-semibold">
-          Add Subcategory under {parentCategoryName}
-        </Dialog.Title>
-
-        <div className="space-y-2">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent title={<DialogTitle>Add Subcategory under {parentCategoryName}</DialogTitle>}>
+        <div className="space-y-3">
           <div>
-            <label
-              htmlFor="subcategoryName"
-              className="block text-sm font-medium mb-1"
-            >
+            <label htmlFor="subcategoryName" className="block text-sm font-medium mb-1">
               Subcategory Name
             </label>
             <Input
               id="subcategoryName"
               placeholder="e.g., Doctor's Appointment"
               value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setName(e.target.value)
-              }
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Default Paid Status
-            </label>
+            <label className="block text-sm font-medium mb-1">Default Paid Status</label>
             <select
               value={defaultPaidStatus}
-              onChange={(e) =>
-                setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")
-              }
-              className="w-full border rounded p-2"
+              onChange={(e) => setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")}
+              className="glass-subtle rounded-xl px-3 py-2 text-sm w-full"
             >
               <option value="PAID">Paid</option>
               <option value="UNPAID">Unpaid</option>
@@ -112,20 +95,15 @@ export default function AddSubcategoryModal({
           </div>
         </div>
 
-        <div className="flex justify-end space-x-2 pt-4">
+        <div className="flex justify-end gap-2 pt-4">
           <Button onClick={onClose} variant="ghost" disabled={loading}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            loading={loading}
-            loadingText="Adding subcategory"
-            icon={<PlusCircle className="h-4 w-4" />}
-          >
+          <Button onClick={handleSubmit} loading={loading} loadingText="Adding subcategory" icon={<PlusCircle className="h-4 w-4" />}>
             Add Subcategory
           </Button>
         </div>
-      </Dialog.Panel>
+      </DialogContent>
     </Dialog>
   );
 }

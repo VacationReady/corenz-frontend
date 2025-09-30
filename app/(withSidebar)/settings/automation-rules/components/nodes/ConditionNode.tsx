@@ -11,6 +11,7 @@ export const ConditionNode: React.FC<NodeProps> = ({ data, selected }) => {
         selected ? "border-amber-500 shadow-lg" : "border-amber-200",
         "bg-gradient-to-br from-amber-50 to-white",
       )}
+      data-drag-handle
     >
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">

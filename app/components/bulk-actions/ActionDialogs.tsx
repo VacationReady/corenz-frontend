@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
 
 export interface Option {
@@ -757,13 +758,30 @@ export function LeaveBulkActionDialog({
   );
 }
 
-interface MessagingDialogProps extends BaseDialogProps {}
+interface MessagingEmployee {
+  id: string;
+  name: string;
+  email: string;
+  departmentId: string | null;
+  jobRoleId: string | null;
+  isActive: boolean;
+}
+
+interface MessagingDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
+  onCompleted?: (result: BulkActionResult) => void;
+}
 
 export function MessagingBulkActionDialog({
   open,
   onOpenChange,
-  employeeIds,
-  employees,
+  allEmployees,
+  departments,
+  jobRoles,
   onCompleted,
 }: MessagingDialogProps) {
   const [subject, setSubject] = useState<string>("");
@@ -775,6 +793,94 @@ export function MessagingBulkActionDialog({
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
+  const [filters, setFilters] = useState<{
+    query: string;
+    status: "all" | "active" | "inactive";
+    departments: string[];
+    jobRoles: string[];
+  }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const filteredEmployees = useMemo(() => {
+    const query = filters.query.trim().toLowerCase();
+    return allEmployees.filter((employee) => {
+      if (filters.status === "active" && !employee.isActive) return false;
+      if (filters.status === "inactive" && employee.isActive) return false;
+
+      if (!filters.departments.includes("all")) {
+        if (!employee.departmentId) return false;
+        if (!filters.departments.includes(employee.departmentId)) return false;
+      }
+
+      if (!filters.jobRoles.includes("all")) {
+        if (!employee.jobRoleId) return false;
+        if (!filters.jobRoles.includes(employee.jobRoleId)) return false;
+      }
+
+      if (query.length > 0) {
+        const haystack = `${employee.name} ${employee.email}`
+          .toLowerCase()
+          .trim();
+        if (!haystack.includes(query)) return false;
+      }
+
+      return true;
+    });
+  }, [allEmployees, filters]);
+
+  const allFilteredSelected = useMemo(
+    () =>
+      filteredEmployees.length > 0 &&
+      filteredEmployees.every((employee) => selectedIds.has(employee.id)),
+    [filteredEmployees, selectedIds],
+  );
+
+  const someFilteredSelected = useMemo(
+    () => filteredEmployees.some((employee) => selectedIds.has(employee.id)),
+    [filteredEmployees, selectedIds],
+  );
+
+  const selectionState = allFilteredSelected
+    ? true
+    : someFilteredSelected
+    ? "indeterminate"
+    : false;
+
+  const toggleSelectAllFiltered = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredEmployees.forEach((employee) => next.delete(employee.id));
+      } else {
+        filteredEmployees.forEach((employee) => next.add(employee.id));
+      }
+      return next;
+    });
+  }, [allFilteredSelected, filteredEmployees]);
+
+  const toggleEmployeeSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const selectedSummaries: SelectedEmployeeSummary[] = useMemo(
+    () =>
+      allEmployees
+        .filter((employee) => selectedIds.has(employee.id))
+        .map((employee) => ({ id: employee.id, name: employee.name, email: employee.email })),
+    [allEmployees, selectedIds],
+  );
+
+  const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
+
   const canSubmit =
     employeeIds.length > 0 &&
     subject.trim().length > 3 &&
@@ -783,13 +889,13 @@ export function MessagingBulkActionDialog({
     !submitting;
 
   const employeePreview = useMemo(() => {
-    const preview = employees.slice(0, 3).map((emp) => emp.name || emp.email);
+    const preview = selectedSummaries.slice(0, 3).map((emp) => emp.name || emp.email);
     const remaining = employeeIds.length - preview.length;
     if (remaining > 0) {
       preview.push(`+${remaining} more`);
     }
     return preview.join(", ");
-  }, [employees, employeeIds.length]);
+  }, [selectedSummaries, employeeIds.length]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -831,6 +937,7 @@ export function MessagingBulkActionDialog({
       setCtaUrl("");
       setSendTestTo("");
       setReason("");
+      setSelectedIds(new Set());
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error?.message || "Unable to send messages");
@@ -848,7 +955,111 @@ export function MessagingBulkActionDialog({
             {employeeIds.length} employees selected. {employeePreview}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Search</label>
+                <Input
+                  placeholder="Search by name or email"
+                  value={filters.query}
+                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Employment status</label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({ ...prev, status: value as typeof prev.status }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active employees</SelectItem>
+                    <SelectItem value="inactive">Inactive employees</SelectItem>
+                    <SelectItem value="all">All employees</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Departments</label>
+                <MultiSelect
+                  options={departments}
+                  value={filters.departments}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
+                  placeholder="Filter departments"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Job roles</label>
+                <MultiSelect
+                  options={jobRoles}
+                  value={filters.jobRoles}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
+                  placeholder="Filter job roles"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-glass">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Checkbox
+                        checked={selectionState}
+                        onCheckedChange={() => toggleSelectAllFiltered()}
+                        aria-label="Select all filtered employees"
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Employee
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
+                  {filteredEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
+                        No employees match your filters yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEmployees.map((employee) => {
+                      const isSelected = selectedIds.has(employee.id);
+                      return (
+                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
+                          <td className="px-4 py-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
+                              aria-label={`Select ${employee.name}`}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-foreground">
+                            <div>{employee.name}</div>
+                            <div className="text-xs text-muted-foreground">{employee.email}</div>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                            {employee.isActive ? "Active" : "Inactive"}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Subject</label>
             <Input

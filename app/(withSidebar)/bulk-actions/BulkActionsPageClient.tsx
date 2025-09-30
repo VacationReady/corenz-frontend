@@ -89,7 +89,6 @@ export default function BulkActionsPageClient() {
   const [providers, setProviders] = useState<Option[]>([]);
   const [eventCategories, setEventCategories] = useState<Option[]>([]);
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
-  const [requestedAction, setRequestedAction] = useState<ActionType | null>(null);
   const [isEmployeeListCollapsed, setIsEmployeeListCollapsed] =
     useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -369,28 +368,9 @@ export default function BulkActionsPageClient() {
     ? "indeterminate"
     : false;
 
-  const handleConfigure = useCallback(
-    (action: ActionType) => {
-      if (selectedIds.size === 0) {
-        setRequestedAction(action);
-        setIsEmployeeListCollapsed(false);
-        toast.message("Select employees to continue", {
-          description: "Pick one or more employees, then the configuration will open automatically.",
-        });
-        return;
-      }
-      setActiveAction(action);
-      setRequestedAction(null);
-    },
-    [selectedIds.size],
-  );
-
-  useEffect(() => {
-    if (requestedAction && selectedIds.size > 0) {
-      setActiveAction(requestedAction);
-      setRequestedAction(null);
-    }
-  }, [requestedAction, selectedIds.size]);
+  const handleConfigure = useCallback((action: ActionType) => {
+    setActiveAction(action);
+  }, []);
 
   const actionCards: Array<{
     id: ActionType;
@@ -475,244 +455,7 @@ export default function BulkActionsPageClient() {
           </div>
         )}
 
-        <Card variant="flat" className="border border-glass">
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-xl">Target employees</CardTitle>
-                <CardDescription>
-                  Filter the employee directory and select the cohort you want to
-                  update. You can reuse the same selection across multiple bulk
-                  actions.
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" onClick={resetFilters}>
-                  Reset filters
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={clearSelection}
-                  disabled={selectedIds.size === 0}
-                >
-                  Clear selection
-                </Button>
-              </div>
-            </div>
-
-            {requestedAction && selectedIds.size === 0 && (
-              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-                Select employees to continue configuring {
-                  actionCards.find((c) => c.id === requestedAction)?.title || "this action"
-                }.
-              </div>
-            )}
-
-            <div className="grid gap-4 lg:grid-cols-4">
-              <div className="lg:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Search
-                </label>
-                <Input
-                  placeholder="Search by name or email"
-                  value={filters.query}
-                  onChange={(event) =>
-                    setFilters((prev) => ({ ...prev, query: event.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Departments
-                </label>
-                <MultiSelect
-                  options={departmentFilterOptions}
-                  value={filters.departments}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, departments: value }))
-                  }
-                  placeholder="Filter departments"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Job roles
-                </label>
-                <MultiSelect
-                  options={jobRoleFilterOptions}
-                  value={filters.jobRoles}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, jobRoles: value }))
-                  }
-                  placeholder="Filter job roles"
-                />
-              </div>
-            </div>
-
-            <div className="max-w-xs space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Employment status
-              </label>
-              <Select
-                value={filters.status}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    status: value as FiltersState["status"],
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active employees</SelectItem>
-                  <SelectItem value="inactive">Inactive employees</SelectItem>
-                  <SelectItem value="all">All employees</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>
-                  Showing {filteredEmployees.length.toLocaleString()} of {employees.length.toLocaleString()} employees
-                </span>
-                <Badge variant="secondary">
-                  {statusLabel[filters.status]}
-                </Badge>
-                <Badge variant="outline">
-                  {selectedIds.size.toLocaleString()} selected
-                </Badge>
-                {refreshing && (
-                  <span className="text-xs text-muted-foreground">
-                    Refreshing…
-                  </span>
-                )}
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-auto flex items-center gap-1"
-                onClick={() =>
-                  setIsEmployeeListCollapsed((previous) => !previous)
-                }
-                aria-expanded={!isEmployeeListCollapsed}
-              >
-                {isEmployeeListCollapsed ? (
-                  <>
-                    <ChevronDown className="h-4 w-4" aria-hidden />
-                    Show employee list
-                  </>
-                ) : (
-                  <>
-                    <ChevronUp className="h-4 w-4" aria-hidden />
-                    Hide employee list
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {isEmployeeListCollapsed ? (
-              <div className="flex flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-muted/40 bg-muted/20 px-6 py-12 text-center text-sm text-muted-foreground">
-                <ListChecks className="h-5 w-5" aria-hidden />
-                <p>
-                  Employee list hidden. Use filters to adjust your cohort or
-                  show the list to review individual selections.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-3xl border border-glass">
-                <table className="min-w-full divide-y divide-border">
-                  <thead className="bg-muted/40">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        <Checkbox
-                          checked={selectionState}
-                          onCheckedChange={() => toggleSelectAllFiltered()}
-                          aria-label="Select all filtered employees"
-                        />
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Employee
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Department
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Job role
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60 bg-background">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-sm">
-                          Loading employees…
-                        </td>
-                      </tr>
-                    ) : filteredEmployees.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-sm">
-                          No employees match your filters yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredEmployees.map((employee) => {
-                        const isSelected = selectedIds.has(employee.id);
-                        return (
-                          <tr
-                            key={employee.id}
-                            className={isSelected ? "bg-primary/5" : undefined}
-                          >
-                            <td className="px-4 py-3">
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() =>
-                                  toggleEmployeeSelection(employee.id)
-                                }
-                                aria-label={`Select ${employee.name}`}
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-sm font-medium text-foreground">
-                              <div>{employee.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {employee.email}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">
-                              {employee.departmentName ?? "—"}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-muted-foreground">
-                              {employee.jobRoleName ?? "—"}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {employee.isActive ? (
-                                <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                                  Active
-                                </Badge>
-                              ) : (
-                                <Badge className="border-rose-200 bg-rose-50 text-rose-700" variant="outline">
-                                  Inactive
-                                </Badge>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </Card>
+        {/* Employee targeting moved into individual action dialogs */}
 
         <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
           {actionCards.map((card) => (
@@ -783,8 +526,9 @@ export default function BulkActionsPageClient() {
       <MessagingBulkActionDialog
         open={activeAction === "messaging"}
         onOpenChange={(open) => setActiveAction(open ? "messaging" : null)}
-        employeeIds={Array.from(selectedIds)}
-        employees={selectedSummaries}
+        allEmployees={employees}
+        departments={departments}
+        jobRoles={jobRoles}
         onCompleted={handleActionCompleted}
       />
     </PageShell>

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
-import SidebarNav from "@/components/ui/SidebarNav";
+import AdminSidebar from "@/components/sidebars/AdminSidebar";
 import { ContextualHelpProvider } from "@/components/help/ContextualHelpProvider";
 
 export default function WithSidebarLayout({
@@ -78,7 +78,9 @@ export default function WithSidebarLayout({
   return (
     <ContextualHelpProvider>
       <div className="flex h-screen bg-background">
-        <SidebarNav items={navItems} />
+        <div className="w-80 flex-shrink-0 hidden lg:block">
+          <AdminSidebar />
+        </div>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </ContextualHelpProvider>

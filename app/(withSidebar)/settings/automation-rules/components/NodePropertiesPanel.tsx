@@ -32,6 +32,7 @@ export function NodePropertiesPanel({
           onChange={(e) => onUpdate({ label: e.target.value })}
         />
       </div>
+      <div className="text-[11px] text-muted-foreground">ID: {node.id}</div>
       {node.type === "trigger" && (
         <div className="space-y-2">
           <label className="block text-xs">Trigger Type</label>

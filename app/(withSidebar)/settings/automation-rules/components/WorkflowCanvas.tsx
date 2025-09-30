@@ -196,6 +196,15 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onInit={setReactFlowInstance}
+            onNodeClick={(_, node) => {
+              setSelectedNode(node);
+              if (!showProperties) setShowProperties(true);
+            }}
+            onSelectionChange={({ nodes: selNodes }) => {
+              if (selNodes && selNodes.length > 0) {
+                setSelectedNode(selNodes[0] as any);
+              }
+            }}
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}

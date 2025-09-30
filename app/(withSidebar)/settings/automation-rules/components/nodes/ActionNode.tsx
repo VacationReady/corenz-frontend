@@ -21,8 +21,8 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
           <p className="text-xs text-muted-foreground">{data.description}</p>
         )}
       </div>
-      <Handle type="target" position={Position.Top} className="w-2 h-2 bg-green-500" />
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-green-500" />
+      <Handle id="in" type="target" position={Position.Top} className="w-2 h-2 bg-green-500" />
+      <Handle id="out" type="source" position={Position.Bottom} className="w-2 h-2 bg-green-500" />
     </Card>
   );
 };

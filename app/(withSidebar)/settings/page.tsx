@@ -161,11 +161,6 @@ function SettingSection({
               <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
                 {label}
               </h3>
-              {completionStatus && completionPercent < 100 && (
-                <Badge variant="outline" className="text-xs">
-                  {completionPercent}% configured
-                </Badge>
-              )}
               {completionStatus && completionPercent === 100 && (
                 <Badge className="bg-green-100 text-green-800 text-xs">
                   ✓ Complete

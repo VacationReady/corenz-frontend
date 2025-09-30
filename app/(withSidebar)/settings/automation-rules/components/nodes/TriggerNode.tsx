@@ -27,7 +27,7 @@ export const TriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
           </Badge>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-blue-500" />
+      <Handle id="out" type="source" position={Position.Bottom} className="w-2 h-2 bg-blue-500" />
     </Card>
   );
 };

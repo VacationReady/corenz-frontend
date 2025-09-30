@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -111,6 +111,23 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingTemplates(true);
+        const res = await fetch("/api/automation-rules/templates");
+        if (res.ok) {
+          const data = await res.json();
+          setTemplates(data.templates || []);
+        }
+      } finally {
+        setLoadingTemplates(false);
+      }
+    })();
+  }, []);
 
   const filteredRules = rules.filter((rule) => {
     const matchesSearch = rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -204,6 +221,54 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Templates Gallery (only when no rules yet) */}
+      {rules.length === 0 && (
+        <div className="p-4 border-b bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">Recommended templates</h3>
+            <Button size="sm" variant="secondary" onClick={onCreateNew}>Open Builder</Button>
+          </div>
+          {loadingTemplates ? (
+            <div className="text-xs text-muted-foreground">Loading templates…</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {templates.map((t) => (
+                <Card key={t.id} className="border">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{t.icon} {t.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{t.description}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      {t.isInstalled ? (
+                        <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const res = await fetch("/api/automation-rules/templates", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ templateId: t.id, customizations: { autoActivate: true } }),
+                            });
+                            if (res.ok) {
+                              // Reload page data so the new rule appears immediately
+                              window.location.reload();
+                            }
+                          }}
+                        >
+                          Use template
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Rules List */}
       <div className="flex-1 overflow-y-auto p-4">

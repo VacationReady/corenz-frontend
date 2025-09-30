@@ -385,8 +385,17 @@ export default function ReportsPreviewClient() {
     const result: string[] = [];
     for (const f of fields) {
       if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
-        if (!result.includes("_computed.jobRoleName"))
+        // Always include a single computed column for display
+        if (!result.includes("_computed.jobRoleName")) {
           result.push("_computed.jobRoleName");
+        }
+        // Ensure underlying relation is selected so computed can resolve
+        const dep = hasLeave
+          ? "LeaveRequest.Employee.JobRole.name"
+          : "Employee.JobRole.name";
+        if (!result.includes(dep)) {
+          result.push(dep);
+        }
         continue;
       }
       // Normalise Working Pattern to live under Employee so we don't split models
@@ -552,6 +561,16 @@ export default function ReportsPreviewClient() {
       "User.Department.name":
         "User.Department_User_departmentIdToDepartment.name",
       "User.jobRole.name": "User.JobRole.name",
+      // Map Employee-anchored selections to canonical label keys so headers are correct
+      "Employee.Department.name":
+        "User.Department_User_departmentIdToDepartment.name",
+      "Employee.WorkingPattern.name": "WorkingPattern.name",
+      "Employee.JobRole.name": "User.JobRole.name",
+      // Map Employee.User.* fields to User.* for label lookup
+      "Employee.User.firstName": "User.firstName",
+      "Employee.User.lastName": "User.lastName",
+      "Employee.User.email": "User.email",
+      "Employee.User.phone": "User.phone",
     };
     return map[f] || f;
   }, []);

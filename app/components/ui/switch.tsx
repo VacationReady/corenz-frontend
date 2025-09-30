@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 
 interface HeadlessSwitchProps {
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange?: (checked: boolean) => void;
+  onCheckedChange?: (checked: boolean) => void;
   className?: string;
   disabled?: boolean;
 }
@@ -14,13 +15,15 @@ interface HeadlessSwitchProps {
 export function Switch({
   checked,
   onChange,
+  onCheckedChange,
   className,
   disabled = false,
 }: HeadlessSwitchProps) {
+  const handleChange = onChange ?? onCheckedChange ?? (() => {});
   return (
     <HeadlessSwitch
       checked={checked}
-      onChange={onChange}
+      onChange={handleChange}
       disabled={disabled}
       className={cn(
         "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",

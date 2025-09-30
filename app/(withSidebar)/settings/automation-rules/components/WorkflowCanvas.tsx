@@ -129,7 +129,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         id: nodeId,
         type,
         position,
-        data: { label: type },
+        data: { label: getLabel(type) },
       };
 
       setNodes((nds) => [...nds, newNode]);
@@ -137,6 +137,17 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     },
     [reactFlowInstance, setNodes],
   );
+
+  const getLabel = (type: string) => {
+    return {
+      trigger: "Trigger",
+      condition: "Condition",
+      action: "Action",
+      delay: "Delay",
+      branch: "Branch",
+      loop: "Loop",
+    }[type] || type;
+  };
 
   const autoLayout = useCallback(() => {
     toast.success("Layout optimized");
@@ -156,7 +167,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   return (
     <div className={cn("flex h-full bg-background", isFullscreen && "fixed inset-0 z-50")}>
-      <div className={cn("border-r bg-card transition-all duration-200", showPalette ? "w-64" : "w-12")}>
+      <div className={cn("border-r bg-card transition-all duration-200", showPalette ? "w-72" : "w-12")}>
         {showPalette ? (
           <WorkflowPalette onCollapse={() => setShowPalette(false)} />
         ) : (

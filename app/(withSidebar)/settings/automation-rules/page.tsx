@@ -834,19 +834,7 @@ export default function AutomationRulesPage() {
             />
           </div>
 
-          {/* Right Sidebar - Validation Checklist */}
-          <div className="w-80 flex-shrink-0 bg-gray-50 border-l p-4 overflow-y-auto">
-            <ValidationChecklist
-              validationErrors={validationErrors}
-              validationHints={validationHints}
-              formData={formData}
-              onFocusSection={(section) => {
-                // Scroll to section in builder
-                const element = document.getElementById(`builder-section-${section}`);
-                element?.scrollIntoView({ behavior: "smooth" });
-              }}
-            />
-          </div>
+          {/* Right Sidebar replaced by properties panel inside WorkflowCanvas */}
         </div>
       </div>
 

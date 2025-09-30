@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import AdminSidebar from "@/components/sidebars/AdminSidebar";
-import { ContextualHelpProvider } from "@/components/help/ContextualHelpProvider";
 
 export default function WithSidebarLayout({
   children,
@@ -76,13 +75,11 @@ export default function WithSidebarLayout({
   );
 
   return (
-    <ContextualHelpProvider>
-      <div className="flex h-screen bg-background">
-        <div className="w-80 flex-shrink-0 hidden lg:block">
-          <AdminSidebar />
-        </div>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+    <div className="flex h-screen bg-background">
+      <div className="w-80 flex-shrink-0 hidden lg:block">
+        <AdminSidebar />
       </div>
-    </ContextualHelpProvider>
+      <main className="flex-1 overflow-y-auto">{children}</main>
+    </div>
   );
 }

@@ -207,7 +207,6 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             }}
             onDrop={onDrop}
             onDragOver={onDragOver}
-            dragHandle=".rf-drag"
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             fitView

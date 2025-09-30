@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Trash2, Plus, Bold, Italic, Underline } from "lucide-react";
@@ -11,18 +11,51 @@ type ContentBlock =
   | { type: "bullet_list"; items: string[] };
 
 interface Props {
-  value: ContentBlock[];
+  value: ContentBlock[] | any;
   onChange: (content: ContentBlock[]) => void;
 }
 
 export default function NewsContentBuilder({ value, onChange }: Props) {
-  const [blocks, setBlocks] = useState<ContentBlock[]>(value || []);
+  const normalizeBlocks = (input: unknown): ContentBlock[] => {
+    if (Array.isArray(input)) return input as ContentBlock[];
+    if (typeof input === "string") {
+      try {
+        const parsed = JSON.parse(input);
+        if (Array.isArray(parsed)) return parsed as ContentBlock[];
+        return [{ type: "paragraph", text: input }];
+      } catch {
+        return [{ type: "paragraph", text: input }];
+      }
+    }
+    if (input && typeof input === "object") {
+      // If a single block-like object was provided, wrap it in an array
+      const maybe = input as any;
+      if (maybe.type && (maybe.text || maybe.items)) {
+        return [maybe as ContentBlock];
+      }
+    }
+    return [];
+  };
+
+  const [blocks, setBlocks] = useState<ContentBlock[]>(normalizeBlocks(value));
   const paragraphRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const updateBlocks = (newBlocks: ContentBlock[]) => {
     setBlocks(newBlocks);
     onChange(newBlocks);
   };
+
+  // Sync when value prop changes and coerce to array
+  useEffect(() => {
+    const incoming = normalizeBlocks(value);
+    // Shallow compare to avoid unnecessary updates
+    const sameLength = incoming.length === blocks.length;
+    const looksSame = sameLength && incoming.every((b, i) => b.type === blocks[i]?.type);
+    if (!looksSame) {
+      setBlocks(incoming);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const addBlock = (type: ContentBlock["type"]) => {
     const newBlock: ContentBlock =
@@ -60,7 +93,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
 
   return (
     <div className="space-y-4">
-      {blocks.map((block, index) => (
+      {(Array.isArray(blocks) ? blocks : []).map((block, index) => (
         <div
           key={index}
           className="border rounded p-4 space-y-2 relative bg-white"
@@ -162,14 +195,14 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
           {block.type === "bullet_list" && (
             <>
               <label className="block text-sm font-medium">Bullet List</label>
-              {block.items.map((item, i) => (
+              {(Array.isArray(block.items) ? block.items : []).map((item, i) => (
                 <Input
                   key={i}
                   className="mb-2"
                   placeholder={`Item ${i + 1}`}
                   value={item}
                   onChange={(e) => {
-                    const newItems = [...block.items];
+                    const newItems = [...(Array.isArray(block.items) ? block.items : [])];
                     newItems[i] = e.target.value;
                     updateBlock(index, { ...block, items: newItems });
                   }}
@@ -182,7 +215,7 @@ export default function NewsContentBuilder({ value, onChange }: Props) {
                 onClick={() =>
                   updateBlock(index, {
                     ...block,
-                    items: [...block.items, ""],
+                    items: [...(Array.isArray(block.items) ? block.items : []), ""],
                   })
                 }
               >

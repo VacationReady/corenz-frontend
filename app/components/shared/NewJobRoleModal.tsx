@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { mutate } from "swr";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function NewJobRoleModal({
   onClose,
@@ -90,40 +91,43 @@ export default function NewJobRoleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-4 space-y-4">
-        <h2 className="text-lg font-semibold">Manage Job Roles</h2>
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-
-        <div className="space-y-2 max-h-64 overflow-auto border rounded p-2">
-          {roles.map((r) => (
-            <div key={r.id} className="flex items-center justify-between gap-2">
-              <span className="text-sm">{r.name}</span>
-              <Button size="sm" variant="danger" onClick={() => remove(r.id)} disabled={loading}>
-                Delete
-              </Button>
-            </div>
-          ))}
-          {roles.length === 0 && (
-            <p className="text-sm text-muted-foreground">No job roles yet.</p>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Job Role Name"
-            required
-          />
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
-              Close
-            </Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add"}</Button>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Manage Job Roles</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+          <div className="space-y-2 max-h-64 overflow-auto border rounded p-2">
+            {roles.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-2">
+                <span className="text-sm">{r.name}</span>
+                <Button size="sm" variant="danger" onClick={() => remove(r.id)} disabled={loading}>
+                  Delete
+                </Button>
+              </div>
+            ))}
+            {roles.length === 0 && (
+              <p className="text-sm text-muted-foreground">No job roles yet.</p>
+            )}
           </div>
-        </form>
-      </Card>
-    </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Job Role Name"
+              required
+            />
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+                Close
+              </Button>
+              <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add"}</Button>
+            </DialogFooter>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

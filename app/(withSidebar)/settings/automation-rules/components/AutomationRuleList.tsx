@@ -254,7 +254,20 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                       </div>
                       <div className="flex gap-2">
                         {t.isInstalled ? (
-                          <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
+                          <>
+                            <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                // Open builder in read-only preview: create a temporary client-side view
+                                const url = `/settings/automation-rules?preview=${encodeURIComponent(t.id)}`;
+                                window.location.href = url;
+                              }}
+                            >
+                              Preview
+                            </Button>
+                          </>
                         ) : (
                           <Button
                             size="sm"

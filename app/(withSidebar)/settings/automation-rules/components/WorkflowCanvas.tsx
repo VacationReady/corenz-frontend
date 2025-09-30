@@ -109,7 +109,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.dropEffect = "copy";
   }, []);
 
   const onDrop = useCallback(
@@ -124,7 +124,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         y: event.clientY - reactFlowBounds.top,
       });
 
-      const nodeId = `${type}-${Date.now()}`;
+      const nodeId = `${type}-${(globalThis.crypto?.randomUUID?.() || Date.now().toString())}`;
       const newNode: Node = {
         id: nodeId,
         type,

@@ -367,6 +367,34 @@ export default function AutomationRulesPage() {
   useEffect(() => {
     fetchRules();
     loadOptions();
+    // Support previewing a template in the builder without installing it
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const previewId = params.get("preview");
+      if (previewId) {
+        (async () => {
+          const res = await fetch("/api/automation-rules/templates");
+          if (res.ok) {
+            const data = await res.json();
+            const tpl = (data.templates || []).find((t: any) => t.id === previewId);
+            if (tpl) {
+              setFormData({
+                name: tpl.name,
+                description: tpl.description,
+                isActive: false,
+                triggerType: tpl.definition?.nodes?.find((n: any) => n.type === "trigger")?.data?.config?.triggerType || "MANUAL",
+                triggerConfig: tpl.definition?.nodes?.find((n: any) => n.type === "trigger")?.data?.config || {},
+                conditions: [],
+                actions: [],
+                workflowDefinition: tpl.definition || { nodes: tpl.nodes || [], edges: tpl.edges || [] },
+              } as any);
+              setSelectedRule(null);
+              setBuilderMode("create");
+            }
+          }
+        })();
+      }
+    } catch {}
   }, []);
 
   const loadOptions = async () => {

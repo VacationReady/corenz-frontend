@@ -25,7 +25,6 @@ import {
   AlertTriangle,
   Users,
   Share2,
-  Sparkles,
   HelpCircle,
   Info,
   Lightbulb,
@@ -36,11 +35,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { QuickSetupHub } from "@/components/settings/QuickSetupHub";
 import { ContextualHelpAssistant } from "@/components/settings/ContextualHelpAssistant";
 import { SmartTooltip, QuickHelp } from "@/components/ui/SmartTooltip";
 import { Badge } from "@/components/ui/Badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSession } from "next-auth/react";
 
 const holidaySettings = [
@@ -223,18 +220,9 @@ function SettingSection({
 export default function SettingsIndexPage() {
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const [activeTab, setActiveTab] = useState("quick-setup");
   const [completionData, setCompletionData] = useState<Record<string, { completed: number; total: number }>>({});
-  const [showFirstTimeWelcome, setShowFirstTimeWelcome] = useState(false);
 
   useEffect(() => {
-    // Check if this is the user's first time
-    const hasVisitedSettings = localStorage.getItem("hasVisitedSettings");
-    if (!hasVisitedSettings) {
-      setShowFirstTimeWelcome(true);
-      localStorage.setItem("hasVisitedSettings", "true");
-    }
-
     // Load completion data
     const savedProgress = localStorage.getItem("settingsProgress");
     if (savedProgress) {
@@ -286,7 +274,7 @@ export default function SettingsIndexPage() {
     <>
       <PageShell
         title="Settings"
-        description="Configure and manage your HR system with guided setup wizards and intelligent assistance"
+        description="Configure and manage your HR system with intelligent assistance"
         icon={<Cog className="w-6 h-6" />}
         breadcrumbs={breadcrumbConfigs.settings}
         showHomeIcon={false}
@@ -297,7 +285,6 @@ export default function SettingsIndexPage() {
               description="Our AI assistant can guide you through any configuration"
               tips={[
                 "Click the chat bubble for instant help",
-                "Use Quick Setup for guided wizards",
                 "Hover over (?) icons for explanations"
               ]}
             >
@@ -309,126 +296,68 @@ export default function SettingsIndexPage() {
           </div>
         }
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="quick-setup" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Quick Setup
-            </TabsTrigger>
-            <TabsTrigger value="all-settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              All Settings
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              Configure advanced settings and fine-tune your HR system
+            </p>
+            <Badge variant="outline" className="text-xs">
+              <Info className="h-3 w-3 mr-1" />
+              Hover over settings for help
+            </Badge>
+          </div>
 
-          <TabsContent value="quick-setup" className="space-y-6">
-            {showFirstTimeWelcome && (
-              <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-                <CardContent className="flex items-center justify-between p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/20 rounded-full">
-                      <Sparkles className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Welcome to HR Settings! 👋</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        We've created guided wizards to help you configure everything quickly and correctly.
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowFirstTimeWelcome(false)}
-                  >
-                    Dismiss
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-            <QuickSetupHub 
-              onWizardComplete={(wizardId) => {
-                // Update completion data when a wizard is completed
-                const category = wizardId.includes("leave") ? "holidays" :
-                               wizardId.includes("onboarding") ? "onboarding" :
-                               wizardId.includes("document") ? "documents" :
-                               wizardId.includes("automation") ? "workflows" :
-                               wizardId.includes("permissions") ? "system" : "forms";
-                
-                setCompletionData(prev => ({
-                  ...prev,
-                  [category]: {
-                    ...prev[category],
-                    completed: Math.min((prev[category]?.completed || 0) + 1, prev[category]?.total || 1)
-                  }
-                }));
-              }}
+          <Accordion type="multiple" className="space-y-4" defaultValue={['holidays', 'system']}>
+            <SettingSection
+              id="holidays"
+              label="Holidays & Absence"
+              description="Manage leave policies, working patterns, and absence tracking"
+              icon={<Plane className="w-5 h-5" />}
+              items={holidaySettingsWithHelp}
+              completionStatus={completionData.holidays}
             />
-          </TabsContent>
-
-          <TabsContent value="all-settings" className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">
-                Configure advanced settings and fine-tune your HR system
-              </p>
-              <Badge variant="outline" className="text-xs">
-                <Info className="h-3 w-3 mr-1" />
-                Hover over settings for help
-              </Badge>
-            </div>
-            
-            <Accordion type="multiple" className="space-y-4" defaultValue={['holidays', 'system']}>
-              <SettingSection
-                id="holidays"
-                label="Holidays & Absence"
-                description="Manage leave policies, working patterns, and absence tracking"
-                icon={<Plane className="w-5 h-5" />}
-                items={holidaySettingsWithHelp}
-                completionStatus={completionData.holidays}
-              />
-              <SettingSection
-                id="onboarding"
-                label="Onboarding"
-                description="Configure employee onboarding templates and workflows"
-                icon={<UserPlus className="w-5 h-5" />}
-                items={onboardingSettingsWithHelp}
-                completionStatus={completionData.onboarding}
-              />
-              <SettingSection
-                id="documents"
-                label="Documents"
-                description="Set up document types and management policies"
-                icon={<FileStack className="w-5 h-5" />}
-                items={documentSettingsWithHelp}
-                completionStatus={completionData.documents}
-              />
-              <SettingSection
-                id="workflows"
-                label="Workflows"
-                description="Create and manage automated business processes"
-                icon={<Workflow className="w-5 h-5" />}
-                items={workflowSettingsWithHelp}
-                completionStatus={completionData.workflows}
-              />
-              <SettingSection
-                id="forms"
-                label="Forms & Surveys"
-                description="Design and deploy custom forms and employee surveys"
-                icon={<ClipboardList className="w-5 h-5" />}
-                items={formSettings}
-                completionStatus={completionData.forms}
-              />
-              <SettingSection
-                id="system"
-                label="System"
-                description="Core platform settings and administrative controls"
-                icon={<Settings className="w-5 h-5" />}
-                items={getSystemSettings(role)}
-                completionStatus={completionData.system}
-              />
-            </Accordion>
-          </TabsContent>
-        </Tabs>
+            <SettingSection
+              id="onboarding"
+              label="Onboarding"
+              description="Configure employee onboarding templates and workflows"
+              icon={<UserPlus className="w-5 h-5" />}
+              items={onboardingSettingsWithHelp}
+              completionStatus={completionData.onboarding}
+            />
+            <SettingSection
+              id="documents"
+              label="Documents"
+              description="Set up document types and management policies"
+              icon={<FileStack className="w-5 h-5" />}
+              items={documentSettingsWithHelp}
+              completionStatus={completionData.documents}
+            />
+            <SettingSection
+              id="workflows"
+              label="Workflows"
+              description="Create and manage automated business processes"
+              icon={<Workflow className="w-5 h-5" />}
+              items={workflowSettingsWithHelp}
+              completionStatus={completionData.workflows}
+            />
+            <SettingSection
+              id="forms"
+              label="Forms & Surveys"
+              description="Design and deploy custom forms and employee surveys"
+              icon={<ClipboardList className="w-5 h-5" />}
+              items={formSettings}
+              completionStatus={completionData.forms}
+            />
+            <SettingSection
+              id="system"
+              label="System"
+              description="Core platform settings and administrative controls"
+              icon={<Settings className="w-5 h-5" />}
+              items={getSystemSettings(role)}
+              completionStatus={completionData.system}
+            />
+          </Accordion>
+        </div>
       </PageShell>
 
       {/* Contextual Help Assistant - Always Available */}

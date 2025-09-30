@@ -176,6 +176,20 @@ export async function POST(req: Request) {
           }
         }
 
+        // If Employee.startDate is requested, include computed earliest assignment date as fallback
+        if (sanitizedSelectedFields.includes("Employee.startDate")) {
+          if (!sanitizedSelectedFields.includes("_computed.effectiveStartDate")) {
+            sanitizedSelectedFields.push("_computed.effectiveStartDate");
+          }
+          // Ensure assignments are included to compute fallback
+          const needsLeave = sanitizedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
+          if (needsLeave) {
+            sanitizedSelectedFields.push("LeaveRequest.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else {
+            sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          }
+        }
+
 		if (sanitizedSelectedFields.length === 0) {
 			return NextResponse.json(
 				{ status: "error", message: "No valid fields selected", data: [] },

@@ -142,6 +142,23 @@ export const computedHandlers: ComputedFieldRegistry = {
         })[0];
       return latest?.WorkingPattern?.name || null;
     },
+    "_computed.effectiveStartDate": (item) => {
+      // Prefer explicit Employee.startDate
+      if (item?.startDate) return item.startDate;
+      // Fallback: earliest assignment effective date (first assignment chronologically)
+      const assignments = Array.isArray(item?.EmployeeWorkingPatternAssignment)
+        ? item.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+      const earliest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return da - db;
+        })[0];
+      return earliest?.effectiveDate || null;
+    },
   },
 
   // ===========================

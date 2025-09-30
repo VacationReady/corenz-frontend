@@ -579,10 +579,30 @@ export default function ReportsPreviewClient() {
     return map[f] || f;
   }, []);
 
+  const visibleFields = useMemo(() => {
+    let fields = [...effectiveSelectedFields];
+    // If using computed Working Pattern, hide base relation columns to avoid duplicates
+    if (fields.includes("_computed.workingPatternName")) {
+      const hide = new Set([
+        "WorkingPattern.name",
+        "Employee.WorkingPattern.name",
+        "LeaveRequest.Employee.WorkingPattern.name",
+      ]);
+      fields = fields.filter((f) => !hide.has(f));
+    }
+    // If start date is selected, include a computed fallback too, then prefer the explicit one in columns
+    if (fields.includes("Employee.startDate") && !fields.includes("_computed.effectiveStartDate")) {
+      fields = [...fields, "_computed.effectiveStartDate"];
+    }
+    return fields;
+  }, [effectiveSelectedFields]);
+
+  // Use a sample row (when available) to detect which accessor path resolves
+  const sampleRow = data && data.length > 0 ? data[0] : undefined;
+
   const columns = useMemo<ColumnDefinition[]>(() => {
-    return effectiveSelectedFields.map((field) => {
+    return visibleFields.map((field) => {
       const keys = field.split(".");
-      let accessorKey: string;
       let headerFallback: string;
 
       // Normalise Job Role into a single computed accessor across contexts
@@ -593,16 +613,39 @@ export default function ReportsPreviewClient() {
       if (field === "_computed.workingPatternName") {
         return { header: "Working Pattern", accessorKey: "_computed.workingPatternName" };
       }
+      // Start Date computed fallback (only used if real value is missing)
+      if (field === "_computed.effectiveStartDate") {
+        return { header: "Start Date", accessorKey: "_computed.effectiveStartDate" };
+      }
 
-      if (keys.length >= 3) {
-        accessorKey = `${keys.slice(1).join(".")}`;
-        headerFallback = keys[keys.length - 1];
-      } else if (keys.length === 2) {
-        accessorKey = keys[1];
-        headerFallback = keys[1];
-      } else {
-        accessorKey = keys[keys.length - 1];
-        headerFallback = keys[keys.length - 1];
+      headerFallback = keys[keys.length - 1];
+
+      // Build candidate accessor paths to be resilient across engines
+      const candidates: string[] = [];
+      // 1) Exact path (works for custom engine where root object keeps model)
+      candidates.push(field);
+      // 2) Drop the root model segment (works for dynamic engine output)
+      if (keys.length > 1) {
+        candidates.push(keys.slice(1).join("."));
+      }
+      // 3) Common denormalisations from custom queries
+      if (field === "Employee.User.firstName") candidates.push("firstName");
+      if (field === "Employee.User.lastName") candidates.push("lastName");
+      if (field === "Employee.User.email") candidates.push("email");
+      if (field === "Employee.User.phone") candidates.push("phone");
+      if (field === "Employee.Department.name") candidates.push("department");
+      if (field === "Employee.JobRole.name") candidates.push("jobRole", "User.JobRole.name");
+      if (field === "LeaveEntitlement.EventCategory.name") candidates.push("EventCategory.name");
+      if (field === "LeaveEntitlement.totalDays") candidates.push("totalDays", "LeaveEntitlement.totalDays");
+      if (field === "LeaveEntitlement.usedDays") candidates.push("usedDays", "LeaveEntitlement.usedDays");
+      if (field === "LeaveEntitlement.carryoverDays") candidates.push("carryoverDays", "LeaveEntitlement.carryoverDays");
+      if (field === "_computed.remainingEntitlement") candidates.push("_computed.remainingEntitlement", "remainingEntitlement");
+
+      // Choose first candidate that resolves on a sample row
+      let accessorKey = candidates[0] || field;
+      if (sampleRow) {
+        const found = candidates.find((c) => getNested(sampleRow, c) !== undefined);
+        if (found) accessorKey = found;
       }
 
       const translated = translateLegacy(field);
@@ -613,7 +656,7 @@ export default function ReportsPreviewClient() {
 
       return { header: label, accessorKey };
     });
-  }, [effectiveSelectedFields, fieldLabels, translateLegacy]);
+  }, [visibleFields, fieldLabels, translateLegacy, sampleRow]);
 
   const logAndToastPII = useCallback(
     (rowCount: number) => {

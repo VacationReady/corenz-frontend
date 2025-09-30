@@ -86,7 +86,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const [showPalette, setShowPalette] = useState(true);
   const [showProperties, setShowProperties] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(!(workflow?.nodes?.length));
+  // Start with a clean canvas; templates can be opened via the Templates button
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Load incoming workflow when rule changes
   useEffect(() => {

@@ -244,7 +244,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
             {loadingTemplates ? (
               <div className="text-xs text-muted-foreground">Loading templates…</div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {templates.map((t) => (
                   <Card key={t.id} className="border">
                     <CardContent className="p-3 flex items-center justify-between gap-3">
@@ -253,22 +253,19 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                         <div className="text-xs text-muted-foreground truncate">{t.description}</div>
                       </div>
                       <div className="flex gap-2">
-                        {t.isInstalled ? (
-                          <>
-                            <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                // Open builder in read-only preview: create a temporary client-side view
-                                const url = `/settings/automation-rules?preview=${encodeURIComponent(t.id)}`;
-                                window.location.href = url;
-                              }}
-                            >
-                              Preview
-                            </Button>
-                          </>
-                        ) : (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          const url = `/settings/automation-rules?preview=${encodeURIComponent(t.id)}`;
+                          window.location.href = url;
+                        }}
+                      >
+                        Preview
+                      </Button>
+                      {t.isInstalled ? (
+                        <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
+                      ) : (
                           <Button
                             size="sm"
                             onClick={async () => {

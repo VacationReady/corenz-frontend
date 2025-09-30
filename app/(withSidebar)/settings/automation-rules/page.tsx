@@ -827,7 +827,7 @@ export default function AutomationRulesPage() {
     >
       <div className="flex h-[calc(100vh-12rem)]">
         {/* Left Sidebar - Rules List */}
-        <div className="w-80 flex-shrink-0">
+          <div className="w-80 flex-shrink-0">
           <AutomationRuleList
             rules={rules}
             selectedRuleId={selectedRule?.id}

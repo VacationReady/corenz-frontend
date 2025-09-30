@@ -113,6 +113,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [templates, setTemplates] = useState<any[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(rules.length === 0);
 
   useEffect(() => {
     (async () => {
@@ -222,53 +223,68 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
         </div>
       </div>
 
-      {/* Templates Gallery (only when no rules yet) */}
-      {rules.length === 0 && (
-        <div className="p-4 border-b bg-white">
-          <div className="flex items-center justify-between mb-2">
+      {/* Templates Gallery (always available with toggle) */}
+      <div className="p-4 border-b bg-white">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold">Recommended templates</h3>
-            <Button size="sm" variant="secondary" onClick={onCreateNew}>Open Builder</Button>
+            <Badge variant="secondary" className="h-5 px-2 text-xs">
+              {templates.filter((t) => !t.isInstalled).length} available
+            </Badge>
           </div>
-          {loadingTemplates ? (
-            <div className="text-xs text-muted-foreground">Loading templates…</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {templates.map((t) => (
-                <Card key={t.id} className="border">
-                  <CardContent className="p-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{t.icon} {t.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{t.description}</div>
-                    </div>
-                    <div className="flex gap-2">
-                      {t.isInstalled ? (
-                        <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={async () => {
-                            const res = await fetch("/api/automation-rules/templates", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ templateId: t.id, customizations: { autoActivate: true } }),
-                            });
-                            if (res.ok) {
-                              // Reload page data so the new rule appears immediately
-                              window.location.reload();
-                            }
-                          }}
-                        >
-                          Use template
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={onCreateNew}>Open Builder</Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowTemplates(!showTemplates)}>
+              {showTemplates ? "Hide" : "Browse"}
+            </Button>
+          </div>
         </div>
-      )}
+        {showTemplates && (
+          <div>
+            {loadingTemplates ? (
+              <div className="text-xs text-muted-foreground">Loading templates…</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {templates.map((t) => (
+                  <Card key={t.id} className="border">
+                    <CardContent className="p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{t.icon} {t.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">{t.description}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        {t.isInstalled ? (
+                          <Badge className="h-6 px-2 text-xs bg-green-100 text-green-700">Installed</Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              const res = await fetch("/api/automation-rules/templates", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ templateId: t.id, customizations: { autoActivate: true } }),
+                              });
+                              if (res.ok) {
+                                // Refresh templates and rules without reloading the whole app
+                                const updated = await fetch("/api/automation-rules/templates").then(r => r.json());
+                                setTemplates(updated.templates || []);
+                                // Soft prompt to user to switch to Active tab by re-render from parent fetch
+                                window.location.reload();
+                              }
+                            }}
+                          >
+                            Use template
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Rules List */}
       <div className="flex-1 overflow-y-auto p-4">

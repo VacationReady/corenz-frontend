@@ -1,28 +1,86 @@
-// app/(withSidebar)/layout.tsx
+"use client";
 
-import React, { ReactNode } from "react";
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth-options";
-import ClientLayout from "@/ClientLayout";
+import { usePathname } from "next/navigation";
+import { useMemo } from "react";
+import SidebarNav from "@/components/ui/SidebarNav";
+import { ContextualHelpProvider } from "@/components/help/ContextualHelpProvider";
 
-export default async function WithSidebarLayout({
+export default function WithSidebarLayout({
   children,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const pathname = usePathname();
 
-  if (session?.user?.role === "SUPER_ADMIN") {
-    redirect("/tenants");
-  }
+  const navItems = useMemo(
+    () => [
+      {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: "LayoutDashboard",
+      },
+      {
+        title: "Employees",
+        href: "/employees",
+        icon: "Users",
+      },
+      {
+        title: "Calendar",
+        href: "/calendar",
+        icon: "Calendar",
+      },
+      {
+        title: "Workflow Library",
+        href: "/workflows",
+        icon: "Workflow",
+        badge: "New",
+        badgeVariant: "success" as const,
+      },
+      {
+        title: "Org Chart",
+        href: "/org-chart",
+        icon: "Network",
+      },
+      {
+        title: "Bulk Actions",
+        href: "/bulk-actions",
+        icon: "ListChecks",
+      },
+      {
+        title: "Onboarding",
+        href: "/onboarding",
+        icon: "UserPlus",
+      },
+      {
+        title: "Offboarding",
+        href: "/offboarding",
+        icon: "UserMinus",
+      },
+      {
+        title: "Documents",
+        href: "/documents",
+        icon: "FileText",
+      },
+      {
+        title: "News",
+        href: "/news",
+        icon: "Newspaper",
+      },
+      {
+        title: "Settings",
+        href: "/settings",
+        icon: "Settings",
+      },
+    ],
+    [],
+  );
 
-  const initialRole = session?.user?.role as
-    | "ADMIN"
-    | "MANAGER"
-    | "EMPLOYEE"
-    | "SUPER_ADMIN"
-    | undefined;
-
-  return <ClientLayout initialRole={initialRole}>{children}</ClientLayout>;
+  return (
+    <ContextualHelpProvider>
+      <div className="flex h-screen bg-background">
+        <SidebarNav items={navItems} />
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+    </ContextualHelpProvider>
+  );
 }

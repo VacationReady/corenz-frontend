@@ -88,9 +88,16 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showTemplates, setShowTemplates] = useState(!(workflow?.nodes?.length));
 
+  // Load incoming workflow when rule changes
+  useEffect(() => {
+    if (workflow?.nodes || workflow?.edges) {
+      setNodes(workflow.nodes || []);
+      setEdges(workflow.edges || []);
+    }
+  }, [workflow?.nodes, workflow?.edges]);
+
   useEffect(() => {
     onWorkflowChange({ ...(workflow || {}), nodes, edges });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
 
   const onConnect = useCallback(
@@ -192,6 +199,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
+            <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)} className="bg-white/90 backdrop-blur">
+              Templates
+            </Button>
             <Button variant="outline" size="sm" onClick={autoLayout} className="bg-white/90 backdrop-blur">
               Auto Layout
             </Button>

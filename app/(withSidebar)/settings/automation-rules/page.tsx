@@ -577,10 +577,20 @@ export default function AutomationRulesPage() {
     setBuilderMode("create");
   };
 
-  const openEditDialog = (rule: AutomationRule) => {
-    setFormData(rule);
-    setSelectedRule(rule);
-    setBuilderMode("edit");
+  const openEditDialog = async (rule: AutomationRule) => {
+    try {
+      // Fetch full rule including workflowDefinition for the canvas
+      const res = await fetch(`/api/automation-rules/${rule.id}`);
+      const full = res.ok ? await res.json() : rule;
+      setFormData(full as any);
+      setSelectedRule(full as any);
+      setBuilderMode("edit");
+    } catch {
+      // Fallback to existing rule data
+      setFormData(rule);
+      setSelectedRule(rule);
+      setBuilderMode("edit");
+    }
   };
 
   const getTriggerTypeInfo = (triggerType: string) => {

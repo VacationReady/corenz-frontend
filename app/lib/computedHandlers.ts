@@ -122,6 +122,26 @@ export const computedHandlers: ComputedFieldRegistry = {
       const viaUser = item?.User?.JobRole?.name;
       return viaEmployee || viaUser || null;
     },
+    "_computed.workingPatternName": (item) => {
+      // Prefer direct relation on Employee
+      const viaRelation = item?.WorkingPattern?.name;
+      if (viaRelation) return viaRelation;
+
+      // Fallback to the latest assignment's working pattern (by effectiveDate)
+      const assignments = Array.isArray(item?.EmployeeWorkingPatternAssignment)
+        ? item.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+
+      const latest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return db - da;
+        })[0];
+      return latest?.WorkingPattern?.name || null;
+    },
   },
 
   // ===========================

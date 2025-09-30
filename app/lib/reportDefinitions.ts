@@ -71,7 +71,7 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
     name: "Annual Leave Balances",
     description: "Current leave balances by employee and category",
     allowedFilters: ["departmentId", "jobRoleId", "eventCategoryId", "remainingLT"],
-    allowedSort: ["remaining", "Employee.User.lastName"],
+    allowedSort: ["_computed.remainingEntitlement", "Employee.User.lastName"],
     query: async (filters, pagination, context) => {
       const { page, limit, skip, sortBy, sortOrder } = normalizePagination(pagination);
       const where = enforceCompanyId(
@@ -95,28 +95,64 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
         },
         take: limit,
         skip,
-        orderBy: buildSort(sortBy, sortOrder) ?? { updatedAt: "desc" },
+        // Only allow concrete fields for Prisma-level sorting; computed handled below
+        orderBy:
+          sortBy && sortBy !== "_computed.remainingEntitlement"
+            ? buildSort(sortBy, sortOrder)
+            : { updatedAt: "desc" },
       });
 
-      const rows = entitlements
-        .map((record) => {
-          const total = (record.totalDays || 0) + (record.carryoverDays || 0) + (record.daysAllocated || 0);
-          const remaining = total - (record.usedDays || 0);
-          return {
-            ...record,
-            computed: { remaining },
-          };
-        })
-        .filter((row) => {
-          if (filters.remainingLT === undefined) return true;
-          const threshold = Number(filters.remainingLT);
-          if (Number.isNaN(threshold)) return true;
-          return row.computed.remaining <= threshold;
-        });
+      // Map to a clean, serializable shape with a stable computed field name
+      let rows = entitlements.map((record) => {
+        const total = (record.totalDays || 0) + (record.carryoverDays || 0) + (record.daysAllocated || 0);
+        const remainingEntitlement = total - (record.usedDays || 0);
+        return {
+          id: record.id,
+          employeeId: record.employeeId,
+          companyId: record.companyId,
+          LeaveEntitlement: {
+            totalDays: record.totalDays,
+            usedDays: record.usedDays,
+            carryoverDays: record.carryoverDays ?? 0,
+          },
+          Employee: record.Employee
+            ? {
+                id: record.Employee.id,
+                isActive: record.Employee.isActive,
+                Department: record.Employee.Department
+                  ? { name: record.Employee.Department.name }
+                  : null,
+                JobRole: record.Employee.JobRole
+                  ? { name: record.Employee.JobRole.name }
+                  : null,
+                User: record.Employee.User
+                  ? {
+                      firstName: record.Employee.User.firstName,
+                      lastName: record.Employee.User.lastName,
+                      email: record.Employee.User.email,
+                    }
+                  : null,
+              }
+            : null,
+          EventCategory: record.EventCategory
+            ? { id: record.EventCategory.id, name: record.EventCategory.name }
+            : null,
+          _computed: { remainingEntitlement },
+        };
+      });
 
-      if (sortBy === "remaining") {
+      // Optional threshold filter on remaining entitlement
+      if (filters.remainingLT !== undefined) {
+        const threshold = Number(filters.remainingLT);
+        if (!Number.isNaN(threshold)) {
+          rows = rows.filter((row) => row._computed.remainingEntitlement <= threshold);
+        }
+      }
+
+      // Apply client-requested sort for computed field
+      if (sortBy === "_computed.remainingEntitlement") {
         rows.sort((a, b) => {
-          const diff = a.computed.remaining - b.computed.remaining;
+          const diff = a._computed.remainingEntitlement - b._computed.remainingEntitlement;
           return sortOrder === "desc" ? diff * -1 : diff;
         });
       }
@@ -128,7 +164,7 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
     name: "Sick Leave Usage YTD",
     description: "Total sick leave days taken per employee in the current calendar year",
     allowedFilters: ["departmentId", "jobRoleId"],
-    allowedSort: ["days", "employeeLastName"],
+    allowedSort: ["sickLeaveTaken", "employeeLastName"],
     query: async (filters, pagination, context) => {
       const { page, limit, skip, sortBy, sortOrder } = normalizePagination(pagination);
       const startOfYear = dayjs().startOf("year").toDate();
@@ -165,10 +201,10 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
             lastName: request.Employee?.User?.lastName || "",
             department: request.Employee?.Department?.name || null,
             jobRole: request.Employee?.JobRole?.name || null,
-            days: 0,
+            sickLeaveTaken: 0,
           };
         }
-        totals[id].days += days;
+        totals[id].sickLeaveTaken += days;
       }
 
       const rows = Object.values(totals).sort((a: any, b: any) => {
@@ -177,7 +213,9 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
             ? b.lastName.localeCompare(a.lastName)
             : a.lastName.localeCompare(b.lastName);
         }
-        return sortOrder === "desc" ? b.days - a.days : a.days - b.days;
+        return sortOrder === "desc"
+          ? b.sickLeaveTaken - a.sickLeaveTaken
+          : a.sickLeaveTaken - b.sickLeaveTaken;
       });
 
       const sliceStart = skip;

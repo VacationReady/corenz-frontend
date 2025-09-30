@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageShell } from "@/components/ui/PageShell";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import type { ReportLibraryEntry } from "@/lib/reportLibrary";
-import { hrCategories } from "@/lib/hrReportFields";
+import { hrCategories, hrReportFields } from "@/lib/hrReportFields";
 import { cn } from "@/lib/utils";
 
 interface LibraryResponse {
@@ -111,11 +111,15 @@ export default function ReportsLibraryPage() {
               Default columns
             </p>
             <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
-              {entry.defaultFields.slice(0, 6).map((field) => (
-                <span key={field} className="rounded-full border border-border/60 px-2 py-0.5">
-                  {field.split(".").slice(-1)[0]}
-                </span>
-              ))}
+              {entry.defaultFields.slice(0, 6).map((field) => {
+                const label = hrReportFields.find((f) => f.field === field)?.label
+                  || field.split(".").slice(-1)[0];
+                return (
+                  <span key={field} className="rounded-full border border-border/60 px-2 py-0.5">
+                    {label}
+                  </span>
+                );
+              })}
               {entry.defaultFields.length > 6 && (
                 <span className="text-muted-foreground/80">+{entry.defaultFields.length - 6} more</span>
               )}

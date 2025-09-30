@@ -400,7 +400,11 @@ export default function ReportsPreviewClient() {
       }
       // Normalise Working Pattern to live under Employee so we don't split models
       if (!hasLeave && f === "WorkingPattern.name") {
+        // Include computed fallback so the name renders even if the relation is missing
         result.push("Employee.WorkingPattern.name");
+        if (!result.includes("_computed.workingPatternName")) {
+          result.push("_computed.workingPatternName");
+        }
         continue;
       }
       if (hasLeave) {
@@ -584,6 +588,10 @@ export default function ReportsPreviewClient() {
       // Normalise Job Role into a single computed accessor across contexts
       if (field === "_computed.jobRoleName") {
         return { header: "Job Role", accessorKey: "_computed.jobRoleName" };
+      }
+      // Working Pattern via computed fallback
+      if (field === "_computed.workingPatternName") {
+        return { header: "Working Pattern", accessorKey: "_computed.workingPatternName" };
       }
 
       if (keys.length >= 3) {

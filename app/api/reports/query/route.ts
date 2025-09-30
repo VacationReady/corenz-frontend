@@ -152,7 +152,29 @@ export async function POST(req: Request) {
         }
 
         // Do not restrict fields by an allowlist; accept all translated selections
-        const sanitizedSelectedFields = Array.from(new Set(translatedSelectedFields));
+        let sanitizedSelectedFields = Array.from(new Set(translatedSelectedFields));
+
+        // If Working Pattern name is requested in any alias, include computed fallback
+        if (
+          sanitizedSelectedFields.includes("WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("Employee.WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("LeaveRequest.Employee.WorkingPattern.name")
+        ) {
+          if (!sanitizedSelectedFields.includes("_computed.workingPatternName")) {
+            sanitizedSelectedFields.push("_computed.workingPatternName");
+          }
+          // Also include latest assignment relation for fallback resolution
+          const needsEmployee = sanitizedSelectedFields.some((f) => f.startsWith("Employee."));
+          const needsLeave = sanitizedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
+          if (needsLeave) {
+            // Ensure nested include contains assignments and WP under LeaveRequest.Employee
+            sanitizedSelectedFields.push("LeaveRequest.Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
+            sanitizedSelectedFields.push("LeaveRequest.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsEmployee || sanitizedSelectedFields.some((f) => f.startsWith("User."))) {
+            sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
+            sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          }
+        }
 
 		if (sanitizedSelectedFields.length === 0) {
 			return NextResponse.json(

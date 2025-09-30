@@ -489,8 +489,7 @@ export default function BulkActionsPageClient() {
       <DepartmentBulkActionDialog
         open={activeAction === "department"}
         onOpenChange={(open) => setActiveAction(open ? "department" : null)}
-        employeeIds={Array.from(selectedIds)}
-        employees={selectedSummaries}
+        allEmployees={employees}
         departments={departments}
         jobRoles={jobRoles}
         onCompleted={handleActionCompleted}
@@ -499,16 +498,14 @@ export default function BulkActionsPageClient() {
       <CompensationBulkActionDialog
         open={activeAction === "compensation"}
         onOpenChange={(open) => setActiveAction(open ? "compensation" : null)}
-        employeeIds={Array.from(selectedIds)}
-        employees={selectedSummaries}
+        allEmployees={employees}
         onCompleted={handleActionCompleted}
       />
 
       <TrainingBulkActionDialog
         open={activeAction === "training"}
         onOpenChange={(open) => setActiveAction(open ? "training" : null)}
-        employeeIds={Array.from(selectedIds)}
-        employees={selectedSummaries}
+        allEmployees={employees}
         courses={courses}
         providers={providers}
         onCompleted={handleActionCompleted}
@@ -517,8 +514,7 @@ export default function BulkActionsPageClient() {
       <LeaveBulkActionDialog
         open={activeAction === "leave"}
         onOpenChange={(open) => setActiveAction(open ? "leave" : null)}
-        employeeIds={Array.from(selectedIds)}
-        employees={selectedSummaries}
+        allEmployees={employees}
         eventCategories={eventCategories}
         onCompleted={handleActionCompleted}
       />

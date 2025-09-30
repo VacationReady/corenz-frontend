@@ -362,9 +362,10 @@ export async function POST(req: Request) {
         JobRole: jobRoleId
           ? { connect: { id: jobRoleId } }
           : undefined,
-        // Keep a direct pointer to the current working pattern for reporting,
-        // while also recording history in the assignment table below
-        workingPatternId: workingPatternId || undefined,
+        // Link Working Pattern via relation (checked create input)
+        WorkingPattern: workingPatternId
+          ? { connect: { id: workingPatternId } }
+          : undefined,
         Company: { connect: { id: companyId! } }, // ✅ use relation connect
         OnboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }

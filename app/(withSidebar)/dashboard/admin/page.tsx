@@ -60,6 +60,7 @@ export default async function AdminDashboardPage() {
   const roleLabel = user.role ?? "User";
   const departmentName = user.Department_User_departmentIdToDepartment?.name;
   const jobRoleName = user.JobRole?.name;
+  const avatarLetter = (fullName?.trim()?.charAt(0) || "U").toUpperCase();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -79,9 +80,7 @@ export default async function AdminDashboardPage() {
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-primary via-[hsl(var(--sunset-2))] to-[hsl(var(--sunset-3))] rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-500" />
                   <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-2xl flex items-center justify-center shadow-premium">
-                    <span className="text-2xl font-bold text-white">
-                      {user.firstName?.charAt(0) || "U"}
-                    </span>
+                    <span className="text-2xl font-bold text-white">{avatarLetter}</span>
                   </div>
                   {/* Status indicator */}
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-[3px] border-white shadow-lg" />

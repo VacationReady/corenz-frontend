@@ -94,7 +94,7 @@ export default function AdminSidebar({
           </SidebarSection>
 
           <SidebarSection title="HR Tools" collapsed={collapsed}>
-            {[...hrToolsLinks, ...bulkActionLinks].map((link) => (
+            {[...hrToolsLinks, ...bulkActionLinks, settingsLink].map((link) => (
               <SidebarItem
                 key={link.href}
                 href={link.href}
@@ -104,16 +104,6 @@ export default function AdminSidebar({
                 onClick={onMobileNavigate}
               />
             ))}
-          </SidebarSection>
-
-          <SidebarSection collapsed={collapsed}>
-            <SidebarItem
-              href={settingsLink.href}
-              icon={settingsLink.icon}
-              label={settingsLink.label}
-              collapsed={collapsed}
-              onClick={onMobileNavigate}
-            />
           </SidebarSection>
         </div>
 

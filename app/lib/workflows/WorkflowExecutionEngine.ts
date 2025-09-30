@@ -12,8 +12,17 @@ import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail } from "@/lib/email/template";
 import { Node, Edge } from "reactflow";
-import cron from "node-cron";
 import { v4 as uuidv4 } from "uuid";
+
+// Node-cron is only used server-side for scheduled workflows
+let cron: any;
+if (typeof window === 'undefined') {
+  try {
+    cron = require('node-cron');
+  } catch (e) {
+    console.log('node-cron not available, scheduled workflows will be disabled');
+  }
+}
 
 interface WorkflowContext {
   workflowId: string;
@@ -46,7 +55,7 @@ interface ExecutionResult {
 
 export class WorkflowExecutionEngine {
   private static instance: WorkflowExecutionEngine;
-  private scheduledJobs: Map<string, cron.ScheduledTask> = new Map();
+  private scheduledJobs: Map<string, any> = new Map(); // cron.ScheduledTask when available
   private activeExecutions: Map<string, WorkflowContext> = new Map();
   
   private constructor() {
@@ -91,23 +100,27 @@ export class WorkflowExecutionEngine {
 
     // Stop existing schedule if any
     const existingJob = this.scheduledJobs.get(workflow.id);
-    if (existingJob) {
+    if (existingJob && existingJob.stop) {
       existingJob.stop();
     }
 
-    // Create new cron job
-    const task = cron.schedule(schedule, async () => {
-      console.log(`⏰ Executing scheduled workflow: ${workflow.name}`);
-      await this.executeWorkflow(workflow.id, {
-        triggerType: "SCHEDULED",
-        scheduledTime: new Date(),
+    // Create new cron job if cron is available
+    if (cron && cron.schedule) {
+      const task = cron.schedule(schedule, async () => {
+        console.log(`⏰ Executing scheduled workflow: ${workflow.name}`);
+        await this.executeWorkflow(workflow.id, {
+          triggerType: "SCHEDULED",
+          scheduledTime: new Date(),
+        });
+      }, {
+        timezone: workflow.triggerConfig?.timezone || "Pacific/Auckland",
       });
-    }, {
-      timezone: workflow.triggerConfig?.timezone || "Pacific/Auckland",
-    });
 
-    this.scheduledJobs.set(workflow.id, task);
-    task.start();
+      this.scheduledJobs.set(workflow.id, task);
+      task.start();
+    } else {
+      console.warn(`Scheduled workflows are not available - node-cron not installed`);
+    }
   }
 
   /**

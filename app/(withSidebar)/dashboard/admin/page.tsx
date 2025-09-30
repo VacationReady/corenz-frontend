@@ -10,6 +10,8 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { User } from "lucide-react";
 import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
+import { Avatar } from "@/components/ui/Avatar";
+import { getDownloadUrl } from "@/lib/getDownloadUrl";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -60,7 +62,10 @@ export default async function AdminDashboardPage() {
   const roleLabel = user.role ?? "User";
   const departmentName = user.Department_User_departmentIdToDepartment?.name;
   const jobRoleName = user.JobRole?.name;
-  const avatarLetter = (fullName?.trim()?.charAt(0) || "U").toUpperCase();
+  // Signed avatar URL like employee overview/profile
+  const avatarUrl = user.profileImageUrl
+    ? await getDownloadUrl(user.profileImageUrl)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -76,13 +81,15 @@ export default async function AdminDashboardPage() {
           <div className="glass-premium rounded-3xl shadow-premium p-8 hover-lift-premium transition-premium">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-6">
-                {/* Enhanced Avatar with gradient ring */}
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-primary via-[hsl(var(--sunset-2))] to-[hsl(var(--sunset-3))] rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-500" />
-                  <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-2xl flex items-center justify-center shadow-premium">
-                    <span className="text-2xl font-bold text-white">{avatarLetter}</span>
-                  </div>
-                  {/* Status indicator */}
+                {/* Avatar with org-chart glow */}
+                <div className="relative">
+                  <div className="absolute -inset-2 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-full opacity-60 blur-md" />
+                  <Avatar
+                    src={avatarUrl ?? undefined}
+                    name={fullName}
+                    size={80}
+                    className="relative border-2 border-white shadow-premium"
+                  />
                   <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-[3px] border-white shadow-lg" />
                 </div>
 

@@ -89,6 +89,25 @@ export default function ReportsLibraryPage() {
       router.push(`/reports/builder-new?${params.toString()}`);
     };
 
+    const getFieldLabel = (key: string) => {
+      const meta = hrReportFields.find((f) => f.field === key);
+      if (meta?.label) return meta.label;
+      // Fallback: last segment prettified (e.g. Employee.JobRole.name -> Job Role)
+      const last = key.split(".").slice(-1)[0] || key;
+      // Convert camelCase or known tokens to spaced title case
+      const cleaned = last
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/_/g, " ")
+        .trim();
+      return cleaned
+        .replace(/^id$/i, "ID")
+        .replace(/^name$/i, "Name")
+        .replace(/^email$/i, "Email")
+        .replace(/^phone$/i, "Phone")
+        .replace(/^createdAt$/i, "Created At")
+        .replace(/^updatedAt$/i, "Updated At");
+    };
+
     return (
       <Card key={entry.id} className="flex flex-col border-glass bg-background/70">
         <CardHeader className="flex flex-col gap-2">
@@ -111,15 +130,11 @@ export default function ReportsLibraryPage() {
               Default columns
             </p>
             <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
-              {entry.defaultFields.slice(0, 6).map((field) => {
-                const label = hrReportFields.find((f) => f.field === field)?.label
-                  || field.split(".").slice(-1)[0];
-                return (
-                  <span key={field} className="rounded-full border border-border/60 px-2 py-0.5">
-                    {label}
-                  </span>
-                );
-              })}
+              {entry.defaultFields.slice(0, 6).map((field) => (
+                <span key={field} className="rounded-full border border-border/60 px-2 py-0.5">
+                  {getFieldLabel(field)}
+                </span>
+              ))}
               {entry.defaultFields.length > 6 && (
                 <span className="text-muted-foreground/80">+{entry.defaultFields.length - 6} more</span>
               )}

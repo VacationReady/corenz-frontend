@@ -124,7 +124,7 @@ export default async function AdminDashboardPage() {
                 </Link>
                 {/* Email Employee */}
                 <Link href="/bulk-actions?action=messaging">
-                  <Button variant="outline">
+                  <Button className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-premium">
                     <Mail className="h-4 w-4 mr-2" /> Email Employee
                   </Button>
                 </Link>

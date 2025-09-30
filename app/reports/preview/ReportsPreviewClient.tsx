@@ -389,6 +389,11 @@ export default function ReportsPreviewClient() {
           result.push("_computed.jobRoleName");
         continue;
       }
+      // Normalise Working Pattern to live under Employee so we don't split models
+      if (!hasLeave && f === "WorkingPattern.name") {
+        result.push("Employee.WorkingPattern.name");
+        continue;
+      }
       if (hasLeave) {
         if (f.startsWith("User.")) {
           result.push(f.replace("User.", "LeaveRequest.Employee.User."));
@@ -406,6 +411,12 @@ export default function ReportsPreviewClient() {
         }
         if (f.startsWith("JobRole.")) {
           result.push(f.replace("JobRole.", "LeaveRequest.Employee.JobRole."));
+          continue;
+        }
+        if (f.startsWith("WorkingPattern.")) {
+          result.push(
+            f.replace("WorkingPattern.", "LeaveRequest.Employee.WorkingPattern."),
+          );
           continue;
         }
         if (
@@ -551,6 +562,7 @@ export default function ReportsPreviewClient() {
       let accessorKey: string;
       let headerFallback: string;
 
+      // Normalise Job Role into a single computed accessor across contexts
       if (field === "_computed.jobRoleName") {
         return { header: "Job Role", accessorKey: "_computed.jobRoleName" };
       }

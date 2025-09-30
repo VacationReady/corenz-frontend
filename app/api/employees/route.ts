@@ -354,12 +354,17 @@ export async function POST(req: Request) {
         id: crypto.randomUUID(),
         User: { connect: { id: user.id } },
         isActive: true,
+        // Persist canonical employment details
+        startDate: new Date(startDate),
         Department: departmentId
           ? { connect: { id: departmentId } }
           : undefined,
         JobRole: jobRoleId
           ? { connect: { id: jobRoleId } }
           : undefined,
+        // Keep a direct pointer to the current working pattern for reporting,
+        // while also recording history in the assignment table below
+        workingPatternId: workingPatternId || undefined,
         Company: { connect: { id: companyId! } }, // ✅ use relation connect
         OnboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }

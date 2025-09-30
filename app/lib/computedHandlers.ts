@@ -117,6 +117,11 @@ export const computedHandlers: ComputedFieldRegistry = {
         (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25),
       );
     },
+    "_computed.jobRoleName": (item) => {
+      const viaEmployee = item?.JobRole?.name;
+      const viaUser = item?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
   },
 
   // ===========================
@@ -135,6 +140,11 @@ export const computedHandlers: ComputedFieldRegistry = {
       const first = item?.User?.firstName;
       const last = item?.User?.lastName;
       return [first, last].filter(Boolean).join(" ") || null;
+    },
+    "_computed.jobRoleName": (item) => {
+      const viaUser = item?.JobRole?.name;
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      return viaUser || viaEmployee || null;
     },
     "_computed.primaryEmergencyContactName": (item) => {
       const primary = item?.Employee?.EmergencyContact?.[0];

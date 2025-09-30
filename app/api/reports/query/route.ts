@@ -36,6 +36,7 @@ function anchorFieldToLeave(field: string): string {
     if (field.startsWith("Employee.")) return field.replace("Employee.", "LeaveRequest.Employee.");
     if (field.startsWith("Department.")) return field.replace("Department.", "LeaveRequest.Employee.Department.");
     if (field.startsWith("JobRole.")) return field.replace("JobRole.", "LeaveRequest.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "LeaveRequest.Employee.WorkingPattern.");
     if (field.startsWith("EventCategory.")) return field.replace("EventCategory.", "LeaveRequest.EventCategory.");
     return field;
 }
@@ -58,6 +59,15 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             if (!result.includes(userPath)) result.push(userPath);
             if (!result.includes(employeePath)) result.push(employeePath);
             if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
+            continue;
+        }
+        // Ensure Working Pattern name is resolvable when requested via model alias
+        if (
+            f === "WorkingPattern.name" ||
+            maybeAnchored === "LeaveRequest.Employee.WorkingPattern.name"
+        ) {
+            const wpPath = hasLeave ? "LeaveRequest.Employee.WorkingPattern.name" : "WorkingPattern.name";
+            if (!result.includes(wpPath)) result.push(wpPath);
             continue;
         }
         result.push(maybeAnchored);

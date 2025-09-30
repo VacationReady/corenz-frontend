@@ -62,9 +62,30 @@ export default function EditNewsPostPage() {
       if (!isAdmin && !isAuthor) return router.push("/news");
 
       setTitle(post.title);
-      setContent(post.content || []);
+      // Normalize content: accept array, JSON string, or plain string
+      const normalizedContent = Array.isArray(post.content)
+        ? post.content
+        : typeof post.content === "string"
+          ? (() => {
+              try {
+                const parsed = JSON.parse(post.content);
+                return Array.isArray(parsed) ? parsed : [{ type: "paragraph", text: post.content }];
+              } catch {
+                return [{ type: "paragraph", text: post.content }];
+              }
+            })()
+          : [];
+      setContent(normalizedContent as any);
+
       setVideoUrl(post.videoEmbedUrl || "");
-      setExistingFiles(post.attachments || []);
+
+      // Normalize attachments: ensure string[]
+      const normalizedAttachments = Array.isArray(post.attachments)
+        ? post.attachments
+        : typeof post.attachments === "string"
+          ? [post.attachments]
+          : [];
+      setExistingFiles(normalizedAttachments);
       setSendEmail(post.sendEmail || false);
       setAudience(post.audience || { type: "all" });
       setLoading(false);

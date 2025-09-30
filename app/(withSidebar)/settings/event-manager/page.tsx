@@ -270,21 +270,22 @@ export default function EventManagerPage() {
                             ? "Admin Only"
                             : "Active"}
                         </span>
-                        <Switch
-                          checked={!!category[key]}
-                          onChange={(val) =>
-                            handleToggleCategory(
-                              category.id,
-                              key as any,
-                              Boolean(val),
-                            )
-                          }
-                          disabled={
-                            category.systemDefined ||
-                            savingKey === `${category.id}:${key}`
-                          }
-                          title={category.systemDefined ? "System category, cannot edit" : ""}
-                        />
+                        <div title={category.systemDefined ? "System category, cannot edit" : undefined}>
+                          <Switch
+                            checked={!!category[key]}
+                            onChange={(val) =>
+                              handleToggleCategory(
+                                category.id,
+                                key as any,
+                                Boolean(val),
+                              )
+                            }
+                            disabled={
+                              category.systemDefined ||
+                              savingKey === `${category.id}:${key}`
+                            }
+                          />
+                        </div>
                       </div>
                     ))}
                     <Button

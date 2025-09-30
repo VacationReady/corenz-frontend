@@ -33,31 +33,8 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Authentication / RBAC for dashboard routes
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-
-    // Require auth for dashboard routes
-    if (path.startsWith("/dashboard")) {
-      if (!token) {
-        return NextResponse.redirect(new URL("/login", request.url));
-      }
-
-      const role = String((token as any)?.role || "");
-
-      // Admin-only dashboard
-      if (path.startsWith("/dashboard/admin")) {
-        if (!(role === "ADMIN" || role === "SUPER_ADMIN")) {
-          return NextResponse.redirect(new URL("/unauthorized", request.url));
-        }
-      }
-
-      // Manager and above
-      if (path.startsWith("/dashboard/manager")) {
-        if (!(role === "MANAGER" || role === "ADMIN" || role === "SUPER_ADMIN")) {
-          return NextResponse.redirect(new URL("/unauthorized", request.url));
-        }
-      }
-    }
+    // Note: RBAC is enforced in server components for dashboard pages.
+    // Avoid RBAC in middleware to prevent auth token issues and redirect loops.
 
     // Origin checking for restricted methods
     if (RESTRICTED_METHODS.includes(request.method)) {

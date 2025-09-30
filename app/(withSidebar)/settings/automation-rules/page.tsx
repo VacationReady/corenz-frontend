@@ -367,7 +367,7 @@ export default function AutomationRulesPage() {
   useEffect(() => {
     fetchRules();
     loadOptions();
-    // Support previewing a template in the builder without installing it
+    // Support previewing a template in the builder (editable, not installed)
     try {
       const params = new URLSearchParams(window.location.search);
       const previewId = params.get("preview");
@@ -378,8 +378,9 @@ export default function AutomationRulesPage() {
             const data = await res.json();
             const tpl = (data.templates || []).find((t: any) => t.id === previewId);
             if (tpl) {
+              // Load template as editable workflow (not read-only)
               setFormData({
-                name: tpl.name,
+                name: `${tpl.name} (Preview)`,
                 description: tpl.description,
                 isActive: false,
                 triggerType: tpl.definition?.nodes?.find((n: any) => n.type === "trigger")?.data?.config?.triggerType || "MANUAL",
@@ -390,6 +391,10 @@ export default function AutomationRulesPage() {
               } as any);
               setSelectedRule(null);
               setBuilderMode("create");
+              toast({
+                title: "Template Loaded",
+                description: "You can edit this template and save it as your own workflow.",
+              });
             }
           }
         })();

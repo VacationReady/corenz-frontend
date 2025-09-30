@@ -59,6 +59,7 @@ const defaultEdgeOptions = {
   animated: true,
   style: { strokeWidth: 2, stroke: "#94a3b8" },
   markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
+  type: 'smoothstep',
 };
 
 interface WorkflowCanvasProps {
@@ -89,16 +90,23 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   // Start with a clean canvas; templates can be opened via the Templates button
   const [showTemplates, setShowTemplates] = useState(false);
 
-  // Load incoming workflow when rule changes
+  // Load incoming workflow when rule changes (safely)
   useEffect(() => {
     if (workflow?.nodes || workflow?.edges) {
-      setNodes(workflow.nodes || []);
-      setEdges(workflow.edges || []);
+      // Use setTimeout to avoid React #185 error (updating during render)
+      setTimeout(() => {
+        setNodes(workflow.nodes || []);
+        setEdges(workflow.edges || []);
+      }, 0);
     }
   }, [workflow?.nodes, workflow?.edges]);
 
   useEffect(() => {
-    onWorkflowChange({ ...(workflow || {}), nodes, edges });
+    // Debounce to avoid excessive updates
+    const timer = setTimeout(() => {
+      onWorkflowChange({ ...(workflow || {}), nodes, edges });
+    }, 100);
+    return () => clearTimeout(timer);
   }, [nodes, edges]);
 
   const onConnect = useCallback(
@@ -133,8 +141,11 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         data: { label: getLabel(type) },
       };
 
-      setNodes((nds) => [...nds, newNode]);
-      toast.success(`Added ${type} node`);
+      // Defer setNodes to avoid React #185 error
+      setTimeout(() => {
+        setNodes((nds) => [...nds, newNode]);
+        toast.success(`Added ${type} node`);
+      }, 0);
     },
     [reactFlowInstance, setNodes],
   );
@@ -210,49 +221,86 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             nodeTypes={nodeTypes}
             defaultEdgeOptions={defaultEdgeOptions}
             fitView
+            snapToGrid={true}
+            snapGrid={[15, 15]}
+            deleteKeyCode="Delete"
             className="bg-gradient-to-br from-slate-50 via-white to-slate-50"
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e8f0" />
-            <MiniMap className="bg-card border-2" />
-            <Controls className="bg-card border-2" />
+            <MiniMap 
+              className="bg-card border-2 shadow-lg" 
+              nodeColor={(node) => {
+                const colors: Record<string, string> = {
+                  trigger: '#3b82f6',
+                  condition: '#f59e0b',
+                  action: '#22c55e',
+                  delay: '#a855f7',
+                  branch: '#ec4899',
+                  loop: '#0ea5e9',
+                };
+                return colors[node.type || 'default'] || '#94a3b8';
+              }}
+              maskColor="rgb(255, 255, 255, 0.8)"
+            />
+            <Controls className="bg-card border-2 shadow-lg" showInteractive={false} />
           </ReactFlow>
         )}
 
-        <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
           <div className="flex gap-2 pointer-events-auto">
-            <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="glass-strong">
+            <Button variant="ghost" size="sm" onClick={() => setShowTemplates(true)} className="glass-strong shadow-sm">
               Templates
             </Button>
-            <Button variant="ghost" size="sm" onClick={autoLayout} className="glass-strong">
+            <Button variant="ghost" size="sm" onClick={autoLayout} className="glass-strong shadow-sm">
               Auto Layout
             </Button>
           </div>
           <div className="flex gap-2 pointer-events-auto">
             {isDirty && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 shadow-sm">
                 Unsaved changes
               </Badge>
             )}
-            <Button variant="ghost" size="sm" onClick={exportWorkflow} className="glass-strong" aria-label="Export">
+            <Button variant="ghost" size="icon" onClick={exportWorkflow} className="glass-strong shadow-sm" aria-label="Export">
               <Download className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="glass-strong"
+              className="glass-strong shadow-sm"
               aria-label="Toggle fullscreen"
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="sm" onClick={onTest} disabled={!isValid} className="glass-strong">
+            <Button variant="ghost" size="sm" onClick={onTest} disabled={!isValid} className="glass-strong shadow-sm">
               <TestTube className="h-4 w-4 mr-2" />
               Test
             </Button>
-            <Button size="sm" onClick={onSave} disabled={!isValid || !isDirty} className="bg-primary text-primary-foreground">
+            <Button size="sm" onClick={onSave} disabled={!isValid || !isDirty} className="bg-primary text-primary-foreground shadow-lg">
               <Save className="h-4 w-4 mr-2" />
-              Save
+              Save Workflow
             </Button>
+          </div>
+        </div>
+        
+        {/* Bottom Stats Bar */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+          <div className="glass-strong shadow-lg rounded-full px-4 py-2 text-xs text-muted-foreground pointer-events-auto flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              {nodes.filter(n => n.type === 'trigger').length} triggers
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+              {nodes.filter(n => n.type === 'condition').length} conditions
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              {nodes.filter(n => n.type === 'action').length} actions
+            </span>
+            <span className="text-muted-foreground/50">•</span>
+            <span>{edges.length} connections</span>
           </div>
         </div>
       </div>

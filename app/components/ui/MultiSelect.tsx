@@ -19,6 +19,7 @@ interface MultiSelectProps {
   onChange?: (values: string[]) => void;
   onValueChange?: (values: string[]) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export function MultiSelect({
@@ -28,6 +29,7 @@ export function MultiSelect({
   onChange,
   onValueChange,
   placeholder = "Select options...",
+  disabled = false,
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -55,6 +57,7 @@ export function MultiSelect({
   console.log("Selected (values):", resolvedSelected);
 
   const toggleValue = (value: string) => {
+    if (disabled) return;
     console.log("Clicked:", value);
     console.log("Selected before:", resolvedSelected);
 
@@ -96,7 +99,11 @@ export function MultiSelect({
         ref={menuButtonRef}
         as={Button}
         variant="ghost"
-        className="w-full justify-between border rounded-md"
+        disabled={disabled}
+        className={cn(
+          "w-full justify-between border rounded-md",
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
       >
         <div className="flex flex-wrap gap-1">
           {selectedLabels.length > 0 ? (
@@ -134,8 +141,10 @@ export function MultiSelect({
                   toggleValue(option.value);
                   menuButtonRef.current?.focus(); // ✅ Keep dropdown open
                 }}
+                disabled={disabled}
                 className={cn(
                   "flex w-full items-center px-3 py-2 text-sm text-left",
+                  disabled && "opacity-50 cursor-not-allowed",
                   resolvedSelected.includes(option.value)
                     ? "bg-gray-50"
                     : "hover:bg-gray-100",

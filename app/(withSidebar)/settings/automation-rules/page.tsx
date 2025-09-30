@@ -7,7 +7,8 @@ import { toast } from "@/hooks/use-toast";
 
 // Import new components
 import { AutomationRuleList } from "./components/AutomationRuleList";
-import { AutomationFlowBuilder } from "./components/AutomationFlowBuilder";
+// Visual canvas builder
+import WorkflowCanvasWrapper from "./components/WorkflowCanvas";
 import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
 import { ValidationChecklist } from "./components/ValidationChecklist";
@@ -809,32 +810,17 @@ export default function AutomationRulesPage() {
         {/* Main Builder Area */}
         <div className="flex-1 flex">
           <div className="flex-1">
-            <AutomationFlowBuilder
-              formData={formData}
-              setFormData={setFormData}
-              validationErrors={validationErrors}
-              triggerTypes={triggerTypes}
-              conditionTypes={conditionTypes}
-              actionTypes={actionTypes}
-              formsOptions={formsOptions}
-              templatesOptions={templatesOptions}
-              departmentsOptions={departmentsOptions}
-              jobRolesOptions={jobRolesOptions}
-              usersOptions={usersOptions}
-              documentTypeOptions={documentTypeOptions}
+            <WorkflowCanvasWrapper
+              workflow={(formData as any).workflowDefinition || { nodes: [], edges: [] }}
+              onWorkflowChange={(workflow) => {
+                setFormData({ ...(formData as any), workflowDefinition: workflow } as any);
+              }}
               onSave={attemptSave}
-              onCancel={() => {
-                setBuilderMode(null);
-                setSelectedRule(null);
-                resetForm();
-              }}
               onTest={() => {
-                if (selectedRule?.id) {
-                  runDryTest(selectedRule);
-                }
+                if (selectedRule) runDryTest(selectedRule);
               }}
-              isFormValid={isFormValid}
-              selectedRule={selectedRule}
+              isValid={isFormValid}
+              isDirty={JSON.stringify(formData) !== JSON.stringify(selectedRule || {})}
             />
           </div>
 

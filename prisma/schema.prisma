@@ -66,9 +66,21 @@ model AutomationRule {
   triggerConfig       Json
   conditions          Json?
   actions             Json
+  // Enhanced workflow builder fields
+  templateId          String?
+  workflowDefinition  Json?
+  lastExecutedAt      DateTime?
+  executionCount      Int                   @default(0)
+  successCount        Int                   @default(0)
+  failureCount        Int                   @default(0)
+  averageExecutionTime Int?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime
   createdBy           String
+  tags                String[]              @default([])
+  version             Int                   @default(1)
+  isTemplate          Boolean               @default(false)
+  category            String?
   AutomationExecution AutomationExecution[]
   AutomationJob       AutomationJob[]
   Company             Company               @relation(fields: [companyId], references: [id])
@@ -76,6 +88,8 @@ model AutomationRule {
 
   @@unique([companyId, name])
   @@index([companyId, isActive])
+  @@index([templateId])
+  @@index([category])
 }
 
 model BlackoutDay {
@@ -1588,6 +1602,16 @@ enum AutomationTriggerType {
   FORM_SUBMITTED
   ONBOARDING_STEP_COMPLETED
   EMPLOYEE_CREATED
+  SCHEDULED
+  WEBHOOK
+  LEAVE_REQUEST
+  CONTRACT_EXPIRING
+  PERFORMANCE_REVIEW_COMPLETED
+  EMPLOYEE_UPDATED
+  EMPLOYEE_START_DATE
+  LEAVE_ENDING
+  MANUAL
+  API_TRIGGERED
 }
 
 enum DayType {

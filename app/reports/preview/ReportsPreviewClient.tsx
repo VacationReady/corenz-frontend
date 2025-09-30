@@ -590,6 +590,16 @@ export default function ReportsPreviewClient() {
       ]);
       fields = fields.filter((f) => !hide.has(f));
     }
+    // If using computed Job Role, hide base relation columns to avoid duplicates
+    if (fields.includes("_computed.jobRoleName")) {
+      const hideJR = new Set([
+        "User.JobRole.name",
+        "Employee.JobRole.name",
+        "LeaveRequest.Employee.JobRole.name",
+        "LeaveRequest.Employee.User.JobRole.name",
+      ]);
+      fields = fields.filter((f) => !hideJR.has(f));
+    }
     // If start date is selected, include a computed fallback too, then prefer the explicit one in columns
     if (fields.includes("Employee.startDate") && !fields.includes("_computed.effectiveStartDate")) {
       fields = [...fields, "_computed.effectiveStartDate"];

@@ -1,6 +1,7 @@
 import React from "react";
 import Button from "@/components/ui/Button";
 import { actionTypes } from "../config/actionTypes";
+import { conditionTypes } from "../config/conditionTypes";
 
 export function NodePropertiesPanel({
   node,
@@ -99,6 +100,47 @@ export function NodePropertiesPanel({
             </div>
             <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded-lg">
               {actionTypes.find(a => a.id === (node.data?.actionType || "send_notification"))?.description || "Configure action details"}
+            </div>
+          </>
+        )}
+        {node.type === "condition" && (
+          <>
+            <div>
+              <label className="block text-xs font-medium mb-1">Condition Type</label>
+              <select
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                value={node.data?.conditionType || "employee_department"}
+                onChange={(e) => onUpdate({ conditionType: e.target.value })}
+              >
+                <optgroup label="Employee Filters">
+                  <option value="employee_department">🏢 Filter by Department</option>
+                  <option value="employee_job_role">💼 Filter by Job Role</option>
+                  <option value="employee_location">📍 Filter by Location</option>
+                  <option value="employee_manager">👤 Filter by Manager</option>
+                  <option value="employee_contract_type">📄 Filter by Contract Type</option>
+                </optgroup>
+                <optgroup label="Time Filters">
+                  <option value="time_of_year">📅 Filter by Time of Year</option>
+                  <option value="days_since_start">⏱️ Days Since Start</option>
+                  <option value="probation_status">🔍 Probation Status</option>
+                </optgroup>
+                <optgroup label="Data Conditions">
+                  <option value="field_value">🔢 Check Field Value</option>
+                  <option value="has_manager">👥 Has Manager Assigned</option>
+                </optgroup>
+                <optgroup label="Documents & Forms">
+                  <option value="document_status">📋 Document Status</option>
+                  <option value="form_submitted">📝 Form Submission</option>
+                  <option value="leave_balance">🏖️ Leave Balance</option>
+                </optgroup>
+                <optgroup label="Advanced">
+                  <option value="working_hours">🕐 Working Hours</option>
+                  <option value="custom_field">⚙️ Custom Field Check</option>
+                </optgroup>
+              </select>
+            </div>
+            <div className="text-xs text-muted-foreground bg-amber-50 p-2 rounded-lg">
+              {conditionTypes.find(c => c.id === (node.data?.conditionType || "employee_department"))?.description || "Filter who this workflow applies to"}
             </div>
           </>
         )}

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
 import NewsEditor from "@/components/news/NewsEditor";
+import NewsContentTipTapRenderer from "@/components/news/NewsContentTipTapRenderer";
 import AudienceCampaignPanel from "@/components/news/AudienceCampaignPanel";
 import NewsChip from "@/components/ui/NewsChip";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ import FileDropzone, {
   FileDropzoneItem,
   UploadHelpers,
 } from "@/components/ui/FileDropzone";
+import Modal from "@/components/ui/Modal";
 import {
   ArrowLeft,
   Send,
@@ -752,6 +754,7 @@ export default function CreateNewsPostPage() {
                 <button
                   type="button"
                   className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-all flex items-center gap-2"
+                  onClick={() => setShowPreview(true)}
                 >
                   <Video className="w-4 h-4" />
                   Preview
@@ -918,6 +921,78 @@ export default function CreateNewsPostPage() {
           </motion.div>
         )}
       </form>
+      <Modal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title="Preview"
+        size="xl"
+        variant="glass"
+      >
+        <div className="space-y-6">
+          {/* Cover Image */}
+          {coverImage ? (
+            <div className="rounded-xl overflow-hidden border border-border">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={coverImage} alt="Cover" className="w-full h-56 object-cover" />
+            </div>
+          ) : null}
+
+          {/* Title and Meta */}
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground">{title || "Untitled post"}</h2>
+            {(pinned || featured || tags.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {pinned && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">📌 Pinned</span>
+                )}
+                {featured && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-300 border border-yellow-500/20">✨ Featured</span>
+                )}
+                {tags.map((tag) => (
+                  <NewsChip key={tag} size="sm" variant="outline">{tag}</NewsChip>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          {content ? (
+            <NewsContentTipTapRenderer content={content} className="bg-card rounded-xl p-4 border border-border" minHeight="300px" />
+          ) : (
+            <div className="p-4 text-sm text-muted-foreground bg-card rounded-xl border border-border">
+              Start writing content to see a live preview here.
+            </div>
+          )}
+
+          {/* Video */}
+          {videoUrl && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">📹 Video</h3>
+              <div className="relative rounded-xl overflow-hidden shadow-lg border border-border">
+                <iframe src={videoUrl} className="w-full aspect-video" allowFullScreen />
+              </div>
+            </div>
+          )}
+
+          {/* Attachments */}
+          {attachmentItems.filter((i) => i.status === "success" && i.meta?.url).length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3">📎 Attachments</h3>
+              <ul className="list-disc list-inside text-sm text-foreground/90 space-y-1">
+                {attachmentItems
+                  .filter((i) => i.status === "success" && i.meta?.url)
+                  .map((i, idx) => (
+                    <li key={idx}>
+                      <a className="text-primary hover:underline" href={(i.meta as any)?.url ?? "#"} target="_blank" rel="noreferrer">
+                        {(i.meta as any)?.name || (i.meta as any)?.path || `Attachment ${idx + 1}`}
+                      </a>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

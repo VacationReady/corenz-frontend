@@ -382,6 +382,7 @@ model Employee {
   offboardingNotes                 String?
   locationId                       String?
   startDate                        DateTime?
+  contractEndDate                  DateTime?
   bankAccountNumber                String?
   contractType                     String?
   employmentType                   String?

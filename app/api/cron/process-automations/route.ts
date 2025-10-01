@@ -181,7 +181,7 @@ async function processEventTriggers(results: any) {
           expiryDate: { lte: targetDate, gte: new Date() },
           Employee: { companyId: workflow.companyId },
         },
-        include: { Employee: true },
+        include: { Employee: true, Course: true },
       });
 
       const employmentChecks = await prisma.employmentCheck.findMany({
@@ -205,8 +205,9 @@ async function processEventTriggers(results: any) {
           await recordProcessedDocument(workflow.id, doc.id);
           results.eventBased++;
         } catch (error: any) {
-          console.error(`Failed to process expiring document ${doc.id}:`, error);
-          results.errors.push(`Document expiry ${doc.name}: ${error.message}`);
+          console.error(`Failed to process expiring item ${doc.id}:`, error);
+          const label = (doc as any)?.type || (doc as any)?.Course?.name || (doc as any)?.typeOfCheck || "Item";
+          results.errors.push(`Expiry ${label}: ${error.message}`);
         }
       }
     }

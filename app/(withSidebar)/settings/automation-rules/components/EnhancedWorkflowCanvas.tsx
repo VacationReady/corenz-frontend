@@ -476,33 +476,55 @@ function EnhancedWorkflowCanvasInner({
 
           {nodeType === 'trigger' && (
             <div className="space-y-3">
-              <div>
-                <Label>Trigger Type</Label>
-                <Select
-                  value={nodeData.triggerType || config.triggerType || ''}
-                  onValueChange={(value) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      triggerType: value,
-                      config: { ...config } 
-                    })
-                  }
-                  disabled={readOnly}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select trigger" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EMPLOYEE_CREATED">Employee Created</SelectItem>
-                    <SelectItem value="EMPLOYEE_START_DATE">Employee Start Date</SelectItem>
-                    <SelectItem value="DOCUMENT_EXPIRING">Document Expiring</SelectItem>
-                    <SelectItem value="FORM_SUBMITTED">Form Submitted</SelectItem>
-                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                    <SelectItem value="WEBHOOK">Webhook</SelectItem>
-                    <SelectItem value="LEAVE_REQUEST">Leave Request</SelectItem>
-                    <SelectItem value="CONTRACT_EXPIRING">Contract Expiring</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Trigger Type</Label>
+                {readOnly ? (
+                  <div className="px-3 py-2 rounded-md border bg-blue-50/50 text-sm font-medium text-blue-900">
+                    {(nodeData.triggerType || config.triggerType || 'Not set').replace(/_/g, ' ')}
+                  </div>
+                ) : (
+                  <Select
+                    value={nodeData.triggerType || config.triggerType || ''}
+                    onValueChange={(value) => 
+                      handleNodeUpdate(selectedNode.id, { 
+                        triggerType: value,
+                        config: { ...config } 
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select trigger" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EMPLOYEE_CREATED">Employee Created</SelectItem>
+                      <SelectItem value="EMPLOYEE_START_DATE">Employee Start Date</SelectItem>
+                      <SelectItem value="DOCUMENT_EXPIRING">Document Expiring</SelectItem>
+                      <SelectItem value="FORM_SUBMITTED">Form Submitted</SelectItem>
+                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                      <SelectItem value="WEBHOOK">Webhook</SelectItem>
+                      <SelectItem value="LEAVE_REQUEST">Leave Request</SelectItem>
+                      <SelectItem value="CONTRACT_EXPIRING">Contract Expiring</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
+              
+              {/* Show all trigger config in read-only mode */}
+              {readOnly && config && Object.keys(config).filter(k => k !== 'triggerType' && config[k]).length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label className="text-xs font-medium text-muted-foreground">Trigger Configuration</Label>
+                  <div className="space-y-1.5 text-xs">
+                    {Object.entries(config).filter(([key]) => key !== 'triggerType').map(([key, value]) => (
+                      <div key={key} className="grid grid-cols-2 gap-2">
+                        <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                        <span className="font-mono text-right break-all">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {(nodeData.triggerType === 'SCHEDULED' || config.triggerType === 'SCHEDULED') && (
                 <div>
@@ -584,34 +606,56 @@ function EnhancedWorkflowCanvasInner({
 
           {nodeType === 'condition' && (
             <div className="space-y-3">
-              <div>
-                <Label>Condition Type</Label>
-                <Select
-                  value={nodeData.conditionType || config.conditionType || ''}
-                  onValueChange={(value) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      conditionType: value,
-                      config: { ...config } 
-                    })
-                  }
-                  disabled={readOnly}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select condition" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="department">Department</SelectItem>
-                    <SelectItem value="jobRole">Job Role</SelectItem>
-                    <SelectItem value="contractType">Contract Type</SelectItem>
-                    <SelectItem value="probationStatus">Probation Status</SelectItem>
-                    <SelectItem value="leaveBalance">Leave Balance</SelectItem>
-                    <SelectItem value="documentStatus">Document Status</SelectItem>
-                    <SelectItem value="workingHours">Working Hours</SelectItem>
-                    <SelectItem value="customField">Custom Field</SelectItem>
-                    <SelectItem value="custom_field">Custom Field</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Condition Type</Label>
+                {readOnly ? (
+                  <div className="px-3 py-2 rounded-md border bg-amber-50/50 text-sm font-medium text-amber-900">
+                    {(nodeData.conditionType || config.conditionType || 'Not set').replace(/_/g, ' ')}
+                  </div>
+                ) : (
+                  <Select
+                    value={nodeData.conditionType || config.conditionType || ''}
+                    onValueChange={(value) => 
+                      handleNodeUpdate(selectedNode.id, { 
+                        conditionType: value,
+                        config: { ...config } 
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select condition" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="department">Department</SelectItem>
+                      <SelectItem value="jobRole">Job Role</SelectItem>
+                      <SelectItem value="contractType">Contract Type</SelectItem>
+                      <SelectItem value="probationStatus">Probation Status</SelectItem>
+                      <SelectItem value="leaveBalance">Leave Balance</SelectItem>
+                      <SelectItem value="documentStatus">Document Status</SelectItem>
+                      <SelectItem value="workingHours">Working Hours</SelectItem>
+                      <SelectItem value="customField">Custom Field</SelectItem>
+                      <SelectItem value="custom_field">Custom Field</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
+              
+              {/* Show all condition config in read-only mode */}
+              {readOnly && config && Object.keys(config).filter(k => k !== 'conditionType' && config[k]).length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label className="text-xs font-medium text-muted-foreground">Condition Configuration</Label>
+                  <div className="space-y-1.5 text-xs">
+                    {Object.entries(config).filter(([key]) => key !== 'conditionType').map(([key, value]) => (
+                      <div key={key} className="grid grid-cols-2 gap-2">
+                        <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                        <span className="font-mono text-right break-all">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {(nodeData.conditionType === 'department' || config.conditionType === 'department') && (
                 <div>
@@ -715,73 +759,101 @@ function EnhancedWorkflowCanvasInner({
 
               {(nodeData.actionType === 'send_notification' || config.actionType === 'send_notification') && (
                 <>
-                  <div>
-                    <Label>Recipient Type</Label>
-                    <Select
-                      value={config.recipientType || 'employee'}
-                      onValueChange={(value) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, recipientType: value } 
-                        })
-                      }
-                      disabled={readOnly}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="hr">HR Team</SelectItem>
-                        <SelectItem value="all_employees">All Employees</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Recipient Type</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.recipientType || 'employee'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={config.recipientType || 'employee'}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, recipientType: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="hr">HR Team</SelectItem>
+                          <SelectItem value="buddy">Buddy</SelectItem>
+                          <SelectItem value="all_employees">All Employees</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
-                  <div>
-                    <Label>Channels</Label>
-                    <MultiSelect
-                      options={[
-                        { label: 'Email', value: 'email' },
-                        { label: 'Slack', value: 'slack' },
-                        { label: 'Teams', value: 'teams' },
-                      ]}
-                      selected={config.channels || ['email']}
-                      onChange={(values) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, channels: values } 
-                        })
-                      }
-                      disabled={readOnly}
-                    />
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Channels</Label>
+                    {readOnly ? (
+                      <div className="flex gap-1.5">
+                        {(config.channels || ['email']).map((ch: string) => (
+                          <Badge key={ch} variant="secondary" className="text-xs">
+                            {ch}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <MultiSelect
+                        options={[
+                          { label: 'Email', value: 'email' },
+                          { label: 'Slack', value: 'slack' },
+                          { label: 'Teams', value: 'teams' },
+                        ]}
+                        selected={config.channels || ['email']}
+                        onChange={(values) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, channels: values } 
+                          })
+                        }
+                      />
+                    )}
                   </div>
-                  <div>
-                    <Label>Subject</Label>
-                    <Input
-                      value={config.subject || ''}
-                      onChange={(e) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, subject: e.target.value } 
-                        })
-                      }
-                      placeholder="Notification subject"
-                      disabled={readOnly}
-                    />
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Subject</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                        {config.subject || 'No subject set'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.subject || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, subject: e.target.value } 
+                          })
+                        }
+                        placeholder="Notification subject"
+                      />
+                    )}
                   </div>
-                  <div>
-                    <Label>Message</Label>
-                    <Textarea
-                      value={config.message || ''}
-                      onChange={(e) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, message: e.target.value } 
-                        })
-                      }
-                      placeholder="Use {{employee.name}}, {{company.name}} for variables"
-                      rows={4}
-                      disabled={readOnly}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Available variables: {'{{employee.name}}, {{company.name}}, {{manager.name}}'}
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Message</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono whitespace-pre-wrap min-h-[80px]">
+                        {config.message || 'No message set'}
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={config.message || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, message: e.target.value } 
+                          })
+                        }
+                        placeholder="Use {{employee.name}}, {{company.name}} for variables"
+                        rows={4}
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Variables: {'{{employee.name}}, {{company.name}}, {{manager.name}}'}
                     </p>
                   </div>
                 </>
@@ -789,184 +861,680 @@ function EnhancedWorkflowCanvasInner({
 
               {(nodeData.actionType === 'create_task' || config.actionType === 'create_task') && (
                 <>
-                  <div>
-                    <Label>Task Title</Label>
-                    <Input
-                      value={config.title || ''}
-                      onChange={(e) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, title: e.target.value } 
-                        })
-                      }
-                      placeholder="Task title"
-                      disabled={readOnly}
-                    />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Task Title</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                        {config.title || 'No title set'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.title || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, title: e.target.value } 
+                          })
+                        }
+                        placeholder="Task title"
+                      />
+                    )}
                   </div>
-                  <div>
-                    <Label>Description</Label>
-                    <Textarea
-                      value={config.description || ''}
-                      onChange={(e) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, description: e.target.value } 
-                        })
-                      }
-                      placeholder="Task details"
-                      rows={2}
-                      disabled={readOnly}
-                    />
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Description</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono whitespace-pre-wrap">
+                        {config.description || 'No description'}
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={config.description || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, description: e.target.value } 
+                          })
+                        }
+                        placeholder="Task details"
+                        rows={2}
+                      />
+                    )}
                   </div>
-                  <div>
-                    <Label>Assign To</Label>
-                    <Select
-                      value={config.assigneeType || 'manager'}
-                      onValueChange={(value) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, assigneeType: value } 
-                        })
-                      }
-                      disabled={readOnly}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="hr">HR Team</SelectItem>
-                        <SelectItem value="it_team">IT Team</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Assign To</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.assigneeType || 'manager'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={config.assigneeType || 'manager'}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, assigneeType: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="hr">HR Team</SelectItem>
+                          <SelectItem value="it_team">IT Team</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
-                  <div>
-                    <Label>Due in (days)</Label>
-                    <Input
-                      type="number"
-                      value={config.dueDays || 7}
-                      onChange={(e) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, dueDays: parseInt(e.target.value) } 
-                        })
-                      }
-                      disabled={readOnly}
-                    />
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Due in (days)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.dueDays || 7} days
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.dueDays || 7}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, dueDays: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
                   </div>
                 </>
               )}
 
               {(nodeData.actionType === 'webhook' || config.actionType === 'webhook') && (
                 <>
-                  <div>
-                    <Label>URL</Label>
-                    <Input
-                      value={config.url || ''}
-                      onChange={(e) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, url: e.target.value } 
-                        })
-                      }
-                      placeholder="https://api.example.com/webhook"
-                      disabled={readOnly}
-                    />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">URL</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono break-all">
+                        {config.url || 'No URL set'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.url || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, url: e.target.value } 
+                          })
+                        }
+                        placeholder="https://api.example.com/webhook"
+                      />
+                    )}
                   </div>
-                  <div>
-                    <Label>Method</Label>
-                    <Select
-                      value={config.method || 'POST'}
-                      onValueChange={(value) => 
-                        handleNodeUpdate(selectedNode.id, { 
-                          config: { ...config, method: value } 
-                        })
-                      }
-                      disabled={readOnly}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GET">GET</SelectItem>
-                        <SelectItem value="POST">POST</SelectItem>
-                        <SelectItem value="PUT">PUT</SelectItem>
-                        <SelectItem value="PATCH">PATCH</SelectItem>
-                        <SelectItem value="DELETE">DELETE</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Method</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.method || 'POST'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={config.method || 'POST'}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, method: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="GET">GET</SelectItem>
+                          <SelectItem value="POST">POST</SelectItem>
+                          <SelectItem value="PUT">PUT</SelectItem>
+                          <SelectItem value="PATCH">PATCH</SelectItem>
+                          <SelectItem value="DELETE">DELETE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </>
               )}
+              
+              {/* AUTO ASSIGN BUDDY */}
+              {(nodeData.actionType === 'auto_assign_buddy' || config.actionType === 'auto_assign_buddy') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Matching Criteria</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.criteria || 'same_department'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={config.criteria || 'same_department'}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, criteria: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="same_department">Same Department</SelectItem>
+                          <SelectItem value="same_location">Same Location</SelectItem>
+                          <SelectItem value="random">Random Employee</SelectItem>
+                          <SelectItem value="specific">Specific Employee</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  
+                  {config.criteria === 'specific' && !readOnly && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Select Buddy</Label>
+                      <Select
+                        value={config.buddyId || ''}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, buddyId: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger><SelectValue placeholder="Choose employee" /></SelectTrigger>
+                        <SelectContent>
+                          {employees.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Minimum Tenure (days)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.minTenure || 180} days
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.minTenure || 180}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, minTenure: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* CREATE CALENDAR EVENT */}
+              {(nodeData.actionType === 'create_calendar_event' || config.actionType === 'create_calendar_event') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Event Title</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                        {config.title || 'No title set'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.title || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, title: e.target.value } 
+                          })
+                        }
+                        placeholder="e.g., Buddy Introduction - {{employee.name}}"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Attendees</Label>
+                    {readOnly ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(Array.isArray(config.attendees) ? config.attendees : []).map((att: string) => (
+                          <Badge key={att} variant="secondary" className="text-xs">
+                            {att}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <MultiSelect
+                        options={[
+                          { label: 'Employee', value: 'employee' },
+                          { label: 'Manager', value: 'manager' },
+                          { label: 'Buddy', value: 'buddy' },
+                          { label: 'HR', value: 'hr' },
+                        ]}
+                        selected={config.attendees || ['employee']}
+                        onChange={(values) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, attendees: values } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Duration (minutes)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.duration || 30} minutes
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.duration || 30}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, duration: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Schedule Within (days)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        Within {config.withinDays || 7} days
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.withinDays || 7}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, withinDays: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <p className="text-xs text-blue-900">
+                      📅 Creates calendar event with .ics file sent to all attendees
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* ASSIGN FORM / SEND FORM */}
+              {(nodeData.actionType === 'assign_form' || nodeData.actionType === 'send_form' || 
+                config.actionType === 'assign_form' || config.actionType === 'send_form') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Form</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                        {config.formId || 'No form selected'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={config.formId || ''}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, formId: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+                        <SelectContent>
+                          {forms.map((form) => (
+                            <SelectItem key={form.id} value={form.id}>
+                              {form.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Assign To</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.assignTo || 'employee'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={config.assignTo || 'employee'}
+                        onValueChange={(value) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, assignTo: value } 
+                          })
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="all_employees">All Employees</SelectItem>
+                          <SelectItem value="managers">All Managers</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Due in (days)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.dueInDays || config.dueDays || 7} days
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.dueInDays || config.dueDays || 7}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, dueInDays: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  {config.ccEmployee && readOnly && (
+                    <Badge variant="secondary" className="text-xs">
+                      CC Employee
+                    </Badge>
+                  )}
+                </>
+              )}
+
+              {/* ASSIGN TRAINING */}
+              {(nodeData.actionType === 'assign_training' || config.actionType === 'assign_training') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Course</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                        {config.courseId || 'No course selected'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.courseId || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, courseId: e.target.value } 
+                          })
+                        }
+                        placeholder="Course ID"
+                      />
+                    )}
+                  </div>
+                  
+                  {readOnly && config.mandatory && (
+                    <Badge variant="default" className="text-xs">Mandatory</Badge>
+                  )}
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Due in (days)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.dueInDays || 14} days
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.dueInDays || 14}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, dueInDays: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* REQUEST DOCUMENT */}
+              {(nodeData.actionType === 'request_document' || config.actionType === 'request_document' || 
+                nodeData.actionType === 'request_documents' || config.actionType === 'request_documents') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Document Type</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.documentType || (Array.isArray(config.documents) ? config.documents.join(', ') : 'Not specified')}
+                      </div>
+                    ) : (
+                      <MultiSelect
+                        options={documentTypes.map(t => ({ label: t, value: t }))}
+                        selected={config.documents || [config.documentType].filter(Boolean)}
+                        onChange={(values) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, documents: values } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Deadline (days)</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.deadline || config.requiredAfterDays || 7} days
+                      </div>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.deadline || 7}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, deadline: parseInt(e.target.value) } 
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  
+                  {config.blocking && readOnly && (
+                    <Badge variant="destructive" className="text-xs">Blocking</Badge>
+                  )}
+                </>
+              )}
+
+              {/* UPDATE FIELD */}
+              {(nodeData.actionType === 'update_field' || config.actionType === 'update_field') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Field to Update</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                        {config.field || 'Not specified'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.field || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, field: e.target.value } 
+                          })
+                        }
+                        placeholder="Field name"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">New Value</Label>
+                    {readOnly ? (
+                      <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                        {config.value || 'Not specified'}
+                      </div>
+                    ) : (
+                      <Input
+                        value={config.value || ''}
+                        onChange={(e) => 
+                          handleNodeUpdate(selectedNode.id, { 
+                            config: { ...config, value: e.target.value } 
+                          })
+                        }
+                        placeholder="New value"
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Generic action config display for remaining action types */}
+              {config && Object.keys(config).length > 0 && 
+               !['send_notification', 'create_task', 'webhook', 'auto_assign_buddy', 'create_calendar_event', 
+                 'assign_form', 'send_form', 'assign_training', 'request_document', 'request_documents', 'update_field']
+                 .includes(nodeData.actionType || config.actionType) && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label className="text-xs font-medium text-muted-foreground">Configuration</Label>
+                  <div className="space-y-1.5">
+                    {Object.entries(config).filter(([key]) => key !== 'actionType').map(([key, value]) => (
+                      <div key={key} className="grid grid-cols-2 gap-2 text-xs">
+                        <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                        <span className="font-mono text-right break-all">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="p-2 rounded-md bg-blue-50 border border-blue-200 mt-2">
+                    <p className="text-[10px] text-blue-900">
+                      ℹ️ This action type will be executed by the automation engine
+                    </p>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
           {nodeType === 'delay' && (
             <div className="space-y-3">
-              <div>
-                <Label>Days</Label>
-                <Input
-                  type="number"
-                  value={config.days || 0}
-                  onChange={(e) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, days: parseInt(e.target.value) } 
-                    })
-                  }
-                  disabled={readOnly}
-                />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Days</Label>
+                {readOnly ? (
+                  <div className="px-3 py-2 rounded-md border bg-purple-50/50 text-sm font-medium text-purple-900">
+                    {config.days || 0} days
+                  </div>
+                ) : (
+                  <Input
+                    type="number"
+                    value={config.days || 0}
+                    onChange={(e) => 
+                      handleNodeUpdate(selectedNode.id, { 
+                        config: { ...config, days: parseInt(e.target.value) } 
+                      })
+                    }
+                  />
+                )}
               </div>
-              <div>
-                <Label>Hours</Label>
-                <Input
-                  type="number"
-                  value={config.hours || 0}
-                  onChange={(e) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, hours: parseInt(e.target.value) } 
-                    })
-                  }
-                  disabled={readOnly}
-                />
+              
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Hours</Label>
+                {readOnly ? (
+                  <div className="px-3 py-2 rounded-md border bg-purple-50/50 text-sm">
+                    {config.hours || 0} hours
+                  </div>
+                ) : (
+                  <Input
+                    type="number"
+                    value={config.hours || 0}
+                    onChange={(e) => 
+                      handleNodeUpdate(selectedNode.id, { 
+                        config: { ...config, hours: parseInt(e.target.value) } 
+                      })
+                    }
+                  />
+                )}
               </div>
+              
               <div className="flex items-center space-x-2">
-                <Switch
-                  checked={config.businessDaysOnly || false}
-                  onCheckedChange={(checked) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, businessDaysOnly: checked } 
-                    })
-                  }
-                  disabled={readOnly}
-                />
-                <Label>Business Days Only</Label>
+                {readOnly ? (
+                  <Badge variant={config.businessDaysOnly ? "default" : "secondary"} className="text-xs">
+                    Business Days: {config.businessDaysOnly ? 'Yes' : 'No'}
+                  </Badge>
+                ) : (
+                  <>
+                    <Switch
+                      checked={config.businessDaysOnly || false}
+                      onCheckedChange={(checked) => 
+                        handleNodeUpdate(selectedNode.id, { 
+                          config: { ...config, businessDaysOnly: checked } 
+                        })
+                      }
+                    />
+                    <Label>Business Days Only</Label>
+                  </>
+                )}
               </div>
             </div>
           )}
 
           {nodeType === 'loop' && (
             <div className="space-y-3">
-              <div>
-                <Label>Iterations</Label>
-                <Input
-                  type="number"
-                  value={config.iterations || 1}
-                  onChange={(e) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, iterations: parseInt(e.target.value) } 
-                    })
-                  }
-                  disabled={readOnly}
-                />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Iterations</Label>
+                {readOnly ? (
+                  <div className="px-3 py-2 rounded-md border bg-sky-50/50 text-sm font-medium text-sky-900">
+                    {config.iterations || 1} times
+                  </div>
+                ) : (
+                  <Input
+                    type="number"
+                    value={config.iterations || 1}
+                    onChange={(e) => 
+                      handleNodeUpdate(selectedNode.id, { 
+                        config: { ...config, iterations: parseInt(e.target.value) } 
+                      })
+                    }
+                  />
+                )}
               </div>
-              <div>
-                <Label>Collection (optional)</Label>
-                <Input
-                  value={config.collection || ''}
-                  onChange={(e) => 
-                    handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, collection: e.target.value } 
-                    })
-                  }
-                  placeholder="Variable name to iterate over"
-                  disabled={readOnly}
-                />
+              
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Collection (optional)</Label>
+                {readOnly ? (
+                  <div className="px-3 py-2 rounded-md border bg-muted/50 text-sm font-mono">
+                    {config.collection || 'None'}
+                  </div>
+                ) : (
+                  <Input
+                    value={config.collection || ''}
+                    onChange={(e) => 
+                      handleNodeUpdate(selectedNode.id, { 
+                        config: { ...config, collection: e.target.value } 
+                      })
+                    }
+                    placeholder="Variable name to iterate over"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {nodeType === 'branch' && config && Object.keys(config).length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">Branch Configuration</Label>
+              <div className="space-y-1.5 text-xs">
+                {Object.entries(config).map(([key, value]) => (
+                  <div key={key} className="grid grid-cols-2 gap-2">
+                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>
+                    <span className="font-mono text-right break-all">
+                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}

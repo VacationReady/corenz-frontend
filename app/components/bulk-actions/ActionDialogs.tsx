@@ -502,6 +502,16 @@ export function CompensationBulkActionDialog({
     });
   }, [allEmployees, filters]);
 
+  // Prefetch current compensation for all filtered employees so current values are visible
+  useEffect(() => {
+    if (!open) return;
+    if (filteredEmployees.length === 0) {
+      setCompensationData(new Map());
+      return;
+    }
+    fetchCompensationData(filteredEmployees.map((e) => e.id));
+  }, [open, filteredEmployees, fetchCompensationData]);
+
   const allFilteredSelected = useMemo(
     () =>
       filteredEmployees.length > 0 &&
@@ -833,17 +843,17 @@ export function CompensationBulkActionDialog({
                               <div className="text-xs text-muted-foreground">{employee.email}</div>
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {loadingCompensation && isSelected ? (
+                              {loadingCompensation ? (
                                 <span className="text-muted-foreground">Loading...</span>
                               ) : (
                                 <span className="font-medium">{formatCurrency(comp?.salaryAmount ?? null)}</span>
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {loadingCompensation && isSelected ? (
+                              {loadingCompensation ? (
                                 <span className="text-muted-foreground">—</span>
-                              ) : isSelected && newSalary && comp?.salaryAmount !== newSalary ? (
-                                <span className={`font-semibold ${newSalary > (comp?.salaryAmount ?? 0) ? "text-green-600" : "text-red-600"}`}>
+                              ) : comp && newSalary !== null && comp.salaryAmount !== null && newSalary !== comp.salaryAmount ? (
+                                <span className={`font-semibold ${newSalary > comp.salaryAmount ? "text-green-600" : "text-red-600"}`}>
                                   {formatCurrency(newSalary)}
                                 </span>
                               ) : (
@@ -851,17 +861,17 @@ export function CompensationBulkActionDialog({
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {loadingCompensation && isSelected ? (
+                              {loadingCompensation ? (
                                 <span className="text-muted-foreground">Loading...</span>
                               ) : (
                                 <span className="font-medium">{formatCurrency(comp?.hourlyRate ?? null)}</span>
                               )}
                             </td>
                             <td className="px-4 py-3 text-sm">
-                              {loadingCompensation && isSelected ? (
+                              {loadingCompensation ? (
                                 <span className="text-muted-foreground">—</span>
-                              ) : isSelected && newHourly && comp?.hourlyRate !== newHourly ? (
-                                <span className={`font-semibold ${newHourly > (comp?.hourlyRate ?? 0) ? "text-green-600" : "text-red-600"}`}>
+                              ) : comp && newHourly !== null && comp.hourlyRate !== null && newHourly !== comp.hourlyRate ? (
+                                <span className={`font-semibold ${newHourly > comp.hourlyRate ? "text-green-600" : "text-red-600"}`}>
                                   {formatCurrency(newHourly)}
                                 </span>
                               ) : (

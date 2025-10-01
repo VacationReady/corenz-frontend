@@ -130,6 +130,7 @@ function EnhancedWorkflowCanvasInner({
   const [employees, setEmployees] = useState<any[]>([]);
   const [documentTypes, setDocumentTypes] = useState<string[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const notifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helpers to ensure ReactFlow receives valid, unique nodes/edges
   const sanitizeNodesAndEdges = useCallback((rawNodes: Node[] = [], rawEdges: Edge[] = []) => {
@@ -212,36 +213,52 @@ function EnhancedWorkflowCanvasInner({
     }
   };
 
-  // Load workflow nodes when workflow changes
+  // Load workflow nodes when workflow prop changes (deferred to avoid updates during render/drag)
   useEffect(() => {
     if (workflow?.nodes && workflow?.edges) {
       const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(workflow.nodes, workflow.edges);
 
-      // Only update local state if different from current state snapshot
-      const incomingSnapshot = JSON.stringify({ n: nodesSafe, e: edgesSafe });
-      const currentSnapshot = JSON.stringify({ n: nodes, e: edges });
-      if (incomingSnapshot !== currentSnapshot) {
-        setNodes(nodesSafe);
-        setEdges(edgesSafe);
+      // Defer updates to next tick to avoid React error #185 during drag/render cycles
+      const t = setTimeout(() => {
+        // Only update local state if different from current state snapshot
+        const incomingSnapshot = JSON.stringify({ n: nodesSafe, e: edgesSafe });
+        const currentSnapshot = JSON.stringify({ n: nodes, e: edges });
+        if (incomingSnapshot !== currentSnapshot) {
+          setNodes(nodesSafe);
+          setEdges(edgesSafe);
 
-        if (nodesSafe.length > 0) {
-          setTimeout(() => {
-            fitView({ padding: 0.2, duration: 300 });
-          }, 100);
+          if (nodesSafe.length > 0) {
+            setTimeout(() => {
+              fitView({ padding: 0.2, duration: 300 });
+            }, 100);
+          }
         }
-      }
-    }
-  }, [workflow, nodes, edges, setNodes, setEdges, fitView, sanitizeNodesAndEdges]);
+      }, 0);
 
-  // Notify parent of changes
-  useEffect(() => {
-    if (!readOnly && onWorkflowChange) {
-      const snapshot = JSON.stringify({ n: nodes, e: edges });
-      if (prevSentSnapshotRef.current !== snapshot) {
-        prevSentSnapshotRef.current = snapshot;
-        onWorkflowChange({ ...workflow, nodes, edges });
-      }
+      return () => clearTimeout(t);
     }
+  // Intentionally exclude nodes/edges/setters from deps to avoid re-running during drags
+  }, [workflow, fitView, sanitizeNodesAndEdges]);
+
+  // Notify parent of changes (debounced) to prevent excessive parent re-renders during drag
+  useEffect(() => {
+    if (readOnly || !onWorkflowChange) return;
+
+    const snapshot = JSON.stringify({ n: nodes, e: edges });
+    if (prevSentSnapshotRef.current === snapshot) return;
+
+    if (notifyTimerRef.current) clearTimeout(notifyTimerRef.current);
+    notifyTimerRef.current = setTimeout(() => {
+      prevSentSnapshotRef.current = snapshot;
+      onWorkflowChange({ ...workflow, nodes, edges });
+    }, 120);
+
+    return () => {
+      if (notifyTimerRef.current) {
+        clearTimeout(notifyTimerRef.current);
+        notifyTimerRef.current = null;
+      }
+    };
   }, [nodes, edges, readOnly, onWorkflowChange, workflow]);
 
   // Handle connections

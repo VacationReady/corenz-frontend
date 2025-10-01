@@ -470,13 +470,22 @@ export class WorkflowExecutionEngine {
             case "missing":
               return docs.length === 0;
             case "expiring":
-              const thirtyDaysFromNow = new Date();
-              thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-              return docs.some(d => d.expiryDate && d.expiryDate <= thirtyDaysFromNow && d.expiryDate > new Date());
+              {
+                const thirtyDaysFromNow = new Date();
+                thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                const docsAny = docs as unknown as Array<{ expiryDate?: Date | null }>;
+                return docsAny.some(d => d.expiryDate && d.expiryDate <= thirtyDaysFromNow && d.expiryDate > new Date());
+              }
             case "expired":
-              return docs.some(d => d.expiryDate && d.expiryDate < new Date());
+              {
+                const docsAny = docs as unknown as Array<{ expiryDate?: Date | null }>;
+                return docsAny.some(d => d.expiryDate && d.expiryDate < new Date());
+              }
             case "valid":
-              return docs.length > 0 && docs.every(d => !d.expiryDate || d.expiryDate > new Date());
+              {
+                const docsAny = docs as unknown as Array<{ expiryDate?: Date | null }>;
+                return docsAny.length > 0 && docsAny.every(d => !d.expiryDate || d.expiryDate > new Date());
+              }
             default:
               return false;
           }
@@ -598,18 +607,20 @@ export class WorkflowExecutionEngine {
     if (channels.includes("email")) {
       for (const recipient of recipients) {
         if (recipient.email) {
-          const emailContent = renderPeopleCoreEmail({
-            preview: subject,
-            content: message,
-            actionUrl: config.actionUrl,
-            actionText: config.actionText,
+          const { html } = renderPeopleCoreEmail({
+            preheader: subject,
+            title: subject,
+            intro: [message],
+            ctas: config.actionUrl && config.actionText
+              ? { label: config.actionText, href: config.actionUrl }
+              : undefined,
           });
           
           await resend.emails.send({
             from: "PeopleCore <notifications@peoplecore.app>",
             to: recipient.email,
             subject,
-            html: emailContent,
+            html,
           });
         }
       }
@@ -1008,7 +1019,15 @@ export class WorkflowExecutionEngine {
     error?: string
   ): Promise<void> {
     const duration = Date.now() - context.startTime.getTime();
-    
+    // JSON-safe copies
+    const safeLogs = (context.logs || []).map((l) => ({
+      ...l,
+      timestamp: new Date(l.timestamp).toISOString(),
+    }));
+    const safeTriggerData = context.triggerData
+      ? JSON.parse(JSON.stringify(context.triggerData))
+      : undefined;
+
     await prisma.automationExecution.create({
       data: {
         id: context.executionId,
@@ -1016,8 +1035,8 @@ export class WorkflowExecutionEngine {
         companyId: workflow.companyId,
         status: success ? "COMPLETED" : "FAILED",
         triggeredAt: context.startTime,
-        triggerData: context.triggerData,
-        executionLog: context.logs,
+        triggerData: safeTriggerData,
+        executionLog: safeLogs,
         errorMessage: error,
       },
     });
@@ -1046,6 +1065,21 @@ export class WorkflowExecutionEngine {
     context: WorkflowContext,
     executeAt: Date
   ): Promise<void> {
+    // Prepare JSON-safe copies for triggerData and jobData
+    const safeTriggerData = context.triggerData
+      ? JSON.parse(JSON.stringify(context.triggerData))
+      : {};
+    const safeJobData = JSON.parse(
+      JSON.stringify({
+        nodeId: node.id,
+        context: {
+          ...context,
+          logs: undefined,
+          startTime: context.startTime.toISOString(),
+        },
+      }),
+    );
+
     await prisma.automationJob.create({
       data: {
         id: uuidv4(),
@@ -1054,13 +1088,9 @@ export class WorkflowExecutionEngine {
         status: "PENDING",
         scheduledAt: executeAt,
         jobType: "DELAYED_EXECUTION",
-        jobData: {
-          nodeId: node.id,
-          context: {
-            ...context,
-            logs: undefined, // Don't store logs in job data
-          },
-        },
+        jobData: safeJobData,
+        triggerData: safeTriggerData,
+        updatedAt: new Date(),
       },
     });
   }
@@ -1139,6 +1169,161 @@ export class WorkflowExecutionEngine {
   }
 
   // Remaining action implementations follow similar patterns...
+  private async executeAdjustLeaveBalance(config: any, context: WorkflowContext): Promise<void> {
+    if (!context.employee?.id) return;
+    const leaveType = config.leaveType || "ANNUAL";
+    const delta = Number(config.delta ?? 0);
+    if (!delta) return;
+
+    const category = await prisma.eventCategory.findFirst({
+      where: { companyId: context.company?.id || "", name: leaveType },
+      select: { id: true },
+    });
+    if (!category) return;
+
+    const existing = await prisma.leaveEntitlement.findFirst({
+      where: { employeeId: context.employee.id, eventCategoryId: category.id },
+      select: { id: true, totalDays: true },
+    });
+
+    if (existing) {
+      await prisma.leaveEntitlement.update({
+        where: { id: existing.id },
+        data: { totalDays: existing.totalDays + delta, updatedAt: new Date() },
+      });
+    } else {
+      await prisma.leaveEntitlement.create({
+        data: {
+          id: uuidv4(),
+          employeeId: context.employee.id,
+          eventCategoryId: category.id,
+          totalDays: delta,
+          usedDays: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          companyId: context.company?.id || "",
+          daysAllocated: 0,
+          carryoverDays: 0,
+        },
+      });
+    }
+  }
+
+  private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
+    // Create a dashboard task to complete training; avoids altering records directly
+    const title = this.interpolateVariables(config.title || "Complete training", context);
+    await prisma.actionItem.create({
+      data: {
+        id: uuidv4(),
+        companyId: context.company?.id || "",
+        title,
+        description: this.interpolateVariables(config.description || "", context),
+        type: "TRAINING",
+        status: "PENDING",
+        priority: config.priority || "MEDIUM",
+        dueDate: config.dueDays ? this.addBusinessDays(new Date(), config.dueDays) : null,
+        assignedToId: context.employee?.userId ?? null,
+        relatedEmployeeId: context.employee?.id ?? null,
+        updatedAt: new Date(),
+        metadata: {
+          source: "workflow",
+          courseId: config.courseId || null,
+        },
+      },
+    });
+  }
+
+  private async executeScheduleReview(config: any, context: WorkflowContext): Promise<void> {
+    // Create an action item to schedule a performance review instead of writing directly
+    const when = config.date ? new Date(config.date) : this.addBusinessDays(new Date(), config.dueDays || 14);
+    await prisma.actionItem.create({
+      data: {
+        id: uuidv4(),
+        companyId: context.company?.id || "",
+        title: this.interpolateVariables(config.title || "Schedule performance review", context),
+        description: this.interpolateVariables(config.description || "", context),
+        type: "REVIEW",
+        status: "PENDING",
+        dueDate: when,
+        assignedToId: context.employee?.userId ?? null,
+        relatedEmployeeId: context.employee?.id ?? null,
+        updatedAt: new Date(),
+        metadata: { source: "workflow" },
+      },
+    });
+  }
+
+  private async executeUpdatePermissions(config: any, context: WorkflowContext): Promise<void> {
+    // Guardrail: surface as action item for admin to approve rather than direct permission mutation
+    await prisma.actionItem.create({
+      data: {
+        id: uuidv4(),
+        companyId: context.company?.id || "",
+        title: this.interpolateVariables(config.title || "Update permissions", context),
+        description: this.interpolateVariables(config.description || "", context),
+        type: "PERMISSIONS",
+        status: "PENDING",
+        priority: config.priority || "MEDIUM",
+        dueDate: config.dueDays ? this.addBusinessDays(new Date(), config.dueDays) : null,
+        assignedToId: context.employee?.userId ?? null,
+        relatedEmployeeId: context.employee?.id ?? null,
+        updatedAt: new Date(),
+        metadata: { source: "workflow", permissionProfileId: config.permissionProfileId || null },
+      },
+    });
+  }
+
+  private async executeAddOffboardingTask(config: any, context: WorkflowContext): Promise<void> {
+    const title = this.interpolateVariables(config.title || "Workflow task", context);
+    const description = this.interpolateVariables(config.description || "", context);
+    const category = (config.category || "HR") as any;
+    const offboardingId: string | undefined = config.offboardingId;
+    const assignedToId: string | undefined = config.assignedToId;
+    const dueDate: Date | null = config.dueDate
+      ? new Date(config.dueDate)
+      : (config.dueDays ? this.addBusinessDays(new Date(), config.dueDays) : null);
+
+    if (offboardingId) {
+      await prisma.offboardingTask.create({
+        data: {
+          id: uuidv4(),
+          offboardingId,
+          title,
+          description,
+          category,
+          isRequired: config.isRequired ?? true,
+          assignedTo: assignedToId ?? null,
+          dueDate,
+          order: config.order ? Math.floor(config.order) : 0,
+          updatedAt: new Date(),
+        },
+      });
+      return;
+    }
+
+    // Fallback: create a general action item so the task still appears on the dashboard
+    await prisma.actionItem.create({
+      data: {
+        id: uuidv4(),
+        companyId: context.company?.id || (await prisma.user.findUnique({ where: { id: assignedToId || context.employee?.userId || "" }, select: { companyId: true } }))?.companyId || "",
+        title,
+        description,
+        type: "TASK",
+        status: "PENDING",
+        priority: config.priority || "MEDIUM",
+        dueDate,
+        assignedToId: assignedToId ?? context.employee?.userId ?? null,
+        relatedEmployeeId: context.employee?.id ?? null,
+        updatedAt: new Date(),
+        metadata: {
+          source: "workflow",
+          workflowId: context.workflowId,
+          executionId: context.executionId,
+          fallback: true,
+        },
+      },
+    });
+  }
 }
 
 // Export singleton instance

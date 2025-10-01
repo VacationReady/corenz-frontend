@@ -423,7 +423,7 @@ async function getProcessedDocumentIds(workflowId: string, date: Date): Promise<
     where: {
       ruleId: workflowId,
       triggeredAt: { gte: startOfDay },
-      status: "SUCCESS",
+      status: "COMPLETED",
     },
     select: {
       triggerData: true,

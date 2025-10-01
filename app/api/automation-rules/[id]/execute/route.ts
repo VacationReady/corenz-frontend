@@ -57,7 +57,7 @@ export async function POST(
       },
       manualTrigger: {
         userId: session.user.id,
-        userName: `${session.user.firstName} ${session.user.lastName}`,
+        userName: session.user.name || session.user.email || "Unknown User",
         triggeredAt: new Date(),
       },
       ...body.triggerData,

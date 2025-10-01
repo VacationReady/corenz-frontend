@@ -571,10 +571,6 @@ export class WorkflowExecutionEngine {
         await this.executeAdjustLeaveBalance(config, context);
         break;
         
-      case "assign_training":
-        await this.executeAssignTraining(config, context);
-        break;
-        
       case "schedule_review":
         await this.executeScheduleReview(config, context);
         break;
@@ -1226,30 +1222,6 @@ export class WorkflowExecutionEngine {
         },
       });
     }
-  }
-
-  private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
-    // Create a dashboard task to complete training; avoids altering records directly
-    const title = this.interpolateVariables(config.title || "Complete training", context);
-    await prisma.actionItem.create({
-      data: {
-        id: uuidv4(),
-        companyId: context.company?.id || "",
-        title,
-        description: this.interpolateVariables(config.description || "", context),
-        type: "TRAINING",
-        status: "PENDING",
-        priority: config.priority || "MEDIUM",
-        dueDate: config.dueDays ? this.addBusinessDays(new Date(), config.dueDays) : null,
-        assignedToId: context.employee?.userId ?? null,
-        relatedEmployeeId: context.employee?.id ?? null,
-        updatedAt: new Date(),
-        metadata: {
-          source: "workflow",
-          courseId: config.courseId || null,
-        },
-      },
-    });
   }
 
   private async executeScheduleReview(config: any, context: WorkflowContext): Promise<void> {

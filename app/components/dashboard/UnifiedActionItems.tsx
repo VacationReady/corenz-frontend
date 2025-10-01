@@ -36,6 +36,11 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string }>(null);
   const [viewAll, setViewAll] = useState(false);
 
+  const toAuditValue = (val: unknown): string | null | undefined => {
+    if (val === null || val === undefined) return null;
+    return String(val);
+  };
+
   // Fetch onboarding tasks
   const { data: onboardingData } = useSWR(
     employeeId ? `/api/onboarding/instances/employee/${employeeId}` : null,
@@ -554,8 +559,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                         {selectedItem.metadata.diffs.map((d: any, idx: number) => (
                           <div key={idx} className="grid grid-cols-3 gap-2 items-center">
                             <div className="text-muted-foreground truncate">{labelForField(d.field) || d.field}</div>
-                            <div className="truncate text-xs">{formatAuditValue(d.oldValue)}</div>
-                            <div className="truncate text-xs font-medium">{formatAuditValue(d.newValue)}</div>
+                            <div className="truncate text-xs">{formatAuditValue(toAuditValue(d.oldValue))}</div>
+                            <div className="truncate text-xs font-medium">{formatAuditValue(toAuditValue(d.newValue))}</div>
                           </div>
                         ))}
                       </div>
@@ -563,8 +568,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   ) : selectedItem.metadata?.payload ? (
                     <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-1">
                       {Object.entries(selectedItem.metadata.payload).map(([k, v]) => (
-                        <div key={k} className="flex justify-between"><span className="text-muted-foreground">{labelForField(k) || k}</span><span className="font-medium">{formatAuditValue(v)}</span></div>
-                      ))}
+                        <div key={k} className="flex justify-between"><span className="text-muted-foreground">{labelForField(k) || k}</span><span className="font-medium">{formatAuditValue(toAuditValue(v))}</span></div>
+                  ))}
                     </div>
                   ) : null}
                 </div>

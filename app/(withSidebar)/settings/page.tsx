@@ -142,18 +142,18 @@ function SettingSection({
   description?: string;
   completionStatus?: { completed: number; total: number };
 }) {
-  const completionPercent = completionStatus 
+  const completionPercent = completionStatus && completionStatus.total > 0
     ? Math.round((completionStatus.completed / completionStatus.total) * 100)
     : 0;
 
   return (
     <AccordionItem
       value={id}
-      className="border border-enhanced rounded-xl bg-card shadow-sm hover:shadow-md transition-all duration-200"
+      className="relative overflow-hidden rounded-xl border border-transparent border-enhanced bg-card shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md data-[state=open]:bg-gradient-to-br data-[state=open]:from-primary/15 data-[state=open]:via-white/80 data-[state=open]:to-transparent data-[state=open]:shadow-primary/20 dark:data-[state=open]:via-slate-900/70 before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-gradient-to-br before:from-primary/20 before:via-primary/5 before:to-transparent before:opacity-0 before:transition-opacity data-[state=open]:before:opacity-100 after:pointer-events-none after:absolute after:inset-0 after:-z-20 after:rounded-[inherit] after:bg-primary/10 after:blur-3xl after:opacity-0 after:transition-opacity data-[state=open]:after:opacity-80"
     >
       <AccordionTrigger className="px-6 py-5 hover:no-underline group">
         <div className="flex items-center gap-4 text-left w-full">
-          <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center transition-colors transition-transform duration-300 group-hover:bg-primary/20 group-data-[state=open]:scale-110">
             <div className="text-primary w-5 h-5">{icon}</div>
           </div>
           <div className="flex-1">
@@ -172,10 +172,20 @@ function SettingSection({
                 {description}
               </p>
             )}
+            {completionStatus && (
+              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2">
+                <div className="mt-3 h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary via-sky-500 to-indigo-500 animate-[pulse_6s_ease-in-out_infinite]"
+                    style={{ width: `${completionPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </AccordionTrigger>
-      <AccordionContent className="px-6 pb-6">
+      <AccordionContent className="px-6 pb-6 data-[state=open]:animate-in data-[state=open]:fade-in-80 data-[state=open]:slide-in-from-top-2">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
           {items.map(({ title, href, icon, helpPreset }) => (
             <Card

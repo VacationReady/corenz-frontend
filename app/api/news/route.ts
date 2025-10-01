@@ -29,11 +29,13 @@ export async function POST(req: NextRequest) {
 
     console.log("📝 Incoming news POST:", { title, sendEmail, audience });
 
+    const slug = await generateUniqueSlug(title);
+
     const newsPost = await prisma.newsPost.create({
       data: {
         id: crypto.randomUUID(),
         title,
-        slug: generateSlug(title),
+        slug,
         content,
         coverImageUrl: coverImage ?? null,
         videoEmbedUrl,
@@ -319,6 +321,22 @@ function generateSlug(title: string) {
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9\-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 50);
+}
+
+async function generateUniqueSlug(title: string) {
+  const baseSlug = generateSlug(title) || "news";
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (await prisma.newsPost.findUnique({ where: { slug } })) {
+    const suffix = `-${counter++}`;
+    const maxBaseLength = Math.max(1, 50 - suffix.length);
+    slug = `${baseSlug.slice(0, maxBaseLength)}${suffix}`;
+  }
+
+  return slug;
 }
 

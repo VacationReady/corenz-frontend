@@ -122,13 +122,9 @@ export async function POST(req: NextRequest) {
 
     // Send calendar invites to all attendees
     for (const attendee of attendees) {
-      await resend.emails.send({
-        from: "PeopleCore <noreply@peoplecore.co.nz>",
-        to: attendee.email,
-        subject: `📅 Calendar Invite: ${title}`,
-        html: renderPeopleCoreEmail({
-          headline: `Calendar Event: ${title}`,
-          bodyHtml: `
+      const { html, text } = renderPeopleCoreEmail({
+        headline: `Calendar Event: ${title}`,
+        bodyHtml: `
             <p>You've been invited to:</p>
             <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
               <h3 style="margin: 0 0 8px 0;">${title}</h3>
@@ -139,9 +135,16 @@ export async function POST(req: NextRequest) {
             </div>
             <p>A calendar invitation (.ics) has been attached to this email.</p>
           `,
-          ctaText: null,
-          ctaUrl: null,
-        }),
+        ctaText: null,
+        ctaUrl: null,
+      });
+
+      await resend.emails.send({
+        from: "PeopleCore <noreply@peoplecore.co.nz>",
+        to: attendee.email,
+        subject: `📅 Calendar Invite: ${title}`,
+        html,
+        text: text || undefined,
         attachments: [
           {
             filename: ics.filename,

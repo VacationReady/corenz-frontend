@@ -36,11 +36,11 @@ export default function PersonalInfoSaveButton({
 
   const computeChanges = (currentValues: Record<string, any>): ChangeInfo[] => {
     const changes: ChangeInfo[] = [];
-    
+
     for (const [field, newValue] of Object.entries(currentValues)) {
       const oldValue = initialValues[field] || "";
       const newValueStr = String(newValue || "");
-      
+
       if (oldValue !== newValueStr) {
         changes.push({
           field,
@@ -49,8 +49,33 @@ export default function PersonalInfoSaveButton({
         });
       }
     }
-    
+
     return changes;
+  };
+
+  const annotateChanges = (changes: ChangeInfo[], payload: Record<string, any>): ChangeInfo[] => {
+    return changes.map((change) => {
+      if (change.field === "dateOfBirth" && payload.dateOfBirth instanceof Date) {
+        const originalValue = initialValues.dateOfBirth;
+        if (originalValue) {
+          const originalDateOnly = new Date(originalValue);
+          const newDateOnly = payload.dateOfBirth;
+
+          const datesAreEqual = () => {
+            const pad = (value: number) => String(value).padStart(2, "0");
+            const original = `${originalDateOnly.getFullYear()}-${pad(originalDateOnly.getMonth() + 1)}-${pad(originalDateOnly.getDate())}`;
+            const next = `${newDateOnly.getFullYear()}-${pad(newDateOnly.getMonth() + 1)}-${pad(newDateOnly.getDate())}`;
+            return original === next;
+          };
+
+          if (!Number.isNaN(originalDateOnly.getTime()) && !Number.isNaN(newDateOnly.getTime()) && datesAreEqual()) {
+            return { ...change, implicit: true };
+          }
+        }
+      }
+
+      return change;
+    });
   };
 
   const handleSave = async () => {
@@ -64,11 +89,13 @@ export default function PersonalInfoSaveButton({
       const formData = new FormData(form);
       const payload: Record<string, any> = {};
       formData.forEach((v, k) => (payload[k] = v));
-      if (payload.dateOfBirth)
-        payload.dateOfBirth = new Date(payload.dateOfBirth as string);
+      if (payload.dateOfBirth) {
+        const date = new Date(payload.dateOfBirth as string);
+        payload.dateOfBirth = Number.isNaN(date.getTime()) ? undefined : date;
+      }
 
       // Compute changes
-      const changes = computeChanges(payload);
+      const changes = annotateChanges(computeChanges(payload), payload);
 
       if (changes.length === 0) {
         toast.success("No changes to save");

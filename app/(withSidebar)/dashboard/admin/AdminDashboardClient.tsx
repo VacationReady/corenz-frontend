@@ -159,7 +159,7 @@ export default function AdminDashboardClient({
           title="Leave request"
           description={[detail.employee?.department, detail.type]
             .filter(Boolean)
-            .join(" â€¢ ") || undefined}
+            .join(" \u2022 ") || undefined}
           actions={
             <>
               <Button variant="outline" onClick={() => handleDetailAction("decline")}>
@@ -185,7 +185,7 @@ export default function AdminDashboardClient({
             </div>
             <div className="text-sm space-y-1">
               <div>
-                Dates: {new Date(detail.startDate).toLocaleDateString()} â†’{" "}
+                Dates: {new Date(detail.startDate).toLocaleDateString()} {" \u2192 "}
                 {new Date(detail.endDate).toLocaleDateString()}
               </div>
               {detail.reason && <div>Reason: {detail.reason}</div>}
@@ -856,7 +856,7 @@ export default function AdminDashboardClient({
                           {ev.employee?.name ?? ev.title}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {new Date(ev.start).toLocaleDateString()} â€¢{" "}
+                          {new Date(ev.start).toLocaleDateString()} {" \u2022 "}
                           {ev.reason || ev.title}
                         </p>
                       </div>

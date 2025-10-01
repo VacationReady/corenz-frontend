@@ -12,6 +12,11 @@ export interface ChangeInfo {
   field: string;
   oldValue: string;
   newValue: string;
+  /**
+   * When true, this change was not explicitly requested by the user but added implicitly (for example
+   * due to backend formatting). These changes should never require the user to supply a reason.
+   */
+  implicit?: boolean;
 }
 
 function hasMeaningfulValue(value: string): boolean {
@@ -23,6 +28,10 @@ function hasMeaningfulValue(value: string): boolean {
 }
 
 export function changeRequiresReason(change: ChangeInfo): boolean {
+  if (change.implicit) {
+    return false;
+  }
+
   if (change.field === "__create__" || change.field === "__delete__") {
     return true;
   }

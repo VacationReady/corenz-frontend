@@ -64,8 +64,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate webhook key if configured
-    const configuredKey = workflow.triggerConfig?.webhookKey;
+    // Validate webhook key if configured (triggerConfig is Json)
+    const cfg = (workflow.triggerConfig ?? {}) as any;
+    const configuredKey = typeof cfg === "object" && cfg !== null ? (cfg as any).webhookKey : undefined;
     if (configuredKey && configuredKey !== webhookKey) {
       return NextResponse.json(
         { error: "Invalid webhook key" },
@@ -126,7 +127,8 @@ export async function GET(req: NextRequest) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://peoplecore.app";
-  const webhookKey = workflow.triggerConfig?.webhookKey;
+  const cfg = (workflow.triggerConfig ?? {}) as any;
+  const webhookKey = typeof cfg === "object" && cfg !== null ? (cfg as any).webhookKey : undefined;
   
   return NextResponse.json({
     workflow: workflow.name,

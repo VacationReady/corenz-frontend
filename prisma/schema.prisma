@@ -36,6 +36,8 @@ model AutomationJob {
   ruleId         String
   companyId      String
   triggerData    Json
+  jobType        String?
+  jobData        Json?
   status         AutomationJobStatus @default(PENDING)
   priority       Int                 @default(0)
   attempts       Int                 @default(0)
@@ -173,6 +175,7 @@ model Company {
   TransactionalChangeRequest          TransactionalChangeRequest[]
   User                                User[]
   WorkingPattern                      WorkingPattern[]
+  ActionItems                         ActionItem[]              @relation("Company_ActionItem")
 }
 
 model ContractTypeOption {
@@ -415,6 +418,7 @@ model Employee {
   OnboardingInstance               OnboardingInstance[]
   TrainingRecord                   TrainingRecord[]
   TransactionalChangeRequest       TransactionalChangeRequest[]
+  ActionItems                      ActionItem[]                   @relation("Employee_ActionItem_Related")
 
   @@unique([companyId, irdNumber])
 }
@@ -981,6 +985,30 @@ model NewsBookmark {
   @@index([companyId, postId])
 }
 
+/// Action items shown on the dashboard and created by workflows
+model ActionItem {
+  id                 String    @id
+  companyId          String
+  title              String
+  description        String?
+  type               String    // TASK | FORM | DOCUMENT | WEBHOOK | etc
+  status             String    @default("PENDING")
+  priority           String?
+  dueDate            DateTime?
+  assignedToId       String?
+  relatedEmployeeId  String?
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime
+
+  Company            Company   @relation("Company_ActionItem", fields: [companyId], references: [id])
+  assignedTo         User?     @relation("User_ActionItem_AssignedTo", fields: [assignedToId], references: [id])
+  RelatedEmployee    Employee? @relation("Employee_ActionItem_Related", fields: [relatedEmployeeId], references: [id])
+
+  @@index([companyId, status])
+  @@index([assignedToId, status])
+}
+
 model NotificationChannel {
   id              String                  @id
   companyId       String
@@ -1335,6 +1363,8 @@ model User {
   managerId                                                                String?
   phone                                                                    String?
   companyId                                                                String
+  homeCompanyId                                                            String?
+  canManageTenants                                                         Boolean                        @default(false)
   emailPreferences                                                         Json?
   profileImageUrl                                                          String?
   permissionProfileId                                                      String?
@@ -1390,6 +1420,7 @@ model User {
   PermissionProfile                                                        PermissionProfile?              @relation(fields: [permissionProfileId], references: [id])
   TransactionalChangeRequest_Requester                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_requesterIdToUser")
   TransactionalChangeRequest_DecidedBy                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_decidedByIdToUser")
+  ActionItems                                                              ActionItem[]                   @relation("User_ActionItem_AssignedTo")
 
   @@unique([email, companyId])
 }

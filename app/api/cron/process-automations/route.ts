@@ -6,15 +6,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { workflowEngine } from "@/lib/workflows/WorkflowExecutionEngine";
-import { headers } from "next/headers";
+import { headers as nextHeaders } from "next/headers";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes
 
 // Verify cron secret to prevent unauthorized execution
 function verifyCronSecret(req: NextRequest): boolean {
-  const headersList = headers();
-  const cronSecret = headersList.get("x-cron-secret") || 
+  const headersList = nextHeaders();
+  const cronSecret = (headersList as any)?.get?.("x-cron-secret") || 
+                     req.headers.get("x-cron-secret") ||
                      req.nextUrl.searchParams.get("secret");
   
   return cronSecret === process.env.CRON_SECRET;
@@ -45,7 +46,8 @@ export async function GET(req: NextRequest) {
 
     for (const workflow of scheduledWorkflows) {
       try {
-        const schedule = workflow.triggerConfig?.schedule;
+        const cfg = (workflow.triggerConfig ?? {}) as any;
+        const schedule = typeof cfg === "object" && cfg !== null ? (cfg as any).schedule : undefined;
         if (!schedule) continue;
 
         // Check if it's time to run based on cron expression
@@ -77,7 +79,7 @@ export async function GET(req: NextRequest) {
         // Mark as processing
         await prisma.automationJob.update({
           where: { id: job.id },
-          data: { status: "PROCESSING" },
+          data: { status: "RUNNING" },
         });
 
         // Resume workflow execution
@@ -93,7 +95,7 @@ export async function GET(req: NextRequest) {
         await prisma.automationJob.update({
           where: { id: job.id },
           data: { 
-            status: "SUCCESS",
+            status: "COMPLETED",
             completedAt: new Date(),
           },
         });
@@ -124,7 +126,7 @@ export async function GET(req: NextRequest) {
     
     await prisma.automationJob.deleteMany({
       where: {
-        status: { in: ["SUCCESS", "FAILED"] },
+        status: { in: ["COMPLETED", "FAILED"] },
         completedAt: { lt: thirtyDaysAgo },
       },
     });
@@ -160,38 +162,43 @@ async function processEventTriggers(results: any) {
     });
 
     for (const workflow of expiryWorkflows) {
-      const daysBefore = workflow.triggerConfig?.daysBefore || 30;
+      const cfg = (workflow.triggerConfig ?? {}) as any;
+      const daysBefore = typeof cfg === "object" && cfg !== null && (cfg as any).daysBefore != null ? (cfg as any).daysBefore : 30;
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
       
       // Find documents expiring within the target date
-      const expiringDocs = await prisma.document.findMany({
+      const driverLicences = await prisma.driverLicence.findMany({
         where: {
-          companyId: workflow.companyId,
-          expiryDate: {
-            gte: new Date(),
-            lte: targetDate,
-          },
-          // Check if we already processed this document today
-          NOT: {
-            id: {
-              in: await getProcessedDocumentIds(workflow.id, new Date()),
-            },
-          },
+          expiryDate: { lte: targetDate, gte: new Date() },
+          Employee: { companyId: workflow.companyId },
         },
-        include: {
-          Employee: true,
-        },
+        include: { Employee: true },
       });
 
-      for (const doc of expiringDocs) {
+      const trainingRecords = await prisma.trainingRecord.findMany({
+        where: {
+          expiryDate: { lte: targetDate, gte: new Date() },
+          Employee: { companyId: workflow.companyId },
+        },
+        include: { Employee: true },
+      });
+
+      const employmentChecks = await prisma.employmentCheck.findMany({
+        where: {
+          expiryDate: { lte: targetDate, gte: new Date() },
+          Employee: { companyId: workflow.companyId },
+        },
+        include: { Employee: true },
+      });
+
+      for (const doc of [...driverLicences, ...trainingRecords, ...employmentChecks]) {
         try {
           await workflowEngine.executeWorkflow(workflow.id, {
             triggerType: "DOCUMENT_EXPIRING",
             documentId: doc.id,
             employeeId: doc.employeeId,
             expiryDate: doc.expiryDate,
-            documentType: doc.category,
           });
           
           // Record that we processed this document
@@ -213,7 +220,8 @@ async function processEventTriggers(results: any) {
     });
 
     for (const workflow of contractWorkflows) {
-      const daysBefore = workflow.triggerConfig?.daysBefore || 60;
+      const cfg = (workflow.triggerConfig ?? {}) as any;
+      const daysBefore = typeof cfg === "object" && cfg !== null && (cfg as any).daysBefore != null ? (cfg as any).daysBefore : 60;
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
       
@@ -312,7 +320,8 @@ async function processEventTriggers(results: any) {
     });
 
     for (const workflow of leaveEndingWorkflows) {
-      const daysBefore = workflow.triggerConfig?.daysBefore || 14;
+      const cfg = (workflow.triggerConfig ?? {}) as any;
+      const daysBefore = typeof cfg === "object" && cfg !== null && (cfg as any).daysBefore != null ? (cfg as any).daysBefore : 14;
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
       

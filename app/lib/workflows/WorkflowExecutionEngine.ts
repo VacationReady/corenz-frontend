@@ -95,7 +95,8 @@ export class WorkflowExecutionEngine {
    * Schedule a workflow with cron
    */
   private scheduleWorkflow(workflow: any) {
-    const schedule = workflow.triggerConfig?.schedule;
+    const cfg = (workflow.triggerConfig ?? {}) as any;
+    const schedule = typeof cfg === 'object' && cfg !== null ? (cfg as any).schedule : undefined;
     if (!schedule) return;
 
     // Stop existing schedule if any
@@ -113,7 +114,7 @@ export class WorkflowExecutionEngine {
           scheduledTime: new Date(),
         });
       }, {
-        timezone: workflow.triggerConfig?.timezone || "Pacific/Auckland",
+        timezone: (cfg as any)?.timezone || "Pacific/Auckland",
       });
 
       this.scheduledJobs.set(workflow.id, task);
@@ -294,26 +295,43 @@ export class WorkflowExecutionEngine {
         return !!context.employee;
         
       case "DOCUMENT_EXPIRING":
-        const daysBefore = node.data?.config?.daysBefore || 30;
-        const documentTypes = node.data?.config?.documentTypes || [];
-        // Check for expiring documents
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + daysBefore);
-        
-        const expiringDocs = await prisma.document.findMany({
-          where: {
-            companyId: context.company?.id,
-            expiryDate: { lte: targetDate, gte: new Date() },
-            ...(documentTypes.length > 0 && { category: { in: documentTypes } }),
-          },
-          include: { Employee: { include: { User: true } } },
-        });
-        
-        if (expiringDocs.length > 0) {
-          context.variables.expiringDocuments = expiringDocs;
-          return true;
+        {
+          const cfg = (node.data?.config ?? {}) as any;
+          const daysBefore = cfg.daysBefore ?? 30;
+          const targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() + daysBefore);
+
+          const driverLicences = await prisma.driverLicence.findMany({
+            where: {
+              expiryDate: { lte: targetDate, gte: new Date() },
+              Employee: { companyId: context.company?.id },
+            },
+            include: { Employee: { include: { User: true } } },
+          });
+
+          const trainingRecords = await prisma.trainingRecord.findMany({
+            where: {
+              expiryDate: { lte: targetDate, gte: new Date() },
+              Employee: { companyId: context.company?.id },
+            },
+            include: { Employee: { include: { User: true } } },
+          });
+
+          const employmentChecks = await prisma.employmentCheck.findMany({
+            where: {
+              expiryDate: { lte: targetDate, gte: new Date() },
+              Employee: { companyId: context.company?.id },
+            },
+            include: { Employee: { include: { User: true } } },
+          });
+
+          const items = [...driverLicences, ...trainingRecords, ...employmentChecks];
+          if (items.length > 0) {
+            context.variables.expiringDocuments = items;
+            return true;
+          }
+          return false;
         }
-        return false;
         
       case "FORM_SUBMITTED":
         const formId = node.data?.config?.formId;
@@ -628,6 +646,7 @@ export class WorkflowExecutionEngine {
             assignedToId: assignee.id,
             relatedEmployeeId: context.employee?.id,
             companyId: context.company?.id || assignee.companyId,
+            updatedAt: new Date(),
             metadata: {
               source: "workflow",
               workflowId: context.workflowId,
@@ -650,19 +669,18 @@ export class WorkflowExecutionEngine {
       ? this.addBusinessDays(new Date(), config.dueInDays)
       : null;
     
+    const assigner = context.company?.id
+      ? await prisma.user.findFirst({ where: { role: "ADMIN", companyId: context.company.id } })
+      : null;
+
     await prisma.formAssignment.create({
       data: {
         id: uuidv4(),
         formId,
         employeeId: context.employee.id,
-        assignedBy: "SYSTEM",
+        assignedById: assigner?.id || context.employee.userId,
         dueDate,
-        companyId: context.company?.id,
         status: "PENDING",
-        metadata: {
-          source: "workflow",
-          workflowId: context.workflowId,
-        },
       },
     });
 
@@ -677,6 +695,7 @@ export class WorkflowExecutionEngine {
         assignedToId: context.employee.userId,
         relatedEmployeeId: context.employee.id,
         companyId: context.company?.id,
+        updatedAt: new Date(),
         metadata: {
           formId,
           source: "workflow",
@@ -721,23 +740,7 @@ export class WorkflowExecutionEngine {
       where: { id: context.employee.id },
       data: updateData,
     });
-    
-    // Log the change in audit trail
-    await prisma.auditLog.create({
-      data: {
-        id: uuidv4(),
-        action: "UPDATE",
-        entityType: "EMPLOYEE",
-        entityId: context.employee.id,
-        userId: "SYSTEM",
-        changes: { [field]: value },
-        metadata: {
-          source: "workflow",
-          workflowId: context.workflowId,
-        },
-        companyId: context.company?.id,
-      },
-    });
+    // Optional: audit logging can be integrated here if required
   }
 
   /**
@@ -1011,12 +1014,10 @@ export class WorkflowExecutionEngine {
         id: context.executionId,
         ruleId: workflow.id,
         companyId: workflow.companyId,
-        status: success ? "SUCCESS" : "FAILED",
+        status: success ? "COMPLETED" : "FAILED",
         triggeredAt: context.startTime,
-        completedAt: new Date(),
-        executionTime: duration,
         triggerData: context.triggerData,
-        logs: context.logs,
+        executionLog: context.logs,
         errorMessage: error,
       },
     });
@@ -1103,6 +1104,7 @@ export class WorkflowExecutionEngine {
         assignedToId: context.employee.userId,
         relatedEmployeeId: context.employee.id,
         companyId: context.company?.id,
+        updatedAt: new Date(),
         metadata: {
           documentType: config.documentType,
           required: config.required || false,

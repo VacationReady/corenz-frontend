@@ -167,6 +167,8 @@ async function testConditions(companyId: string): Promise<any[]> {
       companyId,
       homeCompanyId: companyId,
       email: `test-${Date.now()}@example.com`,
+      password: `TEST_ONLY_${Date.now()}`,
+      updatedAt: new Date(),
       role: "EMPLOYEE",
       name: "Test Employee",
       canManageTenants: false,
@@ -583,6 +585,27 @@ async function runTest(name: string, testFn: () => Promise<boolean>): Promise<an
 }
 
 async function createTestWorkflow(companyId: string, data: any): Promise<any> {
+  // Ensure we have an author user for createdBy
+  let author = await prisma.user.findFirst({
+    where: { companyId },
+    select: { id: true },
+  });
+
+  if (!author) {
+    const newUser = await prisma.user.create({
+      data: {
+        id: uuidv4(),
+        companyId,
+        email: `workflow-tester-${Date.now()}@example.com`,
+        password: `TEST_ONLY_${Date.now()}`,
+        role: "ADMIN",
+        name: "Workflow Test Admin",
+        updatedAt: new Date(),
+      },
+    });
+    author = { id: newUser.id };
+  }
+
   return await prisma.automationRule.create({
     data: {
       id: uuidv4(),
@@ -599,6 +622,8 @@ async function createTestWorkflow(companyId: string, data: any): Promise<any> {
         edges: [],
       },
       version: 1,
+      updatedAt: new Date(),
+      createdBy: author.id,
     },
   });
 }

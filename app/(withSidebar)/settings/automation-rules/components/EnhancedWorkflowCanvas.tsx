@@ -1972,14 +1972,14 @@ function EnhancedWorkflowCanvasInner({
               Enable editing?
             </DialogTitle>
             <DialogDescription>
-              This will create a customizable copy of the workflow template for your organization. The default template will remain unchanged.
+              This will create a customisable copy of the workflow template for your organisation. The default template will remain unchanged.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
             <p className="font-medium mb-1">What happens when you edit:</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>You can modify nodes, connections, and settings</li>
-              <li>Changes only affect your organization</li>
+              <li>Changes only affect your organisation</li>
               <li>You can always revert to the original template</li>
               <li>Unsaved changes will be lost if you navigate away</li>
             </ul>

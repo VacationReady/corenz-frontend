@@ -823,8 +823,16 @@ export function CompensationBulkActionDialog({
                       filteredEmployees.map((employee) => {
                         const isSelected = selectedIds.has(employee.id);
                         const comp = compensationData.get(employee.id);
-                        const newSalary = comp && targets.includes("salary") ? calculateNewValue(comp.salaryAmount) : comp?.salaryAmount;
-                        const newHourly = comp && targets.includes("hourly") ? calculateNewValue(comp.hourlyRate) : comp?.hourlyRate;
+                        const newSalary: number | null = comp
+                          ? (targets.includes("salary")
+                              ? calculateNewValue(comp.salaryAmount)
+                              : comp.salaryAmount)
+                          : null;
+                        const newHourly: number | null = comp
+                          ? (targets.includes("hourly")
+                              ? calculateNewValue(comp.hourlyRate)
+                              : comp.hourlyRate)
+                          : null;
 
                         return (
                           <tr 

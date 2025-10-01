@@ -184,7 +184,7 @@ export function WorkflowAppStore({
           if (categoryTemplates.length === 0) return null;
 
           const isExpanded = expandedCategories[category.id];
-          const colorClasses = {
+          const colorMap: Record<string, string> = {
             blue: "from-blue-50 to-blue-100 border-blue-200 text-blue-900",
             green: "from-green-50 to-green-100 border-green-200 text-green-900",
             purple: "from-purple-50 to-purple-100 border-purple-200 text-purple-900",
@@ -193,7 +193,8 @@ export function WorkflowAppStore({
             pink: "from-pink-50 to-pink-100 border-pink-200 text-pink-900",
             orange: "from-orange-50 to-orange-100 border-orange-200 text-orange-900",
             emerald: "from-emerald-50 to-emerald-100 border-emerald-200 text-emerald-900",
-          }[category.color] || "from-gray-50 to-gray-100 border-gray-200 text-gray-900";
+          };
+          const colorClasses = colorMap[category.color as string] || "from-gray-50 to-gray-100 border-gray-200 text-gray-900";
 
           return (
             <div key={category.id} className="space-y-3">

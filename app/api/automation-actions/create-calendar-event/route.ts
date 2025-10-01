@@ -19,8 +19,7 @@ export async function POST(req: NextRequest) {
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
       include: {
-        User: true,
-        Manager: { include: { User: true } },
+        User: { include: { User: true } },
       },
     });
 
@@ -40,10 +39,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (attendeeTypes.includes('manager') && employee.Manager?.User) {
+    // Manager is the self-relation on User: employee.User.User
+    const managerUser = (employee.User as any)?.User as any;
+    if (attendeeTypes.includes('manager') && managerUser) {
       attendees.push({
-        name: `${employee.Manager.User.firstName || ''} ${employee.Manager.User.lastName || ''}`.trim(),
-        email: employee.Manager.User.email,
+        name: `${managerUser.firstName || ''} ${managerUser.lastName || ''}`.trim(),
+        email: managerUser.email,
         role: 'REQ-PARTICIPANT',
       });
     }

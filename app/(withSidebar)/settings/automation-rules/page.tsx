@@ -11,7 +11,7 @@ import { AutomationRuleList } from "./components/AutomationRuleList";
 import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
 import { ValidationChecklist } from "./components/ValidationChecklist";
-import WorkflowCanvasWrapper from "./components/WorkflowCanvas";
+import EnhancedWorkflowCanvas from "./components/EnhancedWorkflowCanvas";
 import {
   Settings,
   Plus,
@@ -840,7 +840,7 @@ export default function AutomationRulesPage() {
     >
       <div className="flex h-[calc(100vh-12rem)]">
         {/* Left Sidebar - Only show list when editing an existing rule */}
-        {builderMode === "edit" && (
+        {builderMode === "edit" && !previewMode && (
           <div className="w-80 flex-shrink-0">
             <AutomationRuleList
               rules={rules}
@@ -863,9 +863,15 @@ export default function AutomationRulesPage() {
         {/* Main Builder Area */}
         <div className="flex-1 flex">
           <div className="flex-1">
-            <WorkflowCanvasWrapper
-              workflow={(formData as any).workflowDefinition || { nodes: [], edges: [] }}
+            <EnhancedWorkflowCanvas
+              workflow={{
+                id: selectedRule?.id || formData.id,
+                name: formData.name,
+                description: formData.description,
+                ...((formData as any).workflowDefinition || { nodes: [], edges: [] }),
+              }}
               onWorkflowChange={(workflow) => {
+                if (previewMode) return;
                 setFormData({ ...(formData as any), workflowDefinition: workflow } as any);
               }}
               onSave={attemptSave}
@@ -874,6 +880,9 @@ export default function AutomationRulesPage() {
               }}
               isValid={isFormValid}
               isDirty={JSON.stringify(formData) !== JSON.stringify(selectedRule || {})}
+              readOnly={previewMode}
+              previewMode={previewMode}
+              onRequestEdit={() => setPreviewMode(false)}
             />
           </div>
 

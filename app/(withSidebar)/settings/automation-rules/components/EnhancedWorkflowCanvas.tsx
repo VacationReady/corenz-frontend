@@ -114,7 +114,9 @@ function EnhancedWorkflowCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [showTemplates, setShowTemplates] = useState(!workflow?.nodes?.length && !previewMode);
+  const [showTemplates, setShowTemplates] = useState(
+    !workflow?.nodes?.length && !previewMode && !readOnly
+  );
   const [showPalette, setShowPalette] = useState(!previewMode && !readOnly);
   const [showProperties, setShowProperties] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -921,7 +923,7 @@ function EnhancedWorkflowCanvasInner({
 
       {/* Center - Canvas */}
       <div className="flex-1 relative" ref={reactFlowWrapper}>
-        {showTemplates ? (
+        {showTemplates && !previewMode && !readOnly ? (
           <WorkflowTemplateGallery
             onSelectTemplate={(template) => {
               setNodes(template.nodes);

@@ -406,11 +406,15 @@ export function CompensationBulkActionDialog({
   open,
   onOpenChange,
   allEmployees,
+  departments,
+  jobRoles,
   onCompleted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
   onCompleted?: (result: BulkActionResult) => void;
 }) {
   const [mode, setMode] = useState<"percent" | "flat">("percent");
@@ -610,6 +614,27 @@ export function CompensationBulkActionDialog({
               </div>
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Departments</label>
+                <MultiSelect
+                  options={departments}
+                  value={filters.departments}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
+                  placeholder="Filter departments"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Job roles</label>
+                <MultiSelect
+                  options={jobRoles}
+                  value={filters.jobRoles}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
+                  placeholder="Filter job roles"
+                />
+              </div>
+            </div>
+
             <div className="overflow-hidden rounded-2xl border border-glass">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-muted/40">
@@ -765,6 +790,8 @@ export function TrainingBulkActionDialog({
   open,
   onOpenChange,
   allEmployees,
+  departments,
+  jobRoles,
   courses,
   providers,
   onCompleted,
@@ -1109,6 +1136,8 @@ interface LeaveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
   eventCategories: Option[];
   onCompleted?: (result: BulkActionResult) => void;
 }
@@ -1117,6 +1146,8 @@ export function LeaveBulkActionDialog({
   open,
   onOpenChange,
   allEmployees,
+  departments,
+  jobRoles,
   eventCategories,
   onCompleted,
 }: LeaveDialogProps) {
@@ -1310,6 +1341,27 @@ export function LeaveBulkActionDialog({
                     <SelectItem value="all">All employees</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Departments</label>
+                <MultiSelect
+                  options={departments}
+                  value={filters.departments}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
+                  placeholder="Filter departments"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Job roles</label>
+                <MultiSelect
+                  options={jobRoles}
+                  value={filters.jobRoles}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
+                  placeholder="Filter job roles"
+                />
               </div>
             </div>
 

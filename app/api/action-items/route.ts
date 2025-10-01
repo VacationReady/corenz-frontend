@@ -109,7 +109,6 @@ export async function PATCH(req: NextRequest) {
       where: { id },
       data: {
         status,
-        completedAt: status === "COMPLETED" ? new Date() : null,
         updatedAt: new Date(),
       },
     });

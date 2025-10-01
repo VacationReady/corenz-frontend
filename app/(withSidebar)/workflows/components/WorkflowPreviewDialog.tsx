@@ -89,7 +89,7 @@ export function WorkflowPreviewDialog({
   };
 
   const renderWorkflowStep = (node: any, index: number) => {
-    const Icon = getNodeIcon(node.type);
+    const IconEl = getNodeIcon(node.type);
     const colorClass = getNodeColor(node.type);
     
     return (
@@ -102,7 +102,7 @@ export function WorkflowPreviewDialog({
             "p-2 rounded-lg border flex-shrink-0",
             colorClass
           )}>
-            <Icon />
+            {IconEl}
           </div>
           <div className="flex-1">
             <h4 className="font-medium text-sm">

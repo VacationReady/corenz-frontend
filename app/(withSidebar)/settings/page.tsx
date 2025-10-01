@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
-import { Card, CardContent } from "@/components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import {
   Calendar,
@@ -44,37 +50,44 @@ const holidaySettings = [
   {
     title: "Working Patterns",
     href: "/settings/working-patterns",
-    icon: <Clock className="h-5 w-5 text-primary" />,
+    icon: <Clock className="h-5 w-5" />,
+    description: "Define schedules and contracted hours for every team",
   },
   {
     title: "Public Holiday Templates",
     href: "/settings/public-holidays",
-    icon: <Calendar className="h-5 w-5 text-primary" />,
+    icon: <Calendar className="h-5 w-5" />,
+    description: "Sync region-specific statutory holidays automatically",
   },
   {
     title: "Expiry Alerts",
     href: "/settings/expiry-alerts",
-    icon: <AlertTriangle className="h-5 w-5 text-primary" />,
+    icon: <AlertTriangle className="h-5 w-5" />,
+    description: "Automate reminders before important dates lapse",
   },
   {
     title: "Event Rules",
     href: "/settings/event-rules",
-    icon: <Shield className="h-5 w-5 text-primary" />,
+    icon: <Shield className="h-5 w-5" />,
+    description: "Configure triggers that keep people informed",
   },
   {
     title: "Event Manager",
     href: "/settings/event-manager",
-    icon: <Bell className="h-5 w-5 text-primary" />,
+    icon: <Bell className="h-5 w-5" />,
+    description: "Orchestrate notifications for key company events",
   },
   {
     title: "Leave Policies",
     href: "/settings/leave-policies",
-    icon: <FileText className="h-5 w-5 text-primary" />,
+    icon: <FileText className="h-5 w-5" />,
+    description: "Control entitlements, carryover rules, and approvals",
   },
   {
     title: "Multi-stage Approvals",
     href: "/settings/multi-stage-approvals",
-    icon: <Share2 className="h-5 w-5 text-primary" />,
+    icon: <Share2 className="h-5 w-5" />,
+    description: "Design layered approval chains for complex workflows",
   },
 ];
 
@@ -82,7 +95,8 @@ const formSettings = [
   {
     title: "Forms & Surveys",
     href: "/settings/forms",
-    icon: <ClipboardList className="h-5 w-5 text-primary" />,
+    icon: <ClipboardList className="h-5 w-5" />,
+    description: "Build custom forms to capture the data you need",
   },
 ];
 
@@ -90,7 +104,8 @@ const onboardingSettings = [
   {
     title: "Onboarding Templates",
     href: "/settings/onboarding",
-    icon: <Users className="h-5 w-5 text-primary" />,
+    icon: <Users className="h-5 w-5" />,
+    description: "Guide new hires through a curated first-week journey",
   },
 ];
 
@@ -98,7 +113,8 @@ const documentSettings = [
   {
     title: "Document Types",
     href: "/settings/document-types",
-    icon: <FolderKanban className="h-5 w-5 text-primary" />,
+    icon: <FolderKanban className="h-5 w-5" />,
+    description: "Organise, categorise, and secure uploaded files",
   },
 ];
 
@@ -106,12 +122,14 @@ const workflowSettings = [
   {
     title: "Automation Rules",
     href: "/settings/automation-rules",
-    icon: <Repeat className="h-5 w-5 text-primary" />,
+    icon: <Repeat className="h-5 w-5" />,
+    description: "Automate repetitive tasks with smart triggers",
   },
   {
     title: "Transactional Notifications",
     href: "/settings/workflows/notifications",
-    icon: <Bell className="h-5 w-5 text-primary" />,
+    icon: <Bell className="h-5 w-5" />,
+    description: "Personalise the operational messages employees receive",
   },
 ];
 
@@ -120,7 +138,8 @@ function getSystemSettings(role?: string) {
     {
       title: "Platform Settings",
       href: "/settings/system",
-      icon: <Cog className="h-5 w-5 text-primary" />,
+      icon: <Cog className="h-5 w-5" />,
+      description: "Manage tenant-wide preferences, branding, and access",
     },
   ];
   // Intentionally removed global Permissions UI; per-employee settings take precedence
@@ -137,7 +156,13 @@ function SettingSection({
 }: {
   id: string;
   label: string;
-  items: { title: string; href: string; icon: React.ReactNode; helpPreset?: string }[];
+  items: {
+    title: string;
+    href: string;
+    icon: React.ReactNode;
+    description?: string;
+    helpPreset?: string;
+  }[];
   icon: React.ReactNode;
   description?: string;
   completionStatus?: { completed: number; total: number };
@@ -176,25 +201,45 @@ function SettingSection({
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-6 pb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-          {items.map(({ title, href, icon, helpPreset }) => (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 [@media(min-width:1920px)]:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] pt-2">
+          {items.map(({ title, href, icon, helpPreset, description }) => (
             <Card
               key={title}
-              className="group hover:shadow-lg hover:-translate-y-1 transition-all duration-200 border-enhanced"
+              className="group relative overflow-hidden border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm ring-1 ring-transparent transition duration-300 hover:scale-[1.015] hover:-translate-y-1 hover:ring-primary/40 hover:shadow-2xl hover:shadow-primary/20 motion-safe:duration-300 before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_top,var(--tw-gradient-stops))] before:from-primary/20 before:to-transparent before:opacity-0 before:transition-opacity before:duration-300 before:pointer-events-none hover:before:opacity-100"
             >
-              <CardContent className="p-5 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-lg font-semibold text-foreground">
-                    <div className="text-primary group-hover:scale-110 transition-transform">
+              <CardHeader
+                transparent
+                className="relative z-10 border-none bg-transparent p-5 pb-0"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20 group-hover:text-primary-foreground">
                       {icon}
                     </div>
-                    {title}
+                    <div className="space-y-1">
+                      <CardTitle className="text-base">{title}</CardTitle>
+                      {description && (
+                        <CardDescription className="text-xs sm:text-sm">
+                          {description}
+                        </CardDescription>
+                      )}
+                    </div>
                   </div>
                   {helpPreset && (
                     <QuickHelp preset={helpPreset as any} />
                   )}
                 </div>
-                <Button asChild variant="outline" size="sm" className="mt-auto">
+              </CardHeader>
+              <CardContent
+                noPadding
+                className="relative z-10 flex flex-col gap-4 p-5 pt-4"
+              >
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="mt-auto bg-gradient-to-r from-primary via-indigo-500 to-sky-500 text-white shadow-lg shadow-primary/20 hover:bg-transparent hover:shadow-primary/40 focus-visible:ring-primary/40"
+                >
                   <Link
                     href={href}
                     className="flex items-center justify-center gap-2"

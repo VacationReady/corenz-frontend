@@ -157,6 +157,22 @@ function EnhancedWorkflowCanvasInner({
     }
   };
 
+  // Load workflow nodes when workflow changes
+  useEffect(() => {
+    if (workflow?.nodes && workflow?.edges && workflow?.nodes?.length > 0) {
+      console.log('Loading workflow into canvas:', workflow.name, 'Nodes:', workflow.nodes.length, 'Edges:', workflow.edges.length);
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      
+      // Fit view after nodes are loaded
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 300 });
+      }, 100);
+    } else {
+      console.log('Workflow received but no nodes:', workflow);
+    }
+  }, [workflow, setNodes, setEdges, fitView]);
+
   // Notify parent of changes
   useEffect(() => {
     if (!readOnly && onWorkflowChange) {
@@ -257,11 +273,9 @@ function EnhancedWorkflowCanvasInner({
 
   // Handle node click
   const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    if (!readOnly) {
-      setSelectedNode(node);
-      setShowProperties(true);
-    }
-  }, [readOnly]);
+    setSelectedNode(node);
+    setShowProperties(true);
+  }, []);
 
   // Update node
   const handleNodeUpdate = useCallback((nodeId: string, updates: any) => {

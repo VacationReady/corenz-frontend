@@ -377,8 +377,10 @@ export default function AutomationRulesPage() {
           const res = await fetch("/api/automation-rules/templates");
           if (res.ok) {
             const data = await res.json();
+            console.log('Templates fetched:', data.templates?.length, 'Looking for ID:', previewId);
             const tpl = (data.templates || []).find((t: any) => t.id === previewId);
             if (tpl) {
+              console.log('Loading template for preview:', tpl.name, 'Nodes:', tpl.nodes?.length, 'Edges:', tpl.edges?.length, 'Full template:', tpl);
               // Load template as editable workflow (not read-only)
               setFormData({
                 name: tpl.name,
@@ -848,11 +850,18 @@ export default function AutomationRulesPage() {
                 id: selectedRule?.id || formData.id,
                 name: formData.name,
                 description: formData.description,
-                ...((formData as any).workflowDefinition || { nodes: [], edges: [] }),
+                nodes: ((formData as any).workflowDefinition?.nodes || []),
+                edges: ((formData as any).workflowDefinition?.edges || []),
               }}
               onWorkflowChange={(workflow) => {
                 if (previewMode) return;
-                setFormData({ ...(formData as any), workflowDefinition: workflow } as any);
+                setFormData({ 
+                  ...(formData as any), 
+                  workflowDefinition: { 
+                    nodes: workflow.nodes, 
+                    edges: workflow.edges 
+                  } 
+                } as any);
               }}
               onSave={attemptSave}
               onTest={() => {

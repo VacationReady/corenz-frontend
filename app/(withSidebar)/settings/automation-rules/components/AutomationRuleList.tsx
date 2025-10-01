@@ -258,7 +258,8 @@ const filteredRules = rules.filter((rule) => {
                         variant="ghost"
                         pill
                         onClick={() => {
-                          onEditRule({ ...t, id: t.id } as any);
+                          const url = `/settings/automation-rules?preview=${encodeURIComponent(t.id)}`;
+                          window.location.href = url;
                         }}
                         className="h-8 px-3"
                       >

@@ -1048,7 +1048,6 @@ function EnhancedWorkflowCanvasInner({
                   <Button
                     variant="outline"
                     size="sm"
-                    as="span"
                     className="bg-white/90 backdrop-blur cursor-pointer"
                   >
                     <Upload className="h-4 w-4" />

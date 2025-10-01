@@ -15,6 +15,7 @@ import {
   BarChart3,
   LogOut,
   ListChecks,
+  Zap,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
@@ -94,7 +95,7 @@ export default function AdminSidebar({
           </SidebarSection>
 
           <SidebarSection title="HR Tools" collapsed={collapsed}>
-            {[...hrToolsLinks, ...bulkActionLinks, settingsLink].map((link) => (
+            {[...hrToolsLinks, ...bulkActionLinks, appLibraryLink, settingsLink].map((link) => (
               <SidebarItem
                 key={link.href}
                 href={link.href}
@@ -159,5 +160,11 @@ const bulkActionLinks = [
     label: "Bulk actions",
   },
 ];
+
+const appLibraryLink = {
+  href: "/settings/automation-rules",
+  icon: Zap,
+  label: "App Library",
+};
 
 const settingsLink = { href: "/settings", icon: Settings, label: "Settings" };

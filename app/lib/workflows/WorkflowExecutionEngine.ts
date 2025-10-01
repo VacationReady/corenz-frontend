@@ -1372,19 +1372,9 @@ export class WorkflowExecutionEngine {
       const result = await response.json();
       
       if (result.success && result.buddy) {
+        // Expose buddy to subsequent actions in this workflow execution
         context.variables.buddy = result.buddy;
-        
-        // Optionally store buddy assignment in employee metadata
-        await prisma.employee.update({
-          where: { id: context.employee.id },
-          data: {
-            metadata: {
-              ...(context.employee.metadata as any || {}),
-              buddyId: result.buddy.id,
-              buddyAssignedAt: new Date().toISOString(),
-            },
-          },
-        });
+        // Persisting on Employee is skipped because the model has no metadata field
       }
     } catch (error) {
       console.error('Failed to assign buddy:', error);

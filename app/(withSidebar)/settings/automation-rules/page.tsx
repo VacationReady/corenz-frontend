@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 
 // Import new components
 import { AutomationRuleList } from "./components/AutomationRuleList";
+import { WorkflowAppStore } from "./components/WorkflowAppStore";
 // Visual canvas builder
 import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
@@ -377,10 +378,8 @@ export default function AutomationRulesPage() {
           const res = await fetch("/api/automation-rules/templates");
           if (res.ok) {
             const data = await res.json();
-            console.log('Templates fetched:', data.templates?.length, 'Looking for ID:', previewId);
             const tpl = (data.templates || []).find((t: any) => t.id === previewId);
             if (tpl) {
-              console.log('Loading template for preview:', tpl.name, 'Nodes:', tpl.nodes?.length, 'Edges:', tpl.edges?.length, 'Full template:', tpl);
               // Load template as editable workflow (not read-only)
               setFormData({
                 name: tpl.name,
@@ -905,7 +904,7 @@ export default function AutomationRulesPage() {
   );
 }
 
-// Default view - show rules list
+// Default view - show beautiful app store
 return (
   <PageShell
     title="Automation Rules"
@@ -913,19 +912,34 @@ return (
     breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
     showHomeIcon={false}
   >
-    <div className="max-w-6xl mx-auto">
-      <AutomationRuleList
-        rules={rules}
-        loading={loading}
-        onCreateNew={openCreateDialog}
-        onSelectRule={openEditDialog}
-        onEditRule={openEditDialog}
-        onDeleteRule={deleteRule}
-        onToggleStatus={toggleRuleStatus}
-        onRunTest={runDryTest}
-        onDuplicateRule={handleDuplicateRule}
-      />
-    </div>
+    <WorkflowAppStore
+      onPreviewWorkflow={(templateId) => {
+        const url = `/settings/automation-rules?preview=${encodeURIComponent(templateId)}`;
+        window.location.href = url;
+      }}
+      onInstallWorkflow={async (templateId) => {
+        const res = await fetch("/api/automation-rules/templates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ templateId, customizations: { autoActivate: true } }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          toast({
+            title: "Workflow Installed",
+            description: data.message || "Workflow has been added successfully!",
+          });
+          fetchRules();
+        } else {
+          toast({
+            title: "Installation Failed",
+            description: "Could not install workflow",
+            variant: "destructive",
+          });
+        }
+      }}
+      onCreateCustom={openCreateDialog}
+    />
 
     {/* Dialogs */}
     <DryRunResultsDialog

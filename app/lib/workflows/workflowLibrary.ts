@@ -2308,6 +2308,1993 @@ export const workflowTemplates: WorkflowTemplate[] = [
       "Cost control",
     ],
   },
+
+  // ============ ADDITIONAL HIGH-VALUE WORKFLOWS (20 more) ============
+  
+  // More Onboarding & Probation
+  {
+    id: "contractor-onboarding",
+    name: "Contractor & Consultant Onboarding",
+    description: "Streamlined onboarding for temporary and contract workers",
+    category: workflowCategories[0],
+    tags: ["onboarding", "contractor", "compliance"],
+    icon: "👔",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "EMPLOYEE_CREATED",
+        config: { employmentType: ["CONTRACTOR", "CONSULTANT"] },
+      },
+      actions: [
+        {
+          type: "send_notification",
+          config: {
+            channels: ["email"],
+            recipientType: "employee",
+            subject: "Welcome - Contract Details & Next Steps",
+            message: "Your contract start details and access information",
+          },
+        },
+        {
+          type: "create_task",
+          config: {
+            title: "Review contractor agreement",
+            assigneeType: "hr",
+            dueDays: 1,
+          },
+        },
+        {
+          type: "provision_limited_access",
+          config: {
+            systems: ["email", "project_tools"],
+            duration: "contract_length",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["access_level", "duration"] },
+    benefits: [
+      "Fast contractor ramp-up",
+      "Appropriate access controls",
+      "Compliance maintained",
+    ],
+  },
+
+  {
+    id: "manager-onboarding",
+    name: "New Manager Transition Program",
+    description: "Specialized onboarding for new managers and leaders",
+    category: workflowCategories[0],
+    tags: ["onboarding", "leadership", "development"],
+    icon: "👨‍💼",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "ROLE_CHANGE",
+        config: { newRole: "MANAGER" },
+      },
+      branches: [{ type: "parallel" }],
+      actions: [
+        {
+          type: "assign_training",
+          config: {
+            courseId: "manager-fundamentals",
+            mandatory: true,
+            dueInDays: 14,
+          },
+        },
+        {
+          type: "schedule_coaching",
+          config: {
+            sessions: 4,
+            with: "senior_leader",
+            frequency: "weekly",
+          },
+        },
+        {
+          type: "provide_resources",
+          config: {
+            managerPlaybook: true,
+            teamTemplates: true,
+            budgetAccess: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["training_path", "coaching_schedule"] },
+    benefits: [
+      "Confident new managers",
+      "Reduced team disruption",
+      "Better leadership outcomes",
+    ],
+  },
+
+  // More Leave & Time
+  {
+    id: "bereavement-support",
+    name: "Bereavement Leave & Support",
+    description: "Compassionate handling of bereavement situations",
+    category: workflowCategories[1],
+    tags: ["leave", "wellbeing", "support"],
+    icon: "🕊️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "LEAVE_REQUEST",
+        config: { leaveType: "BEREAVEMENT" },
+      },
+      actions: [
+        {
+          type: "auto_approve",
+          config: {
+            immediate: true,
+            notifyManager: true,
+          },
+        },
+        {
+          type: "send_condolences",
+          config: {
+            from: "leadership_team",
+            includeResources: true,
+            eapContact: true,
+          },
+        },
+        {
+          type: "arrange_coverage",
+          config: {
+            temporary: true,
+            redistributeUrgent: true,
+          },
+        },
+        {
+          type: "offer_support",
+          config: {
+            counseling: true,
+            additionalLeave: true,
+            flexibleReturn: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["support_options", "leave_duration"] },
+    benefits: [
+      "Compassionate response",
+      "Reduced employee stress",
+      "Strengthened trust",
+    ],
+  },
+
+  {
+    id: "flexible-working-requests",
+    name: "Flexible Working Request Management",
+    description: "Handle requests for flexible working arrangements",
+    category: workflowCategories[1],
+    tags: ["flexibility", "remote", "work-life"],
+    icon: "🏡",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "FLEXIBLE_WORK_REQUEST",
+        config: {},
+      },
+      actions: [
+        {
+          type: "assess_eligibility",
+          config: {
+            criteria: ["tenure", "role_suitability", "performance"],
+          },
+        },
+        {
+          type: "manager_review",
+          config: {
+            deadline: 10,
+            includeTrialOption: true,
+          },
+        },
+        {
+          type: "send_decision",
+          config: {
+            channels: ["email"],
+            includeAgreement: true,
+            effectiveDate: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["eligibility_criteria", "trial_period"] },
+    benefits: [
+      "Consistent flex work decisions",
+      "Better work-life balance",
+      "Higher retention",
+    ],
+  },
+
+  // More Performance & Development
+  {
+    id: "goal-setting-cascade",
+    name: "Cascading Goal Setting",
+    description: "Align individual goals with company objectives",
+    category: workflowCategories[2],
+    tags: ["performance", "goals", "okrs"],
+    icon: "🎯",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 1 *" }, // January 1
+      },
+      actions: [
+        {
+          type: "publish_company_goals",
+          config: {
+            audience: "all_employees",
+            format: "okr",
+          },
+        },
+        {
+          type: "cascade_to_departments",
+          config: {
+            deadline: 14,
+            alignmentRequired: true,
+          },
+        },
+        {
+          type: "individual_goal_setting",
+          config: {
+            withManager: true,
+            deadline: 30,
+            linkToCompany: true,
+          },
+        },
+        {
+          type: "track_progress",
+          config: {
+            frequency: "monthly",
+            dashboards: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["goal_framework", "timeline"] },
+    benefits: [
+      "Strategic alignment",
+      "Clear priorities",
+      "Better accountability",
+    ],
+  },
+
+  {
+    id: "skill-gap-analysis",
+    name: "Automated Skill Gap Analysis",
+    description: "Identify and address skill gaps proactively",
+    category: workflowCategories[2],
+    tags: ["development", "skills", "training"],
+    icon: "📊",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 */3 *" }, // Quarterly
+      },
+      actions: [
+        {
+          type: "assess_current_skills",
+          config: {
+            sources: ["self_assessment", "manager_input", "certifications"],
+          },
+        },
+        {
+          type: "identify_gaps",
+          config: {
+            compareToRoleRequirements: true,
+            futureNeeds: true,
+          },
+        },
+        {
+          type: "recommend_training",
+          config: {
+            personalized: true,
+            budgetConscious: true,
+          },
+        },
+        {
+          type: "create_development_plan",
+          config: {
+            timeline: 90,
+            managerApproval: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["assessment_frequency", "skill_matrix"] },
+    benefits: [
+      "Proactive skill development",
+      "Career growth support",
+      "Future-ready workforce",
+    ],
+  },
+
+  {
+    id: "succession-planning",
+    name: "Succession Planning & Talent Pipeline",
+    description: "Identify and develop future leaders",
+    category: workflowCategories[2],
+    tags: ["succession", "leadership", "retention"],
+    icon: "🌟",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 6,12 *" }, // Biannual
+      },
+      actions: [
+        {
+          type: "identify_critical_roles",
+          config: {
+            riskAssessment: true,
+            businessImpact: true,
+          },
+        },
+        {
+          type: "assess_talent",
+          config: {
+            ninebox: true,
+            potential: true,
+            readiness: true,
+          },
+        },
+        {
+          type: "create_development_plans",
+          config: {
+            targeted: true,
+            accelerated: true,
+          },
+        },
+        {
+          type: "track_readiness",
+          config: {
+            dashboard: true,
+            quarterlyReview: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["assessment_criteria", "development_paths"] },
+    benefits: [
+      "Leadership continuity",
+      "Internal promotion pipeline",
+      "Reduced hiring costs",
+    ],
+  },
+
+  // More Compliance & Documentation
+  {
+    id: "right-to-work-verification",
+    name: "Right to Work Verification (NZ)",
+    description: "Automated verification of work eligibility",
+    category: workflowCategories[3],
+    tags: ["compliance", "immigration", "nz-specific"],
+    icon: "✅",
+    isPopular: true,
+    ...createWorkflowNodes({
+      trigger: {
+        type: "EMPLOYEE_CREATED",
+        config: {},
+      },
+      conditions: [
+        {
+          type: "custom_field",
+          config: {
+            field: "requiresWorkVisa",
+            operator: "equals",
+            value: true,
+          },
+        },
+      ],
+      actions: [
+        {
+          type: "request_documents",
+          config: {
+            documents: ["passport", "visa", "work_permit"],
+            deadline: 3,
+            blocking: true,
+          },
+        },
+        {
+          type: "verify_authenticity",
+          config: {
+            method: "digital_check",
+            manualReview: true,
+          },
+        },
+        {
+          type: "record_verification",
+          config: {
+            system: "compliance_register",
+            expiryTracking: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["verification_method", "document_types"] },
+    benefits: [
+      "Legal compliance",
+      "Reduced immigration risks",
+      "Audit-ready records",
+    ],
+  },
+
+  {
+    id: "data-retention-policy",
+    name: "Automated Data Retention & Deletion",
+    description: "Comply with data retention laws and privacy requirements",
+    category: workflowCategories[3],
+    tags: ["compliance", "privacy", "gdpr"],
+    icon: "🗑️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 2 1 * *" }, // Monthly at 2am
+      },
+      actions: [
+        {
+          type: "identify_expired_data",
+          config: {
+            retentionPeriods: {
+              applications: 6,
+              employee_records: 84, // 7 years
+              payroll: 84,
+              leave_records: 24,
+            },
+          },
+        },
+        {
+          type: "notify_before_deletion",
+          config: {
+            stakeholders: ["hr", "legal"],
+            daysNotice: 30,
+          },
+        },
+        {
+          type: "anonymize_or_delete",
+          config: {
+            method: "secure_deletion",
+            auditLog: true,
+            exceptions: "legal_hold",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["retention_periods", "deletion_method"] },
+    benefits: [
+      "Privacy law compliance",
+      "Reduced data liability",
+      "Automated cleanup",
+    ],
+  },
+
+  {
+    id: "employment-law-changes",
+    name: "Employment Law Change Alerts",
+    description: "Stay updated with NZ employment law changes",
+    category: workflowCategories[3],
+    tags: ["compliance", "law", "nz-specific"],
+    icon: "⚖️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "LAW_CHANGE_DETECTED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "analyze_impact",
+          config: {
+            affectedPolicies: true,
+            requiredActions: true,
+          },
+        },
+        {
+          type: "notify_stakeholders",
+          config: {
+            recipients: ["hr_manager", "legal", "leadership"],
+            priority: "HIGH",
+          },
+        },
+        {
+          type: "create_action_plan",
+          config: {
+            deadline: "compliance_date",
+            assignTasks: true,
+          },
+        },
+        {
+          type: "track_implementation",
+          config: {
+            milestones: true,
+            reportProgress: "weekly",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["monitoring_sources", "notification_list"] },
+    benefits: [
+      "Always compliant",
+      "Proactive updates",
+      "Risk mitigation",
+    ],
+  },
+
+  // More Health & Safety
+  {
+    id: "workplace-hazard-reporting",
+    name: "Hazard Identification & Resolution",
+    description: "Proactive hazard management system",
+    category: workflowCategories[6],
+    tags: ["safety", "hazards", "prevention"],
+    icon: "⚠️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "HAZARD_REPORTED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "assess_risk",
+          config: {
+            matrix: "likelihood_x_severity",
+            prioritize: true,
+          },
+        },
+        {
+          type: "immediate_controls",
+          config: {
+            highRisk: "isolate_hazard",
+            mediumRisk: "warning_signs",
+          },
+        },
+        {
+          type: "investigate_root_cause",
+          config: {
+            method: "5_whys",
+            involve: "safety_committee",
+          },
+        },
+        {
+          type: "implement_solutions",
+          config: {
+            hierarchy: "elimination_first",
+            trackCompletion: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["risk_matrix", "control_hierarchy"] },
+    benefits: [
+      "Proactive safety culture",
+      "Reduced incidents",
+      "WorkSafe compliance",
+    ],
+  },
+
+  {
+    id: "ergonomic-assessments",
+    name: "Workstation Ergonomic Reviews",
+    description: "Regular ergonomic assessments for office workers",
+    category: workflowCategories[6],
+    tags: ["safety", "ergonomics", "wellness"],
+    icon: "🪑",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 */6 *" }, // Every 6 months
+      },
+      conditions: [
+        {
+          type: "custom_field",
+          config: {
+            field: "workLocation",
+            operator: "in",
+            value: ["OFFICE", "HYBRID"],
+          },
+        },
+      ],
+      actions: [
+        {
+          type: "send_assessment_form",
+          config: {
+            formId: "ergonomic_self_assessment",
+            deadline: 14,
+          },
+        },
+        {
+          type: "identify_concerns",
+          config: {
+            flagHighRisk: true,
+            prioritize: "discomfort_reported",
+          },
+        },
+        {
+          type: "arrange_assessment",
+          config: {
+            inPerson: "if_needed",
+            assessor: "occ_health",
+          },
+        },
+        {
+          type: "provide_equipment",
+          config: {
+            budget: 500,
+            approvalRequired: "over_200",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["assessment_frequency", "equipment_budget"] },
+    benefits: [
+      "Prevents injuries",
+      "Improved comfort",
+      "Reduced ACC claims",
+    ],
+  },
+
+  // More Engagement & Culture
+  {
+    id: "employee-referrals",
+    name: "Employee Referral Program",
+    description: "Automated referral tracking and rewards",
+    category: workflowCategories[5],
+    tags: ["engagement", "recruitment", "referrals"],
+    icon: "🤝",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "REFERRAL_SUBMITTED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "acknowledge_referral",
+          config: {
+            thankYou: true,
+            trackingNumber: true,
+          },
+        },
+        {
+          type: "track_candidate",
+          config: {
+            updateReferrer: ["shortlisted", "interviewed", "offered"],
+          },
+        },
+        {
+          type: "process_reward",
+          config: {
+            onHire: 500,
+            onCompletion90Days: 500,
+            method: "bonus_or_voucher",
+          },
+        },
+        {
+          type: "celebrate_success",
+          config: {
+            announce: "company_wide",
+            leaderboard: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["reward_amounts", "milestones"] },
+    benefits: [
+      "Quality hires from referrals",
+      "Lower recruitment costs",
+      "Engaged employees",
+    ],
+  },
+
+  {
+    id: "team-building-scheduler",
+    name: "Automated Team Building Events",
+    description: "Regular team activities and bonding sessions",
+    category: workflowCategories[5],
+    tags: ["engagement", "culture", "teamwork"],
+    icon: "🎉",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 15 */2 *" }, // Bimonthly
+      },
+      actions: [
+        {
+          type: "poll_team",
+          config: {
+            activityOptions: ["lunch", "activity", "workshop", "social"],
+            budgetPerPerson: 50,
+          },
+        },
+        {
+          type: "book_activity",
+          config: {
+            basedOnVote: true,
+            considerRemote: true,
+          },
+        },
+        {
+          type: "send_invites",
+          config: {
+            calendar: true,
+            includeDetails: true,
+            rsvp: true,
+          },
+        },
+        {
+          type: "follow_up",
+          config: {
+            feedbackSurvey: true,
+            photoSharing: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["frequency", "budget", "activity_types"] },
+    benefits: [
+      "Stronger team bonds",
+      "Improved morale",
+      "Better collaboration",
+    ],
+  },
+
+  {
+    id: "diversity-inclusion-tracking",
+    name: "Diversity & Inclusion Initiatives",
+    description: "Track and improve D&I metrics",
+    category: workflowCategories[5],
+    tags: ["diversity", "inclusion", "culture"],
+    icon: "🌈",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 */3 *" }, // Quarterly
+      },
+      actions: [
+        {
+          type: "collect_demographics",
+          config: {
+            voluntary: true,
+            anonymous: true,
+          },
+        },
+        {
+          type: "analyze_representation",
+          config: {
+            byLevel: true,
+            byDepartment: true,
+            payEquity: true,
+          },
+        },
+        {
+          type: "set_targets",
+          config: {
+            realistic: true,
+            measurable: true,
+          },
+        },
+        {
+          type: "track_initiatives",
+          config: {
+            hiring: true,
+            promotion: true,
+            retention: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["metrics", "targets", "initiatives"] },
+    benefits: [
+      "Improved diversity",
+      "Inclusive culture",
+      "Better decision making",
+    ],
+  },
+
+  // More Payroll & Benefits
+  {
+    id: "expense-reimbursement",
+    name: "Expense Claim Processing",
+    description: "Streamlined expense submission and approval",
+    category: workflowCategories[7],
+    tags: ["payroll", "expenses", "approval"],
+    icon: "🧾",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "EXPENSE_SUBMITTED",
+        config: {},
+      },
+      conditions: [
+        {
+          type: "expense_amount",
+          config: { operator: ">", value: 100 },
+        },
+      ],
+      actions: [
+        {
+          type: "validate_policy",
+          config: {
+            checkLimits: true,
+            requireReceipts: true,
+          },
+        },
+        {
+          type: "route_approval",
+          config: {
+            under500: "manager",
+            over500: "manager_and_finance",
+          },
+        },
+        {
+          type: "process_payment",
+          config: {
+            method: "next_payrun",
+            notifyEmployee: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["approval_thresholds", "payment_timing"] },
+    benefits: [
+      "Faster reimbursements",
+      "Policy compliance",
+      "Reduced admin time",
+    ],
+  },
+
+  {
+    id: "payroll-anomaly-detection",
+    name: "Payroll Anomaly Detection",
+    description: "Catch payroll errors before processing",
+    category: workflowCategories[7],
+    tags: ["payroll", "quality", "compliance"],
+    icon: "🔍",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "PAYROLL_PREPARED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "run_checks",
+          config: {
+            checks: ["duplicate_payments", "zero_hours", "unusual_amounts", "missing_tax"],
+          },
+        },
+        {
+          type: "flag_anomalies",
+          config: {
+            threshold: "statistical_outlier",
+            requireReview: true,
+          },
+        },
+        {
+          type: "notify_payroll_team",
+          config: {
+            urgency: "HIGH",
+            includeDetails: true,
+          },
+        },
+        {
+          type: "require_signoff",
+          config: {
+            onlyIfClean: true,
+            dualApproval: "over_threshold",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["anomaly_rules", "approval_workflow"] },
+    benefits: [
+      "Prevent costly errors",
+      "Employee trust",
+      "Compliance maintained",
+    ],
+  },
+
+  // Onboarding - International
+  {
+    id: "international-assignment",
+    name: "International Assignment Management",
+    description: "Manage expat assignments and relocations",
+    category: workflowCategories[0],
+    tags: ["onboarding", "international", "relocation"],
+    icon: "✈️",
+    isPremium: true,
+    ...createWorkflowNodes({
+      trigger: {
+        type: "ASSIGNMENT_APPROVED",
+        config: {},
+      },
+      branches: [{ type: "parallel" }],
+      actions: [
+        {
+          type: "arrange_immigration",
+          config: {
+            visa: true,
+            workPermit: true,
+            legal: true,
+          },
+        },
+        {
+          type: "coordinate_relocation",
+          config: {
+            housing: true,
+            schooling: true,
+            shipping: true,
+          },
+        },
+        {
+          type: "setup_compensation",
+          config: {
+            currency: "host_country",
+            allowances: true,
+            tax_gross_up: true,
+          },
+        },
+        {
+          type: "cultural_training",
+          config: {
+            employee: true,
+            family: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["relocation_package", "support_services"] },
+    benefits: [
+      "Smooth transitions",
+      "Assignment success",
+      "Family satisfaction",
+    ],
+  },
+
+  // Performance - Probation
+  {
+    id: "probation-extension",
+    name: "Probation Period Extension",
+    description: "Manage probation extensions with proper documentation",
+    category: workflowCategories[2],
+    tags: ["probation", "performance", "compliance"],
+    icon: "📅",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "PROBATION_EXTENSION_INITIATED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "document_reasons",
+          config: {
+            template: "extension_letter",
+            reasonsRequired: true,
+            improvementPlan: true,
+          },
+        },
+        {
+          type: "gain_approvals",
+          config: {
+            manager: true,
+            hr: true,
+            employeeAcknowledgment: true,
+          },
+        },
+        {
+          type: "schedule_reviews",
+          config: {
+            frequency: "biweekly",
+            duration: "extension_period",
+          },
+        },
+        {
+          type: "final_decision_reminder",
+          config: {
+            daysBeforeEnd: 7,
+            escalate: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["extension_length", "review_frequency"] },
+    benefits: [
+      "Fair probation process",
+      "Clear expectations",
+      "Legal protection",
+    ],
+  },
+
+  // Leave - Special
+  {
+    id: "parental-leave-planning",
+    name: "Parental Leave Planning & Support",
+    description: "Complete parental leave management (NZ compliant)",
+    category: workflowCategories[1],
+    tags: ["leave", "parental", "nz-law"],
+    icon: "👶",
+    isPopular: true,
+    ...createWorkflowNodes({
+      trigger: {
+        type: "PARENTAL_LEAVE_REQUESTED",
+        config: {},
+      },
+      delays: [{ days: -42 }], // 6 weeks before
+      actions: [
+        {
+          type: "confirm_eligibility",
+          config: {
+            checkTenure: true,
+            checkHours: true,
+            governmentPayment: true,
+          },
+        },
+        {
+          type: "plan_coverage",
+          config: {
+            backfill: true,
+            redistribute: true,
+            temporary: "if_needed",
+          },
+        },
+        {
+          type: "maintain_connection",
+          config: {
+            keepInLoopOptional: true,
+            companyUpdates: true,
+          },
+        },
+        {
+          type: "plan_return",
+          config: {
+            flexibleOptions: true,
+            supportProgram: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["leave_length", "support_level"] },
+    benefits: [
+      "NZ law compliance",
+      "Parent support",
+      "Higher retention",
+    ],
+  },
+
+  // Compliance - Training
+  {
+    id: "mandatory-training-compliance",
+    name: "Mandatory Training Enforcement",
+    description: "Ensure completion of required training",
+    category: workflowCategories[3],
+    tags: ["training", "compliance", "enforcement"],
+    icon: "🎓",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "TRAINING_DUE",
+        config: { type: "mandatory" },
+      },
+      actions: [
+        {
+          type: "send_notification",
+          config: {
+            channels: ["email", "slack"],
+            recipientType: "employee",
+            subject: "Required Training Due",
+            message: "Please complete {{training.name}} by {{deadline}}",
+          },
+        },
+        {
+          type: "send_reminders",
+          config: {
+            schedule: [7, 3, 1, 0], // days before
+            escalate: "manager",
+          },
+        },
+        {
+          type: "restrict_if_overdue",
+          config: {
+            gracePeriod: 3,
+            limitation: "system_warning",
+          },
+        },
+        {
+          type: "report_compliance",
+          config: {
+            toManagement: true,
+            includeNonCompliant: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["reminder_schedule", "enforcement_level"] },
+    benefits: [
+      "100% training compliance",
+      "Reduced risk",
+      "Audit readiness",
+    ],
+  },
+
+  // Offboarding - Security
+  {
+    id: "access-revocation",
+    name: "System Access Revocation",
+    description: "Immediate and secure access removal on termination",
+    category: workflowCategories[4],
+    tags: ["offboarding", "security", "it"],
+    icon: "🔐",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "TERMINATION_EFFECTIVE",
+        config: {},
+      },
+      actions: [
+        {
+          type: "disable_accounts",
+          config: {
+            systems: ["email", "slack", "hris", "vpn"],
+            immediate: true,
+          },
+        },
+        {
+          type: "retrieve_assets",
+          config: {
+            items: ["laptop", "phone", "cards", "keys"],
+            deadline: 1,
+          },
+        },
+        {
+          type: "backup_data",
+          config: {
+            emails: 30, // days retention
+            files: true,
+            transferOwnership: "manager",
+          },
+        },
+        {
+          type: "security_audit",
+          config: {
+            checkAccess: true,
+            confirmRevocation: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["systems", "retention_periods"] },
+    benefits: [
+      "Security maintained",
+      "No data loss",
+      "Compliance assured",
+    ],
+  },
+
+  // Compliance - Contracts
+  {
+    id: "contract-renewal-tracking",
+    name: "Fixed-Term Contract Renewals",
+    description: "Proactive management of contract end dates",
+    category: workflowCategories[3],
+    tags: ["contracts", "compliance", "retention"],
+    icon: "📋",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "CONTRACT_EXPIRING",
+        config: { daysBefore: 60 },
+      },
+      actions: [
+        {
+          type: "notify_stakeholders",
+          config: {
+            manager: true,
+            hr: true,
+            employee: 30, // days before
+          },
+        },
+        {
+          type: "review_performance",
+          config: {
+            quickReview: true,
+            renewalRecommendation: true,
+          },
+        },
+        {
+          type: "prepare_renewal",
+          config: {
+            template: "contract_extension",
+            termsReview: true,
+          },
+        },
+        {
+          type: "obtain_signatures",
+          config: {
+            deadline: 14, // days before expiry
+            digitalSignature: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["notification_schedule", "renewal_process"] },
+    benefits: [
+      "No unwanted contract lapses",
+      "Retain valuable contractors",
+      "Continuous workforce planning",
+    ],
+  },
+
+  // Performance - Underperformance
+  {
+    id: "early-warning-system",
+    name: "Performance Early Warning System",
+    description: "Detect and address performance concerns early",
+    category: workflowCategories[2],
+    tags: ["performance", "support", "retention"],
+    icon: "📉",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "PERFORMANCE_ALERT",
+        config: { 
+          triggers: ["missed_deadlines", "quality_issues", "low_engagement"],
+        },
+      },
+      actions: [
+        {
+          type: "notify_manager",
+          config: {
+            confidential: true,
+            suggestActions: true,
+          },
+        },
+        {
+          type: "schedule_check_in",
+          config: {
+            within: 3,
+            informal: true,
+            supportFocus: true,
+          },
+        },
+        {
+          type: "provide_resources",
+          config: {
+            coaching: true,
+            training: true,
+            wellnessSupport: true,
+          },
+        },
+        {
+          type: "track_improvement",
+          config: {
+            period: 30,
+            escalateIfNoImprovement: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["alert_triggers", "support_options"] },
+    benefits: [
+      "Early intervention",
+      "Prevented terminations",
+      "Improved performance",
+    ],
+  },
+
+  // Engagement - Onboarding feedback
+  {
+    id: "onboarding-feedback-loop",
+    name: "New Hire Experience Feedback",
+    description: "Continuous improvement of onboarding process",
+    category: workflowCategories[5],
+    tags: ["onboarding", "feedback", "improvement"],
+    icon: "💭",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "EMPLOYEE_START_DATE",
+        config: {},
+      },
+      delays: [{ days: 30 }, { days: 60 }, { days: 90 }],
+      actions: [
+        {
+          type: "send_survey",
+          config: {
+            formId: "onboarding_nps",
+            anonymous: false,
+            topics: ["clarity", "support", "resources", "culture_fit"],
+          },
+        },
+        {
+          type: "analyze_feedback",
+          config: {
+            trends: true,
+            departmentComparison: true,
+          },
+        },
+        {
+          type: "action_improvements",
+          config: {
+            assignToHR: true,
+            trackImplementation: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["survey_schedule", "questions"] },
+    benefits: [
+      "Continuously improving onboarding",
+      "Higher new hire satisfaction",
+      "Better retention rates",
+    ],
+  },
+
+  // Leave - Time off
+  {
+    id: "lieu-time-management",
+    name: "Time in Lieu (TOIL) Management",
+    description: "Track and manage overtime compensation",
+    category: workflowCategories[1],
+    tags: ["time", "overtime", "compliance"],
+    icon: "⏱️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "OVERTIME_WORKED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "calculate_toil",
+          config: {
+            rate: 1.5,
+            round: "nearest_15_min",
+          },
+        },
+        {
+          type: "add_to_balance",
+          config: {
+            system: "leave_management",
+            expiryPeriod: 90,
+          },
+        },
+        {
+          type: "notify_employee",
+          config: {
+            channels: ["email"],
+            includeBalance: true,
+            reminderToUse: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["toil_rate", "expiry_period"] },
+    benefits: [
+      "Fair compensation",
+      "Better work-life balance",
+      "Compliance tracking",
+    ],
+  },
+
+  // Health & Safety - Emergency
+  {
+    id: "emergency-contact-verification",
+    name: "Emergency Contact Updates",
+    description: "Regular verification of emergency contact information",
+    category: workflowCategories[6],
+    tags: ["safety", "emergency", "compliance"],
+    icon: "🚨",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 6,12 *" }, // Biannual
+      },
+      actions: [
+        {
+          type: "request_verification",
+          config: {
+            formId: "emergency_contacts",
+            deadline: 14,
+          },
+        },
+        {
+          type: "flag_outdated",
+          config: {
+            olderThan: 12, // months
+            requireUpdate: true,
+          },
+        },
+        {
+          type: "remind_incomplete",
+          config: {
+            schedule: [7, 3, 1],
+            escalateToManager: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["verification_frequency"] },
+    benefits: [
+      "Updated emergency contacts",
+      "Duty of care compliance",
+      "Peace of mind",
+    ],
+  },
+
+  // Offboarding - Redundancy
+  {
+    id: "redundancy-process-nz",
+    name: "Redundancy Process (NZ Law Compliant)",
+    description: "Fair and legally compliant redundancy process",
+    category: workflowCategories[4],
+    tags: ["offboarding", "redundancy", "nz-law"],
+    icon: "⚖️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "REDUNDANCY_PROPOSED",
+        config: {},
+      },
+      actions: [
+        {
+          type: "consultation_process",
+          config: {
+            genuine: true,
+            alternatives: ["redeployment", "reduction"],
+            timeline: 14, // minimum days
+          },
+        },
+        {
+          type: "calculate_entitlements",
+          config: {
+            redundancyPay: true,
+            notice: true,
+            leave: true,
+          },
+        },
+        {
+          type: "provide_support",
+          config: {
+            outplacement: true,
+            cvReview: true,
+            references: true,
+          },
+        },
+        {
+          type: "process_final_pay",
+          config: {
+            timing: "last_day",
+            documentation: "comprehensive",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["consultation_period", "support_package"] },
+    benefits: [
+      "Legal compliance",
+      "Fair treatment",
+      "Reduced litigation risk",
+    ],
+  },
+
+  // Engagement - Onboarding
+  {
+    id: "first-day-excellence",
+    name: "Perfect First Day Experience",
+    description: "Orchestrate an unforgettable first day",
+    category: workflowCategories[5],
+    tags: ["onboarding", "experience", "culture"],
+    icon: "🌟",
+    isPopular: true,
+    ...createWorkflowNodes({
+      trigger: {
+        type: "EMPLOYEE_START_DATE",
+        config: { daysOffset: 0 },
+      },
+      branches: [{ type: "parallel" }],
+      actions: [
+        {
+          type: "send_welcome_package",
+          config: {
+            swag: true,
+            personalNote: true,
+            scheduleOverview: true,
+          },
+        },
+        {
+          type: "coordinate_workspace",
+          config: {
+            desk: true,
+            equipment: true,
+            supplies: true,
+          },
+        },
+        {
+          type: "schedule_introductions",
+          config: {
+            team: true,
+            key_stakeholders: true,
+            lunch: true,
+          },
+        },
+        {
+          type: "assign_first_task",
+          config: {
+            meaningful: true,
+            achievable: true,
+            winnable: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["welcome_package", "first_day_agenda"] },
+    benefits: [
+      "Memorable first impression",
+      "Faster integration",
+      "Higher early engagement",
+    ],
+  },
+
+  // Performance - Career
+  {
+    id: "career-development-planning",
+    name: "Individual Career Development Plans",
+    description: "Structured career planning and growth tracking",
+    category: workflowCategories[2],
+    tags: ["development", "career", "retention"],
+    icon: "🚀",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 1 *" }, // Annually
+      },
+      actions: [
+        {
+          type: "career_conversation",
+          config: {
+            manager: true,
+            aspirations: true,
+            timeline: "3_5_years",
+          },
+        },
+        {
+          type: "create_development_plan",
+          config: {
+            skills: true,
+            experiences: true,
+            milestones: true,
+          },
+        },
+        {
+          type: "identify_opportunities",
+          config: {
+            projects: true,
+            rotations: true,
+            mentorship: true,
+          },
+        },
+        {
+          type: "track_progress",
+          config: {
+            quarterly_reviews: true,
+            adjust_as_needed: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["planning_frequency", "development_options"] },
+    benefits: [
+      "Clear career paths",
+      "Improved retention",
+      "Internal mobility",
+    ],
+  },
+
+  // Compliance - Audit
+  {
+    id: "wage-hour-compliance",
+    name: "Wage & Hour Compliance Monitoring",
+    description: "Ensure compliance with minimum wage and hour laws",
+    category: workflowCategories[3],
+    tags: ["compliance", "payroll", "nz-law"],
+    icon: "💵",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 3 1 * *" }, // Monthly
+      },
+      actions: [
+        {
+          type: "audit_hours",
+          config: {
+            checkMinimumWage: true,
+            checkMaxHours: true,
+            checkBreaks: true,
+          },
+        },
+        {
+          type: "flag_violations",
+          config: {
+            threshold: "any_violation",
+            urgent: true,
+          },
+        },
+        {
+          type: "investigate_issues",
+          config: {
+            assignToHR: true,
+            rootCause: true,
+          },
+        },
+        {
+          type: "remediate",
+          config: {
+            backpay: true,
+            preventRecurrence: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["audit_frequency", "thresholds"] },
+    benefits: [
+      "Legal compliance",
+      "Fair compensation",
+      "Avoided penalties",
+    ],
+  },
+
+  // Engagement - Recognition
+  {
+    id: "milestone-celebrations",
+    name: "Employment Milestone Recognition",
+    description: "Celebrate 1, 5, 10+ year anniversaries with impact",
+    category: workflowCategories[5],
+    tags: ["recognition", "retention", "culture"],
+    icon: "🏆",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 * * *" }, // Daily check
+      },
+      conditions: [
+        {
+          type: "anniversary",
+          config: {
+            years: [1, 5, 10, 15, 20, 25],
+          },
+        },
+      ],
+      actions: [
+        {
+          type: "prepare_recognition",
+          config: {
+            1: "card_and_gift",
+            5: "award_and_celebration",
+            10: "special_event_and_bonus",
+          },
+        },
+        {
+          type: "leadership_message",
+          config: {
+            personalized: true,
+            highlight_contributions: true,
+          },
+        },
+        {
+          type: "company_announcement",
+          config: {
+            channels: ["all_hands", "newsletter"],
+            photo: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["recognition_tiers", "gift_budgets"] },
+    benefits: [
+      "Valued long-term employees",
+      "Improved retention",
+      "Positive culture",
+    ],
+  },
+
+  // Leave - Compliance
+  {
+    id: "minimum-leave-enforcement",
+    name: "Minimum Annual Leave Enforcement",
+    description: "Ensure employees take minimum required leave (NZ)",
+    category: workflowCategories[1],
+    tags: ["leave", "compliance", "wellbeing"],
+    icon: "🏖️",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 */2 *" }, // Bimonthly
+      },
+      conditions: [
+        {
+          type: "leave_taken",
+          config: {
+            operator: "<",
+            value: 10, // days per year pro-rata
+          },
+        },
+      ],
+      actions: [
+        {
+          type: "send_notification",
+          config: {
+            channels: ["email"],
+            recipientType: "employee",
+            subject: "Time to Take a Break!",
+            message: "You haven't taken enough leave. Plan some time off!",
+          },
+        },
+        {
+          type: "notify_manager",
+          config: {
+            encourage: true,
+            scheduleConversation: true,
+          },
+        },
+        {
+          type: "escalate_if_persistent",
+          config: {
+            threshold: 6, // months
+            escalateTo: "hr",
+            mandatoryLeave: "last_resort",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["minimum_days", "enforcement_level"] },
+    benefits: [
+      "Wellbeing protected",
+      "Compliance with rest requirements",
+      "Reduced burnout",
+    ],
+  },
+
+  // Payroll - Tax
+  {
+    id: "tax-code-verification",
+    name: "Tax Code Accuracy & IRD Compliance",
+    description: "Ensure correct tax codes and IRD submissions",
+    category: workflowCategories[7],
+    tags: ["payroll", "tax", "ird", "nz-specific"],
+    icon: "🧾",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "SCHEDULED",
+        config: { schedule: "0 9 1 3 *" }, // March - start of tax year
+      },
+      actions: [
+        {
+          type: "verify_tax_codes",
+          config: {
+            requestConfirmation: true,
+            flagUnusual: true,
+          },
+        },
+        {
+          type: "update_ird",
+          config: {
+            emsSubmission: true,
+            paydayFiling: true,
+          },
+        },
+        {
+          type: "generate_summaries",
+          config: {
+            employeePaymentSummaries: true,
+            deadline: "March 31",
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["verification_frequency"] },
+    benefits: [
+      "IRD compliance",
+      "Accurate tax withholding",
+      "Avoided penalties",
+    ],
+  },
+
+  // Offboarding - Retirement
+  {
+    id: "retirement-planning",
+    name: "Employee Retirement Support",
+    description: "Thoughtful retirement planning and transition",
+    category: workflowCategories[4],
+    tags: ["offboarding", "retirement", "support"],
+    icon: "🎊",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "RETIREMENT_ANNOUNCED",
+        config: {},
+      },
+      delays: [{ days: -180 }], // 6 months before
+      actions: [
+        {
+          type: "plan_transition",
+          config: {
+            knowledge_transfer: 120, // days
+            recruitment: true,
+            overlap: "if_possible",
+          },
+        },
+        {
+          type: "benefits_counseling",
+          config: {
+            kiwisaver: true,
+            healthInsurance: true,
+            pension: true,
+          },
+        },
+        {
+          type: "plan_celebration",
+          config: {
+            event: true,
+            recognition: true,
+            gift: true,
+          },
+        },
+        {
+          type: "maintain_connection",
+          config: {
+            alumni: true,
+            consultingOpp: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["transition_period", "celebration_type"] },
+    benefits: [
+      "Dignified retirement",
+      "Knowledge preserved",
+      "Positive legacy",
+    ],
+  },
+
+  // Compliance - Document Management  
+  {
+    id: "qualification-verification",
+    name: "Professional Qualification Verification",
+    description: "Verify and track professional certifications",
+    category: workflowCategories[3],
+    tags: ["compliance", "qualifications", "verification"],
+    icon: "🎓",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "EMPLOYEE_CREATED",
+        config: {},
+      },
+      conditions: [
+        {
+          type: "custom_field",
+          config: {
+            field: "requiresProfessionalRegistration",
+            operator: "equals",
+            value: true,
+          },
+        },
+      ],
+      actions: [
+        {
+          type: "request_proof",
+          config: {
+            documents: ["certificate", "registration", "practicing_certificate"],
+            deadline: 7,
+          },
+        },
+        {
+          type: "verify_with_authority",
+          config: {
+            authorities: ["nzqa", "professional_bodies"],
+            automated: true,
+          },
+        },
+        {
+          type: "track_renewals",
+          config: {
+            expiryMonitoring: true,
+            reminders: [60, 30, 14],
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["required_qualifications", "verification_method"] },
+    benefits: [
+      "Verified credentials",
+      "Regulatory compliance",
+      "Quality assurance",
+    ],
+  },
+
+  // Performance - Mentorship
+  {
+    id: "mentorship-program",
+    name: "Automated Mentorship Matching",
+    description: "AI-powered mentor matching and program management",
+    category: workflowCategories[2],
+    tags: ["development", "mentorship", "growth"],
+    icon: "🤝",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "MENTORSHIP_REQUEST",
+        config: {},
+      },
+      actions: [
+        {
+          type: "match_mentor",
+          config: {
+            criteria: ["experience", "skills", "availability", "personality"],
+            algorithm: "smart_match",
+          },
+        },
+        {
+          type: "introduce_pair",
+          config: {
+            kickoffMeeting: true,
+            program_guidelines: true,
+          },
+        },
+        {
+          type: "schedule_checkIns",
+          config: {
+            frequency: "monthly",
+            duration: 6, // months
+          },
+        },
+        {
+          type: "measure_success",
+          config: {
+            surveys: true,
+            goalProgress: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["matching_criteria", "program_duration"] },
+    benefits: [
+      "Better matching success",
+      "Career development",
+      "Knowledge sharing",
+    ],
+  },
+
+  // Engagement - Internal Mobility
+  {
+    id: "internal-job-posting",
+    name: "Internal Job Posting & Application",
+    description: "Promote internal career opportunities",
+    category: workflowCategories[5],
+    tags: ["recruitment", "mobility", "retention"],
+    icon: "📢",
+    ...createWorkflowNodes({
+      trigger: {
+        type: "JOB_POSTED",
+        config: { internal: true },
+      },
+      actions: [
+        {
+          type: "notify_qualified",
+          config: {
+            matchSkills: true,
+            matchInterests: true,
+            deadline: 14,
+          },
+        },
+        {
+          type: "process_applications",
+          config: {
+            managerNotification: true,
+            fairProcess: true,
+          },
+        },
+        {
+          type: "provide_feedback",
+          config: {
+            all_applicants: true,
+            constructive: true,
+            developmentSuggestions: true,
+          },
+        },
+      ],
+    }),
+    config: { customizable: ["notification_criteria", "timeline"] },
+    benefits: [
+      "Internal talent utilization",
+      "Career growth opportunities",
+      "Lower external hiring costs",
+    ],
+  },
 ];
 
 // Helper function to get workflows by category

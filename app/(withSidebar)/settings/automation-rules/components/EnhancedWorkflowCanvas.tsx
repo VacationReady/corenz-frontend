@@ -160,7 +160,6 @@ function EnhancedWorkflowCanvasInner({
   // Load workflow nodes when workflow changes
   useEffect(() => {
     if (workflow?.nodes && workflow?.edges && workflow?.nodes?.length > 0) {
-      console.log('Loading workflow into canvas:', workflow.name, 'Nodes:', workflow.nodes.length, 'Edges:', workflow.edges.length);
       setNodes(workflow.nodes);
       setEdges(workflow.edges);
       
@@ -168,8 +167,6 @@ function EnhancedWorkflowCanvasInner({
       setTimeout(() => {
         fitView({ padding: 0.2, duration: 300 });
       }, 100);
-    } else {
-      console.log('Workflow received but no nodes:', workflow);
     }
   }, [workflow, setNodes, setEdges, fitView]);
 
@@ -482,10 +479,11 @@ function EnhancedWorkflowCanvasInner({
               <div>
                 <Label>Trigger Type</Label>
                 <Select
-                  value={config.triggerType || ''}
+                  value={nodeData.triggerType || config.triggerType || ''}
                   onValueChange={(value) => 
                     handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, triggerType: value } 
+                      triggerType: value,
+                      config: { ...config } 
                     })
                   }
                   disabled={readOnly}
@@ -495,18 +493,18 @@ function EnhancedWorkflowCanvasInner({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="EMPLOYEE_CREATED">Employee Created</SelectItem>
+                    <SelectItem value="EMPLOYEE_START_DATE">Employee Start Date</SelectItem>
                     <SelectItem value="DOCUMENT_EXPIRING">Document Expiring</SelectItem>
                     <SelectItem value="FORM_SUBMITTED">Form Submitted</SelectItem>
                     <SelectItem value="SCHEDULED">Scheduled</SelectItem>
                     <SelectItem value="WEBHOOK">Webhook</SelectItem>
                     <SelectItem value="LEAVE_REQUEST">Leave Request</SelectItem>
                     <SelectItem value="CONTRACT_EXPIRING">Contract Expiring</SelectItem>
-                    <SelectItem value="EMPLOYEE_START_DATE">Employee Start Date</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {config.triggerType === 'SCHEDULED' && (
+              {(nodeData.triggerType === 'SCHEDULED' || config.triggerType === 'SCHEDULED') && (
                 <div>
                   <Label>Cron Schedule</Label>
                   <Input
@@ -525,7 +523,7 @@ function EnhancedWorkflowCanvasInner({
                 </div>
               )}
 
-              {config.triggerType === 'DOCUMENT_EXPIRING' && (
+              {(nodeData.triggerType === 'DOCUMENT_EXPIRING' || config.triggerType === 'DOCUMENT_EXPIRING') && (
                 <>
                   <div>
                     <Label>Days Before Expiry</Label>
@@ -556,7 +554,7 @@ function EnhancedWorkflowCanvasInner({
                 </>
               )}
 
-              {config.triggerType === 'FORM_SUBMITTED' && (
+              {(nodeData.triggerType === 'FORM_SUBMITTED' || config.triggerType === 'FORM_SUBMITTED') && (
                 <div>
                   <Label>Form</Label>
                   <Select
@@ -589,10 +587,11 @@ function EnhancedWorkflowCanvasInner({
               <div>
                 <Label>Condition Type</Label>
                 <Select
-                  value={config.conditionType || ''}
+                  value={nodeData.conditionType || config.conditionType || ''}
                   onValueChange={(value) => 
                     handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, conditionType: value } 
+                      conditionType: value,
+                      config: { ...config } 
                     })
                   }
                   disabled={readOnly}
@@ -609,11 +608,12 @@ function EnhancedWorkflowCanvasInner({
                     <SelectItem value="documentStatus">Document Status</SelectItem>
                     <SelectItem value="workingHours">Working Hours</SelectItem>
                     <SelectItem value="customField">Custom Field</SelectItem>
+                    <SelectItem value="custom_field">Custom Field</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {config.conditionType === 'department' && (
+              {(nodeData.conditionType === 'department' || config.conditionType === 'department') && (
                 <div>
                   <Label>Departments</Label>
                   <MultiSelect
@@ -629,7 +629,7 @@ function EnhancedWorkflowCanvasInner({
                 </div>
               )}
 
-              {config.conditionType === 'customField' && (
+              {(nodeData.conditionType === 'customField' || nodeData.conditionType === 'custom_field' || config.conditionType === 'customField' || config.conditionType === 'custom_field') && (
                 <>
                   <div>
                     <Label>Field Path</Label>
@@ -690,10 +690,11 @@ function EnhancedWorkflowCanvasInner({
               <div>
                 <Label>Action Type</Label>
                 <Select
-                  value={config.actionType || ''}
+                  value={nodeData.actionType || config.actionType || ''}
                   onValueChange={(value) => 
                     handleNodeUpdate(selectedNode.id, { 
-                      config: { ...config, actionType: value } 
+                      actionType: value,
+                      config: { ...config } 
                     })
                   }
                   disabled={readOnly}
@@ -712,7 +713,7 @@ function EnhancedWorkflowCanvasInner({
                 </Select>
               </div>
 
-              {config.actionType === 'send_notification' && (
+              {(nodeData.actionType === 'send_notification' || config.actionType === 'send_notification') && (
                 <>
                   <div>
                     <Label>Recipient Type</Label>
@@ -786,7 +787,7 @@ function EnhancedWorkflowCanvasInner({
                 </>
               )}
 
-              {config.actionType === 'create_task' && (
+              {(nodeData.actionType === 'create_task' || config.actionType === 'create_task') && (
                 <>
                   <div>
                     <Label>Task Title</Label>
@@ -853,7 +854,7 @@ function EnhancedWorkflowCanvasInner({
                 </>
               )}
 
-              {config.actionType === 'webhook' && (
+              {(nodeData.actionType === 'webhook' || config.actionType === 'webhook') && (
                 <>
                   <div>
                     <Label>URL</Label>

@@ -178,7 +178,7 @@ export default function WorkflowLibraryPage() {
                 </CardDescription>
               </div>
               {isInstalled && (
-                <Badge variant="success" className="ml-2">
+                <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 border-green-200">
                   <Check className="w-3 h-3 mr-1" />
                   Active
                 </Badge>

@@ -121,6 +121,7 @@ function EnhancedWorkflowCanvasInner({
   const [showExecutionDialog, setShowExecutionDialog] = useState(false);
   const [layoutDirection, setLayoutDirection] = useState<LayoutOptions["direction"]>("TB");
   const [showPreviewWarning, setShowPreviewWarning] = useState(false);
+  const prevSentSnapshotRef = useRef<string>("");
 
   // Dynamic options from API
   const [departments, setDepartments] = useState<any[]>([]);
@@ -215,24 +216,33 @@ function EnhancedWorkflowCanvasInner({
   useEffect(() => {
     if (workflow?.nodes && workflow?.edges) {
       const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(workflow.nodes, workflow.edges);
-      setNodes(nodesSafe);
-      setEdges(edgesSafe);
 
-      // Fit view after nodes are loaded
-      if (nodesSafe.length > 0) {
-        setTimeout(() => {
-          fitView({ padding: 0.2, duration: 300 });
-        }, 100);
+      // Only update local state if different from current state snapshot
+      const incomingSnapshot = JSON.stringify({ n: nodesSafe, e: edgesSafe });
+      const currentSnapshot = JSON.stringify({ n: nodes, e: edges });
+      if (incomingSnapshot !== currentSnapshot) {
+        setNodes(nodesSafe);
+        setEdges(edgesSafe);
+
+        if (nodesSafe.length > 0) {
+          setTimeout(() => {
+            fitView({ padding: 0.2, duration: 300 });
+          }, 100);
+        }
       }
     }
-  }, [workflow, setNodes, setEdges, fitView, sanitizeNodesAndEdges]);
+  }, [workflow, nodes, edges, setNodes, setEdges, fitView, sanitizeNodesAndEdges]);
 
   // Notify parent of changes
   useEffect(() => {
     if (!readOnly && onWorkflowChange) {
-      onWorkflowChange({ ...workflow, nodes, edges });
+      const snapshot = JSON.stringify({ n: nodes, e: edges });
+      if (prevSentSnapshotRef.current !== snapshot) {
+        prevSentSnapshotRef.current = snapshot;
+        onWorkflowChange({ ...workflow, nodes, edges });
+      }
     }
-  }, [nodes, edges, readOnly]);
+  }, [nodes, edges, readOnly, onWorkflowChange, workflow]);
 
   // Handle connections
   const onConnect = useCallback((params: Connection) => {

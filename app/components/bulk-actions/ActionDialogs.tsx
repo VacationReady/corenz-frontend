@@ -781,6 +781,8 @@ interface TrainingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
   courses: Option[];
   providers: Option[];
   onCompleted?: (result: BulkActionResult) => void;

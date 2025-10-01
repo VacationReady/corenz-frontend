@@ -11,6 +11,7 @@ import { AutomationRuleList } from "./components/AutomationRuleList";
 import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
 import { ValidationChecklist } from "./components/ValidationChecklist";
+import WorkflowCanvasWrapper from "./components/WorkflowCanvas";
 import {
   Settings,
   Plus,

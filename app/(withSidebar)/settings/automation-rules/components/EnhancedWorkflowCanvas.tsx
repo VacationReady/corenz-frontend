@@ -44,6 +44,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Zap, Filter, PlayCircle, Clock, GitBranch, 
   Repeat, Webhook, Calendar, Users, Mail,
@@ -94,6 +101,7 @@ interface EnhancedWorkflowCanvasProps {
   isDirty?: boolean;
   readOnly?: boolean;
   previewMode?: boolean;
+  onRequestEdit?: () => void;
 }
 
 function EnhancedWorkflowCanvasInner({
@@ -105,6 +113,7 @@ function EnhancedWorkflowCanvasInner({
   isDirty = false,
   readOnly = false,
   previewMode = false,
+  onRequestEdit,
 }: EnhancedWorkflowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { fitView, setViewport } = useReactFlow();
@@ -120,6 +129,7 @@ function EnhancedWorkflowCanvasInner({
   const [executionResults, setExecutionResults] = useState<any>(null);
   const [showExecutionDialog, setShowExecutionDialog] = useState(false);
   const [layoutDirection, setLayoutDirection] = useState<LayoutOptions["direction"]>("TB");
+  const [showPreviewWarning, setShowPreviewWarning] = useState(false);
 
   // Dynamic options from API
   const [departments, setDepartments] = useState<any[]>([]);
@@ -892,6 +902,29 @@ function EnhancedWorkflowCanvasInner({
           )}
         </div>
       )}
+      <Dialog open={showPreviewWarning} onOpenChange={setShowPreviewWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enable editing?</DialogTitle>
+            <DialogDescription>
+              Changing this workflow will override the default template for your organisation. Are you sure you want to continue?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowPreviewWarning(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowPreviewWarning(false);
+                onRequestEdit?.();
+              }}
+            >
+              Yes, let me edit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Center - Canvas */}
       <div className="flex-1 relative" ref={reactFlowWrapper}>
@@ -1016,12 +1049,22 @@ function EnhancedWorkflowCanvasInner({
           </div>
 
           <div className="flex gap-2 pointer-events-auto">
-            {previewMode && (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                Preview Mode
-              </Badge>
-            )}
-            {readOnly && !previewMode && (
+          {previewMode && (
+            <Badge
+              variant="secondary"
+              className="bg-blue-100 text-blue-800 cursor-pointer"
+              onClick={() => {
+                if (readOnly && previewMode) {
+                  setShowPreviewWarning(true);
+                } else {
+                  onRequestEdit?.();
+                }
+              }}
+            >
+              Preview Mode
+            </Badge>
+          )}
+          {readOnly && !previewMode && (
               <Badge variant="secondary" className="bg-amber-100 text-amber-800">
                 <Lock className="h-3 w-3 mr-1" />
                 Read Only

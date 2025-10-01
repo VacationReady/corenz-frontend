@@ -130,7 +130,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
     })();
   }, []);
 
-  const filteredRules = rules.filter((rule) => {
+const filteredRules = rules.filter((rule) => {
     const matchesSearch = rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       rule.description?.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -258,8 +258,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                         variant="ghost"
                         pill
                         onClick={() => {
-                          const url = `/settings/automation-rules?preview=${encodeURIComponent(t.id)}`;
-                          window.location.href = url;
+                          onEditRule({ ...t, id: t.id } as any);
                         }}
                         className="h-8 px-3"
                       >

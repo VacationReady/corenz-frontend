@@ -8,7 +8,6 @@ import { toast } from "@/hooks/use-toast";
 // Import new components
 import { AutomationRuleList } from "./components/AutomationRuleList";
 // Visual canvas builder
-import WorkflowCanvasWrapper from "./components/WorkflowCanvas";
 import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
 import { ValidationChecklist } from "./components/ValidationChecklist";
@@ -359,6 +358,7 @@ export default function AutomationRulesPage() {
   const [jobRolesOptions, setJobRolesOptions] = useState<{ value: string; label: string }[]>([]);
   const [usersOptions, setUsersOptions] = useState<{ value: string; label: string }[]>([]);
   const [documentTypeOptions, setDocumentTypeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [previewMode, setPreviewMode] = useState(false);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -456,6 +456,10 @@ export default function AutomationRulesPage() {
       // Non-blocking; options can be retried later
       console.warn("Failed loading options for automation rules:", e);
     }
+  };
+
+  const exitPreviewMode = () => {
+    setPreviewMode(false);
   };
 
   const fetchRules = async () => {
@@ -608,9 +612,10 @@ export default function AutomationRulesPage() {
     resetForm();
     setSelectedRule(null);
     setBuilderMode("create");
+    setPreviewMode(false);
   };
 
-  const openEditDialog = async (rule: AutomationRule) => {
+  const openEditDialog = async (rule: AutomationRule, opts?: { preview?: boolean }) => {
     try {
       // Fetch full rule including workflowDefinition for the canvas
       const res = await fetch(`/api/automation-rules/${rule.id}`);
@@ -618,11 +623,13 @@ export default function AutomationRulesPage() {
       setFormData(full as any);
       setSelectedRule(full as any);
       setBuilderMode("edit");
+      setPreviewMode(!!opts?.preview);
     } catch {
       // Fallback to existing rule data
       setFormData(rule);
       setSelectedRule(rule);
       setBuilderMode("edit");
+      setPreviewMode(!!opts?.preview);
     }
   };
 

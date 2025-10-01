@@ -65,11 +65,49 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
     fetcher
   );
 
+  // Fetch action items from database (workflow-generated tasks)
+  const { data: dbActionItems, mutate: mutateActionItems } = useSWR(
+    employeeId ? `/api/action-items?employeeId=${employeeId}&status=PENDING` : `/api/action-items?status=PENDING`,
+    fetcher
+  );
+
   // Process all data into unified action items
   useEffect(() => {
     const processActions = async () => {
       setLoading(true);
       const items: ActionItem[] = [];
+
+      // Process action items from database (workflow-generated)
+      if (dbActionItems?.success && Array.isArray(dbActionItems.data)) {
+        dbActionItems.data.forEach((item: any) => {
+          items.push({
+            id: `action-${item.id}`,
+            type: "task",
+            title: item.title,
+            subtitle: item.relatedEmployee?.name 
+              ? `For ${item.relatedEmployee.name} • ${item.type}`
+              : item.type,
+            urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+            metadata: item,
+            actionLabel: "Complete",
+            onAction: async () => {
+              try {
+                const res = await fetch('/api/action-items', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: item.id, status: 'COMPLETED' }),
+                });
+                if (res.ok) {
+                  toast.success('Task completed!');
+                  mutateActionItems();
+                }
+              } catch (error) {
+                toast.error('Failed to complete task');
+              }
+            }
+          });
+        });
+      }
 
       // Process onboarding tasks
       if (onboardingData) {
@@ -225,7 +263,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
     };
 
     processActions();
-  }, [onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager]);
+  }, [dbActionItems, onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems]);
 
   const handleQuickApprove = async () => {
     setProcessing("quick-approve");

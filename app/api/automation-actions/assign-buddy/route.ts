@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       const candidates = await prisma.employee.findMany({
         where: {
           companyId: session.user.companyId,
-          location: employee.location,
+          locationId: employee.locationId,
           isActive: true,
           id: { not: employeeId },
           startDate: { lte: minStartDate },
@@ -103,13 +103,23 @@ export async function POST(req: NextRequest) {
     // Store buddy assignment (you could add a BuddyAssignment model or use Employee fields)
     // For now, return the buddy information
     
+    // Fetch department name if needed
+    let departmentName = null;
+    if (buddy.departmentId) {
+      const dept = await prisma.department.findUnique({
+        where: { id: buddy.departmentId },
+        select: { name: true },
+      });
+      departmentName = dept?.name;
+    }
+
     return NextResponse.json({
       success: true,
       buddy: {
         id: buddy.id,
         name: `${buddy.User?.firstName || ''} ${buddy.User?.lastName || ''}`.trim(),
         email: buddy.User?.email,
-        department: buddy.Department?.name,
+        department: departmentName,
       },
       criteria: criteria,
       message: `Assigned ${buddy.User?.firstName} ${buddy.User?.lastName} as buddy`,

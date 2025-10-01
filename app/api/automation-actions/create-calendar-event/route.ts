@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
       where: { id: employeeId, companyId: session.user.companyId },
       include: {
         User: true,
-        Manager: { include: { User: true } },
       },
     });
 
@@ -40,10 +39,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (attendeeTypes.includes('manager') && employee.Manager?.User) {
+    let managerUser: (typeof employee.User) | null = null;
+    if (
+      attendeeTypes.includes('manager') &&
+      employee.User?.managerId
+    ) {
+      managerUser = await prisma.user.findFirst({
+        where: { id: employee.User.managerId, companyId: session.user.companyId },
+      });
+    }
+
+    if (attendeeTypes.includes('manager') && managerUser?.email) {
+      const managerName = `${managerUser.firstName || ''} ${managerUser.lastName || ''}`.trim();
       attendees.push({
-        name: `${employee.Manager.User.firstName || ''} ${employee.Manager.User.lastName || ''}`.trim(),
-        email: employee.Manager.User.email,
+        name: managerName || managerUser.email,
+        email: managerUser.email,
         role: 'REQ-PARTICIPANT',
       });
     }

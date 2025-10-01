@@ -10,6 +10,7 @@ interface HeadlessSwitchProps {
   onCheckedChange?: (checked: boolean) => void;
   className?: string;
   disabled?: boolean;
+  id?: string;
 }
 
 export function Switch({
@@ -18,10 +19,12 @@ export function Switch({
   onCheckedChange,
   className,
   disabled = false,
+  id,
 }: HeadlessSwitchProps) {
   const handleChange = onChange ?? onCheckedChange ?? (() => {});
   return (
     <HeadlessSwitch
+      id={id}
       checked={checked}
       onChange={handleChange}
       disabled={disabled}

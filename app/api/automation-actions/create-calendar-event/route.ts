@@ -122,21 +122,34 @@ export async function POST(req: NextRequest) {
 
     // Send calendar invites to all attendees
     for (const attendee of attendees) {
+      const eventDetailsHtml = `
+        <div style="background: #f3f4f6; padding: 16px; border-radius: 12px; margin: 16px 0;">
+          <h3 style="margin: 0 0 8px 0;">${title}</h3>
+          <p style="margin: 0; color: #4b5563; line-height: 1.6;">
+            <strong>When:</strong> ${startTime.toLocaleString()}<br />
+            <strong>Duration:</strong> ${duration} minutes<br />
+            <strong>Location:</strong> ${config.location || "TBD"}
+          </p>
+        </div>
+      `;
+
       const { html, text } = renderPeopleCoreEmail({
-        headline: `Calendar Event: ${title}`,
-        bodyHtml: `
-            <p>You've been invited to:</p>
-            <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
-              <h3 style="margin: 0 0 8px 0;">${title}</h3>
-              <p style="margin: 0; color: #6b7280;">
-                <strong>When:</strong> ${startTime.toLocaleString()}<br>
-                <strong>Duration:</strong> ${duration} minutes
-              </p>
-            </div>
-            <p>A calendar invitation (.ics) has been attached to this email.</p>
-          `,
-        ctaText: null,
-        ctaUrl: null,
+        title: `Calendar Event: ${title}`,
+        intro: [
+          "You've been invited to a calendar event. Review the details below and add the attached invite to your calendar.",
+        ],
+        sections: [
+          {
+            title: "Event details",
+            html: eventDetailsHtml,
+            text: [
+              `When: ${startTime.toLocaleString()}`,
+              `Duration: ${duration} minutes`,
+              `Location: ${config.location || "TBD"}`,
+            ],
+          },
+        ],
+        outro: ["A calendar invitation (.ics) has been attached to this email."],
       });
 
       await resend.emails.send({

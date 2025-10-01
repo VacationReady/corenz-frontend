@@ -384,11 +384,11 @@ export default function AutomationRulesPage() {
                 name: tpl.name,
                 description: tpl.description,
                 isActive: false,
-                triggerType: tpl.definition?.nodes?.find((n: any) => n.type === "trigger")?.data?.config?.triggerType || "MANUAL",
-                triggerConfig: tpl.definition?.nodes?.find((n: any) => n.type === "trigger")?.data?.config || {},
+                triggerType: (tpl.nodes || []).find((n: any) => n.type === "trigger")?.data?.config?.triggerType || "MANUAL",
+                triggerConfig: (tpl.nodes || []).find((n: any) => n.type === "trigger")?.data?.config || {},
                 conditions: [],
                 actions: [],
-                workflowDefinition: tpl.definition || { nodes: tpl.nodes || [], edges: tpl.edges || [] },
+                workflowDefinition: { nodes: tpl.nodes || [], edges: tpl.edges || [] },
               } as any);
               setSelectedRule(null);
               setBuilderMode("edit");
@@ -840,28 +840,7 @@ export default function AutomationRulesPage() {
       showHomeIcon={false}
     >
       <div className="flex h-[calc(100vh-12rem)]">
-        {/* Left Sidebar - Only show list when editing an existing rule */}
-        {builderMode === "edit" && !previewMode && (
-          <div className="w-80 flex-shrink-0">
-            <AutomationRuleList
-              rules={rules}
-              selectedRuleId={selectedRule?.id}
-              loading={loading}
-              onCreateNew={openCreateDialog}
-              onSelectRule={(rule) => {
-                setFormData(rule);
-                setSelectedRule(rule);
-              }}
-              onEditRule={openEditDialog}
-              onDeleteRule={deleteRule}
-              onToggleStatus={toggleRuleStatus}
-              onRunTest={runDryTest}
-              onDuplicateRule={handleDuplicateRule}
-            />
-          </div>
-        )}
-
-        {/* Main Builder Area */}
+        {/* Main Builder Area - Full width in preview mode */}
         <div className="flex-1 flex">
           <div className="flex-1">
             <EnhancedWorkflowCanvas

@@ -114,7 +114,7 @@ function EnhancedWorkflowCanvasInner({
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showPalette, setShowPalette] = useState(!previewMode && !readOnly);
-  const [showProperties, setShowProperties] = useState(!previewMode);
+  const [showProperties, setShowProperties] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResults, setExecutionResults] = useState<any>(null);
@@ -701,6 +701,28 @@ function EnhancedWorkflowCanvasInner({
               {config.actionType === 'send_notification' && (
                 <>
                   <div>
+                    <Label>Recipient Type</Label>
+                    <Select
+                      value={config.recipientType || 'employee'}
+                      onValueChange={(value) => 
+                        handleNodeUpdate(selectedNode.id, { 
+                          config: { ...config, recipientType: value } 
+                        })
+                      }
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="hr">HR Team</SelectItem>
+                        <SelectItem value="all_employees">All Employees</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label>Channels</Label>
                     <MultiSelect
                       options={[
@@ -739,8 +761,78 @@ function EnhancedWorkflowCanvasInner({
                           config: { ...config, message: e.target.value } 
                         })
                       }
-                      placeholder="Use {{employee.name}} for variables"
-                      rows={3}
+                      placeholder="Use {{employee.name}}, {{company.name}} for variables"
+                      rows={4}
+                      disabled={readOnly}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Available variables: {'{{employee.name}}, {{company.name}}, {{manager.name}}'}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {config.actionType === 'create_task' && (
+                <>
+                  <div>
+                    <Label>Task Title</Label>
+                    <Input
+                      value={config.title || ''}
+                      onChange={(e) => 
+                        handleNodeUpdate(selectedNode.id, { 
+                          config: { ...config, title: e.target.value } 
+                        })
+                      }
+                      placeholder="Task title"
+                      disabled={readOnly}
+                    />
+                  </div>
+                  <div>
+                    <Label>Description</Label>
+                    <Textarea
+                      value={config.description || ''}
+                      onChange={(e) => 
+                        handleNodeUpdate(selectedNode.id, { 
+                          config: { ...config, description: e.target.value } 
+                        })
+                      }
+                      placeholder="Task details"
+                      rows={2}
+                      disabled={readOnly}
+                    />
+                  </div>
+                  <div>
+                    <Label>Assign To</Label>
+                    <Select
+                      value={config.assigneeType || 'manager'}
+                      onValueChange={(value) => 
+                        handleNodeUpdate(selectedNode.id, { 
+                          config: { ...config, assigneeType: value } 
+                        })
+                      }
+                      disabled={readOnly}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="hr">HR Team</SelectItem>
+                        <SelectItem value="it_team">IT Team</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Due in (days)</Label>
+                    <Input
+                      type="number"
+                      value={config.dueDays || 7}
+                      onChange={(e) => 
+                        handleNodeUpdate(selectedNode.id, { 
+                          config: { ...config, dueDays: parseInt(e.target.value) } 
+                        })
+                      }
                       disabled={readOnly}
                     />
                   </div>
@@ -1206,14 +1298,26 @@ function EnhancedWorkflowCanvasInner({
 
       {/* Preview Mode Warning Dialog */}
       <Dialog open={showPreviewWarning} onOpenChange={setShowPreviewWarning}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Enable editing?</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Enable editing?
+            </DialogTitle>
             <DialogDescription>
-              Changing this workflow will override the default template for your organisation. Are you sure you want to continue?
+              This will create a customizable copy of the workflow template for your organization. The default template will remain unchanged.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+            <p className="font-medium mb-1">What happens when you edit:</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>You can modify nodes, connections, and settings</li>
+              <li>Changes only affect your organization</li>
+              <li>You can always revert to the original template</li>
+              <li>Unsaved changes will be lost if you navigate away</li>
+            </ul>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
             <Button variant="ghost" onClick={() => setShowPreviewWarning(false)}>
               Cancel
             </Button>
@@ -1223,7 +1327,7 @@ function EnhancedWorkflowCanvasInner({
                 onRequestEdit?.();
               }}
             >
-              Yes, let me edit
+              Yes, enable editing
             </Button>
           </div>
         </DialogContent>

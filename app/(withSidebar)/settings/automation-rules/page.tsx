@@ -381,7 +381,7 @@ export default function AutomationRulesPage() {
             if (tpl) {
               // Load template as editable workflow (not read-only)
               setFormData({
-                name: `${tpl.name} (Preview)`,
+                name: tpl.name,
                 description: tpl.description,
                 isActive: false,
                 triggerType: tpl.definition?.nodes?.find((n: any) => n.type === "trigger")?.data?.config?.triggerType || "MANUAL",
@@ -391,10 +391,11 @@ export default function AutomationRulesPage() {
                 workflowDefinition: tpl.definition || { nodes: tpl.nodes || [], edges: tpl.edges || [] },
               } as any);
               setSelectedRule(null);
-              setBuilderMode("create");
+              setBuilderMode("edit");
+              setPreviewMode(true);
               toast({
-                title: "Template Loaded",
-                description: "You can edit this template and save it as your own workflow.",
+                title: "Template Preview",
+                description: "Click the Preview Mode badge to enable editing.",
               });
             }
           }

@@ -68,7 +68,6 @@ import { LoopNode } from "./nodes/LoopNode";
 
 // Import panels
 import { WorkflowPalette } from "./WorkflowPalette";
-import { WorkflowTemplateGallery } from "./WorkflowTemplateGallery";
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -114,11 +113,8 @@ function EnhancedWorkflowCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [showTemplates, setShowTemplates] = useState(
-    !workflow?.nodes?.length && !previewMode && !readOnly
-  );
   const [showPalette, setShowPalette] = useState(!previewMode && !readOnly);
-  const [showProperties, setShowProperties] = useState(true);
+  const [showProperties, setShowProperties] = useState(!previewMode);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResults, setExecutionResults] = useState<any>(null);
@@ -897,44 +893,10 @@ function EnhancedWorkflowCanvasInner({
           )}
         </div>
       )}
-      <Dialog open={showPreviewWarning} onOpenChange={setShowPreviewWarning}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enable editing?</DialogTitle>
-            <DialogDescription>
-              Changing this workflow will override the default template for your organisation. Are you sure you want to continue?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setShowPreviewWarning(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setShowPreviewWarning(false);
-                onRequestEdit?.();
-              }}
-            >
-              Yes, let me edit
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Center - Canvas */}
       <div className="flex-1 relative" ref={reactFlowWrapper}>
-        {showTemplates && !previewMode && !readOnly ? (
-          <WorkflowTemplateGallery
-            onSelectTemplate={(template) => {
-              setNodes(template.nodes);
-              setEdges(template.edges);
-              setShowTemplates(false);
-              toast.success(`Loaded template: ${template.name}`);
-            }}
-            onClose={() => setShowTemplates(false)}
-          />
-        ) : (
-          <ReactFlow
+        <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={readOnly ? undefined : onNodesChange}
@@ -965,22 +927,12 @@ function EnhancedWorkflowCanvasInner({
             />
             <Controls className="bg-card border-2" />
           </ReactFlow>
-        )}
 
         {/* Top Action Bar */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
           <div className="flex gap-2 pointer-events-auto">
             {!readOnly && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowTemplates(true)}
-                  className="bg-white/90 backdrop-blur"
-                >
-                  Templates
-                </Button>
-                
                 <div className="flex items-center bg-white/90 backdrop-blur rounded-md">
                   <Button
                     variant="ghost"
@@ -1045,9 +997,10 @@ function EnhancedWorkflowCanvasInner({
 
           <div className="flex gap-2 pointer-events-auto">
           {previewMode && (
-            <Badge
-              variant="secondary"
-              className="bg-blue-100 text-blue-800 cursor-pointer"
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
               onClick={() => {
                 if (readOnly && previewMode) {
                   setShowPreviewWarning(true);
@@ -1056,8 +1009,9 @@ function EnhancedWorkflowCanvasInner({
                 }
               }}
             >
-              Preview Mode
-            </Badge>
+              <Lock className="h-3 w-3 mr-1" />
+              Preview Mode - Click to Edit
+            </Button>
           )}
           {readOnly && !previewMode && (
               <Badge variant="secondary" className="bg-amber-100 text-amber-800">
@@ -1246,6 +1200,31 @@ function EnhancedWorkflowCanvasInner({
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Mode Warning Dialog */}
+      <Dialog open={showPreviewWarning} onOpenChange={setShowPreviewWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enable editing?</DialogTitle>
+            <DialogDescription>
+              Changing this workflow will override the default template for your organisation. Are you sure you want to continue?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowPreviewWarning(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowPreviewWarning(false);
+                onRequestEdit?.();
+              }}
+            >
+              Yes, let me edit
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -130,6 +130,60 @@ function EnhancedWorkflowCanvasInner({
   const [documentTypes, setDocumentTypes] = useState<string[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
 
+  // Helpers to ensure ReactFlow receives valid, unique nodes/edges
+  const sanitizeNodesAndEdges = useCallback((rawNodes: Node[] = [], rawEdges: Edge[] = []) => {
+    const nodeIds = new Set<string>();
+    const nodesSafe: Node[] = [];
+
+    for (let i = 0; i < (rawNodes || []).length; i++) {
+      const n = rawNodes[i] as any;
+      if (!n) continue;
+      let id = String(n.id ?? "");
+      if (!id) id = `node-${i}-${Date.now()}`;
+      while (nodeIds.has(id)) id = `${id}-${Math.floor(Math.random() * 1000)}`;
+      nodeIds.add(id);
+
+      nodesSafe.push({
+        id,
+        type: n.type || 'action',
+        position: n.position || { x: 0, y: i * 80 },
+        data: {
+          ...(n.data || {}),
+          config: { ...((n.data && n.data.config) || {}) },
+        },
+        draggable: n.draggable !== false,
+        selectable: n.selectable !== false,
+      } as Node);
+    }
+
+    const edgesSafe: Edge[] = [];
+    const edgeIds = new Set<string>();
+    for (let j = 0; j < (rawEdges || []).length; j++) {
+      const e = rawEdges[j] as any;
+      if (!e) continue;
+      if (!e.source || !e.target) continue;
+      if (!nodeIds.has(String(e.source)) || !nodeIds.has(String(e.target))) continue;
+
+      let id = String(e.id ?? "");
+      if (!id) id = `edge-${e.source}-${e.target}-${j}-${Date.now()}`;
+      while (edgeIds.has(id)) id = `${id}-${Math.floor(Math.random() * 1000)}`;
+      edgeIds.add(id);
+
+      edgesSafe.push({
+        id,
+        source: String(e.source),
+        target: String(e.target),
+        label: e.label,
+        markerEnd: e.markerEnd ?? defaultEdgeOptions.markerEnd,
+        animated: typeof e.animated === 'boolean' ? e.animated : defaultEdgeOptions.animated,
+        style: { ...(defaultEdgeOptions.style as any), ...(e.style || {}) },
+        type: e.type,
+      } as Edge);
+    }
+
+    return { nodesSafe, edgesSafe };
+  }, []);
+
   // Load dynamic options
   useEffect(() => {
     loadDynamicOptions();
@@ -159,16 +213,19 @@ function EnhancedWorkflowCanvasInner({
 
   // Load workflow nodes when workflow changes
   useEffect(() => {
-    if (workflow?.nodes && workflow?.edges && workflow?.nodes?.length > 0) {
-      setNodes(workflow.nodes);
-      setEdges(workflow.edges);
-      
+    if (workflow?.nodes && workflow?.edges) {
+      const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(workflow.nodes, workflow.edges);
+      setNodes(nodesSafe);
+      setEdges(edgesSafe);
+
       // Fit view after nodes are loaded
-      setTimeout(() => {
-        fitView({ padding: 0.2, duration: 300 });
-      }, 100);
+      if (nodesSafe.length > 0) {
+        setTimeout(() => {
+          fitView({ padding: 0.2, duration: 300 });
+        }, 100);
+      }
     }
-  }, [workflow, setNodes, setEdges, fitView]);
+  }, [workflow, setNodes, setEdges, fitView, sanitizeNodesAndEdges]);
 
   // Notify parent of changes
   useEffect(() => {

@@ -616,6 +616,53 @@ export function CompensationBulkActionDialog({
     return { salaryImpact, hourlyImpact, total: salaryImpact + (hourlyImpact * 2080), affectedEmployees };
   }, [employeeIds, compensationData, targets, calculateNewValue]);
 
+  // Calculate total payroll (old and new)
+  const payrollTotals = useMemo(() => {
+    let oldSalaryTotal = 0;
+    let newSalaryTotal = 0;
+    let oldHourlyTotal = 0;
+    let newHourlyTotal = 0;
+
+    employeeIds.forEach((id) => {
+      const comp = compensationData.get(id);
+      if (!comp) return;
+
+      // Salary totals
+      if (comp.salaryAmount !== null) {
+        oldSalaryTotal += comp.salaryAmount;
+        if (targets.includes("salary")) {
+          const newValue = calculateNewValue(comp.salaryAmount);
+          newSalaryTotal += newValue ?? comp.salaryAmount;
+        } else {
+          newSalaryTotal += comp.salaryAmount;
+        }
+      }
+
+      // Hourly totals
+      if (comp.hourlyRate !== null) {
+        oldHourlyTotal += comp.hourlyRate;
+        if (targets.includes("hourly")) {
+          const newValue = calculateNewValue(comp.hourlyRate);
+          newHourlyTotal += newValue ?? comp.hourlyRate;
+        } else {
+          newHourlyTotal += comp.hourlyRate;
+        }
+      }
+    });
+
+    return {
+      oldSalaryTotal,
+      newSalaryTotal,
+      salaryDifference: newSalaryTotal - oldSalaryTotal,
+      oldHourlyTotal,
+      newHourlyTotal,
+      hourlyDifference: newHourlyTotal - oldHourlyTotal,
+      oldAnnualHourlyTotal: oldHourlyTotal * 2080,
+      newAnnualHourlyTotal: newHourlyTotal * 2080,
+      annualHourlyDifference: (newHourlyTotal - oldHourlyTotal) * 2080,
+    };
+  }, [employeeIds, compensationData, targets, calculateNewValue]);
+
   // Export to CSV
   const exportToCSV = useCallback(() => {
     const rows = [
@@ -729,7 +776,9 @@ export function CompensationBulkActionDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl">Adjust compensation</DialogTitle>
           <DialogDescription className="text-base">
-            {employeeIds.length} employees selected. {employeePreview}
+            {employeeIds.length === 0
+              ? "Select employees below to preview compensation changes"
+              : `${employeeIds.length} employee${employeeIds.length !== 1 ? "s" : ""} selected. ${employeePreview}`}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -952,29 +1001,96 @@ export function CompensationBulkActionDialog({
             </div>
           </div>
 
-          {/* Cost Summary */}
-          {totalCostImpact.affectedEmployees > 0 && (
-            <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-semibold text-foreground">Total Cost Impact</h3>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Affected Employees</p>
-                  <p className="text-2xl font-bold text-foreground">{totalCostImpact.affectedEmployees}</p>
+          {/* Payroll Summary */}
+          {employeeIds.length > 0 && (
+            <div className="space-y-4">
+              {/* Salary Payroll */}
+              {(payrollTotals.oldSalaryTotal > 0 || targets.includes("salary")) && (
+                <div className="rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-semibold text-foreground">Annual Salary Payroll Summary</h3>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Current Total</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldSalaryTotal)}</p>
+                      <p className="text-xs text-muted-foreground">{employeeIds.length} selected employee{employeeIds.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">New Total</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newSalaryTotal)}</p>
+                      <p className="text-xs text-muted-foreground">After adjustment</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
+                      <p className={`text-3xl font-bold ${payrollTotals.salaryDifference >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {payrollTotals.salaryDifference >= 0 ? "+" : ""}{formatCurrency(payrollTotals.salaryDifference)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payrollTotals.salaryDifference !== 0 && payrollTotals.oldSalaryTotal > 0
+                          ? `${((payrollTotals.salaryDifference / payrollTotals.oldSalaryTotal) * 100).toFixed(2)}% change`
+                          : "No change"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Annual Salary Impact</p>
-                  <p className={`text-2xl font-bold ${totalCostImpact.salaryImpact >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {formatCurrency(totalCostImpact.salaryImpact)}
-                  </p>
+              )}
+
+              {/* Hourly Payroll */}
+              {(payrollTotals.oldHourlyTotal > 0 || targets.includes("hourly")) && (
+                <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-semibold text-foreground">Hourly Rate Payroll Summary</h3>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Current Total (Annual)</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldAnnualHourlyTotal)}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(payrollTotals.oldHourlyTotal)}/hour × 2,080 hrs</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">New Total (Annual)</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newAnnualHourlyTotal)}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(payrollTotals.newHourlyTotal)}/hour × 2,080 hrs</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
+                      <p className={`text-3xl font-bold ${payrollTotals.annualHourlyDifference >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {payrollTotals.annualHourlyDifference >= 0 ? "+" : ""}{formatCurrency(payrollTotals.annualHourlyDifference)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payrollTotals.annualHourlyDifference !== 0 && payrollTotals.oldAnnualHourlyTotal > 0
+                          ? `${((payrollTotals.annualHourlyDifference / payrollTotals.oldAnnualHourlyTotal) * 100).toFixed(2)}% change`
+                          : "No change"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Estimated Annual Cost (Hourly)</p>
-                  <p className={`text-2xl font-bold ${totalCostImpact.hourlyImpact >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {formatCurrency(totalCostImpact.hourlyImpact * 2080)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Based on 2,080 hours/year</p>
+              )}
+
+              {/* Combined Total */}
+              {payrollTotals.oldSalaryTotal > 0 && payrollTotals.oldAnnualHourlyTotal > 0 && (
+                <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/20 p-6 shadow-md">
+                  <h3 className="mb-4 text-lg font-semibold text-foreground">Combined Payroll Impact</h3>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Current Payroll</p>
+                      <p className="text-3xl font-bold text-foreground">
+                        {formatCurrency(payrollTotals.oldSalaryTotal + payrollTotals.oldAnnualHourlyTotal)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total New Payroll</p>
+                      <p className="text-3xl font-bold text-foreground">
+                        {formatCurrency(payrollTotals.newSalaryTotal + payrollTotals.newAnnualHourlyTotal)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
+                      <p className={`text-3xl font-bold ${(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference) >= 0 ? "+" : ""}
+                        {formatCurrency(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

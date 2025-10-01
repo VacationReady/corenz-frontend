@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/Checkbox";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
+import { ArrowDownToLine } from "lucide-react";
 
 export interface Option {
   value: string;
@@ -402,6 +403,14 @@ export function DepartmentBulkActionDialog({
 
 interface CompensationDialogProps extends BaseDialogProps {}
 
+interface EmployeeCompensation {
+  id: string;
+  name: string;
+  email: string;
+  salaryAmount: number | null;
+  hourlyRate: number | null;
+}
+
 export function CompensationBulkActionDialog({
   open,
   onOpenChange,
@@ -422,6 +431,8 @@ export function CompensationBulkActionDialog({
   const [targets, setTargets] = useState<string[]>(["salary"]);
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [compensationData, setCompensationData] = useState<Map<string, EmployeeCompensation>>(new Map());
+  const [loadingCompensation, setLoadingCompensation] = useState(false);
 
   const toggleTarget = (value: string) => {
     setTargets((prev) =>
@@ -442,6 +453,33 @@ export function CompensationBulkActionDialog({
   }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Fetch compensation data when selected employees change
+  const fetchCompensationData = useCallback(async (employeeIds: string[]) => {
+    if (employeeIds.length === 0) {
+      setCompensationData(new Map());
+      return;
+    }
+
+    setLoadingCompensation(true);
+    try {
+      const response = await fetch("/api/bulk-actions/compensation/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeIds }),
+      });
+
+      if (response.ok) {
+        const data: EmployeeCompensation[] = await response.json();
+        const dataMap = new Map(data.map((emp) => [emp.id, emp]));
+        setCompensationData(dataMap);
+      }
+    } catch (error) {
+      console.error("Failed to fetch compensation data:", error);
+    } finally {
+      setLoadingCompensation(false);
+    }
+  }, []);
 
   const filteredEmployees = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
@@ -516,6 +554,96 @@ export function CompensationBulkActionDialog({
 
   const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
 
+  // Fetch compensation data when selection changes
+  useEffect(() => {
+    if (open && employeeIds.length > 0) {
+      fetchCompensationData(employeeIds);
+    }
+  }, [open, employeeIds, fetchCompensationData]);
+
+  // Calculate new salary/hourly rate
+  const calculateNewValue = useCallback((current: number | null): number | null => {
+    if (current === null || !amountIsValid) return null;
+    
+    if (mode === "percent") {
+      return current * (1 + parsedAmount / 100);
+    } else {
+      return current + parsedAmount;
+    }
+  }, [mode, parsedAmount, amountIsValid]);
+
+  // Calculate total cost impact
+  const totalCostImpact = useMemo(() => {
+    let salaryImpact = 0;
+    let hourlyImpact = 0;
+    let affectedEmployees = 0;
+
+    employeeIds.forEach((id) => {
+      const comp = compensationData.get(id);
+      if (!comp) return;
+
+      let hasChange = false;
+
+      if (targets.includes("salary") && comp.salaryAmount !== null) {
+        const newValue = calculateNewValue(comp.salaryAmount);
+        if (newValue !== null) {
+          salaryImpact += newValue - comp.salaryAmount;
+          hasChange = true;
+        }
+      }
+
+      if (targets.includes("hourly") && comp.hourlyRate !== null) {
+        const newValue = calculateNewValue(comp.hourlyRate);
+        if (newValue !== null) {
+          hourlyImpact += newValue - comp.hourlyRate;
+          hasChange = true;
+        }
+      }
+
+      if (hasChange) affectedEmployees++;
+    });
+
+    return { salaryImpact, hourlyImpact, total: salaryImpact + (hourlyImpact * 2080), affectedEmployees };
+  }, [employeeIds, compensationData, targets, calculateNewValue]);
+
+  // Export to CSV
+  const exportToCSV = useCallback(() => {
+    const rows = [
+      ["Name", "Email", "Current Salary", "New Salary", "Current Hourly Rate", "New Hourly Rate", "Salary Change", "Hourly Change"],
+    ];
+
+    employeeIds.forEach((id) => {
+      const comp = compensationData.get(id);
+      if (!comp) return;
+
+      const currentSalary = comp.salaryAmount ?? 0;
+      const newSalary = targets.includes("salary") ? calculateNewValue(currentSalary) ?? 0 : currentSalary;
+      const currentHourly = comp.hourlyRate ?? 0;
+      const newHourly = targets.includes("hourly") ? calculateNewValue(currentHourly) ?? 0 : currentHourly;
+
+      rows.push([
+        comp.name,
+        comp.email,
+        currentSalary.toFixed(2),
+        newSalary.toFixed(2),
+        currentHourly.toFixed(2),
+        newHourly.toFixed(2),
+        (newSalary - currentSalary).toFixed(2),
+        (newHourly - currentHourly).toFixed(2),
+      ]);
+    });
+
+    const csvContent = rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `compensation-bulk-action-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exported successfully");
+  }, [employeeIds, compensationData, targets, calculateNewValue]);
+
   const canSubmit =
     employeeIds.length > 0 &&
     targets.length > 0 &&
@@ -566,6 +694,7 @@ export function CompensationBulkActionDialog({
       setTargets(["salary"]);
       setReason("");
       setSelectedIds(new Set());
+      setCompensationData(new Map());
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error?.message || "Unable to update compensation");
@@ -574,18 +703,29 @@ export function CompensationBulkActionDialog({
     }
   };
 
+  const formatCurrency = (value: number | null) => {
+    if (value === null) return "—";
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Adjust compensation">
+      <DialogContent title="Adjust compensation" className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Adjust compensation</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-2xl">Adjust compensation</DialogTitle>
+          <DialogDescription className="text-base">
             {employeeIds.length} employees selected. {employeePreview}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* Filters */}
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Search</label>
                 <Input
@@ -612,9 +752,6 @@ export function CompensationBulkActionDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Departments</label>
                 <MultiSelect
@@ -635,130 +772,218 @@ export function CompensationBulkActionDialog({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
-                  {filteredEmployees.length === 0 ? (
+            {/* Employee Selection Table */}
+            <div className="overflow-hidden rounded-xl border border-glass shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-gradient-to-r from-muted/60 to-muted/40">
                     <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
+                      <th className="px-4 py-3 text-left">
+                        <Checkbox
+                          checked={selectionState}
+                          onCheckedChange={() => toggleSelectAllFiltered()}
+                          aria-label="Select all filtered employees"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Employee
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Current Salary
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        New Salary
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Current Hourly
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        New Hourly
+                      </th>
                     </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">{employee.email}</div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {employee.isActive ? "Active" : "Inactive"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Adjustment type
-              </label>
-              <Select value={mode} onValueChange={(value) => setMode(value as "percent" | "flat")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select adjustment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percent">Percentage (%)</SelectItem>
-                  <SelectItem value="flat">Fixed amount</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Amount
-              </label>
-              <Input
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"}
-                type="number"
-                step="0.01"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                {mode === "percent"
-                  ? "Use negative values to decrease salaries."
-                  : "Enter the currency amount to add or subtract."}
-              </p>
+                  </thead>
+                  <tbody className="divide-y divide-border/60 bg-background">
+                    {filteredEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                          No employees match your filters yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEmployees.map((employee) => {
+                        const isSelected = selectedIds.has(employee.id);
+                        const comp = compensationData.get(employee.id);
+                        const newSalary = comp && targets.includes("salary") ? calculateNewValue(comp.salaryAmount) : comp?.salaryAmount;
+                        const newHourly = comp && targets.includes("hourly") ? calculateNewValue(comp.hourlyRate) : comp?.hourlyRate;
+
+                        return (
+                          <tr 
+                            key={employee.id} 
+                            className={`${isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/20"} transition-colors`}
+                          >
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleEmployeeSelection(employee.id)}
+                                aria-label={`Select ${employee.name}`}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-foreground">{employee.name}</div>
+                              <div className="text-xs text-muted-foreground">{employee.email}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation && isSelected ? (
+                                <span className="text-muted-foreground">Loading...</span>
+                              ) : (
+                                <span className="font-medium">{formatCurrency(comp?.salaryAmount ?? null)}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation && isSelected ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : isSelected && newSalary && comp?.salaryAmount !== newSalary ? (
+                                <span className={`font-semibold ${newSalary > (comp?.salaryAmount ?? 0) ? "text-green-600" : "text-red-600"}`}>
+                                  {formatCurrency(newSalary)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation && isSelected ? (
+                                <span className="text-muted-foreground">Loading...</span>
+                              ) : (
+                                <span className="font-medium">{formatCurrency(comp?.hourlyRate ?? null)}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation && isSelected ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : isSelected && newHourly && comp?.hourlyRate !== newHourly ? (
+                                <span className={`font-semibold ${newHourly > (comp?.hourlyRate ?? 0) ? "text-green-600" : "text-red-600"}`}>
+                                  {formatCurrency(newHourly)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Apply to
-            </label>
-            <div className="flex flex-col gap-3">
-              <label className="inline-flex items-center gap-3 text-sm">
-                <Checkbox
-                  checked={targets.includes("salary")}
-                  onCheckedChange={() => toggleTarget("salary")}
+          {/* Adjustment Configuration */}
+          <div className="space-y-4 rounded-xl border border-glass bg-gradient-to-br from-muted/20 to-muted/5 p-6">
+            <h3 className="text-lg font-semibold text-foreground">Adjustment Configuration</h3>
+            
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Adjustment type</label>
+                <Select value={mode} onValueChange={(value) => setMode(value as "percent" | "flat")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select adjustment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percent">Percentage (%)</SelectItem>
+                    <SelectItem value="flat">Fixed amount (£)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Amount</label>
+                <Input
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"}
+                  type="number"
+                  step="0.01"
+                  required
                 />
-                Salary amount
-              </label>
-              <label className="inline-flex items-center gap-3 text-sm">
-                <Checkbox
-                  checked={targets.includes("hourly")}
-                  onCheckedChange={() => toggleTarget("hourly")}
-                />
-                Hourly rate
-              </label>
+                <p className="text-xs text-muted-foreground">
+                  {mode === "percent"
+                    ? "Use negative values to decrease compensation."
+                    : "Enter the currency amount to add or subtract."}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Apply to</label>
+              <div className="flex flex-wrap gap-4">
+                <label className="inline-flex items-center gap-3 text-sm">
+                  <Checkbox
+                    checked={targets.includes("salary")}
+                    onCheckedChange={() => toggleTarget("salary")}
+                  />
+                  <span className="font-medium">Salary amount</span>
+                </label>
+                <label className="inline-flex items-center gap-3 text-sm">
+                  <Checkbox
+                    checked={targets.includes("hourly")}
+                    onCheckedChange={() => toggleTarget("hourly")}
+                  />
+                  <span className="font-medium">Hourly rate</span>
+                </label>
+              </div>
             </div>
           </div>
 
+          {/* Cost Summary */}
+          {totalCostImpact.affectedEmployees > 0 && (
+            <div className="rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-foreground">Total Cost Impact</h3>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Affected Employees</p>
+                  <p className="text-2xl font-bold text-foreground">{totalCostImpact.affectedEmployees}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Annual Salary Impact</p>
+                  <p className={`text-2xl font-bold ${totalCostImpact.salaryImpact >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {formatCurrency(totalCostImpact.salaryImpact)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Estimated Annual Cost (Hourly)</p>
+                  <p className={`text-2xl font-bold ${totalCostImpact.hourlyImpact >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {formatCurrency(totalCostImpact.hourlyImpact * 2080)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Based on 2,080 hours/year</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Reason for adjustment
-            </label>
+            <label className="text-sm font-medium text-foreground">Reason for adjustment</label>
             <Textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain the rationale for the adjustment"
+              placeholder="Explain the rationale for this compensation adjustment (e.g., annual review, promotion, market adjustment)"
               rows={4}
               required
+              className="resize-none"
             />
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={exportToCSV}
+              disabled={employeeIds.length === 0 || loadingCompensation}
+              className="gap-2"
+            >
+              <ArrowDownToLine className="h-4 w-4" />
+              Export CSV
+            </Button>
+            <div className="flex-1" />
             <Button
               type="button"
               variant="outline"
@@ -768,7 +993,7 @@ export function CompensationBulkActionDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Apply adjustment
+              Apply to {employeeIds.length} employee{employeeIds.length !== 1 ? "s" : ""}
             </Button>
           </DialogFooter>
         </form>

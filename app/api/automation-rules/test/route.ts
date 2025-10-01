@@ -160,13 +160,24 @@ async function testConditions(companyId: string): Promise<any[]> {
   const tests = [];
 
   // Create test employee
+  // Create a user first (Employee requires userId)
+  const testUser = await prisma.user.create({
+    data: {
+      id: uuidv4(),
+      companyId,
+      homeCompanyId: companyId,
+      email: `test-${Date.now()}@example.com`,
+      role: "EMPLOYEE",
+      name: "Test Employee",
+      canManageTenants: false,
+    },
+  });
+
   const testEmployee = await prisma.employee.create({
     data: {
       id: uuidv4(),
       companyId,
-      firstName: "Test",
-      lastName: "Employee",
-      email: `test-${Date.now()}@example.com`,
+      userId: testUser.id,
       contractType: "PERMANENT",
       startDate: new Date(),
     },

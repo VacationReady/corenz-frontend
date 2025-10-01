@@ -35,13 +35,18 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
               {data.description}
             </p>
           )}
-          {data?.actionType && (
+          {(data?.actionType || data?.config?.actionType) && (
             <Badge
               variant="secondary"
               className="mt-1 text-[9px] bg-green-100 text-green-700 border-green-200 px-1.5 py-0.5"
             >
-              {data.actionType.replace(/_/g, " ")}
+              {(data.actionType || data.config?.actionType || '').replace(/_/g, " ")}
             </Badge>
+          )}
+          {data?.config?.subject && (
+            <p className="text-[10px] leading-snug text-green-700/70 line-clamp-1 mt-1">
+              "{data.config.subject}"
+            </p>
           )}
         </div>
         <Handle

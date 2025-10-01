@@ -41,12 +41,12 @@ export const TriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
               {data.description}
             </p>
           )}
-          {data?.config?.triggerType && (
+          {(data?.triggerType || data?.config?.triggerType) && (
             <Badge
               variant="secondary"
               className="mt-1 text-[9px] bg-blue-100 text-blue-700 border-blue-200 px-1.5 py-0.5"
             >
-              {data.config.triggerType.replace(/_/g, " ")}
+              {(data.triggerType || data.config?.triggerType || '').replace(/_/g, " ")}
             </Badge>
           )}
         </div>

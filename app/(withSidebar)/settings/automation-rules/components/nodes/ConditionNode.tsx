@@ -35,12 +35,12 @@ export const ConditionNode: React.FC<NodeProps> = ({ data, selected }) => {
               {data.description}
             </p>
           )}
-          {data?.conditionType && (
+          {(data?.conditionType || data?.config?.conditionType) && (
             <Badge
               variant="secondary"
               className="mt-1 text-[9px] bg-amber-100 text-amber-700 border-amber-200 px-1.5 py-0.5"
             >
-              {data.conditionType.replace(/_/g, " ")}
+              {(data.conditionType || data.config?.conditionType || '').replace(/_/g, " ")}
             </Badge>
           )}
         </div>

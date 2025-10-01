@@ -16,7 +16,6 @@ import {
   Calendar,
   Bell,
   ClipboardList,
-  AlarmClock,
   FileText,
   FolderKanban,
   Repeat,
@@ -33,7 +32,6 @@ import {
   Share2,
   HelpCircle,
   Info,
-  Lightbulb,
 } from "lucide-react";
 import {
   Accordion,
@@ -142,7 +140,6 @@ function getSystemSettings(role?: string) {
       description: "Manage tenant-wide preferences, branding, and access",
     },
   ];
-  // Intentionally removed global Permissions UI; per-employee settings take precedence
   return base;
 }
 
@@ -167,18 +164,19 @@ function SettingSection({
   description?: string;
   completionStatus?: { completed: number; total: number };
 }) {
-  const completionPercent = completionStatus 
-    ? Math.round((completionStatus.completed / completionStatus.total) * 100)
-    : 0;
+  const completionPercent =
+    completionStatus && completionStatus.total > 0
+      ? Math.round((completionStatus.completed / completionStatus.total) * 100)
+      : 0;
 
   return (
     <AccordionItem
       value={id}
-      className="border border-enhanced rounded-xl bg-card shadow-sm hover:shadow-md transition-all duration-200"
+      className="relative overflow-hidden rounded-xl border border-transparent border-enhanced bg-card shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md data-[state=open]:bg-gradient-to-br data-[state=open]:from-primary/15 data-[state=open]:via-white/80 data-[state=open]:to-transparent data-[state=open]:shadow-primary/20 dark:data-[state=open]:via-slate-900/70 before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-gradient-to-br before:from-primary/20 before:via-primary/5 before:to-transparent before:opacity-0 before:transition-opacity data-[state=open]:before:opacity-100 after:pointer-events-none after:absolute after:inset-0 after:-z-20 after:rounded-[inherit] after:bg-primary/10 after:blur-3xl after:opacity-0 after:transition-opacity data-[state=open]:after:opacity-80"
     >
       <AccordionTrigger className="px-6 py-5 hover:no-underline group">
         <div className="flex items-center gap-4 text-left w-full">
-          <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center transition-colors transition-transform duration-300 group-hover:bg-primary/20 group-data-[state=open]:scale-110">
             <div className="text-primary w-5 h-5">{icon}</div>
           </div>
           <div className="flex-1">
@@ -197,10 +195,20 @@ function SettingSection({
                 {description}
               </p>
             )}
+            {completionStatus && (
+              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2">
+                <div className="mt-3 h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary via-sky-500 to-indigo-500 animate-[pulse_6s_ease-in-out_infinite]"
+                    style={{ width: `${completionPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </AccordionTrigger>
-      <AccordionContent className="px-6 pb-6">
+      <AccordionContent className="px-6 pb-6 data-[state=open]:animate-in data-[state=open]:fade-in-80 data-[state=open]:slide-in-from-top-2">
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 [@media(min-width:1920px)]:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] pt-2">
           {items.map(({ title, href, icon, helpPreset, description }) => (
             <Card
@@ -225,9 +233,7 @@ function SettingSection({
                       )}
                     </div>
                   </div>
-                  {helpPreset && (
-                    <QuickHelp preset={helpPreset as any} />
-                  )}
+                  {helpPreset && <QuickHelp preset={helpPreset as any} />}
                 </div>
               </CardHeader>
               <CardContent
@@ -260,15 +266,15 @@ function SettingSection({
 export default function SettingsIndexPage() {
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const [completionData, setCompletionData] = useState<Record<string, { completed: number; total: number }>>({});
+  const [completionData, setCompletionData] = useState<
+    Record<string, { completed: number; total: number }>
+  >({});
 
   useEffect(() => {
-    // Load completion data
     const savedProgress = localStorage.getItem("settingsProgress");
     if (savedProgress) {
       setCompletionData(JSON.parse(savedProgress));
     } else {
-      // Initialize with mock data - in production, this would come from the API
       setCompletionData({
         holidays: { completed: 2, total: 7 },
         onboarding: { completed: 0, total: 1 },
@@ -280,34 +286,45 @@ export default function SettingsIndexPage() {
     }
   }, []);
 
-  // Add help presets to items
-  const holidaySettingsWithHelp = holidaySettings.map(item => ({
+  const holidaySettingsWithHelp = holidaySettings.map((item) => ({
     ...item,
     helpPreset:
-      item.title === "Working Patterns" ? "workingPattern" :
-      item.title === "Public Holiday Templates" ? "publicHolidays" :
-      item.title === "Expiry Alerts" ? "expiryAlerts" :
-      item.title === "Event Rules" ? "eventRules" :
-      item.title === "Event Manager" ? "eventManager" :
-      item.title === "Leave Policies" ? "leavePolicy" :
-      item.title === "Multi-stage Approvals" ? "approvalWorkflow" : undefined
+      item.title === "Working Patterns"
+        ? "workingPattern"
+        : item.title === "Public Holiday Templates"
+        ? "publicHolidays"
+        : item.title === "Expiry Alerts"
+        ? "expiryAlerts"
+        : item.title === "Event Rules"
+        ? "eventRules"
+        : item.title === "Event Manager"
+        ? "eventManager"
+        : item.title === "Leave Policies"
+        ? "leavePolicy"
+        : item.title === "Multi-stage Approvals"
+        ? "approvalWorkflow"
+        : undefined,
   }));
 
-  const workflowSettingsWithHelp = workflowSettings.map(item => ({
+  const workflowSettingsWithHelp = workflowSettings.map((item) => ({
     ...item,
     helpPreset:
-      item.title === "Automation Rules" ? "automation" :
-      item.title === "Transactional Notifications" ? "notifications" : undefined
+      item.title === "Automation Rules"
+        ? "automation"
+        : item.title === "Transactional Notifications"
+        ? "notifications"
+        : undefined,
   }));
 
-  const onboardingSettingsWithHelp = onboardingSettings.map(item => ({
+  const onboardingSettingsWithHelp = onboardingSettings.map((item) => ({
     ...item,
-    helpPreset: item.title === "Onboarding Templates" ? "onboardingTemplates" : undefined
+    helpPreset:
+      item.title === "Onboarding Templates" ? "onboardingTemplates" : undefined,
   }));
 
-  const documentSettingsWithHelp = documentSettings.map(item => ({
+  const documentSettingsWithHelp = documentSettings.map((item) => ({
     ...item,
-    helpPreset: item.title === "Document Types" ? "documentTypes" : undefined
+    helpPreset: item.title === "Document Types" ? "documentTypes" : undefined,
   }));
 
   return (
@@ -325,7 +342,7 @@ export default function SettingsIndexPage() {
               description="Our AI assistant can guide you through any configuration"
               tips={[
                 "Click the chat bubble for instant help",
-                "Hover over (?) icons for explanations"
+                "Hover over (?) icons for explanations",
               ]}
             >
               <Button variant="outline" size="sm">
@@ -347,7 +364,11 @@ export default function SettingsIndexPage() {
             </Badge>
           </div>
 
-          <Accordion type="multiple" className="space-y-4" defaultValue={['holidays', 'system']}>
+          <Accordion
+            type="multiple"
+            className="space-y-4"
+            defaultValue={["holidays", "system"]}
+          >
             <SettingSection
               id="holidays"
               label="Holidays & Absence"
@@ -400,11 +421,7 @@ export default function SettingsIndexPage() {
         </div>
       </PageShell>
 
-      {/* Contextual Help Assistant - Always Available */}
-      <ContextualHelpAssistant 
-        pageContext="/settings"
-        userRole="hr"
-      />
+      <ContextualHelpAssistant pageContext="/settings" userRole="hr" />
     </>
   );
 }

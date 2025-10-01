@@ -587,8 +587,27 @@ export class WorkflowExecutionEngine {
         await this.executeWebhook(config, context);
         break;
         
+      case "auto_assign_buddy":
+        await this.executeAutoAssignBuddy(config, context);
+        break;
+        
+      case "create_calendar_event":
+        await this.executeCreateCalendarEvent(config, context);
+        break;
+        
+      case "send_form":
+        await this.executeAssignForm(config, context);
+        break;
+        
+      case "assign_training":
+        await this.executeAssignTraining(config, context);
+        break;
+        
       default:
-        console.warn(`Unknown action type: ${actionType}`);
+        console.warn(`Unknown action type: ${actionType} - treating as no-op`);
+        // For unimplemented actions, log but don't fail
+        this.logExecution(context, `action-${actionType}`, 'action', 'completed', 
+          `Action type ${actionType} not yet implemented`);
     }
   }
 
@@ -1320,6 +1339,112 @@ export class WorkflowExecutionEngine {
           workflowId: context.workflowId,
           executionId: context.executionId,
           fallback: true,
+        },
+      },
+    });
+  }
+
+  /**
+   * Execute auto assign buddy action
+   */
+  private async executeAutoAssignBuddy(config: any, context: WorkflowContext): Promise<void> {
+    if (!context.employee) return;
+
+    try {
+      const response = await fetch('/api/automation-actions/assign-buddy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config,
+          employeeId: context.employee.id,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success && result.buddy) {
+        context.variables.buddy = result.buddy;
+        
+        // Optionally store buddy assignment in employee metadata
+        await prisma.employee.update({
+          where: { id: context.employee.id },
+          data: {
+            metadata: {
+              ...(context.employee.metadata as any || {}),
+              buddyId: result.buddy.id,
+              buddyAssignedAt: new Date().toISOString(),
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to assign buddy:', error);
+      throw new Error('Buddy assignment failed');
+    }
+  }
+
+  /**
+   * Execute create calendar event action
+   */
+  private async executeCreateCalendarEvent(config: any, context: WorkflowContext): Promise<void> {
+    if (!context.employee) return;
+
+    try {
+      const response = await fetch('/api/automation-actions/create-calendar-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config,
+          employeeId: context.employee.id,
+          context: context.variables,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        context.variables.calendarEvent = {
+          eventId: result.eventId,
+          scheduledFor: result.scheduledFor,
+          attendees: result.attendees,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to create calendar event:', error);
+      throw new Error('Calendar event creation failed');
+    }
+  }
+
+  /**
+   * Execute assign training action
+   */
+  private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
+    if (!context.employee) return;
+
+    // Create task to complete training
+    const title = this.interpolateVariables(
+      config.title || `Complete training: ${config.courseId || 'Course'}`,
+      context
+    );
+    
+    await prisma.actionItem.create({
+      data: {
+        id: uuidv4(),
+        companyId: context.company?.id || "",
+        title,
+        description: this.interpolateVariables(config.description || "", context),
+        type: "TRAINING",
+        status: "PENDING",
+        priority: config.mandatory ? "HIGH" : "MEDIUM",
+        dueDate: config.dueInDays ? this.addBusinessDays(new Date(), config.dueInDays) : null,
+        assignedToId: context.employee.userId,
+        relatedEmployeeId: context.employee.id,
+        updatedAt: new Date(),
+        metadata: {
+          source: "workflow",
+          workflowId: context.workflowId,
+          courseId: config.courseId,
+          mandatory: config.mandatory || false,
         },
       },
     });

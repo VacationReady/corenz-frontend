@@ -13,6 +13,8 @@ import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
 import { ValidationChecklist } from "./components/ValidationChecklist";
 import EnhancedWorkflowCanvas from "./components/EnhancedWorkflowCanvas";
+import { TestRunLauncher } from "./components/TestRunLauncher";
+import { TestExecutionViewer } from "./components/TestExecutionViewer";
 import {
   Settings,
   Plus,
@@ -341,6 +343,12 @@ export default function AutomationRulesPage() {
   const [dryRunResults, setDryRunResults] = useState<any>(null);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [postSaveRunTest, setPostSaveRunTest] = useState(true);
+  
+  // New test execution state
+  const [testLauncherOpen, setTestLauncherOpen] = useState(false);
+  const [testExecutionOpen, setTestExecutionOpen] = useState(false);
+  const [currentTestSessionId, setCurrentTestSessionId] = useState<string | null>(null);
+  const [testingRule, setTestingRule] = useState<AutomationRule | null>(null);
 
   // Form state for rule creation/editing
   const [formData, setFormData] = useState<AutomationRule>({
@@ -578,22 +586,49 @@ export default function AutomationRulesPage() {
   };
 
   const runDryTest = async (rule: AutomationRule) => {
+    // Open test launcher instead of old dry run
+    setTestingRule(rule);
+    setTestLauncherOpen(true);
+  };
+
+  const startTestRun = async (config: { skipDelays: boolean; inputOverrides?: any }) => {
+    if (!testingRule) return;
+
     try {
-      const response = await fetch("/api/automation-rules/dry-run", {
+      const ruleId = testingRule.id || "draft";
+      const response = await fetch(`/api/automation-rules/${ruleId}/test`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ruleId: rule.id }),
+        body: JSON.stringify({
+          ...(testingRule.id ? {} : {
+            workflowDefinition: (testingRule as any).workflowDefinition,
+            triggerType: testingRule.triggerType,
+            triggerConfig: testingRule.triggerConfig,
+            conditions: testingRule.conditions || [],
+            actions: testingRule.actions || [],
+          }),
+          skipDelays: config.skipDelays,
+          inputOverrides: config.inputOverrides,
+        }),
       });
 
       if (response.ok) {
-        const results = await response.json();
-        setDryRunResults(results);
-        setTestDialogOpen(true);
+        const result = await response.json();
+        setCurrentTestSessionId(result.sessionId);
+        setTestLauncherOpen(false);
+        setTestExecutionOpen(true);
+      } else {
+        const error = await response.json().catch(() => ({ error: "Failed to start test" }));
+        toast({
+          title: "Test Failed",
+          description: error.error || "Failed to start test run",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to run dry test",
+        description: error.message || "Failed to start test",
         variant: "destructive",
       });
     }
@@ -864,7 +899,13 @@ export default function AutomationRulesPage() {
               }}
               onSave={attemptSave}
               onTest={() => {
-                if (selectedRule) runDryTest(selectedRule);
+                if (selectedRule?.id) {
+                  runDryTest(selectedRule);
+                } else {
+                  // Testing unsaved draft
+                  setTestingRule(formData as any);
+                  setTestLauncherOpen(true);
+                }
               }}
               isValid={isFormValid}
               isDirty={JSON.stringify(formData) !== JSON.stringify(selectedRule || {})}
@@ -899,6 +940,27 @@ export default function AutomationRulesPage() {
         }}
         onCancel={() => setPreflightOpen(false)}
         getTriggerTypeInfo={getTriggerTypeInfo}
+      />
+
+      <TestRunLauncher
+        open={testLauncherOpen}
+        onOpenChange={setTestLauncherOpen}
+        rule={testingRule || undefined}
+        onStartTest={startTestRun}
+        employeesOptions={usersOptions}
+        formsOptions={formsOptions}
+      />
+
+      <TestExecutionViewer
+        open={testExecutionOpen}
+        onOpenChange={setTestExecutionOpen}
+        sessionId={currentTestSessionId || undefined}
+        ruleId={testingRule?.id || "draft"}
+        ruleName={testingRule?.name}
+        onReRun={() => {
+          setTestExecutionOpen(false);
+          setTestLauncherOpen(true);
+        }}
       />
     </PageShell>
   );
@@ -948,6 +1010,27 @@ return (
       results={dryRunResults}
       ruleName={selectedRule?.name}
       onEditRule={() => setTestDialogOpen(false)}
+    />
+
+    <TestRunLauncher
+      open={testLauncherOpen}
+      onOpenChange={setTestLauncherOpen}
+      rule={testingRule || undefined}
+      onStartTest={startTestRun}
+      employeesOptions={usersOptions}
+      formsOptions={formsOptions}
+    />
+
+    <TestExecutionViewer
+      open={testExecutionOpen}
+      onOpenChange={setTestExecutionOpen}
+      sessionId={currentTestSessionId || undefined}
+      ruleId={testingRule?.id || "draft"}
+      ruleName={testingRule?.name}
+      onReRun={() => {
+        setTestExecutionOpen(false);
+        setTestLauncherOpen(true);
+      }}
     />
   </PageShell>
 );

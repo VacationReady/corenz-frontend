@@ -575,9 +575,33 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
               <Label className="text-sm">Active</Label>
             </div>
             {onTest && (
+<<<<<<< Current (Your changes)
               <Button variant="outline" size="sm" onClick={onTest}>
                 Test
               </Button>
+=======
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={onTest}
+                        disabled={!isFormValid}
+                      >
+                        Test
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!isFormValid && (
+                    <TooltipContent>
+                      <p>Fix validation errors before testing</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+>>>>>>> Incoming (Background Agent changes)
             )}
             <Button variant="outline" size="sm" onClick={onCancel}>
               Cancel

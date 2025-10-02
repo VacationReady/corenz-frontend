@@ -1,5 +1,7 @@
 # Workflow Automation System - Implementation Summary
 
+> **📖 New Feature**: For detailed information about the Realtime Test Mode feature, see [WORKFLOW_REALTIME_TEST_IMPLEMENTATION.md](./WORKFLOW_REALTIME_TEST_IMPLEMENTATION.md).
+
 ## ✅ Completed Features
 
 ### 1. Core Infrastructure

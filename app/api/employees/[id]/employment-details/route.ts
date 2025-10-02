@@ -72,6 +72,9 @@ export async function PATCH(
 
     const employee = await prisma.employee.findFirst({
       where: { id, companyId: session.user.companyId },
+      include: {
+        User: { select: { managerId: true, id: true } },
+      },
     });
     if (!employee) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -100,11 +103,37 @@ export async function PATCH(
 
     // Compute diffs and enforce reasons
     const allowed = keys;
-    const diffs = computeDiffs(
-      employee,
-      { ...employee, ...updates },
-      allowed,
-    );
+    // Build a before/after snapshot that reflects how updates will apply,
+    // including translating managerId (employeeId) -> User.managerId (userId) for diffs
+    let managerUserId: string | null | undefined = undefined;
+    if (Object.prototype.hasOwnProperty.call(updates, "managerId")) {
+      const managerEmployeeId = updates.managerId as string | null;
+      if (managerEmployeeId === "" || managerEmployeeId === null) {
+        managerUserId = null;
+      } else if (typeof managerEmployeeId === "string") {
+        const mgr = await prisma.employee.findFirst({
+          where: { id: managerEmployeeId, companyId: session.user.companyId },
+          select: { userId: true },
+        });
+        managerUserId = mgr?.userId ?? null;
+      }
+    }
+
+    const beforeForDiff = {
+      ...employee,
+      // Expose current manager as managerId (by employee selection semantics) via User.managerId
+      managerId: employee.User?.managerId ?? null,
+    } as any;
+
+    const afterForDiff = {
+      ...beforeForDiff,
+      ...updates,
+      ...(Object.prototype.hasOwnProperty.call(updates, "managerId")
+        ? { managerId: managerUserId === undefined ? beforeForDiff.managerId : managerUserId }
+        : {}),
+    } as any;
+
+    const diffs = computeDiffs(beforeForDiff, afterForDiff, allowed);
 
     if (diffs.length > 0) {
       const requiresReasons = diffs.some(diffRequiresReason);
@@ -128,21 +157,9 @@ export async function PATCH(
       }
     }
 
-    // Handle manager change: translate selected manager (employeeId) -> manager's userId
-    let managerUserId: string | null | undefined = undefined;
+    // Handle manager change: translate selected manager (employeeId) -> manager's userId for persistence
     if (Object.prototype.hasOwnProperty.call(updates, "managerId")) {
-      const managerEmployeeId = updates.managerId as string | null;
       delete updates.managerId; // not a column on Employee
-
-      if (managerEmployeeId === "" || managerEmployeeId === null) {
-        managerUserId = null; // clear manager
-      } else if (typeof managerEmployeeId === "string") {
-        const mgr = await prisma.employee.findFirst({
-          where: { id: managerEmployeeId, companyId: session.user.companyId },
-          select: { userId: true },
-        });
-        managerUserId = mgr?.userId ?? null;
-      }
     }
 
     // If locationId provided, look up label and mirror into siteLocation for display

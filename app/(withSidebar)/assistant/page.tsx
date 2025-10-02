@@ -365,29 +365,31 @@ export default function AIAssistantPage() {
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      // Determine action type from message
-      const actionType = detectActionType(messageText);
-      let response: { content: string; result?: any; suggestions?: string[]; summary?: string };
-      switch (actionType) {
-        case "query":
-          response = await handleQuery(messageText);
-          break;
-        case "workflow":
-          response = await handleWorkflow(messageText);
-          break;
-        case "field":
-          response = await handleField(messageText);
-          break;
-        default:
-          response = {
-            content: "I'm not sure how to help with that. Try asking about data queries, creating workflows, or adding custom fields.",
-            suggestions: [
-              "How many employees don't have IRD numbers?",
-              "Create a workflow to alert HR 60 days before contracts expire",
-              "Add a 'T-Shirt Size' dropdown to personal information",
-            ],
-            summary: "Try one of the suggestions below to get started.",
-          };
+      // NEW: Use unified orchestrator endpoint for intelligent routing
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: messageText }),
+      });
+
+      const data = await res.json();
+
+      // Handle errors from API
+      if (!data.success) {
+        throw new Error(data.message || data.error || "Request failed");
+      }
+
+      // Extract response
+      const response = {
+        content: data.message,
+        result: data.result,
+        suggestions: data.suggestions,
+        actionType: data.actionType || "info",
+      };
+
+      // Handle workflows (show in visual editor)
+      if (data.actionType === "workflow" && data.result) {
+        setGeneratedWorkflow(data.result);
       }
 
       // Remove loading message and add response
@@ -400,10 +402,10 @@ export default function AIAssistantPage() {
             role: "assistant",
             content: response.content,
             timestamp: new Date(),
-            actionType,
+            actionType: response.actionType,
             result: response.result,
             suggestions: response.suggestions,
-            summary: response.summary,
+            summary: data.summary,
           },
         ];
       });

@@ -192,8 +192,8 @@ export default function ArchivedWorkingPatternsPage() {
 
   const decoratedPatterns = useDecoratedPatterns(patterns);
 
-  const activeYearFilter = searchParams.get("year") ?? "all";
-  const weekLengthFilter = searchParams.get("week") ?? "all";
+  const activeYearFilter = searchParams?.get("year") ?? "all";
+  const weekLengthFilter = searchParams?.get("week") ?? "all";
 
   const yearOptions = useMemo(() => {
     const values = new Set<string>();
@@ -241,7 +241,7 @@ export default function ArchivedWorkingPatternsPage() {
 
   const handleChipSelect = useCallback(
     (param: "year" | "week", value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
+      const next = new URLSearchParams(searchParams ? searchParams.toString() : "");
       if (value === "all") {
         next.delete(param);
       } else {

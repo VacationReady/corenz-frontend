@@ -345,7 +345,19 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     }
 
     if (!confirmed) {
-      // Show preview
+      // Get entitlement info to show balance
+      const entitlement = await prisma.leaveEntitlement.findFirst({
+        where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
+      });
+      
+      const balance = entitlement ? entitlement.totalDays - entitlement.usedDays : 0;
+      
+      // Calculate days being requested
+      const startDate = new Date(pending.data.startDate);
+      const endDate = new Date(pending.data.endDate);
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Show preview with entitlement info
       return {
         success: true,
         requiresConfirmation: true,
@@ -354,8 +366,10 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
           startDate: pending.data.startDate,
           endDate: pending.data.endDate,
           leaveType: category.name,
+          balance,
+          daysRequested: daysDiff,
         },
-        message: `📅 **Leave Request Summary:**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\nShall I book this leave?`,
+        message: `📅 Leave Request:\n\n${pending.data.employeeName}\n${pending.data.startDate} to ${pending.data.endDate}\n${category.name}\n\n📊 Days requested: ${daysDiff}\n💰 Current balance: ${balance} days\n${balance >= daysDiff ? '✅ Sufficient balance' : '⚠️ Insufficient balance'}\n\nBook this leave?`,
       };
     }
 

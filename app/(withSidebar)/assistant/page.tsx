@@ -920,7 +920,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               </div>
             ) : (
               /* Messages */
-              <div className="flex-1 p-4 space-y-4 overflow-y-scroll" style={{ minHeight: 0 }}>
+              <div className="flex-1 p-4 space-y-4" style={{ minHeight: 0, maxHeight: '100%', overflowY: 'auto' }}>
                 {messages.map((msg) => (
                 <div
                   key={msg.id}

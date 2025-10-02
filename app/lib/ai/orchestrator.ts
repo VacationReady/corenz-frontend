@@ -5,7 +5,7 @@
 
 import { getSystemContext, buildAIContextString } from "./system-context";
 import { getConversation, addMessage, buildContextString } from "./conversation-memory";
-import { executeAction, AIAction, ActionType } from "./action-executor";
+import { executeAction, type AIAction, type ActionType } from "./action-executor";
 import { generateQuery } from "./query-generator";
 import { generateWorkflow } from "./workflow-generator";
 import { generateCustomField } from "./field-generator";
@@ -38,6 +38,74 @@ export async function processUserMessage(
     const conversation = getConversation(userId, companyId);
     const conversationContext = buildContextString(conversation);
     const systemContextString = buildAIContextString(systemContext);
+
+    // CRITICAL: Check for pending actions FIRST before intent classification
+    const pending = conversation.entities.pendingAction;
+    const isConfirmation = /^(yes|yeah|yep|sure|ok|okay|confirm|proceed|do it|go ahead|book it)$/i.test(userMessage.trim());
+    
+    // Also check if user is providing info for pending action (dates, leave type, etc.)
+    if (pending) {
+      // Check if it's a confirmation
+      if (isConfirmation) {
+        console.log("[AI Orchestrator] Confirming pending action:", pending.type);
+        
+        const action: AIAction = {
+          type: pending.type as ActionType,
+          intent: userMessage,
+          parameters: { confirmed: true },
+          userId,
+          companyId,
+        };
+        
+        const result = await executeAction(action);
+        
+        // Add AI response to conversation
+        addMessage(userId, companyId, "assistant", result.message);
+        
+        return {
+          success: result.success,
+          message: result.message,
+          actionType: pending.type,
+          result: result.data,
+          undoable: result.undoable,
+          undoId: result.undoId,
+        };
+      }
+      
+      // Check if it's a continuation (providing requested info)
+      if (pending.step && userMessage.length > 2 && !userMessage.toLowerCase().startsWith('show') && !userMessage.toLowerCase().startsWith('list')) {
+        console.log("[AI Orchestrator] Continuing multi-step action:", pending.type, "step", pending.step);
+        
+        // Continue the pending action with the user's message as additional info
+        const action: AIAction = {
+          type: pending.type as ActionType,
+          intent: userMessage,
+          parameters: { 
+            ...parseContextualParameters(userMessage, pending),
+          },
+          userId,
+          companyId,
+        };
+        
+        const result = await executeAction(action);
+        
+        // Add AI response to conversation
+        if (result.message) {
+          addMessage(userId, companyId, "assistant", result.message);
+        }
+        
+        return {
+          success: result.success,
+          message: result.message,
+          actionType: pending.type,
+          result: result.data,
+          requiresConfirmation: result.requiresConfirmation,
+          preview: result.preview,
+          undoable: result.undoable,
+          undoId: result.undoId,
+        };
+      }
+    }
 
     // Step 1: AI interprets intent and determines action
     const intent = await interpretIntent(
@@ -370,6 +438,49 @@ async function handleFormCreation(
     actionType: "form",
     result: result.form,
   };
+}
+
+// Parse parameters from user message based on pending action context
+function parseContextualParameters(message: string, pending: any): any {
+  const params: any = {};
+  
+  if (pending.type === 'book_leave') {
+    // Step 1: Looking for dates
+    if (pending.step === 1) {
+      // Try to extract date range
+      const dateRangeMatch = message.match(/(\w+\s+\d+)\s*(?:to|-)\s*(\w+\s+\d+)/i);
+      if (dateRangeMatch) {
+        params.startDate = dateRangeMatch[1];
+        params.endDate = dateRangeMatch[2];
+      } else {
+        params.dates = message;
+      }
+    }
+    
+    // Step 2: Looking for leave type
+    if (pending.step === 2) {
+      params.leaveType = message;
+    }
+  }
+  
+  if (pending.type === 'document_upload') {
+    // Looking for employee name, category, or signature info
+    if (pending.step === 1 && !pending.data.employeeId) {
+      params.employeeName = message;
+    } else if (pending.step === 2 && !pending.data.category) {
+      params.category = message;
+    } else if (pending.step === 3 && !pending.data.requiresSignature) {
+      params.requiresSignature = message.toLowerCase().includes('yes') || message.toLowerCase().includes('signature');
+      if (params.requiresSignature) {
+        const dateMatch = message.match(/(?:by|until|before)\s+(.+)/i);
+        if (dateMatch) {
+          params.signatureDueDate = dateMatch[1];
+        }
+      }
+    }
+  }
+  
+  return params;
 }
 
 // Removed - users just want their answers, not suggestions

@@ -26,10 +26,13 @@ Available Models:
 - User: id, email, name, firstName, lastName, role (ADMIN|MANAGER|EMPLOYEE), phone
 - Department: id, name, companyId
 - JobRole: id, name, companyId
-- LeaveRequest: id, employeeId, startDate, endDate, status, eventCategoryId
+- LeaveRequest: id, employeeId, startDate, endDate, approvalStatus, eventCategoryId
 - LeaveEntitlement: id, employeeId, eventCategoryId, balance
 - FormSubmission: id, formId, employeeId, submittedAt
-- Document: id, employeeId, documentType, expiryDate
+- Document: id, employeeId, category, requiresSignature, signatureDueAt
+- DriverLicence: id, employeeId, type, licenceNumber, expiryDate
+- EmploymentCheck: id, employeeId, typeOfCheck, expiryDate
+- TrainingRecord: id, employeeId, dateCompleted, expiryDate
 - EmployeeOffboarding: id, employeeId, lastWorkingDate, offboardingReason
 
 Important Rules:
@@ -189,16 +192,28 @@ async function executeQueryByType(
       if (queryType === "count" && operation.includes("expir")) {
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-        return await prisma.document.count({
-          where: {
-            companyId,
-            expiryDate: {
-              lte: thirtyDaysFromNow,
-              gte: new Date(),
+        const [driverCount, trainingCount, checkCount] = await Promise.all([
+          prisma.driverLicence.count({
+            where: {
+              expiryDate: { lte: thirtyDaysFromNow, gte: new Date() },
+              Employee: { companyId },
             },
-          },
-        });
+          }),
+          prisma.trainingRecord.count({
+            where: {
+              expiryDate: { lte: thirtyDaysFromNow, gte: new Date() },
+              Employee: { companyId },
+            },
+          }),
+          prisma.employmentCheck.count({
+            where: {
+              expiryDate: { lte: thirtyDaysFromNow, gte: new Date() },
+              Employee: { companyId },
+            },
+          }),
+        ]);
+
+        return driverCount + trainingCount + checkCount;
       }
       break;
 

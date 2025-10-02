@@ -1,4 +1,4 @@
-/**
+test/**
  * AI-Powered Form Builder
  * Converts natural language to deployable form schemas
  */

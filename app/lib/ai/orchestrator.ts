@@ -11,7 +11,7 @@ import { generateWorkflow } from "./workflow-generator";
 import { generateCustomField } from "./field-generator";
 import { buildFormConversationally } from "./form-builder";
 import { interpretIntent } from "./interpreters/intent-classifier";
-import { prisma } from "@/lib/prisma";
+import { directListEmployees } from "./direct-queries";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -193,83 +193,21 @@ async function handleDataQuery(
                          (query.toLowerCase().includes('list') && query.toLowerCase().includes('their'));
   
   if (isFollowUpList && conversation.entities.departments && conversation.entities.departments.length > 0) {
-    // User wants to list what they just counted - do it directly without AI
+    // User wants to list what they just counted - use direct query (server-side only)
     const dept = conversation.entities.departments[conversation.entities.departments.length - 1];
     console.log('[Direct List] Bypassing AI - listing department:', dept);
     
-    try {
-      // Query database directly
-      const department = await prisma.department.findFirst({
-        where: {
-          companyId,
-          name: { contains: dept, mode: 'insensitive' },
-        },
-      });
-      
-      if (!department) {
-        console.log('[Direct List] Department not found:', dept);
-        // Fall through to AI query
-      } else {
-        console.log('[Direct List] Found department:', department.name, department.id);
-        
-        const employees = await prisma.employee.findMany({
-          where: {
-            companyId,
-            departmentId: department.id,
-            isActive: true,
-          },
-          select: {
-            id: true,
-            salaryAmount: true,
-            hourlyRate: true,
-            User: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-            Department: {
-              select: { name: true },
-            },
-            JobRole: {
-              select: { name: true },
-            },
-          },
-        });
-        
-        console.log('[Direct List] Found employees:', employees.length);
-        
-        // Format response directly
-        if (employees.length === 0) {
-          return {
-            success: true,
-            message: `No active employees found in ${department.name}.`,
-            actionType: "query",
-            result: [],
-          };
-        }
-        
-        let answer = `${employees.length} people in ${department.name}:\n\n`;
-        employees.forEach((emp, idx) => {
-          const name = `${emp.User.firstName} ${emp.User.lastName}`;
-          const role = emp.JobRole?.name ? ` - ${emp.JobRole.name}` : '';
-          const salary = emp.salaryAmount ? `\n   💰 Salary: $${Math.round(Number(emp.salaryAmount)).toLocaleString()}/year` : '';
-          const email = `\n   📧 Email: ${emp.User.email}`;
-          answer += `${idx + 1}. ${name}${role}${salary}${email}\n`;
-        });
-        
-        return {
-          success: true,
-          message: answer,
-          actionType: "query",
-          result: employees,
-        };
-      }
-    } catch (error) {
-      console.error('[Direct List] Error:', error);
-      // Fall through to AI query
+    const directResult = await directListEmployees(companyId, dept);
+    
+    if (directResult.success) {
+      return {
+        success: true,
+        message: directResult.message,
+        actionType: "query",
+        result: directResult.data,
+      };
     }
+    // If direct query failed, fall through to AI query
   }
   
   const result = await generateQuery(query, companyId, userId, conversationContext);

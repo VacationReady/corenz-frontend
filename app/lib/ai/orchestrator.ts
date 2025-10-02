@@ -64,7 +64,11 @@ export async function processUserMessage(
         break;
 
       case "create_workflow":
-        result = await handleWorkflowGeneration(userMessage, companyId);
+        result = await handleWorkflowGeneration(userMessage, companyId, userId);
+        break;
+      
+      case "save_workflow":
+        result = await handleAction(intent, userId, companyId);
         break;
 
       case "add_field":
@@ -201,7 +205,8 @@ async function handleAction(
 
 async function handleWorkflowGeneration(
   prompt: string,
-  companyId: string
+  companyId: string,
+  userId: string
 ): Promise<OrchestratorResult> {
   const result = await generateWorkflow(prompt, companyId);
   
@@ -212,15 +217,20 @@ async function handleWorkflowGeneration(
     };
   }
 
+  // Store workflow in conversation memory for later saving
+  const conv = getConversation(userId, companyId);
+  conv.entities.lastGeneratedWorkflow = result.workflow;
+
   return {
     success: true,
-    message: `✅ **Workflow Generated!**\n\n${result.workflow?.name}\n\n${result.explanation}`,
+    message: `✅ **Workflow Generated!**\n\n**Name:** ${result.workflow?.name}\n**Category:** Custom (AI-generated)\n**Description:** ${result.workflow?.description}\n\n${result.explanation}\n\n💡 **Next Steps:**\n- To save: Say "Save this workflow"\n- To modify: Describe what you'd like to change\n- To start over: Create a new workflow`,
     actionType: "workflow",
     result: result.workflow,
     suggestions: [
       "Save this workflow",
       "Modify the workflow timing",
       "Add more conditions",
+      "Create a different workflow",
     ],
   };
 }

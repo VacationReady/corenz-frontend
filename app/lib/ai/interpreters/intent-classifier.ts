@@ -29,6 +29,7 @@ AVAILABLE ACTIONS:
 - schedule_report: Schedule recurring reports ("Email CEO report every Monday...")
 - add_field: Add custom field ("Add 'Shirt Size' field...")
 - create_workflow: Build automation ("Create workflow that alerts...")
+- save_workflow: Save generated workflow ("Save this workflow", "Save it")
 - send_email: Send one-off emails ("Email all managers about...")
 - bulk_update: Update multiple employees ("Set all Engineering to WFH...")
 - modify_settings: Change system config ("Change probation to 120 days...")

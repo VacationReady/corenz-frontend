@@ -8,6 +8,7 @@ import { findEmployeeByName } from "./system-context";
 import { setPendingAction, clearPendingAction, getConversation } from "./conversation-memory";
 import { createAuditLogs, computeDiffs, diffRequiresReason, type AuditDiff } from "@/lib/audit-helpers";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
+import { saveWorkflowToDatabase } from "./workflow-generator";
 
 export interface ActionResult {
   success: boolean;
@@ -32,6 +33,7 @@ export type ActionType =
   | "schedule_report"
   | "add_field"
   | "create_workflow"
+  | "save_workflow"
   | "send_email"
   | "bulk_update"
   | "modify_settings";
@@ -63,6 +65,9 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "add_field":
         return await handleAddField(action);
+      
+      case "save_workflow":
+        return await handleSaveWorkflow(action);
       
       case "send_email":
         return await handleSendEmail(action);
@@ -397,6 +402,56 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
   return {
     success: false,
     message: "Something went wrong with the booking process. Let's start over.",
+  };
+}
+
+async function handleSaveWorkflow(action: AIAction): Promise<ActionResult> {
+  const { workflow, confirmed } = action.parameters;
+
+  // Check if we have a workflow to save (from conversation context)
+  const conv = getConversation(action.userId, action.companyId);
+  const workflowToSave = workflow || conv.entities.lastGeneratedWorkflow;
+
+  if (!workflowToSave) {
+    return {
+      success: false,
+      message: "I don't have a workflow to save. Please generate a workflow first, then ask me to save it.",
+    };
+  }
+
+  // Preview before saving
+  if (!confirmed) {
+    return {
+      success: true,
+      requiresConfirmation: true,
+      preview: {
+        name: workflowToSave.name,
+        description: workflowToSave.description,
+        category: "custom",
+        nodeCount: workflowToSave.nodes?.length || 0,
+      },
+      message: `💾 **Save Workflow?**\n\n**Name:** ${workflowToSave.name}\n**Description:** ${workflowToSave.description}\n**Category:** Custom (AI-generated)\n**Steps:** ${workflowToSave.nodes?.length || 0} workflow steps\n\n⚠️ **Note:** The workflow will be saved but not activated. You can activate it later in Settings > Automation Rules.\n\nShall I save this workflow?`,
+    };
+  }
+
+  // Save to database
+  const saveResult = await saveWorkflowToDatabase(
+    workflowToSave,
+    action.userId,
+    action.companyId
+  );
+
+  if (!saveResult.success) {
+    return {
+      success: false,
+      message: `Failed to save workflow: ${saveResult.error}`,
+    };
+  }
+
+  return {
+    success: true,
+    message: `✅ **Workflow Saved!**\n\n**Name:** ${workflowToSave.name}\n**Category:** Custom\n**Status:** Inactive (ready to activate)\n\nYou can find this workflow in:\n**Settings > Automation Rules > Custom**\n\nTo activate it, go to the automation rules page and toggle it on.`,
+    data: { workflowId: saveResult.workflowId },
   };
 }
 

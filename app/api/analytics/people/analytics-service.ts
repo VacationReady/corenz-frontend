@@ -166,6 +166,7 @@ function toTitleCase(value: string) {
 function computeExplorerDatasets(
   employees: Awaited<ReturnType<typeof prisma.employee.findMany>>,
   options: {
+    departmentMap: Map<string, string>;
     locationMap: Map<string, string>;
     ninetyDaysAgo: Date;
     now: Date;
@@ -208,8 +209,11 @@ function computeExplorerDatasets(
 
     const dimensionSelectors: [string, string, string][] = [];
 
-    const departmentId = employee.Department?.id ?? "unassigned";
-    const departmentName = employee.Department?.name ?? "Unassigned";
+    const departmentId = employee.departmentId ?? "unassigned";
+    const departmentName =
+      employee.departmentId
+        ? options.departmentMap.get(employee.departmentId) ?? "Unassigned"
+        : "Unassigned";
     dimensionSelectors.push(["department", departmentId, departmentName]);
 
     const locationId = employee.locationId ?? "unassigned";
@@ -691,9 +695,11 @@ export async function getPeopleAnalytics(
       : null;
 
   const employmentTypeBreakdown = buildEmploymentTypeBreakdown(employees);
+  const departmentMap = new Map(departments.map((department) => [department.id, department.name]));
   const locationMap = new Map(locations.map((location) => [location.id, location.name]));
 
   const explorerDatasets = computeExplorerDatasets(employees, {
+    departmentMap,
     locationMap,
     ninetyDaysAgo,
     now,

@@ -95,12 +95,39 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Handle duplicate names by appending a number
+    let ruleName = customizations?.name || template.name;
+    const companyId = (session as any).user.companyId;
+    
+    // Check if a rule with this name already exists
+    const existingRule = await prisma.automationRule.findFirst({
+      where: {
+        companyId,
+        name: ruleName,
+      },
+    });
+
+    if (existingRule) {
+      // Find a unique name by appending a number
+      let counter = 2;
+      let uniqueName = `${ruleName} (${counter})`;
+      
+      while (await prisma.automationRule.findFirst({
+        where: { companyId, name: uniqueName },
+      })) {
+        counter++;
+        uniqueName = `${ruleName} (${counter})`;
+      }
+      
+      ruleName = uniqueName;
+    }
+
     const rule = await prisma.automationRule.create({
       data: {
         id: crypto.randomUUID(),
-        companyId: (session as any).user.companyId,
+        companyId,
         templateId: template.id,
-        name: customizations?.name || template.name,
+        name: ruleName,
         description: template.description,
         category: template.category.id,
         isActive: customizations?.autoActivate !== false,

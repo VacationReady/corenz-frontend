@@ -996,6 +996,7 @@ model ActionItem {
   status             String    @default("PENDING")
   priority           String?
   dueDate            DateTime?
+  completedAt        DateTime?
   assignedToId       String?
   relatedEmployeeId  String?
   metadata           Json?

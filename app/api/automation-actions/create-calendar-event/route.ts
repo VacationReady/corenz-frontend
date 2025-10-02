@@ -15,11 +15,12 @@ export async function POST(req: NextRequest) {
 
     const { config, employeeId, context } = await req.json();
 
-    // Fetch employee and related data
+    // Fetch employee and related data (include possible manager via self-relation)
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
       include: {
-        User: true,
+        // Keep nested include to support schemas where User has a self-relation (manager) on "User"
+        User: { include: { User: true } },
       },
     });
 
@@ -29,65 +30,65 @@ export async function POST(req: NextRequest) {
 
     // Determine attendees
     const attendees: Array<{ name: string; email: string; role: string }> = [];
-    const attendeeTypes = Array.isArray(config.attendees) ? config.attendees : ['employee'];
+    const attendeeTypes = Array.isArray(config.attendees) ? config.attendees : ["employee"];
 
-    if (attendeeTypes.includes('employee')) {
+    if (attendeeTypes.includes("employee")) {
       attendees.push({
-        name: `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim(),
+        name: `${employee.User.firstName || ""} ${employee.User.lastName || ""}`.trim(),
         email: employee.User.email,
-        role: 'REQ-PARTICIPANT',
+        role: "REQ-PARTICIPANT",
       });
     }
 
-    let managerUser: (typeof employee.User) | null = null;
-    if (
-      attendeeTypes.includes('manager') &&
-      employee.User?.managerId
-    ) {
+    // Resolve manager either from nested self-relation OR by managerId (fallback)
+    let managerUser: typeof employee.User | null =
+      (employee.User as any)?.User ?? null;
+
+    if (!managerUser && (employee.User as any)?.managerId && attendeeTypes.includes("manager")) {
       managerUser = await prisma.user.findFirst({
-        where: { id: employee.User.managerId, companyId: session.user.companyId },
+        where: { id: (employee.User as any).managerId, companyId: session.user.companyId },
       });
     }
 
-    if (attendeeTypes.includes('manager') && managerUser?.email) {
-      const managerName = `${managerUser.firstName || ''} ${managerUser.lastName || ''}`.trim();
+    if (attendeeTypes.includes("manager") && managerUser?.email) {
+      const managerName = `${managerUser.firstName || ""} ${managerUser.lastName || ""}`.trim();
       attendees.push({
         name: managerName || managerUser.email,
         email: managerUser.email,
-        role: 'REQ-PARTICIPANT',
+        role: "REQ-PARTICIPANT",
       });
     }
 
-    if (attendeeTypes.includes('buddy') && context?.buddyId) {
+    if (attendeeTypes.includes("buddy") && context?.buddyId) {
       const buddy = await prisma.employee.findFirst({
         where: { id: context.buddyId },
         include: { User: true },
       });
       if (buddy?.User) {
         attendees.push({
-          name: `${buddy.User.firstName || ''} ${buddy.User.lastName || ''}`.trim(),
+          name: `${buddy.User.firstName || ""} ${buddy.User.lastName || ""}`.trim(),
           email: buddy.User.email,
-          role: 'REQ-PARTICIPANT',
+          role: "REQ-PARTICIPANT",
         });
       }
     }
 
-    if (attendeeTypes.includes('hr')) {
+    if (attendeeTypes.includes("hr")) {
       const hrUsers = await prisma.user.findMany({
-        where: { companyId: session.user.companyId, role: 'ADMIN' },
+        where: { companyId: session.user.companyId, role: "ADMIN" },
         take: 1,
       });
       if (hrUsers[0]) {
         attendees.push({
           name: hrUsers[0].name || hrUsers[0].email,
           email: hrUsers[0].email,
-          role: 'OPT-PARTICIPANT',
+          role: "OPT-PARTICIPANT",
         });
       }
     }
 
     // Calculate event timing
-    const withinDays = config.withinDays || 7;
+    const withinDays = config.withinDays || 7; // (kept for compatibility if used by caller later)
     const duration = config.duration || 30; // minutes
     const startTime = new Date();
     startTime.setDate(startTime.getDate() + 1); // Tomorrow by default
@@ -98,8 +99,10 @@ export async function POST(req: NextRequest) {
 
     // Generate ICS file
     const uid = `workflow-event-${crypto.randomUUID()}`;
-    const title = (config.title || 'Team Meeting')
-      .replace('{{employee.name}}', `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim());
+    const title = (config.title || "Team Meeting").replace(
+      "{{employee.name}}",
+      `${employee.User.firstName || ""} ${employee.User.lastName || ""}`.trim()
+    );
 
     const ics = buildExitInterviewICS({
       uid,
@@ -107,17 +110,17 @@ export async function POST(req: NextRequest) {
       endTime,
       summary: title,
       description: config.description || `Scheduled via automation workflow`,
-      location: config.location || 'TBD',
+      location: config.location || "TBD",
       organizer: {
         name: session.user.name || session.user.email,
         email: session.user.email,
       },
-      attendees: attendees.map(a => ({
+      attendees: attendees.map((a) => ({
         name: a.name,
         email: a.email,
         role: a.role as any,
       })),
-      method: 'REQUEST',
+      method: "REQUEST",
     });
 
     // Send calendar invites to all attendees
@@ -161,7 +164,7 @@ export async function POST(req: NextRequest) {
         attachments: [
           {
             filename: ics.filename,
-            content: Buffer.from(ics.content).toString('base64'),
+            content: Buffer.from(ics.content).toString("base64"),
           },
         ],
       });
@@ -177,11 +180,10 @@ export async function POST(req: NextRequest) {
       scheduledFor: startTime,
     });
   } catch (error: any) {
-    console.error('Calendar event creation failed:', error);
+    console.error("Calendar event creation failed:", error);
     return NextResponse.json(
-      { error: error.message || 'Failed to create calendar event' },
+      { error: error.message || "Failed to create calendar event" },
       { status: 500 }
     );
   }
 }
-

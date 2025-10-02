@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from "uuid";
 let cron: any;
 if (typeof window === 'undefined') {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     cron = require('node-cron');
   } catch (e) {
     console.log('node-cron not available, scheduled workflows will be disabled');
@@ -382,150 +383,162 @@ export class WorkflowExecutionEngine {
     switch (conditionType) {
       case "department":
         if (!context.employee?.departmentId) return false;
-        const operator = config.operator || "equals";
-        const values = config.value || [];
-        
-        switch (operator) {
-          case "equals":
-            return values.includes(context.employee.departmentId);
-          case "not_equals":
-            return !values.includes(context.employee.departmentId);
-          case "in":
-            return values.includes(context.employee.departmentId);
-          default:
-            return false;
+        {
+          const operator = config.operator || "equals";
+          const values = config.value || [];
+          switch (operator) {
+            case "equals":
+              return values.includes(context.employee.departmentId);
+            case "not_equals":
+              return !values.includes(context.employee.departmentId);
+            case "in":
+              return values.includes(context.employee.departmentId);
+            default:
+              return false;
+          }
         }
         
       case "jobRole":
         if (!context.employee?.jobRoleId) return false;
-        const roleValues = config.value || [];
-        return roleValues.includes(context.employee.jobRoleId);
+        {
+          const roleValues = config.value || [];
+          return roleValues.includes(context.employee.jobRoleId);
+        }
         
       case "contractType":
         if (!context.employee?.contractType) return false;
-        const types = config.value || [];
-        return types.includes(context.employee.contractType);
+        {
+          const types = config.value || [];
+          return types.includes(context.employee.contractType);
+        }
         
       case "probationStatus":
         if (!context.employee?.startDate) return false;
-        const daysSinceStart = Math.floor(
-          (Date.now() - new Date(context.employee.startDate).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        
-        switch (config.status) {
-          case "in_probation":
-            return daysSinceStart <= 90;
-          case "ending_soon":
-            return daysSinceStart >= 80 && daysSinceStart <= 90;
-          case "completed":
-            return daysSinceStart > 90;
-          default:
-            return false;
+        {
+          const daysSinceStart = Math.floor(
+            (Date.now() - new Date(context.employee.startDate).getTime()) / (1000 * 60 * 60 * 24)
+          );
+          
+          switch (config.status) {
+            case "in_probation":
+              return daysSinceStart <= 90;
+            case "ending_soon":
+              return daysSinceStart >= 80 && daysSinceStart <= 90;
+            case "completed":
+              return daysSinceStart > 90;
+            default:
+              return false;
+          }
         }
         
       case "leaveBalance":
         if (!context.employee?.id) return false;
-        const leaveType = config.leaveType || "ANNUAL";
-        const balanceOperator = config.operator || ">";
-        const balanceValue = config.value || 0;
-        
-        const entitlement = await prisma.leaveEntitlement.findFirst({
-          where: {
-            employeeId: context.employee.id,
-            EventCategory: { name: leaveType },
-          },
-        });
-        
-        if (!entitlement) return false;
-        const balance = entitlement.totalDays - entitlement.usedDays;
-        
-        switch (balanceOperator) {
-          case ">":
-            return balance > balanceValue;
-          case ">=":
-            return balance >= balanceValue;
-          case "<":
-            return balance < balanceValue;
-          case "<=":
-            return balance <= balanceValue;
-          case "==":
-            return balance === balanceValue;
-          default:
-            return false;
-        }
-        
-      case "documentStatus":
-        const docType = config.documentType;
-        const status = config.status || "valid";
-        
-        if (context.employee?.id) {
-          const docs = await prisma.document.findMany({
+        {
+          const leaveType = config.leaveType || "ANNUAL";
+          const balanceOperator = config.operator || ">";
+          const balanceValue = config.value || 0;
+          
+          const entitlement = await prisma.leaveEntitlement.findFirst({
             where: {
               employeeId: context.employee.id,
-              ...(docType && { category: docType }),
+              EventCategory: { name: leaveType },
             },
           });
           
-          switch (status) {
-            case "missing":
-              return docs.length === 0;
-            case "expiring":
-              {
+          if (!entitlement) return false;
+          const balance = entitlement.totalDays - entitlement.usedDays;
+          
+          switch (balanceOperator) {
+            case ">":
+              return balance > balanceValue;
+            case ">=":
+              return balance >= balanceValue;
+            case "<":
+              return balance < balanceValue;
+            case "<=":
+              return balance <= balanceValue;
+            case "==":
+              return balance === balanceValue;
+            default:
+              return false;
+          }
+        }
+        
+      case "documentStatus":
+        {
+          const docType = config.documentType;
+          const status = config.status || "valid";
+          
+          if (context.employee?.id) {
+            const docs = await prisma.document.findMany({
+              where: {
+                employeeId: context.employee.id,
+                ...(docType && { category: docType }),
+              },
+            });
+            
+            switch (status) {
+              case "missing":
+                return docs.length === 0;
+              case "expiring": {
                 const thirtyDaysFromNow = new Date();
                 thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
                 const docsAny = docs as unknown as Array<{ expiryDate?: Date | null }>;
                 return docsAny.some(d => d.expiryDate && d.expiryDate <= thirtyDaysFromNow && d.expiryDate > new Date());
               }
-            case "expired":
-              {
+              case "expired": {
                 const docsAny = docs as unknown as Array<{ expiryDate?: Date | null }>;
                 return docsAny.some(d => d.expiryDate && d.expiryDate < new Date());
               }
-            case "valid":
-              {
+              case "valid": {
                 const docsAny = docs as unknown as Array<{ expiryDate?: Date | null }>;
                 return docsAny.length > 0 && docsAny.every(d => !d.expiryDate || d.expiryDate > new Date());
               }
+              default:
+                return false;
+            }
+          }
+          return false;
+        }
+        
+      case "workingHours":
+        {
+          const now = new Date();
+          const nzTime = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }));
+          const hour = nzTime.getHours();
+          const day = nzTime.getDay();
+          
+          // Check if within NZ working hours (Mon-Fri, 8am-6pm)
+          return day >= 1 && day <= 5 && hour >= 8 && hour < 18;
+        }
+        
+      case "customField":
+        {
+          const field = config.field;
+          const customOperator = config.operator || "equals";
+          const customValue = config.value;
+          
+          if (!field) return false;
+          
+          // Navigate nested fields with dot notation
+          const fieldValue = field.split('.').reduce((obj: any, key: string) => obj?.[key], context);
+          
+          switch (customOperator) {
+            case "equals":
+              return fieldValue === customValue;
+            case "not_equals":
+              return fieldValue !== customValue;
+            case "contains":
+              return String(fieldValue).includes(String(customValue));
+            case "regex":
+              return new RegExp(customValue).test(String(fieldValue));
+            case "exists":
+              return fieldValue !== undefined && fieldValue !== null;
+            case "not_exists":
+              return fieldValue === undefined || fieldValue === null;
             default:
               return false;
           }
-        }
-        return false;
-        
-      case "workingHours":
-        const now = new Date();
-        const nzTime = new Date(now.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }));
-        const hour = nzTime.getHours();
-        const day = nzTime.getDay();
-        
-        // Check if within NZ working hours (Mon-Fri, 8am-6pm)
-        return day >= 1 && day <= 5 && hour >= 8 && hour < 18;
-        
-      case "customField":
-        const field = config.field;
-        const customOperator = config.operator || "equals";
-        const customValue = config.value;
-        
-        if (!field) return false;
-        
-        // Navigate nested fields with dot notation
-        const fieldValue = field.split('.').reduce((obj: any, key: string) => obj?.[key], context);
-        
-        switch (customOperator) {
-          case "equals":
-            return fieldValue === customValue;
-          case "not_equals":
-            return fieldValue !== customValue;
-          case "contains":
-            return String(fieldValue).includes(String(customValue));
-          case "regex":
-            return new RegExp(customValue).test(String(fieldValue));
-          case "exists":
-            return fieldValue !== undefined && fieldValue !== null;
-          case "not_exists":
-            return fieldValue === undefined || fieldValue === null;
-          default:
-            return false;
         }
         
       default:
@@ -926,23 +939,19 @@ export class WorkflowExecutionEngine {
         return [];
         
       case "hr":
-        const hrUsers = await prisma.user.findMany({
+        return prisma.user.findMany({
           where: {
             companyId: context.company?.id,
             role: "ADMIN",
           },
         });
-        return hrUsers;
         
-      case "specific":
-        const specificIds = config.recipients || config.assigneeId ? [config.assigneeId] : [];
-        if (specificIds.length > 0) {
-          const users = await prisma.user.findMany({
-            where: { id: { in: specificIds } },
-          });
-          return users;
-        }
-        return [];
+      case "specific": {
+        const ids: string[] = Array.isArray(config.recipients) ? config.recipients : [];
+        if (config.assigneeId) ids.push(config.assigneeId);
+        if (ids.length === 0) return [];
+        return prisma.user.findMany({ where: { id: { in: ids } } });
+      }
         
       case "department":
         if (context.employee?.departmentId) {
@@ -950,7 +959,7 @@ export class WorkflowExecutionEngine {
             where: { departmentId: context.employee.departmentId },
             include: { User: true },
           });
-          return deptEmployees.map(e => e.User).filter(Boolean);
+          return deptEmployees.map(e => e.User).filter(Boolean as any);
         }
         return [];
         
@@ -1224,6 +1233,39 @@ export class WorkflowExecutionEngine {
     }
   }
 
+  private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
+    // Create a dashboard task to complete training; supports multiple config shapes
+    const baseTitle = config.title || (config.courseId ? `Complete training: ${config.courseId}` : "Complete training");
+    const title = this.interpolateVariables(baseTitle, context);
+
+    const dueInDays: number | undefined = (config.dueDays ?? config.dueInDays);
+    const dueDate: Date | null = dueInDays ? this.addBusinessDays(new Date(), dueInDays) : null;
+
+    const priority: string = config.priority || (config.mandatory ? "HIGH" : "MEDIUM");
+
+    await prisma.actionItem.create({
+      data: {
+        id: uuidv4(),
+        companyId: context.company?.id || "",
+        title,
+        description: this.interpolateVariables(config.description || "", context),
+        type: "TRAINING",
+        status: "PENDING",
+        priority,
+        dueDate,
+        assignedToId: context.employee?.userId ?? null,
+        relatedEmployeeId: context.employee?.id ?? null,
+        updatedAt: new Date(),
+        metadata: {
+          source: "workflow",
+          workflowId: context.workflowId,
+          courseId: config.courseId || null,
+          mandatory: Boolean(config.mandatory),
+        },
+      },
+    });
+  }
+
   private async executeScheduleReview(config: any, context: WorkflowContext): Promise<void> {
     // Create an action item to schedule a performance review instead of writing directly
     const when = config.date ? new Date(config.date) : this.addBusinessDays(new Date(), config.dueDays || 14);
@@ -1335,9 +1377,10 @@ export class WorkflowExecutionEngine {
       const result = await response.json();
       
       if (result.success && result.buddy) {
+        // Expose buddy to subsequent actions in this workflow execution
         context.variables.buddy = result.buddy;
         
-        // Optionally store buddy assignment within onboarding status metadata
+        // Optionally store buddy assignment within onboarding status metadata (if the model supports it)
         const existingStatus =
           (context.employee.onboardingStatus as Record<string, any> | null) || {};
         const updatedStatus = {
@@ -1348,14 +1391,18 @@ export class WorkflowExecutionEngine {
           },
         };
 
-        await prisma.employee.update({
-          where: { id: context.employee.id },
-          data: {
-            onboardingStatus: updatedStatus,
-          },
-        });
+        try {
+          await prisma.employee.update({
+            where: { id: context.employee.id },
+            data: {
+              onboardingStatus: updatedStatus as any,
+            },
+          });
 
-        context.employee.onboardingStatus = updatedStatus;
+          context.employee.onboardingStatus = updatedStatus;
+        } catch {
+          // If the schema doesn't have onboardingStatus, silently ignore persistence
+        }
       }
     } catch (error) {
       console.error('Failed to assign buddy:', error);
@@ -1396,39 +1443,8 @@ export class WorkflowExecutionEngine {
   }
 
   /**
-   * Execute assign training action
+   * (reserved) — additional action implementations below
    */
-  private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
-    if (!context.employee) return;
-
-    // Create task to complete training
-    const title = this.interpolateVariables(
-      config.title || `Complete training: ${config.courseId || 'Course'}`,
-      context
-    );
-    
-    await prisma.actionItem.create({
-      data: {
-        id: uuidv4(),
-        companyId: context.company?.id || "",
-        title,
-        description: this.interpolateVariables(config.description || "", context),
-        type: "TRAINING",
-        status: "PENDING",
-        priority: config.mandatory ? "HIGH" : "MEDIUM",
-        dueDate: config.dueInDays ? this.addBusinessDays(new Date(), config.dueInDays) : null,
-        assignedToId: context.employee.userId,
-        relatedEmployeeId: context.employee.id,
-        updatedAt: new Date(),
-        metadata: {
-          source: "workflow",
-          workflowId: context.workflowId,
-          courseId: config.courseId,
-          mandatory: config.mandatory || false,
-        },
-      },
-    });
-  }
 }
 
 // Export singleton instance

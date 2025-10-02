@@ -5,8 +5,8 @@
 
 import { openai, AI_CONFIG } from "./openai-client";
 import { Node, Edge } from "reactflow";
-import { actionTypes } from "@/app/(withSidebar)/settings/automation-rules/config/actionTypes";
-import { conditionTypes } from "@/app/(withSidebar)/settings/automation-rules/config/conditionTypes";
+import { actionTypes } from "@/(withSidebar)/settings/automation-rules/config/actionTypes";
+import { conditionTypes } from "@/(withSidebar)/settings/automation-rules/config/conditionTypes";
 
 export interface WorkflowGenerationResult {
   success: boolean;

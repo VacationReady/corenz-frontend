@@ -9,12 +9,12 @@ import {
   isAIEnabled,
   validateAPIKey,
   checkRateLimit,
-} from "@/app/lib/ai/openai-client";
+} from "@/lib/ai/openai-client";
 import {
   generateWorkflow,
   refineWorkflow,
   explainWorkflow,
-} from "@/app/lib/ai/workflow-generator";
+} from "@/lib/ai/workflow-generator";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {

@@ -9,12 +9,12 @@ import {
   isAIEnabled,
   validateAPIKey,
   checkRateLimit,
-} from "@/app/lib/ai/openai-client";
+} from "@/lib/ai/openai-client";
 import {
   generateCustomField,
   removeCustomField,
   listCustomFields,
-} from "@/app/lib/ai/field-generator";
+} from "@/lib/ai/field-generator";
 
 export async function POST(req: NextRequest) {
   try {

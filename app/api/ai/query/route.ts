@@ -10,8 +10,8 @@ import {
   isAIEnabled,
   validateAPIKey,
   checkRateLimit,
-} from "@/app/lib/ai/openai-client";
-import { generateQuery, QUICK_QUERIES } from "@/app/lib/ai/query-generator";
+} from "@/lib/ai/openai-client";
+import { generateQuery, QUICK_QUERIES } from "@/lib/ai/query-generator";
 
 export async function POST(req: NextRequest) {
   try {

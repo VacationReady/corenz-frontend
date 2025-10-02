@@ -28,7 +28,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
-import { WorkflowCanvas } from "@/app/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
+import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
 import { PageShell } from "@/components/ui/PageShell";
 
 type MessageRole = "user" | "assistant" | "system";

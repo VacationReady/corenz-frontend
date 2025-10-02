@@ -111,12 +111,60 @@ async function handleDataQuery(
     };
   }
 
+  // Format the answer with the actual data
+  let answer = "";
+  
+  // If it's a count query, show the number prominently
+  if (typeof result.data === 'number') {
+    answer = `**${result.data}** ${result.data === 1 ? 'person' : 'people'}`;
+    if (result.explanation) {
+      answer += `\n\n_${result.explanation}_`;
+    }
+  } 
+  // If it's a list of employees
+  else if (Array.isArray(result.data)) {
+    answer = `Found **${result.data.length}** ${result.data.length === 1 ? 'result' : 'results'}`;
+    
+    if (result.data.length > 0 && result.data.length <= 10) {
+      // Show the list if it's small
+      answer += ":\n\n";
+      result.data.forEach((item: any, index: number) => {
+        const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
+        const dept = item.Department?.name ? ` (${item.Department.name})` : '';
+        const role = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
+        answer += `${index + 1}. ${name}${dept}${role}\n`;
+      });
+    } else if (result.data.length > 10) {
+      answer += " (showing first 10):\n\n";
+      result.data.slice(0, 10).forEach((item: any, index: number) => {
+        const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
+        const dept = item.Department?.name ? ` (${item.Department.name})` : '';
+        answer += `${index + 1}. ${name}${dept}\n`;
+      });
+    }
+    
+    if (result.explanation) {
+      answer += `\n_${result.explanation}_`;
+    }
+  }
+  // For other data types
+  else if (result.data) {
+    answer = JSON.stringify(result.data, null, 2);
+    if (result.explanation) {
+      answer = `${result.explanation}\n\n\`\`\`\n${answer}\n\`\`\``;
+    }
+  }
+  // Fallback to just explanation
+  else {
+    answer = result.explanation || "Query executed successfully";
+  }
+
   // Generate contextual suggestions
   const suggestions = generateQuerySuggestions(query, result);
 
   return {
     success: true,
-    message: result.explanation,
+    message: answer,
     actionType: "query",
     result: result.data,
     suggestions,

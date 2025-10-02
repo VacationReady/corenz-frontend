@@ -6,6 +6,8 @@
 import { prisma } from "@/lib/prisma";
 import { findEmployeeByName } from "./system-context";
 import { setPendingAction, clearPendingAction, getConversation } from "./conversation-memory";
+import { createAuditLogs, computeDiffs, diffRequiresReason, type AuditDiff } from "@/lib/audit-helpers";
+import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 
 export interface ActionResult {
   success: boolean;
@@ -94,7 +96,7 @@ async function handleQueryData(action: AIAction): Promise<ActionResult> {
 }
 
 async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
-  const { employeeName, field, value, confirmed } = action.parameters;
+  const { employeeName, field, value, confirmed, reason } = action.parameters;
 
   // Step 1: Find employee
   if (!employeeName) {
@@ -127,14 +129,34 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
   if (!field || !value) {
     return {
       success: false,
-      message: `What would you like to update for ${employee.name}? (e.g., bank details, email, phone, salary, department)`,
+      message: `What would you like to update for ${employee.name}? (e.g., bank details, email, phone, last name, first name, salary, department)`,
     };
   }
 
-  // Step 3: Preview the change
+  // Step 3: Check if current value exists (to determine if reason is required)
+  const currentValue = await getCurrentFieldValue(employee.id, field, action.companyId);
+  const requiresReason = currentValue !== null && currentValue !== "";
+
+  // Step 4: Ask for reason if changing existing value
+  if (!confirmed && requiresReason && !reason) {
+    return {
+      success: true,
+      requiresConfirmation: false,
+      preview: {
+        employee: employee.name,
+        field,
+        currentValue,
+        newValue: value,
+      },
+      message: `I'll update **${employee.name}**'s ${field}:\n\n**Current:** ${currentValue}\n**New:** ${value}\n\n⚠️ **This change requires an audit reason.** Why are you making this change?\n\n_(This is required for compliance and will be recorded in the audit log.)_`,
+      nextStep: {
+        question: "Reason for change?",
+      },
+    };
+  }
+
+  // Step 5: Preview the change with reason
   if (!confirmed) {
-    const currentValue = await getCurrentFieldValue(employee.id, field, action.companyId);
-    
     return {
       success: true,
       requiresConfirmation: true,
@@ -143,13 +165,21 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
         field,
         currentValue: currentValue || "(not set)",
         newValue: value,
+        reason: reason || "Initial value set",
       },
-      message: `I'll update **${employee.name}**'s ${field}:\n\n**Current:** ${currentValue || "(not set)"}\n**New:** ${value}\n\nShall I apply this change?`,
+      message: `I'll update **${employee.name}**'s ${field}:\n\n**Current:** ${currentValue || "(not set)"}\n**New:** ${value}\n**Reason:** ${reason || "Initial value set"}\n\nShall I apply this change?`,
     };
   }
 
-  // Step 4: Execute the update
-  const result = await updateEmployeeField(employee.id, field, value, action.companyId);
+  // Step 6: Execute the update
+  const result = await updateEmployeeField(
+    employee.id,
+    field,
+    value,
+    action.companyId,
+    action.userId,
+    reason || "Updated via AI Assistant"
+  );
   
   if (result.success) {
     // Create undo record
@@ -165,7 +195,7 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
 
     return {
       success: true,
-      message: `✅ Updated! ${employee.name}'s ${field} is now: **${value}**\n\n${result.details || ''}`,
+      message: `✅ **Updated!** ${employee.name}'s ${field} is now: **${value}**\n\n${result.details || ''}\n\n_📋 Change recorded in audit log with reason: "${reason || 'Updated via AI Assistant'}"_`,
       undoable: true,
       undoId,
     };
@@ -314,7 +344,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
         eventCategoryId: category.id,
         startDate: new Date(pending.data.startDate),
         endDate: new Date(pending.data.endDate),
-        approvalStatus: "PENDING",
+        approvalStatus: "APPROVED", // Auto-approve when booked by admin
         dayType: "FULL_DAY",
         reason: `Booked via AI Assistant by admin`,
         createdAt: new Date(),
@@ -324,9 +354,42 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
     clearPendingAction(action.userId, action.companyId);
 
+    // Get employee details for notification
+    const employee = await prisma.employee.findUnique({
+      where: { id: pending.data.employeeId },
+      include: {
+        User: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    // Send email notification to employee
+    if (employee?.User.email) {
+      try {
+        await sendLeaveNotification({
+          to: employee.User.email,
+          subject: `Leave Approved: ${category.name}`,
+          employeeName: pending.data.employeeName,
+          type: category.name,
+          startDate: pending.data.startDate,
+          endDate: pending.data.endDate,
+          status: "APPROVED",
+          approverName: "Admin (via AI Assistant)",
+        });
+      } catch (emailError) {
+        console.error("[AI Leave Booking] Email notification failed:", emailError);
+        // Don't fail the whole operation if email fails
+      }
+    }
+
     return {
       success: true,
-      message: `✅ **Leave booked successfully!**\n\nRequest ID: ${leaveRequest.id}\n\nThe leave request has been created and is pending approval. ${pending.data.employeeName} will be notified.`,
+      message: `✅ **Leave booked successfully!**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\n📅 **Calendar updated** - This leave now appears in the company calendar\n📧 **Email sent** - ${pending.data.employeeName} has been notified\n\n_Request ID: ${leaveRequest.id}_`,
       data: leaveRequest,
     };
   }
@@ -525,34 +588,70 @@ async function getCurrentFieldValue(
 
   if (!employee) return null;
 
+  const fieldLower = field.toLowerCase();
+
   // Map field names to database fields
   const fieldMap: Record<string, any> = {
     "bank details": employee.bankAccountNumber,
     "bank account": employee.bankAccountNumber,
     "email": employee.User.email,
     "phone": employee.User.phone,
+    "first name": employee.User.firstName,
+    "last name": employee.User.lastName,
     "department": employee.Department?.name,
     "job role": employee.JobRole?.name,
     "salary": employee.salaryAmount?.toString(),
     "ird": employee.irdNumber,
+    "ird number": employee.irdNumber,
     "tax code": employee.taxCode,
+    "start date": employee.startDate?.toISOString().split('T')[0],
+    "contract end date": employee.contractEndDate?.toISOString().split('T')[0],
+    "contract type": employee.contractType,
+    "employment type": employee.employmentType,
+    "hourly rate": employee.hourlyRate?.toString(),
+    "kiwisaver": employee.kiwiSaverEnrolled?.toString(),
+    "kiwisaver contribution": employee.kiwiSaverContribution?.toString(),
+    "site location": employee.siteLocation,
+    "location": employee.siteLocation,
+    "notice period": employee.noticePeriodDays?.toString(),
+    "active": employee.isActive?.toString(),
+    "is active": employee.isActive?.toString(),
   };
 
-  return fieldMap[field.toLowerCase()] || null;
+  return fieldMap[fieldLower] || null;
 }
 
 async function updateEmployeeField(
   employeeId: string,
   field: string,
   value: string,
-  companyId: string
+  companyId: string,
+  userId: string,
+  reason: string
 ): Promise<ActionResult> {
   const fieldLower = field.toLowerCase();
 
   try {
+    // Map field names to section names for audit log
+    const sectionMap: Record<string, string> = {
+      "bank": "bank-payroll",
+      "email": "contact",
+      "phone": "contact",
+      "ird": "tax",
+      "tax": "tax",
+      "first name": "personal",
+      "last name": "personal",
+      "salary": "compensation",
+    };
+    
+    const section = Object.keys(sectionMap).find(key => fieldLower.includes(key)) || "general";
+    const auditSection = sectionMap[section] || "general";
+
     // Handle different field types
     if (fieldLower.includes("bank")) {
       // Update bank details via FormDataRecord
+      const oldValue = await getCurrentFieldValue(employeeId, field, companyId);
+      
       const form = await prisma.form.findFirst({
         where: { companyId, slug: "bank-payroll", formType: "DATA_SCREEN" },
       });
@@ -576,10 +675,26 @@ async function updateEmployeeField(
           },
         });
 
+        // Create audit log
+        const diffs: AuditDiff[] = [{
+          field: "bankAccountNumber",
+          oldValue,
+          newValue: value,
+        }];
+        
+        await createAuditLogs({
+          companyId,
+          employeeId,
+          section: auditSection,
+          diffs,
+          reasons: { bankAccountNumber: reason },
+          changedById: userId,
+        });
+
         return {
           success: true,
           message: "Bank details updated",
-          oldValue: await getCurrentFieldValue(employeeId, field, companyId),
+          oldValue,
         };
       }
     }
@@ -591,42 +706,196 @@ async function updateEmployeeField(
         select: { userId: true, User: { select: { email: true, phone: true } } },
       });
 
-      const oldValue = fieldLower.includes("email") ? employee?.User.email : employee?.User.phone;
+      const isEmail = fieldLower.includes("email");
+      const oldValue = isEmail ? employee?.User.email : employee?.User.phone;
+      const fieldName = isEmail ? "email" : "phone";
 
       await prisma.user.update({
         where: { id: employee!.userId },
-        data: fieldLower.includes("email") ? { email: value } : { phone: value },
+        data: { [fieldName]: value },
+      });
+
+      // Create audit log
+      const diffs: AuditDiff[] = [{
+        field: fieldName,
+        oldValue: oldValue || null,
+        newValue: value,
+      }];
+      
+      await createAuditLogs({
+        companyId,
+        employeeId,
+        section: auditSection,
+        diffs,
+        reasons: { [fieldName]: reason },
+        changedById: userId,
       });
 
       return {
         success: true,
-        message: `${fieldLower.includes("email") ? "Email" : "Phone"} updated`,
+        message: `${isEmail ? "Email" : "Phone"} updated`,
         oldValue: oldValue || null,
         details: "Update will be visible in employee profile immediately.",
       };
     }
 
     if (fieldLower.includes("ird") || fieldLower.includes("tax")) {
-      const oldIRD = (await prisma.employee.findUnique({
+      const isIRD = fieldLower.includes("ird");
+      const fieldName = isIRD ? "irdNumber" : "taxCode";
+      
+      const current = await prisma.employee.findUnique({
         where: { id: employeeId },
-        select: { irdNumber: true },
-      }))?.irdNumber;
+        select: { irdNumber: true, taxCode: true },
+      });
+      
+      const oldValue = isIRD ? current?.irdNumber : current?.taxCode;
 
       await prisma.employee.update({
         where: { id: employeeId },
-        data: fieldLower.includes("ird") ? { irdNumber: value } : { taxCode: value as any },
+        data: { [fieldName]: value },
+      });
+
+      // Create audit log
+      const diffs: AuditDiff[] = [{
+        field: fieldName,
+        oldValue: oldValue || null,
+        newValue: value,
+      }];
+      
+      await createAuditLogs({
+        companyId,
+        employeeId,
+        section: auditSection,
+        diffs,
+        reasons: { [fieldName]: reason },
+        changedById: userId,
       });
 
       return {
         success: true,
         message: "Tax details updated",
-        oldValue: oldIRD,
+        oldValue: oldValue || null,
       };
     }
 
+    // Handle name changes (first name / last name)
+    if (fieldLower.includes("first name") || fieldLower.includes("last name")) {
+      const employee = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        select: { userId: true, User: { select: { firstName: true, lastName: true } } },
+      });
+
+      const isFirstName = fieldLower.includes("first");
+      const fieldName = isFirstName ? "firstName" : "lastName";
+      const oldValue = isFirstName ? employee?.User.firstName : employee?.User.lastName;
+
+      await prisma.user.update({
+        where: { id: employee!.userId },
+        data: { [fieldName]: value },
+      });
+
+      // Create audit log
+      const diffs: AuditDiff[] = [{
+        field: fieldName,
+        oldValue: oldValue || null,
+        newValue: value,
+      }];
+      
+      await createAuditLogs({
+        companyId,
+        employeeId,
+        section: auditSection,
+        diffs,
+        reasons: { [fieldName]: reason },
+        changedById: userId,
+      });
+
+      return {
+        success: true,
+        message: `${isFirstName ? "First" : "Last"} name updated`,
+        oldValue: oldValue || null,
+        details: "Name change will be reflected throughout the system.",
+      };
+    }
+
+    // ======= DYNAMIC FIELD UPDATE FOR ANY EMPLOYEE FIELD =======
+    // Handle any other Employee model field
+    const employeeFieldMap: Record<string, { dbField: string; type: 'string' | 'number' | 'boolean' | 'date' }> = {
+      "start date": { dbField: "startDate", type: "date" },
+      "contract end": { dbField: "contractEndDate", type: "date" },
+      "contract end date": { dbField: "contractEndDate", type: "date" },
+      "last working date": { dbField: "lastWorkingDate", type: "date" },
+      "contract type": { dbField: "contractType", type: "string" },
+      "employment type": { dbField: "employmentType", type: "string" },
+      "salary": { dbField: "salaryAmount", type: "number" },
+      "hourly rate": { dbField: "hourlyRate", type: "number" },
+      "kiwisaver": { dbField: "kiwiSaverEnrolled", type: "boolean" },
+      "kiwisaver enrolled": { dbField: "kiwiSaverEnrolled", type: "boolean" },
+      "kiwisaver contribution": { dbField: "kiwiSaverContribution", type: "number" },
+      "site location": { dbField: "siteLocation", type: "string" },
+      "location": { dbField: "siteLocation", type: "string" },
+      "notice period": { dbField: "noticePeriodDays", type: "number" },
+      "active": { dbField: "isActive", type: "boolean" },
+      "is active": { dbField: "isActive", type: "boolean" },
+    };
+
+    const matchedField = Object.keys(employeeFieldMap).find(key => fieldLower.includes(key));
+    
+    if (matchedField) {
+      const { dbField, type } = employeeFieldMap[matchedField];
+      
+      // Get current value
+      const current = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        select: { [dbField]: true },
+      });
+      
+      const oldValue = current?.[dbField as keyof typeof current];
+      
+      // Convert value to appropriate type
+      let convertedValue: any = value;
+      if (type === "number") {
+        convertedValue = parseFloat(value);
+      } else if (type === "boolean") {
+        convertedValue = value.toLowerCase() === "true" || value.toLowerCase() === "yes";
+      } else if (type === "date") {
+        convertedValue = new Date(value);
+      }
+
+      // Update the field
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: { [dbField]: convertedValue },
+      });
+
+      // Create audit log
+      const diffs: AuditDiff[] = [{
+        field: dbField,
+        oldValue: oldValue ? String(oldValue) : null,
+        newValue: String(convertedValue),
+      }];
+      
+      await createAuditLogs({
+        companyId,
+        employeeId,
+        section: auditSection,
+        diffs,
+        reasons: { [dbField]: reason },
+        changedById: userId,
+      });
+
+      return {
+        success: true,
+        message: `${field} updated successfully`,
+        oldValue: oldValue ? String(oldValue) : null,
+        details: "Change has been applied and recorded in the audit log.",
+      };
+    }
+
+    // If no match found, suggest what's available
     return {
       success: false,
-      message: `I can update bank details, email, phone, IRD, and tax code. The field "${field}" isn't supported yet.`,
+      message: `I can update these fields:\n\n**Contact:** email, phone, first name, last name\n**Employment:** start date, contract end date, contract type, employment type, salary, hourly rate\n**Tax:** IRD number, tax code, KiwiSaver\n**Other:** bank details, site location, notice period\n\nThe field "${field}" wasn't recognized. Try rephrasing or ask "What fields can you update?"`,
     };
   } catch (error: any) {
     return {

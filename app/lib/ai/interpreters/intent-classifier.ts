@@ -35,8 +35,9 @@ AVAILABLE ACTIONS:
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
-- field: What to update (e.g., "bank details", "email", "phone", "salary")
+- field: What to update (e.g., "bank details", "email", "phone", "salary", "last name", "first name")
 - value: New value
+- reason: Explanation for the change (CRITICAL for audit compliance)
 - startDate/endDate: For leave booking
 - leaveType: Leave category
 - reportType: Type of report

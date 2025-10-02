@@ -135,27 +135,78 @@ async function executeQueryByType(
   switch (model.toLowerCase()) {
     case "employee":
       if (queryType === "count") {
-        // Count employees without IRD number
+        const where: any = { companyId };
+        
+        // Parse filters from operation string
         if (operation.includes("irdNumber") && operation.includes("null")) {
-          return await prisma.employee.count({
-            where: {
-              companyId,
-              irdNumber: null,
-            },
-          });
+          where.irdNumber = null;
         }
-        // Count active employees
-        return await prisma.employee.count({
-          where: {
-            companyId,
-            isActive: true,
-          },
-        });
+        
+        // Check for department filter
+        if (operation.includes("Department") || operation.includes("department")) {
+          // Extract department name from operation
+          const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
+          if (deptMatch) {
+            const deptName = deptMatch[1];
+            const department = await prisma.department.findFirst({
+              where: {
+                companyId,
+                name: { contains: deptName, mode: 'insensitive' },
+              },
+            });
+            if (department) {
+              where.departmentId = department.id;
+            }
+          }
+        }
+        
+        // Check for job role filter
+        if (operation.includes("JobRole") || operation.includes("jobRole")) {
+          const roleMatch = operation.match(/(?:JobRole|jobRole).*?name.*?["']([^"']+)["']/);
+          if (roleMatch) {
+            const roleName = roleMatch[1];
+            const jobRole = await prisma.jobRole.findFirst({
+              where: {
+                companyId,
+                name: { contains: roleName, mode: 'insensitive' },
+              },
+            });
+            if (jobRole) {
+              where.jobRoleId = jobRole.id;
+            }
+          }
+        }
+        
+        // Default to active employees only if no specific filters
+        if (!where.irdNumber && !where.departmentId && !where.jobRoleId) {
+          where.isActive = true;
+        }
+        
+        return await prisma.employee.count({ where });
       }
 
       if (queryType === "findMany") {
+        const where: any = { companyId };
+        
+        // Parse filters (same as count)
+        if (operation.includes("Department") || operation.includes("department")) {
+          const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
+          if (deptMatch) {
+            const deptName = deptMatch[1];
+            const department = await prisma.department.findFirst({
+              where: {
+                companyId,
+                name: { contains: deptName, mode: 'insensitive' },
+              },
+            });
+            if (department) {
+              where.departmentId = department.id;
+            }
+          }
+        }
+        
         return await prisma.employee.findMany({
-          where: { companyId },
+          where,
           include: {
             User: {
               select: {

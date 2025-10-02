@@ -798,7 +798,10 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
     
     const preview = changes.slice(0, 5).map((c, i) => {
       if (fieldToUpdate === 'salaryAmount') {
-        return `${i + 1}. **${c.name}:** $${Math.round(c.currentValue || 0).toLocaleString()} → $${Math.round(c.newValue || 0).toLocaleString()} (+$${Math.round(c.change).toLocaleString()})`;
+        const current = Number(c.currentValue) || 0;
+        const newVal = Number(c.newValue) || 0;
+        const changeAmount = Number(c.change) || 0;
+        return `${i + 1}. **${c.name}:** $${Math.round(current).toLocaleString()} → $${Math.round(newVal).toLocaleString()} (+$${Math.round(changeAmount).toLocaleString()})`;
       } else if (fieldToUpdate === 'departmentId') {
         return `${i + 1}. **${c.name}:** ${c.displayCurrent} → ${c.displayNew}`;
       } else if (fieldToUpdate === 'siteLocation' || fieldToUpdate === 'contractType' || fieldToUpdate === 'employmentType') {

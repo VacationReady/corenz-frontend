@@ -26,6 +26,20 @@ import {
   ArrowRight,
   Lightbulb,
   MessageSquare,
+  ChevronDown,
+  Database,
+  Edit,
+  Mail,
+  Clock,
+  BarChart3,
+  Settings,
+  UserPlus,
+  UserMinus,
+  Briefcase,
+  Shield,
+  Globe,
+  Download,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
@@ -133,6 +147,160 @@ const QUICK_ACTIONS = [
   },
 ];
 
+const AI_CAPABILITIES = [
+  {
+    category: "📊 Data Queries & Insights",
+    icon: <Database className="w-5 h-5" />,
+    color: "from-blue-500 to-cyan-500",
+    capabilities: [
+      { action: "Count employees by any criteria", example: "How many employees in Sales without IRD?" },
+      { action: "Find specific employees", example: "Show me all managers in Auckland" },
+      { action: "Analyze leave patterns", example: "Which department takes the most leave?" },
+      { action: "Check compliance gaps", example: "Who hasn't completed their onboarding?" },
+      { action: "Track contract expiries", example: "List contracts expiring in Q1" },
+      { action: "View document status", example: "Who has expiring visas?" },
+      { action: "Calculate statistics", example: "Average salary by department" },
+      { action: "Identify trends", example: "Show turnover rate by month" },
+    ],
+  },
+  {
+    category: "✏️ Modify Employee Data",
+    icon: <Edit className="w-5 h-5" />,
+    color: "from-emerald-500 to-teal-500",
+    capabilities: [
+      { action: "Update bank details", example: "Change Parj Sangha's bank account to 12-3456-0123456-00" },
+      { action: "Change contact info", example: "Update Sarah's email to sarah@newdomain.com" },
+      { action: "Modify job details", example: "Move James to Engineering department" },
+      { action: "Update salary", example: "Increase John's salary to $85,000" },
+      { action: "Change manager", example: "Assign Lisa as Mike's new manager" },
+      { action: "Update location", example: "Move all Engineering to WFH" },
+      { action: "Bulk updates", example: "Set all Sales team to Auckland office" },
+      { action: "Fix missing data", example: "Add IRD numbers for everyone without one" },
+    ],
+  },
+  {
+    category: "📅 Leave & Time Management",
+    icon: <Calendar className="w-5 h-5" />,
+    color: "from-purple-500 to-pink-500",
+    capabilities: [
+      { action: "Book holiday leave", example: "Book leave for James Garner from Dec 20-27" },
+      { action: "Check leave balances", example: "How many days does Sarah have left?" },
+      { action: "Approve leave requests", example: "Approve all pending leave for this week" },
+      { action: "Cancel leave", example: "Cancel John's leave for next Monday" },
+      { action: "Adjust leave balances", example: "Give Engineering team 2 extra days" },
+      { action: "Create leave policies", example: "Add 'Study Leave' with 5 days per year" },
+      { action: "Block out periods", example: "Block Christmas week for everyone" },
+      { action: "Check coverage", example: "Who's working next Friday?" },
+    ],
+  },
+  {
+    category: "⚡ Workflows & Automation",
+    icon: <Zap className="w-5 h-5" />,
+    color: "from-amber-500 to-orange-500",
+    capabilities: [
+      { action: "Create alert workflows", example: "Alert HR 60 days before contracts expire" },
+      { action: "Build onboarding flows", example: "Create 30-day onboarding for Customer Success" },
+      { action: "Set up reminders", example: "Remind managers about probation reviews" },
+      { action: "Automate notifications", example: "Email employees on their work anniversary" },
+      { action: "Schedule tasks", example: "Create review tasks 90 days after start date" },
+      { action: "Compliance checks", example: "Alert if documents expire in 30 days" },
+      { action: "Birthday wishes", example: "Send birthday emails automatically" },
+      { action: "Escalation workflows", example: "Escalate if form not completed in 7 days" },
+    ],
+  },
+  {
+    category: "➕ Customize System",
+    icon: <Plus className="w-5 h-5" />,
+    color: "from-rose-500 to-pink-500",
+    capabilities: [
+      { action: "Add custom fields", example: "Add 'T-Shirt Size' dropdown to personal info" },
+      { action: "Create new forms", example: "Build a 'Remote Work Request' form" },
+      { action: "Add leave categories", example: "Create 'Volunteer Day' leave type" },
+      { action: "Set up departments", example: "Add Customer Success department" },
+      { action: "Create job roles", example: "Add 'Senior Product Designer' role" },
+      { action: "Modify form fields", example: "Make emergency contact required" },
+      { action: "Add validation rules", example: "Validate IRD number format" },
+      { action: "Customize options", example: "Add 'Wellington' to office locations" },
+    ],
+  },
+  {
+    category: "📧 Communications",
+    icon: <Mail className="w-5 h-5" />,
+    color: "from-indigo-500 to-purple-500",
+    capabilities: [
+      { action: "Email employees", example: "Email all Sales about policy change" },
+      { action: "Email managers", example: "Send probation reminder to all managers" },
+      { action: "Schedule emails", example: "Email CEO a headcount report every Monday" },
+      { action: "Send bulk messages", example: "Notify everyone about system maintenance" },
+      { action: "Reminder emails", example: "Remind employees to update bank details" },
+      { action: "Welcome emails", example: "Send welcome email to new starters" },
+      { action: "Follow-up emails", example: "Email if onboarding not complete" },
+      { action: "Custom templates", example: "Create offer letter template" },
+    ],
+  },
+  {
+    category: "📊 Reports & Exports",
+    icon: <BarChart3 className="w-5 h-5" />,
+    color: "from-cyan-500 to-blue-500",
+    capabilities: [
+      { action: "Generate reports", example: "Create turnover report by department" },
+      { action: "Schedule reports", example: "Email CEO headcount report every 30 days" },
+      { action: "Export to Excel", example: "Export all employees to Excel" },
+      { action: "Compliance reports", example: "Generate visa expiry report" },
+      { action: "Custom analytics", example: "Show leave trends for last 6 months" },
+      { action: "Salary reports", example: "Create salary breakdown by role" },
+      { action: "Attendance reports", example: "Who had the most absences?" },
+      { action: "Performance data", example: "Export review scores to CSV" },
+    ],
+  },
+  {
+    category: "👥 Employee Lifecycle",
+    icon: <Users className="w-5 h-5" />,
+    color: "from-green-500 to-emerald-500",
+    capabilities: [
+      { action: "Onboard new employees", example: "Set up onboarding for Sarah starting Monday" },
+      { action: "Start offboarding", example: "Begin offboarding process for John" },
+      { action: "Promote employees", example: "Promote James to Senior Developer" },
+      { action: "Transfer departments", example: "Move Sarah from Sales to Marketing" },
+      { action: "Probation reviews", example: "Schedule 90-day review for new starters" },
+      { action: "Performance reviews", example: "Create quarterly review tasks" },
+      { action: "Contract renewals", example: "Prepare contract renewal for Lisa" },
+      { action: "Exit interviews", example: "Schedule exit interview for departing employee" },
+    ],
+  },
+  {
+    category: "🔐 Permissions & Security",
+    icon: <Shield className="w-5 h-5" />,
+    color: "from-slate-500 to-gray-500",
+    capabilities: [
+      { action: "Grant admin access", example: "Make Sarah an admin" },
+      { action: "Update permissions", example: "Give managers access to salary data" },
+      { action: "Create permission profiles", example: "Create 'HR Coordinator' profile" },
+      { action: "Audit user actions", example: "Show me what John changed last week" },
+      { action: "Review access logs", example: "Who viewed salary data?" },
+      { action: "Lock accounts", example: "Disable access for departing employees" },
+      { action: "Reset passwords", example: "Send password reset to new users" },
+      { action: "Two-factor auth", example: "Enable 2FA for all admins" },
+    ],
+  },
+  {
+    category: "⚙️ System Configuration",
+    icon: <Settings className="w-5 h-5" />,
+    color: "from-orange-500 to-red-500",
+    capabilities: [
+      { action: "Change settings", example: "Change probation period to 120 days" },
+      { action: "Update company info", example: "Change company name to Acme Inc" },
+      { action: "Modify accrual rates", example: "Change annual leave to 25 days" },
+      { action: "Set up holidays", example: "Add King's Birthday as public holiday" },
+      { action: "Configure notifications", example: "Send Slack alerts for urgent tasks" },
+      { action: "Branding updates", example: "Upload new company logo" },
+      { action: "Integration setup", example: "Connect to Xero payroll" },
+      { action: "Backup settings", example: "Export all system settings" },
+    ],
+  },
+];
+
+
 export default function AIAssistantPage() {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -140,8 +308,21 @@ export default function AIAssistantPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [showCapabilities, setShowCapabilities] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const capabilitiesRef = useRef<HTMLDivElement>(null);
+
+  // Close capabilities dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (capabilitiesRef.current && !capabilitiesRef.current.contains(event.target as Node)) {
+        setShowCapabilities(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -492,6 +673,80 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       title="AI Assistant"
       description="Natural language HR automation powered by AI"
       icon={<Bot className="w-6 h-6" />}
+      action={
+        <div className="relative" ref={capabilitiesRef}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCapabilities(!showCapabilities)}
+            className="gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            What can I do?
+            <ChevronDown className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`} />
+          </Button>
+
+          {showCapabilities && (
+            <div className="absolute right-0 mt-2 w-[600px] max-h-[600px] overflow-y-auto bg-white rounded-xl shadow-2xl border z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  AI Assistant Capabilities
+                </h3>
+                <p className="text-sm text-white/90 mt-1">
+                  Click any example to try it instantly • {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
+                </p>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {AI_CAPABILITIES.map((category, idx) => (
+                  <div key={idx} className="pb-4 border-b last:border-0">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md`}>
+                        {category.icon}
+                      </div>
+                      <h4 className="font-semibold text-sm">{category.category}</h4>
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {category.capabilities.length} actions
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {category.capabilities.map((cap, capIdx) => (
+                        <button
+                          key={capIdx}
+                          onClick={() => {
+                            handleSendMessage(cap.example);
+                            setShowCapabilities(false);
+                          }}
+                          className="text-left p-3 rounded-lg hover:bg-muted transition-colors group"
+                        >
+                          <div className="flex items-start gap-2">
+                            <ArrowRight className="w-4 h-4 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                                {cap.action}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5 italic">
+                                "{cap.example}"
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
+                <p className="text-xs text-muted-foreground">
+                  💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      }
     >
       <div className="flex h-[calc(100vh-12rem)] gap-4">
         {/* Left: Chat Interface */}

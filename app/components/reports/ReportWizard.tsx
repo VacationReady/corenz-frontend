@@ -57,9 +57,10 @@ const steps: Array<{ id: WizardStep; title: string; description: string }> = [
 ];
 
 export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps) {
+  const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
   const [currentStep, setCurrentStep] = useState<WizardStep>("template");
   const [config, setConfig] = useState<ReportConfig>({
-    selectedFields: [],
+    selectedFields: REQUIRED_FIELDS,
     filters: [],
   });
 
@@ -86,7 +87,18 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
   }, [currentStepIndex, isFirstStep, onCancel]);
 
   const updateConfig = useCallback((updates: Partial<ReportConfig>) => {
-    setConfig(prev => ({ ...prev, ...updates }));
+    setConfig(prev => {
+      const next = { ...prev, ...updates };
+      if (Array.isArray(next.selectedFields)) {
+        // Ensure required fields are always included
+        REQUIRED_FIELDS.forEach((req) => {
+          if (!next.selectedFields!.includes(req)) {
+            next.selectedFields!.unshift(req);
+          }
+        });
+      }
+      return next;
+    });
   }, []);
 
 const canProceed = () => {
@@ -200,9 +212,16 @@ const allowedOperators: FilterOperator[] = [
             <TemplateSelection
               selectedTemplate={config.template}
               onSelectTemplate={(template) => {
+                const base = template?.defaultFields || [];
+                const withRequired = Array.from(
+                  new Set([...
+                    REQUIRED_FIELDS,
+                    ...base,
+                  ]),
+                );
                 updateConfig({
                   template,
-                  selectedFields: template?.defaultFields || [],
+                  selectedFields: withRequired,
                 filters:
                   template?.suggestedFilters?.map((filter, index) => ({
                     id: `filter_${index}`,

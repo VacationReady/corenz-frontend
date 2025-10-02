@@ -24,6 +24,7 @@ export default function FieldSelection({
   showSearch = true,
   showSelectedSummary = true,
 }: FieldSelectionProps) {
+  const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set([hrCategories[0].id])
@@ -56,6 +57,13 @@ export default function FieldSelection({
   }, [filteredFields]);
 
   const toggleField = (fieldKey: string) => {
+    if (REQUIRED_FIELDS.includes(fieldKey)) {
+      // Do not allow toggling required fields off
+      if (!selectedFields.includes(fieldKey)) {
+        onUpdateFields(Array.from(new Set([fieldKey, ...selectedFields])));
+      }
+      return;
+    }
     if (selectedFields.includes(fieldKey)) {
       onUpdateFields(selectedFields.filter(f => f !== fieldKey));
     } else {
@@ -70,7 +78,11 @@ export default function FieldSelection({
     
     if (allSelected) {
       // Deselect all fields in this category
-      onUpdateFields(selectedFields.filter(key => !categoryFieldKeys.includes(key)));
+      onUpdateFields(
+        selectedFields.filter(
+          key => !categoryFieldKeys.includes(key) || REQUIRED_FIELDS.includes(key)
+        )
+      );
     } else {
       // Select all fields in this category
       const newFields = [...selectedFields];
@@ -79,16 +91,22 @@ export default function FieldSelection({
           newFields.push(key);
         }
       });
-      onUpdateFields(newFields);
+      // Ensure required fields remain included
+      REQUIRED_FIELDS.forEach((req) => {
+        if (!newFields.includes(req)) newFields.unshift(req);
+      });
+      onUpdateFields(Array.from(new Set(newFields)));
     }
   };
 
   const removeField = (fieldKey: string) => {
+    if (REQUIRED_FIELDS.includes(fieldKey)) return;
     onUpdateFields(selectedFields.filter(f => f !== fieldKey));
   };
 
   const clearAllFields = () => {
-    onUpdateFields([]);
+    // Keep required fields when clearing
+    onUpdateFields([...REQUIRED_FIELDS]);
   };
 
   const toggleCategoryExpansion = (categoryId: string) => {
@@ -242,6 +260,7 @@ export default function FieldSelection({
                     <div className="p-4 space-y-3">
                       {categoryFields.map((field) => {
                         const isSelected = selectedFields.includes(field.field);
+                        const isRequired = REQUIRED_FIELDS.includes(field.field);
 
                         return (
                           <div
@@ -268,7 +287,7 @@ export default function FieldSelection({
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center space-x-2">
-                                <h5 className="font-medium text-gray-900">{field.label}</h5>
+                                <h5 className="font-medium text-gray-900">{field.label}{isRequired ? ' (Required)' : ''}</h5>
                                 <span className={`
                                   px-2 py-0.5 text-xs rounded-full
                                   ${field.type === 'string' ? 'bg-gray-100 text-gray-700' :

@@ -258,6 +258,7 @@ export async function POST(request: Request) {
                 type: eventCategory.name,
                 startDate: start.toISOString(),
                 endDate: end.toISOString(),
+                approverName: manager.name || undefined,
               });
             }
           }

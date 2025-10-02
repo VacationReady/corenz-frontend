@@ -29,12 +29,17 @@ export async function notifyApproversForStage({
   } ${eventCategoryName} request – ${stage.name || "Stage"}`;
 
   const activeApprovers = (stage.decisions || []).filter((d) => d.isActive);
-  const uniqueEmails = new Set(
-    activeApprovers.map((d) => d.approver?.email).filter(Boolean) as string[],
-  );
+  const emailToName = new Map<string, string | null>();
+  for (const decision of activeApprovers) {
+    const email = decision.approver?.email;
+    if (email) {
+      // latest name wins if duplicates; fine for our purposes
+      emailToName.set(email, decision.approver?.name ?? null);
+    }
+  }
 
   await Promise.all(
-    Array.from(uniqueEmails).map((email) =>
+    Array.from(emailToName.entries()).map(([email, name]) =>
       sendLeaveNotification({
         to: email,
         subject,
@@ -49,6 +54,7 @@ export async function notifyApproversForStage({
         startDate: String(leaveRequest.startDate),
         endDate: String(leaveRequest.endDate),
         status: "PENDING",
+        approverName: name ?? undefined,
       }),
     ),
   );

@@ -42,6 +42,8 @@ interface Message {
   actionType?: ActionType;
   result?: any;
   isLoading?: boolean;
+  suggestions?: string[];
+  summary?: string;
 }
 
 const CAPABILITY_CATEGORIES = [
@@ -206,10 +208,65 @@ export default function AIAssistantPage() {
             timestamp: new Date(),
             actionType,
             result: response.result,
+            suggestions: response.suggestions,
+            summary: response.summary,
           },
         ];
       });
     } catch (error: any) {
+      // Friendly error messages for non-technical users
+      let friendlyMessage = "";
+      const errorMsg = error.message?.toLowerCase() || "";
+
+      if (errorMsg.includes("429") || errorMsg.includes("rate limit")) {
+        const resetTime = new Date(Date.now() + 3600000).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        friendlyMessage = `🕐 **You're using AI Assistant really well!**
+
+We've hit our hourly limit to keep costs manageable. This resets at ${resetTime}.
+
+**What you can do now:**
+✅ Save your current conversation
+✅ Check out the Workflow Library (no limits!)
+✅ Come back in an hour to continue
+
+*Tip: You can ask up to 100 questions per hour.*`;
+      } else if (errorMsg.includes("api key") || errorMsg.includes("401") || errorMsg.includes("403")) {
+        friendlyMessage = `🔑 **Hmm, there's a setup issue...**
+
+The AI features haven't been fully configured yet. This is quick to fix!
+
+**What needs to happen:**
+✅ An admin needs to add the OpenAI API key
+✅ Takes about 5 minutes to set up
+
+*Want to set this up? Check the SETUP_AI_ASSISTANT.md guide or contact your IT team.*`;
+      } else if (errorMsg.includes("network") || errorMsg.includes("fetch")) {
+        friendlyMessage = `🌐 **Connection hiccup...**
+
+It looks like there's a network issue. This usually fixes itself!
+
+**Try these:**
+✅ Check your internet connection
+✅ Refresh the page
+✅ Try your question again
+
+*Still having issues? Contact support.*`;
+      } else {
+        friendlyMessage = `😅 **Oops, something unexpected happened!**
+
+Don't worry - your data is safe. This is likely a temporary glitch.
+
+**What to try:**
+✅ Rephrase your question
+✅ Try a simpler query first
+✅ Refresh the page
+
+*Error details for support: ${error.message}*`;
+      }
+
       setMessages((prev) => {
         const filtered = prev.filter((m) => m.id !== loadingMessage.id);
         return [
@@ -217,12 +274,23 @@ export default function AIAssistantPage() {
           {
             id: `error-${Date.now()}`,
             role: "assistant",
-            content: `Sorry, I encountered an error: ${error.message}`,
+            content: friendlyMessage,
             timestamp: new Date(),
+            suggestions: [
+              "Try the Workflow Library instead",
+              "Check system status",
+              "Contact support for help"
+            ],
           },
         ];
       });
-      toast.error("Something went wrong");
+      
+      // Still show toast but friendlier
+      if (errorMsg.includes("429")) {
+        toast.error("Rate limit reached - take a quick break!");
+      } else {
+        toast.error("Something went wrong - try refreshing");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -272,15 +340,59 @@ export default function AIAssistantPage() {
       throw new Error(data.error || "Query failed");
     }
 
-    let content = data.explanation;
+    // Create plain English summary
+    let summary = "";
     if (data.count !== undefined) {
-      content += `\n\n**Result**: ${data.count}`;
-    }
-    if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-      content += `\n\nFound ${data.data.length} records. View details below.`;
+      if (data.count === 0) {
+        summary = "✅ Great news! No issues found.";
+      } else if (data.count === 1) {
+        summary = `✅ Found 1 result`;
+      } else {
+        summary = `✅ Found ${data.count} results`;
+      }
     }
 
-    return { content, result: data };
+    let content = `${summary ? summary + "\n\n" : ""}${data.explanation}`;
+    
+    if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+      content += `\n\nShowing ${Math.min(data.data.length, 10)} of ${data.data.length} total records.`;
+    }
+
+    // Generate follow-up suggestions based on query type
+    const suggestions = generateFollowUpSuggestions(prompt, data);
+
+    return { content, result: data, suggestions, summary };
+  };
+
+  const generateFollowUpSuggestions = (prompt: string, data: any): string[] => {
+    const lower = prompt.toLowerCase();
+    const suggestions: string[] = [];
+
+    // Context-aware suggestions based on the query
+    if (lower.includes("ird") || lower.includes("tax")) {
+      suggestions.push("Create a reminder workflow for missing IRD numbers");
+      suggestions.push("Show me their departments");
+      suggestions.push("Export this list to share with payroll");
+    } else if (lower.includes("contract") || lower.includes("expir")) {
+      suggestions.push("Create an alert workflow 60 days before contracts expire");
+      suggestions.push("Show me which departments are affected");
+      suggestions.push("Email these employees to discuss renewal");
+    } else if (lower.includes("start") || lower.includes("new")) {
+      suggestions.push("Create onboarding workflow for new starters");
+      suggestions.push("Show me their assigned managers");
+      suggestions.push("Add welcome task for new employees");
+    } else if (lower.includes("leave") || lower.includes("absence")) {
+      suggestions.push("Show me leave patterns by department");
+      suggestions.push("Check which teams might be understaffed");
+      suggestions.push("Create coverage workflow for team absences");
+    } else {
+      // Generic helpful suggestions
+      suggestions.push("Create a workflow to automate this");
+      suggestions.push("Show me more details");
+      suggestions.push("Export this data");
+    }
+
+    return suggestions.slice(0, 3); // Max 3 suggestions
   };
 
   const handleWorkflow = async (prompt: string) => {
@@ -499,6 +611,31 @@ export default function AIAssistantPage() {
                                   ...and {msg.result.data.length - 3} more
                                 </p>
                               )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Follow-up suggestions */}
+                        {msg.suggestions && msg.suggestions.length > 0 && !msg.isLoading && (
+                          <div className="mt-4 pt-3 border-t border-muted">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Lightbulb className="w-4 h-4 text-amber-500" />
+                              <span className="text-xs font-medium text-muted-foreground">
+                                You might also want to:
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {msg.suggestions.map((suggestion, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => handleSendMessage(suggestion)}
+                                  disabled={isProcessing}
+                                  className="w-full text-left text-xs px-3 py-2 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <ArrowRight className="w-3 h-3 text-primary group-hover:translate-x-0.5 transition-transform" />
+                                  <span>{suggestion}</span>
+                                </button>
+                              ))}
                             </div>
                           </div>
                         )}

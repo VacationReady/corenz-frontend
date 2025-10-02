@@ -844,7 +844,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             </div>
           )}
           
-          <Card className="flex-1 flex flex-col min-h-0 h-full">
+          <Card className="flex flex-col h-full">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
               <div className="flex-1 overflow-y-auto p-4">
@@ -920,7 +920,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               </div>
             ) : (
               /* Messages */
-              <div className="flex-1 p-4 space-y-4" style={{ minHeight: 0, maxHeight: '100%', overflowY: 'auto' }}>
+              <div className="flex-1 p-4 space-y-4 overflow-auto">
                 {messages.map((msg) => (
                 <div
                   key={msg.id}

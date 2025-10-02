@@ -273,7 +273,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
     return {
       success: true,
-      message: `Great! I'll help book leave for **${employee.name}**.\n\nWhat dates would you like? (e.g., "December 20-27" or "Next Monday to Friday")`,
+      message: `Great! I'll help book leave for ${employee.name}.\n\nWhat dates would you like?\n\nExamples:\n• "Next Monday" (single day)\n• "December 20-27" (date range)\n• "Next week Monday to Friday"`,
       nextStep: {
         question: "What dates?",
       },
@@ -291,9 +291,21 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       };
     }
 
-    // Parse dates (simplified - in production, use date parser)
-    const start = startDate || dates?.split('-')[0] || dates;
-    const end = endDate || dates?.split('-')[1] || dates;
+    // Parse dates - handle single day vs range
+    let start = startDate || dates;
+    let end = endDate;
+    
+    // Check if it's a date range
+    if (dates && (dates.includes('-') || dates.toLowerCase().includes(' to '))) {
+      const parts = dates.split(/\s*(?:-|to)\s*/i);
+      start = parts[0]?.trim();
+      end = parts[1]?.trim();
+    }
+    
+    // If no end date specified, it's a single day booking
+    if (!end || end === start) {
+      end = start;
+    }
 
     setPendingAction(action.userId, action.companyId, {
       ...pending,
@@ -307,9 +319,12 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       select: { id: true, name: true },
     });
 
+    const isSingleDay = start === end;
+    const dateDisplay = isSingleDay ? start : `${start} to ${end}`;
+    
     return {
       success: true,
-      message: `Got it! Booking from **${start}** to **${end}**.\n\nWhich type of leave?\n${categories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")}`,
+      message: `Got it! Booking ${dateDisplay}.\n\nWhich type of leave?\n${categories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")}`,
       nextStep: {
         question: "Which leave type?",
         options: categories.map(c => c.name),
@@ -352,10 +367,9 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       
       const balance = entitlement ? entitlement.totalDays - entitlement.usedDays : 0;
       
-      // Calculate days being requested
-      const startDate = new Date(pending.data.startDate);
-      const endDate = new Date(pending.data.endDate);
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      // Calculate days - handle if same date (single day)
+      const isSingleDay = pending.data.startDate === pending.data.endDate;
+      const daysRequested = isSingleDay ? 1 : '(will calculate)';
       
       // Show preview with entitlement info
       return {
@@ -367,9 +381,9 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
           endDate: pending.data.endDate,
           leaveType: category.name,
           balance,
-          daysRequested: daysDiff,
+          daysRequested,
         },
-        message: `📅 Leave Request:\n\n${pending.data.employeeName}\n${pending.data.startDate} to ${pending.data.endDate}\n${category.name}\n\n📊 Days requested: ${daysDiff}\n💰 Current balance: ${balance} days\n${balance >= daysDiff ? '✅ Sufficient balance' : '⚠️ Insufficient balance'}\n\nBook this leave?`,
+        message: `📅 Leave Request:\n\n${pending.data.employeeName}\n${isSingleDay ? pending.data.startDate : `${pending.data.startDate} to ${pending.data.endDate}`}\n${category.name}\n\n${isSingleDay ? '📊 Single day booking' : `📊 Date range: ${pending.data.startDate} to ${pending.data.endDate}`}\n💰 Current balance: ${balance} days\n\nBook this leave?`,
       };
     }
 

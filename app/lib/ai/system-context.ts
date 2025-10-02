@@ -104,7 +104,7 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       // Pending leave requests
       prisma.leaveRequest.count({
         where: {
-          employee: { companyId },
+          Employee: { companyId },
           approvalStatus: "PENDING",
         },
       }),
@@ -183,7 +183,7 @@ async function getExpiringDocumentsCount(companyId: string): Promise<number> {
   
   return prisma.document.count({
     where: {
-      employee: { companyId },
+      Employee: { companyId },
       expiryDate: {
         lte: thirtyDaysFromNow,
         gte: new Date(),

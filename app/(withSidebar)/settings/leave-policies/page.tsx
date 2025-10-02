@@ -21,6 +21,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/Card";
 import {
   Dialog,
@@ -45,6 +46,59 @@ import { Plus, Edit, Trash2, Users, Calendar, Settings, AlertTriangle } from "lu
 import { PageShell } from "@/components/ui/PageShell";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
+import { motion, useSpring } from "framer-motion";
+
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.12 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 140, damping: 18, mass: 0.7 },
+  },
+};
+
+const MotionNumber = ({
+  value,
+  format = (val: number) => Math.round(val).toLocaleString(),
+}: {
+  value: number;
+  format?: (value: number) => string;
+}) => {
+  const spring = useSpring(value, {
+    stiffness: 220,
+    damping: 26,
+    mass: 0.8,
+  });
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    spring.set(value);
+  }, [spring, value]);
+
+  useEffect(() => {
+    const unsubscribe = spring.on("change", (latest) => {
+      setDisplayValue(latest);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [spring]);
+
+  return (
+    <motion.span className="tabular-nums font-semibold">
+      {format(displayValue)}
+    </motion.span>
+  );
+};
 
 interface EventCategory {
   id: string;
@@ -691,114 +745,207 @@ export default function LeavePoliciesPage() {
         </Dialog>
       </div>
 
-      <div className="grid gap-6">
+      <div className="space-y-6">
         {policies.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Leave Policies</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Create your first leave policy to start managing accrual rates
-                and entitlement rules.
-              </p>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Leave Policy
+          <Card
+            variant="gradient"
+            className="relative overflow-hidden border border-white/20 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent backdrop-blur-xl dark:border-slate-800/60 dark:from-primary/20 dark:via-primary/10 dark:to-slate-900/40"
+          >
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -left-20 top-8 h-48 w-48 rounded-full bg-primary/25 blur-3xl" />
+              <div className="absolute -right-12 bottom-0 h-44 w-44 rounded-full bg-sky-400/25 blur-[100px] dark:bg-sky-500/25" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.65),transparent_60%)] opacity-70" />
+            </div>
+            <CardContent className="relative flex flex-col items-center justify-center gap-4 py-16 text-center">
+              <div className="relative flex h-32 w-32 items-center justify-center">
+                <div className="absolute inset-0 rounded-[2rem] border border-white/40 bg-white/70 backdrop-blur-xl shadow-depth-3 dark:border-slate-800/60 dark:bg-slate-900/60" />
+                <div className="absolute inset-2 rounded-[2rem] bg-[conic-gradient(from_140deg_at_50%_50%,rgba(59,130,246,0.5),rgba(59,130,246,0),rgba(14,165,233,0.4),rgba(99,102,241,0.45),transparent)] opacity-80 blur" />
+                <Calendar className="relative z-10 h-14 w-14 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-semibold tracking-tight">No leave policies yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  Kickstart your leave management by creating a policy tailored to your organisation.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                glow
+                onClick={() => {
+                  resetForm();
+                  setDialogOpen(true);
+                }}
+                className="px-8 animate-[pulse_3s_ease-in-out_infinite]"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Create your first leave policy
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {policies.map((policy) => (
-              <Card key={policy.id}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex items-center space-x-3">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {policy.name}
-                        {!policy.isActive && (
-                          <Badge variant="secondary">Inactive</Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription>
-                        {policy.eventCategory.name} • {policy.accrualRate}{" "}
-                        {policy.accrualUnit.toLowerCase()} per{" "}
-                        {policy.accrualPeriod.toLowerCase()}
-                      </CardDescription>
+          <motion.div
+            variants={listVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3"
+          >
+            {policies.map((policy) => {
+              const prorationClasses = policy.enableProration
+                ? "border-sky-500/40 bg-sky-400/10 text-sky-600 dark:border-sky-400/40 dark:bg-sky-400/10 dark:text-sky-300"
+                : "border-slate-500/40 bg-slate-500/10 text-slate-600 dark:border-slate-700/50 dark:bg-slate-800/60 dark:text-slate-300";
+              const negativeClasses = policy.allowNegativeBalance
+                ? "border-amber-500/40 bg-amber-400/15 text-amber-600 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-300"
+                : "border-slate-500/40 bg-slate-500/10 text-slate-600 dark:border-slate-700/50 dark:bg-slate-800/60 dark:text-slate-300";
+              const prorationLabel = policy.prorationMethod
+                .toLowerCase()
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+
+              return (
+                <motion.div
+                  key={policy.id}
+                  variants={cardVariants}
+                  whileHover={{ y: -8, scale: 1.01 }}
+                  whileFocus={{ y: -6, scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 20, mass: 0.8 }}
+                  className="group/policy"
+                >
+                  <Card
+                    variant="gradient"
+                    hoverable
+                    className="relative overflow-hidden border border-white/15 bg-gradient-to-br from-white/70 via-white/25 to-white/10 backdrop-blur-xl transition-transform duration-500 ease-out dark:border-slate-800/60 dark:from-slate-900/80 dark:via-slate-900/40 dark:to-slate-900/20 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.65),transparent_60%)] before:opacity-60 before:transition-opacity before:duration-500 after:pointer-events-none after:absolute after:-bottom-20 after:-right-16 after:h-48 after:w-48 after:rounded-full after:bg-primary/20 after:blur-3xl after:opacity-40 group-hover/policy:before:opacity-80 group-hover/policy:after:opacity-60"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/30 via-transparent to-primary/30" />
+                    <div className="absolute top-5 right-5 z-20">
+                      <div className="flex items-center gap-1.5 rounded-full border border-white/40 bg-white/60 px-2 py-1 shadow-depth-2 backdrop-blur-xl transition-all duration-300 ease-out translate-y-3 opacity-0 pointer-events-none group-hover/policy:translate-y-0 group-hover/policy:opacity-100 group-hover/policy:pointer-events-auto group-focus-within/policy:translate-y-0 group-focus-within/policy:opacity-100 group-focus-within/policy:pointer-events-auto dark:border-slate-800/50 dark:bg-slate-900/40">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          pill
+                          onClick={() => handleEdit(policy)}
+                          className="text-slate-600 transition-transform hover:text-primary focus-visible:text-primary dark:text-slate-200"
+                          aria-label={`Edit ${policy.name}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          pill
+                          onClick={() => handleDelete(policy.id)}
+                          className="text-destructive transition-transform hover:text-destructive focus-visible:text-destructive"
+                          aria-label={`Delete ${policy.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      variant="outline"
-                      className="flex items-center gap-1"
+                    <CardHeader
+                      transparent
+                      className="relative z-10 border-none bg-transparent px-6 pb-4 pt-6"
                     >
-                      <Users className="w-3 h-3" />
-                      {policy._count.assignments} assignments
-                    </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(policy)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(policy.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <div className="font-medium">Effective Period</div>
-                      <div className="text-muted-foreground">
-                        {new Date(policy.effectiveFrom).toLocaleDateString()} -{" "}
-                        {policy.effectiveTo
-                          ? new Date(policy.effectiveTo).toLocaleDateString()
-                          : "Ongoing"}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <CardTitle className="text-xl font-semibold tracking-tight">
+                            {policy.name}
+                          </CardTitle>
+                          {!policy.isActive && (
+                            <Badge variant="secondary" className="bg-white/80 text-slate-700 dark:bg-slate-800/80 dark:text-slate-200">
+                              Inactive
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <span>{policy.eventCategory.name}</span>
+                          <span className="hidden h-1 w-1 rounded-full bg-muted-foreground/40 sm:inline" />
+                          <span>
+                            {policy.accrualRate} {policy.accrualUnit.toLowerCase()} per {policy.accrualPeriod.toLowerCase()}
+                          </span>
+                        </CardDescription>
                       </div>
-                    </div>
-                    <div>
-                      <div className="font-medium">Proration</div>
-                      <div className="text-muted-foreground">
-                        {policy.enableProration
-                          ? policy.prorationMethod
-                          : "Disabled"}
+                    </CardHeader>
+                    <CardContent className="relative z-10 px-6 pb-6 pt-0">
+                      <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
+                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Effective period</div>
+                          <div className="mt-1 font-semibold text-foreground">
+                            {new Date(policy.effectiveFrom).toLocaleDateString()} –{" "}
+                            {policy.effectiveTo
+                              ? new Date(policy.effectiveTo).toLocaleDateString()
+                              : "Ongoing"}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
+                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Proration</div>
+                          <div className="mt-1 font-semibold text-foreground">
+                            {policy.enableProration ? prorationLabel : "Disabled"}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
+                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Service tiers</div>
+                          <div className="mt-1 font-semibold text-foreground">
+                            {policy.serviceLengthTiers?.length || 0} configured
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
+                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Negative balance</div>
+                          <div className="mt-1 font-semibold text-foreground">
+                            {policy.allowNegativeBalance ? "Allowed" : "Not allowed"}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="font-medium">Service Tiers</div>
-                      <div className="text-muted-foreground">
-                        {policy.serviceLengthTiers?.length || 0} configured
+                      {policy.description && (
+                        <div className="mt-6 rounded-2xl border border-white/20 bg-white/70 p-4 text-sm text-muted-foreground shadow-inner dark:border-slate-800/60 dark:bg-slate-900/60">
+                          {policy.description}
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter transparent className="relative z-10 border-none px-6 pb-6 pt-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-2 rounded-full border border-emerald-500/35 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 backdrop-blur-sm dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
+                          <Users className="h-4 w-4" />
+                          <div className="flex items-baseline gap-1 text-sm">
+                            <MotionNumber value={policy._count.assignments} />
+                          </div>
+                          <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">
+                            Assignments
+                          </span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm ${prorationClasses}`}
+                        >
+                          <Settings className="h-4 w-4" />
+                          <div className="flex items-baseline gap-1 text-sm">
+                            <MotionNumber value={policy.enableProration ? 1 : 0} />
+                          </div>
+                          <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">
+                            Proration
+                          </span>
+                          <span className="hidden text-[11px] font-medium normal-case opacity-80 sm:inline">
+                            {policy.enableProration ? prorationLabel : "Off"}
+                          </span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm ${negativeClasses}`}
+                        >
+                          <AlertTriangle className="h-4 w-4" />
+                          <div className="flex items-baseline gap-1 text-sm">
+                            <MotionNumber value={policy.allowNegativeBalance ? 1 : 0} />
+                          </div>
+                          <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">
+                            Negative balance
+                          </span>
+                          <span className="hidden text-[11px] font-medium normal-case opacity-80 sm:inline">
+                            {policy.allowNegativeBalance ? "Enabled" : "Locked"}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="font-medium">Negative Balance</div>
-                      <div
-                        className={`text-sm ${policy.allowNegativeBalance ? "text-orange-600" : "text-muted-foreground"}`}
-                      >
-                        {policy.allowNegativeBalance
-                          ? "Allowed"
-                          : "Not allowed"}
-                      </div>
-                    </div>
-                  </div>
-                  {policy.description && (
-                    <div className="mt-3 pt-3 border-t">
-                      <div className="text-sm text-muted-foreground">
-                        {policy.description}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
         )}
       </div>
         </>

@@ -59,9 +59,9 @@ export function diffRequiresReason(diff: AuditDiff): boolean {
   }
 
   const hasOldValue = hasMeaningfulValue(diff.oldValue);
-  const hasNewValue = hasMeaningfulValue(diff.newValue);
-
-  return hasOldValue && hasNewValue;
+  // Require a reason whenever a previously populated field is changed,
+  // regardless of whether the new value is empty or non-empty.
+  return hasOldValue;
 }
 
 function defaultReasonForDiff(diff: AuditDiff): string {

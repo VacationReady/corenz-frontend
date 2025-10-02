@@ -499,6 +499,8 @@ export default function BulkActionsPageClient() {
         open={activeAction === "compensation"}
         onOpenChange={(open) => setActiveAction(open ? "compensation" : null)}
         allEmployees={employees}
+        departments={departments}
+        jobRoles={jobRoles}
         onCompleted={handleActionCompleted}
       />
 
@@ -506,6 +508,8 @@ export default function BulkActionsPageClient() {
         open={activeAction === "training"}
         onOpenChange={(open) => setActiveAction(open ? "training" : null)}
         allEmployees={employees}
+        departments={departments}
+        jobRoles={jobRoles}
         courses={courses}
         providers={providers}
         onCompleted={handleActionCompleted}
@@ -515,6 +519,8 @@ export default function BulkActionsPageClient() {
         open={activeAction === "leave"}
         onOpenChange={(open) => setActiveAction(open ? "leave" : null)}
         allEmployees={employees}
+        departments={departments}
+        jobRoles={jobRoles}
         eventCategories={eventCategories}
         onCompleted={handleActionCompleted}
       />

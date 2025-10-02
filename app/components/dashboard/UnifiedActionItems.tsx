@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { WidgetLoading } from "@/components/ui/WidgetStates";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -34,6 +35,11 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [processing, setProcessing] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string }>(null);
   const [viewAll, setViewAll] = useState(false);
+
+  const toAuditValue = (val: unknown): string | null | undefined => {
+    if (val === null || val === undefined) return null;
+    return String(val);
+  };
 
   // Fetch onboarding tasks
   const { data: onboardingData } = useSWR(
@@ -394,7 +400,14 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             {displayItems.map((item) => (
               <div
                 key={item.id}
-                className="group relative flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-border hover:bg-muted/30 transition-all"
+                className="group relative flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-border hover:bg-muted/30 transition-all cursor-pointer"
+                onClick={() => {
+                  if (item.type === "approval" || item.type === "change") {
+                    setSelectedItem(item);
+                  } else if (item.onAction) {
+                    item.onAction();
+                  }
+                }}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {item.urgent && (
@@ -413,7 +426,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleItemAction(item, "decline")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleItemAction(item, "decline");
+                      }}
                       disabled={processing === item.id}
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
                     >
@@ -422,7 +438,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   )}
                   <Button
                     size="sm"
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.stopPropagation();
                       if (item.type === "approval" || item.type === "change") {
                         await handleItemAction(item, "approve");
                       } else if (item.onAction) {
@@ -519,15 +536,42 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   <p className="text-sm text-muted-foreground">{selectedItem.subtitle}</p>
                 )}
               </div>
-              
-              {selectedItem.metadata?.details && (
-                <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-2">
-                  {Object.entries(selectedItem.metadata.details).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-muted-foreground">{key}:</span>
-                      <span className="font-medium">{String(value)}</span>
+              {/* Leave approval details */}
+              {selectedItem.type === "approval" && (
+                <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-1">
+                  {selectedItem.metadata?.typeName && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="font-medium">{selectedItem.metadata.typeName}</span></div>
+                  )}
+                  {selectedItem.metadata?.startDate && selectedItem.metadata?.endDate && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Dates</span><span className="font-medium">{new Date(selectedItem.metadata.startDate).toLocaleDateString()} 
+                      to {new Date(selectedItem.metadata.endDate).toLocaleDateString()}</span></div>
+                  )}
+                </div>
+              )}
+
+              {/* Transactional change request details */}
+              {selectedItem.type === "change" && (
+                <div className="space-y-2">
+                  {Array.isArray(selectedItem.metadata?.diffs) && selectedItem.metadata.diffs.length > 0 ? (
+                    <div className="p-3 rounded-lg bg-muted/30 text-sm">
+                      <div className="font-medium mb-2">Proposed changes</div>
+                      <div className="space-y-1">
+                        {selectedItem.metadata.diffs.map((d: any, idx: number) => (
+                          <div key={idx} className="grid grid-cols-3 gap-2 items-center">
+                            <div className="text-muted-foreground truncate">{labelForField(d.field) || d.field}</div>
+                            <div className="truncate text-xs">{formatAuditValue(toAuditValue(d.oldValue))}</div>
+                            <div className="truncate text-xs font-medium">{formatAuditValue(toAuditValue(d.newValue))}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  ) : selectedItem.metadata?.payload ? (
+                    <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-1">
+                      {Object.entries(selectedItem.metadata.payload).map(([k, v]) => (
+                        <div key={k} className="flex justify-between"><span className="text-muted-foreground">{labelForField(k) || k}</span><span className="font-medium">{formatAuditValue(toAuditValue(v))}</span></div>
                   ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
               

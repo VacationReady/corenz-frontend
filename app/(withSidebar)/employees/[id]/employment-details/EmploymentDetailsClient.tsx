@@ -98,8 +98,14 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
         if (currentManagerUserId) {
           const match = filtered.find((e: any) => e.userId === currentManagerUserId);
           setSelectedManagerEmployeeId(match?.id ?? "none");
+          // Ensure initialValues reflects existing manager for audit comparison
+          setInitialValues((prev: any | null) =>
+            prev ? { ...prev, managerId: match?.id ?? "" } : prev,
+          );
         } else {
           setSelectedManagerEmployeeId("none");
+          // No existing manager; make sure initialValues has empty managerId for consistency
+          setInitialValues((prev: any | null) => (prev ? { ...prev, managerId: "" } : prev));
         }
       } catch {
         // no-op
@@ -409,6 +415,17 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             endpoint="employment-details"
             initialValues={initialValues}
             currentValues={form}
+            valueFormatter={(field, value) => {
+              if (field === "managerId") {
+                // Display friendly names for manager changes
+                if (!value) return "(none)";
+                const match = employees.find((e) => e.id === value);
+                if (!match) return String(value);
+                const name = `${match.firstName ?? ""} ${match.lastName ?? ""}`.trim();
+                return name || match.email || String(value);
+              }
+              return String(value ?? "");
+            }}
             onSaveSuccess={async () => {
               try {
                 setLoading(true);

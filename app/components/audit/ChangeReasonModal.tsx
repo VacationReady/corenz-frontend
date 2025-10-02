@@ -37,9 +37,9 @@ export function changeRequiresReason(change: ChangeInfo): boolean {
   }
 
   const hasOldValue = hasMeaningfulValue(change.oldValue);
-  const hasNewValue = hasMeaningfulValue(change.newValue);
-
-  return hasOldValue && hasNewValue;
+  // Guardrail: only fields that previously had a value require a reason,
+  // even if the new value is being cleared.
+  return hasOldValue;
 }
 
 interface ChangeReasonModalProps {

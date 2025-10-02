@@ -939,7 +939,7 @@ export class WorkflowExecutionEngine {
         return hrUsers;
         
       case "specific":
-        const specificIds = config.recipients || config.assigneeId ? [config.assigneeId] : [];
+        const specificIds = config.recipients || (config.assigneeId ? [config.assigneeId] : []);
         if (specificIds.length > 0) {
           const users = await prisma.user.findMany({
             where: { id: { in: specificIds } },
@@ -1231,15 +1231,27 @@ export class WorkflowExecutionEngine {
   private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
     if (!context.employee) return;
 
-    const defaultTitle = config.courseId ? `Complete training: ${config.courseId}` : "Complete training";
-    const title = this.interpolateVariables(config.title || defaultTitle, context);
+    // Title / description with variable interpolation
+    const baseTitle =
+      config.title ||
+      (config.courseId ? `Complete training: ${config.courseId}` : "Complete training");
+    const title = this.interpolateVariables(baseTitle, context);
     const description = this.interpolateVariables(config.description || "", context);
-    const dueDays =
+
+    // Support both config.dueInDays and config.dueDays
+    const dueInDays: number | undefined =
       typeof config.dueInDays === "number"
         ? config.dueInDays
         : typeof config.dueDays === "number"
         ? config.dueDays
-        : null;
+        : undefined;
+
+    const dueDate: Date | null = typeof dueInDays === "number"
+      ? this.addBusinessDays(new Date(), dueInDays)
+      : null;
+
+    // Priority respects explicit config.priority, else HIGH if mandatory, else MEDIUM
+    const priority: string = (config.priority as string | undefined) || (config.mandatory ? "HIGH" : "MEDIUM");
 
     await prisma.actionItem.create({
       data: {
@@ -1249,14 +1261,14 @@ export class WorkflowExecutionEngine {
         description,
         type: "TRAINING",
         status: "PENDING",
-        priority: (config.priority as string | undefined) || (config.mandatory ? "HIGH" : "MEDIUM"),
-        dueDate: dueDays !== null ? this.addBusinessDays(new Date(), dueDays) : null,
-        assignedToId: context.employee.userId ?? null,
-        relatedEmployeeId: context.employee.id ?? null,
+        priority,
+        dueDate,
+        assignedToId: context.employee?.userId ?? null,
+        relatedEmployeeId: context.employee?.id ?? null,
         updatedAt: new Date(),
         metadata: {
           source: "workflow",
-          workflowId: context.workflowId ?? null,
+          workflowId: context.workflowId,
           courseId: config.courseId || null,
           mandatory: Boolean(config.mandatory),
         },
@@ -1336,7 +1348,13 @@ export class WorkflowExecutionEngine {
     await prisma.actionItem.create({
       data: {
         id: uuidv4(),
-        companyId: context.company?.id || (await prisma.user.findUnique({ where: { id: assignedToId || context.employee?.userId || "" }, select: { companyId: true } }))?.companyId || "",
+        companyId:
+          context.company?.id ||
+          (await prisma.user.findUnique({
+            where: { id: assignedToId || context.employee?.userId || "" },
+            select: { companyId: true },
+          }))?.companyId ||
+          "",
         title,
         description,
         type: "TASK",
@@ -1375,8 +1393,8 @@ export class WorkflowExecutionEngine {
       const result = await response.json();
       
       if (result.success && result.buddy) {
+        // Expose buddy to subsequent actions in this workflow execution
         context.variables.buddy = result.buddy;
-        
         // Persisting buddy metadata would require a schema change. For now rely on the
         // in-memory workflow context so subsequent actions (e.g. calendar invites) can
         // reference the buddy without touching the employee record directly.
@@ -1419,6 +1437,9 @@ export class WorkflowExecutionEngine {
     }
   }
 
+  /**
+   * (reserved) — additional action implementations below
+   */
 }
 
 // Export singleton instance

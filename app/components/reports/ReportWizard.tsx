@@ -11,8 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { ReportTemplate, hrReportFields } from "@/lib/hrReportFields";
-import { reportLibrary } from "@/lib/reportLibrary";
+import { ReportTemplate, hrReportFields, hrCategories, getFieldsByCategory } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration from "./FilterConfiguration";
@@ -57,11 +56,13 @@ const steps: Array<{ id: WizardStep; title: string; description: string }> = [
 ];
 
 export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps) {
+  const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
   const [currentStep, setCurrentStep] = useState<WizardStep>("template");
   const [config, setConfig] = useState<ReportConfig>({
-    selectedFields: [],
+    selectedFields: REQUIRED_FIELDS,
     filters: [],
   });
+  const [fieldsPanelKey, setFieldsPanelKey] = useState<string>("all");
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const isFirstStep = currentStepIndex === 0;
@@ -86,7 +87,18 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
   }, [currentStepIndex, isFirstStep, onCancel]);
 
   const updateConfig = useCallback((updates: Partial<ReportConfig>) => {
-    setConfig(prev => ({ ...prev, ...updates }));
+    setConfig(prev => {
+      const next = { ...prev, ...updates };
+      if (Array.isArray(next.selectedFields)) {
+        // Ensure required fields are always included
+        REQUIRED_FIELDS.forEach((req) => {
+          if (!next.selectedFields!.includes(req)) {
+            next.selectedFields!.unshift(req);
+          }
+        });
+      }
+      return next;
+    });
   }, []);
 
 const canProceed = () => {
@@ -197,32 +209,52 @@ const allowedOperators: FilterOperator[] = [
 
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {currentStep === "template" && (
-            <TemplateSelection
-              selectedTemplate={config.template}
-              onSelectTemplate={(template) => {
-                updateConfig({
-                  template,
-                  selectedFields: template?.defaultFields || [],
-                filters:
-                  template?.suggestedFilters?.map((filter, index) => ({
-                    id: `filter_${index}`,
-                    field: filter.field,
-                    operator: allowedOperators.includes(filter.operator as FilterOperator)
-                      ? (filter.operator as FilterOperator)
-                      : "equals",
-                    value: filter.value,
-                    value2: filter.value2,
-                  })) || [],
-                sort: template?.defaultSort,
-                });
-              }}
-            />
+              <AreaOrTemplateSelection
+                onStartCustom={(areaId?: string) => {
+                  // Move to fields step, expand the chosen area
+                  setCurrentStep("fields");
+                  // Ensure required fields are present for a fresh custom report
+                  updateConfig({ selectedFields: Array.from(new Set([...
+                    REQUIRED_FIELDS,
+                  ])) });
+                  // Pass hint to FieldSelection via key prop so it re-mounts with desired expansion
+                  setFieldsPanelKey(areaId || "all");
+                }}
+                selectedTemplate={config.template}
+                onSelectTemplate={(template) => {
+                  const base = template?.defaultFields || [];
+                  const withRequired = Array.from(new Set([...
+                    REQUIRED_FIELDS,
+                    ...base,
+                  ]));
+                  updateConfig({
+                    template,
+                    selectedFields: withRequired,
+                    filters:
+                      template?.suggestedFilters?.map((filter, index) => ({
+                        id: `filter_${index}`,
+                        field: filter.field,
+                        operator: allowedOperators.includes(filter.operator as FilterOperator)
+                          ? (filter.operator as FilterOperator)
+                          : "equals",
+                        value: filter.value,
+                        value2: filter.value2,
+                      })) || [],
+                    sort: template?.defaultSort,
+                  });
+                  setCurrentStep("fields");
+                }}
+              />
             )}
 
             {currentStep === "fields" && (
               <FieldSelection
+                key={fieldsPanelKey}
                 selectedFields={config.selectedFields}
                 onUpdateFields={(selectedFields) => updateConfig({ selectedFields })}
+                initialExpandedCategories={
+                  fieldsPanelKey && fieldsPanelKey !== "all" ? [fieldsPanelKey] : undefined
+                }
               />
             )}
 
@@ -265,71 +297,67 @@ const allowedOperators: FilterOperator[] = [
   );
 }
 
-// Template Selection Component
-function TemplateSelection({
+// Area or Template Selection Component (areas-first for custom reports)
+function AreaOrTemplateSelection({
+  onStartCustom,
   selectedTemplate,
   onSelectTemplate,
 }: {
+  onStartCustom: (areaId?: string) => void;
   selectedTemplate?: ReportTemplate;
   onSelectTemplate: (template: ReportTemplate | undefined) => void;
 }) {
+  const areas = [...hrCategories].sort((a, b) => a.order - b.order);
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-foreground">Choose a Report Template</h3>
-        <p className="text-sm text-muted-foreground">
-          Start with a pre-built template or create a custom report from scratch.
-        </p>
+        <h3 className="text-lg font-semibold text-foreground">Start a Custom Report</h3>
+        <p className="text-sm text-muted-foreground">Choose an area to report on. You can add fields from multiple areas later.</p>
       </div>
 
-      <div
-        className={cn(
-          "cursor-pointer rounded-2xl border border-glass bg-background/80 p-5 transition hover:border-primary/40 hover:shadow-glass",
-          !selectedTemplate && "border-primary bg-primary/10",
-        )}
-        onClick={() => onSelectTemplate(undefined)}
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-            <span className="text-2xl">⚡</span>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-sm font-semibold text-foreground">Custom Report</h4>
-            <p className="text-sm text-muted-foreground">
-              Build a report from scratch with your own field selection
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {reportLibrary.map((template) => (
-          <div
-            key={template.id}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {areas.map((area) => (
+          <button
+            key={area.id}
+            type="button"
             className={cn(
-              "cursor-pointer rounded-2xl border border-glass bg-background/80 p-5 transition hover:border-primary/40 hover:shadow-glass",
-              selectedTemplate?.id === template.id && "border-primary bg-primary/10",
+              "text-left rounded-2xl border p-5 transition hover:border-primary/40 hover:shadow-glass",
+              area.color,
             )}
-            onClick={() => onSelectTemplate(template)}
+            onClick={() => onStartCustom(area.id)}
           >
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-muted">
-                <span className="text-2xl">{template.icon}</span>
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/70">
+                <span className="text-2xl">{area.icon}</span>
               </div>
-              <div className="flex-1 space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">
-                  {template.name}
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {template.description}
-                </p>
-                <div className="text-xs text-muted-foreground">
-                  {template.defaultFields.length} default fields
-                </div>
+              <div className="flex-1 space-y-1">
+                <h4 className="text-sm font-semibold text-foreground">{area.name}</h4>
+                <p className="text-sm text-muted-foreground">{area.description}</p>
               </div>
             </div>
-          </div>
+          </button>
         ))}
+      </div>
+
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold text-foreground">Or start from a template</h4>
+        <div
+          className={cn(
+            "cursor-pointer rounded-2xl border border-glass bg-background/80 p-5 transition hover:border-primary/40 hover:shadow-glass",
+            !selectedTemplate && "border-primary bg-primary/10",
+          )}
+          onClick={() => onSelectTemplate(undefined)}
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+              <span className="text-2xl">⚡</span>
+            </div>
+            <div className="space-y-1">
+              <h5 className="text-sm font-semibold text-foreground">Blank template</h5>
+              <p className="text-sm text-muted-foreground">Build with your own selection</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

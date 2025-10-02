@@ -26,6 +26,7 @@ import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
 import { ArrowLeft, X } from "lucide-react";
 import Papa from "papaparse";
+import { exportTableToPdf } from "@/lib/pdfExport";
 
 type ColumnDefinition = { header: string; accessorKey: string };
 type FieldMetadata = { label: string; isPII?: boolean };
@@ -87,6 +88,7 @@ function downloadCSV(data: any[], columns: ColumnDefinition[]) {
 }
 
 export default function ReportsPreviewClient() {
+  const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
   const searchParams = useSearchParams();
   const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
@@ -97,14 +99,25 @@ export default function ReportsPreviewClient() {
   const { toast } = useToast();
   const { template, regionName } = useTenantRegion();
 
-  const initialFields = useMemo(() => parseFieldsParam(fieldsParam), [fieldsParam]);
+  const initialFields = useMemo(() => {
+    const parsed = parseFieldsParam(fieldsParam);
+    // Ensure required fields are present when previewing ad-hoc selections
+    const withRequired = Array.from(new Set([...
+      REQUIRED_FIELDS,
+      ...parsed,
+    ]));
+    return withRequired;
+  }, [fieldsParam]);
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
     if (reportIdParam) return [];
     if (templateIdParam && engineParam === "dynamic") {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
-        return template.defaultFields;
+        return Array.from(new Set([...
+          REQUIRED_FIELDS,
+          ...template.defaultFields,
+        ]));
       }
     }
     return initialFields;
@@ -116,7 +129,10 @@ export default function ReportsPreviewClient() {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         setLibraryTemplate(template);
-        setSelectedFields(template.defaultFields);
+        setSelectedFields(Array.from(new Set([...
+          REQUIRED_FIELDS,
+          ...template.defaultFields,
+        ])));
         setActiveFilters(
           template.suggestedFilters?.map((filter, index) => ({
             id: `filter_${index}`,
@@ -134,13 +150,21 @@ export default function ReportsPreviewClient() {
     }
 
     setSelectedFields((current) => {
+      const ensured = Array.from(new Set([...
+        REQUIRED_FIELDS,
+        ...current,
+      ]));
+      const next = Array.from(new Set([...
+        REQUIRED_FIELDS,
+        ...initialFields,
+      ]));
       if (
-        current.length === initialFields.length &&
-        current.every((field, index) => field === initialFields[index])
+        ensured.length === next.length &&
+        ensured.every((field, index) => field === next[index])
       ) {
-        return current;
+        return ensured;
       }
-      return initialFields;
+      return next;
     });
   }, [initialFields, reportIdParam, templateIdParam, engineParam]);
   const [reportConfig, setReportConfig] = useState<any>(null);
@@ -330,7 +354,12 @@ export default function ReportsPreviewClient() {
               : null;
           setActiveSort(savedSort);
 
-          setSelectedFields(report.fields || []);
+          // Force include required fields for saved reports as well
+          const saved = Array.isArray(report.fields) ? report.fields : [];
+          setSelectedFields(Array.from(new Set([...
+            REQUIRED_FIELDS,
+            ...saved,
+          ])));
         } catch (error) {
           console.error("❌ Error loading report:", error);
         } finally {
@@ -345,7 +374,10 @@ export default function ReportsPreviewClient() {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         setLibraryTemplate(template);
-        setSelectedFields(template.defaultFields);
+        setSelectedFields(Array.from(new Set([...
+          REQUIRED_FIELDS,
+          ...template.defaultFields,
+        ])));
         setActiveFilters(
           template.suggestedFilters?.map((filter, index) => ({
             id: `filter_${index}`,
@@ -699,6 +731,41 @@ export default function ReportsPreviewClient() {
     performDownload();
   };
 
+  const buildPrintableRows = useCallback(() => {
+    // Flatten according to chosen accessorKey resolution from columns
+    return filteredData.map((row) => {
+      const obj: Record<string, any> = {};
+      columns.forEach((col) => {
+        const value = getNested(row, col.accessorKey) ?? "";
+        obj[col.header] = typeof value === "object" ? JSON.stringify(value) : String(value);
+      });
+      return obj;
+    });
+  }, [filteredData, columns]);
+
+  const performPdfDownload = useCallback(async () => {
+    if (!columns.length) return;
+    const rows = buildPrintableRows();
+    const blob = await exportTableToPdf("PeopleCore Report", rows, columns);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `peoplecore-report-${Date.now()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logAndToastPII(rows.length);
+  }, [columns, buildPrintableRows, logAndToastPII]);
+
+  const handlePdfClick = () => {
+    if (hasPIISelected && !piiAcknowledged) {
+      setShowPIIModal(true);
+      return;
+    }
+    void performPdfDownload();
+  };
+
   const handleConfirmPIIExport = () => {
     setShowPIIModal(false);
     setPiiAcknowledged(true);
@@ -902,6 +969,9 @@ export default function ReportsPreviewClient() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleDownloadClick}>
             Download CSV ({filteredData.length} rows)
+          </Button>
+          <Button variant="secondary" onClick={handlePdfClick}>
+            Export to PDF
           </Button>
           {total > data.length ? (
             <Button disabled={exportingFull} onClick={handleFullExport}>

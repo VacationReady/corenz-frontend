@@ -399,6 +399,7 @@ export async function POST(
               type: EventCategoryName,
               startDate,
               endDate,
+              approverName: manager.name || undefined,
             });
           }
         }

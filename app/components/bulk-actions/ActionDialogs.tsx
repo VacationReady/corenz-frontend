@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/Checkbox";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
+import { ArrowDownToLine } from "lucide-react";
 
 export interface Option {
   value: string;
@@ -402,15 +403,27 @@ export function DepartmentBulkActionDialog({
 
 interface CompensationDialogProps extends BaseDialogProps {}
 
+interface EmployeeCompensation {
+  id: string;
+  name: string;
+  email: string;
+  salaryAmount: number | null;
+  hourlyRate: number | null;
+}
+
 export function CompensationBulkActionDialog({
   open,
   onOpenChange,
   allEmployees,
+  departments,
+  jobRoles,
   onCompleted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
   onCompleted?: (result: BulkActionResult) => void;
 }) {
   const [mode, setMode] = useState<"percent" | "flat">("percent");
@@ -418,6 +431,8 @@ export function CompensationBulkActionDialog({
   const [targets, setTargets] = useState<string[]>(["salary"]);
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [compensationData, setCompensationData] = useState<Map<string, EmployeeCompensation>>(new Map());
+  const [loadingCompensation, setLoadingCompensation] = useState(false);
 
   const toggleTarget = (value: string) => {
     setTargets((prev) =>
@@ -439,6 +454,33 @@ export function CompensationBulkActionDialog({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Fetch compensation data when selected employees change
+  const fetchCompensationData = useCallback(async (employeeIds: string[]) => {
+    if (employeeIds.length === 0) {
+      setCompensationData(new Map());
+      return;
+    }
+
+    setLoadingCompensation(true);
+    try {
+      const response = await fetch("/api/bulk-actions/compensation/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeIds }),
+      });
+
+      if (response.ok) {
+        const data: EmployeeCompensation[] = await response.json();
+        const dataMap = new Map(data.map((emp) => [emp.id, emp]));
+        setCompensationData(dataMap);
+      }
+    } catch (error) {
+      console.error("Failed to fetch compensation data:", error);
+    } finally {
+      setLoadingCompensation(false);
+    }
+  }, []);
+
   const filteredEmployees = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
     return allEmployees.filter((employee) => {
@@ -459,6 +501,16 @@ export function CompensationBulkActionDialog({
       return true;
     });
   }, [allEmployees, filters]);
+
+  // Prefetch current compensation for all filtered employees so current values are visible
+  useEffect(() => {
+    if (!open) return;
+    if (filteredEmployees.length === 0) {
+      setCompensationData(new Map());
+      return;
+    }
+    fetchCompensationData(filteredEmployees.map((e) => e.id));
+  }, [open, filteredEmployees, fetchCompensationData]);
 
   const allFilteredSelected = useMemo(
     () =>
@@ -512,6 +564,143 @@ export function CompensationBulkActionDialog({
 
   const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
 
+  // Fetch compensation data when selection changes
+  useEffect(() => {
+    if (open && employeeIds.length > 0) {
+      fetchCompensationData(employeeIds);
+    }
+  }, [open, employeeIds, fetchCompensationData]);
+
+  // Calculate new salary/hourly rate
+  const calculateNewValue = useCallback((current: number | null): number | null => {
+    if (current === null || !amountIsValid) return null;
+    
+    if (mode === "percent") {
+      return current * (1 + parsedAmount / 100);
+    } else {
+      return current + parsedAmount;
+    }
+  }, [mode, parsedAmount, amountIsValid]);
+
+  // Calculate total cost impact
+  const totalCostImpact = useMemo(() => {
+    let salaryImpact = 0;
+    let hourlyImpact = 0;
+    let affectedEmployees = 0;
+
+    employeeIds.forEach((id) => {
+      const comp = compensationData.get(id);
+      if (!comp) return;
+
+      let hasChange = false;
+
+      if (targets.includes("salary") && comp.salaryAmount !== null) {
+        const newValue = calculateNewValue(comp.salaryAmount);
+        if (newValue !== null) {
+          salaryImpact += newValue - comp.salaryAmount;
+          hasChange = true;
+        }
+      }
+
+      if (targets.includes("hourly") && comp.hourlyRate !== null) {
+        const newValue = calculateNewValue(comp.hourlyRate);
+        if (newValue !== null) {
+          hourlyImpact += newValue - comp.hourlyRate;
+          hasChange = true;
+        }
+      }
+
+      if (hasChange) affectedEmployees++;
+    });
+
+    return { salaryImpact, hourlyImpact, total: salaryImpact + (hourlyImpact * 2080), affectedEmployees };
+  }, [employeeIds, compensationData, targets, calculateNewValue]);
+
+  // Calculate total payroll (old and new)
+  const payrollTotals = useMemo(() => {
+    let oldSalaryTotal = 0;
+    let newSalaryTotal = 0;
+    let oldHourlyTotal = 0;
+    let newHourlyTotal = 0;
+
+    employeeIds.forEach((id) => {
+      const comp = compensationData.get(id);
+      if (!comp) return;
+
+      // Salary totals
+      if (comp.salaryAmount !== null) {
+        oldSalaryTotal += comp.salaryAmount;
+        if (targets.includes("salary")) {
+          const newValue = calculateNewValue(comp.salaryAmount);
+          newSalaryTotal += newValue ?? comp.salaryAmount;
+        } else {
+          newSalaryTotal += comp.salaryAmount;
+        }
+      }
+
+      // Hourly totals
+      if (comp.hourlyRate !== null) {
+        oldHourlyTotal += comp.hourlyRate;
+        if (targets.includes("hourly")) {
+          const newValue = calculateNewValue(comp.hourlyRate);
+          newHourlyTotal += newValue ?? comp.hourlyRate;
+        } else {
+          newHourlyTotal += comp.hourlyRate;
+        }
+      }
+    });
+
+    return {
+      oldSalaryTotal,
+      newSalaryTotal,
+      salaryDifference: newSalaryTotal - oldSalaryTotal,
+      oldHourlyTotal,
+      newHourlyTotal,
+      hourlyDifference: newHourlyTotal - oldHourlyTotal,
+      oldAnnualHourlyTotal: oldHourlyTotal * 2080,
+      newAnnualHourlyTotal: newHourlyTotal * 2080,
+      annualHourlyDifference: (newHourlyTotal - oldHourlyTotal) * 2080,
+    };
+  }, [employeeIds, compensationData, targets, calculateNewValue]);
+
+  // Export to CSV
+  const exportToCSV = useCallback(() => {
+    const rows = [
+      ["Name", "Email", "Current Salary", "New Salary", "Current Hourly Rate", "New Hourly Rate", "Salary Change", "Hourly Change"],
+    ];
+
+    employeeIds.forEach((id) => {
+      const comp = compensationData.get(id);
+      if (!comp) return;
+
+      const currentSalary = comp.salaryAmount ?? 0;
+      const newSalary = targets.includes("salary") ? calculateNewValue(currentSalary) ?? 0 : currentSalary;
+      const currentHourly = comp.hourlyRate ?? 0;
+      const newHourly = targets.includes("hourly") ? calculateNewValue(currentHourly) ?? 0 : currentHourly;
+
+      rows.push([
+        comp.name,
+        comp.email,
+        currentSalary.toFixed(2),
+        newSalary.toFixed(2),
+        currentHourly.toFixed(2),
+        newHourly.toFixed(2),
+        (newSalary - currentSalary).toFixed(2),
+        (newHourly - currentHourly).toFixed(2),
+      ]);
+    });
+
+    const csvContent = rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `compensation-bulk-action-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exported successfully");
+  }, [employeeIds, compensationData, targets, calculateNewValue]);
+
   const canSubmit =
     employeeIds.length > 0 &&
     targets.length > 0 &&
@@ -562,6 +751,7 @@ export function CompensationBulkActionDialog({
       setTargets(["salary"]);
       setReason("");
       setSelectedIds(new Set());
+      setCompensationData(new Map());
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error?.message || "Unable to update compensation");
@@ -570,18 +760,31 @@ export function CompensationBulkActionDialog({
     }
   };
 
+  const formatCurrency = (value: number | null) => {
+    if (value === null) return "—";
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: "GBP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Adjust compensation">
+      <DialogContent title="Adjust compensation" className="max-w-7xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Adjust compensation</DialogTitle>
-          <DialogDescription>
-            {employeeIds.length} employees selected. {employeePreview}
+          <DialogTitle className="text-2xl">Adjust compensation</DialogTitle>
+          <DialogDescription className="text-base">
+            {employeeIds.length === 0
+              ? "Select employees below to preview compensation changes"
+              : `${employeeIds.length} employee${employeeIds.length !== 1 ? "s" : ""} selected. ${employeePreview}`}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* Filters */}
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Search</label>
                 <Input
@@ -608,132 +811,313 @@ export function CompensationBulkActionDialog({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Departments</label>
+                <MultiSelect
+                  options={departments}
+                  value={filters.departments}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
+                  placeholder="Filter departments"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Job roles</label>
+                <MultiSelect
+                  options={jobRoles}
+                  value={filters.jobRoles}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
+                  placeholder="Filter job roles"
+                />
+              </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
-                  {filteredEmployees.length === 0 ? (
+            {/* Employee Selection Table */}
+            <div className="overflow-hidden rounded-xl border border-glass shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-gradient-to-r from-muted/60 to-muted/40">
                     <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
+                      <th className="px-4 py-3 text-left">
+                        <Checkbox
+                          checked={selectionState}
+                          onCheckedChange={() => toggleSelectAllFiltered()}
+                          aria-label="Select all filtered employees"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Employee
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Current Salary
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        New Salary
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Current Hourly
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        New Hourly
+                      </th>
                     </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">{employee.email}</div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {employee.isActive ? "Active" : "Inactive"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Adjustment type
-              </label>
-              <Select value={mode} onValueChange={(value) => setMode(value as "percent" | "flat")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select adjustment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="percent">Percentage (%)</SelectItem>
-                  <SelectItem value="flat">Fixed amount</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Amount
-              </label>
-              <Input
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"}
-                type="number"
-                step="0.01"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                {mode === "percent"
-                  ? "Use negative values to decrease salaries."
-                  : "Enter the currency amount to add or subtract."}
-              </p>
+                  </thead>
+                  <tbody className="divide-y divide-border/60 bg-background">
+                    {filteredEmployees.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                          No employees match your filters yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEmployees.map((employee) => {
+                        const isSelected = selectedIds.has(employee.id);
+                        const comp = compensationData.get(employee.id);
+                        const newSalary: number | null = comp
+                          ? (targets.includes("salary")
+                              ? calculateNewValue(comp.salaryAmount)
+                              : comp.salaryAmount)
+                          : null;
+                        const newHourly: number | null = comp
+                          ? (targets.includes("hourly")
+                              ? calculateNewValue(comp.hourlyRate)
+                              : comp.hourlyRate)
+                          : null;
+
+                        return (
+                          <tr 
+                            key={employee.id} 
+                            className={`${isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/20"} transition-colors`}
+                          >
+                            <td className="px-4 py-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleEmployeeSelection(employee.id)}
+                                aria-label={`Select ${employee.name}`}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-foreground">{employee.name}</div>
+                              <div className="text-xs text-muted-foreground">{employee.email}</div>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation ? (
+                                <span className="text-muted-foreground">Loading...</span>
+                              ) : (
+                                <span className="font-medium">{formatCurrency(comp?.salaryAmount ?? null)}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : comp && newSalary !== null && comp.salaryAmount !== null && newSalary !== comp.salaryAmount ? (
+                                <span className={`font-semibold ${newSalary > comp.salaryAmount ? "text-green-600" : "text-red-600"}`}>
+                                  {formatCurrency(newSalary)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation ? (
+                                <span className="text-muted-foreground">Loading...</span>
+                              ) : (
+                                <span className="font-medium">{formatCurrency(comp?.hourlyRate ?? null)}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {loadingCompensation ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : comp && newHourly !== null && comp.hourlyRate !== null && newHourly !== comp.hourlyRate ? (
+                                <span className={`font-semibold ${newHourly > comp.hourlyRate ? "text-green-600" : "text-red-600"}`}>
+                                  {formatCurrency(newHourly)}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Apply to
-            </label>
-            <div className="flex flex-col gap-3">
-              <label className="inline-flex items-center gap-3 text-sm">
-                <Checkbox
-                  checked={targets.includes("salary")}
-                  onCheckedChange={() => toggleTarget("salary")}
+          {/* Adjustment Configuration */}
+          <div className="space-y-4 rounded-xl border border-glass bg-gradient-to-br from-muted/20 to-muted/5 p-6">
+            <h3 className="text-lg font-semibold text-foreground">Adjustment Configuration</h3>
+            
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Adjustment type</label>
+                <Select value={mode} onValueChange={(value) => setMode(value as "percent" | "flat")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select adjustment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percent">Percentage (%)</SelectItem>
+                    <SelectItem value="flat">Fixed amount (£)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Amount</label>
+                <Input
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"}
+                  type="number"
+                  step="0.01"
+                  required
                 />
-                Salary amount
-              </label>
-              <label className="inline-flex items-center gap-3 text-sm">
-                <Checkbox
-                  checked={targets.includes("hourly")}
-                  onCheckedChange={() => toggleTarget("hourly")}
-                />
-                Hourly rate
-              </label>
+                <p className="text-xs text-muted-foreground">
+                  {mode === "percent"
+                    ? "Use negative values to decrease compensation."
+                    : "Enter the currency amount to add or subtract."}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Apply to</label>
+              <div className="flex flex-wrap gap-4">
+                <label className="inline-flex items-center gap-3 text-sm">
+                  <Checkbox
+                    checked={targets.includes("salary")}
+                    onCheckedChange={() => toggleTarget("salary")}
+                  />
+                  <span className="font-medium">Salary amount</span>
+                </label>
+                <label className="inline-flex items-center gap-3 text-sm">
+                  <Checkbox
+                    checked={targets.includes("hourly")}
+                    onCheckedChange={() => toggleTarget("hourly")}
+                  />
+                  <span className="font-medium">Hourly rate</span>
+                </label>
+              </div>
             </div>
           </div>
 
+          {/* Payroll Summary */}
+          {employeeIds.length > 0 && (
+            <div className="space-y-4">
+              {/* Salary Payroll */}
+              {(payrollTotals.oldSalaryTotal > 0 || targets.includes("salary")) && (
+                <div className="rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-semibold text-foreground">Annual Salary Payroll Summary</h3>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Current Total</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldSalaryTotal)}</p>
+                      <p className="text-xs text-muted-foreground">{employeeIds.length} selected employee{employeeIds.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">New Total</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newSalaryTotal)}</p>
+                      <p className="text-xs text-muted-foreground">After adjustment</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
+                      <p className={`text-3xl font-bold ${payrollTotals.salaryDifference >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {payrollTotals.salaryDifference >= 0 ? "+" : ""}{formatCurrency(payrollTotals.salaryDifference)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payrollTotals.salaryDifference !== 0 && payrollTotals.oldSalaryTotal > 0
+                          ? `${((payrollTotals.salaryDifference / payrollTotals.oldSalaryTotal) * 100).toFixed(2)}% change`
+                          : "No change"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Hourly Payroll */}
+              {(payrollTotals.oldHourlyTotal > 0 || targets.includes("hourly")) && (
+                <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-semibold text-foreground">Hourly Rate Payroll Summary</h3>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Current Total (Annual)</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldAnnualHourlyTotal)}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(payrollTotals.oldHourlyTotal)}/hour × 2,080 hrs</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">New Total (Annual)</p>
+                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newAnnualHourlyTotal)}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(payrollTotals.newHourlyTotal)}/hour × 2,080 hrs</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
+                      <p className={`text-3xl font-bold ${payrollTotals.annualHourlyDifference >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {payrollTotals.annualHourlyDifference >= 0 ? "+" : ""}{formatCurrency(payrollTotals.annualHourlyDifference)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payrollTotals.annualHourlyDifference !== 0 && payrollTotals.oldAnnualHourlyTotal > 0
+                          ? `${((payrollTotals.annualHourlyDifference / payrollTotals.oldAnnualHourlyTotal) * 100).toFixed(2)}% change`
+                          : "No change"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Combined Total */}
+              {payrollTotals.oldSalaryTotal > 0 && payrollTotals.oldAnnualHourlyTotal > 0 && (
+                <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/20 p-6 shadow-md">
+                  <h3 className="mb-4 text-lg font-semibold text-foreground">Combined Payroll Impact</h3>
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Current Payroll</p>
+                      <p className="text-3xl font-bold text-foreground">
+                        {formatCurrency(payrollTotals.oldSalaryTotal + payrollTotals.oldAnnualHourlyTotal)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total New Payroll</p>
+                      <p className="text-3xl font-bold text-foreground">
+                        {formatCurrency(payrollTotals.newSalaryTotal + payrollTotals.newAnnualHourlyTotal)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
+                      <p className={`text-3xl font-bold ${(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference) >= 0 ? "+" : ""}
+                        {formatCurrency(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Reason for adjustment
-            </label>
+            <label className="text-sm font-medium text-foreground">Reason for adjustment</label>
             <Textarea
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain the rationale for the adjustment"
+              placeholder="Explain the rationale for this compensation adjustment (e.g., annual review, promotion, market adjustment)"
               rows={4}
               required
+              className="resize-none"
             />
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={exportToCSV}
+              disabled={employeeIds.length === 0 || loadingCompensation}
+              className="gap-2"
+            >
+              <ArrowDownToLine className="h-4 w-4" />
+              Export CSV
+            </Button>
+            <div className="flex-1" />
             <Button
               type="button"
               variant="outline"
@@ -743,7 +1127,7 @@ export function CompensationBulkActionDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Apply adjustment
+              Apply to {employeeIds.length} employee{employeeIds.length !== 1 ? "s" : ""}
             </Button>
           </DialogFooter>
         </form>
@@ -756,6 +1140,8 @@ interface TrainingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
   courses: Option[];
   providers: Option[];
   onCompleted?: (result: BulkActionResult) => void;
@@ -765,6 +1151,8 @@ export function TrainingBulkActionDialog({
   open,
   onOpenChange,
   allEmployees,
+  departments,
+  jobRoles,
   courses,
   providers,
   onCompleted,
@@ -1109,6 +1497,8 @@ interface LeaveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   allEmployees: MessagingEmployee[];
+  departments: Option[];
+  jobRoles: Option[];
   eventCategories: Option[];
   onCompleted?: (result: BulkActionResult) => void;
 }
@@ -1117,6 +1507,8 @@ export function LeaveBulkActionDialog({
   open,
   onOpenChange,
   allEmployees,
+  departments,
+  jobRoles,
   eventCategories,
   onCompleted,
 }: LeaveDialogProps) {
@@ -1310,6 +1702,27 @@ export function LeaveBulkActionDialog({
                     <SelectItem value="all">All employees</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Departments</label>
+                <MultiSelect
+                  options={departments}
+                  value={filters.departments}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
+                  placeholder="Filter departments"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Job roles</label>
+                <MultiSelect
+                  options={jobRoles}
+                  value={filters.jobRoles}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
+                  placeholder="Filter job roles"
+                />
               </div>
             </div>
 

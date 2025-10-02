@@ -9,6 +9,7 @@ interface LeaveNotificationParams {
   startDate: string;
   endDate: string;
   status?: "APPROVED" | "DECLINED" | "PENDING";
+  approverName?: string;
 }
 
 export async function sendLeaveNotification({
@@ -19,6 +20,7 @@ export async function sendLeaveNotification({
   startDate,
   endDate,
   status = "PENDING",
+  approverName,
 }: LeaveNotificationParams) {
   try {
     const formattedStart = new Date(startDate).toLocaleDateString();
@@ -29,7 +31,7 @@ export async function sendLeaveNotification({
       preheader: `${employeeName}'s ${type} leave is ${status.toLowerCase()}`,
       title: "Leave Request Notification",
       intro: [
-        "Hello,",
+        approverName ? `Hi ${approverName},` : "Hello,",
         `This is a notification regarding ${employeeName}'s leave request.`,
       ],
       sections: [

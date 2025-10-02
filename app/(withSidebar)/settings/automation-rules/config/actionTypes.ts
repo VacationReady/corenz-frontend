@@ -1,5 +1,5 @@
 // Action types that create tasks in the Action Items widget on employee dashboards
-// Designed to AVOID duplicating existing auto-notifications and system behaviors
+// Designed to AVOID duplicating existing auto-notifications and system behaviours
 
 export const actionTypes = [
   // COMMUNICATION - send messages

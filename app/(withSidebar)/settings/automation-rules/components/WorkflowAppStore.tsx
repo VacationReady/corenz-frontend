@@ -105,7 +105,7 @@ export function WorkflowAppStore({
           HR Automation App Store
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          No-code workflows that save hours of manual work. Install instantly or customize to fit your needs.
+          No-code workflows that save hours of manual work. Install instantly or customise to fit your needs.
         </p>
 
         {/* Stats */}

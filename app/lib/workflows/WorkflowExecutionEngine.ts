@@ -1229,24 +1229,36 @@ export class WorkflowExecutionEngine {
   }
 
   private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
-    // Create a dashboard task to complete training; avoids altering records directly
-    const title = this.interpolateVariables(config.title || "Complete training", context);
+    if (!context.employee) return;
+
+    const defaultTitle = config.courseId ? `Complete training: ${config.courseId}` : "Complete training";
+    const title = this.interpolateVariables(config.title || defaultTitle, context);
+    const description = this.interpolateVariables(config.description || "", context);
+    const dueDays =
+      typeof config.dueInDays === "number"
+        ? config.dueInDays
+        : typeof config.dueDays === "number"
+        ? config.dueDays
+        : null;
+
     await prisma.actionItem.create({
       data: {
         id: uuidv4(),
         companyId: context.company?.id || "",
         title,
-        description: this.interpolateVariables(config.description || "", context),
+        description,
         type: "TRAINING",
         status: "PENDING",
-        priority: config.priority || "MEDIUM",
-        dueDate: config.dueDays ? this.addBusinessDays(new Date(), config.dueDays) : null,
-        assignedToId: context.employee?.userId ?? null,
-        relatedEmployeeId: context.employee?.id ?? null,
+        priority: (config.priority as string | undefined) || (config.mandatory ? "HIGH" : "MEDIUM"),
+        dueDate: dueDays !== null ? this.addBusinessDays(new Date(), dueDays) : null,
+        assignedToId: context.employee.userId ?? null,
+        relatedEmployeeId: context.employee.id ?? null,
         updatedAt: new Date(),
         metadata: {
           source: "workflow",
+          workflowId: context.workflowId ?? null,
           courseId: config.courseId || null,
+          mandatory: Boolean(config.mandatory),
         },
       },
     });
@@ -1415,40 +1427,6 @@ export class WorkflowExecutionEngine {
     }
   }
 
-  /**
-   * Execute assign training action
-   */
-  private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
-    if (!context.employee) return;
-
-    // Create task to complete training
-    const title = this.interpolateVariables(
-      config.title || `Complete training: ${config.courseId || 'Course'}`,
-      context
-    );
-    
-    await prisma.actionItem.create({
-      data: {
-        id: uuidv4(),
-        companyId: context.company?.id || "",
-        title,
-        description: this.interpolateVariables(config.description || "", context),
-        type: "TRAINING",
-        status: "PENDING",
-        priority: config.mandatory ? "HIGH" : "MEDIUM",
-        dueDate: config.dueInDays ? this.addBusinessDays(new Date(), config.dueInDays) : null,
-        assignedToId: context.employee.userId,
-        relatedEmployeeId: context.employee.id,
-        updatedAt: new Date(),
-        metadata: {
-          source: "workflow",
-          workflowId: context.workflowId,
-          courseId: config.courseId,
-          mandatory: config.mandatory || false,
-        },
-      },
-    });
-  }
 }
 
 // Export singleton instance

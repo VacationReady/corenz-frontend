@@ -291,9 +291,31 @@ async function handleDataQuery(
         result.data.forEach((item: any, index: number) => {
           const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
           const role = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
+          
+          // Calculate age if DOB available
+          let ageInfo = '';
+          if (item.User?.dateOfBirth) {
+            const dob = new Date(item.User.dateOfBirth);
+            const age = Math.floor((new Date().getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+            ageInfo = `\n   🎂 Age: ${age} years`;
+          }
+          
+          // Calculate tenure if start date available
+          let tenureInfo = '';
+          if (item.startDate) {
+            const start = new Date(item.startDate);
+            const years = Math.floor((new Date().getTime() - start.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+            const months = Math.floor(((new Date().getTime() - start.getTime()) / (30.44 * 24 * 60 * 60 * 1000)) % 12);
+            if (years > 0) {
+              tenureInfo = `\n   📅 Tenure: ${years}y ${months}m`;
+            } else {
+              tenureInfo = `\n   📅 Tenure: ${months} months`;
+            }
+          }
+          
           const salary = item.salaryAmount ? `\n   💰 Salary: $${Math.round(Number(item.salaryAmount)).toLocaleString()}/year` : '';
           const email = item.User?.email ? `\n   📧 Email: ${item.User.email}` : '';
-          answer += `${index + 1}. ${name}${role}${salary}${email}\n`;
+          answer += `${index + 1}. ${name}${role}${ageInfo}${tenureInfo}${salary}${email}\n`;
         });
       } else if (result.data.length > 20) {
         answer = `${result.data.length} people (showing first 20):\n\n`;

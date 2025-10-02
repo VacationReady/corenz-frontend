@@ -42,11 +42,13 @@ export async function directListEmployees(
         id: true,
         salaryAmount: true,
         hourlyRate: true,
+        startDate: true,
         User: {
           select: {
             firstName: true,
             lastName: true,
             email: true,
+            dateOfBirth: true,
           },
         },
         Department: {
@@ -68,14 +70,36 @@ export async function directListEmployees(
       };
     }
     
-    // Format response
+    // Format response with intelligent data display
     let answer = `${employees.length} people in ${department.name}:\n\n`;
     employees.forEach((emp, idx) => {
       const name = `${emp.User.firstName} ${emp.User.lastName}`;
       const role = emp.JobRole?.name ? ` - ${emp.JobRole.name}` : '';
+      
+      // Calculate age if DOB available
+      let ageInfo = '';
+      if (emp.User.dateOfBirth) {
+        const dob = new Date(emp.User.dateOfBirth);
+        const age = Math.floor((new Date().getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        ageInfo = `\n   🎂 Age: ${age} years`;
+      }
+      
+      // Calculate tenure if start date available
+      let tenureInfo = '';
+      if (emp.startDate) {
+        const start = new Date(emp.startDate);
+        const years = Math.floor((new Date().getTime() - start.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+        const months = Math.floor(((new Date().getTime() - start.getTime()) / (30.44 * 24 * 60 * 60 * 1000)) % 12);
+        if (years > 0) {
+          tenureInfo = `\n   📅 Tenure: ${years}y ${months}m`;
+        } else {
+          tenureInfo = `\n   📅 Tenure: ${months} months`;
+        }
+      }
+      
       const salary = emp.salaryAmount ? `\n   💰 Salary: $${Math.round(Number(emp.salaryAmount)).toLocaleString()}/year` : '';
       const email = `\n   📧 Email: ${emp.User.email}`;
-      answer += `${idx + 1}. ${name}${role}${salary}${email}\n`;
+      answer += `${idx + 1}. ${name}${role}${ageInfo}${tenureInfo}${salary}${email}\n`;
     });
     
     return {

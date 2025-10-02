@@ -22,9 +22,15 @@ You are a database query assistant for an HR system. Generate safe, read-only Pr
 
 CORE MODELS:
 - Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, irdNumber, taxCode, salaryAmount, hourlyRate, contractType, employmentType, siteLocation
-- User: id, email, firstName, lastName, role, phone  
+- User: id, email, firstName, lastName, role, phone, dateOfBirth, addressCity, addressCountry
 - Department: id, name, headId
 - JobRole: id, name, level
+
+COMPUTED FIELDS (Calculate from existing data):
+- Age: Calculate from User.dateOfBirth (current date - dateOfBirth)
+- Tenure: Calculate from Employee.startDate (current date - startDate) 
+- Contract time remaining: contractEndDate - current date
+- Years of service: (current date - startDate) / 365
 
 LEAVE & ABSENCE:
 - LeaveRequest: id, employeeId, startDate, endDate, approvalStatus, eventCategoryId, dayType, reason
@@ -82,11 +88,21 @@ Common Query Examples:
 - "What's total salary for sales?" → employee model, queryType: aggregate, SUM salaryAmount
 - "Average salary in IT?" → employee model, queryType: aggregate, AVG salaryAmount
 
+COMPUTED FIELD EXAMPLES - Age, Tenure, etc:
+- "How many employees are younger than 21?" → employee model, count, WHERE dateOfBirth > [date 21 years ago]
+- "Show employees over 30" → employee model, findMany, WHERE dateOfBirth < [date 30 years ago]
+- "Who has been here more than 5 years?" → employee model, findMany, WHERE startDate < [date 5 years ago]
+- "List employees with less than 1 year tenure" → employee model, findMany, WHERE startDate > [date 1 year ago]
+- "Contracts expiring in next 30 days" → employee model, findMany, WHERE contractEndDate BETWEEN now AND [30 days from now]
+- "Who is in their probation period?" → employee model, findMany, WHERE startDate > [90 days ago] (assuming 90 day probation)
+
 CRITICAL EXAMPLES - Study These:
 User: "How many in sales?" → {queryType: "count", model: "employee", operation: "Department filter sales"}
 User: "List individuals in sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
 User: "Show sales team salaries" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
 User: "Names and salaries for sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
+User: "How many younger than 21?" → {queryType: "count", model: "employee", operation: "User.dateOfBirth > [calculate date 21 years ago]"}
+User: "Show people over 30" → {queryType: "findMany", model: "employee", operation: "User.dateOfBirth < [calculate date 30 years ago]"}
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
@@ -228,6 +244,61 @@ async function executeQueryByType(
           where.irdNumber = null;
         }
         
+        // Handle age-based queries (younger than X, older than X)
+        const ageMatch = operation.match(/(?:younger|older|age|under|over|less than|more than|above|below)\s+(?:than\s+)?(\d+)/i);
+        if (ageMatch || operation.includes("dateOfBirth")) {
+          const ageLimit = ageMatch ? parseInt(ageMatch[1]) : null;
+          const isYounger = operation.match(/younger|under|less than|below/i);
+          const isOlder = operation.match(/older|over|more than|above/i);
+          
+          if (ageLimit) {
+            const today = new Date();
+            const targetDate = new Date(today.getFullYear() - ageLimit, today.getMonth(), today.getDate());
+            
+            if (isYounger) {
+              // Younger than X = born AFTER (date X years ago)
+              where.User = { dateOfBirth: { gt: targetDate } };
+            } else if (isOlder) {
+              // Older than X = born BEFORE (date X years ago)
+              where.User = { dateOfBirth: { lt: targetDate } };
+            }
+          }
+        }
+        
+        // Handle tenure-based queries
+        const tenureMatch = operation.match(/(?:tenure|been here|worked here|employed for).*?(\d+)\s*(?:year|yr)/i);
+        if (tenureMatch || (operation.includes("startDate") && operation.includes("year"))) {
+          const years = tenureMatch ? parseInt(tenureMatch[1]) : null;
+          const isMoreThan = operation.match(/more than|over|greater than|longer than/i);
+          const isLessThan = operation.match(/less than|under|fewer than|shorter than/i);
+          
+          if (years) {
+            const today = new Date();
+            const targetDate = new Date(today.getFullYear() - years, today.getMonth(), today.getDate());
+            
+            if (isMoreThan) {
+              // More than X years = started BEFORE (date X years ago)
+              where.startDate = { lt: targetDate };
+            } else if (isLessThan) {
+              // Less than X years = started AFTER (date X years ago)
+              where.startDate = { gt: targetDate };
+            }
+          }
+        }
+        
+        // Handle contract expiry queries
+        const expiryMatch = operation.match(/expiring.*?(\d+)\s*days?/i);
+        if (expiryMatch || operation.includes("contractEndDate")) {
+          const days = expiryMatch ? parseInt(expiryMatch[1]) : 30;
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+          
+          where.contractEndDate = {
+            gte: today,
+            lte: futureDate,
+          };
+        }
+        
         // Try to extract department from operation OR conversation context
         let departmentName: string | null = null;
         
@@ -295,9 +366,60 @@ async function executeQueryByType(
       if (queryType === "findMany") {
         const where: any = { companyId };
         
+        // Handle age-based queries
+        const ageMatch = operation.match(/(?:younger|older|age|under|over|less than|more than|above|below)\s+(?:than\s+)?(\d+)/i);
+        if (ageMatch || operation.includes("dateOfBirth")) {
+          const ageLimit = ageMatch ? parseInt(ageMatch[1]) : null;
+          const isYounger = operation.match(/younger|under|less than|below/i);
+          const isOlder = operation.match(/older|over|more than|above/i);
+          
+          if (ageLimit) {
+            const today = new Date();
+            const targetDate = new Date(today.getFullYear() - ageLimit, today.getMonth(), today.getDate());
+            
+            if (isYounger) {
+              where.User = { dateOfBirth: { gt: targetDate } };
+            } else if (isOlder) {
+              where.User = { dateOfBirth: { lt: targetDate } };
+            }
+          }
+        }
+        
+        // Handle tenure-based queries
+        const tenureMatch = operation.match(/(?:tenure|been here|worked here|employed for).*?(\d+)\s*(?:year|yr)/i);
+        if (tenureMatch || (operation.includes("startDate") && operation.includes("year"))) {
+          const years = tenureMatch ? parseInt(tenureMatch[1]) : null;
+          const isMoreThan = operation.match(/more than|over|greater than|longer than/i);
+          const isLessThan = operation.match(/less than|under|fewer than|shorter than/i);
+          
+          if (years) {
+            const today = new Date();
+            const targetDate = new Date(today.getFullYear() - years, today.getMonth(), today.getDate());
+            
+            if (isMoreThan) {
+              where.startDate = { lt: targetDate };
+            } else if (isLessThan) {
+              where.startDate = { gt: targetDate };
+            }
+          }
+        }
+        
+        // Handle contract expiry
+        const expiryMatch = operation.match(/expiring.*?(\d+)\s*days?/i);
+        if (expiryMatch || operation.includes("contractEndDate")) {
+          const days = expiryMatch ? parseInt(expiryMatch[1]) : 30;
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
+          
+          where.contractEndDate = {
+            gte: today,
+            lte: futureDate,
+          };
+        }
+        
         // Check if looking up specific person by name (for email, phone, etc.)
         const nameMatch = operation.match(/(?:firstName|lastName|name).*?["']([^"']+)["']/i);
-        if (nameMatch) {
+        if (nameMatch && !where.User) { // Don't override age filter
           const searchName = nameMatch[1];
           // Search by first name OR last name
           where.User = {
@@ -354,6 +476,7 @@ async function executeQueryByType(
             contractType: true,
             employmentType: true,
             startDate: true,
+            contractEndDate: true,
             isActive: true,
             siteLocation: true,
             User: {
@@ -362,6 +485,7 @@ async function executeQueryByType(
                 lastName: true,
                 email: true,
                 phone: true,
+                dateOfBirth: true,
               },
             },
             Department: {

@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
       where: { id: employeeId, companyId: session.user.companyId },
       include: {
         User: true,
-        Manager: { include: { User: true } },
       },
     });
 
@@ -32,6 +31,16 @@ export async function POST(req: NextRequest) {
     const attendees: Array<{ name: string; email: string; role: string }> = [];
     const attendeeTypes = Array.isArray(config.attendees) ? config.attendees : ['employee'];
 
+    const managerUser =
+      attendeeTypes.includes('manager') && employee.User.managerId
+        ? await prisma.user.findFirst({
+            where: {
+              id: employee.User.managerId,
+              companyId: session.user.companyId,
+            },
+          })
+        : null;
+
     if (attendeeTypes.includes('employee')) {
       attendees.push({
         name: `${employee.User.firstName || ''} ${employee.User.lastName || ''}`.trim(),
@@ -40,10 +49,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (attendeeTypes.includes('manager') && employee.Manager?.User) {
+    if (attendeeTypes.includes('manager') && managerUser) {
+      const managerName =
+        `${managerUser.firstName || ''} ${managerUser.lastName || ''}`.trim() ||
+        managerUser.name ||
+        managerUser.email;
+
       attendees.push({
-        name: `${employee.Manager.User.firstName || ''} ${employee.Manager.User.lastName || ''}`.trim(),
-        email: employee.Manager.User.email,
+        name: managerName,
+        email: managerUser.email,
         role: 'REQ-PARTICIPANT',
       });
     }

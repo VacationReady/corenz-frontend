@@ -52,6 +52,11 @@ export function checkRateLimit(
   limit: number = 100,
   windowMs: number = 3600000
 ): { allowed: boolean; remaining: number; resetAt: number } {
+  // If no API key configured, skip rate limiting (development mode)
+  if (!process.env.OPENAI_API_KEY) {
+    return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
+  }
+
   const now = Date.now();
   const userLimit = requestCounts.get(userId);
 

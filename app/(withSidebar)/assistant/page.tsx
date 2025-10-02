@@ -538,6 +538,12 @@ export default function AIAssistantPage() {
 
             {/* Input */}
             <div className="border-t p-4 bg-gradient-to-r from-background via-primary/5 to-background">
+              {showWelcome && (
+                <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <ArrowRight className="w-4 h-4 text-primary animate-pulse" />
+                  <span className="font-medium">Type your question here or click an example above</span>
+                </div>
+              )}
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <input
@@ -545,17 +551,18 @@ export default function AIAssistantPage() {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder={showWelcome ? "Try: 'How many employees don't have IRD numbers?'" : "Ask anything..."}
-                    className="w-full rounded-lg border px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+                    onKeyDown={(e) => e.key === "Enter" && !isProcessing && handleSendMessage()}
+                    placeholder={showWelcome ? "Type here: 'How many employees don't have IRD numbers?'" : "Ask anything..."}
+                    className="w-full rounded-lg border-2 px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-sm transition-all"
                     disabled={isProcessing}
+                    autoFocus
                   />
                   {input && (
                     <Badge 
                       variant="secondary" 
                       className="absolute right-14 top-1/2 -translate-y-1/2 text-xs"
                     >
-                      Press Enter
+                      Press Enter ↵
                     </Badge>
                   )}
                 </div>
@@ -563,7 +570,7 @@ export default function AIAssistantPage() {
                   onClick={() => handleSendMessage()}
                   disabled={isProcessing || !input.trim()}
                   size="sm"
-                  className="px-4 py-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:opacity-90 transition-opacity shadow-md"
+                  className="px-4 py-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -670,9 +677,14 @@ export default function AIAssistantPage() {
                     </div>
                   </div>
 
-                  <div className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <ArrowRight className="w-4 h-4" />
-                    <span>Start chatting to see results here</span>
+                  <div className="mt-10 space-y-3">
+                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Results will appear here</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
+                      <span>💬 Type in the chat box on the left to get started</span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine attendees
-    const attendees: Array<{ name: string; email: string; role: string }> = [];
+    const attendees: Array<{
+      name: string;
+      email: string;
+      role?: "REQ-PARTICIPANT" | "OPT-PARTICIPANT";
+    }> = [];
     const attendeeTypes = Array.isArray(config.attendees) ? config.attendees : ['employee'];
 
     if (attendeeTypes.includes('employee')) {
@@ -82,10 +86,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate event timing
-    const withinDays = config.withinDays || 7;
+    const parsedWithinDays = Number(config.withinDays);
+    const withinDays = Number.isFinite(parsedWithinDays)
+      ? Math.max(1, Math.floor(parsedWithinDays))
+      : 1;
     const duration = config.duration || 30; // minutes
     const startTime = new Date();
-    startTime.setDate(startTime.getDate() + 1); // Tomorrow by default
+    startTime.setDate(startTime.getDate() + withinDays);
     startTime.setHours(10, 0, 0, 0); // 10 AM
 
     const endTime = new Date(startTime);
@@ -107,36 +114,47 @@ export async function POST(req: NextRequest) {
         name: session.user.name || session.user.email,
         email: session.user.email,
       },
-      attendees: attendees.map(a => ({
-        name: a.name,
-        email: a.email,
-        role: a.role as any,
-      })),
+        attendees: attendees.map((a) => ({
+          name: a.name,
+          email: a.email,
+          role: a.role,
+        })),
       method: 'REQUEST',
     });
 
     // Send calendar invites to all attendees
     for (const attendee of attendees) {
+      const { html, text } = renderPeopleCoreEmail({
+        preheader: `You're invited: ${title}`,
+        title: `Calendar Event: ${title}`,
+        intro: ["You've been invited to a calendar event."],
+        sections: [
+          {
+            html: `
+              <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                <h3 style="margin: 0 0 8px 0;">${title}</h3>
+                <p style="margin: 0; color: #6b7280;">
+                  <strong>When:</strong> ${startTime.toLocaleString()}<br>
+                  <strong>Duration:</strong> ${duration} minutes
+                </p>
+                <p style="margin: 12px 0 0 0; color: #6b7280;">
+                  <strong>Participants:</strong> ${attendees
+                    .map((participant) => participant.name || participant.email)
+                    .join(", ")}
+                </p>
+              </div>
+            `,
+          },
+        ],
+        outro: ["A calendar invitation (.ics) has been attached to this email."],
+      });
+
       await resend.emails.send({
         from: "PeopleCore <noreply@peoplecore.co.nz>",
         to: attendee.email,
         subject: `📅 Calendar Invite: ${title}`,
-        html: renderPeopleCoreEmail({
-          headline: `Calendar Event: ${title}`,
-          bodyHtml: `
-            <p>You've been invited to:</p>
-            <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
-              <h3 style="margin: 0 0 8px 0;">${title}</h3>
-              <p style="margin: 0; color: #6b7280;">
-                <strong>When:</strong> ${startTime.toLocaleString()}<br>
-                <strong>Duration:</strong> ${duration} minutes
-              </p>
-            </div>
-            <p>A calendar invitation (.ics) has been attached to this email.</p>
-          `,
-          ctaText: null,
-          ctaUrl: null,
-        }),
+        html,
+        text,
         attachments: [
           {
             filename: ics.filename,
@@ -155,10 +173,13 @@ export async function POST(req: NextRequest) {
       attendees: attendees.length,
       scheduledFor: startTime,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Calendar event creation failed:', error);
+
+    const message = error instanceof Error ? error.message : 'Failed to create calendar event';
+
     return NextResponse.json(
-      { error: error.message || 'Failed to create calendar event' },
+      { error: message },
       { status: 500 }
     );
   }

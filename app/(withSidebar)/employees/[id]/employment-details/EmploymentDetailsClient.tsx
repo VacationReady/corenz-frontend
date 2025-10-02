@@ -99,13 +99,13 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
           const match = filtered.find((e: any) => e.userId === currentManagerUserId);
           setSelectedManagerEmployeeId(match?.id ?? "none");
           // Ensure initialValues reflects existing manager for audit comparison
-          setInitialValues((prev) =>
+          setInitialValues((prev: any | null) =>
             prev ? { ...prev, managerId: match?.id ?? "" } : prev,
           );
         } else {
           setSelectedManagerEmployeeId("none");
           // No existing manager; make sure initialValues has empty managerId for consistency
-          setInitialValues((prev) => (prev ? { ...prev, managerId: "" } : prev));
+          setInitialValues((prev: any | null) => (prev ? { ...prev, managerId: "" } : prev));
         }
       } catch {
         // no-op

@@ -806,7 +806,7 @@ export default function LeavePoliciesPage() {
                   key={policy.id}
                   variants={cardVariants}
                   whileHover={{ y: -8, scale: 1.01 }}
-                  whileFocusWithin={{ y: -6, scale: 1.01 }}
+                  whileFocus={{ y: -6, scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 180, damping: 20, mass: 0.8 }}
                   className="group/policy"
                 >

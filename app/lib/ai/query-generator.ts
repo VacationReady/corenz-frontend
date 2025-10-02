@@ -767,9 +767,6 @@ async function executeQueryByType(
           select: {
             id: true,
             name: true,
-            address: true,
-            city: true,
-            country: true,
           },
         });
       }

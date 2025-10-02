@@ -828,7 +828,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
         {/* Left: Chat Interface */}
         <div 
-          className="w-1/2 flex flex-col min-h-0 relative"
+          className="w-1/2 flex flex-col min-h-0 h-full relative"
           onDrop={handleFileDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -844,7 +844,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             </div>
           )}
           
-          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <Card className="flex-1 flex flex-col min-h-0 h-full">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
               <div className="flex-1 overflow-y-auto p-4">
@@ -920,7 +920,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               </div>
             ) : (
               /* Messages */
-              <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0, maxHeight: '100%' }}>
+              <div className="flex-1 p-4 space-y-4 overflow-y-scroll" style={{ minHeight: 0 }}>
                 {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -943,46 +943,6 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <div className="whitespace-pre-wrap text-sm">
                           {msg.content}
                         </div>
-                        {/* Show data table if query returned results */}
-                        {msg.result?.data && Array.isArray(msg.result.data) && (
-                          <div className="mt-2 max-h-40 overflow-auto">
-                            <div className="text-xs bg-background/50 rounded p-2">
-                              <pre className="text-xs">
-                                {JSON.stringify(msg.result.data.slice(0, 3), null, 2)}
-                              </pre>
-                              {msg.result.data.length > 3 && (
-                                <p className="text-muted-foreground mt-1">
-                                  ...and {msg.result.data.length - 3} more
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Follow-up suggestions */}
-                        {msg.suggestions && msg.suggestions.length > 0 && !msg.isLoading && (
-                          <div className="mt-4 pt-3 border-t border-muted">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Lightbulb className="w-4 h-4 text-amber-500" />
-                              <span className="text-xs font-medium text-muted-foreground">
-                                You might also want to:
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {msg.suggestions.map((suggestion, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleSendMessage(suggestion)}
-                                  disabled={isProcessing}
-                                  className="w-full text-left text-xs px-3 py-2 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <ArrowRight className="w-3 h-3 text-primary group-hover:translate-x-0.5 transition-transform" />
-                                  <span>{suggestion}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </>
                     )}
                   </div>
@@ -1169,7 +1129,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
                   <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
                     <button 
-                      onClick={() => handleSendMessage("Show me all employees with their salaries")}
+                      onClick={() => handleSendMessage("What data would you like to see?")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
@@ -1181,7 +1141,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       </p>
                     </button>
                     <button 
-                      onClick={() => handleSendMessage("What workflow should I create?")}
+                      onClick={() => handleSendMessage("What type of workflow do you want to create?")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
@@ -1193,7 +1153,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       </p>
                     </button>
                     <button 
-                      onClick={() => handleSendMessage("What custom field should I add?")}
+                      onClick={() => handleSendMessage("What field are you looking to add?")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">

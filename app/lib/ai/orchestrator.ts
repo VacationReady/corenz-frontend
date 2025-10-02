@@ -280,15 +280,9 @@ async function handleWorkflowGeneration(
 
   return {
     success: true,
-    message: `✅ **Workflow Generated!**\n\n**${result.workflow?.name}**\n_${result.workflow?.description}_\n\n💡 **Next Steps:**\n- Say "Save this workflow" to activate it\n- Or: "Modify the timing" / "Add more conditions"`,
+    message: `✅ Workflow Generated!\n\n${result.workflow?.name}\n${result.workflow?.description}\n\nSay "Save this workflow" when you're ready to activate it.`,
     actionType: "workflow",
     result: result.workflow,
-    suggestions: [
-      "Save this workflow",
-      "Modify the workflow timing",
-      "Add more conditions",
-      "Create a different workflow",
-    ],
   };
 }
 
@@ -307,14 +301,9 @@ async function handleFieldCreation(
 
   return {
     success: true,
-    message: `✅ **Field Created!**\n\n${result.message}`,
+    message: `✅ Field Created!\n\n${result.message}`,
     actionType: "field",
     result: result.field,
-    suggestions: [
-      "Make this field required",
-      "Add validation rules",
-      "Add another field",
-    ],
   };
 }
 
@@ -329,18 +318,14 @@ async function handleFormCreation(
   const result = await buildFormConversationally(prompt, companyId, conversationContext);
   
   if (!result.success) {
-    // If needs more info, continue conversation
-    if (result.needsInfo) {
-      return {
-        success: true,
-        message: result.needsInfo.question,
-        actionType: "form_conversation",
-        suggestions: result.needsInfo.options || [
-          "Data Screen (editable)",
-          "Submission Form (one-time)",
-        ],
-      };
-    }
+      // If needs more info, continue conversation
+      if (result.needsInfo) {
+        return {
+          success: true,
+          message: result.needsInfo.question,
+          actionType: "form_conversation",
+        };
+      }
     
     return {
       success: false,
@@ -356,12 +341,6 @@ async function handleFormCreation(
     message: result.message || "Form designed successfully!",
     actionType: "form",
     result: result.form,
-    suggestions: [
-      "Deploy this form",
-      "Modify the fields",
-      "Change visibility settings",
-      "Start over",
-    ],
   };
 }
 

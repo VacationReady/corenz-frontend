@@ -168,6 +168,7 @@ function computeExplorerDatasets(
   options: {
     departmentMap: Map<string, string>;
     locationMap: Map<string, string>;
+    jobRoleMap: Map<string, string>;
     ninetyDaysAgo: Date;
     now: Date;
     sixtyDaysAhead: Date;
@@ -230,8 +231,11 @@ function computeExplorerDatasets(
     const contractLabel = contractType ? toTitleCase(contractType) : "Unspecified";
     dimensionSelectors.push(["contractType", contractKey, contractLabel]);
 
-    const jobRoleId = employee.JobRole?.id ?? "unassigned";
-    const jobRoleName = employee.JobRole?.name ?? "Unassigned";
+    const jobRoleId = employee.jobRoleId ?? "unassigned";
+    const jobRoleName =
+      employee.jobRoleId
+        ? options.jobRoleMap.get(employee.jobRoleId) ?? "Unassigned"
+        : "Unassigned";
     dimensionSelectors.push(["jobRole", jobRoleId, jobRoleName]);
 
     for (const [dimensionKey, bucketKey, bucketLabel] of dimensionSelectors) {
@@ -536,7 +540,7 @@ export async function getPeopleAnalytics(
 
   const range = filters.rangeInMonths;
 
-  const [employees, departments, locations] = await Promise.all([
+  const [employees, departments, locations, jobRoles] = await Promise.all([
     prisma.employee.findMany({
       where: {
         companyId,
@@ -554,8 +558,6 @@ export async function getPeopleAnalytics(
         lastWorkingDate: true,
         offboardingDate: true,
         contractEndDate: true,
-        Department: { select: { id: true, name: true } },
-        JobRole: { select: { id: true, name: true } },
       },
     }),
     prisma.department.findMany({
@@ -565,6 +567,11 @@ export async function getPeopleAnalytics(
     }),
     prisma.location.findMany({
       where: { OR: [{ companyId }, { companyId: null }] },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.jobRole.findMany({
+      where: { companyId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -697,10 +704,12 @@ export async function getPeopleAnalytics(
   const employmentTypeBreakdown = buildEmploymentTypeBreakdown(employees);
   const departmentMap = new Map(departments.map((department) => [department.id, department.name]));
   const locationMap = new Map(locations.map((location) => [location.id, location.name]));
+  const jobRoleMap = new Map(jobRoles.map((jobRole) => [jobRole.id, jobRole.name]));
 
   const explorerDatasets = computeExplorerDatasets(employees, {
     departmentMap,
     locationMap,
+    jobRoleMap,
     ninetyDaysAgo,
     now,
     sixtyDaysAhead,

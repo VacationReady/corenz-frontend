@@ -109,7 +109,7 @@ Respond with JSON:
           slug: "custom-fields",
           description: "Additional custom employee information",
           formType: "DATA_SCREEN",
-          definition: {
+          schema: {
             fields: [],
             categories: [
               {
@@ -134,7 +134,7 @@ Respond with JSON:
     }
 
     // Step 3: Add field to form definition
-    const updatedDefinition = form.definition as any;
+    const updatedDefinition = form.schema as any;
     const newField = {
       id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       ...fieldDef,
@@ -161,7 +161,7 @@ Respond with JSON:
     await prisma.form.update({
       where: { id: form.id },
       data: {
-        definition: updatedDefinition,
+        schema: updatedDefinition,
         updatedAt: new Date(),
       },
     });
@@ -195,7 +195,7 @@ export async function removeCustomField(
       return { success: false, error: "Form not found" };
     }
 
-    const definition = form.definition as any;
+    const definition = form.schema as any;
     
     // Remove from fields array
     if (definition.fields) {
@@ -214,7 +214,7 @@ export async function removeCustomField(
     await prisma.form.update({
       where: { id: formId },
       data: {
-        definition,
+        schema: definition,
         updatedAt: new Date(),
       },
     });
@@ -242,14 +242,14 @@ export async function listCustomFields(companyId: string) {
       id: true,
       name: true,
       slug: true,
-      definition: true,
+      schema: true,
     },
   });
 
   const customFields: any[] = [];
 
   forms.forEach((form) => {
-    const definition = form.definition as any;
+    const definition = (form as any).schema as any;
     if (definition.fields) {
       definition.fields
         .filter((f: any) => f.custom === true)

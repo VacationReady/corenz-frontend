@@ -939,7 +939,7 @@ export class WorkflowExecutionEngine {
         return hrUsers;
         
       case "specific":
-        const specificIds = config.recipients || config.assigneeId ? [config.assigneeId] : [];
+        const specificIds = config.recipients || (config.assigneeId ? [config.assigneeId] : []);
         if (specificIds.length > 0) {
           const users = await prisma.user.findMany({
             where: { id: { in: specificIds } },
@@ -1229,21 +1229,36 @@ export class WorkflowExecutionEngine {
   }
 
   private async executeAssignTraining(config: any, context: WorkflowContext): Promise<void> {
-    // Create a dashboard task to complete training; supports multiple config shapes
-    const baseTitle = config.title || (config.courseId ? `Complete training: ${config.courseId}` : "Complete training");
+    if (!context.employee) return;
+
+    // Title / description with variable interpolation
+    const baseTitle =
+      config.title ||
+      (config.courseId ? `Complete training: ${config.courseId}` : "Complete training");
     const title = this.interpolateVariables(baseTitle, context);
+    const description = this.interpolateVariables(config.description || "", context);
 
-    const dueInDays: number | undefined = (config.dueDays ?? config.dueInDays);
-    const dueDate: Date | null = dueInDays ? this.addBusinessDays(new Date(), dueInDays) : null;
+    // Support both config.dueInDays and config.dueDays
+    const dueInDays: number | undefined =
+      typeof config.dueInDays === "number"
+        ? config.dueInDays
+        : typeof config.dueDays === "number"
+        ? config.dueDays
+        : undefined;
 
-    const priority: string = config.priority || (config.mandatory ? "HIGH" : "MEDIUM");
+    const dueDate: Date | null = typeof dueInDays === "number"
+      ? this.addBusinessDays(new Date(), dueInDays)
+      : null;
+
+    // Priority respects explicit config.priority, else HIGH if mandatory, else MEDIUM
+    const priority: string = (config.priority as string | undefined) || (config.mandatory ? "HIGH" : "MEDIUM");
 
     await prisma.actionItem.create({
       data: {
         id: uuidv4(),
         companyId: context.company?.id || "",
         title,
-        description: this.interpolateVariables(config.description || "", context),
+        description,
         type: "TRAINING",
         status: "PENDING",
         priority,
@@ -1333,7 +1348,13 @@ export class WorkflowExecutionEngine {
     await prisma.actionItem.create({
       data: {
         id: uuidv4(),
-        companyId: context.company?.id || (await prisma.user.findUnique({ where: { id: assignedToId || context.employee?.userId || "" }, select: { companyId: true } }))?.companyId || "",
+        companyId:
+          context.company?.id ||
+          (await prisma.user.findUnique({
+            where: { id: assignedToId || context.employee?.userId || "" },
+            select: { companyId: true },
+          }))?.companyId ||
+          "",
         title,
         description,
         type: "TASK",
@@ -1374,7 +1395,9 @@ export class WorkflowExecutionEngine {
       if (result.success && result.buddy) {
         // Expose buddy to subsequent actions in this workflow execution
         context.variables.buddy = result.buddy;
-        // Persisting on Employee is skipped because the model has no metadata field
+        // Persisting buddy metadata would require a schema change. For now rely on the
+        // in-memory workflow context so subsequent actions (e.g. calendar invites) can
+        // reference the buddy without touching the employee record directly.
       }
     } catch (error) {
       console.error('Failed to assign buddy:', error);

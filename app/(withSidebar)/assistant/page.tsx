@@ -844,7 +844,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             </div>
           )}
           
-          <Card className="flex flex-col h-full">
+          <div className="flex flex-col h-full border rounded-lg bg-card shadow-sm">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
               <div className="flex-1 overflow-y-auto p-4">
@@ -1060,7 +1060,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Right: Results/Preview */}

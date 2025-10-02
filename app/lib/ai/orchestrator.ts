@@ -42,7 +42,9 @@ export async function processUserMessage(
 
     // CRITICAL: Check for pending actions FIRST before intent classification
     const pending = conversation.entities.pendingAction;
-    const isConfirmation = /^(yes|yeah|yep|sure|ok|okay|confirm|proceed|do it|go ahead|book it)$/i.test(userMessage.trim());
+    const isConfirmation = /^(yes|yeah|yep|yup|sure|ok|okay|confirm|proceed|do it|go ahead|book it|absolutely|definitely|correct)$/i.test(userMessage.trim());
+    
+    console.log('[Orchestrator] Pending action:', pending?.type, 'Step:', pending?.step, 'User said:', userMessage, 'Is confirmation:', isConfirmation);
     
     // Also check if user is providing info for pending action (dates, leave type, etc.)
     if (pending) {
@@ -90,14 +92,17 @@ export async function processUserMessage(
         
         const result = await executeAction(action);
         
+        console.log('[Orchestrator] Action result:', result);
+        
         // Add AI response to conversation
         if (result.message) {
           addMessage(userId, companyId, "assistant", result.message);
         }
         
+        // If there's a nextStep, return success even if action didn't complete
         return {
-          success: result.success,
-          message: result.message,
+          success: result.nextStep ? true : result.success,
+          message: result.message || "Let's continue...",
           actionType: pending.type,
           result: result.data,
           requiresConfirmation: result.requiresConfirmation,
@@ -532,22 +537,27 @@ async function handleFormCreation(
 function parseContextualParameters(message: string, pending: any): any {
   const params: any = {};
   
+  console.log('[Parse Params] Pending type:', pending.type, 'Step:', pending.step, 'Message:', message);
+  
   if (pending.type === 'book_leave') {
     // Step 1: Looking for dates
     if (pending.step === 1) {
-      // Try to extract date range
+      // Try to extract date range first
       const dateRangeMatch = message.match(/(\w+\s+\d+)\s*(?:to|-)\s*(\w+\s+\d+)/i);
       if (dateRangeMatch) {
         params.startDate = dateRangeMatch[1];
         params.endDate = dateRangeMatch[2];
       } else {
-        params.dates = message;
+        // Single date or natural language
+        params.dates = message.trim();
       }
+      console.log('[Parse Params] Extracted dates:', params);
     }
     
     // Step 2: Looking for leave type
     if (pending.step === 2) {
-      params.leaveType = message;
+      params.leaveType = message.trim();
+      console.log('[Parse Params] Extracted leave type:', params.leaveType);
     }
   }
   

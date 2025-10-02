@@ -16,6 +16,7 @@ interface FieldSelectionProps {
   onUpdateFields: (fields: string[]) => void;
   showSearch?: boolean;
   showSelectedSummary?: boolean;
+  initialExpandedCategories?: string[];
 }
 
 export default function FieldSelection({
@@ -23,11 +24,12 @@ export default function FieldSelection({
   onUpdateFields,
   showSearch = true,
   showSelectedSummary = true,
+  initialExpandedCategories,
 }: FieldSelectionProps) {
   const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set([hrCategories[0].id])
+    new Set(initialExpandedCategories && initialExpandedCategories.length > 0 ? initialExpandedCategories : [hrCategories[0].id])
   );
 
   // Filter fields based on search term

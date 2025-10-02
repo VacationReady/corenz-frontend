@@ -180,8 +180,8 @@ async function getNewHiresCount(companyId: string): Promise<number> {
 async function getExpiringDocumentsCount(companyId: string): Promise<number> {
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-  
-  return prisma.document.count({
+
+  return prisma.employmentCheck.count({
     where: {
       Employee: { companyId },
       expiryDate: {

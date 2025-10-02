@@ -1105,20 +1105,20 @@ async function handleDocumentUpload(action: AIAction): Promise<ActionResult> {
 
         if (employee?.User.email) {
           try {
-            const emailHtml = buildDocumentNotificationEmail({
-              employeeName: `${employee.User.firstName} ${employee.User.lastName}`,
+            const { subject, html, text } = buildDocumentNotificationEmail({
+              recipientName: `${employee.User.firstName} ${employee.User.lastName}`,
               documentName: data.file.name,
               category: data.category,
-              dueDate: data.signatureDueDate,
-              actionRequired: 'signature',
-              documentUrl: signed.signedUrl,
+              docLink: signed.signedUrl,
+              requiresSignature: true,
+              signatureDueAt: data.signatureDueDate,
             });
 
             await resend.emails.send({
               from: 'PeopleCore <noreply@peoplecore.co.nz>',
               to: employee.User.email,
-              subject: `Signature Required: ${data.file.name}`,
-              html: emailHtml,
+              subject,
+              html,
             });
           } catch (emailError) {
             console.error('[Document Upload] Notification email failed:', emailError);

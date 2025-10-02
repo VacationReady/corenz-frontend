@@ -142,14 +142,14 @@ Respond with JSON in this format:
       temperature: 0.3, // Lower temperature for precise queries
       messages,
       response_format: { type: "json_object" },
-    });
+    }    );
 
     const aiResponse = JSON.parse(
       completion.choices[0].message.content || "{}"
     );
 
     // Step 2: Execute the query safely
-    const result = await executeSafeQuery(aiResponse, companyId);
+    const result = await executeSafeQuery(aiResponse, companyId, conversationContext);
 
     return {
       success: true,
@@ -169,7 +169,8 @@ Respond with JSON in this format:
 
 async function executeSafeQuery(
   aiResponse: any,
-  companyId: string
+  companyId: string,
+  conversationContext?: string
 ): Promise<Partial<QueryResult>> {
   const { queryType, model, operation } = aiResponse;
 
@@ -182,7 +183,7 @@ async function executeSafeQuery(
   try {
     // Parse the operation to extract the Prisma query
     // This is a simplified executor - in production, use a sandbox
-    const data = await executeQueryByType(queryType, model, operation, companyId);
+    const data = await executeQueryByType(queryType, model, operation, companyId, conversationContext);
 
     return {
       data,
@@ -197,7 +198,8 @@ async function executeQueryByType(
   queryType: string,
   model: string,
   operation: string,
-  companyId: string
+  companyId: string,
+  conversationContext?: string
 ): Promise<any> {
   // Common queries
   switch (model.toLowerCase()) {
@@ -317,20 +319,37 @@ async function executeQueryByType(
       if (queryType === "aggregate") {
         const where: any = { companyId };
         
-        // Parse department filter for salary aggregation
+        // Try to extract department from operation OR conversation context
+        let departmentName: string | null = null;
+        
+        // First check the operation string
         if (operation.includes("Department") || operation.includes("department")) {
           const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
           if (deptMatch) {
-            const deptName = deptMatch[1];
-            const department = await prisma.department.findFirst({
-              where: {
-                companyId,
-                name: { contains: deptName, mode: 'insensitive' },
-              },
-            });
-            if (department) {
-              where.departmentId = department.id;
-            }
+            departmentName = deptMatch[1];
+          }
+        }
+        
+        // If not found and we have conversation context, extract from there
+        if (!departmentName && conversationContext) {
+          const contextMatch = conversationContext.match(/(?:departments|teams):\s*([^,\n]+)/i);
+          if (contextMatch) {
+            // Get the first mentioned department
+            const mentioned = contextMatch[1].trim();
+            departmentName = mentioned;
+          }
+        }
+        
+        // Apply department filter if found
+        if (departmentName) {
+          const department = await prisma.department.findFirst({
+            where: {
+              companyId,
+              name: { contains: departmentName, mode: 'insensitive' },
+            },
+          });
+          if (department) {
+            where.departmentId = department.id;
           }
         }
         

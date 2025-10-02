@@ -203,12 +203,10 @@ async function handleDataQuery(
   else if (result.data && typeof result.data === 'object' && 'totalSalary' in result.data) {
     const { totalSalary, averageSalary, employeeCount } = result.data;
     answer = `**💰 Salary Analysis:**\n\n`;
-    answer += `• **Total:** $${totalSalary.toLocaleString()}\n`;
-    answer += `• **Average:** $${averageSalary.toLocaleString()}\n`;
+    answer += `• **Total:** $${Math.round(totalSalary).toLocaleString()}\n`;
+    answer += `• **Average:** $${Math.round(averageSalary).toLocaleString()}\n`;
     answer += `• **Employees:** ${employeeCount}\n`;
-    if (result.explanation) {
-      answer += `\n_${result.explanation}_`;
-    }
+    // Don't show technical explanation to end users
   }
   // For other data types
   else if (result.data) {

@@ -18,6 +18,8 @@ interface Form {
   description?: string;
   isActive: boolean;
   visibleToRoles?: string[];
+  visibleToDepartments?: string[];
+  visibleToJobRoles?: string[];
   createdAt: string;
 }
 
@@ -31,18 +33,52 @@ export default function FormsPage() {
   );
   const [recentOnly, setRecentOnly] = useState(false);
   const [previewForm, setPreviewForm] = useState<Form | null>(null);
+  const [departments, setDepartments] = useState<Record<string, string>>({});
+  const [jobRoles, setJobRoles] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch("/api/forms")
-      .then((res) => res.json())
-      .then((data) => {
-        setForms(Array.isArray(data) ? data : []);
+    const loadData = async () => {
+      try {
+        const [formsRes, deptRes, rolesRes] = await Promise.all([
+          fetch("/api/forms"),
+          fetch("/api/departments"),
+          fetch("/api/job-roles"),
+        ]);
+
+        if (formsRes.ok) {
+          const data = await formsRes.json();
+          setForms(Array.isArray(data) ? data : []);
+        }
+
+        if (deptRes.ok) {
+          const deptData = await deptRes.json();
+          const deptMap: Record<string, string> = {};
+          if (Array.isArray(deptData)) {
+            deptData.forEach((dept: any) => {
+              deptMap[dept.id] = dept.name;
+            });
+          }
+          setDepartments(deptMap);
+        }
+
+        if (rolesRes.ok) {
+          const rolesData = await rolesRes.json();
+          const rolesMap: Record<string, string> = {};
+          if (Array.isArray(rolesData)) {
+            rolesData.forEach((role: any) => {
+              rolesMap[role.id] = role.name;
+            });
+          }
+          setJobRoles(rolesMap);
+        }
+      } catch (error) {
+        toast.error("Failed to load data");
+      } finally {
         setLoading(false);
-      })
-      .catch(() => {
-        toast.error("Failed to load forms");
-        setLoading(false);
-      });
+      }
+    };
+
+    loadData();
   }, []);
 
   const filteredForms = useMemo(() => {
@@ -309,8 +345,24 @@ export default function FormsPage() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Users className="h-3 w-3" />
-                    <span>Visible to: {getRoleLabels(f.visibleToRoles)}</span>
+                    <span>Roles: {getRoleLabels(f.visibleToRoles)}</span>
                   </div>
+                  {f.visibleToDepartments && f.visibleToDepartments.length > 0 && (
+                    <div className="flex items-start gap-2 text-xs text-gray-600">
+                      <Users className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        Departments: {f.visibleToDepartments.map(id => departments[id] || id).join(", ")}
+                      </span>
+                    </div>
+                  )}
+                  {f.visibleToJobRoles && f.visibleToJobRoles.length > 0 && (
+                    <div className="flex items-start gap-2 text-xs text-gray-600">
+                      <Users className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        Job Roles: {f.visibleToJobRoles.map(id => jobRoles[id] || id).join(", ")}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Calendar className="h-3 w-3" />
                     <span>Created: {formatDate(f.createdAt)}</span>

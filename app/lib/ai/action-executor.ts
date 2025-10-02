@@ -309,11 +309,11 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       data: {
         id: `leave-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         employeeId: pending.data.employeeId,
+        requesterId: action.userId,
         companyId: action.companyId,
         eventCategoryId: category.id,
         startDate: new Date(pending.data.startDate),
         endDate: new Date(pending.data.endDate),
-        status: "draft",
         approvalStatus: "PENDING",
         dayType: "FULL_DAY",
         reason: `Booked via AI Assistant by admin`,

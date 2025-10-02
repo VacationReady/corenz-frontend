@@ -177,10 +177,8 @@ async function executeQueryByType(
       if (queryType === "count") {
         return await prisma.leaveRequest.count({
           where: {
-            employee: {
-              companyId,
-            },
-            status: "pending",
+            companyId,
+            approvalStatus: "PENDING",
           },
         });
       }
@@ -194,9 +192,7 @@ async function executeQueryByType(
 
         return await prisma.document.count({
           where: {
-            employee: {
-              companyId,
-            },
+            companyId,
             expiryDate: {
               lte: thirtyDaysFromNow,
               gte: new Date(),
@@ -228,8 +224,8 @@ export const QUICK_QUERIES = {
   pendingLeaveRequests: (companyId: string) =>
     prisma.leaveRequest.count({
       where: {
-        employee: { companyId },
-        status: "pending",
+        companyId,
+        approvalStatus: "PENDING",
       },
     }),
 

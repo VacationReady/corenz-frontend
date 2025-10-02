@@ -1377,17 +1377,9 @@ export class WorkflowExecutionEngine {
       if (result.success && result.buddy) {
         context.variables.buddy = result.buddy;
         
-        // Optionally store buddy assignment in employee metadata
-        await prisma.employee.update({
-          where: { id: context.employee.id },
-          data: {
-            metadata: {
-              ...(context.employee.metadata as any || {}),
-              buddyId: result.buddy.id,
-              buddyAssignedAt: new Date().toISOString(),
-            },
-          },
-        });
+        // Persisting buddy metadata would require a schema change. For now rely on the
+        // in-memory workflow context so subsequent actions (e.g. calendar invites) can
+        // reference the buddy without touching the employee record directly.
       }
     } catch (error) {
       console.error('Failed to assign buddy:', error);

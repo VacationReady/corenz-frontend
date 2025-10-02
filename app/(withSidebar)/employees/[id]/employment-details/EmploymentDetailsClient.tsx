@@ -415,6 +415,17 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             endpoint="employment-details"
             initialValues={initialValues}
             currentValues={form}
+            valueFormatter={(field, value) => {
+              if (field === "managerId") {
+                // Display friendly names for manager changes
+                if (!value) return "(none)";
+                const match = employees.find((e) => e.id === value);
+                if (!match) return String(value);
+                const name = `${match.firstName ?? ""} ${match.lastName ?? ""}`.trim();
+                return name || match.email || String(value);
+              }
+              return String(value ?? "");
+            }}
             onSaveSuccess={async () => {
               try {
                 setLoading(true);

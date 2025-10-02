@@ -13,6 +13,11 @@ interface EmployeeSaveButtonProps {
   currentValues: Record<string, any>;
   onSaveSuccess?: () => void;
   disabled?: boolean;
+  /**
+   * Optional formatter to render user-friendly display values in the reason modal
+   * without affecting the raw payload comparison or submission.
+   */
+  valueFormatter?: (field: string, value: any) => string;
 }
 
 function serialize(value: any): string {
@@ -22,7 +27,11 @@ function serialize(value: any): string {
   return String(value);
 }
 
-function computeChanges(initial: Record<string, any>, current: Record<string, any>): ChangeInfo[] {
+function computeChanges(
+  initial: Record<string, any>,
+  current: Record<string, any>,
+  displaySerialize: (field: string, value: any) => string,
+): ChangeInfo[] {
   const changes: ChangeInfo[] = [];
   
   for (const [field, newValue] of Object.entries(current)) {
@@ -33,8 +42,8 @@ function computeChanges(initial: Record<string, any>, current: Record<string, an
     if (oldValueStr !== newValueStr) {
       changes.push({
         field,
-        oldValue: oldValueStr,
-        newValue: newValueStr,
+        oldValue: displaySerialize(field, oldValue),
+        newValue: displaySerialize(field, newValue),
       });
     }
   }
@@ -49,6 +58,7 @@ export default function EmployeeSaveButton({
   currentValues,
   onSaveSuccess,
   disabled = false,
+  valueFormatter,
 }: EmployeeSaveButtonProps) {
   const [loading, setLoading] = useState(false);
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
@@ -58,8 +68,10 @@ export default function EmployeeSaveButton({
     try {
       setLoading(true);
       
-      // Compute changes
-      const changes = computeChanges(initialValues, currentValues);
+      // Compute changes (compare on raw values; display using formatter)
+      const displaySerialize = (field: string, value: any) =>
+        (valueFormatter ? valueFormatter(field, value) : serialize(value));
+      const changes = computeChanges(initialValues, currentValues, displaySerialize);
       
       if (changes.length === 0) {
         toast.success("No changes to save");
@@ -85,7 +97,9 @@ export default function EmployeeSaveButton({
   const performSave = async (reasons: Record<string, string>) => {
     try {
       // Only send changed fields to avoid unintended diffs (e.g., Decimal vs number)
-      const changes = computeChanges(initialValues, currentValues);
+      const displaySerializeFn = (field: string, value: any) =>
+        (valueFormatter ? valueFormatter(field, value) : serialize(value));
+      const changes = computeChanges(initialValues, currentValues, displaySerializeFn);
       const changedPayload: Record<string, any> = {};
       for (const change of changes) {
         changedPayload[change.field] = currentValues[change.field];

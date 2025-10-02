@@ -236,25 +236,29 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     
     if (!employeeName) {
       return {
-        success: false,
-        message: "Who would you like to book leave for?",
+        success: true,
+        message: "Sure! **Who should I book leave for?**\n\nJust give me their first name or full name.",
+        nextStep: { question: "Employee name?" },
       };
     }
 
     const employees = await findEmployeeByName(employeeName, action.companyId);
     
     if (employees.length === 0) {
+      // Instead of failing, suggest they try a different name or show all employees
       return {
-        success: false,
-        message: `I couldn't find an employee named "${employeeName}".`,
+        success: true,
+        message: `I couldn't find anyone named "**${employeeName}**".\n\nTry:\n• Checking the spelling\n• Using just the first name\n• Or say "Show me all employees" to see everyone`,
+        nextStep: { question: "Try a different name?" },
       };
     }
 
     if (employees.length > 1) {
       return {
-        success: false,
-        message: `Found ${employees.length} employees named "${employeeName}":\n\n${employees.map((e, i) => `${i + 1}. ${e.name} (${e.department})`).join("\n")}\n\nWhich one?`,
+        success: true,
+        message: `I found **${employees.length} people** matching "${employeeName}":\n\n${employees.map((e, i) => `${i + 1}. **${e.name}** (${e.department})`).join("\n")}\n\n**Which one?** (Just say the number or full name)`,
         data: employees,
+        nextStep: { question: "Which employee?" },
       };
     }
 
@@ -937,16 +941,18 @@ async function handleDocumentUpload(action: AIAction): Promise<ActionResult> {
 
     if (employees.length === 0) {
       return {
-        success: false,
-        message: `I couldn't find an employee named "${employeeName}". Can you double-check the spelling or try a different name?`,
+        success: true,
+        message: `I couldn't find anyone named "**${employeeName}**".\n\nTry:\n• Checking the spelling\n• Using just the first name\n• Or say "Show me all employees" to see everyone`,
+        nextStep: { question: "Try a different name?" },
       };
     }
 
     if (employees.length > 1) {
       return {
-        success: false,
-        message: `I found ${employees.length} employees matching "${employeeName}":\n\n${employees.map((e, i) => `${i + 1}. ${e.name} (${e.department})`).join('\n')}\n\nWhich one did you mean?`,
+        success: true,
+        message: `I found **${employees.length} people** matching "${employeeName}":\n\n${employees.map((e, i) => `${i + 1}. **${e.name}** (${e.department})`).join('\n')}\n\n**Which one?** (Just say the number or full name)`,
         data: employees,
+        nextStep: { question: "Which employee?" },
       };
     }
 

@@ -21,10 +21,10 @@ const SCHEMA_CONTEXT = `
 You are a database query assistant for an HR system. Generate safe, read-only Prisma queries.
 
 CORE MODELS:
-- Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, irdNumber, taxCode, salaryAmount, contractType, employmentType
-- User: id, email, firstName, lastName, role, phone
-- Department: id, name, managerId
-- JobRole: id, name, departmentId
+- Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, irdNumber, taxCode, salaryAmount, hourlyRate, contractType, employmentType, siteLocation
+- User: id, email, firstName, lastName, role, phone  
+- Department: id, name, headId
+- JobRole: id, name, level
 
 LEAVE & ABSENCE:
 - LeaveRequest: id, employeeId, startDate, endDate, approvalStatus, eventCategoryId, dayType, reason
@@ -75,14 +75,17 @@ MISC:
 - WorkingPattern: id, name, description, type, isActive
 
 Common Queries:
-- "Who is on leave next week?" → leaveRequest model with date filters
-- "What is [Name]'s email?" → employee model, filter by firstName/lastName
-- "Show pending performance reviews" → employeePerformanceReview model
-- "List all active forms" → form model where isActive=true
-- "Who is currently onboarding?" → onboardingInstance model
-- "Show recent news" → newsPost model ordered by publishedAt
+- "Who is on leave next week?" → leaveRequest model with date filters, use findMany
+- "What is [Name]'s email?" → employee model, filter by firstName/lastName, use findMany
+- "Show pending performance reviews" → employeePerformanceReview model, use findMany
+- "List all active forms" → form model where isActive=true, use findMany
+- "Who is currently onboarding?" → onboardingInstance model, use findMany
+- "Show recent news" → newsPost model ordered by publishedAt, use findMany
+- "How many in sales?" → employee model with count
 - "What's the total salary cost?" → employee model with aggregate (SUM salaryAmount)
 - "What's the average salary?" → employee model with aggregate (AVG salaryAmount)
+- "List individuals in sales" → employee model with findMany (NOT count)
+- "Show me sales team with salaries" → employee model with findMany (returns salaryAmount field)
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
@@ -96,6 +99,9 @@ Important Rules:
 9. For salary totals/costs/sums, use aggregate with _sum.salaryAmount
 10. When filtering context is unclear (e.g., "their salaries"), default to all active employees
 11. If department/team mentioned, filter by Department relation
+12. CRITICAL: "list", "show", "who are" = use findMany (NOT count)
+13. When asking for "individuals", "people", "list" = use findMany to return the actual employee data
+14. The employee model INCLUDES salaryAmount - always return it when listing employees
 `;
 
 export async function generateQuery(
@@ -277,26 +283,48 @@ async function executeQueryByType(
           };
         }
         
-        // Parse department filter
+        // Parse department filter from operation OR conversation context
+        let departmentName: string | null = null;
+        
         if (operation.includes("Department") || operation.includes("department")) {
           const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
           if (deptMatch && !nameMatch) { // Only if not already searching by name
-            const deptName = deptMatch[1];
-            const department = await prisma.department.findFirst({
-              where: {
-                companyId,
-                name: { contains: deptName, mode: 'insensitive' },
-              },
-            });
-            if (department) {
-              where.departmentId = department.id;
-            }
+            departmentName = deptMatch[1];
+          }
+        }
+        
+        // Also check conversation context for department
+        if (!departmentName && conversationContext) {
+          const contextMatch = conversationContext.match(/(?:departments|teams):\s*([^,\n]+)/i);
+          if (contextMatch) {
+            departmentName = contextMatch[1].trim();
+          }
+        }
+        
+        // Apply department filter if found
+        if (departmentName) {
+          const department = await prisma.department.findFirst({
+            where: {
+              companyId,
+              name: { contains: departmentName, mode: 'insensitive' },
+            },
+          });
+          if (department) {
+            where.departmentId = department.id;
           }
         }
         
         return await prisma.employee.findMany({
           where,
-          include: {
+          select: {
+            id: true,
+            salaryAmount: true,
+            hourlyRate: true,
+            contractType: true,
+            employmentType: true,
+            startDate: true,
+            isActive: true,
+            siteLocation: true,
             User: {
               select: {
                 firstName: true,

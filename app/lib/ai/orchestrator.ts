@@ -84,12 +84,7 @@ export async function processUserMessage(
       default:
         result = {
           success: true,
-          message: "I'm not sure how to help with that. Try asking about employee data, creating workflows, or adding custom fields.",
-          suggestions: [
-            "Show me employees without IRD numbers",
-            "Create a workflow to alert about expiring contracts",
-            "Add a custom field to employee profiles",
-          ],
+          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Data queries** - 'Show me sales team salaries'\n• **Bulk actions** - 'Give IT a 10% raise'\n• **Leave booking** - 'Book holiday for Sarah'\n• **Document upload** - Drag & drop files\n• **Workflows** - 'Create alert for expiring contracts'\n\nWhat would you like to do?",
         };
     }
 
@@ -171,25 +166,27 @@ async function handleDataQuery(
     }
     // General employee list
     else {
-      answer = `Found **${result.data.length}** ${result.data.length === 1 ? 'result' : 'results'}`;
-      
-      if (result.data.length > 0 && result.data.length <= 10) {
-        // Show the list if it's small
-        answer += ":\n\n";
+      if (result.data.length > 0 && result.data.length <= 20) {
+        // Show the full list with all details
+        answer = `**${result.data.length}** ${result.data.length === 1 ? 'person' : 'people'}:\n\n`;
         result.data.forEach((item: any, index: number) => {
           const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
           const dept = item.Department?.name ? ` (${item.Department.name})` : '';
           const role = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
+          const salary = item.salaryAmount ? `\n   💰 $${Math.round(Number(item.salaryAmount)).toLocaleString()}` : '';
           const email = item.User?.email ? `\n   📧 ${item.User.email}` : '';
-          answer += `${index + 1}. **${name}**${dept}${role}${email}\n`;
+          answer += `${index + 1}. **${name}**${dept}${role}${salary}${email}\n`;
         });
-      } else if (result.data.length > 10) {
-        answer += " (showing first 10):\n\n";
-        result.data.slice(0, 10).forEach((item: any, index: number) => {
+      } else if (result.data.length > 20) {
+        answer = `Found **${result.data.length}** people (showing first 20):\n\n`;
+        result.data.slice(0, 20).forEach((item: any, index: number) => {
           const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
           const dept = item.Department?.name ? ` (${item.Department.name})` : '';
-          answer += `${index + 1}. **${name}**${dept}\n`;
+          const salary = item.salaryAmount ? ` | $${Math.round(Number(item.salaryAmount)).toLocaleString()}` : '';
+          answer += `${index + 1}. **${name}**${dept}${salary}\n`;
         });
+      } else {
+        answer = `Found **${result.data.length}** ${result.data.length === 1 ? 'result' : 'results'}`;
       }
     }
     
@@ -214,15 +211,12 @@ async function handleDataQuery(
     answer = "✅ Query completed successfully";
   }
 
-  // Generate contextual suggestions
-  const suggestions = generateQuerySuggestions(query, result);
-
+  // No suggestions - users just want their data
   return {
     success: true,
     message: answer,
     actionType: "query",
     result: result.data,
-    suggestions,
   };
 }
 
@@ -246,7 +240,6 @@ async function handleAction(
     message: result.message,
     actionType: intent.actionType,
     result: result.data,
-    suggestions: result.nextStep ? [] : generateActionSuggestions(intent.actionType),
     requiresConfirmation: result.requiresConfirmation,
     preview: result.preview,
     undoable: result.undoable,
@@ -359,62 +352,5 @@ async function handleFormCreation(
   };
 }
 
-function generateQuerySuggestions(query: string, result: any): string[] {
-  const lower = query.toLowerCase();
-  
-  if (lower.includes("ird") || lower.includes("tax")) {
-    return [
-      "Create a reminder workflow for employees without IRD",
-      "Show me which departments are affected",
-      "Email these employees to update their details",
-    ];
-  }
-  
-  if (lower.includes("contract") || lower.includes("expir")) {
-    return [
-      "Create an alert workflow 60 days before expiry",
-      "Email these employees about renewal",
-      "Show me which departments have expiring contracts",
-    ];
-  }
-  
-  if (lower.includes("leave")) {
-    return [
-      "Show me leave patterns by department",
-      "Book leave for an employee",
-      "Adjust leave balances",
-    ];
-  }
-  
-  return [
-    "Create a workflow to automate this",
-    "Export this data to Excel",
-    "Show me more details",
-  ];
-}
-
-function generateActionSuggestions(actionType: string): string[] {
-  const suggestions: Record<string, string[]> = {
-    update_employee: [
-      "Update another employee",
-      "Undo this change",
-      "View employee profile",
-    ],
-    book_leave: [
-      "Book leave for another employee",
-      "Check leave balances",
-      "View upcoming absences",
-    ],
-    schedule_report: [
-      "Schedule another report",
-      "View all scheduled reports",
-      "Modify this schedule",
-    ],
-  };
-
-  return suggestions[actionType] || [
-    "What else can I help with?",
-    "Show me what you can do",
-  ];
-}
+// Removed - users just want their answers, not suggestions
 

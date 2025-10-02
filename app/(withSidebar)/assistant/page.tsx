@@ -528,11 +528,6 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             role: "assistant",
             content: friendlyMessage,
             timestamp: new Date(),
-            suggestions: [
-              "Try the Workflow Library instead",
-              "Check system status",
-              "Contact support for help"
-            ],
           },
         ];
       });

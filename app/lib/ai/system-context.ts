@@ -192,19 +192,25 @@ async function getExpiringDocumentsCount(companyId: string): Promise<number> {
   });
 }
 
-// Find employee by name (fuzzy match)
+// Find employee by name (fuzzy match with fallback to similar names)
 export async function findEmployeeByName(
   name: string,
   companyId: string
-): Promise<Array<{ id: string; name: string; email: string; department: string }>> {
-  const employees = await prisma.employee.findMany({
+): Promise<Array<{ id: string; name: string; email: string; department: string; similarity?: string }>> {
+  // Split name into parts for better matching
+  const nameParts = name.trim().split(/\s+/);
+  const firstName = nameParts[0];
+  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : null;
+
+  // First try: Exact or strong match
+  let employees = await prisma.employee.findMany({
     where: {
       companyId,
       isActive: true,
       User: {
         OR: [
-          { firstName: { contains: name, mode: "insensitive" } },
-          { lastName: { contains: name, mode: "insensitive" } },
+          { firstName: { contains: firstName, mode: "insensitive" } },
+          { lastName: { contains: lastName || firstName, mode: "insensitive" } },
           { name: { contains: name, mode: "insensitive" } },
         ],
       },
@@ -215,6 +221,28 @@ export async function findEmployeeByName(
     },
     take: 10,
   });
+
+  // If no results, try broader search (first few characters)
+  if (employees.length === 0 && firstName.length >= 3) {
+    const prefix = firstName.substring(0, 3);
+    employees = await prisma.employee.findMany({
+      where: {
+        companyId,
+        isActive: true,
+        User: {
+          OR: [
+            { firstName: { startsWith: prefix, mode: "insensitive" } },
+            { lastName: { startsWith: prefix, mode: "insensitive" } },
+          ],
+        },
+      },
+      include: {
+        User: { select: { firstName: true, lastName: true, name: true, email: true } },
+        Department: { select: { name: true } },
+      },
+      take: 10,
+    });
+  }
 
   return employees.map((emp) => ({
     id: emp.id,

@@ -124,7 +124,12 @@ export async function generateQuery(
     if (conversationContext) {
       messages.push({
         role: "system",
-        content: `Previous conversation context:\n${conversationContext}\n\nUse this context to understand pronouns (their, those, these) and references to previous queries.\n\nIMPORTANT: If the user previously asked about a department (e.g., "How many in sales?"), and now asks to "list" or "show" them, use findMany with that same department filter.`,
+        content: `Previous conversation context:\n${conversationContext}\n\nCRITICAL INSTRUCTIONS FOR FOLLOW-UP QUERIES:
+1. If you see "CURRENT DEPARTMENT FILTER: sales" in the context, you MUST include that department filter in your query
+2. When user says "them", "their", "those" - they mean the same group from the previous question
+3. Example: Previous "How many in sales?" + Current "List them" = List employees WHERE department=sales
+4. ALWAYS preserve filters from previous queries unless explicitly told to change them
+5. The operation string MUST include the department filter like: Department.name contains "sales"`,
       });
     }
 
@@ -223,22 +228,43 @@ async function executeQueryByType(
           where.irdNumber = null;
         }
         
-        // Check for department filter
+        // Try to extract department from operation OR conversation context
+        let departmentName: string | null = null;
+        
+        // Check for department filter in operation
         if (operation.includes("Department") || operation.includes("department")) {
-          // Extract department name from operation
           const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
           if (deptMatch) {
-            const deptName = deptMatch[1];
-            const department = await prisma.department.findFirst({
-              where: {
-                companyId,
-                name: { contains: deptName, mode: 'insensitive' },
-              },
-            });
-            if (department) {
-              where.departmentId = department.id;
-            }
+            departmentName = deptMatch[1];
           }
+        }
+        
+        // If not found in operation, check conversation context
+        if (!departmentName && conversationContext) {
+          const contextMatch = conversationContext.match(/(?:departments|teams):\s*([^,\n]+)/i);
+          if (contextMatch) {
+            departmentName = contextMatch[1].trim();
+          }
+        }
+        
+        // Apply department filter if found
+        if (departmentName) {
+          console.log('[Query Debug - Count] Filtering by department:', departmentName);
+          const department = await prisma.department.findFirst({
+            where: {
+              companyId,
+              name: { contains: departmentName, mode: 'insensitive' },
+            },
+          });
+          if (department) {
+            console.log('[Query Debug - Count] Found department:', department.name, department.id);
+            where.departmentId = department.id;
+          } else {
+            console.log('[Query Debug - Count] Department not found:', departmentName);
+          }
+        } else {
+          console.log('[Query Debug - Count] No department filter found in operation or context');
+          console.log('[Query Debug - Count] Conversation context:', conversationContext);
         }
         
         // Check for job role filter

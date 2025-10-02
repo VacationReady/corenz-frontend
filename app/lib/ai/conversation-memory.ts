@@ -80,10 +80,12 @@ export function addMessage(
 function extractEntitiesFromMessage(content: string, conv: ConversationContext) {
   const lower = content.toLowerCase();
   
-  // Extract department mentions
+  // Extract department mentions - more aggressive patterns
   const deptPatterns = [
     /(?:the\s+)?(\w+)\s+(?:team|department|dept)/gi,
-    /(?:in|for|from)\s+(\w+)(?:\s+team|\s+department)?/gi,
+    /(?:in|for|from|of)\s+(?:the\s+)?(\w+)(?:\s+team|\s+department)?/gi,
+    /(?:are|is)\s+in\s+(\w+)/gi,
+    /(\w+)(?:\s+team|\s+department)\b/gi,
   ];
   
   const departments = conv.entities.departments || [];
@@ -91,7 +93,10 @@ function extractEntitiesFromMessage(content: string, conv: ConversationContext) 
     const matches = content.matchAll(pattern);
     for (const match of matches) {
       const dept = match[1];
-      if (dept && !departments.includes(dept.toLowerCase())) {
+      // Filter out common words that aren't departments
+      const ignoreWords = ['how', 'many', 'people', 'are', 'is', 'the', 'a', 'an', 'there', 'what', 'who', 'when', 'where', 'why'];
+      if (dept && !ignoreWords.includes(dept.toLowerCase()) && !departments.includes(dept.toLowerCase())) {
+        console.log('[Conversation Memory] Extracted department:', dept);
         departments.push(dept.toLowerCase());
       }
     }
@@ -100,6 +105,7 @@ function extractEntitiesFromMessage(content: string, conv: ConversationContext) 
   // Keep only last 3 mentioned departments
   if (departments.length > 0) {
     conv.entities.departments = departments.slice(-3);
+    console.log('[Conversation Memory] Stored departments:', departments);
   }
 }
 
@@ -158,7 +164,8 @@ export function buildContextString(conv: ConversationContext): string {
   }
   
   if (conv.entities.departments && conv.entities.departments.length > 0) {
-    context += `\nRecently mentioned departments/teams: ${conv.entities.departments.join(", ")}`;
+    context += `\nCURRENT DEPARTMENT FILTER: ${conv.entities.departments[conv.entities.departments.length - 1]}`;
+    context += `\nAll mentioned departments: ${conv.entities.departments.join(", ")}`;
   }
   
   if (conv.entities.pendingAction) {
@@ -174,6 +181,7 @@ export function buildContextString(conv: ConversationContext): string {
     });
   }
   
+  console.log('[Conversation Context Built]:', context);
   return context;
 }
 

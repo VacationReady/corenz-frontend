@@ -1129,7 +1129,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
                   <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
                     <button 
-                      onClick={() => handleSendMessage("What data would you like to see?")}
+                      onClick={() => handleSendMessage("Show me all employees")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
@@ -1141,7 +1141,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       </p>
                     </button>
                     <button 
-                      onClick={() => handleSendMessage("What type of workflow do you want to create?")}
+                      onClick={() => handleSendMessage("I want to create a workflow")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
@@ -1153,7 +1153,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       </p>
                     </button>
                     <button 
-                      onClick={() => handleSendMessage("What field are you looking to add?")}
+                      onClick={() => handleSendMessage("I want to add a custom field")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">

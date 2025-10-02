@@ -265,6 +265,20 @@ async function handleWorkflowGeneration(
   companyId: string,
   userId: string
 ): Promise<OrchestratorResult> {
+  // Check if it's a vague request
+  const isVague = prompt.toLowerCase().includes('i want to create') || 
+                  prompt.toLowerCase().includes('create a workflow') ||
+                  prompt.toLowerCase().includes('build a workflow') ||
+                  prompt.trim().split(' ').length <= 6;
+  
+  if (isVague) {
+    return {
+      success: true,
+      message: `What type of workflow would you like to create?\n\nExamples:\n• "Alert HR 60 days before contracts expire"\n• "Send welcome email to new employees"\n• "Remind managers about probation reviews"\n• "Notify team when someone is on leave"`,
+      actionType: "workflow",
+    };
+  }
+  
   const result = await generateWorkflow(prompt, companyId);
   
   if (!result.success) {
@@ -290,6 +304,20 @@ async function handleFieldCreation(
   prompt: string,
   companyId: string
 ): Promise<OrchestratorResult> {
+  // Check if it's a vague request
+  const isVague = prompt.toLowerCase().includes('i want to add') || 
+                  prompt.toLowerCase().includes('add a field') ||
+                  prompt.toLowerCase().includes('custom field') ||
+                  prompt.trim().split(' ').length <= 5;
+  
+  if (isVague) {
+    return {
+      success: true,
+      message: `What type of field would you like to add?\n\nExamples:\n• "Add a T-Shirt Size dropdown"\n• "Add a Parking Space text field"\n• "Add Dietary Requirements"\n• "Add LinkedIn Profile URL"`,
+      actionType: "field",
+    };
+  }
+  
   const result = await generateCustomField(prompt, "custom", companyId);
   
   if (!result.success) {

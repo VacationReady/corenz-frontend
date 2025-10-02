@@ -428,7 +428,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
       return {
         success: true,
-        message: `✅ **Leave booked successfully!**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\n📅 **Calendar updated** - Leave appears in company calendar (auto-approved)\n💰 **Balance updated** - ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted\n\n_Processed using your existing leave validation and approval system._`,
+        message: `✅ Leave booked successfully!\n\n${pending.data.employeeName}\n${pending.data.startDate} to ${pending.data.endDate}\n${category.name}\n\n📅 Calendar updated - Auto-approved\n💰 ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted from balance`,
         data: approved,
       };
     } catch (error: any) {

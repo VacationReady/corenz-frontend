@@ -23,11 +23,13 @@ ${systemContext}
 ${conversationContext}
 
 AVAILABLE ACTIONS:
-- query_data: Find/count/analyze data ("How many...", "Show me...", "List...")
+- query_data: Find/count/analyze data ("How many...", "Show me...", "List...", "What is...", "Who is...")
 - update_employee: Change specific employee data ("Change X's bank to...", "Update Sarah's email...")
 - book_leave: Book holiday/leave ("Book leave for...", "Schedule holiday for...")
 - schedule_report: Schedule recurring reports ("Email CEO report every Monday...")
-- add_field: Add custom field ("Add 'Shirt Size' field...")
+- add_field: Add custom field to existing form ("Add 'Shirt Size' field...")
+- create_form: Build complete new form ("Create a feedback form", "Build an onboarding form")
+- deploy_form: Save generated form ("Deploy this form", "Create it")
 - create_workflow: Build automation ("Create workflow that alerts...")
 - save_workflow: Save generated workflow ("Save this workflow", "Save it")
 - send_email: Send one-off emails ("Email all managers about...")

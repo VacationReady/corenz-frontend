@@ -9,6 +9,7 @@ import { executeAction, AIAction, ActionType } from "./action-executor";
 import { generateQuery } from "./query-generator";
 import { generateWorkflow } from "./workflow-generator";
 import { generateCustomField } from "./field-generator";
+import { buildFormConversationally } from "./form-builder";
 import { interpretIntent } from "./interpreters/intent-classifier";
 
 export interface OrchestratorResult {
@@ -74,6 +75,11 @@ export async function processUserMessage(
       case "add_field":
         result = await handleFieldCreation(userMessage, companyId);
         break;
+      
+      case "create_form":
+      case "deploy_form":
+        result = await handleFormCreation(userMessage, userId, companyId);
+        break;
 
       default:
         result = {
@@ -127,24 +133,62 @@ async function handleDataQuery(
   } 
   // If it's a list of employees
   else if (Array.isArray(result.data)) {
-    answer = `Found **${result.data.length}** ${result.data.length === 1 ? 'result' : 'results'}`;
-    
-    if (result.data.length > 0 && result.data.length <= 10) {
-      // Show the list if it's small
-      answer += ":\n\n";
-      result.data.forEach((item: any, index: number) => {
-        const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
-        const dept = item.Department?.name ? ` (${item.Department.name})` : '';
-        const role = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
-        answer += `${index + 1}. ${name}${dept}${role}\n`;
+    // Check if it's leave requests
+    if (result.data.length > 0 && result.data[0].startDate && result.data[0].Employee) {
+      // Format leave requests
+      answer = `**${result.data.length}** ${result.data.length === 1 ? 'person is' : 'people are'} on leave:\n\n`;
+      
+      result.data.slice(0, 10).forEach((leave: any, index: number) => {
+        const name = `${leave.Employee.User.firstName} ${leave.Employee.User.lastName}`;
+        const dept = leave.Employee.Department?.name ? ` (${leave.Employee.Department.name})` : '';
+        const leaveType = leave.EventCategory?.name || 'Leave';
+        const start = new Date(leave.startDate).toLocaleDateString();
+        const end = new Date(leave.endDate).toLocaleDateString();
+        answer += `${index + 1}. **${name}**${dept}\n   ${leaveType}: ${start} to ${end}\n\n`;
       });
-    } else if (result.data.length > 10) {
-      answer += " (showing first 10):\n\n";
-      result.data.slice(0, 10).forEach((item: any, index: number) => {
-        const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
-        const dept = item.Department?.name ? ` (${item.Department.name})` : '';
-        answer += `${index + 1}. ${name}${dept}\n`;
-      });
+      
+      if (result.data.length > 10) {
+        answer += `_...and ${result.data.length - 10} more_\n\n`;
+      }
+    }
+    // Check if it's a single person lookup (email query)
+    else if (result.data.length === 1 && result.data[0].User?.email) {
+      const person = result.data[0];
+      const name = `${person.User.firstName} ${person.User.lastName}`;
+      answer = `**${name}**\n\n`;
+      answer += `📧 **Email:** ${person.User.email}\n`;
+      if (person.User.phone) {
+        answer += `📱 **Phone:** ${person.User.phone}\n`;
+      }
+      if (person.Department?.name) {
+        answer += `🏢 **Department:** ${person.Department.name}\n`;
+      }
+      if (person.JobRole?.name) {
+        answer += `💼 **Role:** ${person.JobRole.name}\n`;
+      }
+    }
+    // General employee list
+    else {
+      answer = `Found **${result.data.length}** ${result.data.length === 1 ? 'result' : 'results'}`;
+      
+      if (result.data.length > 0 && result.data.length <= 10) {
+        // Show the list if it's small
+        answer += ":\n\n";
+        result.data.forEach((item: any, index: number) => {
+          const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
+          const dept = item.Department?.name ? ` (${item.Department.name})` : '';
+          const role = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
+          const email = item.User?.email ? `\n   📧 ${item.User.email}` : '';
+          answer += `${index + 1}. **${name}**${dept}${role}${email}\n`;
+        });
+      } else if (result.data.length > 10) {
+        answer += " (showing first 10):\n\n";
+        result.data.slice(0, 10).forEach((item: any, index: number) => {
+          const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
+          const dept = item.Department?.name ? ` (${item.Department.name})` : '';
+          answer += `${index + 1}. **${name}**${dept}\n`;
+        });
+      }
     }
     
     if (result.explanation) {
@@ -257,6 +301,53 @@ async function handleFieldCreation(
       "Make this field required",
       "Add validation rules",
       "Add another field",
+    ],
+  };
+}
+
+async function handleFormCreation(
+  prompt: string,
+  userId: string,
+  companyId: string
+): Promise<OrchestratorResult> {
+  const conversation = getConversation(userId, companyId);
+  const conversationContext = buildContextString(conversation);
+  
+  const result = await buildFormConversationally(prompt, companyId, conversationContext);
+  
+  if (!result.success) {
+    // If needs more info, continue conversation
+    if (result.needsInfo) {
+      return {
+        success: true,
+        message: result.needsInfo.question,
+        actionType: "form_conversation",
+        suggestions: result.needsInfo.options || [
+          "Data Screen (editable)",
+          "Submission Form (one-time)",
+        ],
+      };
+    }
+    
+    return {
+      success: false,
+      message: result.error || "Form creation failed",
+    };
+  }
+
+  // Store form in conversation for deployment
+  conversation.entities.lastGeneratedForm = result.form;
+
+  return {
+    success: true,
+    message: result.message || "Form designed successfully!",
+    actionType: "form",
+    result: result.form,
+    suggestions: [
+      "Deploy this form",
+      "Modify the fields",
+      "Change visibility settings",
+      "Start over",
     ],
   };
 }

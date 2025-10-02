@@ -6,9 +6,12 @@
 import { prisma } from "@/lib/prisma";
 import { findEmployeeByName } from "./system-context";
 import { setPendingAction, clearPendingAction, getConversation } from "./conversation-memory";
-import { createAuditLogs, computeDiffs, diffRequiresReason, type AuditDiff } from "@/lib/audit-helpers";
-import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
+import { createAuditLogs, type AuditDiff } from "@/lib/audit-helpers";
 import { saveWorkflowToDatabase } from "./workflow-generator";
+import { buildFormConversationally, deployForm } from "./form-builder";
+import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import crypto from "crypto";
 
 export interface ActionResult {
   success: boolean;
@@ -34,6 +37,8 @@ export type ActionType =
   | "add_field"
   | "create_workflow"
   | "save_workflow"
+  | "create_form"
+  | "deploy_form"
   | "send_email"
   | "bulk_update"
   | "modify_settings";
@@ -68,6 +73,10 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "save_workflow":
         return await handleSaveWorkflow(action);
+      
+      case "create_form":
+      case "deploy_form":
+        return await handleFormBuilding(action);
       
       case "send_email":
         return await handleSendEmail(action);
@@ -339,64 +348,85 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       };
     }
 
-    // Execute: Create leave request
-    const leaveRequest = await prisma.leaveRequest.create({
-      data: {
-        id: `leave-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // Execute: Use SAME logic as existing /api/employees/[id]/leave-requests POST
+    // This ensures no duplication - uses your existing validation, workflows, notifications
+    try {
+      // Step 1: Validate using existing validation function
+      await validateLeaveRequest({
         employeeId: pending.data.employeeId,
-        requesterId: action.userId,
-        companyId: action.companyId,
         eventCategoryId: category.id,
         startDate: new Date(pending.data.startDate),
         endDate: new Date(pending.data.endDate),
-        approvalStatus: "APPROVED", // Auto-approve when booked by admin
-        dayType: "FULL_DAY",
-        reason: `Booked via AI Assistant by admin`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+        isAdmin: true, // AI Assistant is admin action
+        companyId: action.companyId,
+      });
 
-    clearPendingAction(action.userId, action.companyId);
-
-    // Get employee details for notification
-    const employee = await prisma.employee.findUnique({
-      where: { id: pending.data.employeeId },
-      include: {
-        User: {
-          select: {
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
+      // Step 2: Create leave request (same as API)
+      const newLeaveRequest = await prisma.leaveRequest.create({
+        data: {
+          id: crypto.randomUUID(),
+          Employee: { connect: { id: pending.data.employeeId } },
+          User_LeaveRequest_requesterIdToUser: { connect: { id: action.userId } },
+          EventCategory: { connect: { id: category.id } },
+          Company: { connect: { id: action.companyId } },
+          startDate: new Date(pending.data.startDate),
+          endDate: new Date(pending.data.endDate),
+          dayType: "FULL_DAY",
+          reason: "Booked via AI Assistant by admin",
+          paidStatus: category.name === "Sick Leave" ? "PAID" : null,
+          updatedAt: new Date(),
         },
-      },
-    });
+      });
 
-    // Send email notification to employee
-    if (employee?.User.email) {
-      try {
-        await sendLeaveNotification({
-          to: employee.User.email,
-          subject: `Leave Approved: ${category.name}`,
-          employeeName: pending.data.employeeName,
-          type: category.name,
-          startDate: pending.data.startDate,
-          endDate: pending.data.endDate,
-          status: "APPROVED",
-          approverName: "Admin (via AI Assistant)",
-        });
-      } catch (emailError) {
-        console.error("[AI Leave Booking] Email notification failed:", emailError);
-        // Don't fail the whole operation if email fails
+      // Step 3: Auto-approve for admin (same as API)
+      const totalDays: number[] = [];
+      let currentDate = new Date(newLeaveRequest.startDate);
+      const endInclusive = new Date(newLeaveRequest.endDate);
+      const exclusiveEnd = new Date(endInclusive);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+      while (currentDate <= exclusiveEnd) {
+        const deduction = await calculateLeaveDeduction(pending.data.employeeId, currentDate);
+        totalDays.push(deduction);
+        currentDate.setDate(currentDate.getDate() + 1);
       }
-    }
 
-    return {
-      success: true,
-      message: `✅ **Leave booked successfully!**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\n📅 **Calendar updated** - This leave now appears in the company calendar\n📧 **Email sent** - ${pending.data.employeeName} has been notified\n\n_Request ID: ${leaveRequest.id}_`,
-      data: leaveRequest,
-    };
+      const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
+
+      const approved = await prisma.$transaction(async (tx) => {
+        const entitlement = await tx.leaveEntitlement.findFirst({
+          where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
+        });
+
+        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+          throw new Error("Insufficient leave balance");
+        }
+
+        await tx.leaveEntitlement.update({
+          where: { id: entitlement.id },
+          data: { usedDays: entitlement.usedDays + totalDeduction },
+        });
+
+        return tx.leaveRequest.update({
+          where: { id: newLeaveRequest.id },
+          data: { approvalStatus: "APPROVED", approvedById: action.userId },
+        });
+      });
+
+      clearPendingAction(action.userId, action.companyId);
+
+      return {
+        success: true,
+        message: `✅ **Leave booked successfully!**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\n📅 **Calendar updated** - Leave appears in company calendar (auto-approved)\n💰 **Balance updated** - ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted\n\n_Processed using your existing leave validation and approval system._`,
+        data: approved,
+      };
+    } catch (error: any) {
+      clearPendingAction(action.userId, action.companyId);
+      return {
+        success: false,
+        message: `Failed to book leave: ${error.message}`,
+      };
+    }
   }
 
   return {
@@ -452,6 +482,66 @@ async function handleSaveWorkflow(action: AIAction): Promise<ActionResult> {
     success: true,
     message: `✅ **Workflow Saved!**\n\n**Name:** ${workflowToSave.name}\n**Category:** Custom\n**Status:** Inactive (ready to activate)\n\nYou can find this workflow in:\n**Settings > Automation Rules > Custom**\n\nTo activate it, go to the automation rules page and toggle it on.`,
     data: { workflowId: saveResult.workflowId },
+  };
+}
+
+async function handleFormBuilding(action: AIAction): Promise<ActionResult> {
+  const { form, confirmed } = action.parameters;
+  const conv = getConversation(action.userId, action.companyId);
+  
+  // Get the form from conversation or parameters
+  const formToCreate = form || conv.entities.lastGeneratedForm;
+
+  if (!formToCreate) {
+    return {
+      success: false,
+      message: "I don't have a form to create yet. Let's build one! What would you like to call this form?",
+      nextStep: {
+        question: "What should the form be called?",
+      },
+    };
+  }
+
+  // Preview before deploying
+  if (!confirmed) {
+    const fieldList = formToCreate.schema?.sections?.[0]?.fields || [];
+    
+    return {
+      success: true,
+      requiresConfirmation: true,
+      preview: {
+        name: formToCreate.name,
+        description: formToCreate.description,
+        formType: formToCreate.formType,
+        fieldCount: fieldList.length,
+        fields: fieldList.map((f: any) => ({ label: f.label, type: f.type })),
+        visibility: {
+          roles: formToCreate.visibleToRoles,
+          departments: formToCreate.visibleToDepartments,
+          jobRoles: formToCreate.visibleToJobRoles,
+        },
+      },
+      message: `📋 **Form Preview:**\n\n**Name:** ${formToCreate.name}\n**Type:** ${formToCreate.formType === 'DATA_SCREEN' ? 'Data Screen (editable)' : 'Submission Form (one-time)'}\n**Fields:** ${fieldList.length}\n\n${fieldList.map((f: any, i: number) => `${i + 1}. ${f.label} (${f.type})${f.required ? ' *' : ''}`).join('\n')}\n\n**Visible to:** ${formToCreate.visibleToRoles.join(', ')}\n\nShall I create this form?`,
+    };
+  }
+
+  // Deploy the form using existing form creation logic
+  const deployResult = await deployForm(formToCreate, action.userId, action.companyId);
+
+  if (!deployResult.success) {
+    return {
+      success: false,
+      message: `Failed to create form: ${deployResult.error}`,
+    };
+  }
+
+  // Clear from conversation
+  delete conv.entities.lastGeneratedForm;
+
+  return {
+    success: true,
+    message: `✅ **Form Created!**\n\n**Name:** ${formToCreate.name}\n**Path:** /forms/${formToCreate.slug}\n**Fields:** ${formToCreate.schema?.sections?.[0]?.fields?.length || 0}\n\nThe form is now live and available in:\n**Settings > Forms** or directly at **/forms/${formToCreate.slug}**\n\nYou can edit it anytime in the form builder!`,
+    data: { formId: deployResult.formId, slug: formToCreate.slug },
   };
 }
 

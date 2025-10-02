@@ -20,27 +20,77 @@ export interface QueryResult {
 const SCHEMA_CONTEXT = `
 You are a database query assistant for an HR system. Generate safe, read-only Prisma queries.
 
-Available Models:
-- Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, 
-  irdNumber, taxCode, bankAccountNumber, salaryAmount, contractType, employmentType, locationId
-- User: id, email, name, firstName, lastName, role (ADMIN|MANAGER|EMPLOYEE), phone
-- Department: id, name, companyId
-- JobRole: id, name, companyId
-- LeaveRequest: id, employeeId, startDate, endDate, approvalStatus, eventCategoryId
-- LeaveEntitlement: id, employeeId, eventCategoryId, balance
-- FormSubmission: id, formId, employeeId, submittedAt
-- Document: id, employeeId, category, requiresSignature, signatureDueAt
+CORE MODELS:
+- Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, irdNumber, taxCode, salaryAmount, contractType, employmentType
+- User: id, email, firstName, lastName, role, phone
+- Department: id, name, managerId
+- JobRole: id, name, departmentId
+
+LEAVE & ABSENCE:
+- LeaveRequest: id, employeeId, startDate, endDate, approvalStatus, eventCategoryId, dayType, reason
+- LeaveEntitlement: id, employeeId, eventCategoryId, totalDays, usedDays, balance
+- LeaveApprovalStage: id, leaveRequestId, status, mode, order
+
+DOCUMENTS & COMPLIANCE:
+- Document: id, employeeId, name, category, requiresSignature, requiresAck, signatureDueAt
+- EmploymentCheck: id, employeeId, typeOfCheck, documentNumber, expiryDate
 - DriverLicence: id, employeeId, type, licenceNumber, expiryDate
-- EmploymentCheck: id, employeeId, typeOfCheck, expiryDate
-- TrainingRecord: id, employeeId, dateCompleted, expiryDate
-- EmployeeOffboarding: id, employeeId, lastWorkingDate, offboardingReason
+- TrainingRecord: id, employeeId, courseId, dateCompleted, expiryDate
+
+FORMS:
+- Form: id, name, description, formType, isActive, visibleToDepartments, visibleToJobRoles
+- FormSubmission: id, formId, employeeId, submittedAt, data
+- FormAssignment: id, formId, employeeId, status, dueDate, completedAt
+
+ONBOARDING & OFFBOARDING:
+- OnboardingInstance: id, employeeId, templateId, status, startedAt, completedAt
+- OnboardingTemplate: id, name, description, isActive
+- EmployeeOffboarding: id, employeeId, status, lastWorkingDate, resignationDate, offboardingReason, isVoluntary
+- ExitInterview: id, offboardingId, scheduledAt, completed
+
+PERFORMANCE & TRAINING:
+- EmployeePerformanceReview: id, employeeId, reviewerId, reviewDate, rating, summary
+- Course: id, name, description, duration, isActive
+- TrainingProvider: id, name, description
+
+AUTOMATION & TASKS:
+- AutomationRule: id, name, description, isActive, triggerType, category, executionCount
+- ActionItem: id, title, description, status, priority, dueDate, assignedToId
+- AutomationExecution: id, ruleId, status, triggeredAt, errorMessage
+
+NEWS & COMMUNICATION:
+- NewsPost: id, title, content, publishedAt, authorId, isPinned, isPublished
+- NewsReaction: id, postId, userId, reaction
+- NewsBookmark: id, postId, userId
+
+PERMISSIONS & AUDIT:
+- PermissionProfile: id, name, description, isDefault, permissions
+- EmployeeAuditLog: id, employeeId, section, field, oldValue, newValue, reason, changedById, changedAt
+- GlobalAuditLog: id, action, entityType, entityId, userId, changes
+
+MISC:
+- EmergencyContact: id, employeeId, name, relationship, phone, email
+- Location: id, name, address, city, country
+- SavedReport: id, name, description, createdById
+- WorkingPattern: id, name, description, type, isActive
+
+Common Queries:
+- "Who is on leave next week?" → leaveRequest model with date filters
+- "What is [Name]'s email?" → employee model, filter by firstName/lastName
+- "Show pending performance reviews" → employeePerformanceReview model
+- "List all active forms" → form model where isActive=true
+- "Who is currently onboarding?" → onboardingInstance model
+- "Show recent news" → newsPost model ordered by publishedAt
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
 2. ALWAYS filter by companyId for multi-tenancy
-3. Use Prisma syntax (findMany, count, aggregate, groupBy)
-4. Handle null values safely
-5. Return JSON-serializable results
+3. Use Prisma syntax (findMany, count, aggregate)
+4. For name lookups, use firstName/lastName in User relation
+5. For leave, use approvalStatus: "APPROVED" for confirmed leave
+6. For dates, use gte/lte operators
+7. Handle null values safely
+8. Return JSON-serializable results
 `;
 
 export async function generateQuery(
@@ -188,10 +238,29 @@ async function executeQueryByType(
       if (queryType === "findMany") {
         const where: any = { companyId };
         
-        // Parse filters (same as count)
+        // Check if looking up specific person by name (for email, phone, etc.)
+        const nameMatch = operation.match(/(?:firstName|lastName|name).*?["']([^"']+)["']/i);
+        if (nameMatch) {
+          const searchName = nameMatch[1];
+          // Search by first name OR last name
+          where.User = {
+            OR: [
+              { firstName: { contains: searchName, mode: 'insensitive' } },
+              { lastName: { contains: searchName, mode: 'insensitive' } },
+              { 
+                AND: [
+                  { firstName: { contains: searchName.split(' ')[0], mode: 'insensitive' } },
+                  { lastName: { contains: searchName.split(' ')[1] || searchName.split(' ')[0], mode: 'insensitive' } },
+                ],
+              },
+            ],
+          };
+        }
+        
+        // Parse department filter
         if (operation.includes("Department") || operation.includes("department")) {
           const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
-          if (deptMatch) {
+          if (deptMatch && !nameMatch) { // Only if not already searching by name
             const deptName = deptMatch[1];
             const department = await prisma.department.findFirst({
               where: {
@@ -213,6 +282,7 @@ async function executeQueryByType(
                 firstName: true,
                 lastName: true,
                 email: true,
+                phone: true,
               },
             },
             Department: {
@@ -236,10 +306,62 @@ async function executeQueryByType(
           },
         });
       }
+
+      if (queryType === "findMany") {
+        const where: any = { companyId, approvalStatus: "APPROVED" };
+        
+        // Handle date filtering for "next week", "this week", "upcoming", etc.
+        if (operation.includes("next week") || operation.includes("upcoming") || operation.includes("startDate")) {
+          const now = new Date();
+          const nextWeek = new Date();
+          nextWeek.setDate(now.getDate() + 7);
+          
+          where.OR = [
+            // Starts within the range
+            {
+              startDate: {
+                gte: now,
+                lte: nextWeek,
+              },
+            },
+            // Ongoing (started before, ends after now)
+            {
+              AND: [
+                { startDate: { lte: now } },
+                { endDate: { gte: now } },
+              ],
+            },
+          ];
+        }
+        
+        return await prisma.leaveRequest.findMany({
+          where,
+          include: {
+            Employee: {
+              include: {
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+                Department: {
+                  select: { name: true },
+                },
+              },
+            },
+            EventCategory: {
+              select: { name: true },
+            },
+          },
+          orderBy: { startDate: "asc" },
+          take: 100,
+        });
+      }
       break;
 
     case "document":
-      // Count expiring documents
       if (queryType === "count" && operation.includes("expir")) {
         const thirtyDaysFromNow = new Date();
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
@@ -263,8 +385,394 @@ async function executeQueryByType(
             },
           }),
         ]);
-
         return driverCount + trainingCount + checkCount;
+      }
+      
+      if (queryType === "findMany") {
+        return await prisma.document.findMany({
+          where: {
+            Employee: { companyId },
+            ...(operation.includes("requiresSignature") && { requiresSignature: true }),
+            ...(operation.includes("requiresAck") && { requiresAck: true }),
+          },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+          },
+          take: 100,
+        });
+      }
+      break;
+
+    // FORMS
+    case "form":
+      if (queryType === "findMany") {
+        return await prisma.form.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("isActive") && { isActive: true }),
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            formType: true,
+            isActive: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "formsubmission":
+      if (queryType === "findMany") {
+        return await prisma.formSubmission.findMany({
+          where: { Form: { companyId } },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+            Form: { select: { name: true } },
+          },
+          orderBy: { submittedAt: "desc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "formassignment":
+      if (queryType === "findMany") {
+        return await prisma.formAssignment.findMany({
+          where: {
+            Form: { companyId },
+            ...(operation.includes("pending") && { status: "pending" }),
+          },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+            Form: { select: { name: true } },
+          },
+          orderBy: { dueDate: "asc" },
+          take: 100,
+        });
+      }
+      break;
+
+    // ONBOARDING & OFFBOARDING
+    case "onboardinginstance":
+      if (queryType === "findMany") {
+        return await prisma.onboardingInstance.findMany({
+          where: {
+            Employee: { companyId },
+            ...(operation.includes("pending") && { status: "IN_PROGRESS" }),
+          },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+            OnboardingTemplate: { select: { name: true } },
+          },
+          orderBy: { startedAt: "desc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "onboardingtemplate":
+      if (queryType === "findMany") {
+        return await prisma.onboardingTemplate.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("active") && { isActive: true }),
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+          },
+          orderBy: { createdAt: "desc" },
+        });
+      }
+      break;
+
+    case "employeeoffboarding":
+      if (queryType === "findMany") {
+        return await prisma.employeeOffboarding.findMany({
+          where: {
+            Employee: { companyId },
+          },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+          },
+          orderBy: { lastWorkingDate: "asc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "exitinterview":
+      if (queryType === "findMany") {
+        return await prisma.exitInterview.findMany({
+          where: {
+            EmployeeOffboarding: { Employee: { companyId } },
+          },
+          include: {
+            EmployeeOffboarding: {
+              include: {
+                Employee: {
+                  include: {
+                    User: { select: { firstName: true, lastName: true } },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { scheduledAt: "asc" },
+          take: 100,
+        });
+      }
+      break;
+
+    // PERFORMANCE & TRAINING
+    case "employeeperformancereview":
+      if (queryType === "findMany") {
+        return await prisma.employeePerformanceReview.findMany({
+          where: { companyId },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+            Reviewer: { select: { firstName: true, lastName: true } },
+          },
+          orderBy: { reviewDate: "desc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "trainingrecord":
+      if (queryType === "findMany") {
+        return await prisma.trainingRecord.findMany({
+          where: { Employee: { companyId } },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+            Course: { select: { name: true } },
+          },
+          orderBy: { dateCompleted: "desc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "course":
+      if (queryType === "findMany") {
+        return await prisma.course.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("active") && { isActive: true }),
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            duration: true,
+            isActive: true,
+          },
+        });
+      }
+      break;
+
+    // AUTOMATION & TASKS
+    case "automationrule":
+      if (queryType === "findMany") {
+        return await prisma.automationRule.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("active") && { isActive: true }),
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+            triggerType: true,
+            category: true,
+            executionCount: true,
+            successCount: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "actionitem":
+      if (queryType === "findMany") {
+        return await prisma.actionItem.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("pending") && { status: "pending" }),
+            ...(operation.includes("overdue") && {
+              dueDate: { lt: new Date() },
+              status: { not: "completed" },
+            }),
+          },
+          include: {
+            AssignedTo: { select: { firstName: true, lastName: true } },
+            CreatedBy: { select: { firstName: true, lastName: true } },
+          },
+          orderBy: { dueDate: "asc" },
+          take: 100,
+        });
+      }
+      break;
+
+    case "automationexecution":
+      if (queryType === "findMany") {
+        return await prisma.automationExecution.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("failed") && { status: "FAILED" }),
+          },
+          include: {
+            AutomationRule: { select: { name: true } },
+          },
+          orderBy: { triggeredAt: "desc" },
+          take: 50,
+        });
+      }
+      break;
+
+    // NEWS & COMMUNICATION
+    case "newspost":
+      if (queryType === "findMany") {
+        return await prisma.newsPost.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("published") && { isPublished: true }),
+          },
+          include: {
+            Author: { select: { firstName: true, lastName: true } },
+          },
+          orderBy: { publishedAt: "desc" },
+          take: 20,
+        });
+      }
+      break;
+
+    // DEPARTMENTS & ROLES
+    case "department":
+      if (queryType === "findMany") {
+        return await prisma.department.findMany({
+          where: {
+            companyId,
+            ...(operation.includes("active") && { isActive: true }),
+          },
+          include: {
+            Manager: { select: { firstName: true, lastName: true } },
+          },
+        });
+      }
+      break;
+
+    case "jobrole":
+      if (queryType === "findMany") {
+        return await prisma.jobRole.findMany({
+          where: { companyId },
+          include: {
+            Department: { select: { name: true } },
+          },
+        });
+      }
+      break;
+
+    // PERMISSIONS & AUDIT
+    case "permissionprofile":
+      if (queryType === "findMany") {
+        return await prisma.permissionProfile.findMany({
+          where: { companyId },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isDefault: true,
+            permissions: true,
+          },
+        });
+      }
+      break;
+
+    case "employeeauditlog":
+      if (queryType === "findMany") {
+        return await prisma.employeeAuditLog.findMany({
+          where: { companyId },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+            User: { select: { firstName: true, lastName: true } },
+          },
+          orderBy: { changedAt: "desc" },
+          take: 50,
+        });
+      }
+      break;
+
+    // MISC
+    case "emergencycontact":
+      if (queryType === "findMany") {
+        return await prisma.emergencyContact.findMany({
+          where: { Employee: { companyId } },
+          include: {
+            Employee: {
+              include: {
+                User: { select: { firstName: true, lastName: true } },
+              },
+            },
+          },
+          take: 100,
+        });
+      }
+      break;
+
+    case "location":
+      if (queryType === "findMany") {
+        return await prisma.location.findMany({
+          where: { companyId },
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            city: true,
+            country: true,
+          },
+        });
       }
       break;
 

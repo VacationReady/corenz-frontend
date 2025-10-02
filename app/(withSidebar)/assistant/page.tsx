@@ -178,8 +178,7 @@ export default function AIAssistantPage() {
     try {
       // Determine action type from message
       const actionType = detectActionType(messageText);
-      let response;
-
+      let response: { content: string; result?: any; suggestions?: string[]; summary?: string };
       switch (actionType) {
         case "query":
           response = await handleQuery(messageText);
@@ -193,6 +192,12 @@ export default function AIAssistantPage() {
         default:
           response = {
             content: "I'm not sure how to help with that. Try asking about data queries, creating workflows, or adding custom fields.",
+            suggestions: [
+              "How many employees don't have IRD numbers?",
+              "Create a workflow to alert HR 60 days before contracts expire",
+              "Add a 'T-Shirt Size' dropdown to personal information",
+            ],
+            summary: "Try one of the suggestions below to get started.",
           };
       }
 

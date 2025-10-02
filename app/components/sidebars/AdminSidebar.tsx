@@ -13,6 +13,7 @@ import {
   Megaphone,
   Settings,
   BarChart3,
+  LineChart,
   LogOut,
   ListChecks,
   Zap,
@@ -149,6 +150,7 @@ const coreLinks = [
 const hrToolsLinks = [
   { href: "/documents", icon: FileText, label: "Documents" },
   { href: "/reports", icon: BarChart3, label: "Reports" },
+  { href: "/analytics", icon: LineChart, label: "Analytics" },
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },
 ];

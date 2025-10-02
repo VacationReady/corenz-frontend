@@ -66,8 +66,9 @@ export async function exportTableToPdf(
   }
 
   const bytes = await doc.save();
-  // Convert Uint8Array to ArrayBuffer slice compatible with BlobPart typing
-  const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  // Copy into a fresh ArrayBuffer to satisfy environments that type bytes.buffer as ArrayBuffer | SharedArrayBuffer
+  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(arrayBuffer).set(bytes);
   return new Blob([arrayBuffer], { type: "application/pdf" });
 }
 

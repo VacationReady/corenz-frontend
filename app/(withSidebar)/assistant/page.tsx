@@ -674,7 +674,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       description="Natural language HR automation powered by AI"
       icon={<Bot className="w-6 h-6" />}
       action={
-        <div className="relative" ref={capabilitiesRef}>
+        <div className="relative z-[101]" ref={capabilitiesRef}>
           <Button
             variant="outline"
             size="sm"
@@ -687,7 +687,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           </Button>
 
           {showCapabilities && (
-            <div className="absolute right-0 mt-2 w-[600px] max-h-[600px] overflow-y-auto bg-white rounded-xl shadow-2xl border z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 mt-2 w-[600px] max-h-[70vh] overflow-y-auto bg-white rounded-xl shadow-2xl border z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
@@ -748,10 +748,10 @@ Don't worry - your data is safe. This is likely a temporary glitch.
         </div>
       }
     >
-      <div className="flex h-[calc(100vh-12rem)] gap-4">
+      <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
         {/* Left: Chat Interface */}
-        <div className="w-1/2 flex flex-col">
-          <Card className="flex-1 flex flex-col overflow-hidden">
+        <div className="w-1/2 flex flex-col min-h-0">
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
               <div className="flex-1 overflow-y-auto p-6">
@@ -981,8 +981,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
         </div>
 
         {/* Right: Results/Preview */}
-        <div className="w-1/2">
-          <Card className="h-full flex flex-col overflow-hidden">
+        <div className="w-1/2 min-h-0">
+          <Card className="h-full flex flex-col overflow-hidden min-h-0">
             {generatedWorkflow ? (
               <>
                 <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">

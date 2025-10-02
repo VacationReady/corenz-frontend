@@ -943,17 +943,6 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <div className="whitespace-pre-wrap text-sm">
                           {msg.content}
                         </div>
-                        {msg.actionType && msg.role === "assistant" && (
-                          <Badge
-                            variant="outline"
-                            className="mt-2 text-xs"
-                          >
-                            {msg.actionType === "query" && <Search className="w-3 h-3 mr-1" />}
-                            {msg.actionType === "workflow" && <Zap className="w-3 h-3 mr-1" />}
-                            {msg.actionType === "field" && <Plus className="w-3 h-3 mr-1" />}
-                            {msg.actionType}
-                          </Badge>
-                        )}
                         {/* Show data table if query returned results */}
                         {msg.result?.data && Array.isArray(msg.result.data) && (
                           <div className="mt-2 max-h-40 overflow-auto">
@@ -1179,7 +1168,10 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   </p>
 
                   <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
-                    <div className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg">
+                    <button 
+                      onClick={() => handleSendMessage("Show me all employees with their salaries")}
+                      className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+                    >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
                         <Table className="w-7 h-7 text-white" />
                       </div>
@@ -1187,8 +1179,11 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Instant answers about your people, leave, and documents
                       </p>
-                    </div>
-                    <div className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg">
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage("What workflow should I create?")}
+                      className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+                    >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
                         <Workflow className="w-7 h-7 text-white" />
                       </div>
@@ -1196,8 +1191,11 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Build automation visually from plain English
                       </p>
-                    </div>
-                    <div className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg">
+                    </button>
+                    <button 
+                      onClick={() => handleSendMessage("What custom field should I add?")}
+                      className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+                    >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
                         <Plus className="w-7 h-7 text-white" />
                       </div>
@@ -1205,7 +1203,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Extend your system without code or migrations
                       </p>
-                    </div>
+                    </button>
                   </div>
 
                   <div className="mt-10 space-y-3">

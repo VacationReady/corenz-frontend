@@ -74,18 +74,19 @@ MISC:
 - SavedReport: id, name, description, createdById
 - WorkingPattern: id, name, description, type, isActive
 
-Common Queries:
-- "Who is on leave next week?" → leaveRequest model with date filters, use findMany
-- "What is [Name]'s email?" → employee model, filter by firstName/lastName, use findMany
-- "Show pending performance reviews" → employeePerformanceReview model, use findMany
-- "List all active forms" → form model where isActive=true, use findMany
-- "Who is currently onboarding?" → onboardingInstance model, use findMany
-- "Show recent news" → newsPost model ordered by publishedAt, use findMany
-- "How many in sales?" → employee model with count
-- "What's the total salary cost?" → employee model with aggregate (SUM salaryAmount)
-- "What's the average salary?" → employee model with aggregate (AVG salaryAmount)
-- "List individuals in sales" → employee model with findMany (NOT count)
-- "Show me sales team with salaries" → employee model with findMany (returns salaryAmount field)
+Common Query Examples:
+- "How many in sales?" → employee model, queryType: count, filter by department
+- "List people in sales" → employee model, queryType: findMany, filter by department (MUST include salaryAmount!)
+- "Show names with salaries" → employee model, queryType: findMany (returns name + salaryAmount)
+- "Who is on leave next week?" → leaveRequest model, queryType: findMany, date filter
+- "What's total salary for sales?" → employee model, queryType: aggregate, SUM salaryAmount
+- "Average salary in IT?" → employee model, queryType: aggregate, AVG salaryAmount
+
+CRITICAL EXAMPLES - Study These:
+User: "How many in sales?" → {queryType: "count", model: "employee", operation: "Department filter sales"}
+User: "List individuals in sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
+User: "Show sales team salaries" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
+User: "Names and salaries for sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
@@ -123,7 +124,7 @@ export async function generateQuery(
     if (conversationContext) {
       messages.push({
         role: "system",
-        content: `Previous conversation context:\n${conversationContext}\n\nUse this context to understand pronouns (their, those, these) and references to previous queries.`,
+        content: `Previous conversation context:\n${conversationContext}\n\nUse this context to understand pronouns (their, those, these) and references to previous queries.\n\nIMPORTANT: If the user previously asked about a department (e.g., "How many in sales?"), and now asks to "list" or "show" them, use findMany with that same department filter.`,
       });
     }
 
@@ -133,12 +134,16 @@ export async function generateQuery(
           
 CompanyId to filter by: ${companyId}
 
+CRITICAL DECISION GUIDE:
+- "How many" = count
+- "List", "Show me", "Who are", "Names of", "Display" = findMany
+- "Total salary", "Average salary", "Sum of" = aggregate
+
 Respond with JSON in this format:
 {
   "queryType": "count|findMany|aggregate",
   "model": "employee|user|leaveRequest|etc",
-  "operation": "the prisma code to execute",
-  "explanation": "what this query does"
+  "operation": "the prisma code to execute"
 }`,
     });
 

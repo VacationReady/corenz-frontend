@@ -1,30 +1,29 @@
 import React from "react";
 import { Handle, Position, NodeProps } from "reactflow";
-import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
 export const BranchNode: React.FC<NodeProps> = ({ data, selected }) => {
   return (
-    <Card
+    <div
       className={cn(
-        "min-w-[120px] shadow-sm border transition-all cursor-move",
+        "relative group min-w-[110px] max-w-[180px]",
+        "bg-white rounded-lg border-2 transition-all cursor-move",
         selected
-          ? "border-pink-500 shadow-lg scale-105"
-          : "border-pink-200 hover:border-pink-300 hover:shadow-md",
-        "bg-gradient-to-br from-pink-50 via-white to-pink-50/40"
+          ? "border-pink-500 shadow-lg shadow-pink-100"
+          : "border-pink-300 hover:border-pink-400 hover:shadow-md"
       )}
     >
-      <div className="p-3 space-y-1">
+      <div className="px-2.5 py-2 space-y-1">
         <div className="flex items-center gap-1.5">
-          <div className="flex-shrink-0 w-6 h-6 rounded-md bg-pink-100 flex items-center justify-center text-pink-600 text-sm">
+          <div className="flex-shrink-0 w-5 h-5 rounded border border-pink-400 bg-pink-50 flex items-center justify-center text-pink-600 text-xs">
             {data?.icon}
           </div>
-          <span className="font-medium text-[11px] text-pink-900 truncate">
+          <span className="font-semibold text-[10px] text-pink-900 truncate">
             {data?.label ?? "Branch"}
           </span>
         </div>
         {data?.description && (
-          <p className="text-[10px] leading-snug text-muted-foreground line-clamp-2">
+          <p className="text-[9px] leading-tight text-pink-700/70 line-clamp-1 pl-6">
             {data.description}
           </p>
         )}
@@ -32,14 +31,14 @@ export const BranchNode: React.FC<NodeProps> = ({ data, selected }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="w-2.5 h-2.5 bg-pink-500 border-2 border-white shadow-md transition-transform hover:scale-125"
+        className="w-2 h-2 bg-pink-500 border-2 border-white shadow-sm transition-transform hover:scale-125"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-2.5 h-2.5 bg-pink-500 border-2 border-white shadow-md transition-transform hover:scale-125"
+        className="w-2 h-2 bg-pink-500 border-2 border-white shadow-sm transition-transform hover:scale-125"
       />
-    </Card>
+    </div>
   );
 };
 

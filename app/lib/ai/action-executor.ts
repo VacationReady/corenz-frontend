@@ -1093,7 +1093,6 @@ async function handleDocumentUpload(action: AIAction): Promise<ActionResult> {
           canViewManager: true,
           canViewEmployee: true,
           createdAt: new Date(),
-          updatedAt: new Date(),
         },
       });
 

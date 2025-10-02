@@ -1087,7 +1087,9 @@ export async function undoAction(undoId: string): Promise<ActionResult> {
       record.employeeId,
       record.field,
       record.oldValue,
-      record.companyId
+      record.companyId,
+      record.userId,
+      "Reverted via undo action"
     );
     
     undoRecords.delete(undoId);

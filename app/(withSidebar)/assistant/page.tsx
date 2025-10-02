@@ -44,6 +44,7 @@ import {
 import { toast } from "sonner";
 import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
 import { PageShell } from "@/components/ui/PageShell";
+import { createPortal } from "react-dom";
 
 type MessageRole = "user" | "assistant" | "system";
 type ActionType = "query" | "workflow" | "field" | "info";
@@ -309,20 +310,27 @@ export default function AIAssistantPage() {
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCapabilities, setShowCapabilities] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const capabilitiesRef = useRef<HTMLDivElement>(null);
+  const capabilitiesButtonRef = useRef<HTMLButtonElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Close capabilities dropdown when clicking outside
+  // Track if component is mounted (for portal)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (capabilitiesRef.current && !capabilitiesRef.current.contains(event.target as Node)) {
-        setShowCapabilities(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    setIsMounted(true);
   }, []);
+
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (showCapabilities && capabilitiesButtonRef.current) {
+      const rect = capabilitiesButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [showCapabilities]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -674,8 +682,9 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       description="Natural language HR automation powered by AI"
       icon={<Bot className="w-6 h-6" />}
       action={
-        <div className="relative" ref={capabilitiesRef}>
+        <>
           <Button
+            ref={capabilitiesButtonRef}
             size="sm"
             onClick={() => setShowCapabilities(!showCapabilities)}
             className="gap-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white border-0 shadow-lg"
@@ -685,16 +694,21 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             <ChevronDown className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`} />
           </Button>
 
-          {showCapabilities && (
+          {/* Render dropdown via portal to escape stacking context */}
+          {isMounted && showCapabilities && createPortal(
             <>
               {/* Backdrop */}
               <div 
-                className="fixed inset-0 bg-black/10 z-[998]" 
+                className="fixed inset-0 bg-black/20 z-[9998]" 
                 onClick={() => setShowCapabilities(false)}
               />
               {/* Dropdown */}
               <div 
-                className="absolute right-0 top-full mt-2 w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[999]"
+                className="fixed w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999]"
+                style={{
+                  top: `${dropdownPosition.top}px`,
+                  right: `${dropdownPosition.right}px`,
+                }}
               >
                 <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl z-10">
                   <h3 className="font-bold text-lg flex items-center gap-2">
@@ -752,9 +766,10 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   </p>
                 </div>
               </div>
-            </>
+            </>,
+            document.body
           )}
-        </div>
+        </>
       }
     >
       <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
@@ -797,9 +812,12 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                               <button
                                 key={idx}
                                 onClick={() => handleSendMessage(example)}
-                                className="text-[10px] px-2 py-0.5 rounded-full bg-muted hover:bg-primary/10 transition-colors group/btn max-w-[140px] truncate"
+                                className="text-[10px] px-2.5 py-1 rounded-full bg-muted hover:bg-primary/10 transition-colors group/btn"
+                                title={example}
                               >
-                                {example}
+                                <span className="block max-w-[200px] truncate">
+                                  {example}
+                                </span>
                               </button>
                             ))}
                           </div>

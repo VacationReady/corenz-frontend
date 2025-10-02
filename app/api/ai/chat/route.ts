@@ -37,8 +37,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rateLimit = checkRateLimit(session.user.id, 100, 3600000);
-    if (!rateLimit.allowed) {
+    // Rate limit: 500 requests per hour (increase for testing, lower for production)
+    // Set DISABLE_AI_RATE_LIMIT=true in .env.local to disable during development
+    const skipRateLimit = process.env.DISABLE_AI_RATE_LIMIT === 'true';
+    const rateLimit = checkRateLimit(session.user.id, 500, 3600000);
+    if (!skipRateLimit && !rateLimit.allowed) {
       const resetTime = new Date(rateLimit.resetAt).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",

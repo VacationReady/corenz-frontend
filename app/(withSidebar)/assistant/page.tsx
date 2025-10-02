@@ -13,12 +13,19 @@ import {
   Zap,
   Plus,
   Loader2,
-  Check,
   AlertCircle,
-  Code,
   Table,
   Workflow,
   CheckCircle,
+  TrendingUp,
+  Users,
+  Calendar,
+  FileText,
+  Bell,
+  Target,
+  ArrowRight,
+  Lightbulb,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowCanvas } from "@/app/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
@@ -37,49 +44,100 @@ interface Message {
   isLoading?: boolean;
 }
 
+const CAPABILITY_CATEGORIES = [
+  {
+    id: "insights",
+    title: "What do you want to know about your people?",
+    icon: <Users className="w-6 h-6" />,
+    gradient: "from-blue-500 to-cyan-500",
+    examples: [
+      "How many employees don't have IRD numbers?",
+      "Show me employees starting in the next 30 days",
+      "Which departments have the highest turnover?",
+      "Who hasn't completed their onboarding forms?",
+      "List all employees with contracts expiring this quarter",
+    ],
+  },
+  {
+    id: "workflows",
+    title: "What workflow can I build today?",
+    icon: <Zap className="w-6 h-6" />,
+    gradient: "from-purple-500 to-pink-500",
+    examples: [
+      "Alert HR 60 days before contracts expire",
+      "Send reminder to managers 5 days before probation ends",
+      "Welcome new Engineering hires with IT setup form",
+      "Notify manager when employee leave balance is low",
+      "Create review task for employees after 90 days",
+      "Send birthday wishes to employees automatically",
+    ],
+  },
+  {
+    id: "customize",
+    title: "How can I customize employee data?",
+    icon: <Plus className="w-6 h-6" />,
+    gradient: "from-emerald-500 to-teal-500",
+    examples: [
+      "Add a 'T-Shirt Size' dropdown to personal info",
+      "Create a 'Dietary Requirements' text field",
+      "Add 'Preferred Pronouns' to employee profiles",
+      "Add 'LinkedIn Profile' URL field",
+      "Create a 'Parking Space' field",
+    ],
+  },
+  {
+    id: "trends",
+    title: "What trends should I be tracking?",
+    icon: <TrendingUp className="w-6 h-6" />,
+    gradient: "from-amber-500 to-orange-500",
+    examples: [
+      "Show leave request patterns by department",
+      "Track onboarding completion rates",
+      "Find employees with upcoming anniversaries",
+      "Analyze document expiry trends",
+      "Which forms have the lowest completion rates?",
+    ],
+  },
+];
+
 const QUICK_ACTIONS = [
   {
-    label: "Employees without IRD",
+    label: "Missing IRD Numbers",
     icon: <Search className="w-4 h-4" />,
     prompt: "How many employees don't have IRD numbers?",
     type: "query" as ActionType,
+    color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20",
   },
   {
-    label: "Contract Expiry Workflow",
-    icon: <Zap className="w-4 h-4" />,
-    prompt:
-      "Create a workflow that alerts HR 60 days before contracts expire",
+    label: "Contract Expiry Alert",
+    icon: <Bell className="w-4 h-4" />,
+    prompt: "Create a workflow that alerts HR 60 days before contracts expire",
     type: "workflow" as ActionType,
+    color: "bg-purple-500/10 text-purple-600 hover:bg-purple-500/20",
   },
   {
     label: "Add Custom Field",
     icon: <Plus className="w-4 h-4" />,
-    prompt: "Add a 'Favourite Colour' field to personal information",
+    prompt: "Add a 'T-Shirt Size' dropdown field",
     type: "field" as ActionType,
+    color: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20",
+  },
+  {
+    label: "Upcoming Starters",
+    icon: <Calendar className="w-4 h-4" />,
+    prompt: "Show me employees starting in the next 30 days",
+    type: "query" as ActionType,
+    color: "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20",
   },
 ];
 
 export default function AIAssistantPage() {
   const { data: session } = useSession();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: `Hi! I'm your AI HR Assistant. I can help you with:
-
-📊 **Data Queries**: Ask about employee data, leave requests, documents, etc.
-⚡ **Workflow Creation**: Describe a workflow and I'll build it for you
-➕ **Custom Fields**: Add new fields to employee forms without coding
-🔍 **System Insights**: Analyze trends and generate reports
-
-What would you like to do today?`,
-      timestamp: new Date(),
-      actionType: "info",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -90,6 +148,9 @@ What would you like to do today?`,
 
   const handleSendMessage = async (messageText: string = input) => {
     if (!messageText.trim() || isProcessing) return;
+
+    // Hide welcome screen once user starts chatting
+    setShowWelcome(false);
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -312,16 +373,88 @@ What would you like to do today?`,
   return (
     <PageShell
       title="AI Assistant"
-      description="Natural language HR automation"
+      description="Natural language HR automation powered by AI"
       icon={<Bot className="w-6 h-6" />}
     >
       <div className="flex h-[calc(100vh-12rem)] gap-4">
         {/* Left: Chat Interface */}
         <div className="w-1/2 flex flex-col">
           <Card className="flex-1 flex flex-col overflow-hidden">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((msg) => (
+            {/* Welcome Screen */}
+            {showWelcome && messages.length === 0 ? (
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Hero Section */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 mb-4 shadow-lg">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Welcome to AI Assistant
+                  </h2>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Your intelligent HR companion. Ask questions, build workflows, and customize your system—all in plain English.
+                  </p>
+                </div>
+
+                {/* Capability Cards */}
+                <div className="space-y-4 mb-6">
+                  {CAPABILITY_CATEGORIES.map((category) => (
+                    <div
+                      key={category.id}
+                      className="group border rounded-xl p-5 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-gradient-to-br from-white to-gray-50/50"
+                    >
+                      <div className="flex items-start gap-4 mb-3">
+                        <div className={`flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-md`}>
+                          {category.icon}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
+                            {category.title}
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {category.examples.slice(0, 3).map((example, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleSendMessage(example)}
+                                className="text-xs px-3 py-1.5 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center gap-1 group/btn"
+                              >
+                                <MessageSquare className="w-3 h-3 opacity-50 group-hover/btn:opacity-100" />
+                                {example.length > 40 ? example.slice(0, 40) + "..." : example}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick Start Tips */}
+                <div className="border-t pt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lightbulb className="w-5 h-5 text-amber-500" />
+                    <span className="text-sm font-medium">Pro Tips</span>
+                  </div>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Be specific: "Show employees in Sales without IRD" instead of just "show employees"</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Ask follow-up questions to refine workflows: "Make it send 60 days before instead"</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Custom fields are instant—no database changes needed!</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              /* Messages */
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -374,43 +507,63 @@ What would you like to do today?`,
                   </div>
                 </div>
               ))}
-              <div ref={messagesEndRef} />
-            </div>
+                <div ref={messagesEndRef} />
+              </div>
+            )}
 
-            {/* Quick Actions */}
-            <div className="border-t p-3 flex flex-wrap gap-2">
-              {QUICK_ACTIONS.map((action) => (
-                <Button
-                  key={action.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSendMessage(action.prompt)}
-                  disabled={isProcessing}
-                  className="text-xs"
-                >
-                  {action.icon}
-                  <span className="ml-2">{action.label}</span>
-                </Button>
-              ))}
-            </div>
+            {/* Quick Actions Bar */}
+            {!showWelcome && (
+              <div className="border-t p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Quick Actions</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {QUICK_ACTIONS.map((action) => (
+                    <Button
+                      key={action.label}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSendMessage(action.prompt)}
+                      disabled={isProcessing}
+                      className={`text-xs ${action.color}`}
+                    >
+                      {action.icon}
+                      <span className="ml-2">{action.label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Input */}
-            <div className="border-t p-4">
+            <div className="border-t p-4 bg-gradient-to-r from-background via-primary/5 to-background">
               <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                  placeholder="Ask me anything about your HR data..."
-                  className="flex-1 rounded-lg border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={isProcessing}
-                />
+                <div className="flex-1 relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                    placeholder={showWelcome ? "Try: 'How many employees don't have IRD numbers?'" : "Ask anything..."}
+                    className="w-full rounded-lg border px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+                    disabled={isProcessing}
+                  />
+                  {input && (
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute right-14 top-1/2 -translate-y-1/2 text-xs"
+                    >
+                      Press Enter
+                    </Badge>
+                  )}
+                </div>
                 <Button
                   onClick={() => handleSendMessage()}
                   disabled={isProcessing || !input.trim()}
                   size="sm"
+                  className="px-4 py-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:opacity-90 transition-opacity shadow-md"
                 >
                   {isProcessing ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -425,19 +578,23 @@ What would you like to do today?`,
 
         {/* Right: Results/Preview */}
         <div className="w-1/2">
-          <Card className="h-full flex flex-col">
+          <Card className="h-full flex flex-col overflow-hidden">
             {generatedWorkflow ? (
               <>
-                <div className="p-4 border-b flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">
-                      {generatedWorkflow.name}
-                    </h3>
+                <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Workflow className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold">
+                        {generatedWorkflow.name}
+                      </h3>
+                      <Badge variant="secondary" className="ml-auto">AI Generated</Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {generatedWorkflow.description}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 ml-4">
                     <Button
                       variant="outline"
                       size="sm"
@@ -445,7 +602,11 @@ What would you like to do today?`,
                     >
                       Clear
                     </Button>
-                    <Button size="sm" onClick={handleSaveWorkflow}>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveWorkflow}
+                      className="bg-gradient-to-r from-primary to-purple-600"
+                    >
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Save Workflow
                     </Button>
@@ -463,42 +624,55 @@ What would you like to do today?`,
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                <Sparkles className="w-16 h-16 mb-4 text-primary" />
-                <h3 className="text-lg font-semibold mb-2">
-                  AI-Powered HR Assistant
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Ask questions, generate workflows, or add custom fields. Results will appear here.
-                </p>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 opacity-50" />
+                <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 mb-6 shadow-2xl animate-pulse">
+                    <Sparkles className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    AI-Powered HR Intelligence
+                  </h3>
+                  <p className="text-muted-foreground max-w-md mb-8">
+                    Your questions become insights. Your ideas become workflows. Your needs become features.
+                  </p>
 
-                <div className="mt-8 grid grid-cols-3 gap-4 w-full max-w-lg">
-                  <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Table className="w-6 h-6 text-primary" />
+                  <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
+                    <div className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                        <Table className="w-7 h-7 text-white" />
+                      </div>
+                      <h4 className="text-sm font-semibold mb-2">Data Queries</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Instant answers about your people, leave, and documents
+                      </p>
                     </div>
-                    <h4 className="text-sm font-medium mb-1">Data Queries</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Ask about employees, leave, documents
-                    </p>
+                    <div className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                        <Workflow className="w-7 h-7 text-white" />
+                      </div>
+                      <h4 className="text-sm font-semibold mb-2">Workflows</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Build automation visually from plain English
+                      </p>
+                    </div>
+                    <div className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg">
+                      <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                        <Plus className="w-7 h-7 text-white" />
+                      </div>
+                      <h4 className="text-sm font-semibold mb-2">Custom Fields</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Extend your system without code or migrations
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Workflow className="w-6 h-6 text-primary" />
-                    </div>
-                    <h4 className="text-sm font-medium mb-1">Workflows</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Generate automation from description
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Plus className="w-6 h-6 text-primary" />
-                    </div>
-                    <h4 className="text-sm font-medium mb-1">Custom Fields</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Add fields without coding
-                    </p>
+
+                  <div className="mt-10 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Start chatting to see results here</span>
                   </div>
                 </div>
               </div>

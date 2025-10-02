@@ -732,12 +732,13 @@ export default function ReportsPreviewClient() {
   };
 
   const buildPrintableRows = useCallback(() => {
-    // Flatten according to chosen accessorKey resolution from columns
+    // Flatten rows keyed by accessorKey so the PDF renderer can read them
     return filteredData.map((row) => {
       const obj: Record<string, any> = {};
       columns.forEach((col) => {
         const value = getNested(row, col.accessorKey) ?? "";
-        obj[col.header] = typeof value === "object" ? JSON.stringify(value) : String(value);
+        obj[col.accessorKey] =
+          typeof value === "object" ? JSON.stringify(value) : String(value);
       });
       return obj;
     });
@@ -970,9 +971,7 @@ export default function ReportsPreviewClient() {
           <Button onClick={handleDownloadClick}>
             Download CSV ({filteredData.length} rows)
           </Button>
-          <Button variant="secondary" onClick={handlePdfClick}>
-            Export to PDF
-          </Button>
+          <Button onClick={handlePdfClick}>Export to PDF</Button>
           {total > data.length ? (
             <Button disabled={exportingFull} onClick={handleFullExport}>
               {exportingFull

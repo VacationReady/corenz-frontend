@@ -112,7 +112,11 @@ async function handleDataQuery(
   companyId: string,
   userId: string
 ): Promise<OrchestratorResult> {
-  const result = await generateQuery(query, companyId, userId);
+  // Get conversation context for follow-up questions
+  const conversation = getConversation(userId, companyId);
+  const conversationContext = buildContextString(conversation);
+  
+  const result = await generateQuery(query, companyId, userId, conversationContext);
   
   if (!result.success) {
     return {
@@ -191,6 +195,17 @@ async function handleDataQuery(
       }
     }
     
+    if (result.explanation) {
+      answer += `\n_${result.explanation}_`;
+    }
+  }
+  // For aggregate results (salary totals, averages, etc.)
+  else if (result.data && typeof result.data === 'object' && 'totalSalary' in result.data) {
+    const { totalSalary, averageSalary, employeeCount } = result.data;
+    answer = `**💰 Salary Analysis:**\n\n`;
+    answer += `• **Total:** $${totalSalary.toLocaleString()}\n`;
+    answer += `• **Average:** $${averageSalary.toLocaleString()}\n`;
+    answer += `• **Employees:** ${employeeCount}\n`;
     if (result.explanation) {
       answer += `\n_${result.explanation}_`;
     }

@@ -81,6 +81,8 @@ Common Queries:
 - "List all active forms" → form model where isActive=true
 - "Who is currently onboarding?" → onboardingInstance model
 - "Show recent news" → newsPost model ordered by publishedAt
+- "What's the total salary cost?" → employee model with aggregate (SUM salaryAmount)
+- "What's the average salary?" → employee model with aggregate (AVG salaryAmount)
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
@@ -91,26 +93,37 @@ Important Rules:
 6. For dates, use gte/lte operators
 7. Handle null values safely
 8. Return JSON-serializable results
+9. For salary totals/costs/sums, use aggregate with _sum.salaryAmount
+10. When filtering context is unclear (e.g., "their salaries"), default to all active employees
+11. If department/team mentioned, filter by Department relation
 `;
 
 export async function generateQuery(
   prompt: string,
   companyId: string,
-  userId: string
+  userId: string,
+  conversationContext?: string
 ): Promise<QueryResult> {
   try {
-    // Step 1: AI generates the query logic
-    const completion = await openai.chat.completions.create({
-      model: AI_CONFIG.model,
-      temperature: 0.3, // Lower temperature for precise queries
-      messages: [
-        {
-          role: "system",
-          content: SCHEMA_CONTEXT,
-        },
-        {
-          role: "user",
-          content: `Generate a Prisma query for: "${prompt}"
+    // Build messages with conversation context
+    const messages: any[] = [
+      {
+        role: "system",
+        content: SCHEMA_CONTEXT,
+      },
+    ];
+
+    // Add conversation context if available for follow-up questions
+    if (conversationContext) {
+      messages.push({
+        role: "system",
+        content: `Previous conversation context:\n${conversationContext}\n\nUse this context to understand pronouns (their, those, these) and references to previous queries.`,
+      });
+    }
+
+    messages.push({
+      role: "user",
+      content: `Generate a Prisma query for: "${prompt}"
           
 CompanyId to filter by: ${companyId}
 
@@ -121,8 +134,13 @@ Respond with JSON in this format:
   "operation": "the prisma code to execute",
   "explanation": "what this query does"
 }`,
-        },
-      ],
+    });
+
+    // Step 1: AI generates the query logic
+    const completion = await openai.chat.completions.create({
+      model: AI_CONFIG.model,
+      temperature: 0.3, // Lower temperature for precise queries
+      messages,
       response_format: { type: "json_object" },
     });
 
@@ -294,6 +312,67 @@ async function executeQueryByType(
           },
           take: 100, // Limit results
         });
+      }
+
+      if (queryType === "aggregate") {
+        const where: any = { companyId };
+        
+        // Parse department filter for salary aggregation
+        if (operation.includes("Department") || operation.includes("department")) {
+          const deptMatch = operation.match(/(?:Department|department).*?name.*?["']([^"']+)["']/);
+          if (deptMatch) {
+            const deptName = deptMatch[1];
+            const department = await prisma.department.findFirst({
+              where: {
+                companyId,
+                name: { contains: deptName, mode: 'insensitive' },
+              },
+            });
+            if (department) {
+              where.departmentId = department.id;
+            }
+          }
+        }
+        
+        // Check for job role filter
+        if (operation.includes("JobRole") || operation.includes("jobRole")) {
+          const roleMatch = operation.match(/(?:JobRole|jobRole).*?name.*?["']([^"']+)["']/);
+          if (roleMatch) {
+            const roleName = roleMatch[1];
+            const jobRole = await prisma.jobRole.findFirst({
+              where: {
+                companyId,
+                name: { contains: roleName, mode: 'insensitive' },
+              },
+            });
+            if (jobRole) {
+              where.jobRoleId = jobRole.id;
+            }
+          }
+        }
+        
+        // Default to active employees
+        where.isActive = true;
+        
+        // Aggregate salaryAmount
+        const result = await prisma.employee.aggregate({
+          where,
+          _sum: {
+            salaryAmount: true,
+          },
+          _avg: {
+            salaryAmount: true,
+          },
+          _count: {
+            id: true,
+          },
+        });
+        
+        return {
+          totalSalary: result._sum.salaryAmount || 0,
+          averageSalary: result._avg.salaryAmount || 0,
+          employeeCount: result._count.id || 0,
+        };
       }
       break;
 

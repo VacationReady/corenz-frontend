@@ -62,12 +62,44 @@ export function addMessage(
   const conv = getConversation(userId, companyId);
   conv.messages.push({ role, content, timestamp: new Date() });
   
+  // Extract entities from user messages for better context
+  if (role === "user") {
+    extractEntitiesFromMessage(content, conv);
+  }
+  
   // Keep only last 20 messages to save memory
   if (conv.messages.length > 20) {
     conv.messages = conv.messages.slice(-20);
   }
   
   updateConversation(userId, companyId, { messages: conv.messages });
+}
+
+// Extract department/team names from messages for context
+function extractEntitiesFromMessage(content: string, conv: ConversationContext) {
+  const lower = content.toLowerCase();
+  
+  // Extract department mentions
+  const deptPatterns = [
+    /(?:the\s+)?(\w+)\s+(?:team|department|dept)/gi,
+    /(?:in|for|from)\s+(\w+)(?:\s+team|\s+department)?/gi,
+  ];
+  
+  const departments = conv.entities.departments || [];
+  deptPatterns.forEach(pattern => {
+    const matches = content.matchAll(pattern);
+    for (const match of matches) {
+      const dept = match[1];
+      if (dept && !departments.includes(dept.toLowerCase())) {
+        departments.push(dept.toLowerCase());
+      }
+    }
+  });
+  
+  // Keep only last 3 mentioned departments
+  if (departments.length > 0) {
+    conv.entities.departments = departments.slice(-3);
+  }
 }
 
 export function setEntityContext(
@@ -124,6 +156,10 @@ export function buildContextString(conv: ConversationContext): string {
     context += `\nRecently mentioned employees: ${conv.entities.employees.map(e => e.name).join(", ")}`;
   }
   
+  if (conv.entities.departments && conv.entities.departments.length > 0) {
+    context += `\nRecently mentioned departments/teams: ${conv.entities.departments.join(", ")}`;
+  }
+  
   if (conv.entities.pendingAction) {
     const action = conv.entities.pendingAction;
     context += `\n\nPending action: ${action.type} (step ${action.step})`;
@@ -133,7 +169,7 @@ export function buildContextString(conv: ConversationContext): string {
   if (conv.messages.length > 0) {
     context += `\n\nRecent conversation:`;
     conv.messages.slice(-5).forEach(msg => {
-      context += `\n${msg.role}: ${msg.content.slice(0, 100)}${msg.content.length > 100 ? '...' : ''}`;
+      context += `\n${msg.role}: ${msg.content.slice(0, 150)}${msg.content.length > 150 ? '...' : ''}`;
     });
   }
   

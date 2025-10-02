@@ -12,6 +12,7 @@ import {
   checkRateLimit,
 } from "@/lib/ai/openai-client";
 import { generateQuery, QUICK_QUERIES } from "@/lib/ai/query-generator";
+import { getConversation, addMessage, buildContextString } from "@/lib/ai/conversation-memory";
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,12 +72,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(result);
     }
 
-    // Handle AI-generated queries
+    // Add query to conversation history
+    addMessage(session.user.id, session.user.companyId, "user", query);
+
+    // Get conversation context for follow-up questions
+    const conversation = getConversation(session.user.id, session.user.companyId);
+    const conversationContext = buildContextString(conversation);
+
+    // Handle AI-generated queries with conversation context
     const result = await generateQuery(
       query,
       session.user.companyId,
-      session.user.id
+      session.user.id,
+      conversationContext
     );
+
+    // Add result to conversation history
+    if (result.success) {
+      const summary = result.explanation || "Query executed successfully";
+      addMessage(session.user.id, session.user.companyId, "assistant", summary);
+    }
 
     return NextResponse.json(result);
   } catch (error: any) {

@@ -16,6 +16,8 @@ interface ConversationContext {
       step: number;
       data: any;
     };
+    lastGeneratedWorkflow?: any;
+    lastGeneratedForm?: any;
   };
   lastActivity: Date;
 }

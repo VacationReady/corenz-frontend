@@ -674,12 +674,12 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       description="Natural language HR automation powered by AI"
       icon={<Bot className="w-6 h-6" />}
       action={
-        <div className="relative z-[101]" ref={capabilitiesRef}>
+        <div className="relative" ref={capabilitiesRef}>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowCapabilities(!showCapabilities)}
-            className="gap-2"
+            className="gap-2 relative z-[200]"
           >
             <Sparkles className="w-4 h-4" />
             What can I do?
@@ -687,7 +687,10 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           </Button>
 
           {showCapabilities && (
-            <div className="absolute right-0 mt-2 w-[600px] max-h-[70vh] overflow-y-auto bg-white rounded-xl shadow-2xl border z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+            <div 
+              className="fixed right-6 top-24 w-[600px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 animate-in fade-in slide-in-from-top-2 duration-200"
+              style={{ zIndex: 9999 }}
+            >
               <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
@@ -756,42 +759,44 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             {showWelcome && messages.length === 0 ? (
               <div className="flex-1 overflow-y-auto p-6">
                 {/* Hero Section */}
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 mb-4 shadow-lg">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 mb-3 shadow-lg">
                     <Sparkles className="w-8 h-8 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <h2 className="text-xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Welcome to AI Assistant
                   </h2>
-                  <p className="text-muted-foreground max-w-md mx-auto">
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
                     Your intelligent HR companion. Ask questions, build workflows, and customize your system—all in plain English.
                   </p>
                 </div>
 
                 {/* Capability Cards */}
-                <div className="space-y-4 mb-6">
+                <div className="space-y-3 mb-4">
                   {CAPABILITY_CATEGORIES.map((category) => (
                     <div
                       key={category.id}
-                      className="group border rounded-xl p-5 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-gradient-to-br from-white to-gray-50/50"
+                      className="group border rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:scale-[1.01] cursor-pointer bg-gradient-to-br from-white to-gray-50/50"
                     >
-                      <div className="flex items-start gap-4 mb-3">
-                        <div className={`flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-md`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-md`}>
                           {category.icon}
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base mb-2 group-hover:text-primary transition-colors">
                             {category.title}
                           </h3>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             {category.examples.slice(0, 3).map((example, idx) => (
                               <button
                                 key={idx}
                                 onClick={() => handleSendMessage(example)}
-                                className="text-xs px-3 py-1.5 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center gap-1 group/btn"
+                                className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center gap-1 group/btn flex-shrink-0"
                               >
-                                <MessageSquare className="w-3 h-3 opacity-50 group-hover/btn:opacity-100" />
-                                {example.length > 40 ? example.slice(0, 40) + "..." : example}
+                                <MessageSquare className="w-3 h-3 opacity-50 group-hover/btn:opacity-100 flex-shrink-0" />
+                                <span className="truncate max-w-[180px]">
+                                  {example.length > 35 ? example.slice(0, 35) + "..." : example}
+                                </span>
                               </button>
                             ))}
                           </div>
@@ -802,23 +807,23 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 </div>
 
                 {/* Quick Start Tips */}
-                <div className="border-t pt-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Lightbulb className="w-5 h-5 text-amber-500" />
-                    <span className="text-sm font-medium">Pro Tips</span>
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lightbulb className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-medium">Pro Tips</span>
                   </div>
-                  <ul className="text-sm text-muted-foreground space-y-2">
+                  <ul className="text-xs text-muted-foreground space-y-1.5">
                     <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                      <span>Be specific: "Show employees in Sales without IRD" instead of just "show employees"</span>
+                      <ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Be specific for better results</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                      <span>Ask follow-up questions to refine workflows: "Make it send 60 days before instead"</span>
+                      <ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Ask follow-ups to refine</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
-                      <span>Custom fields are instant—no database changes needed!</span>
+                      <ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Custom fields are instant!</span>
                     </li>
                   </ul>
                 </div>

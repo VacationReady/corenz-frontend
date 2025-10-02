@@ -13,9 +13,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await params; // Await params to satisfy Next.js type requirements
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return new Response("Unauthorized", { status: 401 });

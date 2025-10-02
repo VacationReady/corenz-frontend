@@ -592,14 +592,10 @@ async function executeQueryByType(
         return await prisma.course.findMany({
           where: {
             companyId,
-            ...(operation.includes("active") && { isActive: true }),
           },
           select: {
             id: true,
             name: true,
-            description: true,
-            duration: true,
-            isActive: true,
           },
         });
       }
@@ -642,8 +638,7 @@ async function executeQueryByType(
             }),
           },
           include: {
-            AssignedTo: { select: { firstName: true, lastName: true } },
-            CreatedBy: { select: { firstName: true, lastName: true } },
+            assignedTo: { select: { firstName: true, lastName: true } },
           },
           orderBy: { dueDate: "asc" },
           take: 100,
@@ -673,10 +668,10 @@ async function executeQueryByType(
         return await prisma.newsPost.findMany({
           where: {
             companyId,
-            ...(operation.includes("published") && { isPublished: true }),
+            ...(operation.includes("published") && { publishedAt: { not: null } }),
           },
           include: {
-            Author: { select: { firstName: true, lastName: true } },
+            User: { select: { firstName: true, lastName: true } },
           },
           orderBy: { publishedAt: "desc" },
           take: 20,
@@ -690,10 +685,10 @@ async function executeQueryByType(
         return await prisma.department.findMany({
           where: {
             companyId,
-            ...(operation.includes("active") && { isActive: true }),
+            ...(operation.includes("active") && { active: true }),
           },
           include: {
-            Manager: { select: { firstName: true, lastName: true } },
+            User_Department_headIdToUser: { select: { firstName: true, lastName: true } },
           },
         });
       }
@@ -703,8 +698,12 @@ async function executeQueryByType(
       if (queryType === "findMany") {
         return await prisma.jobRole.findMany({
           where: { companyId },
-          include: {
-            Department: { select: { name: true } },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            level: true,
+            active: true,
           },
         });
       }
@@ -719,7 +718,7 @@ async function executeQueryByType(
             id: true,
             name: true,
             description: true,
-            isDefault: true,
+            builtIn: true,
             permissions: true,
           },
         });

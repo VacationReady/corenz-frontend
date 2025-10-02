@@ -13,7 +13,7 @@ import type { TestRunConfig } from "@/lib/automation/test-simulator";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,7 +22,7 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => ({}));
-    const ruleId = params.id;
+    const { id: ruleId } = await params;
 
     // Handle both saved rules and inline definitions
     let testConfig: TestRunConfig;
@@ -103,14 +103,15 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   return NextResponse.json({
     message: "Test endpoint ready",
     endpoints: {
-      start: `POST /api/automation-rules/${params.id}/test`,
-      stream: `GET /api/automation-rules/${params.id}/test/stream?session=<sessionId>`,
-      status: `GET /api/automation-rules/${params.id}/test/status?session=<sessionId>`,
+      start: `POST /api/automation-rules/${id}/test`,
+      stream: `GET /api/automation-rules/${id}/test/stream?session=<sessionId>`,
+      status: `GET /api/automation-rules/${id}/test/status?session=<sessionId>`,
     },
   });
 }

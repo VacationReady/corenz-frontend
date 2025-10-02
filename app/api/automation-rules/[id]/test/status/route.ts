@@ -10,9 +10,10 @@ import { testSimulator } from "@/lib/automation/test-simulator";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await params; // Await params to satisfy Next.js type requirements
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

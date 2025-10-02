@@ -18,6 +18,7 @@ interface ConversationContext {
     };
     lastGeneratedWorkflow?: any;
     lastGeneratedForm?: any;
+    pendingFiles?: File[];
   };
   lastActivity: Date;
 }

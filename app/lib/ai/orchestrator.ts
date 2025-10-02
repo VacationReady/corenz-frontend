@@ -131,9 +131,7 @@ async function handleDataQuery(
   // If it's a count query, show the number prominently
   if (typeof result.data === 'number') {
     answer = `**${result.data}** ${result.data === 1 ? 'person' : 'people'}`;
-    if (result.explanation) {
-      answer += `\n\n_${result.explanation}_`;
-    }
+    // No technical explanation needed
   } 
   // If it's a list of employees
   else if (Array.isArray(result.data)) {
@@ -195,9 +193,7 @@ async function handleDataQuery(
       }
     }
     
-    if (result.explanation) {
-      answer += `\n_${result.explanation}_`;
-    }
+    // No technical explanation needed for lists
   }
   // For aggregate results (salary totals, averages, etc.)
   else if (result.data && typeof result.data === 'object' && 'totalSalary' in result.data) {
@@ -210,14 +206,12 @@ async function handleDataQuery(
   }
   // For other data types
   else if (result.data) {
-    answer = JSON.stringify(result.data, null, 2);
-    if (result.explanation) {
-      answer = `${result.explanation}\n\n\`\`\`\n${answer}\n\`\`\``;
-    }
+    // Format as clean JSON without technical explanation
+    answer = `\`\`\`json\n${JSON.stringify(result.data, null, 2)}\n\`\`\``;
   }
-  // Fallback to just explanation
+  // Fallback - just say success
   else {
-    answer = result.explanation || "Query executed successfully";
+    answer = "✅ Query completed successfully";
   }
 
   // Generate contextual suggestions
@@ -280,7 +274,7 @@ async function handleWorkflowGeneration(
 
   return {
     success: true,
-    message: `✅ **Workflow Generated!**\n\n**Name:** ${result.workflow?.name}\n**Category:** Custom (AI-generated)\n**Description:** ${result.workflow?.description}\n\n${result.explanation}\n\n💡 **Next Steps:**\n- To save: Say "Save this workflow"\n- To modify: Describe what you'd like to change\n- To start over: Create a new workflow`,
+    message: `✅ **Workflow Generated!**\n\n**${result.workflow?.name}**\n_${result.workflow?.description}_\n\n💡 **Next Steps:**\n- Say "Save this workflow" to activate it\n- Or: "Modify the timing" / "Add more conditions"`,
     actionType: "workflow",
     result: result.workflow,
     suggestions: [

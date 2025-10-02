@@ -40,6 +40,7 @@ import {
   Globe,
   Download,
   Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
@@ -315,6 +316,8 @@ export default function AIAssistantPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const capabilitiesButtonRef = useRef<HTMLButtonElement>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Track if component is mounted (for portal)
   useEffect(() => {
@@ -336,6 +339,38 @@ export default function AIAssistantPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // File upload handlers
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    
+    setUploadedFiles(prev => [...prev, ...files]);
+    
+    // Auto-trigger conversation about the files
+    const fileNames = files.map(f => f.name).join(', ');
+    const message = files.length === 1
+      ? `I've uploaded ${files[0].name}. What should I do with it?`
+      : `I've uploaded ${files.length} files: ${fileNames}. What should I do with them?`;
+    
+    setTimeout(() => handleSendMessage(message), 100);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSendMessage = async (messageText: string = input) => {
     if (!messageText.trim() || isProcessing) return;
@@ -366,11 +401,32 @@ export default function AIAssistantPage() {
 
     try {
       // NEW: Use unified orchestrator endpoint for intelligent routing
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: messageText }),
-      });
+      let res;
+      
+      if (uploadedFiles.length > 0) {
+        // Use FormData for file uploads
+        const formData = new FormData();
+        formData.append('message', messageText);
+        
+        uploadedFiles.forEach((file, idx) => {
+          formData.append(`file_${idx}`, file);
+        });
+        
+        res = await fetch("/api/ai/chat", {
+          method: "POST",
+          body: formData, // Browser sets correct Content-Type automatically
+        });
+        
+        // Clear uploaded files after sending
+        setUploadedFiles([]);
+      } else {
+        // Regular JSON for text-only messages
+        res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: messageText }),
+        });
+      }
 
       const data = await res.json();
 
@@ -776,7 +832,23 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     >
       <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
         {/* Left: Chat Interface */}
-        <div className="w-1/2 flex flex-col min-h-0">
+        <div 
+          className="w-1/2 flex flex-col min-h-0 relative"
+          onDrop={handleFileDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+        >
+          {/* Drag Overlay */}
+          {isDragging && (
+            <div className="absolute inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary rounded-lg flex items-center justify-center backdrop-blur-sm">
+              <div className="text-center">
+                <Upload className="w-16 h-16 mx-auto mb-4 text-primary animate-bounce" />
+                <p className="text-lg font-semibold text-primary">Drop your document here</p>
+                <p className="text-sm text-muted-foreground mt-2">I'll help you assign it to an employee</p>
+              </div>
+            </div>
+          )}
+          
           <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
@@ -963,7 +1035,46 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
             {/* Input */}
             <div className="border-t p-4 bg-gradient-to-r from-background via-primary/5 to-background">
-              {showWelcome && (
+              {/* Uploaded Files Preview */}
+              {uploadedFiles.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Uploaded Files</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUploadedFiles([])}
+                      className="h-6 text-xs"
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                  {uploadedFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 p-2 rounded-lg border bg-card"
+                    >
+                      <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(idx)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {showWelcome && !uploadedFiles.length && (
                 <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <ArrowRight className="w-4 h-4 text-primary animate-pulse" />
                   <span className="font-medium">Type your question here or click an example above</span>

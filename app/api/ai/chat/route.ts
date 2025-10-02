@@ -9,7 +9,7 @@ import { authOptions } from "@/lib/auth-options";
 import { isAIEnabled, validateAPIKey, checkRateLimit } from "@/lib/ai/openai-client";
 import { processUserMessage } from "@/lib/ai/orchestrator";
 import { undoAction } from "@/lib/ai/action-executor";
-import { clearConversation } from "@/lib/ai/conversation-memory";
+import { clearConversation, getConversation, updateConversation } from "@/lib/ai/conversation-memory";
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,7 +57,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, action, undoId } = await req.json();
+    // Detect content type to handle file uploads
+    const contentType = req.headers.get('content-type') || '';
+    
+    let message: string = '';
+    let action: string | undefined;
+    let undoId: string | undefined;
+    let uploadedFiles: File[] = [];
+
+    if (contentType.includes('multipart/form-data')) {
+      // Handle file upload
+      const formData = await req.formData();
+      message = (formData.get('message') as string) || '';
+      action = (formData.get('action') as string) || undefined;
+      undoId = (formData.get('undoId') as string) || undefined;
+      
+      // Extract all uploaded files
+      const fileKeys = Array.from(formData.keys()).filter(k => k.startsWith('file_'));
+      uploadedFiles = fileKeys.map(key => formData.get(key) as File).filter(Boolean);
+      
+      // Store files temporarily in conversation for document upload handler
+      if (uploadedFiles.length > 0) {
+        const conv = getConversation(session.user.id, session.user.companyId);
+        if (!conv.entities) conv.entities = {};
+        conv.entities.pendingFiles = uploadedFiles;
+        updateConversation(session.user.id, session.user.companyId, conv);
+      }
+    } else {
+      // Regular JSON
+      const body = await req.json();
+      message = body.message;
+      action = body.action;
+      undoId = body.undoId;
+    }
 
     // Handle undo requests
     if (action === "undo" && undoId) {

@@ -33,20 +33,38 @@ AVAILABLE ACTIONS:
 - create_workflow: Build automation ("Create workflow that alerts...")
 - save_workflow: Save generated workflow ("Save this workflow", "Save it")
 - send_email: Send one-off emails ("Email all managers about...")
-- bulk_update: Update multiple employees ("Set all Engineering to WFH...")
+- bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
+- upload_document: Upload and assign documents ("Assign this to Michael", "Upload employment contract for Sarah")
 - modify_settings: Change system config ("Change probation to 120 days...")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
-- field: What to update (e.g., "bank details", "email", "phone", "salary", "last name", "first name")
-- value: New value
+- field: What to update (e.g., "bank details", "email", "phone", "salary", "salaryAmount", "last name", "first name", "location")
+- value: New value (for direct updates)
+- percentage: Numeric percentage (e.g., 10 for "10% raise")
+- operation: "increase" or "decrease" (for percentage changes)
+- department: Department name (e.g., "sales", "engineering", "IT")
+- query: Description of employees to affect (for bulk updates)
 - reason: Explanation for the change (CRITICAL for audit compliance)
 - startDate/endDate: For leave booking
 - leaveType: Leave category
 - reportType: Type of report
 - recipient: Who gets the report
 - schedule: Frequency (daily, weekly, "every Monday", "every 30 days")
-- confirmed: true if message contains "yes", "confirm", "apply", "do it"
+- confirmed: true if message contains "yes", "confirm", "apply", "do it", "proceed"
+
+BULK UPDATE EXAMPLES:
+- "Give everyone in sales a 10% raise" → {actionType: "bulk_update", parameters: {department: "sales", percentage: 10, operation: "increase", field: "salaryAmount"}}
+- "Increase IT salaries by 5%" → {actionType: "bulk_update", parameters: {department: "IT", percentage: 5, operation: "increase", field: "salaryAmount"}}
+- "Set all marketing to Wellington office" → {actionType: "bulk_update", parameters: {department: "marketing", field: "siteLocation", value: "Wellington"}}
+- "Move everyone in sales to the IT department" → {actionType: "bulk_update", parameters: {department: "sales", field: "departmentId", value: "IT"}}
+- "Change all contractors to permanent" → {actionType: "bulk_update", parameters: {field: "contractType", value: "Permanent"}}
+- "Set engineering to work from home" → {actionType: "bulk_update", parameters: {department: "engineering", field: "siteLocation", value: "Work From Home"}}
+- "Decrease engineering hourly rates by 2%" → {actionType: "bulk_update", parameters: {department: "engineering", percentage: 2, operation: "decrease", field: "hourlyRate"}}
+
+DOCUMENT UPLOAD EXAMPLES:
+- "Assign this to Michael Dowdle" → {actionType: "upload_document", parameters: {employeeName: "Michael Dowdle"}}
+- "Upload employment contract for Sarah" → {actionType: "upload_document", parameters: {employeeName: "Sarah", category: "Employment Contract"}}
 
 Respond with JSON:
 {

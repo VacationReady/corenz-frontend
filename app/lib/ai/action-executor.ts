@@ -12,6 +12,9 @@ import { buildFormConversationally, deployForm } from "./form-builder";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import crypto from "crypto";
+import supabase from "@/lib/supabase-admin";
+import { resend } from "@/lib/resend";
+import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
 
 export interface ActionResult {
   success: boolean;
@@ -41,6 +44,7 @@ export type ActionType =
   | "deploy_form"
   | "send_email"
   | "bulk_update"
+  | "upload_document"
   | "modify_settings";
 
 export interface AIAction {
@@ -83,6 +87,9 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "bulk_update":
         return await handleBulkUpdate(action);
+      
+      case "upload_document":
+        return await handleDocumentUpload(action);
       
       default:
         return {
@@ -659,60 +666,501 @@ async function handleSendEmail(action: AIAction): Promise<ActionResult> {
 }
 
 async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
-  const { query, field, value, confirmed } = action.parameters;
+  const { department, field, value, percentage, operation, confirmed, reason } = action.parameters;
 
-  if (!query || !field || !value) {
+  // Step 1: Determine target department from parameters or conversation context
+  const conversation = getConversation(action.userId, action.companyId);
+  const targetDepartment = department || conversation.entities.departments?.[0];
+
+  if (!targetDepartment && !field) {
     return {
       success: false,
-      message: "I need to know: 1) Which employees to update, 2) What field to change, 3) What value to set.",
+      message: "I need to know which employees to update. Try: 'Give everyone in sales a 10% raise' or 'Update IT department's location to Wellington'",
     };
   }
 
-  // Find matching employees (simplified)
+  // Step 2: Build where clause for affected employees
+  const where: any = {
+    companyId: action.companyId,
+    isActive: true,
+  };
+
+  if (targetDepartment) {
+    const dept = await prisma.department.findFirst({
+      where: {
+        companyId: action.companyId,
+        name: { contains: targetDepartment, mode: 'insensitive' },
+      },
+    });
+    
+    if (!dept) {
+      return {
+        success: false,
+        message: `I couldn't find a department matching "${targetDepartment}". Try checking the spelling?`,
+      };
+    }
+    
+    where.departmentId = dept.id;
+  }
+
+  // Step 3: Find matching employees
   const employees = await prisma.employee.findMany({
-    where: {
-      companyId: action.companyId,
-      isActive: true,
-      // Add dynamic query parsing here
-    },
+    where,
     include: {
       User: { select: { firstName: true, lastName: true } },
       Department: { select: { name: true } },
     },
-    take: 100,
+    take: 200, // Safety limit
   });
 
   if (employees.length === 0) {
     return {
       success: false,
-      message: `No employees match "${query}".`,
+      message: `No active employees found${targetDepartment ? ` in ${targetDepartment}` : ''}.`,
     };
   }
 
+  // Step 4: Determine field to update based on operation
+  let fieldToUpdate = field || 'salaryAmount';
+  let needsLookup = false; // For department/location changes
+  let lookupValue: any = null;
+
+  // Handle special field types that need lookups
+  if (value && (fieldToUpdate === 'department' || fieldToUpdate === 'departmentId' || 
+      (typeof value === 'string' && (value.toLowerCase().includes('department') || value.toLowerCase().includes('office'))))) {
+    fieldToUpdate = 'departmentId';
+    needsLookup = true;
+    
+    // Look up department
+    const dept = await prisma.department.findFirst({
+      where: {
+        companyId: action.companyId,
+        name: { contains: value, mode: 'insensitive' },
+      },
+    });
+    
+    if (!dept) {
+      return {
+        success: false,
+        message: `I couldn't find a department named "${value}". Check the spelling or use "Show me all departments" to see options.`,
+      };
+    }
+    
+    lookupValue = dept.id;
+  }
+
+  // Step 5: Calculate changes for each employee
+  const changes = employees.map(emp => {
+    const currentValue = emp[fieldToUpdate as keyof typeof emp];
+    let newValue = needsLookup ? lookupValue : value;
+
+    // Handle percentage-based changes (for numeric fields)
+    if (percentage && currentValue && typeof currentValue === 'number') {
+      if (operation === 'increase') {
+        newValue = Math.round(currentValue * (1 + percentage / 100));
+      } else if (operation === 'decrease') {
+        newValue = Math.round(currentValue * (1 - percentage / 100));
+      }
+    } else if (value !== undefined && !needsLookup) {
+      newValue = typeof value === 'string' && fieldToUpdate === 'salaryAmount' ? parseFloat(value) : value;
+    }
+
+    const change = typeof newValue === 'number' && typeof currentValue === 'number' 
+      ? newValue - currentValue 
+      : 0;
+
+    // For department changes, show human-readable names
+    let displayCurrent = currentValue;
+    let displayNew = newValue;
+    
+    if (fieldToUpdate === 'departmentId') {
+      displayCurrent = emp.Department?.name || 'No department';
+      displayNew = value; // The department name user provided
+    }
+
+    return {
+      employeeId: emp.id,
+      name: `${emp.User.firstName} ${emp.User.lastName}`,
+      department: emp.Department?.name,
+      field: fieldToUpdate,
+      currentValue,
+      newValue,
+      change,
+      displayCurrent,
+      displayNew,
+    };
+  });
+
+  // Step 6: Show preview and request confirmation
   if (!confirmed) {
+    const totalIncrease = changes.reduce((sum, c) => sum + (c.change || 0), 0);
+    const avgIncrease = changes.length > 0 ? totalIncrease / changes.length : 0;
+    
+    const preview = changes.slice(0, 5).map((c, i) => {
+      if (fieldToUpdate === 'salaryAmount') {
+        return `${i + 1}. **${c.name}:** $${Math.round(c.currentValue || 0).toLocaleString()} → $${Math.round(c.newValue || 0).toLocaleString()} (+$${Math.round(c.change).toLocaleString()})`;
+      } else if (fieldToUpdate === 'departmentId') {
+        return `${i + 1}. **${c.name}:** ${c.displayCurrent} → ${c.displayNew}`;
+      } else if (fieldToUpdate === 'siteLocation' || fieldToUpdate === 'contractType' || fieldToUpdate === 'employmentType') {
+        return `${i + 1}. **${c.name}:** ${c.currentValue || 'Not set'} → ${c.newValue}`;
+      }
+      return `${i + 1}. **${c.name}:** ${c.currentValue} → ${c.newValue}`;
+    }).join('\n');
+
+    const totalCurrentSalaries = changes.reduce((sum, c) => sum + (Number(c.currentValue) || 0), 0);
+    const totalNewSalaries = changes.reduce((sum, c) => sum + (Number(c.newValue) || 0), 0);
+
+    // Build message based on field type
+    let previewMessage = `⚠️ **Bulk ${percentage ? `${percentage}% ${operation}` : 'Update'} Preview**\n\n**Affected:** ${changes.length} employees${targetDepartment ? ` in ${targetDepartment}` : ''}\n`;
+    
+    if (fieldToUpdate === 'salaryAmount') {
+      previewMessage += `**Current total:** $${Math.round(totalCurrentSalaries).toLocaleString()}\n`;
+      previewMessage += `**New total:** $${Math.round(totalNewSalaries).toLocaleString()}\n`;
+      previewMessage += `**Total increase:** $${Math.round(totalIncrease).toLocaleString()}\n`;
+      previewMessage += `**Average increase:** $${Math.round(avgIncrease).toLocaleString()}/person\n\n`;
+    } else if (fieldToUpdate === 'departmentId') {
+      previewMessage += `**Moving to:** ${value}\n\n`;
+    } else if (fieldToUpdate === 'siteLocation') {
+      previewMessage += `**New location:** ${value}\n\n`;
+    } else if (fieldToUpdate === 'contractType') {
+      previewMessage += `**New contract type:** ${value}\n\n`;
+    } else {
+      previewMessage += `**New value:** ${value}\n\n`;
+    }
+    
+    previewMessage += `${preview}\n${changes.length > 5 ? `\n...and ${changes.length - 5} more\n` : ''}`;
+    previewMessage += `\n⚠️ **This will update ${changes.length} employee records immediately.**\n\nApply these changes?`;
+
+    return {
+      success: true,
+      requiresConfirmation: true,
+      preview: { changes, totalIncrease, avgIncrease },
+      message: previewMessage,
+    };
+  }
+
+  // Step 6: Execute bulk update with full audit trail
+  try {
+    const updateResults = await prisma.$transaction(async (tx) => {
+      const results = [];
+      
+      for (const change of changes) {
+        // Update the employee field
+        await tx.employee.update({
+          where: { id: change.employeeId },
+          data: { [change.field]: change.newValue },
+        });
+
+        // Create audit log entry
+        const diffs: AuditDiff[] = [{
+          field: change.field,
+          oldValue: String(change.currentValue || 0),
+          newValue: String(change.newValue || 0),
+        }];
+
+        await createAuditLogs({
+          companyId: action.companyId,
+          employeeId: change.employeeId,
+          section: 'compensation',
+          diffs,
+          reasons: {
+            [change.field]: reason || `Bulk update via AI: ${percentage ? `${percentage}% ${operation}` : 'direct update'} for ${targetDepartment || 'selected employees'}`
+          },
+          changedById: action.userId,
+        });
+
+        results.push(change);
+      }
+      
+      return results;
+    });
+
+    // Create undo record
+    const undoId = await createUndoRecord({
+      action: 'bulk_update',
+      changes,
+      userId: action.userId,
+      companyId: action.companyId,
+      field: fieldToUpdate,
+    });
+
+    const totalIncrease = changes.reduce((sum, c) => sum + (c.change || 0), 0);
+
+    return {
+      success: true,
+      message: `✅ **Successfully updated ${changes.length} employees!**\n\n${fieldToUpdate === 'salaryAmount' ? `💰 **Total salary increase:** $${Math.round(totalIncrease).toLocaleString()}\n` : ''}📋 **Audit logs created** for all ${changes.length} changes\n✏️ **Reason recorded:** ${reason || `Bulk ${percentage}% ${operation}`}\n\n_Changes are effective immediately. You can undo this within 48 hours by saying "undo that"._`,
+      undoable: true,
+      undoId,
+      data: { updatedCount: updateResults.length, changes: updateResults },
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `❌ **Bulk update failed:** ${error.message}\n\nNo changes were made. Please try again or contact support.`,
+    };
+  }
+}
+
+async function handleDocumentUpload(action: AIAction): Promise<ActionResult> {
+  const conv = getConversation(action.userId, action.companyId);
+  const pending = conv.entities.pendingAction;
+  let { file, employeeName, category, requiresSignature, signatureDueDate, confirmed } = action.parameters;
+
+  // Step 1: Retrieve files from conversation if not in parameters
+  if (!file && conv.entities.pendingFiles && conv.entities.pendingFiles.length > 0) {
+    file = conv.entities.pendingFiles[0];
+    action.parameters.file = file;
+  }
+
+  // Ensure we have a file
+  if (!file) {
+    return {
+      success: false,
+      message: "I don't see any files to upload. Please drag and drop a document into the chat, then tell me who to assign it to.",
+    };
+  }
+
+  // Step 2: Identify employee
+  if (!pending || pending.type !== 'document_upload') {
+    if (!employeeName) {
+      return {
+        success: true,
+        message: `I see you have **${file.name}**.\n\nWho should I assign this document to? (Just give me their name)`,
+        nextStep: { question: "Employee name?" },
+      };
+    }
+
+    const employees = await findEmployeeByName(employeeName, action.companyId);
+
+    if (employees.length === 0) {
+      return {
+        success: false,
+        message: `I couldn't find an employee named "${employeeName}". Can you double-check the spelling or try a different name?`,
+      };
+    }
+
+    if (employees.length > 1) {
+      return {
+        success: false,
+        message: `I found ${employees.length} employees matching "${employeeName}":\n\n${employees.map((e, i) => `${i + 1}. ${e.name} (${e.department})`).join('\n')}\n\nWhich one did you mean?`,
+        data: employees,
+      };
+    }
+
+    // Set pending action with employee info
+    setPendingAction(action.userId, action.companyId, {
+      type: 'document_upload',
+      step: 1,
+      data: { file, employeeId: employees[0].id, employeeName: employees[0].name },
+    });
+
+    // AI suggests category based on filename
+    const suggestedCategory = suggestDocumentCategory(file.name);
+
+    return {
+      success: true,
+      message: `Perfect! I'll upload **${file.name}** for **${employees[0].name}**.\n\n**What category is this document?**\n1. Employment Contract\n2. Personal ID\n3. Visa/Work Permit\n4. Qualification/Certificate\n5. Training Record\n6. Other\n\n${suggestedCategory ? `💡 _Based on the filename, this looks like: **${suggestedCategory}**_` : ''}`,
+      nextStep: {
+        question: "Document category?",
+        options: ["Employment Contract", "Personal ID", "Visa/Work Permit", "Qualification", "Training Record", "Other"],
+      },
+    };
+  }
+
+  // Step 3: Get category
+  if (pending.step === 1 && !pending.data.category) {
+    if (!category) {
+      return {
+        success: false,
+        message: "What category is this document?",
+      };
+    }
+
+    setPendingAction(action.userId, action.companyId, {
+      ...pending,
+      step: 2,
+      data: { ...pending.data, category },
+    });
+
+    return {
+      success: true,
+      message: `Got it - **${category}**.\n\n**Does this document require a signature from the employee?**`,
+      nextStep: {
+        question: "Requires signature?",
+        options: ["Yes, signature required", "No, just acknowledgement", "No requirements"],
+      },
+    };
+  }
+
+  // Step 4: Get signature requirements
+  if (pending.step === 2 && pending.data.requiresSignature === undefined) {
+    const needsSignature = requiresSignature || 
+      (typeof requiresSignature === 'string' && requiresSignature.toLowerCase().includes('yes'));
+
+    setPendingAction(action.userId, action.companyId, {
+      ...pending,
+      step: 3,
+      data: { ...pending.data, requiresSignature: needsSignature },
+    });
+
+    if (needsSignature && !signatureDueDate) {
+      return {
+        success: true,
+        message: "**When does the signature need to be completed by?**\n\nExamples:\n- 'Next Friday'\n- 'In 7 days'\n- 'December 15'\n- 'End of month'",
+        nextStep: { question: "Signature due date?" },
+      };
+    }
+
+    // If no signature or we have the date, move to confirmation
+    setPendingAction(action.userId, action.companyId, {
+      ...pending,
+      step: 4,
+      data: { ...pending.data, signatureDueDate: needsSignature ? signatureDueDate : null },
+    });
+  }
+
+  // Step 5: Final confirmation and upload
+  if ((pending.step === 3 || pending.step === 4) && !confirmed) {
+    const data = pending.data;
+    
     return {
       success: true,
       requiresConfirmation: true,
       preview: {
-        affectedCount: employees.length,
-        field,
-        value,
-        employees: employees.slice(0, 5).map(e => ({
-          name: `${e.User.firstName} ${e.User.lastName}`,
-          department: e.Department?.name,
-        })),
+        fileName: data.file.name,
+        fileSize: `${(data.file.size / 1024).toFixed(1)} KB`,
+        employee: data.employeeName,
+        category: data.category,
+        requiresSignature: data.requiresSignature,
+        dueDate: data.signatureDueDate,
       },
-      message: `⚠️ **Bulk Update Preview:**\n\n**Affected:** ${employees.length} employees\n**Field:** ${field}\n**New value:** ${value}\n\nShowing first 5:\n${employees.slice(0, 5).map((e, i) => `${i + 1}. ${e.User.firstName} ${e.User.lastName} (${e.Department?.name || 'No dept'})`).join("\n")}\n\n${employees.length > 5 ? `...and ${employees.length - 5} more\n\n` : ''}Apply this change?`,
+      message: `📄 **Document Upload Summary:**\n\n**File:** ${data.file.name} (${(data.file.size / 1024).toFixed(1)} KB)\n**Assign to:** ${data.employeeName}\n**Category:** ${data.category}\n**Requirements:** ${data.requiresSignature ? `✏️ Signature required (due ${data.signatureDueDate || 'TBD'})` : '📋 No signature required'}\n**Notifications:** ${data.requiresSignature ? 'Employee will be emailed' : 'Employee can view in their documents'}\n\n**Upload now?**`,
     };
   }
 
-  // Execute bulk update
-  // Implementation depends on field type
+  // Step 6: Execute upload
+  if (confirmed && pending.step >= 3) {
+    try {
+      const data = pending.data;
+      
+      // Convert File to Buffer for Supabase
+      const arrayBuffer = await data.file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Upload to Supabase storage
+      const path = `${action.companyId}/${data.employeeId}/${crypto.randomUUID()}-${data.file.name}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(path, buffer, {
+          contentType: data.file.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Supabase upload failed: ${uploadError.message}`);
+      }
+
+      // Create signed URL for downloads
+      const { data: signed, error: signErr } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(path, 31536000); // 1 year expiry
+
+      if (signErr) {
+        throw new Error(`Failed to create signed URL: ${signErr.message}`);
+      }
+
+      // Create database record
+      const document = await prisma.document.create({
+        data: {
+          id: crypto.randomUUID(),
+          name: data.file.name,
+          category: data.category,
+          path,
+          url: signed.signedUrl,
+          size: data.file.size,
+          type: data.file.type,
+          uploaderId: action.userId,
+          employeeId: data.employeeId,
+          companyId: action.companyId,
+          requiresSignature: data.requiresSignature || false,
+          requiresAck: !data.requiresSignature, // If no signature, require acknowledgement
+          signatureDueAt: data.signatureDueDate ? new Date(data.signatureDueDate) : null,
+          canViewAdmin: true,
+          canViewManager: true,
+          canViewEmployee: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      // Send notification if signature required
+      if (data.requiresSignature) {
+        const employee = await prisma.employee.findUnique({
+          where: { id: data.employeeId },
+          include: { User: true },
+        });
+
+        if (employee?.User.email) {
+          try {
+            const emailHtml = buildDocumentNotificationEmail({
+              employeeName: `${employee.User.firstName} ${employee.User.lastName}`,
+              documentName: data.file.name,
+              category: data.category,
+              dueDate: data.signatureDueDate,
+              actionRequired: 'signature',
+              documentUrl: signed.signedUrl,
+            });
+
+            await resend.emails.send({
+              from: 'PeopleCore <noreply@peoplecore.co.nz>',
+              to: employee.User.email,
+              subject: `Signature Required: ${data.file.name}`,
+              html: emailHtml,
+            });
+          } catch (emailError) {
+            console.error('[Document Upload] Notification email failed:', emailError);
+            // Don't fail the upload if email fails
+          }
+        }
+      }
+
+      // Clear files from conversation
+      if (conv.entities.pendingFiles) {
+        delete conv.entities.pendingFiles;
+      }
+      clearPendingAction(action.userId, action.companyId);
+
+      return {
+        success: true,
+        message: `✅ **Document uploaded successfully!**\n\n📄 **${data.file.name}**\n👤 **Assigned to:** ${data.employeeName}\n📁 **Category:** ${data.category}\n${data.requiresSignature ? `✏️ **Signature required** by ${data.signatureDueDate}\n📧 **Notification sent** to employee\n` : '📋 **No action required** from employee\n'}\n🔗 **View in:** Documents section\n\n_The document is now in the system and ${data.requiresSignature ? 'awaiting signature' : 'available to view'}._`,
+        data: { documentId: document.id, filePath: path, employeeId: data.employeeId },
+      };
+    } catch (error: any) {
+      clearPendingAction(action.userId, action.companyId);
+      return {
+        success: false,
+        message: `❌ **Upload failed:** ${error.message}\n\nPlease try again or upload manually through the Documents section.`,
+      };
+    }
+  }
+
+  // Shouldn't reach here, but handle gracefully
   return {
-    success: true,
-    message: `✅ Updated ${employees.length} employees successfully!`,
-    undoable: true,
+    success: false,
+    message: "Something went wrong with the upload flow. Let's start over - please upload your file again.",
   };
+}
+
+// Helper to suggest document category from filename
+function suggestDocumentCategory(filename: string): string | null {
+  const lower = filename.toLowerCase();
+  if (lower.includes('contract') || lower.includes('employment') || lower.includes('offer')) return 'Employment Contract';
+  if (lower.includes('visa') || lower.includes('passport') || lower.includes('permit') || lower.includes('work_permit')) return 'Visa/Work Permit';
+  if (lower.includes('license') || lower.includes('licence') || lower.includes('certificate') || lower.includes('qualification') || lower.includes('degree')) return 'Qualification';
+  if (lower.includes('id') || lower.includes('identification') || lower.includes('driver')) return 'Personal ID';
+  if (lower.includes('training') || lower.includes('course') || lower.includes('completion')) return 'Training Record';
+  return null;
 }
 
 // ============ HELPER FUNCTIONS ============
@@ -1081,7 +1529,7 @@ export async function undoAction(undoId: string): Promise<ActionResult> {
     };
   }
 
-  // Revert the change
+  // Revert single employee update
   if (record.action === "update_employee") {
     await updateEmployeeField(
       record.employeeId,
@@ -1098,6 +1546,51 @@ export async function undoAction(undoId: string): Promise<ActionResult> {
       success: true,
       message: "✅ Change undone successfully!",
     };
+  }
+
+  // Revert bulk update
+  if (record.action === "bulk_update") {
+    try {
+      await prisma.$transaction(async (tx) => {
+        for (const change of record.changes) {
+          // Revert to original value
+          await tx.employee.update({
+            where: { id: change.employeeId },
+            data: { [record.field]: change.currentValue },
+          });
+
+          // Create audit log for undo
+          const diffs: AuditDiff[] = [{
+            field: record.field,
+            oldValue: String(change.newValue),
+            newValue: String(change.currentValue),
+          }];
+
+          await createAuditLogs({
+            companyId: record.companyId,
+            employeeId: change.employeeId,
+            section: 'compensation',
+            diffs,
+            reasons: {
+              [record.field]: 'Reverted bulk update via undo action'
+            },
+            changedById: record.userId,
+          });
+        }
+      });
+
+      undoRecords.delete(undoId);
+
+      return {
+        success: true,
+        message: `✅ **Bulk update undone!**\n\n🔄 Reverted ${record.changes.length} employees to their previous values\n📋 Audit logs updated\n\n_All changes have been reversed._`,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `❌ Failed to undo: ${error.message}`,
+      };
+    }
   }
 
   return {

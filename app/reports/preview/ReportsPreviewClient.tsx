@@ -26,6 +26,7 @@ import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
 import { ArrowLeft, X } from "lucide-react";
 import Papa from "papaparse";
+import { exportTableToPdf } from "@/lib/pdfExport";
 
 type ColumnDefinition = { header: string; accessorKey: string };
 type FieldMetadata = { label: string; isPII?: boolean };
@@ -730,6 +731,41 @@ export default function ReportsPreviewClient() {
     performDownload();
   };
 
+  const buildPrintableRows = useCallback(() => {
+    // Flatten according to chosen accessorKey resolution from columns
+    return filteredData.map((row) => {
+      const obj: Record<string, any> = {};
+      columns.forEach((col) => {
+        const value = getNested(row, col.accessorKey) ?? "";
+        obj[col.header] = typeof value === "object" ? JSON.stringify(value) : String(value);
+      });
+      return obj;
+    });
+  }, [filteredData, columns]);
+
+  const performPdfDownload = useCallback(async () => {
+    if (!columns.length) return;
+    const rows = buildPrintableRows();
+    const blob = await exportTableToPdf("PeopleCore Report", rows, columns);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `peoplecore-report-${Date.now()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    logAndToastPII(rows.length);
+  }, [columns, buildPrintableRows, logAndToastPII]);
+
+  const handlePdfClick = () => {
+    if (hasPIISelected && !piiAcknowledged) {
+      setShowPIIModal(true);
+      return;
+    }
+    void performPdfDownload();
+  };
+
   const handleConfirmPIIExport = () => {
     setShowPIIModal(false);
     setPiiAcknowledged(true);
@@ -933,6 +969,9 @@ export default function ReportsPreviewClient() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleDownloadClick}>
             Download CSV ({filteredData.length} rows)
+          </Button>
+          <Button variant="secondary" onClick={handlePdfClick}>
+            Export to PDF
           </Button>
           {total > data.length ? (
             <Button disabled={exportingFull} onClick={handleFullExport}>

@@ -61,6 +61,11 @@ export default function WithSidebarLayout({
         icon: "FileText",
       },
       {
+        title: "Analytics",
+        href: "/analytics",
+        icon: "LineChart",
+      },
+      {
         title: "News",
         href: "/news",
         icon: "Newspaper",

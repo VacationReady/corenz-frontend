@@ -12,6 +12,7 @@ import { generateCustomField } from "./field-generator";
 import { buildFormConversationally } from "./form-builder";
 import { interpretIntent } from "./interpreters/intent-classifier";
 import { directListEmployees } from "./direct-queries";
+import { isUserConfirming, extractParameters } from "./interpreters/confirmation-detector";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -42,7 +43,11 @@ export async function processUserMessage(
 
     // CRITICAL: Check for pending actions FIRST before intent classification
     const pending = conversation.entities.pendingAction;
-    const isConfirmation = /^(yes|yeah|yep|yup|sure|ok|okay|confirm|proceed|do it|go ahead|book it|absolutely|definitely|correct)$/i.test(userMessage.trim());
+    
+    // Use AI to detect confirmation (handles slang, typos, variations)
+    const isConfirmation = pending 
+      ? await isUserConfirming(userMessage, `Pending: ${pending.type} at step ${pending.step}`)
+      : false;
     
     console.log('[Orchestrator] Pending action:', pending?.type, 'Step:', pending?.step, 'User said:', userMessage, 'Is confirmation:', isConfirmation);
     
@@ -80,12 +85,12 @@ export async function processUserMessage(
         console.log("[AI Orchestrator] Continuing multi-step action:", pending.type, "step", pending.step);
         
         // Continue the pending action with the user's message as additional info
+        const parsedParams = await parseContextualParameters(userMessage, pending);
+        
         const action: AIAction = {
           type: pending.type as ActionType,
           intent: userMessage,
-          parameters: { 
-            ...parseContextualParameters(userMessage, pending),
-          },
+          parameters: parsedParams,
           userId,
           companyId,
         };
@@ -471,52 +476,52 @@ async function handleFormCreation(
   };
 }
 
-// Parse parameters from user message based on pending action context
-function parseContextualParameters(message: string, pending: any): any {
-  const params: any = {};
-  
+// Parse parameters from user message using AI (handles slang, typos, natural language)
+async function parseContextualParameters(message: string, pending: any): Promise<any> {
   console.log('[Parse Params] Pending type:', pending.type, 'Step:', pending.step, 'Message:', message);
   
+  let expectedType: 'dates' | 'leaveType' | 'employeeName' | 'category' | 'general' = 'general';
+  
   if (pending.type === 'book_leave') {
-    // Step 1: Looking for dates
-    if (pending.step === 1) {
-      // Try to extract date range first
-      const dateRangeMatch = message.match(/(\w+\s+\d+)\s*(?:to|-)\s*(\w+\s+\d+)/i);
-      if (dateRangeMatch) {
-        params.startDate = dateRangeMatch[1];
-        params.endDate = dateRangeMatch[2];
-      } else {
-        // Single date or natural language
-        params.dates = message.trim();
-      }
-      console.log('[Parse Params] Extracted dates:', params);
-    }
-    
-    // Step 2: Looking for leave type
-    if (pending.step === 2) {
-      params.leaveType = message.trim();
-      console.log('[Parse Params] Extracted leave type:', params.leaveType);
+    if (pending.step === 1) expectedType = 'dates';
+    else if (pending.step === 2) expectedType = 'leaveType';
+  } else if (pending.type === 'document_upload') {
+    if (pending.step === 1) expectedType = 'employeeName';
+    else if (pending.step === 2) expectedType = 'category';
+  }
+  
+  // Use AI to extract parameters intelligently
+  const extracted = await extractParameters(
+    message,
+    expectedType,
+    `Pending action: ${pending.type} at step ${pending.step}\nData so far: ${JSON.stringify(pending.data)}`
+  );
+  
+  console.log('[Parse Params] AI extracted:', extracted);
+  
+  // Map AI response to expected parameter names
+  if (pending.type === 'book_leave') {
+    if (pending.step === 1 && extracted.startDate) {
+      return {
+        startDate: extracted.startDate,
+        endDate: extracted.endDate || extracted.startDate,
+        dates: message,
+      };
+    } else if (pending.step === 2 && extracted.value) {
+      return { leaveType: extracted.value };
     }
   }
   
   if (pending.type === 'document_upload') {
-    // Looking for employee name, category, or signature info
-    if (pending.step === 1 && !pending.data.employeeId) {
-      params.employeeName = message;
-    } else if (pending.step === 2 && !pending.data.category) {
-      params.category = message;
-    } else if (pending.step === 3 && !pending.data.requiresSignature) {
-      params.requiresSignature = message.toLowerCase().includes('yes') || message.toLowerCase().includes('signature');
-      if (params.requiresSignature) {
-        const dateMatch = message.match(/(?:by|until|before)\s+(.+)/i);
-        if (dateMatch) {
-          params.signatureDueDate = dateMatch[1];
-        }
-      }
+    if (pending.step === 1 && extracted.value) {
+      return { employeeName: extracted.value };
+    } else if (pending.step === 2 && extracted.value) {
+      return { category: extracted.value };
     }
   }
   
-  return params;
+  // Fallback to simple extraction
+  return { value: message.trim() };
 }
 
 // Removed - users just want their answers, not suggestions

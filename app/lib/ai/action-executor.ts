@@ -333,32 +333,62 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     };
   }
 
-  // Step 3: Get leave type and create request
-  if (pending.step === 2) {
+  // Step 2/3: Get leave type and handle confirmation
+  if (pending.step === 2 || pending.step === 3) {
     const { leaveType, confirmed } = action.parameters;
     
-    if (!leaveType) {
+    console.log('[Book Leave] Step:', pending.step, '- leaveType:', leaveType, 'confirmed:', confirmed, 'categoryId:', pending.data.categoryId);
+    
+    // Get the category
+    let category;
+    
+    // If at step 3 (confirmation) and user confirmed, just get the stored category
+    if (pending.step === 3 && confirmed && pending.data.categoryId) {
+      console.log('[Book Leave] Step 3 confirmed - fetching stored category');
+      category = await prisma.eventCategory.findFirst({
+        where: { id: pending.data.categoryId },
+      });
+    }
+    // If at step 2 and user provided leave type, find it
+    else if (leaveType) {
+      console.log('[Book Leave] Step 2 - finding leave type:', leaveType);
+      category = await prisma.eventCategory.findFirst({
+        where: {
+          companyId: action.companyId,
+          name: { contains: leaveType, mode: "insensitive" },
+        },
+      });
+
+      if (!category) {
+        return {
+          success: false,
+          message: `I couldn't find a leave type matching "${leaveType}". Please choose from the list above.`,
+        };
+      }
+      
+      // Store category ID for confirmation step
+      setPendingAction(action.userId, action.companyId, {
+        ...pending,
+        step: 3, // Move to confirmation step
+        data: { ...pending.data, categoryId: category.id, categoryName: category.name },
+      });
+    } else {
+      // No leave type provided
       return {
         success: false,
         message: "Which leave type would you like to use?",
       };
     }
 
-    // Find category
-    const category = await prisma.eventCategory.findFirst({
-      where: {
-        companyId: action.companyId,
-        name: { contains: leaveType, mode: "insensitive" },
-      },
-    });
-
     if (!category) {
+      clearPendingAction(action.userId, action.companyId);
       return {
         success: false,
-        message: `I couldn't find a leave type matching "${leaveType}". Please choose from the list above.`,
+        message: "Leave type not found. Please start over.",
       };
     }
 
+    // If not confirmed, show preview
     if (!confirmed) {
       // Get entitlement info to show balance
       const entitlement = await prisma.leaveEntitlement.findFirst({

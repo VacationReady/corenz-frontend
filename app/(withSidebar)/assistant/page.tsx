@@ -676,10 +676,9 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       action={
         <div className="relative" ref={capabilitiesRef}>
           <Button
-            variant="outline"
             size="sm"
             onClick={() => setShowCapabilities(!showCapabilities)}
-            className="gap-2 relative z-[200]"
+            className="gap-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white border-0 shadow-lg"
           >
             <Sparkles className="w-4 h-4" />
             What can I do?
@@ -687,66 +686,73 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           </Button>
 
           {showCapabilities && (
-            <div 
-              className="fixed right-6 top-24 w-[600px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 animate-in fade-in slide-in-from-top-2 duration-200"
-              style={{ zIndex: 9999 }}
-            >
-              <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  AI Assistant Capabilities
-                </h3>
-                <p className="text-sm text-white/90 mt-1">
-                  Click any example to try it instantly • {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
-                </p>
-              </div>
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 bg-black/10 z-[998]" 
+                onClick={() => setShowCapabilities(false)}
+              />
+              {/* Dropdown */}
+              <div 
+                className="absolute right-0 top-full mt-2 w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[999]"
+              >
+                <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl z-10">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    AI Assistant Capabilities
+                  </h3>
+                  <p className="text-sm text-white/90 mt-1">
+                    Click any example to try it instantly • {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
+                  </p>
+                </div>
 
-              <div className="p-4 space-y-4">
-                {AI_CAPABILITIES.map((category, idx) => (
-                  <div key={idx} className="pb-4 border-b last:border-0">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md`}>
-                        {category.icon}
+                <div className="p-4 space-y-3">
+                  {AI_CAPABILITIES.map((category, idx) => (
+                    <div key={idx} className="pb-3 border-b last:border-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
+                          {category.icon}
+                        </div>
+                        <h4 className="font-semibold text-sm flex-1">{category.category}</h4>
+                        <Badge variant="secondary" className="text-xs">
+                          {category.capabilities.length}
+                        </Badge>
                       </div>
-                      <h4 className="font-semibold text-sm">{category.category}</h4>
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        {category.capabilities.length} actions
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {category.capabilities.map((cap, capIdx) => (
-                        <button
-                          key={capIdx}
-                          onClick={() => {
-                            handleSendMessage(cap.example);
-                            setShowCapabilities(false);
-                          }}
-                          className="text-left p-3 rounded-lg hover:bg-muted transition-colors group"
-                        >
-                          <div className="flex items-start gap-2">
-                            <ArrowRight className="w-4 h-4 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
-                                {cap.action}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-0.5 italic">
-                                "{cap.example}"
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {category.capabilities.map((cap, capIdx) => (
+                          <button
+                            key={capIdx}
+                            onClick={() => {
+                              handleSendMessage(cap.example);
+                              setShowCapabilities(false);
+                            }}
+                            className="text-left p-2 rounded-lg hover:bg-muted transition-colors group"
+                          >
+                            <div className="flex items-start gap-2">
+                              <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors">
+                                  {cap.action}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground mt-0.5 italic truncate">
+                                  "{cap.example}"
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
-                <p className="text-xs text-muted-foreground">
-                  💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
-                </p>
+                <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
+                  <p className="text-xs text-muted-foreground">
+                    💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
+                  </p>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       }
@@ -757,46 +763,43 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4">
                 {/* Hero Section */}
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 mb-3 shadow-lg">
-                    <Sparkles className="w-8 h-8 text-white" />
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary via-purple-500 to-pink-500 mb-2 shadow-lg">
+                    <Sparkles className="w-7 h-7 text-white" />
                   </div>
-                  <h2 className="text-xl font-bold mb-2 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <h2 className="text-lg font-bold mb-1 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Welcome to AI Assistant
                   </h2>
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                    Your intelligent HR companion. Ask questions, build workflows, and customize your system—all in plain English.
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    Ask questions, build workflows, and customize your system in plain English.
                   </p>
                 </div>
 
                 {/* Capability Cards */}
-                <div className="space-y-3 mb-4">
+                <div className="space-y-2.5 mb-3">
                   {CAPABILITY_CATEGORIES.map((category) => (
                     <div
                       key={category.id}
-                      className="group border rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:scale-[1.01] cursor-pointer bg-gradient-to-br from-white to-gray-50/50"
+                      className="group border rounded-lg p-3 hover:shadow-md transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50"
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-md`}>
+                      <div className="flex items-start gap-2.5">
+                        <div className={`flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-sm`}>
                           {category.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-base mb-2 group-hover:text-primary transition-colors">
+                          <h3 className="font-semibold text-[13px] mb-1.5 group-hover:text-primary transition-colors leading-tight">
                             {category.title}
                           </h3>
-                          <div className="flex flex-wrap gap-1.5">
-                            {category.examples.slice(0, 3).map((example, idx) => (
+                          <div className="flex flex-wrap gap-1">
+                            {category.examples.slice(0, 2).map((example, idx) => (
                               <button
                                 key={idx}
                                 onClick={() => handleSendMessage(example)}
-                                className="text-xs px-2.5 py-1 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center gap-1 group/btn flex-shrink-0"
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-muted hover:bg-primary/10 transition-colors group/btn max-w-[140px] truncate"
                               >
-                                <MessageSquare className="w-3 h-3 opacity-50 group-hover/btn:opacity-100 flex-shrink-0" />
-                                <span className="truncate max-w-[180px]">
-                                  {example.length > 35 ? example.slice(0, 35) + "..." : example}
-                                </span>
+                                {example}
                               </button>
                             ))}
                           </div>
@@ -807,23 +810,23 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 </div>
 
                 {/* Quick Start Tips */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="w-4 h-4 text-amber-500" />
-                    <span className="text-xs font-medium">Pro Tips</span>
+                <div className="border-t pt-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-[11px] font-medium">Pro Tips</span>
                   </div>
-                  <ul className="text-xs text-muted-foreground space-y-1.5">
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" />
-                      <span>Be specific for better results</span>
+                  <ul className="text-[10px] text-muted-foreground space-y-1">
+                    <li className="flex items-start gap-1.5">
+                      <ArrowRight className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Be specific for best results</span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" />
+                    <li className="flex items-start gap-1.5">
+                      <ArrowRight className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-primary" />
                       <span>Ask follow-ups to refine</span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-3 h-3 mt-0.5 flex-shrink-0 text-primary" />
-                      <span>Custom fields are instant!</span>
+                    <li className="flex items-start gap-1.5">
+                      <ArrowRight className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 text-primary" />
+                      <span>Fields added instantly!</span>
                     </li>
                   </ul>
                 </div>

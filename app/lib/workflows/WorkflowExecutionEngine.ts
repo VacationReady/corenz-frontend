@@ -1337,17 +1337,25 @@ export class WorkflowExecutionEngine {
       if (result.success && result.buddy) {
         context.variables.buddy = result.buddy;
         
-        // Optionally store buddy assignment in employee metadata
+        // Optionally store buddy assignment within onboarding status metadata
+        const existingStatus =
+          (context.employee.onboardingStatus as Record<string, any> | null) || {};
+        const updatedStatus = {
+          ...existingStatus,
+          buddyAssignment: {
+            id: result.buddy.id,
+            assignedAt: new Date().toISOString(),
+          },
+        };
+
         await prisma.employee.update({
           where: { id: context.employee.id },
           data: {
-            metadata: {
-              ...(context.employee.metadata as any || {}),
-              buddyId: result.buddy.id,
-              buddyAssignedAt: new Date().toISOString(),
-            },
+            onboardingStatus: updatedStatus,
           },
         });
+
+        context.employee.onboardingStatus = updatedStatus;
       }
     } catch (error) {
       console.error('Failed to assign buddy:', error);

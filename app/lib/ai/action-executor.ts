@@ -1843,34 +1843,41 @@ async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() + 90);
       
-      // Note: Adjust this query based on your actual schema for visa tracking
-      // This is a placeholder - you may store visa expiry in documents or custom fields
+      // Visas are tracked in EmploymentCheck table
       const results = await prisma.employee.findMany({
         where: {
           companyId: action.companyId,
           isActive: true,
           ...(normalizedDept && { Department: { name: normalizedDept } }),
+          EmploymentCheck: {
+            some: {
+              typeOfCheck: { contains: "visa", mode: 'insensitive' },
+              expiryDate: { lte: cutoffDate, gte: new Date() },
+            },
+          },
         },
         include: {
           User: { select: { firstName: true, lastName: true, email: true } },
           Department: { select: { name: true } },
-          Document: {
+          EmploymentCheck: {
             where: {
-              type: { contains: "visa", mode: 'insensitive' },
+              typeOfCheck: { contains: "visa", mode: 'insensitive' },
               expiryDate: { lte: cutoffDate, gte: new Date() },
-              deleted: false,
+            },
+            select: {
+              typeOfCheck: true,
+              expiryDate: true,
+              documentNumber: true,
             },
           },
         },
       });
 
-      const withExpiringVisas = results.filter(emp => emp.Document && emp.Document.length > 0);
-
       return {
         type: "visa_expiry",
-        count: withExpiringVisas.length,
-        employees: withExpiringVisas,
-        severity: withExpiringVisas.length > 0 ? "high" : "low",
+        count: results.length,
+        employees: results,
+        severity: results.length > 0 ? "high" : "low",
       };
     },
 

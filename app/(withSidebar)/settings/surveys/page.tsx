@@ -96,7 +96,7 @@ export default function SurveysPage() {
                 feedback, conducting polls, or collecting data from specific groups of employees.
               </p>
             </div>
-          </Card>
+          </CardContent>
         </Card>
 
         {/* Search and Filters */}

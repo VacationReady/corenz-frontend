@@ -64,7 +64,7 @@ export function NodePropertiesPanel({
               <label className="block text-xs font-medium mb-1">Action Type</label>
               <select
                 className="w-full rounded-xl border px-3 py-2 text-sm"
-                value={node.data?.actionType || "send_notification"}
+                value={node.data?.actionType || "send_email"}
                 onChange={(e) => onUpdate({ actionType: e.target.value })}
               >
                 <optgroup label="Communication">
@@ -98,8 +98,61 @@ export function NodePropertiesPanel({
                 </optgroup>
               </select>
             </div>
+            
+            {/* Email-specific configuration */}
+            {(node.data?.actionType === "send_email" || node.data?.actionType === "send_manager_reminder") && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Email Subject</label>
+                  <input
+                    className="w-full rounded-xl border px-3 py-2 text-sm"
+                    value={node.data?.config?.subject || ""}
+                    onChange={(e) => onUpdate({ config: { ...(node.data?.config || {}), subject: e.target.value } })}
+                    placeholder="e.g., Welcome to the team!"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Email Body</label>
+                  <textarea
+                    className="w-full rounded-xl border px-3 py-2 text-sm min-h-[100px]"
+                    value={node.data?.config?.body || ""}
+                    onChange={(e) => onUpdate({ config: { ...(node.data?.config || {}), body: e.target.value } })}
+                    placeholder="Hi {{firstName}},\n\nWelcome to {{companyName}}! We're excited to have you join us.\n\nYour manager {{managerName}} will reach out soon to schedule your first meeting.\n\nBest regards,\n{{ceoName}}"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Send To</label>
+                  <select
+                    className="w-full rounded-xl border px-3 py-2 text-sm"
+                    value={node.data?.config?.to || "employee"}
+                    onChange={(e) => onUpdate({ config: { ...(node.data?.config || {}), to: e.target.value } })}
+                  >
+                    <option value="employee">Employee (trigger subject)</option>
+                    <option value="manager">Employee's Manager</option>
+                    <option value="hr">HR Team</option>
+                    <option value="ceo">CEO</option>
+                    <option value="custom">Custom Email Address</option>
+                  </select>
+                </div>
+                {node.data?.config?.to === "custom" && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Email Address</label>
+                    <input
+                      className="w-full rounded-xl border px-3 py-2 text-sm"
+                      value={node.data?.config?.emailAddress || ""}
+                      onChange={(e) => onUpdate({ config: { ...(node.data?.config || {}), emailAddress: e.target.value } })}
+                      placeholder="e.g., hr@company.com"
+                    />
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded-lg">
+                  💡 <strong>Variables:</strong> Use {{firstName}}, {{lastName}}, {{companyName}}, {{managerName}}, {{ceoName}} to personalize emails
+                </div>
+              </>
+            )}
+            
             <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded-lg">
-              {actionTypes.find(a => a.id === (node.data?.actionType || "send_notification"))?.description || "Configure action details"}
+              {actionTypes.find(a => a.id === (node.data?.actionType || "send_email"))?.description || "Configure action details"}
             </div>
           </>
         )}

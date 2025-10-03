@@ -575,6 +575,7 @@ export default function AIAssistantPage() {
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCapabilities, setShowCapabilities] = useState(false);
+  const [workflowEditMode, setWorkflowEditMode] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1918,6 +1919,15 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setWorkflowEditMode(!workflowEditMode)}
+                        className="gap-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        {workflowEditMode ? "Preview Mode" : "Edit Mode"}
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setGeneratedWorkflow(null)}>
                         Clear
                       </Button>
@@ -1936,7 +1946,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                     onTest={() => {}}
                     isValid={true}
                     isDirty={false}
-                    aiPreviewMode={true}
+                    aiPreviewMode={!workflowEditMode}
                   />
                 </div>
               </>

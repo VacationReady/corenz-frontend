@@ -1713,6 +1713,83 @@ export async function undoAction(undoId: string): Promise<ActionResult> {
   };
 }
 
+// ============ EMAIL TEMPLATE BUILDER ============
+
+interface EmailTemplateProps {
+  recipientName: string;
+  subject: string;
+  message: string;
+  companyName: string;
+}
+
+function buildHREmail({ recipientName, subject, message, companyName }: EmailTemplateProps): string {
+  // Convert line breaks to HTML
+  const formattedMessage = message.replace(/\n/g, '<br>');
+  
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+                ${companyName}
+              </h1>
+              <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">
+                People & Culture Team
+              </p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding: 32px 40px 0 40px;">
+              <p style="margin: 0; font-size: 16px; color: #333333; line-height: 1.5;">
+                Hi ${recipientName},
+              </p>
+            </td>
+          </tr>
+
+          <!-- Message Body -->
+          <tr>
+            <td style="padding: 24px 40px;">
+              <div style="font-size: 15px; color: #555555; line-height: 1.6;">
+                ${formattedMessage}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px 32px 40px; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0; font-size: 13px; color: #888888; line-height: 1.5;">
+                This is an automated message from ${companyName}'s HR system.
+                <br>
+                If you have any questions, please contact your HR team.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
 // ============ NEW HR AUTOMATION HANDLERS ============
 
 async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
@@ -2256,10 +2333,38 @@ async function handleTargetedComms(action: AIAction): Promise<ActionResult> {
   const emailSubject = pendingData.subject || subject || "Important Update";
   const emailBody = pendingData.message || customMessage || "Please check the system for updates.";
 
-  // Note: Implement actual email sending here using resend
-  // For now, we'll just simulate
-  const sent = recipients.map(r => r.User.email);
+  // Get company info for email branding
+  const company = await prisma.company.findUnique({
+    where: { id: action.companyId },
+    select: { name: true },
+  });
+
+  // Send emails via resend
+  const sent: string[] = [];
   const failed: string[] = [];
+
+  for (const recipient of recipients) {
+    try {
+      const htmlEmail = buildHREmail({
+        recipientName: `${recipient.User.firstName} ${recipient.User.lastName}`,
+        subject: emailSubject,
+        message: emailBody,
+        companyName: company?.name || "Your Company",
+      });
+
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || "noreply@yourdomain.com",
+        to: recipient.User.email,
+        subject: emailSubject,
+        html: htmlEmail,
+      });
+
+      sent.push(recipient.User.email);
+    } catch (error) {
+      console.error(`Failed to send email to ${recipient.User.email}:`, error);
+      failed.push(recipient.User.email);
+    }
+  }
 
   clearPendingAction(action.userId, action.companyId);
 

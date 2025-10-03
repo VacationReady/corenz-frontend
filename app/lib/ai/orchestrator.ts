@@ -13,6 +13,13 @@ import { buildFormConversationally } from "./form-builder";
 import { interpretIntent } from "./interpreters/intent-classifier";
 import { directListEmployees } from "./direct-queries";
 import { isUserConfirming, extractParameters } from "./interpreters/confirmation-detector";
+import { 
+  needsClarification, 
+  expandIntent, 
+  generateFollowUps, 
+  detectFrustration,
+  suggestBetterPhrasing 
+} from "./conversational-intelligence";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -40,6 +47,16 @@ export async function processUserMessage(
     const conversation = getConversation(userId, companyId);
     const conversationContext = buildContextString(conversation);
     const systemContextString = buildAIContextString(systemContext);
+
+    // STEP 0: Detect frustration and respond empathetically
+    const frustrationCheck = await detectFrustration(userMessage, conversationContext);
+    if (frustrationCheck.isFrustrated && frustrationCheck.empatheticResponse) {
+      addMessage(userId, companyId, "assistant", frustrationCheck.empatheticResponse);
+      return {
+        success: true,
+        message: frustrationCheck.empatheticResponse,
+      };
+    }
 
     // CRITICAL: Check for pending actions FIRST before intent classification
     const pending = conversation.entities.pendingAction;
@@ -118,7 +135,35 @@ export async function processUserMessage(
       }
     }
 
-    // Step 1: AI interprets intent and determines action
+    // STEP 1: Check if clarification is needed (before intent classification)
+    const clarification = await needsClarification(
+      userMessage,
+      conversationContext,
+      systemContextString
+    );
+
+    if (clarification.needsClarification && clarification.confidence > 0.7) {
+      console.log("[AI Orchestrator] Needs clarification:", clarification.question);
+      
+      let message = clarification.question || "I'm not sure I understand. Can you be more specific?";
+      
+      // Add suggestions if available
+      if (clarification.suggestions && clarification.suggestions.length > 0) {
+        message += "\n\n**Here are some options:**\n";
+        clarification.suggestions.forEach((suggestion, idx) => {
+          message += `${idx + 1}. ${suggestion}\n`;
+        });
+      }
+      
+      addMessage(userId, companyId, "assistant", message);
+      return {
+        success: true,
+        message,
+        suggestions: clarification.suggestions,
+      };
+    }
+
+    // Step 2: AI interprets intent and determines action
     const intent = await interpretIntent(
       userMessage,
       conversationContext,
@@ -126,6 +171,28 @@ export async function processUserMessage(
     );
 
     console.log("[AI Orchestrator] Intent:", intent);
+    
+    // If confidence is low, expand intent and ask for clarification
+    if (intent.confidence < 0.6) {
+      const expanded = await expandIntent(userMessage, conversationContext, companyId);
+      
+      let message = `I think you want to ${expanded.expandedIntent}\n\n`;
+      message += `**Here's what I can do:**\n`;
+      expanded.suggestedActions.forEach((action, idx) => {
+        message += `${idx + 1}. ${action}\n`;
+      });
+      message += `\n**Or just tell me:**\n`;
+      expanded.followUpQuestions.slice(0, 2).forEach((q) => {
+        message += `• ${q}\n`;
+      });
+      
+      addMessage(userId, companyId, "assistant", message);
+      return {
+        success: true,
+        message,
+        suggestions: expanded.suggestedActions,
+      };
+    }
 
     // Step 2: Route to appropriate handler
     let result: OrchestratorResult;
@@ -173,6 +240,24 @@ export async function processUserMessage(
 
     // Add AI response to conversation
     addMessage(userId, companyId, "assistant", result.message);
+
+    // STEP 3: Generate smart follow-ups if action was successful
+    if (result.success && result.actionType && !result.requiresConfirmation) {
+      try {
+        const followUps = await generateFollowUps(
+          `${result.actionType}: ${result.message}`,
+          result.result,
+          conversationContext
+        );
+        
+        if (followUps && followUps.length > 0) {
+          result.suggestions = followUps.slice(0, 3);
+        }
+      } catch (error) {
+        console.error("[Follow-up Generation Error]", error);
+        // Don't fail the whole request if follow-ups fail
+      }
+    }
 
     return result;
   } catch (error: any) {

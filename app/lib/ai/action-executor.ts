@@ -170,8 +170,8 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
 
   const employee = employees[0];
 
-  // Step 2: Determine what to update
-  if (!field || !value) {
+  // Step 2: Determine what field to update
+  if (!field) {
     return {
       success: true,
       message: `What would you like to update for ${employee.name}?\n\n💡 Examples: bank details, email, phone, last name, salary, department`,
@@ -181,11 +181,22 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
     };
   }
 
-  // Step 3: Check if current value exists (to determine if reason is required)
+  // Step 3: Ask for new value if not provided
+  if (!value) {
+    return {
+      success: true,
+      message: `What should ${employee.name}'s new ${field} be?`,
+      nextStep: {
+        question: `New ${field}?`,
+      },
+    };
+  }
+
+  // Step 4: Check if current value exists (to determine if reason is required)
   const currentValue = await getCurrentFieldValue(employee.id, field, action.companyId);
   const requiresReason = currentValue !== null && currentValue !== "";
 
-  // Step 4: Ask for reason if changing existing value
+  // Step 5: Ask for reason if changing existing value
   if (!confirmed && requiresReason && !reason) {
     return {
       success: true,
@@ -203,7 +214,7 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
     };
   }
 
-  // Step 5: Preview the change with reason
+  // Step 6: Preview the change with reason
   if (!confirmed) {
     return {
       success: true,
@@ -219,7 +230,7 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
     };
   }
 
-  // Step 6: Execute the update
+  // Step 7: Execute the update
   const result = await updateEmployeeField(
     employee.id,
     field,

@@ -1046,8 +1046,17 @@ Don't worry - your data is safe. This is likely a temporary glitch.
         setGeneratedWorkflow(data.result);
       }
 
-      // Update latest result panel for non-workflow responses
-      if (data.actionType !== "workflow") {
+      // Update latest result panel ONLY for query results (not confirmations or single updates)
+      const shouldUpdatePanel = 
+        data.actionType === "query" || 
+        data.actionType === "compliance_sweep" || 
+        data.actionType === "analytics_digest" ||
+        (Array.isArray(data.result) && data.result.length > 0);
+      
+      // Don't update panel for simple confirmations like "yes"
+      const isSimpleConfirmation = /^(yes|no|yep|nope|ya|nah|ok|okay|confirm|cancel)$/i.test(messageText.trim());
+      
+      if (shouldUpdatePanel && !isSimpleConfirmation) {
         setLatestResult(data.result ?? null);
         setLatestResultMeta({
           summary: data.summary,

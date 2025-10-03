@@ -60,7 +60,17 @@ AVAILABLE ACTIONS:
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
 - field: What to update (e.g., "bank details", "email", "phone", "salary", "salaryAmount", "last name", "first name", "location")
-- value: New value (for direct updates)
+- value: New value ONLY if explicitly stated. DO NOT extract or guess values. Leave empty if not clearly provided.
+  
+  EXAMPLES OF WHEN TO EXTRACT VALUE:
+  ✅ "Change last name to Smith" → {value: "Smith"}
+  ✅ "Update email to sarah@new.com" → {value: "sarah@new.com"}
+  ✅ "Set salary to $75,000" → {value: "75000"}
+  
+  EXAMPLES OF WHEN NOT TO EXTRACT (leave value empty):
+  ❌ "Change Gary's last name" → {value: ""} (no new value mentioned)
+  ❌ "Update Sarah's email" → {value: ""} (no new email provided)
+  ❌ "Can you change the salary?" → {value: ""} (asking, not stating)
 - percentage: Numeric percentage (e.g., 10 for "10% raise")
 - operation: "increase" or "decrease" (for percentage changes)
 - department: Department name (e.g., "sales", "engineering", "IT")

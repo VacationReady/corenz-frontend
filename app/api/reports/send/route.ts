@@ -246,23 +246,36 @@ async function fetchReportData(
 ) {
   try {
     // Use the existing query builder
-    const query = buildDynamicQuery({
-      fields,
+    const { queries } = buildDynamicQuery({
+      selectedFields: fields,
       filters: filters || [],
       sort: sort || { field: "User.firstName", direction: "asc" },
-      page: 1,
-      pageSize: 10000, // Get all records for export
-      companyId,
+      pagination: { page: 1, pageSize: 10000 }, // Get all records for export
     });
 
-    const results = await prisma.$queryRawUnsafe<any[]>(
-      query.sql,
-      ...query.params
-    );
+    if (queries.length === 0) {
+      return [];
+    }
+
+    // Execute the first query (primary model)
+    const primary = queries[0];
+    const model = primary.model as keyof typeof prisma;
+
+    // Add company filter to the where clause
+    const whereClause = {
+      ...primary.prismaQuery.where,
+      companyId,
+    };
+
+    // @ts-ignore dynamic model access
+    let results = await (prisma[model] as any).findMany({
+      ...primary.prismaQuery,
+      where: whereClause,
+    });
 
     // Attach computed fields
-    const enriched = attachComputedFields(results, fields);
-    return enriched;
+    results = await attachComputedFields(results, fields, primary.model);
+    return results;
   } catch (error) {
     console.error("Error fetching report data:", error);
     throw error;

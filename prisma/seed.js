@@ -1,53 +1,70 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
-const { execSync } = require("child_process");
-const { randomUUID } = require("crypto");
+import { PrismaClient, Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Ensure the database schema is up to date before seeding
-  execSync("npx prisma migrate deploy", { stdio: "inherit" });
-  // ✅ 1. Create Company
+  console.log("🚀 Starting seed (no migrations will be run here).");
+
+  // =============== 1) Company ===============
   const company = await prisma.company.upsert({
     where: { name: "PeopleCore" },
-    update: {},
-    create: { name: "PeopleCore" },
-  });
-  console.log(`✅ Company created: ${company.name} (${company.id})`);
-
-  // ✅ 2. Create Department linked to Company
-  const department = await prisma.department.upsert({
-    where: { companyId_name: { companyId: company.id, name: "Sales" } },
-    update: {},
-    create: { name: "Sales", companyId: company.id },
-  });
-  console.log(`✅ Department created: ${department.name} (${department.id})`);
-
-  // ✅ 3. Default Permission Profile
-  const defaultProfile = await prisma.permissionProfile.upsert({
-    where: { companyId_name: { companyId: company.id, name: "Default" } },
-    update: {},
+    update: { updatedAt: new Date() },
     create: {
-      companyId: company.id,
-      name: "Default",
-      description: "Default permission profile",
-      permissions: {},
-      builtIn: true,
+      id: randomUUID(),
+      name: "PeopleCore",
+      updatedAt: new Date(),
     },
   });
+  console.log(`✅ Company: ${company.name} (${company.id})`);
 
-  // ✅ 4. Admin User & Employees
-  const hashedPassword = await bcrypt.hash("Admin123!", 10);
-  
-  // ✅ 4a. Create SUPER_ADMIN to manage tenants (Michael Dowdle)
+  // =============== 2) Departments ===============
+  const primaryDeptName = "Sales";
+  const department = await prisma.department.upsert({
+    where: { companyId_name: { companyId: company.id, name: primaryDeptName } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      name: primaryDeptName,
+      companyId: company.id,
+      updatedAt: new Date(),
+    },
+  });
+  console.log(`✅ Department: ${department.name}`);
+
+  const additionalDepartments = [
+    "HR",
+    "Finance",
+    "Engineering",
+    "Operations",
+    "Customer Support",
+    "Marketing",
+    "IT",
+  ];
+  for (const name of additionalDepartments) {
+    await prisma.department.upsert({
+      where: { companyId_name: { companyId: company.id, name } },
+      update: { updatedAt: new Date() },
+      create: {
+        id: randomUUID(),
+        name,
+        companyId: company.id,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  // =============== 3) SUPER_ADMIN (you) ===============
+  const superAdminPassword = await bcrypt.hash("Admin123!", 10);
   const superAdmin = await prisma.user.upsert({
     where: {
       email_companyId: { email: "hi@peoplecore.co.nz", companyId: company.id },
     },
     update: {
       role: "SUPER_ADMIN",
-      password: hashedPassword,
+      password: superAdminPassword,
+      updatedAt: new Date(),
     },
     create: {
       id: randomUUID(),
@@ -55,293 +72,64 @@ async function main() {
       firstName: "Michael",
       lastName: "Dowdle",
       role: "SUPER_ADMIN",
-      password: hashedPassword,
+      password: superAdminPassword,
       companyId: company.id,
       departmentId: department.id,
-      permissionProfileId: defaultProfile.id,
+      updatedAt: new Date(),
     },
   });
   await prisma.employee.upsert({
     where: { userId: superAdmin.id },
-    update: {},
+    update: { isActive: true },
     create: {
+      id: randomUUID(),
       userId: superAdmin.id,
       departmentId: department.id,
       companyId: company.id,
       isActive: true,
     },
   });
-  const adminUser = await prisma.user.upsert({
-    where: {
-      email_companyId: { email: "admin@peoplecore.com", companyId: company.id },
-    },
-    update: {},
-    create: {
-      email: "admin@peoplecore.com",
-      firstName: "System",
-      lastName: "Admin",
-      role: "ADMIN",
-      password: hashedPassword,
-      companyId: company.id,
-      departmentId: department.id,
-      permissionProfileId: defaultProfile.id,
-    },
+  console.log("✅ SUPER_ADMIN ensured.");
+
+  // =============== 4) Working Patterns ===============
+  // Standard pattern
+  let standardWorkingPattern = await prisma.workingPattern.findFirst({
+    where: { name: "Standard (Mon-Fri, 9am-5pm)", companyId: company.id },
   });
-
-  await prisma.employee.upsert({
-    where: { userId: adminUser.id },
-    update: {},
-    create: {
-      userId: adminUser.id,
-      departmentId: department.id,
-      companyId: company.id, // ✅ FIXED: Added missing companyId
-      isActive: true,
-    },
-  });
-
-  const sampleEmployees = [
-    { email: "john.doe@peoplecore.com", firstName: "John", lastName: "Doe" },
-    {
-      email: "jane.smith@peoplecore.com",
-      firstName: "Jane",
-      lastName: "Smith",
-    },
-  ];
-
-  for (const emp of sampleEmployees) {
-    const user = await prisma.user.upsert({
-      where: {
-        email_companyId: { email: emp.email, companyId: company.id },
-      },
-      update: {},
-      create: {
-        email: emp.email,
-        firstName: emp.firstName,
-        lastName: emp.lastName,
-        role: "EMPLOYEE",
-        password: hashedPassword,
-        companyId: company.id, // ✅ FIXED: Added missing companyId
-        departmentId: department.id,
-        permissionProfileId: defaultProfile.id,
-      },
-    });
-
-    await prisma.employee.upsert({
-      where: { userId: user.id },
-      update: {},
-      create: {
-        userId: user.id,
-        departmentId: department.id,
-        companyId: company.id, // ✅ FIXED: Added missing companyId
-        isActive: true,
-      },
-    });
-  }
-
-  // ✅ 4. Create system-defined EventCategories
-  const systemCategories = [
-    {
-      name: "Annual Leave",
-      categoryType: "TIME_OFF",
-      requiresApproval: true,
-      adminOnly: false,
-      color: "#008000",
-      systemDefined: true,
-    },
-    {
-      name: "Sickness",
-      categoryType: "TIME_OFF",
-      requiresApproval: false,
-      adminOnly: false,
-      color: "#FF0000",
-      systemDefined: true,
-    },
-  ];
-
-  for (const category of systemCategories) {
-    const result = await prisma.eventCategory.upsert({
-      where: { name: category.name },
-      update: {
-        systemDefined: true,
-        categoryType: category.categoryType,
-        requiresApproval: category.requiresApproval,
-        adminOnly: category.adminOnly,
-        color: category.color,
-      },
-      create: category,
-    });
-    console.log(`✅ Category upserted: ${result.name} (${result.id})`);
-
-    // ✅ EventRule tied to category and company
-    await prisma.eventRule.upsert({
-      where: {
-        companyId_eventCategoryId: {
-          companyId: company.id,
-          eventCategoryId: result.id,
+  if (!standardWorkingPattern) {
+    standardWorkingPattern = await prisma.workingPattern.create({
+      data: {
+        id: randomUUID(),
+        name: "Standard (Mon-Fri, 9am-5pm)",
+        description: "Standard Monday to Friday working pattern from 9am to 5pm",
+        companyId: company.id,
+        updatedAt: new Date(),
+        WorkingPatternWeek: {
+          create: [
+            {
+              id: randomUUID(),
+              weekNumber: 1,
+              WorkingPatternDay: {
+                create: [
+                  { id: randomUUID(), day: "Mon", type: "FULL_DAY" as any },
+                  { id: randomUUID(), day: "Tue", type: "FULL_DAY" as any },
+                  { id: randomUUID(), day: "Wed", type: "FULL_DAY" as any },
+                  { id: randomUUID(), day: "Thu", type: "FULL_DAY" as any },
+                  { id: randomUUID(), day: "Fri", type: "FULL_DAY" as any },
+                ],
+              },
+            },
+          ],
         },
       },
-      update: { maxCarryoverDays: 5, carryoverExpiryMonths: 3 },
-      create: {
-        companyId: company.id,
-        eventCategoryId: result.id,
-        maxCarryoverDays: 5,
-        carryoverExpiryMonths: 3,
-      },
     });
   }
 
-  // ✅ 5. FieldMetadata (dynamic reporting)
-  await prisma.fieldMetadata.createMany({
-    data: [
-      { model: "user", field: "email", label: "Email", fieldType: "string" },
-      { model: "user", field: "role", label: "Role", fieldType: "string" },
-      {
-        model: "user",
-        field: "firstName",
-        label: "First Name",
-        fieldType: "string",
-      },
-      {
-        model: "user",
-        field: "lastName",
-        label: "Last Name",
-        fieldType: "string",
-      },
-      { model: "user", field: "phone", label: "Phone", fieldType: "string" },
-      {
-        model: "employee",
-        field: "isActive",
-        label: "Is Active",
-        fieldType: "boolean",
-      },
-      {
-        model: "employee",
-        field: "departmentId",
-        label: "Department ID",
-        fieldType: "string",
-      },
-      {
-        model: "department",
-        field: "name",
-        label: "Department Name",
-        fieldType: "string",
-      },
-      {
-        model: "jobrole",
-        field: "name",
-        label: "Job Role Name",
-        fieldType: "string",
-      },
-      {
-        model: "leaverequest",
-        field: "startDate",
-        label: "Start Date",
-        fieldType: "date",
-      },
-      {
-        model: "leaverequest",
-        field: "endDate",
-        label: "End Date",
-        fieldType: "date",
-      },
-      {
-        model: "leaverequest",
-        field: "approvalStatus",
-        label: "Approval Status",
-        fieldType: "string",
-      },
-      {
-        model: "leaveentitlement",
-        field: "totalDays",
-        label: "Total Days",
-        fieldType: "int",
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // ✅ 6. Expiry Rules
-  const expiryRules = [
-    { category: "Employment Checks", daysBefore: 28 },
-    { category: "Driver Licence", daysBefore: 30 },
-    { category: "Training", daysBefore: 45 },
-    { category: "Exit Interview Forms", daysBefore: 0 }, // 0 days before = same day
-  ];
-  for (const rule of expiryRules) {
-    await prisma.expiryRule.upsert({
-      where: { category: rule.category },
-      update: { daysBefore: rule.daysBefore },
-      create: {
-        ...rule,
-        notifyAdmin: true,
-        notifyManager: true,
-        notifyEmployee: true,
-      },
-    });
-  }
-
-  // ✅ 7. Departments (compound unique)
-  const additionalDepartments = ["HR", "Finance", "Engineering"];
-  for (const deptName of additionalDepartments) {
-    await prisma.department.upsert({
-      where: { companyId_name: { companyId: company.id, name: deptName } },
-      update: {},
-      create: { name: deptName, companyId: company.id },
-    });
-  }
-
-  // ✅ 8. Job Roles (compound unique)
-  const jobRoles = ["Manager", "Employee", "Admin"];
-  const extraJobRoles = [
-    "HR Advisor",
-    "Software Engineer",
-    "Sales Executive",
-    "Finance Analyst",
-    "Operations Coordinator",
-    "Customer Support Representative",
-    "Marketing Manager",
-  ];
-  for (const roleName of jobRoles) {
-    await prisma.jobRole.upsert({
-      where: { companyId_name: { companyId: company.id, name: roleName } },
-      update: {},
-      create: { name: roleName, companyId: company.id },
-    });
-  }
-  for (const roleName of extraJobRoles) {
-    await prisma.jobRole.upsert({
-      where: { companyId_name: { companyId: company.id, name: roleName } },
-      update: {},
-      create: { name: roleName, companyId: company.id },
-    });
-  }
-
-  // ✅ 9. Locations (global unique)
-  const locations = [
-    "Auckland",
-    "Wellington",
-    "Christchurch",
-    "Hamilton",
-    "Tauranga",
-    "Dunedin",
-    "Queenstown",
-    "Napier",
-    "Palmerston North",
-    // retain a couple of overseas for variety
-    "London",
-    "Manchester",
-  ];
-  for (const locName of locations) {
-    await prisma.location.upsert({
-      where: { name: locName },
-      update: {},
-      create: { name: locName },
-    });
-  }
-
-  // ✅ 11. Working Patterns (varied)
-  // Helper to create a working pattern with one or more weeks
-  async function createWorkingPatternIfMissing(name, description, weeks) {
+  async function createWorkingPatternIfMissing(
+    name: string,
+    description: string,
+    weeks: { weekNumber?: number; days: { day: string; type: string }[] }[],
+  ) {
     const existing = await prisma.workingPattern.findFirst({
       where: { name, companyId: company.id },
     });
@@ -358,7 +146,11 @@ async function main() {
             id: randomUUID(),
             weekNumber: week.weekNumber ?? idx + 1,
             WorkingPatternDay: {
-              create: week.days.map((d) => ({ id: randomUUID(), day: d.day, type: d.type })),
+              create: week.days.map((d) => ({
+                id: randomUUID(),
+                day: d.day,
+                type: d.type as any,
+              })),
             },
           })),
         },
@@ -366,138 +158,163 @@ async function main() {
     });
   }
 
-  // Standard Mon-Fri
-  await createWorkingPatternIfMissing(
-    "Standard (Mon-Fri, 9am-5pm)",
-    "Standard Monday to Friday working pattern from 9am to 5pm",
-    [
-      {
-        weekNumber: 1,
-        days: [
-          { day: "Mon", type: "FULL_DAY" },
-          { day: "Tue", type: "FULL_DAY" },
-          { day: "Wed", type: "FULL_DAY" },
-          { day: "Thu", type: "FULL_DAY" },
-          { day: "Fri", type: "FULL_DAY" },
-        ],
-      },
-    ],
-  );
-
-  // Part-time 3 days (Mon, Wed, Fri)
   await createWorkingPatternIfMissing(
     "Part-time (Mon/Wed/Fri)",
     "Part-time schedule working Monday, Wednesday, Friday",
-    [
-      {
-        weekNumber: 1,
-        days: [
-          { day: "Mon", type: "FULL_DAY" },
-          { day: "Wed", type: "FULL_DAY" },
-          { day: "Fri", type: "FULL_DAY" },
-        ],
-      },
-    ],
+    [{ weekNumber: 1, days: [
+      { day: "Mon", type: "FULL_DAY" },
+      { day: "Wed", type: "FULL_DAY" },
+      { day: "Fri", type: "FULL_DAY" },
+    ]}],
   );
 
-  // School hours (Mon-Fri, half-day AM)
   await createWorkingPatternIfMissing(
     "School Hours (Mon-Fri, AM)",
     "Half-day mornings Monday to Friday",
-    [
-      {
-        weekNumber: 1,
-        days: [
-          { day: "Mon", type: "HALF_DAY_AM" },
-          { day: "Tue", type: "HALF_DAY_AM" },
-          { day: "Wed", type: "HALF_DAY_AM" },
-          { day: "Thu", type: "HALF_DAY_AM" },
-          { day: "Fri", type: "HALF_DAY_AM" },
-        ],
-      },
-    ],
+    [{ weekNumber: 1, days: [
+      { day: "Mon", type: "HALF_DAY_AM" },
+      { day: "Tue", type: "HALF_DAY_AM" },
+      { day: "Wed", type: "HALF_DAY_AM" },
+      { day: "Thu", type: "HALF_DAY_AM" },
+      { day: "Fri", type: "HALF_DAY_AM" },
+    ]}],
   );
 
-  // 4-on / 4-off (two-week cycle, illustrative)
   await createWorkingPatternIfMissing(
     "4-on 4-off",
     "Four days on, four days off (two-week cycle)",
     [
-      {
-        weekNumber: 1,
-        days: [
-          { day: "Mon", type: "FULL_DAY" },
-          { day: "Tue", type: "FULL_DAY" },
-          { day: "Wed", type: "FULL_DAY" },
-          { day: "Thu", type: "FULL_DAY" },
-        ],
-      },
-      {
-        weekNumber: 2,
-        days: [
-          { day: "Tue", type: "FULL_DAY" },
-          { day: "Wed", type: "FULL_DAY" },
-          { day: "Thu", type: "FULL_DAY" },
-          { day: "Fri", type: "FULL_DAY" },
-        ],
-      },
+      { weekNumber: 1, days: [
+        { day: "Mon", type: "FULL_DAY" },
+        { day: "Tue", type: "FULL_DAY" },
+        { day: "Wed", type: "FULL_DAY" },
+        { day: "Thu", type: "FULL_DAY" },
+      ]},
+      { weekNumber: 2, days: [
+        { day: "Tue", type: "FULL_DAY" },
+        { day: "Wed", type: "FULL_DAY" },
+        { day: "Thu", type: "FULL_DAY" },
+        { day: "Fri", type: "FULL_DAY" },
+      ]},
     ],
   );
 
-  // ✅ 10. Onboarding Template + Steps
-  const onboardingTemplate = await prisma.onboardingTemplate.upsert({
-    where: {
-      companyId_name: { companyId: company.id, name: "Default Onboarding" },
-    },
-    update: { isDefault: true, isActive: true },
+  // =============== 5) Permission Profiles ===============
+  const adminProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Admin" } },
+    update: { updatedAt: new Date() },
     create: {
-      name: "Default Onboarding",
-      isDefault: true,
-      isActive: true,
+      id: randomUUID(),
       companyId: company.id,
+      name: "Admin",
+      description: "Full system access with administrative privileges",
+      permissions: JSON.stringify({
+        dashboard: ["read"],
+        approvals: ["read", "edit"],
+        employees: ["read", "edit", "delete"],
+        calendar: ["read", "edit", "delete"],
+        documents: ["read", "edit", "delete"],
+        reports: ["read", "edit", "delete"],
+        "org-chart": ["read"],
+        news: ["read", "edit", "delete"],
+        settings: ["read", "edit", "delete"],
+        onboarding: ["read", "edit", "delete"],
+        offboarding: ["read", "edit", "delete"],
+        forms: ["read", "edit", "delete"],
+        "leave-requests": ["read", "edit", "delete"],
+        "working-patterns": ["read", "edit", "delete"],
+        departments: ["read", "edit", "delete"],
+        "job-roles": ["read", "edit", "delete"],
+        permissions: ["read", "edit", "delete"],
+        "employee-overview": ["read", "edit"],
+        "employee-documents": ["read", "edit", "delete"],
+        "employee-driver-licenses": ["read", "edit", "delete"],
+        "employee-employment-checks": ["read", "edit", "delete"],
+        "employee-forms": ["read", "edit", "delete"],
+        "employee-leave": ["read", "edit"],
+        "employee-offboarding": ["read", "edit"],
+        "employee-onboarding": ["read", "edit", "delete"],
+        "employee-performance": ["read", "edit"],
+        "employee-settings": ["read", "edit"],
+        "employee-training": ["read", "edit", "delete"],
+      }),
+      builtIn: true,
+      updatedAt: new Date(),
     },
   });
 
-  const onboardingSteps = [
-    {
-      label: "Upload Passport/Right-to-Work",
-      type: "UPLOAD_DOCUMENT",
-      uploadType: "RIGHT_TO_WORK",
-      order: 1,
+  const managerProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Manager" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      name: "Manager",
+      description: "Management access with employee oversight capabilities",
+      permissions: JSON.stringify({
+        dashboard: ["read"],
+        employees: ["read", "edit"],
+        calendar: ["read", "edit"],
+        documents: ["read", "edit"],
+        reports: ["read"],
+        "org-chart": ["read"],
+        news: ["read"],
+        "leave-requests": ["read", "edit"],
+        "working-patterns": ["read"],
+        onboarding: ["read"],
+        offboarding: ["read"],
+        "employee-overview": ["read", "edit"],
+        "employee-documents": ["read", "edit"],
+        "employee-driver-licenses": ["read", "edit"],
+        "employee-employment-checks": ["read", "edit"],
+        "employee-forms": ["read", "edit"],
+        "employee-leave": ["read", "edit"],
+        "employee-offboarding": ["read"],
+        "employee-onboarding": ["read", "edit"],
+        "employee-performance": ["read", "edit"],
+        "employee-settings": ["read"],
+        "employee-training": ["read", "edit"],
+      }),
+      builtIn: true,
+      updatedAt: new Date(),
     },
-    {
-      label: "Acknowledge Health & Safety Policy",
-      type: "ACKNOWLEDGE_DOCUMENT",
-      order: 2,
-    },
-    {
-      label: "Complete Bank Details Form",
-      type: "INSTRUCTION",
-      instruction: "Submit your bank account details.",
-      order: 3,
-    },
-  ];
+  });
 
-  for (const step of onboardingSteps) {
-    await prisma.onboardingStep.upsert({
-      where: {
-        templateId_label: {
-          templateId: onboardingTemplate.id,
-          label: step.label,
-        },
-      },
-      update: {},
-      create: { ...step, templateId: onboardingTemplate.id },
-    });
-  }
+  const employeeProfile = await prisma.permissionProfile.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Employee" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      name: "Employee",
+      description: "Standard employee access to essential features",
+      permissions: JSON.stringify({
+        dashboard: ["read"],
+        calendar: ["read"],
+        documents: ["read"],
+        news: ["read"],
+        "leave-requests": ["read", "edit"],
+        onboarding: ["read"],
+        "employee-overview": ["read"],
+        "employee-documents": ["read"],
+        "employee-forms": ["read"],
+        "employee-leave": ["read", "edit"],
+        "employee-training": ["read"],
+      }),
+      builtIn: true,
+      updatedAt: new Date(),
+    },
+  });
 
-  // ✅ 11. Admin User & Employees (Duplicate Block - retained as requested)
-  const adminUser2 = await prisma.user.upsert({
+  // =============== 6) Admin + Sample Users ===============
+  const hashedPassword = await bcrypt.hash("Admin123!", 10);
+  const adminUser = await prisma.user.upsert({
     where: {
       email_companyId: { email: "admin@peoplecore.com", companyId: company.id },
     },
-    update: {},
+    update: { updatedAt: new Date() },
     create: {
+      id: randomUUID(),
       email: "admin@peoplecore.com",
       firstName: "System",
       lastName: "Admin",
@@ -505,174 +322,208 @@ async function main() {
       password: hashedPassword,
       companyId: company.id,
       departmentId: department.id,
+      permissionProfileId: adminProfile.id,
+      updatedAt: new Date(),
     },
   });
-
   await prisma.employee.upsert({
-    where: { userId: adminUser2.id },
-    update: {},
+    where: { userId: adminUser.id },
+    update: { isActive: true },
     create: {
-      userId: adminUser2.id,
+      id: randomUUID(),
+      userId: adminUser.id,
       departmentId: department.id,
-      companyId: company.id, // ✅ FIXED: Added missing companyId
+      companyId: company.id,
       isActive: true,
     },
   });
 
-  const sampleEmployees2 = [
-    { email: "john.doe@peoplecore.com", firstName: "John", lastName: "Doe" },
-    {
-      email: "jane.smith@peoplecore.com",
-      firstName: "Jane",
-      lastName: "Smith",
-    },
+  const sampleEmployees = [
+    { email: "john.doe@peoplecore.com", firstName: "John", lastName: "Doe", role: "MANAGER" as Role },
+    { email: "jane.smith@peoplecore.com", firstName: "Jane", lastName: "Smith", role: "EMPLOYEE" as Role },
   ];
-
-  for (const emp of sampleEmployees2) {
+  for (const emp of sampleEmployees) {
     const user = await prisma.user.upsert({
       where: {
         email_companyId: { email: emp.email, companyId: company.id },
       },
-      update: {},
+      update: { updatedAt: new Date() },
       create: {
+        id: randomUUID(),
         email: emp.email,
         firstName: emp.firstName,
         lastName: emp.lastName,
-        role: "EMPLOYEE",
+        role: emp.role,
         password: hashedPassword,
-        companyId: company.id, // ✅ FIXED: Added missing companyId
+        companyId: company.id,
         departmentId: department.id,
+        permissionProfileId: emp.role === "MANAGER" ? managerProfile.id : employeeProfile.id,
+        updatedAt: new Date(),
       },
     });
-
     await prisma.employee.upsert({
       where: { userId: user.id },
-      update: {},
+      update: { isActive: true },
       create: {
+        id: randomUUID(),
         userId: user.id,
         departmentId: department.id,
-        companyId: company.id, // ✅ FIXED: Added missing companyId
+        companyId: company.id,
         isActive: true,
       },
     });
   }
 
-  // ✅ 5. Create Default Permission Profiles
-  console.log("🔐 Creating default permission profiles...");
-
-  const defaultPermissions = {
-    ADMIN: {
-      dashboard: ["read"],
-      approvals: ["read", "edit"],
-      employees: ["read", "edit", "delete"],
-      calendar: ["read", "edit", "delete"],
-      documents: ["read", "edit", "delete"],
-      reports: ["read", "edit", "delete"],
-      "org-chart": ["read"],
-      news: ["read", "edit", "delete"],
-      settings: ["read", "edit", "delete"],
-      onboarding: ["read", "edit", "delete"],
-      offboarding: ["read", "edit", "delete"],
-      forms: ["read", "edit", "delete"],
-      "leave-requests": ["read", "edit", "delete"],
-      "working-patterns": ["read", "edit", "delete"],
-      departments: ["read", "edit", "delete"],
-      "job-roles": ["read", "edit", "delete"],
-      permissions: ["read", "edit", "delete"],
-    },
-    MANAGER: {
-      dashboard: ["read"],
-      employees: ["read", "edit"],
-      calendar: ["read", "edit"],
-      documents: ["read", "edit"],
-      reports: ["read"],
-      "org-chart": ["read"],
-      news: ["read"],
-      "leave-requests": ["read", "edit"],
-      "working-patterns": ["read"],
-      onboarding: ["read"],
-      offboarding: ["read"],
-    },
-    EMPLOYEE: {
-      dashboard: ["read"],
-      calendar: ["read"],
-      documents: ["read"],
-      news: ["read"],
-      "leave-requests": ["read", "edit"],
-      onboarding: ["read"],
-    },
-  };
-
-  // Create Admin profile
-  const adminProfile = await prisma.permissionProfile.upsert({
-    where: {
-      companyId_name: {
+  // =============== 7) Job Roles ===============
+  const baseJobRoles = ["Manager", "Employee", "Admin"];
+  const extraJobRoles = [
+    "HR Advisor",
+    "Software Engineer",
+    "Sales Executive",
+    "Finance Analyst",
+    "Operations Coordinator",
+    "Customer Support Representative",
+    "Marketing Manager",
+  ];
+  for (const name of [...baseJobRoles, ...extraJobRoles]) {
+    await prisma.jobRole.upsert({
+      where: { companyId_name: { companyId: company.id, name } },
+      update: { updatedAt: new Date() },
+      create: {
+        id: randomUUID(),
+        name,
         companyId: company.id,
-        name: "Admin",
+        updatedAt: new Date(),
       },
-    },
-    update: {},
-    create: {
-      companyId: company.id,
-      name: "Admin",
-      description: "Full system access with all permissions",
-      permissions: JSON.stringify(defaultPermissions.ADMIN),
-      builtIn: true,
-    },
-  });
-  console.log(
-    `✅ Admin profile created: ${adminProfile.name} (${adminProfile.id})`,
-  );
+    });
+  }
 
-  // Create Manager profile
-  const managerProfile = await prisma.permissionProfile.upsert({
-    where: {
-      companyId_name: {
+  // =============== 8) Locations ===============
+  const locations = [
+    "Auckland","Wellington","Christchurch","Hamilton","Tauranga","Dunedin",
+    "Queenstown","Napier","Palmerston North","London","Manchester",
+  ];
+  for (const name of locations) {
+    await prisma.location.upsert({
+      where: { name },
+      update: {},
+      create: { id: randomUUID(), name },
+    });
+  }
+
+  // =============== 9) Event Categories + Rules ===============
+  const systemCategories = [
+    { name: "Annual Leave", categoryType: "TIME_OFF", requiresApproval: true,  adminOnly: false, color: "#008000", systemDefined: true },
+    { name: "Sickness",     categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#FF0000", systemDefined: true },
+    { name: "Training",     categoryType: "TIME_OFF", requiresApproval: true,  adminOnly: false, color: "#4F46E5", systemDefined: true },
+    { name: "Maternity Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#EC4899", systemDefined: true },
+    { name: "Compassionate Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#8B5CF6", systemDefined: true },
+    { name: "Doctor Appointment", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#14B8A6", systemDefined: true },
+    { name: "Dentist Appointment", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#0EA5E9", systemDefined: true },
+  ];
+  for (const cat of systemCategories) {
+    const saved = await prisma.eventCategory.upsert({
+      where: { companyId_name: { companyId: company.id, name: cat.name } },
+      update: {
+        systemDefined: true,
+        categoryType: cat.categoryType as any,
+        requiresApproval: cat.requiresApproval,
+        adminOnly: cat.adminOnly,
+        color: cat.color,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: randomUUID(),
+        updatedAt: new Date(),
+        ...cat,
+        Company: { connect: { id: company.id } },
+      },
+    });
+    await prisma.eventRule.upsert({
+      where: {
+        companyId_eventCategoryId: {
+          companyId: company.id,
+          eventCategoryId: saved.id,
+        },
+      },
+      update: {
+        maxCarryoverDays: 5,
+        carryoverExpiryMonths: 3,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: randomUUID(),
         companyId: company.id,
-        name: "Manager",
+        eventCategoryId: saved.id,
+        maxCarryoverDays: 5,
+        carryoverExpiryMonths: 3,
+        updatedAt: new Date(),
       },
-    },
-    update: {},
-    create: {
-      companyId: company.id,
-      name: "Manager",
-      description:
-        "Team management access with limited administrative permissions",
-      permissions: JSON.stringify(defaultPermissions.MANAGER),
-      builtIn: true,
-    },
-  });
-  console.log(
-    `✅ Manager profile created: ${managerProfile.name} (${managerProfile.id})`,
-  );
+    });
+  }
 
-  // Create Employee profile
-  const employeeProfile = await prisma.permissionProfile.upsert({
-    where: {
-      companyId_name: {
-        companyId: company.id,
-        name: "Employee",
+  // =============== 10) Field Metadata (Reporting) ===============
+  const fieldMetadataData = [
+    // User
+    { model: "user", field: "email",      label: "Email",       fieldType: "string" },
+    { model: "user", field: "role",       label: "Role",        fieldType: "string" },
+    { model: "user", field: "firstName",  label: "First Name",  fieldType: "string" },
+    { model: "user", field: "lastName",   label: "Last Name",   fieldType: "string" },
+    { model: "user", field: "phone",      label: "Phone",       fieldType: "string" },
+    // Employee
+    { model: "employee", field: "isActive",         label: "Is Active",         fieldType: "boolean" },
+    { model: "employee", field: "departmentId",     label: "Department ID",     fieldType: "string" },
+    { model: "employee", field: "workingPatternId", label: "Working Pattern ID",fieldType: "string" },
+    // Department
+    { model: "department", field: "name",      label: "Department Name", fieldType: "string" },
+    { model: "department", field: "companyId", label: "Company ID",      fieldType: "string" },
+    // JobRole
+    { model: "jobrole", field: "name",        label: "Job Role Name",        fieldType: "string" },
+    { model: "jobrole", field: "description", label: "Job Role Description", fieldType: "string" },
+    // Leave Request
+    { model: "leaverequest", field: "startDate",     label: "Start Date",     fieldType: "date" },
+    { model: "leaverequest", field: "endDate",       label: "End Date",       fieldType: "date" },
+    { model: "leaverequest", field: "status",        label: "Status",         fieldType: "string" },
+    { model: "leaverequest", field: "daysRequested", label: "Days Requested", fieldType: "int" },
+    // Leave Entitlement
+    { model: "leaveentitlement", field: "totalDays",       label: "Total Days",       fieldType: "int" },
+    { model: "leaveentitlement", field: "usedDays",        label: "Used Days",        fieldType: "int" },
+    { model: "leaveentitlement", field: "carryoverDays",   label: "Carryover Days",   fieldType: "int" },
+    { model: "leaveentitlement", field: "carryoverExpiry", label: "Carryover Expiry", fieldType: "date" },
+  ];
+  await prisma.fieldMetadata.createMany({
+    data: fieldMetadataData.map((item) => ({ id: randomUUID(), ...item })),
+    skipDuplicates: true,
+  });
+  console.log("✅ Field metadata seeded.");
+
+  // =============== 11) Expiry Rules ===============
+  const expiryRules = [
+    { category: "Employment Checks", daysBefore: 28, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Driver Licence",    daysBefore: 30, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Training",          daysBefore: 45, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+  ];
+  for (const rule of expiryRules) {
+    await prisma.expiryRule.upsert({
+      where: { category: rule.category },
+      update: {
+        daysBefore: rule.daysBefore,
+        notifyAdmin: rule.notifyAdmin,
+        notifyManager: rule.notifyManager,
+        notifyEmployee: rule.notifyEmployee,
+        updatedAt: new Date(),
       },
-    },
-    update: {},
-    create: {
-      companyId: company.id,
-      name: "Employee",
-      description: "Standard employee access for daily operations",
-      permissions: JSON.stringify(defaultPermissions.EMPLOYEE),
-      builtIn: true,
-    },
-  });
-  console.log(
-    `✅ Employee profile created: ${employeeProfile.name} (${employeeProfile.id})`,
-  );
+      create: { id: randomUUID(), updatedAt: new Date(), ...rule },
+    });
+  }
+  console.log("✅ Expiry rules seeded.");
 
-  console.log("🎉 Full PeopleCore seed completed successfully.");
+  console.log("🎉 Seed complete.");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Seed failed:", e);
     process.exit(1);
   })
   .finally(async () => {

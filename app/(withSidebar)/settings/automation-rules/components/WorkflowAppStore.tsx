@@ -36,6 +36,8 @@ export function WorkflowAppStore({
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [installedCount, setInstalledCount] = useState<number>(0);
 
   useEffect(() => {
     loadTemplates();
@@ -49,6 +51,11 @@ export function WorkflowAppStore({
         const data = await res.json();
         setTemplates(data.templates || []);
         setCategories(data.categories || []);
+        setTotalCount(Number(data.totalCount) || (data.templates?.length ?? 0));
+        const computedInstalled = Array.isArray(data.templates)
+          ? data.templates.filter((t: any) => t.isInstalled).length
+          : 0;
+        setInstalledCount(typeof data.installedCount === "number" ? data.installedCount : computedInstalled);
         
         // Expand first category by default
         if (data.categories?.[0]) {
@@ -83,7 +90,8 @@ export function WorkflowAppStore({
   };
 
   const popularTemplates = filteredTemplates.filter(t => t.isPopular).slice(0, 6);
-  const installedCount = templates.filter(t => t.isInstalled).length;
+  const popularCount = templates.filter(t => t.isPopular).length;
+  const availableCount = totalCount || templates.length;
 
   if (loading) {
     return (
@@ -99,7 +107,7 @@ export function WorkflowAppStore({
       <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200">
           <Sparkles className="w-4 h-4 text-blue-600" />
-          <span className="text-sm font-medium text-blue-900">60 Ready-to-Use Automation Workflows</span>
+          <span className="text-sm font-medium text-blue-900">{availableCount} Ready-to-Use Automation Workflows</span>
         </div>
         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           HR Automation App Store
@@ -116,11 +124,11 @@ export function WorkflowAppStore({
           </div>
           <div className="flex items-center gap-2">
             <Download className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-muted-foreground">{templates.length} Available</span>
+            <span className="text-sm text-muted-foreground">{availableCount} Available</span>
           </div>
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-amber-500" />
-            <span className="text-sm text-muted-foreground">{popularTemplates.length} Popular</span>
+            <span className="text-sm text-muted-foreground">{popularCount} Popular</span>
           </div>
         </div>
       </div>

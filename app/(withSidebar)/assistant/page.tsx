@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import type { ComponentType } from "react";
 import { useSession } from "next-auth/react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -303,6 +304,233 @@ const AI_CAPABILITIES = [
 ];
 
 
+const KNOWN_NAME_KEYS = [
+  "name",
+  "fullName",
+  "displayName",
+  "firstName",
+  "lastName",
+];
+
+const KNOWN_DEPARTMENT_KEYS = [
+  "department",
+  "Department.name",
+  "team",
+  "division",
+];
+
+const KNOWN_ROLE_KEYS = [
+  "jobTitle",
+  "role",
+  "position",
+  "title",
+];
+
+const KNOWN_STATUS_KEYS = [
+  "status",
+  "employmentStatus",
+  "state",
+  "Stage",
+  "type",
+];
+
+const KNOWN_START_KEYS = [
+  "startDate",
+  "employmentStartDate",
+  "hireDate",
+  "joinDate",
+  "start",
+  "commencementDate",
+];
+
+const HUMANIZED_KEY_OVERRIDES: Record<string, string> = {
+  employeeCount: "Employees",
+  totalSalary: "Total Salary",
+  averageSalary: "Average Salary",
+  maxSalary: "Highest Salary",
+  minSalary: "Lowest Salary",
+  missingCount: "Missing Records",
+  expiringSoon: "Expiring Soon",
+};
+
+type MetricDefinition = {
+  label: string;
+  value: string;
+  helper?: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+function extractReadableSummary(
+  summary?: string,
+  message?: string
+): string | undefined {
+  if (summary && summary.trim().length > 0) {
+    return summary.trim();
+  }
+
+  if (!message) return undefined;
+
+  const firstMeaningfulLine = message
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  if (!firstMeaningfulLine) return undefined;
+
+  return firstMeaningfulLine.replace(/^[#>*`\-\d\.\s]+/, "").trim();
+}
+
+function flattenRecord(record: any, prefix = ""): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  if (!record || typeof record !== "object") {
+    if (prefix) {
+      result[prefix] = record;
+    }
+    return result;
+  }
+
+  Object.entries(record).forEach(([key, value]) => {
+    const nextKey = prefix ? `${prefix}.${key}` : key;
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      Object.assign(result, flattenRecord(value, nextKey));
+    } else {
+      result[nextKey] = value;
+    }
+  });
+
+  return result;
+}
+
+function escapeCsvValue(value: any): string {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  if (/[",\n]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function deriveValueFromKeys(record: any, keys: string[]): string | undefined {
+  if (!record) return undefined;
+
+  for (const key of keys) {
+    if (key.includes(".")) {
+      const parts = key.split(".");
+      let value = record;
+      for (const part of parts) {
+        if (value && typeof value === "object" && part in value) {
+          value = value[part as keyof typeof value];
+        } else {
+          value = undefined;
+          break;
+        }
+      }
+      if (value !== undefined && value !== null) {
+        return String(value);
+      }
+    } else if (record[key] !== undefined && record[key] !== null) {
+      const currentValue = record[key];
+      if (typeof currentValue === "string") {
+        if (key === "lastName" && record.firstName) {
+          return `${record.firstName} ${currentValue}`;
+        }
+        return currentValue;
+      }
+      if (typeof currentValue === "number") {
+        return currentValue.toString();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function deriveName(record: any): string | undefined {
+  const name = deriveValueFromKeys(record, KNOWN_NAME_KEYS);
+  if (name) return name;
+
+  if (record?.User) {
+    const fromUser = deriveValueFromKeys(record.User, ["fullName", "name", "firstName"]);
+    if (fromUser) {
+      const last = record.User.lastName ? ` ${record.User.lastName}` : "";
+      return `${fromUser}${last}`.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function deriveDepartment(record: any): string | undefined {
+  const department = deriveValueFromKeys(record, KNOWN_DEPARTMENT_KEYS);
+  if (department) return department;
+
+  if (record?.Department?.name) {
+    return record.Department.name;
+  }
+
+  return undefined;
+}
+
+function deriveRole(record: any): string | undefined {
+  return deriveValueFromKeys(record, KNOWN_ROLE_KEYS);
+}
+
+function deriveStatus(record: any): string | undefined {
+  return deriveValueFromKeys(record, KNOWN_STATUS_KEYS)?.replace(/_/g, " ");
+}
+
+function deriveStartDate(record: any): Date | undefined {
+  for (const key of KNOWN_START_KEYS) {
+    if (record?.[key]) {
+      const date = new Date(record[key]);
+      if (!Number.isNaN(date.getTime())) {
+        return date;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function formatDateLabel(date?: Date): string | undefined {
+  if (!date) return undefined;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function humanizeKey(key: string): string {
+  if (HUMANIZED_KEY_OVERRIDES[key]) {
+    return HUMANIZED_KEY_OVERRIDES[key];
+  }
+
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getMetricIconForKey(key: string): ComponentType<{ className?: string }> {
+  if (/salary|cost|budget|amount/i.test(key)) {
+    return BarChart3;
+  }
+  if (/average|mean|median/i.test(key)) {
+    return TrendingUp;
+  }
+  if (/count|total|employees|people/i.test(key)) {
+    return Users;
+  }
+  if (/expir|upcoming|due/i.test(key)) {
+    return Calendar;
+  }
+  return Target;
+}
+
+
 export default function AIAssistantPage() {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -318,6 +546,261 @@ export default function AIAssistantPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [latestResult, setLatestResult] = useState<any>(null);
+  const [latestResultMeta, setLatestResultMeta] = useState<{
+    summary?: string;
+    suggestions?: string[];
+    actionType?: ActionType;
+    prompt?: string;
+    timestamp: number;
+    message?: string;
+  } | null>(null);
+
+  const hasLatestResult = latestResult !== null && latestResult !== undefined;
+  const isArrayResult = Array.isArray(latestResult);
+
+  const readableSummary = useMemo(
+    () => extractReadableSummary(latestResultMeta?.summary, latestResultMeta?.message),
+    [latestResultMeta]
+  );
+
+  const arrayPreview = useMemo(() => {
+    if (!Array.isArray(latestResult)) return [] as {
+      name: string;
+      role?: string;
+      department?: string;
+      status?: string;
+      startDateLabel?: string;
+    }[];
+
+    return latestResult.slice(0, 5).map((item, index) => {
+      const name = deriveName(item) || `Result ${index + 1}`;
+      const role = deriveRole(item);
+      const department = deriveDepartment(item);
+      const status = deriveStatus(item);
+      const startDateLabel = formatDateLabel(deriveStartDate(item));
+
+      return {
+        name,
+        role: role || undefined,
+        department: department || undefined,
+        status: status || undefined,
+        startDateLabel: startDateLabel || undefined,
+      };
+    });
+  }, [latestResult]);
+
+  const arrayMetrics = useMemo(() => {
+    if (!Array.isArray(latestResult)) return [] as MetricDefinition[];
+
+    const metrics: MetricDefinition[] = [];
+    const departmentSet = new Set<string>();
+    const statusCounts = new Map<string, number>();
+    let upcomingStarts = 0;
+    const now = new Date();
+
+    latestResult.forEach((item) => {
+      const department = deriveDepartment(item);
+      if (department) {
+        departmentSet.add(department);
+      }
+
+      const status = deriveStatus(item);
+      if (status) {
+        statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+      }
+
+      const startDate = deriveStartDate(item);
+      if (startDate) {
+        const diffDays = (startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays >= 0 && diffDays <= 60) {
+          upcomingStarts += 1;
+        }
+      }
+    });
+
+    metrics.push({
+      label: "Total People",
+      value: latestResult.length.toLocaleString(),
+      helper: "Records in this view",
+      icon: Users,
+    });
+
+    if (departmentSet.size > 0) {
+      metrics.push({
+        label: "Departments",
+        value: departmentSet.size.toLocaleString(),
+        helper: "Represented",
+        icon: Briefcase,
+      });
+    }
+
+    if (upcomingStarts > 0) {
+      metrics.push({
+        label: "Upcoming Starts",
+        value: upcomingStarts.toLocaleString(),
+        helper: "Next 60 days",
+        icon: Calendar,
+      });
+    }
+
+    if (statusCounts.size > 0) {
+      const [topStatus, topCount] = Array.from(statusCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+      metrics.push({
+        label: "Top Status",
+        value: topCount.toLocaleString(),
+        helper: topStatus,
+        icon: CheckCircle,
+      });
+    }
+
+    return metrics.slice(0, 4);
+  }, [latestResult]);
+
+  const aggregateMetrics = useMemo(() => {
+    if (!latestResult || Array.isArray(latestResult) || typeof latestResult !== "object") {
+      return [] as MetricDefinition[];
+    }
+
+    return Object.entries(latestResult)
+      .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+      .map(([key, value]) => ({
+        label: humanizeKey(key),
+        value: Number(value).toLocaleString(),
+        icon: getMetricIconForKey(key),
+        helper: undefined,
+      }))
+      .slice(0, 6);
+  }, [latestResult]);
+
+  const aggregateDetails = useMemo(() => {
+    if (!latestResult || Array.isArray(latestResult) || typeof latestResult !== "object") {
+      return [] as { label: string; value: string }[];
+    }
+
+    return Object.entries(latestResult)
+      .filter(([, value]) =>
+        typeof value === "string" || typeof value === "boolean" || value === null || value === undefined
+      )
+      .map(([key, value]) => ({
+        label: humanizeKey(key),
+        value: value === null || value === undefined ? "—" : String(value),
+      }))
+      .slice(0, 6);
+  }, [latestResult]);
+
+  const primitiveResult = useMemo(() => {
+    if (!hasLatestResult) return undefined;
+    if (Array.isArray(latestResult)) return undefined;
+
+    if (typeof latestResult === "number") {
+      return latestResult.toLocaleString();
+    }
+    if (typeof latestResult === "boolean") {
+      return latestResult ? "Yes" : "No";
+    }
+    if (typeof latestResult === "string") {
+      return latestResult;
+    }
+
+    return undefined;
+  }, [hasLatestResult, latestResult]);
+
+  const followUpSuggestions = useMemo(() => {
+    const suggestions = new Set<string>();
+    (latestResultMeta?.suggestions || []).forEach((item) => {
+      if (item) suggestions.add(item);
+    });
+
+    if ((latestResultMeta?.actionType || "") === "query") {
+      suggestions.add("Can you break this down by department?");
+      suggestions.add("Who should follow up with these employees?");
+    }
+
+    if (Array.isArray(latestResult) && latestResult.length > 0) {
+      suggestions.add("Show me more details for the next group");
+    }
+
+    return Array.from(suggestions).slice(0, 3);
+  }, [latestResult, latestResultMeta]);
+
+  const shouldShowFollowUps = followUpSuggestions.length > 0 || latestResultMeta?.actionType === "query";
+
+  const insightTitle = useMemo(() => {
+    if (!latestResultMeta?.prompt) return "Latest Insight";
+    const trimmed = latestResultMeta.prompt.trim();
+    if (trimmed.length === 0) return "Latest Insight";
+    const maxLength = 80;
+    const label = trimmed.length > maxLength ? `${trimmed.slice(0, maxLength - 1)}…` : trimmed;
+    return `Results for “${label}”`;
+  }, [latestResultMeta?.prompt]);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!latestResultMeta?.timestamp) return undefined;
+    const date = new Date(latestResultMeta.timestamp);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }, [latestResultMeta]);
+
+  const handlePrefillPrompt = (prompt: string) => {
+    setInput(prompt);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  const handleExportResult = () => {
+    if (!hasLatestResult) return;
+
+    try {
+      if (typeof window === "undefined") return;
+
+      let blob: Blob;
+      let filename = `ai-result-${new Date().toISOString().slice(0, 10)}`;
+
+      if (Array.isArray(latestResult)) {
+        const rows = latestResult.map((item) => flattenRecord(item));
+        const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+
+        if (headers.length === 0) {
+          blob = new Blob([JSON.stringify(latestResult, null, 2)], {
+            type: "application/json;charset=utf-8;",
+          });
+          filename += ".json";
+        } else {
+          const csvLines = [headers.join(",")];
+          rows.forEach((row) => {
+            const line = headers.map((header) => escapeCsvValue(row[header])).join(",");
+            csvLines.push(line);
+          });
+          blob = new Blob([csvLines.join("\n")], {
+            type: "text/csv;charset=utf-8;",
+          });
+          filename += ".csv";
+        }
+      } else {
+        const content = typeof latestResult === "string" ? latestResult : JSON.stringify(latestResult, null, 2);
+        blob = new Blob([content], {
+          type: "application/json;charset=utf-8;",
+        });
+        filename += ".json";
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Export ready—check your downloads.");
+    } catch (error) {
+      toast.error("Couldn't export results. Please try again.");
+      console.error("Export error", error);
+    }
+  };
 
   // Track if component is mounted (for portal)
   useEffect(() => {
@@ -465,6 +948,23 @@ export default function AIAssistantPage() {
           },
         ];
       });
+
+      if (response.actionType !== "workflow") {
+        if (response.result !== undefined && response.result !== null) {
+          setLatestResult(response.result);
+        } else {
+          setLatestResult(null);
+        }
+
+        setLatestResultMeta({
+          summary: data.summary,
+          suggestions: response.suggestions,
+          actionType: response.actionType,
+          prompt: messageText,
+          timestamp: Date.now(),
+          message: response.content,
+        });
+      }
     } catch (error: any) {
       // Friendly error messages for non-technical users
       let friendlyMessage = "";
@@ -828,7 +1328,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
         {/* Left: Chat Interface */}
         <div 
-          className="w-1/2 flex flex-col min-h-0 relative"
+          className="w-1/2 flex flex-col min-h-0 h-full relative"
           onDrop={handleFileDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -844,7 +1344,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             </div>
           )}
           
-          <Card className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <div className="flex flex-col h-full border rounded-lg bg-card shadow-sm">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
               <div className="flex-1 overflow-y-auto p-4">
@@ -920,7 +1420,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               </div>
             ) : (
               /* Messages */
-              <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0, maxHeight: '100%' }}>
+              <div className="flex-1 p-4 space-y-4 overflow-auto">
                 {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -943,46 +1443,6 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <div className="whitespace-pre-wrap text-sm">
                           {msg.content}
                         </div>
-                        {/* Show data table if query returned results */}
-                        {msg.result?.data && Array.isArray(msg.result.data) && (
-                          <div className="mt-2 max-h-40 overflow-auto">
-                            <div className="text-xs bg-background/50 rounded p-2">
-                              <pre className="text-xs">
-                                {JSON.stringify(msg.result.data.slice(0, 3), null, 2)}
-                              </pre>
-                              {msg.result.data.length > 3 && (
-                                <p className="text-muted-foreground mt-1">
-                                  ...and {msg.result.data.length - 3} more
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Follow-up suggestions */}
-                        {msg.suggestions && msg.suggestions.length > 0 && !msg.isLoading && (
-                          <div className="mt-4 pt-3 border-t border-muted">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Lightbulb className="w-4 h-4 text-amber-500" />
-                              <span className="text-xs font-medium text-muted-foreground">
-                                You might also want to:
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {msg.suggestions.map((suggestion, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleSendMessage(suggestion)}
-                                  disabled={isProcessing}
-                                  className="w-full text-left text-xs px-3 py-2 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <ArrowRight className="w-3 h-3 text-primary group-hover:translate-x-0.5 transition-transform" />
-                                  <span>{suggestion}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </>
                     )}
                   </div>
@@ -1100,7 +1560,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Right: Results/Preview */}
@@ -1129,8 +1589,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                     >
                       Clear
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={handleSaveWorkflow}
                       className="bg-gradient-to-r from-primary to-purple-600"
                     >
@@ -1150,12 +1610,216 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   />
                 </div>
               </>
+            ) : hasLatestResult ? (
+              <div className="flex-1 relative overflow-auto">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-emerald-50 to-purple-50 opacity-60" />
+                <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+                <div className="relative z-10 h-full flex flex-col gap-6 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                        <Sparkles className="w-4 h-4" />
+                        Latest Insight
+                      </div>
+                      <h3 className="text-xl font-bold text-foreground">{insightTitle}</h3>
+                      {readableSummary && (
+                        <p className="text-sm text-muted-foreground max-w-2xl">
+                          {readableSummary}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      {lastUpdatedLabel && (
+                        <Badge variant="secondary" className="text-xs">
+                          Updated {lastUpdatedLabel}
+                        </Badge>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={handleExportResult}
+                      >
+                        <Download className="w-4 h-4" />
+                        Quick Export
+                      </Button>
+                    </div>
+                  </div>
+
+                  {isArrayResult ? (
+                    <>
+                      {arrayMetrics.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {arrayMetrics.map((metric, idx) => {
+                            const Icon = metric.icon;
+                            return (
+                              <div
+                                key={`${metric.label}-${idx}`}
+                                className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-muted-foreground tracking-wide">
+                                      {metric.label}
+                                    </div>
+                                    <div className="text-lg font-semibold text-foreground">
+                                      {metric.value}
+                                    </div>
+                                    {metric.helper && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {metric.helper}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm">
+                        <div className="border-b px-4 py-3 flex items-center justify-between">
+                          <div className="font-semibold text-sm flex items-center gap-2">
+                            <Table className="w-4 h-4 text-primary" />
+                            Top People
+                          </div>
+                          {Array.isArray(latestResult) && latestResult.length > arrayPreview.length && (
+                            <Badge variant="secondary" className="text-xs">
+                              Showing {arrayPreview.length} of {latestResult.length}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="divide-y">
+                          {arrayPreview.length > 0 ? (
+                            arrayPreview.map((person, idx) => {
+                              const details = [person.role, person.department, person.status].filter(Boolean).join(" • ");
+                              return (
+                                <div key={`${person.name}-${idx}`} className="px-4 py-3 text-left text-sm">
+                                  <div className="font-medium text-foreground">{person.name}</div>
+                                  {details && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {details}
+                                    </div>
+                                  )}
+                                  {person.startDateLabel && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      Start: {person.startDateLabel}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                              No people found for this view.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {aggregateMetrics.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {aggregateMetrics.map((metric, idx) => {
+                            const Icon = metric.icon;
+                            return (
+                              <div
+                                key={`${metric.label}-${idx}`}
+                                className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-muted-foreground tracking-wide">
+                                      {metric.label}
+                                    </div>
+                                    <div className="text-lg font-semibold text-foreground">
+                                      {metric.value}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {aggregateDetails.length > 0 && (
+                        <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm">
+                          <div className="border-b px-4 py-3 font-semibold text-sm flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-primary" />
+                            Key Details
+                          </div>
+                          <div className="divide-y text-sm">
+                            {aggregateDetails.map((detail, idx) => (
+                              <div key={`${detail.label}-${idx}`} className="flex items-center justify-between px-4 py-3">
+                                <div className="text-xs font-medium uppercase text-muted-foreground tracking-wide">
+                                  {detail.label}
+                                </div>
+                                <div className="text-sm text-foreground text-right max-w-[60%] break-words">
+                                  {detail.value}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {primitiveResult && (
+                        <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm p-6 text-center">
+                          <div className="text-xs uppercase text-muted-foreground tracking-wide mb-1">
+                            Result
+                          </div>
+                          <div className="text-3xl font-bold text-foreground">{primitiveResult}</div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {shouldShowFollowUps && (
+                    <div className="mt-auto border rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <h4 className="text-sm font-semibold">Quick follow-ups</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {followUpSuggestions.map((suggestion, idx) => (
+                          <Button
+                            key={`${suggestion}-${idx}`}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-auto py-2 px-3 border-dashed"
+                            onClick={() => handlePrefillPrompt(suggestion)}
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-auto py-2 px-3"
+                          onClick={() => handlePrefillPrompt("Can you summarise next steps for HR?")}
+                        >
+                          Ask follow-up
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
                 {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 opacity-50" />
                 <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-                
+
                 <div className="relative z-10">
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 mb-6 shadow-2xl animate-pulse">
                     <Sparkles className="w-10 h-10 text-white" />
@@ -1168,8 +1832,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   </p>
 
                   <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
-                    <button 
-                      onClick={() => handleSendMessage("Show me all employees with their salaries")}
+                    <button
+                      onClick={() => handleSendMessage("Show me all employees")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
@@ -1180,8 +1844,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         Instant answers about your people, leave, and documents
                       </p>
                     </button>
-                    <button 
-                      onClick={() => handleSendMessage("What workflow should I create?")}
+                    <button
+                      onClick={() => handleSendMessage("I want to create a workflow")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
@@ -1192,8 +1856,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         Build automation visually from plain English
                       </p>
                     </button>
-                    <button 
-                      onClick={() => handleSendMessage("What custom field should I add?")}
+                    <button
+                      onClick={() => handleSendMessage("I want to add a custom field")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
                       <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">

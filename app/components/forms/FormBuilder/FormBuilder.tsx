@@ -339,7 +339,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">
-                URL Slug
+                URL
               </Label>
               <Input
                 value={formSlug}
@@ -352,7 +352,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               />
               {!slugIsValid ? (
                 <p className="text-xs text-destructive">
-                  Slug must be unique and contain only lowercase letters, numbers, or hyphens.
+                  URL must be unique and contain only lowercase letters, numbers, or hyphens.
                 </p>
               ) : null}
             </div>
@@ -471,20 +471,45 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
           </DragOverlay>
         </DndContext>
 
-        <div className="mt-6 glass-premium rounded-3xl p-8 shadow-premium">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-gradient-premium">
-              Form Preview
-            </h3>
-            <Button
-              variant="outline"
-              onClick={goToForms}
-              className="glass-subtle border-white/20 hover:border-primary/50"
-            >
-              View All Forms
-            </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="lg:col-span-2">
+            <div className="glass-premium rounded-3xl p-8 shadow-premium">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gradient-premium">
+                  Form Preview
+                </h3>
+                <Button
+                  variant="outline"
+                  onClick={goToForms}
+                  className="glass-subtle border-white/20 hover:border-primary/50"
+                >
+                  View All Forms
+                </Button>
+              </div>
+              <FormPreview fields={sections.flatMap((section) => section.fields)} />
+            </div>
           </div>
-          <FormPreview fields={sections.flatMap((section) => section.fields)} />
+
+          <div className="lg:col-span-1">
+            <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+              <h3 className="text-lg font-semibold text-gradient-premium mb-4">
+                Visibility Settings
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Control who can see and access this form
+              </p>
+              <VisibilitySettings
+                visibleToRoles={vis.roles}
+                visibleToDepartments={vis.departments}
+                visibleToJobRoles={vis.jobRoles}
+                onChange={(updated) => {
+                  vis.setRoles(updated.visibleToRoles);
+                  vis.setDepartments(updated.visibleToDepartments);
+                  vis.setJobRoles(updated.visibleToJobRoles);
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

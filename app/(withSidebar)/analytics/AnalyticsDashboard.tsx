@@ -617,7 +617,7 @@ export default function AnalyticsDashboard() {
                       ))
                     )}
                   </div>
-                  <div className="flex w-full flex-col gap-4 lg:w-1/2">
+                  <div className="flex w/full flex-col gap-4 lg:w-1/2">
                     <div className="h-64 w-full">
                       {employmentData.length === 0 ? (
                         <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
@@ -680,7 +680,7 @@ export default function AnalyticsDashboard() {
                   </p>
                 </CardHeader>
                 <CardContent className="max-h-72 space-y-3 overflow-y-auto pr-1">
-                  {(data.breakdowns.byJobRole ?? []).map((role, index) => (
+                  {(data.breakdowns.byJobRole ?? []).map((role) => (
                     <div
                       key={role.id ?? role.name}
                       className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40"
@@ -1134,7 +1134,7 @@ function TemplateGallery({ templates, onApply }: TemplateGalleryProps) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {templates.map((template, index) => (
+        {templates.map((template) => (
           <div
             key={template.id}
             className="rounded-2xl border border-muted bg-muted/20 px-4 py-4"
@@ -1200,4 +1200,3 @@ function InsightsList({ insights }: { insights: AnalyticsInsight[] }) {
     </div>
   );
 }
-

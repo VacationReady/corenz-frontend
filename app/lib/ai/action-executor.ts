@@ -273,7 +273,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
     return {
       success: true,
-      message: `Great! I'll help book leave for **${employee.name}**.\n\nWhat dates would you like? (e.g., "December 20-27" or "Next Monday to Friday")`,
+      message: `Great! I'll help book leave for ${employee.name}.\n\nWhat dates would you like?\n\nExamples:\n• "Next Monday" (single day)\n• "December 20-27" (date range)\n• "Next week Monday to Friday"`,
       nextStep: {
         question: "What dates?",
       },
@@ -291,9 +291,21 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       };
     }
 
-    // Parse dates (simplified - in production, use date parser)
-    const start = startDate || dates?.split('-')[0] || dates;
-    const end = endDate || dates?.split('-')[1] || dates;
+    // Parse dates - handle single day vs range
+    let start = startDate || dates;
+    let end = endDate;
+    
+    // Check if it's a date range
+    if (dates && (dates.includes('-') || dates.toLowerCase().includes(' to '))) {
+      const parts = dates.split(/\s*(?:-|to)\s*/i);
+      start = parts[0]?.trim();
+      end = parts[1]?.trim();
+    }
+    
+    // If no end date specified, it's a single day booking
+    if (!end || end === start) {
+      end = start;
+    }
 
     setPendingAction(action.userId, action.companyId, {
       ...pending,
@@ -307,9 +319,12 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       select: { id: true, name: true },
     });
 
+    const isSingleDay = start === end;
+    const dateDisplay = isSingleDay ? start : `${start} to ${end}`;
+    
     return {
       success: true,
-      message: `Got it! Booking from **${start}** to **${end}**.\n\nWhich type of leave?\n${categories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")}`,
+      message: `Got it! Booking ${dateDisplay}.\n\nWhich type of leave?\n${categories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")}`,
       nextStep: {
         question: "Which leave type?",
         options: categories.map(c => c.name),
@@ -318,34 +333,75 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     };
   }
 
-  // Step 3: Get leave type and create request
-  if (pending.step === 2) {
+  // Step 2/3: Get leave type and handle confirmation
+  if (pending.step === 2 || pending.step === 3) {
     const { leaveType, confirmed } = action.parameters;
     
-    if (!leaveType) {
+    console.log('[Book Leave] Step:', pending.step, '- leaveType:', leaveType, 'confirmed:', confirmed, 'categoryId:', pending.data.categoryId);
+    
+    // Get the category
+    let category;
+    
+    // If at step 3 (confirmation) and user confirmed, just get the stored category
+    if (pending.step === 3 && confirmed && pending.data.categoryId) {
+      console.log('[Book Leave] Step 3 confirmed - fetching stored category');
+      category = await prisma.eventCategory.findFirst({
+        where: { id: pending.data.categoryId },
+      });
+    }
+    // If at step 2 and user provided leave type, find it
+    else if (leaveType) {
+      console.log('[Book Leave] Step 2 - finding leave type:', leaveType);
+      category = await prisma.eventCategory.findFirst({
+        where: {
+          companyId: action.companyId,
+          name: { contains: leaveType, mode: "insensitive" },
+        },
+      });
+
+      if (!category) {
+        return {
+          success: false,
+          message: `I couldn't find a leave type matching "${leaveType}". Please choose from the list above.`,
+        };
+      }
+      
+      // Store category ID for confirmation step
+      setPendingAction(action.userId, action.companyId, {
+        ...pending,
+        step: 3, // Move to confirmation step
+        data: { ...pending.data, categoryId: category.id, categoryName: category.name },
+      });
+    } else {
+      // No leave type provided
       return {
         success: false,
         message: "Which leave type would you like to use?",
       };
     }
 
-    // Find category
-    const category = await prisma.eventCategory.findFirst({
-      where: {
-        companyId: action.companyId,
-        name: { contains: leaveType, mode: "insensitive" },
-      },
-    });
-
     if (!category) {
+      clearPendingAction(action.userId, action.companyId);
       return {
         success: false,
-        message: `I couldn't find a leave type matching "${leaveType}". Please choose from the list above.`,
+        message: "Leave type not found. Please start over.",
       };
     }
 
+    // If not confirmed, show preview
     if (!confirmed) {
-      // Show preview
+      // Get entitlement info to show balance
+      const entitlement = await prisma.leaveEntitlement.findFirst({
+        where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
+      });
+      
+      const balance = entitlement ? entitlement.totalDays - entitlement.usedDays : 0;
+      
+      // Calculate days - handle if same date (single day)
+      const isSingleDay = pending.data.startDate === pending.data.endDate;
+      const daysRequested = isSingleDay ? 1 : '(will calculate)';
+      
+      // Show preview with entitlement info
       return {
         success: true,
         requiresConfirmation: true,
@@ -354,8 +410,10 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
           startDate: pending.data.startDate,
           endDate: pending.data.endDate,
           leaveType: category.name,
+          balance,
+          daysRequested,
         },
-        message: `📅 **Leave Request Summary:**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\nShall I book this leave?`,
+        message: `📅 Leave Request:\n\n${pending.data.employeeName}\n${isSingleDay ? pending.data.startDate : `${pending.data.startDate} to ${pending.data.endDate}`}\n${category.name}\n\n${isSingleDay ? '📊 Single day booking' : `📊 Date range: ${pending.data.startDate} to ${pending.data.endDate}`}\n💰 Current balance: ${balance} days\n\nBook this leave?`,
       };
     }
 
@@ -428,7 +486,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
       return {
         success: true,
-        message: `✅ **Leave booked successfully!**\n\n**Employee:** ${pending.data.employeeName}\n**Dates:** ${pending.data.startDate} to ${pending.data.endDate}\n**Type:** ${category.name}\n\n📅 **Calendar updated** - Leave appears in company calendar (auto-approved)\n💰 **Balance updated** - ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted\n\n_Processed using your existing leave validation and approval system._`,
+        message: `✅ Leave booked successfully!\n\n${pending.data.employeeName}\n${pending.data.startDate} to ${pending.data.endDate}\n${category.name}\n\n📅 Calendar updated - Auto-approved\n💰 ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted from balance`,
         data: approved,
       };
     } catch (error: any) {

@@ -18,6 +18,16 @@ export async function interpretIntent(
         role: "system",
         content: `You are an intent classifier for an HR system. Analyze the user's message and determine what action they want.
 
+CRITICAL: If the user's message is unclear, vague, or you're not confident about the intent, respond with:
+{
+  "actionType": "query_data",
+  "parameters": {},
+  "confidence": 0.0,
+  "reasoning": "unclear intent"
+}
+
+Do NOT guess. If you're not 90%+ confident, mark it as unclear.
+
 ${systemContext}
 
 ${conversationContext}

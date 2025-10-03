@@ -7,6 +7,7 @@ import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { Plus, Users, Calendar, Settings, Trash2, MoreVertical, Copy, Eye, Download, Upload, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -18,6 +19,8 @@ interface Form {
   description?: string;
   isActive: boolean;
   visibleToRoles?: string[];
+  visibleToDepartments?: string[];
+  visibleToJobRoles?: string[];
   createdAt: string;
 }
 
@@ -31,18 +34,52 @@ export default function FormsPage() {
   );
   const [recentOnly, setRecentOnly] = useState(false);
   const [previewForm, setPreviewForm] = useState<Form | null>(null);
+  const [departments, setDepartments] = useState<Record<string, string>>({});
+  const [jobRoles, setJobRoles] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch("/api/forms")
-      .then((res) => res.json())
-      .then((data) => {
-        setForms(Array.isArray(data) ? data : []);
+    const loadData = async () => {
+      try {
+        const [formsRes, deptRes, rolesRes] = await Promise.all([
+          fetch("/api/forms"),
+          fetch("/api/departments"),
+          fetch("/api/job-roles"),
+        ]);
+
+        if (formsRes.ok) {
+          const data = await formsRes.json();
+          setForms(Array.isArray(data) ? data : []);
+        }
+
+        if (deptRes.ok) {
+          const deptData = await deptRes.json();
+          const deptMap: Record<string, string> = {};
+          if (Array.isArray(deptData)) {
+            deptData.forEach((dept: any) => {
+              deptMap[dept.id] = dept.name;
+            });
+          }
+          setDepartments(deptMap);
+        }
+
+        if (rolesRes.ok) {
+          const rolesData = await rolesRes.json();
+          const rolesMap: Record<string, string> = {};
+          if (Array.isArray(rolesData)) {
+            rolesData.forEach((role: any) => {
+              rolesMap[role.id] = role.name;
+            });
+          }
+          setJobRoles(rolesMap);
+        }
+      } catch (error) {
+        toast.error("Failed to load data");
+      } finally {
         setLoading(false);
-      })
-      .catch(() => {
-        toast.error("Failed to load forms");
-        setLoading(false);
-      });
+      }
+    };
+
+    loadData();
   }, []);
 
   const filteredForms = useMemo(() => {
@@ -142,58 +179,60 @@ export default function FormsPage() {
       breadcrumbs={breadcrumbConfigs.settingsSection('Forms & Surveys')}
       showHomeIcon={false}
     >
-      {/* Search & Filters */}
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-2">
+      {/* Toolbar */}
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        {/* Left: filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              className="pl-9 h-10 w-[260px] md:w-[320px]"
+              placeholder="Search by name or description"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <select
+            className="h-10 rounded-md border-2 px-3"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as any)}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+          </select>
+          <select
+            className="h-10 rounded-md border-2 px-3"
+            value={audience}
+            onChange={(e) => setAudience(e.target.value as any)}
+          >
+            <option value="all">Audience: All</option>
+            <option value="hasRoles">Audience: Has Roles</option>
+            <option value="noRoles">Audience: No Roles</option>
+          </select>
+          <label className="flex items-center gap-2 h-10 text-sm">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={recentOnly}
+              onChange={(e) => setRecentOnly(e.target.checked)}
+            />
+            Recent (last 30 days)
+          </label>
+          <div className="text-sm text-gray-600 ml-1">
+            {forms.length} form{forms.length !== 1 ? "s" : ""} total
+          </div>
+        </div>
+
+        {/* Right: actions */}
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <input
-            className="border rounded px-3 py-2 w-full"
-            placeholder="Search by name or description"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <select
-          className="border rounded px-3 py-2"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as any)}
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="draft">Draft</option>
-        </select>
-        <select
-          className="border rounded px-3 py-2"
-          value={audience}
-          onChange={(e) => setAudience(e.target.value as any)}
-        >
-          <option value="all">Audience: All</option>
-          <option value="hasRoles">Audience: Has Roles</option>
-          <option value="noRoles">Audience: No Roles</option>
-        </select>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={recentOnly}
-            onChange={(e) => setRecentOnly(e.target.checked)}
-          />
-          Recent (last 30 days)
-        </label>
-      </div>
-      <div className="flex justify-between items-center mb-6">
-        <div className="text-sm text-gray-600">
-          {forms.length} form{forms.length !== 1 ? "s" : ""} total
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/settings/forms/exit-interview">
-              Exit Interview Forms
-            </Link>
+          <Button asChild variant="outline" className="h-10">
+            <Link href="/settings/forms/exit-interview">Exit Interview Forms</Link>
           </Button>
-          <Button asChild>
+          <Button asChild variant="ghost" className="h-10">
             <Link href="/settings/forms/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Form
+              <Plus className="mr-2 h-5 w-5" />
+              Add New
             </Link>
           </Button>
         </div>
@@ -309,8 +348,24 @@ export default function FormsPage() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Users className="h-3 w-3" />
-                    <span>Visible to: {getRoleLabels(f.visibleToRoles)}</span>
+                    <span>Roles: {getRoleLabels(f.visibleToRoles)}</span>
                   </div>
+                  {f.visibleToDepartments && f.visibleToDepartments.length > 0 && (
+                    <div className="flex items-start gap-2 text-xs text-gray-600">
+                      <Users className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        Departments: {f.visibleToDepartments.map(id => departments[id] || id).join(", ")}
+                      </span>
+                    </div>
+                  )}
+                  {f.visibleToJobRoles && f.visibleToJobRoles.length > 0 && (
+                    <div className="flex items-start gap-2 text-xs text-gray-600">
+                      <Users className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        Job Roles: {f.visibleToJobRoles.map(id => jobRoles[id] || id).join(", ")}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-gray-600">
                     <Calendar className="h-3 w-3" />
                     <span>Created: {formatDate(f.createdAt)}</span>

@@ -14,6 +14,7 @@ interface SendReportRequest {
   reportName: string;
   departments: string[]; // Array of department IDs
   jobRoles: string[]; // Array of job role IDs
+  employees: string[]; // Array of individual employee/user IDs
   format: "PDF" | "EXCEL";
   subject: string;
   messageBody?: string;
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
       reportName,
       departments,
       jobRoles,
+      employees,
       format,
       subject,
       messageBody,
@@ -53,19 +55,21 @@ export async function POST(req: NextRequest) {
 
     if (
       (!departments || departments.length === 0) &&
-      (!jobRoles || jobRoles.length === 0)
+      (!jobRoles || jobRoles.length === 0) &&
+      (!employees || employees.length === 0)
     ) {
       return NextResponse.json(
-        { error: "Please select at least one department or job role" },
+        { error: "Please select at least one department, job role, or individual employee" },
         { status: 400 }
       );
     }
 
-    // Fetch recipients based on department/job role filters
+    // Fetch recipients based on department/job role/individual employee filters
     const recipients = await getRecipients(
       session.user.companyId,
       departments,
-      jobRoles
+      jobRoles,
+      employees
     );
 
     if (recipients.length === 0) {
@@ -165,14 +169,15 @@ export async function POST(req: NextRequest) {
 async function getRecipients(
   companyId: string,
   departments: string[],
-  jobRoles: string[]
+  jobRoles: string[],
+  employeeIds: string[]
 ) {
   const whereConditions: any = {
     companyId,
     isActivated: true,
   };
 
-  // Build OR conditions for departments and job roles
+  // Build OR conditions for departments, job roles, and individual employees
   const orConditions: any[] = [];
 
   if (departments && departments.length > 0) {
@@ -184,6 +189,12 @@ async function getRecipients(
   if (jobRoles && jobRoles.length > 0) {
     orConditions.push({
       jobRoleId: { in: jobRoles },
+    });
+  }
+
+  if (employeeIds && employeeIds.length > 0) {
+    orConditions.push({
+      id: { in: employeeIds },
     });
   }
 
@@ -201,7 +212,12 @@ async function getRecipients(
     },
   });
 
-  return users;
+  // Remove duplicates (in case an employee is selected both individually and via department/role)
+  const uniqueUsers = Array.from(
+    new Map(users.map((user) => [user.id, user])).values()
+  );
+
+  return uniqueUsers;
 }
 
 async function getDepartmentDetails(companyId: string, departmentIds: string[]) {

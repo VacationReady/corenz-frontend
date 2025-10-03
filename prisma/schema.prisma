@@ -1702,6 +1702,7 @@ enum ExitInterviewFormTiming {
 }
 
 enum FormType {
+  SUBMISSION  // Deprecated: Use SURVEY instead (kept for backward compatibility)
   SURVEY
   FORM
   TABLE

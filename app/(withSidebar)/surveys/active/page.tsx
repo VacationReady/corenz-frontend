@@ -27,7 +27,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface ActiveSurvey {
   id: string;
@@ -313,35 +313,34 @@ export default function ActiveSurveysPage() {
                         </Link>
                       </Button>
                       
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                      <DropdownMenu
+                        trigger={
                           <Button variant="outline" size="sm">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleSendReminder(survey.id)}>
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Send Reminder
+                        }
+                      >
+                        <DropdownMenuItem onClick={() => handleSendReminder(survey.id)}>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Send Reminder
+                        </DropdownMenuItem>
+                        {survey.status === "active" ? (
+                          <DropdownMenuItem onClick={() => handlePauseSurvey(survey.id)}>
+                            <Pause className="w-4 h-4 mr-2" />
+                            Pause Survey
                           </DropdownMenuItem>
-                          {survey.status === "active" ? (
-                            <DropdownMenuItem onClick={() => handlePauseSurvey(survey.id)}>
-                              <Pause className="w-4 h-4 mr-2" />
-                              Pause Survey
-                            </DropdownMenuItem>
-                          ) : survey.status === "paused" ? (
-                            <DropdownMenuItem onClick={() => handleResumeSurvey(survey.id)}>
-                              <Play className="w-4 h-4 mr-2" />
-                              Resume Survey
-                            </DropdownMenuItem>
-                          ) : null}
-                          <DropdownMenuItem asChild>
-                            <Link href={`/surveys/analytics/${survey.id}`}>
-                              <TrendingUp className="w-4 h-4 mr-2" />
-                              View Analytics
-                            </Link>
+                        ) : survey.status === "paused" ? (
+                          <DropdownMenuItem onClick={() => handleResumeSurvey(survey.id)}>
+                            <Play className="w-4 h-4 mr-2" />
+                            Resume Survey
                           </DropdownMenuItem>
-                        </DropdownMenuContent>
+                        ) : null}
+                        <DropdownMenuItem asChild>
+                          <Link href={`/surveys/analytics/${survey.id}`}>
+                            <TrendingUp className="w-4 h-4 mr-2" />
+                            View Analytics
+                          </Link>
+                        </DropdownMenuItem>
                       </DropdownMenu>
                     </div>
                   </div>

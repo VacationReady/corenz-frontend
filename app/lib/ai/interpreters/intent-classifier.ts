@@ -46,7 +46,7 @@ AVAILABLE ACTIONS:
 - add_field: Add custom field to existing form ("Add 'Shirt Size' field...")
 - create_form: Build complete new form ("Create a feedback form", "Build an onboarding form")
 - deploy_form: Save generated form ("Deploy this form", "Create it")
-- create_workflow: Build automation ("Create workflow that alerts...")
+- create_workflow: Build automation ("Create workflow that alerts...", "Make me a workflow", "I want to create a workflow", "Build a workflow", "Can you make me a workflow")
 - save_workflow: Save generated workflow ("Save this workflow", "Save it")
 - send_email: Send one-off emails ("Email all managers about...")
 - bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
@@ -87,6 +87,16 @@ LEAVE BOOKING EXAMPLES:
 - "Book sick leave for John tomorrow" → {actionType: "book_leave", parameters: {employeeName: "John", startDate: "tomorrow", endDate: "tomorrow", leaveType: "Sick Leave"}}
 - "need 2 days off 4 sarah next week" → {actionType: "book_leave", parameters: {employeeName: "Sarah", startDate: "next week"}}
 - "I want to book leave for James" → {actionType: "book_leave", parameters: {employeeName: "James"}} (no dates provided)
+
+WORKFLOW CREATION EXAMPLES (INCLUDING VAGUE):
+- "Create workflow that alerts HR 60 days before contracts expire" → {actionType: "create_workflow", parameters: {}}
+- "Make me a workflow" → {actionType: "create_workflow", parameters: {}}
+- "I want to create a workflow" → {actionType: "create_workflow", parameters: {}}
+- "Can you make me a workflow" → {actionType: "create_workflow", parameters: {}}
+- "Build a workflow" → {actionType: "create_workflow", parameters: {}}
+- "yo can u make a workflow 4 me" → {actionType: "create_workflow", parameters: {}}
+- "lemme create a workflow thing" → {actionType: "create_workflow", parameters: {}}
+- "i need a workflow" → {actionType: "create_workflow", parameters: {}}
 
 BULK UPDATE EXAMPLES:
 - "Give everyone in sales a 10% raise" → {actionType: "bulk_update", parameters: {department: "sales", percentage: 10, operation: "increase", field: "salaryAmount"}}

@@ -135,33 +135,9 @@ export async function processUserMessage(
       }
     }
 
-    // STEP 1: Check if clarification is needed (before intent classification)
-    const clarification = await needsClarification(
-      userMessage,
-      conversationContext,
-      systemContextString
-    );
-
-    if (clarification.needsClarification && clarification.confidence > 0.7) {
-      console.log("[AI Orchestrator] Needs clarification:", clarification.question);
-      
-      let message = clarification.question || "I'm not sure I understand. Can you be more specific?";
-      
-      // Add suggestions if available
-      if (clarification.suggestions && clarification.suggestions.length > 0) {
-        message += "\n\n**Here are some options:**\n";
-        clarification.suggestions.forEach((suggestion, idx) => {
-          message += `${idx + 1}. ${suggestion}\n`;
-        });
-      }
-      
-      addMessage(userId, companyId, "assistant", message);
-      return {
-        success: true,
-        message,
-        suggestions: clarification.suggestions,
-      };
-    }
+    // STEP 1: Skip clarification for now - let intent classifier handle it
+    // The intent classifier is already smart enough to handle vague requests
+    // and the individual handlers (workflow, field) have their own vague detection
 
     // Step 2: AI interprets intent and determines action
     const intent = await interpretIntent(
@@ -172,27 +148,8 @@ export async function processUserMessage(
 
     console.log("[AI Orchestrator] Intent:", intent);
     
-    // If confidence is low, expand intent and ask for clarification
-    if (intent.confidence < 0.6) {
-      const expanded = await expandIntent(userMessage, conversationContext, companyId);
-      
-      let message = `I think you want to ${expanded.expandedIntent}\n\n`;
-      message += `**Here's what I can do:**\n`;
-      expanded.suggestedActions.forEach((action, idx) => {
-        message += `${idx + 1}. ${action}\n`;
-      });
-      message += `\n**Or just tell me:**\n`;
-      expanded.followUpQuestions.slice(0, 2).forEach((q) => {
-        message += `• ${q}\n`;
-      });
-      
-      addMessage(userId, companyId, "assistant", message);
-      return {
-        success: true,
-        message,
-        suggestions: expanded.suggestedActions,
-      };
-    }
+    // Skip low-confidence expansion - the individual handlers already handle vague requests
+    // (handleWorkflowGeneration, handleFieldCreation have built-in vague detection)
 
     // Step 2: Route to appropriate handler
     let result: OrchestratorResult;

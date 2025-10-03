@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 
 import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
   Card,
   CardContent,
@@ -320,6 +321,7 @@ export default function AnalyticsDashboard() {
       title="People analytics"
       description="Live, multi-tenant workforce intelligence connected to your people data platform."
       icon={<LineChartIcon className="h-6 w-6" />}
+      breadcrumbs={breadcrumbConfigs.analytics}
       action={
         <Button variant="secondary" size="sm" onClick={() => mutate()}>
           Refresh data

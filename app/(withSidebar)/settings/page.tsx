@@ -32,6 +32,7 @@ import {
   Share2,
   HelpCircle,
   Info,
+  UserMinus,
 } from "lucide-react";
 import {
   Accordion,
@@ -95,6 +96,12 @@ const formSettings = [
     href: "/settings/forms",
     icon: <ClipboardList className="h-5 w-5" />,
     description: "Build custom forms to capture the data you need",
+  },
+  {
+    title: "Exit Interview Forms",
+    href: "/settings/forms/exit-interview",
+    icon: <UserMinus className="h-5 w-5" />,
+    description: "Manage exit interview templates and offboarding surveys",
   },
 ];
 
@@ -280,7 +287,7 @@ export default function SettingsIndexPage() {
         onboarding: { completed: 0, total: 1 },
         documents: { completed: 0, total: 1 },
         workflows: { completed: 1, total: 2 },
-        forms: { completed: 0, total: 1 },
+        forms: { completed: 0, total: 2 },
         system: { completed: 1, total: 2 },
       });
     }

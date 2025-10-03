@@ -50,7 +50,9 @@ export type ActionType =
   | "compliance_sweep"
   | "analytics_digest"
   | "targeted_comms"
-  | "policy_rollout";
+  | "policy_rollout"
+  | "check_approval_status"
+  | "list_pending_approvals";
 
 export interface AIAction {
   type: ActionType;
@@ -107,6 +109,12 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "policy_rollout":
         return await handlePolicyRollout(action);
+      
+      case "check_approval_status":
+        return await handleCheckApprovalStatus(action);
+      
+      case "list_pending_approvals":
+        return await handleListPendingApprovals(action);
       
       default:
         return {
@@ -921,22 +929,29 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
 
   // Step 5: Calculate changes for each employee
   const changes = employees.map(emp => {
-    const currentValue = emp[fieldToUpdate as keyof typeof emp];
+    const rawCurrentValue = emp[fieldToUpdate as keyof typeof emp];
+    
+    // Convert Decimal to number for salary fields
+    const currentValue = (fieldToUpdate === 'salaryAmount' || fieldToUpdate === 'hourlyRate') && rawCurrentValue
+      ? Number(rawCurrentValue)
+      : rawCurrentValue;
+    
     let newValue = needsLookup ? lookupValue : value;
 
     // Handle percentage-based changes (for numeric fields)
-    if (percentage && currentValue && typeof currentValue === 'number') {
+    if (percentage && currentValue !== null && currentValue !== undefined) {
+      const numCurrent = Number(currentValue);
       if (operation === 'increase') {
-        newValue = Math.round(currentValue * (1 + percentage / 100));
+        newValue = Math.round(numCurrent * (1 + percentage / 100));
       } else if (operation === 'decrease') {
-        newValue = Math.round(currentValue * (1 - percentage / 100));
+        newValue = Math.round(numCurrent * (1 - percentage / 100));
       }
     } else if (value !== undefined && !needsLookup) {
       newValue = typeof value === 'string' && fieldToUpdate === 'salaryAmount' ? parseFloat(value) : value;
     }
 
-    const change = typeof newValue === 'number' && typeof currentValue === 'number' 
-      ? newValue - currentValue 
+    const change = (typeof newValue === 'number' && typeof currentValue === 'number') 
+      ? newValue - Number(currentValue)
       : 0;
 
     // For department changes, show human-readable names
@@ -961,7 +976,7 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
     };
   });
 
-  // Step 6: Show preview and request confirmation
+  // Step 6: Show preview and ask: apply now or send for approval?
   if (!confirmed) {
     const totalIncrease = changes.reduce((sum, c) => sum + (c.change || 0), 0);
     const avgIncrease = changes.length > 0 ? totalIncrease / changes.length : 0;
@@ -1002,7 +1017,16 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
     }
     
     previewMessage += `${preview}\n${changes.length > 5 ? `\n...and ${changes.length - 5} more\n` : ''}`;
-    previewMessage += `\n⚠️ **This will update ${changes.length} employee records immediately.**\n\nApply these changes?`;
+    previewMessage += `\n💡 **How would you like to proceed?**\n\n`;
+    previewMessage += `• Say **"apply now"** to update immediately\n`;
+    previewMessage += `• Say **"send for approval"** to create an approval request for the CEO`;
+
+    // Store pending bulk update
+    setPendingAction(action.userId, action.companyId, {
+      type: "bulk_update",
+      data: { changes, fieldToUpdate, totalIncrease, avgIncrease, targetDepartment },
+      step: 1,
+    });
 
     return {
       success: true,
@@ -1012,7 +1036,97 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
     };
   }
 
-  // Step 6: Execute bulk update with full audit trail
+  // Step 7: Check if user wants approval or immediate application
+  const wantsApproval = action.parameters.sendForApproval === true;
+  
+  if (wantsApproval) {
+    // Create approval action item for CEO
+    const ceo = await prisma.user.findFirst({
+      where: { companyId: action.companyId, role: 'SUPER_ADMIN' },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!ceo) {
+      clearPendingAction(action.userId, action.companyId);
+      return {
+        success: true,
+        message: "⚠️ No CEO found to send approval to. Want me to apply the changes now instead?",
+      };
+    }
+
+    const totalIncrease = changes.reduce((sum, c) => sum + (c.change || 0), 0);
+
+    // Create action item
+    const now = new Date();
+    const actionItem = await prisma.actionItem.create({
+      data: {
+        id: `ai-approval-${Date.now()}`,
+        companyId: action.companyId,
+        title: `Bulk ${percentage}% ${operation} for ${targetDepartment} (${changes.length} employees)`,
+        description: `Total increase: $${Math.round(totalIncrease).toLocaleString()}\nRequested via AI Assistant`,
+        type: 'BULK_UPDATE_APPROVAL',
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        assignedToId: ceo.id,
+        updatedAt: now,
+        metadata: {
+          changes: changes.map(c => ({
+            employeeId: c.employeeId,
+            name: c.name,
+            field: c.field,
+            currentValue: c.currentValue,
+            newValue: c.newValue,
+            change: c.change,
+          })),
+          requestedBy: action.userId,
+          requestedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Send email to CEO
+    const company = await prisma.company.findUnique({
+      where: { id: action.companyId },
+      select: { name: true },
+    });
+
+    const htmlEmail = buildHREmail({
+      recipientName: ceo.firstName || 'CEO',
+      subject: `Approval Required: Bulk Salary Update (${changes.length} employees)`,
+      message: `A bulk salary update has been requested via AI Assistant.\n\n` +
+               `Department: ${targetDepartment}\n` +
+               `Change: ${percentage}% ${operation}\n` +
+               `Employees affected: ${changes.length}\n` +
+               `Total increase: $${Math.round(totalIncrease).toLocaleString()}\n\n` +
+               `Please review this in your Action Items dashboard at ${process.env.NEXTAUTH_URL || ''}/dashboard`,
+      companyName: company?.name || 'Your Company',
+    });
+
+    try {
+      await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || 'noreply@yourdomain.com',
+        to: ceo.email,
+        subject: `Approval Required: Bulk Salary Update`,
+        html: htmlEmail,
+      });
+    } catch (emailError) {
+      console.error('Failed to send approval email:', emailError);
+    }
+
+    clearPendingAction(action.userId, action.companyId);
+
+    return {
+      success: true,
+      message: `✅ **Approval request sent!**\n\n📧 Email sent to ${ceo.firstName || 'CEO'} (${ceo.email})\n📋 Action item created in their dashboard\n\n**What happens next:**\n• CEO reviews the request\n• CEO can approve or reject\n• You'll be notified of the decision\n\n💡 They can approve it from their dashboard!`,
+      data: { actionItemId: actionItem.id },
+      suggestions: [
+        "Show me all pending approvals",
+        "Make another change",
+      ],
+    };
+  }
+
+  // Step 8: Execute bulk update immediately with full audit trail
   try {
     const updateResults = await prisma.$transaction(async (tx) => {
       const results = [];
@@ -2554,6 +2668,133 @@ async function handlePolicyRollout(action: AIAction): Promise<ActionResult> {
       notified: emailsSent.length,
     },
     undoable: false,
+  };
+}
+
+// ============ APPROVAL STATUS HANDLERS ============
+
+async function handleCheckApprovalStatus(action: AIAction): Promise<ActionResult> {
+  // Check status of recent approval requests made by this user
+  const recentApprovals = await prisma.actionItem.findMany({
+    where: {
+      companyId: action.companyId,
+      type: 'BULK_UPDATE_APPROVAL',
+      metadata: {
+        path: ['requestedBy'],
+        equals: action.userId,
+      },
+    },
+    include: {
+      assignedTo: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  if (recentApprovals.length === 0) {
+    return {
+      success: true,
+      message: "You don't have any approval requests yet.\n\n💡 Try making a bulk update and choosing 'send for approval'!",
+    };
+  }
+
+  let message = "📋 **Your Recent Approval Requests**\n\n";
+
+  recentApprovals.forEach((item, idx) => {
+    const statusIcon = item.status === 'COMPLETED' ? '✅' : item.status === 'REJECTED' ? '❌' : '⏳';
+    const approverName = item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}`.trim() : 'Unknown';
+    
+    message += `${idx + 1}. ${statusIcon} **${item.title}**\n`;
+    message += `   Status: ${item.status}\n`;
+    message += `   Assigned to: ${approverName}\n`;
+    
+    if (item.status === 'PENDING') {
+      const daysPending = Math.floor((new Date().getTime() - new Date(item.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+      message += `   Waiting: ${daysPending} ${daysPending === 1 ? 'day' : 'days'}\n`;
+    } else if (item.status === 'COMPLETED') {
+      message += `   ✅ Approved & applied\n`;
+    } else if (item.status === 'REJECTED') {
+      const metadata = item.metadata as any;
+      message += `   ❌ Rejected${metadata?.rejectionReason ? `: ${metadata.rejectionReason}` : ''}\n`;
+    }
+    
+    message += '\n';
+  });
+
+  const pendingCount = recentApprovals.filter(a => a.status === 'PENDING').length;
+  
+  if (pendingCount > 0) {
+    message += `\n💡 **${pendingCount} pending approval${pendingCount === 1 ? '' : 's'}** - waiting for decision`;
+  }
+
+  return {
+    success: true,
+    message,
+    data: recentApprovals,
+  };
+}
+
+async function handleListPendingApprovals(action: AIAction): Promise<ActionResult> {
+  // List all pending approvals in the company (for admins to see what needs approval)
+  const pendingApprovals = await prisma.actionItem.findMany({
+    where: {
+      companyId: action.companyId,
+      type: 'BULK_UPDATE_APPROVAL',
+      status: 'PENDING',
+    },
+    include: {
+      assignedTo: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });
+
+  if (pendingApprovals.length === 0) {
+    return {
+      success: true,
+      message: "✅ No pending approvals! All clear.\n\n💡 Any bulk changes will create approval requests automatically.",
+    };
+  }
+
+  let message = `📋 **Pending Approval Requests** (${pendingApprovals.length})\n\n`;
+
+  pendingApprovals.forEach((item, idx) => {
+    const metadata = item.metadata as any;
+    const requesterUser = metadata?.requestedBy;
+    const daysPending = Math.floor((new Date().getTime() - new Date(item.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    const approverName = item.assignedTo ? `${item.assignedTo.firstName || ''} ${item.assignedTo.lastName || ''}`.trim() : 'Unknown';
+
+    message += `${idx + 1}. **${item.title}**\n`;
+    message += `   Assigned to: ${approverName}\n`;
+    message += `   Waiting: ${daysPending} ${daysPending === 1 ? 'day' : 'days'}\n`;
+    message += `   Description: ${item.description}\n\n`;
+  });
+
+  message += `\n💡 **Approvers can:**\n`;
+  message += `• View details in their Action Items dashboard\n`;
+  message += `• Approve or reject with one click\n`;
+  message += `• Add a reason for their decision\n`;
+
+  return {
+    success: true,
+    message,
+    data: pendingApprovals,
+    suggestions: [
+      "Check my approval requests",
+      "Make another change",
+    ],
   };
 }
 

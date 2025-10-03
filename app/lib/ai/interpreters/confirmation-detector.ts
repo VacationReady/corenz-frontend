@@ -5,6 +5,12 @@
 
 import { openai, AI_CONFIG } from "../openai-client";
 
+export interface ConfirmationResult {
+  isConfirming: boolean;
+  isApprovalRequest?: boolean; // NEW: User wants to send for approval instead
+  isDenying?: boolean;
+}
+
 export async function isUserConfirming(
   userMessage: string,
   context: string
@@ -103,6 +109,65 @@ Respond with JSON containing the extracted data.`,
     console.error('[Parameter Extraction] Error:', error);
     // Fallback to simple extraction
     return { value: userMessage.trim() };
+  }
+}
+
+/**
+ * Detect if user wants to send for approval instead of applying immediately
+ */
+export async function isApprovalRequest(
+  userMessage: string,
+  context: string
+): Promise<boolean> {
+  const approvalKeywords = /send.*approval|approval|ceo.*approv|get.*approval|request.*approval|ask.*ceo|need.*approval/i;
+  const immediateKeywords = /apply.*now|do.*now|yes|confirm|go.*ahead|proceed/i;
+  
+  // Quick regex check first
+  if (approvalKeywords.test(userMessage)) return true;
+  if (immediateKeywords.test(userMessage)) return false;
+  
+  // Use AI for ambiguous cases
+  try {
+    const completion = await openai.chat.completions.create({
+      model: AI_CONFIG.model,
+      temperature: 0.1,
+      messages: [
+        {
+          role: "system",
+          content: `Determine if the user wants to SEND FOR APPROVAL or APPLY IMMEDIATELY.
+
+Context: ${context}
+
+APPROVAL REQUEST indicators:
+- "send for approval"
+- "get CEO approval"
+- "ask the CEO"
+- "send to CEO"
+- "need approval"
+- "request approval"
+
+IMMEDIATE APPLICATION indicators:
+- "apply now"
+- "do it now"
+- "yes"
+- "confirm"
+- "go ahead"
+- "proceed"
+
+Respond with ONLY: "approval" or "immediate"`,
+        },
+        {
+          role: "user",
+          content: userMessage,
+        },
+      ],
+    });
+
+    const response = completion.choices[0].message.content?.trim().toLowerCase();
+    return response === 'approval';
+  } catch (error) {
+    console.error('[Approval Detection] Error:', error);
+    return approvalKeywords.test(userMessage);
   }
 }
 

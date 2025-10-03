@@ -56,6 +56,8 @@ AVAILABLE ACTIONS:
 - analytics_digest: Generate workforce analytics summaries ("Give me turnover stats", "Show diversity breakdown", "Workforce trends")
 - targeted_comms: Send targeted communications to groups ("Email all managers about policy", "Send reminder to Sales team")
 - policy_rollout: Announce and track policy changes ("Roll out new leave policy", "Announce WFH policy to Engineering")
+- check_approval_status: Check status of user's approval requests ("Check approval status", "Has my request been approved?", "Show my approval requests")
+- list_pending_approvals: List all pending approvals company-wide ("Show all pending approvals", "What needs approval?", "List approval requests")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")

@@ -20,6 +20,7 @@ import {
   detectFrustration,
   suggestBetterPhrasing 
 } from "./conversational-intelligence";
+import { isApprovalRequest } from "./interpreters/confirmation-detector";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -74,10 +75,16 @@ export async function processUserMessage(
       if (isConfirmation) {
         console.log("[AI Orchestrator] Confirming pending action:", pending.type);
         
+        // Check if they want to send for approval (for bulk updates)
+        const wantsApproval = pending.type === 'bulk_update' && await isApprovalRequest(userMessage, `Bulk update pending`);
+        
         const action: AIAction = {
           type: pending.type as ActionType,
           intent: userMessage,
-          parameters: { confirmed: true },
+          parameters: { 
+            confirmed: true,
+            sendForApproval: wantsApproval, // NEW: Flag for approval flow
+          },
           userId,
           companyId,
         };
@@ -94,6 +101,7 @@ export async function processUserMessage(
           result: result.data,
           undoable: result.undoable,
           undoId: result.undoId,
+          suggestions: result.suggestions,
         };
       }
       
@@ -168,6 +176,8 @@ export async function processUserMessage(
       case "analytics_digest":
       case "targeted_comms":
       case "policy_rollout":
+      case "check_approval_status":
+      case "list_pending_approvals":
         result = await handleAction(intent, userId, companyId);
         break;
 

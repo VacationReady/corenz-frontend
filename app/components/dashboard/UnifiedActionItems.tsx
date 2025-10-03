@@ -83,35 +83,60 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
       setLoading(true);
       const items: ActionItem[] = [];
 
-      // Process action items from database (workflow-generated)
+      // Process action items from database (workflow-generated + AI approvals)
       if (dbActionItems?.success && Array.isArray(dbActionItems.data)) {
         dbActionItems.data.forEach((item: any) => {
-          items.push({
-            id: `action-${item.id}`,
-            type: "task",
-            title: item.title,
-            subtitle: item.relatedEmployee?.name 
-              ? `For ${item.relatedEmployee.name} • ${item.type}`
-              : item.type,
-            urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
-            metadata: item,
-            actionLabel: "Complete",
-            onAction: async () => {
-              try {
-                const res = await fetch('/api/action-items', {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id: item.id, status: 'COMPLETED' }),
+          // Handle AI bulk update approvals specially
+          if (item.type === 'BULK_UPDATE_APPROVAL') {
+            const metadata = item.metadata || {};
+            const changes = metadata.changes || [];
+            items.push({
+              id: `action-${item.id}`,
+              type: "approval",
+              title: item.title,
+              subtitle: `${changes.length} employees • ${item.description || 'AI Generated'}`,
+              urgent: item.priority === "HIGH",
+              metadata: item,
+              actionLabel: "Review",
+              onAction: async () => {
+                setSelectedItem({
+                  id: `action-${item.id}`,
+                  type: "approval",
+                  title: item.title,
+                  subtitle: `Bulk update approval`,
+                  metadata: item,
                 });
-                if (res.ok) {
-                  toast.success('Task completed!');
-                  mutateActionItems();
-                }
-              } catch (error) {
-                toast.error('Failed to complete task');
               }
-            }
-          });
+            });
+          } else {
+            // Regular workflow tasks
+            items.push({
+              id: `action-${item.id}`,
+              type: "task",
+              title: item.title,
+              subtitle: item.relatedEmployee?.name 
+                ? `For ${item.relatedEmployee.name} • ${item.type}`
+                : item.type,
+              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+              metadata: item,
+              actionLabel: "Complete",
+              onAction: async () => {
+                try {
+                  const res = await fetch('/api/action-items', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: item.id, status: 'COMPLETED' }),
+                  });
+                  if (res.ok) {
+                    toast.success('Task completed!');
+                    mutateActionItems();
+                  }
+                } catch (error) {
+                  toast.error('Failed to complete task');
+                }
+              }
+            });
+          }
         });
       }
 
@@ -308,20 +333,48 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
     setProcessing(item.id);
     try {
       if (item.type === "approval") {
-        const comment = action === "decline" ? prompt("Reason for declining:") : undefined;
-        if (action === "decline" && !comment) {
-          setProcessing(null);
-          return;
+        // Check if it's an AI bulk update approval
+        if (item.metadata.type === 'BULK_UPDATE_APPROVAL') {
+          const reason = action === "decline" ? prompt("Reason for declining this bulk update:") : undefined;
+          if (action === "decline" && !reason) {
+            setProcessing(null);
+            return;
+          }
+
+          const decision = action === "approve" ? "approve" : "reject";
+          const res = await fetch(`/api/action-items/${item.metadata.id}/approve`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ decision, reason })
+          });
+
+          const result = await res.json();
+          
+          if (result.success) {
+            toast.success(action === "approve" 
+              ? `✅ Approved! ${result.data?.changesApplied || 0} employees updated`
+              : "Request declined");
+            mutateActionItems?.();
+          } else {
+            toast.error(result.error || "Failed to process request");
+          }
+        } else {
+          // Regular leave approval
+          const comment = action === "decline" ? prompt("Reason for declining:") : undefined;
+          if (action === "decline" && !comment) {
+            setProcessing(null);
+            return;
+          }
+          
+          await fetch(`/api/approvals/${item.metadata.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, comment })
+          });
+          
+          toast.success(action === "approve" ? "Approved" : "Declined");
+          mutateApprovals?.();
         }
-        
-        await fetch(`/api/approvals/${item.metadata.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, comment })
-        });
-        
-        toast.success(action === "approve" ? "Approved" : "Declined");
-        mutateApprovals?.();
       } else if (item.type === "change") {
         const comment = action === "decline" ? prompt("Reason for declining:") : undefined;
         if (action === "decline" && !comment) {
@@ -536,8 +589,53 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   <p className="text-sm text-muted-foreground">{selectedItem.subtitle}</p>
                 )}
               </div>
-              {/* Leave approval details */}
-              {selectedItem.type === "approval" && (
+              {/* AI Bulk Update Approval details */}
+              {selectedItem.type === "approval" && selectedItem.metadata?.type === 'BULK_UPDATE_APPROVAL' && (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="text-xs font-semibold text-blue-900 mb-2">📊 Bulk Update Summary</div>
+                    <div className="space-y-1 text-sm">
+                      {selectedItem.metadata?.metadata?.changes && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Employees</span>
+                            <span className="font-medium">{selectedItem.metadata.metadata.changes.length}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Total Change</span>
+                            <span className="font-medium text-green-600">
+                              +${Math.round(selectedItem.metadata.metadata.changes.reduce((sum: number, c: any) => sum + (c.change || 0), 0)).toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground mb-2">AFFECTED EMPLOYEES</div>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {selectedItem.metadata?.metadata?.changes?.slice(0, 10).map((change: any, idx: number) => (
+                        <div key={idx} className="flex justify-between items-center p-2 rounded bg-muted/30 text-xs">
+                          <span className="font-medium">{change.name}</span>
+                          <span className="text-muted-foreground">
+                            ${Math.round(change.currentValue || 0).toLocaleString()} → ${Math.round(change.newValue || 0).toLocaleString()}
+                            <span className="ml-1 text-green-600">(+${Math.round(change.change || 0).toLocaleString()})</span>
+                          </span>
+                        </div>
+                      ))}
+                      {selectedItem.metadata?.metadata?.changes?.length > 10 && (
+                        <div className="text-xs text-muted-foreground text-center py-1">
+                          +{selectedItem.metadata.metadata.changes.length - 10} more employees
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Regular leave approval details */}
+              {selectedItem.type === "approval" && selectedItem.metadata?.type !== 'BULK_UPDATE_APPROVAL' && (
                 <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-1">
                   {selectedItem.metadata?.typeName && (
                     <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="font-medium">{selectedItem.metadata.typeName}</span></div>

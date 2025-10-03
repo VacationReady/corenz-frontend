@@ -172,6 +172,8 @@ model Company {
   SavedReport                         SavedReport[]
   ReportSendHistory                   ReportSendHistory[]
   TrainingProvider                    TrainingProvider[]
+  Surveys                             Survey[]
+  SurveyAutomations                   SurveyAutomation[]
   TransactionalNotificationPreference TransactionalNotificationPreference[]
   TransactionalChangeRequest          TransactionalChangeRequest[]
   User                                User[]
@@ -415,6 +417,8 @@ model Employee {
   FormAssignment                   FormAssignment[]
   FormDataRecord                   FormDataRecord[]
   FormSubmission                   FormSubmission[]
+  SurveyRecipients                 SurveyRecipient[]
+  SurveyResponses                  SurveyResponse[]
   LeaveEntitlement                 LeaveEntitlement[]
   LeaveRequest                     LeaveRequest[]
   OnboardingInstance               OnboardingInstance[]
@@ -735,6 +739,8 @@ model Form {
   FormDataRecord       FormDataRecord[]
   FormSubmission       FormSubmission[]
   OnboardingStep       OnboardingStep[]
+  Surveys              Survey[]
+  SurveyAutomations    SurveyAutomation[]
 
   @@unique([companyId, name])
   @@unique([companyId, slug])
@@ -774,6 +780,124 @@ model FormSubmission {
   submittedAt DateTime @default(now())
   Employee    Employee @relation(fields: [employeeId], references: [id])
   Form        Form     @relation(fields: [formId], references: [id])
+}
+
+model Survey {
+  id              String       @id
+  companyId       String
+  name            String
+  description     String?
+  formId          String
+  status          SurveyStatus @default(DRAFT)
+  sentDate        DateTime?
+  deadline        DateTime?
+  totalRecipients Int          @default(0)
+  responses       Int          @default(0)
+  responseRate    Float        @default(0)
+  averageScore    Float?
+  sentimentScore  Float?
+  keyInsights     String[]
+  topThemes       String[]
+  metadata        Json?
+  createdById     String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  
+  Company         Company      @relation(fields: [companyId], references: [id])
+  Form            Form         @relation(fields: [formId], references: [id])
+  CreatedBy       User         @relation(fields: [createdById], references: [id])
+  SurveyRecipients SurveyRecipient[]
+  SurveyResponses SurveyResponse[]
+  SurveyAutomations SurveyAutomation[]
+  SurveyAutomationRuns SurveyAutomationRun[]
+
+  @@index([companyId, status])
+  @@index([companyId, sentDate])
+  @@index([companyId, deadline])
+}
+
+model SurveyRecipient {
+  id                String   @id
+  surveyId          String
+  employeeId        String
+  actionItemId      String?
+  sentAt            DateTime @default(now())
+  respondedAt       DateTime?
+  reminderSentAt    DateTime?
+  reminderCount     Int      @default(0)
+  status            String   @default("PENDING") // PENDING, RESPONDED, EXPIRED
+  
+  Survey            Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  Employee          Employee @relation(fields: [employeeId], references: [id])
+  ActionItem        ActionItem? @relation(fields: [actionItemId], references: [id])
+
+  @@unique([surveyId, employeeId])
+  @@index([surveyId, status])
+  @@index([employeeId, status])
+}
+
+model SurveyResponse {
+  id           String   @id
+  surveyId     String
+  employeeId   String
+  responseData Json
+  submittedAt  DateTime @default(now())
+  sentimentScore Float?
+  keyThemes    String[]
+  
+  Survey       Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  Employee     Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([surveyId, employeeId])
+  @@index([surveyId, submittedAt])
+}
+
+model SurveyAutomation {
+  id                String                    @id
+  companyId         String
+  name              String
+  description       String?
+  surveyId          String?
+  formId            String
+  trigger           SurveyAutomationTrigger
+  frequency         SurveyAutomationFrequency?
+  scheduleConfig    Json? // Cron expression or custom schedule
+  targetAudience    Json // Audience criteria
+  isActive          Boolean                   @default(true)
+  lastRunAt         DateTime?
+  nextRunAt         DateTime?
+  totalRuns         Int                       @default(0)
+  metadata          Json?
+  createdById       String
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime
+  
+  Company           Company                   @relation(fields: [companyId], references: [id])
+  Survey            Survey?                   @relation(fields: [surveyId], references: [id])
+  Form              Form                      @relation(fields: [formId], references: [id])
+  CreatedBy         User                      @relation(fields: [createdById], references: [id])
+  SurveyAutomationRuns SurveyAutomationRun[]
+
+  @@index([companyId, isActive])
+  @@index([companyId, nextRunAt])
+}
+
+model SurveyAutomationRun {
+  id                String            @id
+  automationId      String
+  surveyId          String?
+  status            String            @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  startedAt         DateTime          @default(now())
+  completedAt       DateTime?
+  recipientsCount   Int               @default(0)
+  errorMessage      String?
+  metadata          Json?
+  
+  SurveyAutomation  SurveyAutomation  @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  Survey            Survey?           @relation(fields: [surveyId], references: [id])
+
+  @@index([automationId, startedAt])
+  @@index([status])
 }
 
 model GenderOption {
@@ -1007,6 +1131,7 @@ model ActionItem {
   Company            Company   @relation("Company_ActionItem", fields: [companyId], references: [id])
   assignedTo         User?     @relation("User_ActionItem_AssignedTo", fields: [assignedToId], references: [id])
   RelatedEmployee    Employee? @relation("Employee_ActionItem_Related", fields: [relatedEmployeeId], references: [id])
+  SurveyRecipients   SurveyRecipient[]
 
   @@index([companyId, status])
   @@index([assignedToId, status])
@@ -1424,6 +1549,8 @@ model User {
   EmployeePerformanceReviewsAuthored                                       EmployeePerformanceReview[]     @relation("EmployeePerformanceReviewReviewer")
   FormAssignment                                                           FormAssignment[]
   GlobalAuditLog                                                           GlobalAuditLog[]
+  CreatedSurveys                                                           Survey[]
+  CreatedSurveyAutomations                                                 SurveyAutomation[]
   LeaveApprovalDecision_LeaveApprovalDecision_approverIdToUser             LeaveApprovalDecision[]         @relation("LeaveApprovalDecision_approverIdToUser")
   LeaveRequest_LeaveRequest_approvedByIdToUser                             LeaveRequest[]                  @relation("LeaveRequest_approvedByIdToUser")
   LeaveRequest_LeaveRequest_requesterIdToUser                              LeaveRequest[]                  @relation("LeaveRequest_requesterIdToUser")
@@ -1707,6 +1834,30 @@ enum FormType {
   FORM
   TABLE
   DATA_SCREEN
+}
+
+enum SurveyStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  EXPIRED
+}
+
+enum SurveyAutomationTrigger {
+  SCHEDULED
+  ONBOARDING_COMPLETE
+  ANNIVERSARY
+  PERFORMANCE_REVIEW
+  CUSTOM
+}
+
+enum SurveyAutomationFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  CUSTOM
 }
 
 enum LeaveType {

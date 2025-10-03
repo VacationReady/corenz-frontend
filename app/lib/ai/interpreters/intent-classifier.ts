@@ -52,6 +52,10 @@ AVAILABLE ACTIONS:
 - bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
 - upload_document: Upload and assign documents ("Assign this to Michael", "Upload employment contract for Sarah")
 - modify_settings: Change system config ("Change probation to 120 days...")
+- compliance_sweep: Run proactive compliance checks ("Check all visa expiries", "Find missing documents", "Run compliance check")
+- analytics_digest: Generate workforce analytics summaries ("Give me turnover stats", "Show diversity breakdown", "Workforce trends")
+- targeted_comms: Send targeted communications to groups ("Email all managers about policy", "Send reminder to Sales team")
+- policy_rollout: Announce and track policy changes ("Roll out new leave policy", "Announce WFH policy to Engineering")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
@@ -68,6 +72,12 @@ PARAMETER EXTRACTION:
 - recipient: Who gets the report
 - schedule: Frequency (daily, weekly, "every Monday", "every 30 days")
 - confirmed: true if message contains "yes", "confirm", "apply", "do it", "proceed"
+- checkType: Type of compliance check (e.g., "visa_expiry", "missing_documents", "ird_compliance", "contract_expiry", "all")
+- scope: Who to check (e.g., "all", "department")
+- audience: Who to communicate with (e.g., "managers", "hr_team", "all")
+- subject: Email subject or topic
+- policyType: Type of policy (e.g., "leave", "wfh", "general")
+- policyDetails: Details about the policy change
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
@@ -97,6 +107,44 @@ QUERY DATA EXAMPLES (with casual language):
 - "how many peeps we got in sales??" → {actionType: "query_data", parameters: {department: "sales", queryType: "count"}}
 - "gimme sum analytics on whos been here the longest" → {actionType: "query_data", parameters: {queryType: "tenure_analysis"}}
 - "who aint got their ird# setup yet" → {actionType: "query_data", parameters: {field: "irdNumber", filterNull: true}}
+
+COMPLIANCE SWEEP EXAMPLES (CASUAL/TYPO-HEAVY):
+- "yo can u check if everyones got their visa stuff sorted??" → {actionType: "compliance_sweep", parameters: {checkType: "visa_expiry"}}
+- "lemme c whos missing docs" → {actionType: "compliance_sweep", parameters: {checkType: "missing_documents"}}
+- "run compliance check plz thx" → {actionType: "compliance_sweep", parameters: {scope: "all"}}
+- "check ird compliance 4 everyone" → {actionType: "compliance_sweep", parameters: {checkType: "ird_compliance"}}
+- "gimme a list of peeps w expired contracts" → {actionType: "compliance_sweep", parameters: {checkType: "contract_expiry"}}
+- "who aint got ther paperwork done" → {actionType: "compliance_sweep", parameters: {checkType: "missing_documents"}}
+- "do a sweep on all the visa things" → {actionType: "compliance_sweep", parameters: {checkType: "visa_expiry"}}
+- "check if sales got all their docs" → {actionType: "compliance_sweep", parameters: {checkType: "missing_documents", department: "sales"}}
+- "run the compliance thing" → {actionType: "compliance_sweep", parameters: {scope: "all"}}
+
+ANALYTICS DIGEST EXAMPLES (CASUAL/TYPO-HEAVY):
+- "yo gimme turnover stats" → {actionType: "analytics_digest", parameters: {reportType: "turnover"}}
+- "show me sum analytics bout diversity n stuff" → {actionType: "analytics_digest", parameters: {reportType: "diversity"}}
+- "whats our workforce lookin like these days" → {actionType: "analytics_digest", parameters: {reportType: "workforce_trends"}}
+- "how many peeps left this qtr??" → {actionType: "analytics_digest", parameters: {reportType: "turnover", period: "quarter"}}
+- "can u do like a summary of whos here n who isnt" → {actionType: "analytics_digest", parameters: {reportType: "workforce_trends"}}
+- "diversity breakdown plz" → {actionType: "analytics_digest", parameters: {reportType: "diversity"}}
+- "lemme see turnover by dept" → {actionType: "analytics_digest", parameters: {reportType: "turnover", groupBy: "department"}}
+- "gimme the stats on who left" → {actionType: "analytics_digest", parameters: {reportType: "turnover"}}
+
+TARGETED COMMS EXAMPLES (CASUAL/TYPO-HEAVY):
+- "send email 2 all managers bout the new policy thing" → {actionType: "targeted_comms", parameters: {audience: "managers", subject: "new policy"}}
+- "email sales team abt training tmrw" → {actionType: "targeted_comms", parameters: {department: "Sales", subject: "training"}}
+- "lemme send a msg to everyone in IT" → {actionType: "targeted_comms", parameters: {department: "IT"}}
+- "blast out an email 2 all the engineering peeps" → {actionType: "targeted_comms", parameters: {department: "Engineering"}}
+- "can u msg the managers real quick" → {actionType: "targeted_comms", parameters: {audience: "managers"}}
+- "send reminder to sales bout that thing" → {actionType: "targeted_comms", parameters: {department: "sales", subject: "reminder"}}
+- "email everyone in marketing" → {actionType: "targeted_comms", parameters: {department: "marketing"}}
+
+POLICY ROLLOUT EXAMPLES (CASUAL/TYPO-HEAVY):
+- "roll out the new WFH policy 2 everyone" → {actionType: "policy_rollout", parameters: {policyType: "wfh", scope: "all"}}
+- "announce the leave policy change to all staff plz" → {actionType: "policy_rollout", parameters: {policyType: "leave", scope: "all"}}
+- "tell engineering bout the new policy" → {actionType: "policy_rollout", parameters: {policyType: "general", department: "Engineering"}}
+- "push out new policy to sales team" → {actionType: "policy_rollout", parameters: {department: "Sales"}}
+- "yo we need to rollout that policy we talked about" → {actionType: "policy_rollout", parameters: {}}
+- "announce wfh to everyone" → {actionType: "policy_rollout", parameters: {policyType: "wfh", scope: "all"}}
 
 Respond with JSON:
 {

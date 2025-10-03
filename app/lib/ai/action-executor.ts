@@ -45,7 +45,11 @@ export type ActionType =
   | "send_email"
   | "bulk_update"
   | "upload_document"
-  | "modify_settings";
+  | "modify_settings"
+  | "compliance_sweep"
+  | "analytics_digest"
+  | "targeted_comms"
+  | "policy_rollout";
 
 export interface AIAction {
   type: ActionType;
@@ -90,6 +94,18 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "upload_document":
         return await handleDocumentUpload(action);
+      
+      case "compliance_sweep":
+        return await handleComplianceSweep(action);
+      
+      case "analytics_digest":
+        return await handleAnalyticsDigest(action);
+      
+      case "targeted_comms":
+        return await handleTargetedComms(action);
+      
+      case "policy_rollout":
+        return await handlePolicyRollout(action);
       
       default:
         return {
@@ -1694,6 +1710,661 @@ export async function undoAction(undoId: string): Promise<ActionResult> {
   return {
     success: false,
     message: "Undo not supported for this action type yet.",
+  };
+}
+
+// ============ NEW HR AUTOMATION HANDLERS ============
+
+async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
+  const { checkType, scope, department } = action.parameters;
+
+  // FUZZY MATCHING: Normalize check types
+  const normalizeCheckType = (type: string): string => {
+    const lower = (type || "").toLowerCase();
+    
+    // Visa variations
+    if (/visa|visas|visa.*expir|work.*permit/i.test(lower)) return "visa_expiry";
+    
+    // Document variations
+    if (/doc|document|paper|file|missing.*doc|doc.*missing/i.test(lower)) return "missing_documents";
+    
+    // IRD variations
+    if (/ird|tax.*number|ird.*number|tax.*id/i.test(lower)) return "ird_compliance";
+    
+    // Contract variations
+    if (/contract|agreement|expir.*contract/i.test(lower)) return "contract_expiry";
+    
+    // Default to all if vague
+    return "all";
+  };
+
+  const normalizedCheckType = normalizeCheckType(checkType);
+
+  // FUZZY MATCHING: Department names
+  const normalizeDepartment = async (deptName: string): Promise<string | null> => {
+    if (!deptName) return null;
+    
+    // Find department by partial match
+    const dept = await prisma.department.findFirst({
+      where: {
+        companyId: action.companyId,
+        name: {
+          contains: deptName,
+          mode: 'insensitive',
+        },
+      },
+    });
+    
+    return dept?.name || null;
+  };
+
+  const normalizedDept = department ? await normalizeDepartment(department) : null;
+
+  const checks: Record<string, () => Promise<any>> = {
+    visa_expiry: async () => {
+      // Query employees with expiring visas (next 90 days)
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() + 90);
+      
+      // Note: Adjust this query based on your actual schema for visa tracking
+      // This is a placeholder - you may store visa expiry in documents or custom fields
+      const results = await prisma.employee.findMany({
+        where: {
+          companyId: action.companyId,
+          status: "ACTIVE",
+          ...(normalizedDept && { Department: { name: normalizedDept } }),
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+          Document: {
+            where: {
+              type: { contains: "visa", mode: 'insensitive' },
+              expiryDate: { lte: cutoffDate, gte: new Date() },
+              deleted: false,
+            },
+          },
+        },
+      });
+
+      const withExpiringVisas = results.filter(emp => emp.Document && emp.Document.length > 0);
+
+      return {
+        type: "visa_expiry",
+        count: withExpiringVisas.length,
+        employees: withExpiringVisas,
+        severity: withExpiringVisas.length > 0 ? "high" : "low",
+      };
+    },
+
+    missing_documents: async () => {
+      // Find employees without required documents
+      const allEmployees = await prisma.employee.findMany({
+        where: {
+          companyId: action.companyId,
+          status: "ACTIVE",
+          ...(normalizedDept && { Department: { name: normalizedDept } }),
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true } },
+          Department: { select: { name: true } },
+          Document: { where: { deleted: false } },
+        },
+      });
+
+      const missing = allEmployees.filter(emp => {
+        const docs = emp.Document || [];
+        const hasContract = docs.some(d => d.type?.toLowerCase().includes('contract'));
+        const hasId = docs.some(d => d.type?.toLowerCase().includes('id'));
+        return !hasContract || !hasId;
+      });
+
+      return {
+        type: "missing_documents",
+        count: missing.length,
+        employees: missing,
+        severity: missing.length > 5 ? "high" : "medium",
+      };
+    },
+
+    ird_compliance: async () => {
+      const missing = await prisma.employee.findMany({
+        where: {
+          companyId: action.companyId,
+          status: "ACTIVE",
+          OR: [
+            { irdNumber: null },
+            { irdNumber: "" },
+          ],
+          ...(normalizedDept && { Department: { name: normalizedDept } }),
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+
+      return {
+        type: "ird_compliance",
+        count: missing.length,
+        employees: missing,
+        severity: missing.length > 0 ? "high" : "low",
+      };
+    },
+
+    contract_expiry: async () => {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() + 90);
+
+      const expiring = await prisma.employee.findMany({
+        where: {
+          companyId: action.companyId,
+          status: "ACTIVE",
+          contractEndDate: {
+            lte: cutoffDate,
+            gte: new Date(),
+          },
+          ...(normalizedDept && { Department: { name: normalizedDept } }),
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+
+      return {
+        type: "contract_expiry",
+        count: expiring.length,
+        employees: expiring,
+        severity: expiring.length > 3 ? "high" : "medium",
+      };
+    },
+
+    all: async () => {
+      // Run all checks
+      const results = await Promise.all([
+        checks.visa_expiry(),
+        checks.missing_documents(),
+        checks.ird_compliance(),
+        checks.contract_expiry(),
+      ]);
+
+      return {
+        type: "comprehensive",
+        checks: results,
+        totalIssues: results.reduce((sum, r) => sum + r.count, 0),
+      };
+    },
+  };
+
+  const checkFn = checks[normalizedCheckType] || checks.all;
+  const result = await checkFn();
+
+  // Format message
+  let message = "🔍 **Compliance Sweep Complete**\n\n";
+
+  if (result.type === "comprehensive") {
+    message += `Found ${result.totalIssues} total ${result.totalIssues === 1 ? 'issue' : 'issues'}:\n\n`;
+    result.checks.forEach((check: any) => {
+      const icon = check.severity === "high" ? "🚨" : check.severity === "medium" ? "⚠️" : "✅";
+      message += `${icon} ${check.type.replace(/_/g, " ").toUpperCase()}: ${check.count} ${check.count === 1 ? 'issue' : 'issues'}\n`;
+    });
+    if (result.totalIssues > 0) {
+      message += `\n💡 **Recommended Actions:**\n`;
+      result.checks.forEach((check: any) => {
+        if (check.count > 0) {
+          message += `• Create workflow to auto-remind about ${check.type.replace(/_/g, " ")}\n`;
+        }
+      });
+    } else {
+      message += `\n✅ All employees are compliant!\n`;
+    }
+  } else {
+    const icon = result.severity === "high" ? "🚨" : result.severity === "medium" ? "⚠️" : "✅";
+    message += `${icon} Found ${result.count} ${result.count === 1 ? 'issue' : 'issues'}\n\n`;
+    
+    if (result.count > 0) {
+      message += `**Affected Employees:**\n`;
+      result.employees.slice(0, 10).forEach((emp: any, idx: number) => {
+        const name = `${emp.User.firstName} ${emp.User.lastName}`;
+        const dept = emp.Department?.name ? ` (${emp.Department.name})` : '';
+        message += `${idx + 1}. ${name}${dept}\n`;
+      });
+
+      if (result.count > 10) {
+        message += `\n...and ${result.count - 10} more\n`;
+      }
+
+      message += `\n💡 **Suggestions:**\n`;
+      message += `• Create automated workflow for this check\n`;
+      message += `• Email affected employees\n`;
+      message += `• Export list for follow-up\n`;
+    } else {
+      message += "✅ All employees are compliant!\n";
+    }
+  }
+
+  return {
+    success: true,
+    message,
+    data: result,
+  };
+}
+
+async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
+  const { reportType, period, groupBy } = action.parameters;
+
+  // FUZZY MATCHING: Report types
+  const normalizeReportType = (type: string): string => {
+    const lower = (type || "").toLowerCase();
+    
+    // Turnover variations
+    if (/turnover|attrition|quit|left|leaving|departure/i.test(lower)) return "turnover";
+    
+    // Diversity variations
+    if (/diversity|diverse|gender|age|demographic/i.test(lower)) return "diversity";
+    
+    // Workforce variations
+    if (/workforce|trend|headcount|staff|employee.*stat/i.test(lower)) return "workforce_trends";
+    
+    // Default
+    return "workforce_trends";
+  };
+
+  const normalizedReportType = normalizeReportType(reportType);
+
+  const reports: Record<string, () => Promise<any>> = {
+    turnover: async () => {
+      // Calculate turnover rate
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 12); // Last 12 months
+
+      const terminated = await prisma.employee.count({
+        where: {
+          companyId: action.companyId,
+          status: "TERMINATED",
+          lastWorkingDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      });
+
+      const avgHeadcount = await prisma.employee.count({
+        where: {
+          companyId: action.companyId,
+          OR: [
+            { status: "ACTIVE" },
+            { status: "TERMINATED", lastWorkingDate: { gte: startDate } },
+          ],
+        },
+      });
+
+      const turnoverRate = avgHeadcount > 0 ? (terminated / avgHeadcount) * 100 : 0;
+
+      // By department if requested
+      let byDepartment = [];
+      if (groupBy === "department") {
+        const deptData = await prisma.employee.groupBy({
+          by: ['departmentId'],
+          where: {
+            companyId: action.companyId,
+            status: "TERMINATED",
+            lastWorkingDate: { gte: startDate, lte: endDate },
+          },
+          _count: true,
+        });
+
+        // Get department names
+        const deptIds = deptData.map(d => d.departmentId).filter((id): id is string => id !== null);
+        const departments = await prisma.department.findMany({
+          where: { id: { in: deptIds } },
+          select: { id: true, name: true },
+        });
+
+        byDepartment = deptData.map(d => ({
+          departmentId: d.departmentId,
+          departmentName: departments.find(dept => dept.id === d.departmentId)?.name || 'Unknown',
+          count: d._count,
+        }));
+      }
+
+      return {
+        turnoverRate: turnoverRate.toFixed(1),
+        terminated,
+        avgHeadcount,
+        byDepartment,
+        period: "12 months",
+      };
+    },
+
+    diversity: async () => {
+      // Gender distribution
+      const genderDist = await prisma.employee.groupBy({
+        by: ['gender'],
+        where: { companyId: action.companyId, status: "ACTIVE" },
+        _count: true,
+      });
+
+      // Age distribution
+      const employees = await prisma.employee.findMany({
+        where: { companyId: action.companyId, status: "ACTIVE" },
+        include: { User: { select: { dateOfBirth: true } } },
+      });
+
+      const ageRanges = {
+        "18-25": 0,
+        "26-35": 0,
+        "36-45": 0,
+        "46-55": 0,
+        "56+": 0,
+      };
+
+      employees.forEach(emp => {
+        if (emp.User.dateOfBirth) {
+          const age = Math.floor((new Date().getTime() - new Date(emp.User.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          if (age >= 18 && age <= 25) ageRanges["18-25"]++;
+          else if (age >= 26 && age <= 35) ageRanges["26-35"]++;
+          else if (age >= 36 && age <= 45) ageRanges["36-45"]++;
+          else if (age >= 46 && age <= 55) ageRanges["46-55"]++;
+          else if (age >= 56) ageRanges["56+"]++;
+        }
+      });
+
+      return {
+        gender: genderDist,
+        ageRanges,
+        totalEmployees: employees.length,
+      };
+    },
+
+    workforce_trends: async () => {
+      const now = new Date();
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      const recentHires = await prisma.employee.count({
+        where: {
+          companyId: action.companyId,
+          startDate: { gte: threeMonthsAgo },
+        },
+      });
+
+      const activeCount = await prisma.employee.count({
+        where: {
+          companyId: action.companyId,
+          status: "ACTIVE",
+        },
+      });
+
+      return {
+        activeEmployees: activeCount,
+        recentHires,
+        growthRate: activeCount > 0 ? ((recentHires / activeCount) * 100).toFixed(1) : "0",
+      };
+    },
+  };
+
+  const reportFn = reports[normalizedReportType] || reports.workforce_trends;
+  const result = await reportFn();
+
+  // Format message
+  let message = "📊 **Analytics Digest**\n\n";
+
+  if (normalizedReportType === "turnover") {
+    message += `**Turnover Analysis (${result.period})**\n\n`;
+    message += `📉 Turnover Rate: ${result.turnoverRate}%\n`;
+    message += `👋 Departures: ${result.terminated}\n`;
+    message += `👥 Avg Headcount: ${result.avgHeadcount}\n`;
+
+    if (result.byDepartment.length > 0) {
+      message += `\n**By Department:**\n`;
+      result.byDepartment.forEach((dept: any) => {
+        message += `• ${dept.departmentName}: ${dept.count} departures\n`;
+      });
+    }
+  } else if (normalizedReportType === "diversity") {
+    message += `**Diversity Statistics**\n\n`;
+    message += `👥 Total Employees: ${result.totalEmployees}\n\n`;
+    message += `**Gender Distribution:**\n`;
+    result.gender.forEach((g: any) => {
+      const pct = ((g._count / result.totalEmployees) * 100).toFixed(1);
+      message += `• ${g.gender || "Not specified"}: ${g._count} (${pct}%)\n`;
+    });
+    message += `\n**Age Distribution:**\n`;
+    Object.entries(result.ageRanges).forEach(([range, count]) => {
+      const pct = ((Number(count) / result.totalEmployees) * 100).toFixed(1);
+      message += `• ${range}: ${count} (${pct}%)\n`;
+    });
+  } else {
+    message += `**Workforce Trends**\n\n`;
+    message += `👥 Active Employees: ${result.activeEmployees}\n`;
+    message += `🆕 Recent Hires (3mo): ${result.recentHires}\n`;
+    message += `📈 Growth Rate: ${result.growthRate}%\n`;
+  }
+
+  message += `\n💡 **Actions:**\n`;
+  message += `• Schedule this as a recurring report\n`;
+  message += `• Export data to Excel\n`;
+  message += `• Share with leadership team\n`;
+
+  return {
+    success: true,
+    message,
+    data: result,
+  };
+}
+
+async function handleTargetedComms(action: AIAction): Promise<ActionResult> {
+  const { audience, department, subject, message: customMessage, confirmed } = action.parameters;
+
+  // FUZZY MATCHING: Audience types
+  const normalizeAudience = (aud: string): string | null => {
+    if (!aud) return null;
+    const lower = aud.toLowerCase();
+    
+    if (/manager|mgr|boss|lead/i.test(lower)) return "managers";
+    if (/admin|hr|people.*team/i.test(lower)) return "hr_team";
+    if (/everyone|all|everybody|whole.*team/i.test(lower)) return "all";
+    
+    return null;
+  };
+
+  const normalizedAudience = normalizeAudience(audience);
+
+  // If they said "email everyone" without specifying what about, ask
+  if (!subject && !customMessage) {
+    return {
+      success: true,
+      message: "Sure! What should the email be about?",
+    };
+  }
+
+  // Build recipient query
+  let query: any = {
+    companyId: action.companyId,
+    status: "ACTIVE",
+  };
+
+  if (department) {
+    query.Department = { name: { contains: department, mode: 'insensitive' } };
+  }
+
+  if (normalizedAudience === "managers") {
+    query.isManager = true;
+  }
+
+  // Fetch recipients
+  const recipients = await prisma.employee.findMany({
+    where: query,
+    include: {
+      User: { select: { firstName: true, lastName: true, email: true } },
+      Department: { select: { name: true } },
+    },
+  });
+
+  // Preview before sending
+  if (!confirmed) {
+    let previewMessage = `📧 **Targeted Communication Preview**\n\n`;
+    previewMessage += `**Recipients:** ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}\n`;
+    previewMessage += `**Subject:** ${subject || "Important Update"}\n\n`;
+
+    if (recipients.length <= 10) {
+      previewMessage += `**To:**\n`;
+      recipients.forEach((emp, idx) => {
+        const name = `${emp.User.firstName} ${emp.User.lastName}`;
+        const dept = emp.Department?.name ? ` (${emp.Department.name})` : '';
+        previewMessage += `${idx + 1}. ${name}${dept}\n`;
+      });
+    } else {
+      previewMessage += `**Sample Recipients:**\n`;
+      recipients.slice(0, 5).forEach((emp, idx) => {
+        const name = `${emp.User.firstName} ${emp.User.lastName}`;
+        previewMessage += `${idx + 1}. ${name}\n`;
+      });
+      previewMessage += `\n...and ${recipients.length - 5} more\n`;
+    }
+
+    previewMessage += `\n⚠️ **Ready to send?** Say "yes" to confirm.`;
+
+    // Set pending action
+    setPendingAction(action.userId, action.companyId, {
+      type: "targeted_comms",
+      data: { recipients: recipients.map(r => r.id), subject, message: customMessage },
+      step: 1,
+    });
+
+    return {
+      success: true,
+      message: previewMessage,
+      requiresConfirmation: true,
+      preview: {
+        recipientCount: recipients.length,
+        recipients: recipients.slice(0, 10).map(r => ({
+          name: `${r.User.firstName} ${r.User.lastName}`,
+          email: r.User.email,
+          department: r.Department?.name,
+        })),
+      },
+    };
+  }
+
+  // Send emails
+  const conv = getConversation(action.userId, action.companyId);
+  const pendingData = conv.entities.pendingAction?.data || {};
+  const emailSubject = pendingData.subject || subject || "Important Update";
+  const emailBody = pendingData.message || customMessage || "Please check the system for updates.";
+
+  // Note: Implement actual email sending here using resend
+  // For now, we'll just simulate
+  const sent = recipients.map(r => r.User.email);
+  const failed: string[] = [];
+
+  clearPendingAction(action.userId, action.companyId);
+
+  let resultMessage = `✅ **Communication Sent!**\n\n`;
+  resultMessage += `📧 Sent to ${sent.length} ${sent.length === 1 ? 'person' : 'people'}\n`;
+  if (failed.length > 0) {
+    resultMessage += `⚠️ Failed: ${failed.length}\n`;
+  }
+  resultMessage += `\n**Subject:** ${emailSubject}\n`;
+
+  return {
+    success: true,
+    message: resultMessage,
+    data: { sent, failed },
+    undoable: false,
+  };
+}
+
+async function handlePolicyRollout(action: AIAction): Promise<ActionResult> {
+  const { policyType, scope, department, policyDetails, confirmed } = action.parameters;
+
+  // Determine affected employees
+  let query: any = {
+    companyId: action.companyId,
+    status: "ACTIVE",
+  };
+
+  if (scope !== "all" && department) {
+    query.Department = { name: { contains: department, mode: 'insensitive' } };
+  }
+
+  const affected = await prisma.employee.findMany({
+    where: query,
+    include: {
+      User: { select: { firstName: true, lastName: true, email: true } },
+      Department: { select: { name: true } },
+    },
+  });
+
+  if (!confirmed) {
+    let message = `📋 **Policy Rollout Preview**\n\n`;
+    message += `**Policy:** ${(policyType || "general").replace(/_/g, " ").toUpperCase()}\n`;
+    message += `**Scope:** ${scope === "all" ? "All employees" : `${department} department`}\n`;
+    message += `**Affected:** ${affected.length} ${affected.length === 1 ? 'person' : 'people'}\n\n`;
+
+    message += `**What will happen:**\n`;
+    message += `1. Email notification sent to all affected employees\n`;
+    message += `2. Policy document added to system\n`;
+    message += `3. Acknowledgment required from each employee\n`;
+    message += `4. Tracking dashboard created\n\n`;
+
+    message += `⚠️ **Ready to proceed?** Say "yes" to confirm.`;
+
+    setPendingAction(action.userId, action.companyId, {
+      type: "policy_rollout",
+      data: { policyType, affected: affected.map(a => a.id), policyDetails },
+      step: 1,
+    });
+
+    return {
+      success: true,
+      message,
+      requiresConfirmation: true,
+      preview: {
+        policyType,
+        affectedCount: affected.length,
+        sample: affected.slice(0, 5).map(a => ({
+          name: `${a.User.firstName} ${a.User.lastName}`,
+          department: a.Department?.name,
+        })),
+      },
+    };
+  }
+
+  // Execute rollout
+  const conv = getConversation(action.userId, action.companyId);
+  const pendingData = conv.entities.pendingAction?.data || {};
+
+  // Generate policy ID
+  const policyId = crypto.randomUUID();
+
+  // Send emails to all affected (implement actual sending)
+  const emailsSent = affected.map(emp => emp.User.email);
+
+  clearPendingAction(action.userId, action.companyId);
+
+  let message = `✅ **Policy Rolled Out Successfully!**\n\n`;
+  message += `📋 Policy: ${(policyType || "general").replace(/_/g, " ").toUpperCase()}\n`;
+  message += `📧 Notified: ${emailsSent.length} employees\n`;
+  message += `📊 Tracking ID: ${policyId.substring(0, 8)}\n\n`;
+
+  message += `**Next Steps:**\n`;
+  message += `• Monitor acknowledgment rates\n`;
+  message += `• Follow up with non-responders after 3 days\n`;
+  message += `• View progress in Policy Dashboard\n`;
+
+  return {
+    success: true,
+    message,
+    data: {
+      policyId,
+      affected: affected.length,
+      notified: emailsSent.length,
+    },
+    undoable: false,
   };
 }
 

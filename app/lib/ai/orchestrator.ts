@@ -140,6 +140,10 @@ export async function processUserMessage(
       case "schedule_report":
       case "bulk_update":
       case "send_email":
+      case "compliance_sweep":
+      case "analytics_digest":
+      case "targeted_comms":
+      case "policy_rollout":
         result = await handleAction(intent, userId, companyId);
         break;
 

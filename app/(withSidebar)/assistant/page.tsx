@@ -117,9 +117,49 @@ const CAPABILITY_CATEGORIES = [
       "Which forms have the lowest completion rates?",
     ],
   },
+  {
+    id: "compliance",
+    title: "What compliance checks can you run?",
+    icon: <Shield className="w-6 h-6" />,
+    gradient: "from-red-500 to-rose-500",
+    examples: [
+      "Run a compliance sweep on all employees",
+      "Check who has expiring visas",
+      "Find employees missing required documents",
+      "Verify IRD number compliance",
+      "Check contract expiry dates",
+    ],
+  },
+  {
+    id: "analytics",
+    title: "What analytics can you provide?",
+    icon: <BarChart3 className="w-6 h-6" />,
+    gradient: "from-indigo-500 to-blue-500",
+    examples: [
+      "Give me a turnover report",
+      "Show diversity statistics by department",
+      "Summarize workforce trends",
+      "Analyze hiring patterns",
+      "Calculate average tenure by role",
+    ],
+  },
 ];
 
 const QUICK_ACTIONS = [
+  {
+    label: "Compliance Check",
+    icon: <Shield className="w-4 h-4" />,
+    prompt: "Run a compliance sweep on all employees",
+    type: "query" as ActionType,
+    color: "bg-red-500/10 text-red-600 hover:bg-red-500/20",
+  },
+  {
+    label: "Turnover Report",
+    icon: <BarChart3 className="w-4 h-4" />,
+    prompt: "Give me a turnover report",
+    type: "query" as ActionType,
+    color: "bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20",
+  },
   {
     label: "Missing IRD Numbers",
     icon: <Search className="w-4 h-4" />,
@@ -133,20 +173,6 @@ const QUICK_ACTIONS = [
     prompt: "Create a workflow that alerts HR 60 days before contracts expire",
     type: "workflow" as ActionType,
     color: "bg-purple-500/10 text-purple-600 hover:bg-purple-500/20",
-  },
-  {
-    label: "Add Custom Field",
-    icon: <Plus className="w-4 h-4" />,
-    prompt: "Add a 'T-Shirt Size' dropdown field",
-    type: "field" as ActionType,
-    color: "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20",
-  },
-  {
-    label: "Upcoming Starters",
-    icon: <Calendar className="w-4 h-4" />,
-    prompt: "Show me employees starting in the next 30 days",
-    type: "query" as ActionType,
-    color: "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20",
   },
 ];
 
@@ -269,6 +295,51 @@ const AI_CAPABILITIES = [
       { action: "Performance reviews", example: "Create quarterly review tasks" },
       { action: "Contract renewals", example: "Prepare contract renewal for Lisa" },
       { action: "Exit interviews", example: "Schedule exit interview for departing employee" },
+    ],
+  },
+  {
+    category: "🛡️ Compliance & Risk",
+    icon: <Shield className="w-5 h-5" />,
+    color: "from-red-500 to-rose-500",
+    capabilities: [
+      { action: "Run compliance sweeps", example: "Check all visa expiries" },
+      { action: "Find missing documents", example: "Who hasn't submitted required forms?" },
+      { action: "Verify tax compliance", example: "Check IRD number completion" },
+      { action: "Contract expiry checks", example: "Show contracts expiring this quarter" },
+      { action: "Audit missing data", example: "Find incomplete employee profiles" },
+      { action: "Track policy acknowledgments", example: "Who hasn't acknowledged the new policy?" },
+      { action: "Identify compliance risks", example: "Run comprehensive compliance check" },
+      { action: "Document verification", example: "Check which employees are missing ID documents" },
+    ],
+  },
+  {
+    category: "📈 Analytics & Insights",
+    icon: <BarChart3 className="w-5 h-5" />,
+    color: "from-indigo-500 to-blue-500",
+    capabilities: [
+      { action: "Turnover analysis", example: "Show me turnover rates by department" },
+      { action: "Diversity reports", example: "Give me diversity statistics" },
+      { action: "Workforce trends", example: "Summarize hiring patterns" },
+      { action: "Tenure analysis", example: "Calculate average tenure" },
+      { action: "Compensation benchmarks", example: "Compare salaries by role" },
+      { action: "Leave usage patterns", example: "Analyze leave trends" },
+      { action: "Growth metrics", example: "Show headcount growth over time" },
+      { action: "Department analytics", example: "Breakdown by department" },
+    ],
+  },
+  {
+    category: "📢 Targeted Communications",
+    icon: <Mail className="w-5 h-5" />,
+    color: "from-pink-500 to-rose-500",
+    capabilities: [
+      { action: "Email by role", example: "Email all managers about new policy" },
+      { action: "Department announcements", example: "Send update to Engineering team" },
+      { action: "Conditional messaging", example: "Email everyone without IRD numbers" },
+      { action: "Scheduled campaigns", example: "Send monthly safety reminders" },
+      { action: "Policy announcements", example: "Roll out WFH policy to all staff" },
+      { action: "Group notifications", example: "Notify Sales about training" },
+      { action: "Bulk communications", example: "Send reminder to all contractors" },
+      { action: "Targeted reminders", example: "Email those with missing documents" },
     ],
   },
   {

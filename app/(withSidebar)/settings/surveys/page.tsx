@@ -74,7 +74,7 @@ export default function SurveysPage() {
       title="Surveys"
       description="Create and manage one-time surveys for distribution through action items"
       icon={<FileText className="w-6 h-6" />}
-      breadcrumbs={breadcrumbConfigs.forms}
+      breadcrumbs={breadcrumbConfigs.settingsSection("Surveys")}
       action={
         <Button asChild variant="primary">
           <Link href="/settings/surveys/new">

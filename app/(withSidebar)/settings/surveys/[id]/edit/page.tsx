@@ -97,7 +97,14 @@ export default function EditSurveyPage() {
         title="Edit Survey"
         description="Loading survey data..."
         icon={<FileText className="w-6 h-6" />}
-        breadcrumbs={breadcrumbConfigs.forms}
+        breadcrumbs={{
+          items: [
+            { label: "Dashboard", href: "/dashboard" },
+            { label: "Settings", href: "/settings" },
+            { label: "Surveys", href: "/settings/surveys" },
+            { label: "Edit Survey", isCurrentPage: true },
+          ],
+        }}
       >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -115,7 +122,14 @@ export default function EditSurveyPage() {
       title={`Edit Survey: ${survey.name}`}
       description="Update survey configuration and fields"
       icon={<FileText className="w-6 h-6" />}
-      breadcrumbs={breadcrumbConfigs.forms}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Settings", href: "/settings" },
+          { label: "Surveys", href: "/settings/surveys" },
+          { label: survey.name, isCurrentPage: true },
+        ],
+      }}
     >
       <FormBuilder onSave={handleSave} initialData={survey} />
     </PageShell>

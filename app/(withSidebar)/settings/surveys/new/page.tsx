@@ -44,7 +44,14 @@ export default function NewSurveyPage() {
       title="Create Survey"
       description="Build a one-time survey for distribution through action items"
       icon={<FileText className="w-6 h-6" />}
-      breadcrumbs={breadcrumbConfigs.forms}
+      breadcrumbs={{
+        items: [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Settings", href: "/settings" },
+          { label: "Surveys", href: "/settings/surveys" },
+          { label: "Create Survey", isCurrentPage: true },
+        ],
+      }}
     >
       <FormBuilder 
         onSave={handleSave} 

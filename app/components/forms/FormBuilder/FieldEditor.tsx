@@ -162,7 +162,7 @@ export function FieldEditor({
                       onChange({ ...field, tableColumns: [...columns, newColumn] });
                     }} 
                     size="sm" 
-                    variant="default"
+                    variant="primary"
                     className="h-8"
                   >
                     <Plus className="h-4 w-4 mr-1" /> Add Column

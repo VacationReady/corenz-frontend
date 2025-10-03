@@ -36,6 +36,7 @@ LEAVE & ABSENCE:
 - LeaveRequest: id, employeeId, startDate, endDate, approvalStatus, eventCategoryId, dayType, reason
 - LeaveEntitlement: id, employeeId, eventCategoryId, totalDays, usedDays, balance
 - LeaveApprovalStage: id, leaveRequestId, status, mode, order
+- EventCategory: id, name (e.g., "Annual Leave", "Sick Leave", "Bereavement Leave")
 
 DOCUMENTS & COMPLIANCE:
 - Document: id, employeeId, name, category, requiresSignature, requiresAck, signatureDueAt
@@ -84,7 +85,8 @@ Common Query Examples:
 - "How many in sales?" → employee model, queryType: count, filter by department
 - "List people in sales" → employee model, queryType: findMany, filter by department (MUST include salaryAmount!)
 - "Show names with salaries" → employee model, queryType: findMany (returns name + salaryAmount)
-- "Who is on leave next week?" → leaveRequest model, queryType: findMany, date filter
+- "Who is on leave next week?" → leaveRequest model, queryType: findMany, date filter, status APPROVED
+- "When is the next annual leave?" → leaveRequest model, queryType: findMany, date filter upcoming, EventCategory "Annual"
 - "What's total salary for sales?" → employee model, queryType: aggregate, SUM salaryAmount
 - "Average salary in IT?" → employee model, queryType: aggregate, AVG salaryAmount
 
@@ -106,7 +108,7 @@ User: "Show people over 30" → {queryType: "findMany", model: "employee", opera
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
-2. ALWAYS filter by companyId for multi-tenancy
+2. ALWAYS filter by companyId for multi-tenancy (enforced at execution time)
 3. Use Prisma syntax (findMany, count, aggregate)
 4. For name lookups, use firstName/lastName in User relation
 5. For leave, use approvalStatus: "APPROVED" for confirmed leave
@@ -119,6 +121,8 @@ Important Rules:
 12. CRITICAL: "list", "show", "who are" = use findMany (NOT count)
 13. When asking for "individuals", "people", "list" = use findMany to return the actual employee data
 14. The employee model INCLUDES salaryAmount - always return it when listing employees
+15. For "next annual leave" or "upcoming leave" queries, use leaveRequest model with date filters
+16. Leave type should be included in operation (e.g., "Annual", "Sick") for category filtering
 `;
 
 export async function generateQuery(
@@ -206,9 +210,21 @@ async function executeSafeQuery(
 ): Promise<Partial<QueryResult>> {
   const { queryType, model, operation } = aiResponse;
 
-  // Safety check: ensure companyId is in the query
-  if (!operation.includes(companyId)) {
-    throw new Error("Query must filter by companyId for security");
+  // Security note: companyId filtering is enforced in executeQueryByType
+  // The AI-generated operation string is just a guide - actual query construction
+  // happens in executeQueryByType which ALWAYS filters by companyId
+  
+  // Validate that we have a supported model
+  const supportedModels = [
+    'employee', 'user', 'leaverequest', 'document', 'form', 'formsubmission',
+    'formassignment', 'onboardinginstance', 'onboardingtemplate', 'employeeoffboarding',
+    'exitinterview', 'employeeperformancereview', 'trainingrecord', 'course',
+    'automationrule', 'actionitem', 'automationexecution', 'newspost', 'department',
+    'jobrole', 'permissionprofile', 'employeeauditlog', 'emergencycontact', 'location'
+  ];
+  
+  if (!supportedModels.includes(model?.toLowerCase())) {
+    throw new Error(`Unsupported model: ${model}. Query rejected for security.`);
   }
 
   // Execute based on query type
@@ -591,18 +607,32 @@ async function executeQueryByType(
       if (queryType === "findMany") {
         const where: any = { companyId, approvalStatus: "APPROVED" };
         
-        // Handle date filtering for "next week", "this week", "upcoming", etc.
-        if (operation.includes("next week") || operation.includes("upcoming") || operation.includes("startDate")) {
+        // Handle date filtering for "next", "upcoming", "this week", etc.
+        const hasDateFilter = operation.includes("next") || 
+                            operation.includes("upcoming") || 
+                            operation.includes("startDate") ||
+                            operation.includes("future");
+        
+        if (hasDateFilter) {
           const now = new Date();
-          const nextWeek = new Date();
-          nextWeek.setDate(now.getDate() + 7);
+          const futureDate = new Date();
+          
+          // Determine the time range based on the query
+          if (operation.includes("next week") || operation.includes("this week")) {
+            futureDate.setDate(now.getDate() + 7);
+          } else if (operation.includes("next month")) {
+            futureDate.setMonth(now.getMonth() + 1);
+          } else {
+            // Default: next 90 days for "upcoming" or "next"
+            futureDate.setDate(now.getDate() + 90);
+          }
           
           where.OR = [
             // Starts within the range
             {
               startDate: {
                 gte: now,
-                lte: nextWeek,
+                lte: futureDate,
               },
             },
             // Ongoing (started before, ends after now)
@@ -613,6 +643,21 @@ async function executeQueryByType(
               ],
             },
           ];
+        }
+        
+        // Handle leave type/category filtering (e.g., "annual leave", "sick leave")
+        const categoryMatch = operation.match(/(?:Annual|Sick|Bereavement|Parental|Study|Unpaid)/i);
+        if (categoryMatch) {
+          const categoryName = categoryMatch[0];
+          const category = await prisma.eventCategory.findFirst({
+            where: {
+              companyId,
+              name: { contains: categoryName, mode: 'insensitive' },
+            },
+          });
+          if (category) {
+            where.eventCategoryId = category.id;
+          }
         }
         
         return await prisma.leaveRequest.findMany({

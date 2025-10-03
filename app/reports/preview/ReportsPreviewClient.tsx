@@ -643,9 +643,6 @@ export default function ReportsPreviewClient() {
     return fields;
   }, [effectiveSelectedFields]);
 
-  // Use a sample row (when available) to detect which accessor path resolves
-  const sampleRow = data && data.length > 0 ? data[0] : undefined;
-
   const columns = useMemo<ColumnDefinition[]>(() => {
     return visibleFields.map((field) => {
       const keys = field.split(".");
@@ -687,10 +684,12 @@ export default function ReportsPreviewClient() {
       if (field === "LeaveEntitlement.carryoverDays") candidates.push("carryoverDays", "LeaveEntitlement.carryoverDays");
       if (field === "_computed.remainingEntitlement") candidates.push("_computed.remainingEntitlement", "remainingEntitlement");
 
-      // Choose first candidate that resolves on a sample row
+      // Choose the first candidate that resolves for any fetched row
       let accessorKey = candidates[0] || field;
-      if (sampleRow) {
-        const found = candidates.find((c) => getNested(sampleRow, c) !== undefined);
+      if (data.length > 0) {
+        const found = candidates.find((candidate) =>
+          data.some((row) => getNested(row, candidate) !== undefined),
+        );
         if (found) accessorKey = found;
       }
 
@@ -702,7 +701,7 @@ export default function ReportsPreviewClient() {
 
       return { header: label, accessorKey };
     });
-  }, [visibleFields, fieldLabels, translateLegacy, sampleRow]);
+  }, [visibleFields, fieldLabels, translateLegacy, data]);
 
   const logAndToastPII = useCallback(
     (rowCount: number) => {

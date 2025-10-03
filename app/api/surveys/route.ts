@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
         companyId: session.user.companyId,
         createdById: session.user.id,
         metadata: validatedData.targetAudience,
+        updatedAt: new Date(),
       },
       include: {
         Form: true,

@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
         nextRunAt,
         companyId: session.user.companyId,
         createdById: session.user.id,
+        updatedAt: new Date(),
       },
       include: {
         Form: true,

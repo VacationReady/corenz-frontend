@@ -6,7 +6,6 @@ import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import FormBuilder from "@/components/forms/FormBuilder/FormBuilder";
 import { FileText } from "lucide-react";
-import { PageLoader } from "@/components/ui/PageLoader";
 import { toast } from "sonner";
 import { AnyFormSchema } from "@/api/forms/[id]/types";
 
@@ -96,11 +95,13 @@ export default function EditSurveyPage() {
     return (
       <PageShell
         title="Edit Survey"
-        description="Loading..."
+        description="Loading survey data..."
         icon={<FileText className="w-6 h-6" />}
         breadcrumbs={breadcrumbConfigs.forms}
       >
-        <PageLoader text="Loading survey..." />
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
       </PageShell>
     );
   }

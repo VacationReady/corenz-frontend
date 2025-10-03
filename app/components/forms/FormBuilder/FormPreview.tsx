@@ -2,8 +2,53 @@
 
 import { FormField } from "@/api/forms/[id]/types";
 import { AlertCircle } from "lucide-react";
+import { useState } from "react";
 
 export function FormPreview({ fields }: { fields: FormField[] }) {
+  const [fieldValues, setFieldValues] = useState<Record<string, number>>({});
+
+  const handleValueChange = (fieldId: string, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setFieldValues(prev => ({ ...prev, [fieldId]: numValue }));
+  };
+
+  const calculateFieldValue = (field: FormField): string => {
+    if (!field.calculationConfig?.expression && !field.calculation) return "";
+    
+    const expression = field.calculationConfig?.expression || field.calculation || "";
+    let result = expression;
+    
+    // Replace field IDs with their values
+    fields.forEach(f => {
+      if (fieldValues[f.id] !== undefined) {
+        result = result.replace(new RegExp(f.id, 'g'), fieldValues[f.id].toString());
+      }
+    });
+    
+    // Evaluate the expression safely
+    try {
+      // Basic math evaluation (only allow numbers and operators)
+      const sanitized = result.replace(/[^0-9+\-*/.() ]/g, '');
+      if (sanitized && /^[0-9+\-*/.() ]+$/.test(sanitized)) {
+        const evaluated = eval(sanitized);
+        const precision = field.calculationConfig?.precision ?? 2;
+        const format = field.calculationConfig?.format || "number";
+        
+        if (format === "currency") {
+          return `$${evaluated.toFixed(precision)}`;
+        } else if (format === "percentage") {
+          return `${evaluated.toFixed(precision)}%`;
+        } else {
+          return evaluated.toFixed(precision);
+        }
+      }
+    } catch (e) {
+      return "Error";
+    }
+    
+    return "—";
+  };
+
   return (
     <div className="border p-4 rounded-lg bg-gray-50 shadow-sm">
       <h3 className="font-semibold mb-4 text-lg">Preview</h3>
@@ -38,7 +83,7 @@ export function FormPreview({ fields }: { fields: FormField[] }) {
                     {field.label || "Untitled Field"}
                     {field.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
-                  {renderPreviewField(field)}
+                  {renderPreviewField(field, fieldValues, handleValueChange, calculateFieldValue)}
                 </>
               )}
             </div>
@@ -49,7 +94,12 @@ export function FormPreview({ fields }: { fields: FormField[] }) {
   );
 }
 
-function renderPreviewField(field: FormField) {
+function renderPreviewField(
+  field: FormField,
+  fieldValues: Record<string, number>,
+  handleValueChange: (fieldId: string, value: string) => void,
+  calculateFieldValue: (field: FormField) => string
+) {
   const baseInput =
     "w-full rounded-2xl glass-subtle border-glass px-4 py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -81,9 +131,34 @@ function renderPreviewField(field: FormField) {
     case "slider":
       return <input type="range" className="w-full" min={field.validation?.min ?? 0} max={field.validation?.max ?? 100} defaultValue={field.defaultValue ?? 50} />;
     case "currency":
-      return <input type="text" inputMode="decimal" className={baseInput} placeholder={field.placeholder || "$0.00"} />;
+      return (
+        <input 
+          type="number" 
+          inputMode="decimal" 
+          className={baseInput} 
+          placeholder={field.placeholder || "$0.00"}
+          onChange={(e) => handleValueChange(field.id, e.target.value)}
+        />
+      );
+    case "number":
+      return (
+        <input 
+          type="number" 
+          className={baseInput} 
+          placeholder={field.placeholder || "0"}
+          onChange={(e) => handleValueChange(field.id, e.target.value)}
+        />
+      );
     case "percentage":
-      return <input type="text" inputMode="decimal" className={baseInput} placeholder={field.placeholder || "0%"} />;
+      return (
+        <input 
+          type="number" 
+          inputMode="decimal" 
+          className={baseInput} 
+          placeholder={field.placeholder || "0%"}
+          onChange={(e) => handleValueChange(field.id, e.target.value)}
+        />
+      );
     case "address":
       return (
         <div className="grid grid-cols-2 gap-2">
@@ -173,14 +248,22 @@ function renderPreviewField(field: FormField) {
       );
     case "computed":
     case "readOnly":
+      const calculatedValue = calculateFieldValue(field);
       return (
-        <input
-          type="text"
-          disabled
-          className={`${baseInput} bg-gray-50`}
-          placeholder={field.placeholder || "Auto-calculated"}
-          defaultValue={field.defaultValue}
-        />
+        <div className="relative">
+          <input
+            type="text"
+            disabled
+            className={`${baseInput} bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 font-semibold text-blue-900`}
+            placeholder={field.placeholder || "Auto-calculated"}
+            value={calculatedValue || "—"}
+          />
+          {calculatedValue && (
+            <div className="absolute -top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+              Live
+            </div>
+          )}
+        </div>
       );
 
     default:

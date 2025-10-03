@@ -352,21 +352,33 @@ export function FieldEditor({
                                 type="number"
                                 placeholder="25"
                                 className="w-20 text-center"
-                                value={
-                                  field.calculationConfig?.expression?.match(/\*\s*([0-9.]+)/)?.[1] || 
-                                  field.calculationConfig?.expression?.match(/([0-9.]+)\s*\*/)?.[1] || ""
-                                }
+                                value={(() => {
+                                  // Extract the decimal multiplier and convert back to percentage
+                                  const match = field.calculationConfig?.expression?.match(/\*\s*([0-9.]+)/) || 
+                                               field.calculationConfig?.expression?.match(/([0-9.]+)\s*\*/);
+                                  if (match?.[1]) {
+                                    const decimal = parseFloat(match[1]);
+                                    return (decimal * 100).toString();
+                                  }
+                                  return "";
+                                })()}
                                 onChange={(e) => {
-                                  const percentage = e.target.value;
+                                  const percentageInput = e.target.value;
+                                  if (!percentageInput) return;
+                                  
+                                  const percentage = parseFloat(percentageInput);
+                                  const decimal = percentage / 100;
+                                  
                                   const sourceField = allFields.find(f => 
                                     field.calculationConfig?.expression?.includes(f.id)
                                   )?.id || "";
+                                  
                                   if (sourceField) {
                                     onChange({
                                       ...field,
                                       calculationConfig: {
                                         ...(field.calculationConfig || { format: "currency", precision: 2 }),
-                                        expression: `${sourceField} * ${Number(percentage) / 100}`,
+                                        expression: `${sourceField} * ${decimal}`,
                                       },
                                     });
                                   }

@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
 
     const automation = await prisma.surveyAutomation.create({
       data: {
+        id: crypto.randomUUID(),
         name: validatedData.name,
         description: validatedData.description,
         formId: validatedData.formId,

@@ -109,6 +109,7 @@ export async function POST(
       employees.map(async (employee) => {
         const actionItem = await prisma.actionItem.create({
           data: {
+            id: crypto.randomUUID(),
             companyId: session.user.companyId,
             title: `Complete Survey: ${survey.name}`,
             description: survey.description || "Please complete this survey",
@@ -123,12 +124,14 @@ export async function POST(
               surveyName: survey.name,
               formSchema: survey.Form.schema,
             },
+            updatedAt: new Date(),
           },
         });
 
         // Create survey recipient record
         await prisma.surveyRecipient.create({
           data: {
+            id: crypto.randomUUID(),
             surveyId: survey.id,
             employeeId: employee.id,
             actionItemId: actionItem.id,

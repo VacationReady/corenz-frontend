@@ -268,26 +268,13 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-primary/5 p-6">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-[hsl(var(--sunset-2))]/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="glass-premium rounded-3xl p-8 mb-6 shadow-premium">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+    <div className="relative">
+      <div className="mb-6">
+        <div className="glass-premium rounded-2xl p-6 mb-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
             <div className="flex-1 space-y-3">
-              <div>
-                <h1 className="text-3xl font-bold text-gradient-premium mb-2">
-                  Form Builder
-                </h1>
-                <p className="text-muted-foreground">
-                  Create dynamic forms with drag-and-drop simplicity
-                </p>
-              </div>
               <TooltipProvider>
-                <div className="glass-subtle rounded-2xl border border-white/20 p-4 flex items-start gap-3">
+                <div className="glass-subtle rounded-xl border border-gray-200 p-3 flex items-start gap-3">
                   <div className="rounded-full bg-primary/10 p-2">
                     <Info className="h-4 w-4 text-primary" />
                   </div>
@@ -305,7 +292,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="max-w-xs">
-                      Use sections to organise long forms. Pick “Data Screen” for data that evolves over time.
+                      Use sections to organise long forms. Pick "Data Screen" for data that evolves over time.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -318,7 +305,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               <Button
                 onClick={saveForm}
                 disabled={false || !slugIsValid}
-                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-premium px-6"
+                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-sm px-6"
               >
                 {false ? "Saving..." : "Save Form"}
               </Button>
@@ -442,6 +429,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   <FieldEditor
                     key={selectedField.id}
                     field={selectedField}
+                    allFields={sections.flatMap(s => s.fields)}
                     onChange={(updated) => {
                       setSections((prev) =>
                         prev.map((section) => ({

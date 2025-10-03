@@ -14,9 +14,11 @@ import { Info } from "lucide-react";
 export function FieldEditor({
   field,
   onChange,
+  allFields = [],
 }: {
   field: FormField;
   onChange: (updated: FormField) => void;
+  allFields?: FormField[];
 }) {
   const [localOptions, setLocalOptions] = useState(
     field.options?.join("\n") || "",
@@ -306,43 +308,12 @@ export function FieldEditor({
 
         {/* Conditions Tab */}
         <TabsContent value="conditions">
-          <div className="space-y-4">
-            {/* Conditional Logic */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">Show this field when:</label>
-              <div className="grid grid-cols-3 gap-2">
-                <Input
-                  value={field.conditional?.field || ""}
-                  onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { operator: "equals", value: "" }), field: e.target.value } })}
-                  placeholder="Field ID"
-                  className="text-sm"
-                />
-                <select
-                  className="border rounded px-2 py-2 text-sm"
-                  value={field.conditional?.operator || "equals"}
-                  onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", value: "" }), operator: e.target.value as any } })}
-                >
-                  <option value="equals">Equals</option>
-                  <option value="notEquals">Not Equals</option>
-                  <option value="contains">Contains</option>
-                  <option value="greaterThan">Greater Than</option>
-                  <option value="lessThan">Less Than</option>
-                </select>
-                <Input
-                  value={field.conditional?.value !== undefined ? String(field.conditional.value) : ""}
-                  onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", operator: "equals" }), value: e.target.value } })}
-                  placeholder="Value"
-                  className="text-sm"
-                />
-              </div>
-              <p className="text-xs text-gray-500">Leave blank to always show this field</p>
-            </div>
-
+          <div className="space-y-6">
             {/* Calculation - for currency, number, and computed fields */}
             {(field.type === "currency" || field.type === "number" || field.type === "computed" || field.type === "percentage") && (
-              <div className="space-y-3">
-                <div className="border-t pt-3">
-                  <div className="flex items-center gap-2 mb-2">
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3 mb-3">
                     <Checkbox
                       id={`enable-calc-${field.id}`}
                       checked={Boolean(field.calculationConfig?.expression || field.calculation)}
@@ -350,95 +321,160 @@ export function FieldEditor({
                         if (!v) {
                           onChange({ ...field, calculationConfig: undefined, calculation: undefined });
                         } else {
-                          onChange({ ...field, calculationConfig: { expression: "", format: "number" } });
+                          onChange({ ...field, calculationConfig: { expression: "", format: field.type === "currency" ? "currency" : "number", precision: field.type === "currency" ? 2 : 0 } });
                         }
                       }}
+                      className="mt-1"
                     />
-                    <label htmlFor={`enable-calc-${field.id}`} className="text-sm font-medium text-gray-700">
-                      Calculate automatically from other fields
-                    </label>
+                    <div className="flex-1">
+                      <label htmlFor={`enable-calc-${field.id}`} className="text-base font-semibold text-gray-900 cursor-pointer block mb-1">
+                        🧮 Calculate this field automatically
+                      </label>
+                      <p className="text-sm text-gray-600">
+                        Automatically calculate this value based on other fields in the form
+                      </p>
+                    </div>
                   </div>
                   
                   {(field.calculationConfig?.expression || field.calculation) && (
-                    <div className="space-y-3 pl-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Calculation Expression
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="text-xs space-y-1">
-                                  <p>Examples:</p>
-                                  <p>• <code>fieldA * 0.25</code> (25% of fieldA)</p>
-                                  <p>• <code>fieldB + fieldC</code> (sum)</p>
-                                  <p>• <code>(fieldX - fieldY) * 1.15</code></p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </label>
-                        <Input
-                          value={field.calculationConfig?.expression || field.calculation || ""}
-                          onChange={(e) => onChange({ ...field, calculationConfig: { ...(field.calculationConfig || {}), expression: e.target.value } })}
-                          placeholder="e.g. totalBilled * 0.25"
-                          className="font-mono text-sm"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Use field IDs (e.g., <code className="bg-gray-100 px-1 rounded">totalBilled</code>) and operators (+, -, *, /)
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-4 mt-4 pt-4 border-t border-blue-200">
+                      <div className="bg-white rounded-lg p-4 space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Display Format</label>
-                          <select
-                            className="border rounded w-full px-2 py-2 text-sm"
-                            value={field.calculationConfig?.format || (field.type === "currency" ? "currency" : "number")}
-                            onChange={(e) =>
-                              onChange({
-                                ...field,
-                                calculationConfig: {
-                                  expression: field.calculationConfig?.expression || field.calculation || "",
-                                  ...(field.calculationConfig || {}),
-                                  format: e.target.value as any,
-                                },
-                              })
-                            }
-                          >
-                            <option value="number">Number</option>
-                            <option value="currency">Currency</option>
-                            <option value="percentage">Percentage</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Decimal Places</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="10"
-                            value={field.calculationConfig?.precision ?? (field.type === "currency" ? 2 : 0)}
-                            onChange={(e) =>
-                              onChange({
-                                ...field,
-                                calculationConfig: {
-                                  expression: field.calculationConfig?.expression || field.calculation || "",
-                                  ...(field.calculationConfig || {}),
-                                  precision: Number(e.target.value),
-                                },
-                              })
-                            }
-                            placeholder="e.g. 2"
-                          />
-                        </div>
-                      </div>
+                          <label className="block text-sm font-semibold text-gray-900 mb-3">
+                            What do you want to calculate?
+                          </label>
+                          
+                          {/* Simple calculation builder */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm text-gray-700">
+                              <span className="font-medium">Take</span>
+                              <Input
+                                type="number"
+                                placeholder="25"
+                                className="w-20 text-center"
+                                value={
+                                  field.calculationConfig?.expression?.match(/\*\s*([0-9.]+)/)?.[1] || 
+                                  field.calculationConfig?.expression?.match(/([0-9.]+)\s*\*/)?.[1] || ""
+                                }
+                                onChange={(e) => {
+                                  const percentage = e.target.value;
+                                  const sourceField = allFields.find(f => 
+                                    field.calculationConfig?.expression?.includes(f.id)
+                                  )?.id || "";
+                                  if (sourceField) {
+                                    onChange({
+                                      ...field,
+                                      calculationConfig: {
+                                        ...(field.calculationConfig || { format: "currency", precision: 2 }),
+                                        expression: `${sourceField} * ${Number(percentage) / 100}`,
+                                      },
+                                    });
+                                  }
+                                }}
+                              />
+                              <span className="font-medium">% of</span>
+                            </div>
+                            
+                            <select
+                              className="w-full border-2 rounded-lg px-4 py-3 text-sm font-medium"
+                              value={allFields.find(f => field.calculationConfig?.expression?.includes(f.id))?.id || ""}
+                              onChange={(e) => {
+                                const selectedFieldId = e.target.value;
+                                const currentPercentage = field.calculationConfig?.expression?.match(/\*\s*([0-9.]+)/)?.[1] || "0.25";
+                                onChange({
+                                  ...field,
+                                  calculationConfig: {
+                                    ...(field.calculationConfig || { format: "currency", precision: 2 }),
+                                    expression: selectedFieldId ? `${selectedFieldId} * ${currentPercentage}` : "",
+                                  },
+                                });
+                              }}
+                            >
+                              <option value="">Select a field...</option>
+                              {allFields
+                                .filter(f => 
+                                  f.id !== field.id && 
+                                  (f.type === "currency" || f.type === "number" || f.type === "computed")
+                                )
+                                .map(f => (
+                                  <option key={f.id} value={f.id}>
+                                    {f.label || f.id}
+                                  </option>
+                                ))
+                              }
+                            </select>
+                          </div>
 
-                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                        <p className="text-xs text-blue-800">
-                          <strong>Tip:</strong> For a 25% commission calculation, use: <code className="bg-white px-1 rounded">totalBilled * 0.25</code>
-                        </p>
+                          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-sm text-green-800">
+                              <strong>💡 Example:</strong> If you select "Revenue Billed" and enter 25%, 
+                              this field will automatically show 25% of whatever value is in the Revenue Billed field.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Display as</label>
+                            <select
+                              className="border-2 rounded-lg w-full px-3 py-2.5 text-sm"
+                              value={field.calculationConfig?.format || (field.type === "currency" ? "currency" : "number")}
+                              onChange={(e) =>
+                                onChange({
+                                  ...field,
+                                  calculationConfig: {
+                                    expression: field.calculationConfig?.expression || field.calculation || "",
+                                    ...(field.calculationConfig || {}),
+                                    format: e.target.value as any,
+                                  },
+                                })
+                              }
+                            >
+                              <option value="currency">💰 Currency ($)</option>
+                              <option value="number">🔢 Number</option>
+                              <option value="percentage">📊 Percentage (%)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Decimal places</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="10"
+                              value={field.calculationConfig?.precision ?? (field.type === "currency" ? 2 : 0)}
+                              onChange={(e) =>
+                                onChange({
+                                  ...field,
+                                  calculationConfig: {
+                                    expression: field.calculationConfig?.expression || field.calculation || "",
+                                    ...(field.calculationConfig || {}),
+                                    precision: Number(e.target.value),
+                                  },
+                                })
+                              }
+                              placeholder="2"
+                              className="text-center"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Advanced expression editor */}
+                        <details className="pt-4 border-t">
+                          <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+                            ⚙️ Advanced: Write custom formula
+                          </summary>
+                          <div className="mt-3 space-y-2">
+                            <Input
+                              value={field.calculationConfig?.expression || field.calculation || ""}
+                              onChange={(e) => onChange({ ...field, calculationConfig: { ...(field.calculationConfig || {}), expression: e.target.value } })}
+                              placeholder="e.g. hoursWorked * 12.07 / 100"
+                              className="font-mono text-sm"
+                            />
+                            <p className="text-xs text-gray-500">
+                              Use field names and math operators: + (add), - (subtract), * (multiply), / (divide)
+                            </p>
+                          </div>
+                        </details>
                       </div>
                     </div>
                   )}
@@ -446,16 +482,77 @@ export function FieldEditor({
               </div>
             )}
 
+            {/* Conditional Logic */}
+            <div className="space-y-3 pt-2">
+              <label className="block text-sm font-semibold text-gray-900">
+                👁️ Show/Hide this field conditionally
+              </label>
+              <p className="text-sm text-gray-600 -mt-2">Only show this field when certain conditions are met</p>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="text-xs text-gray-600 mb-1 block">When this field</label>
+                  <select
+                    className="border-2 rounded-lg w-full px-3 py-2 text-sm"
+                    value={field.conditional?.field || ""}
+                    onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { operator: "equals", value: "" }), field: e.target.value } })}
+                  >
+                    <option value="">Always show this field</option>
+                    {allFields
+                      .filter(f => f.id !== field.id)
+                      .map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.label || f.id}
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+                
+                {field.conditional?.field && (
+                  <>
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block">Is</label>
+                      <select
+                        className="border-2 rounded-lg w-full px-3 py-2 text-sm"
+                        value={field.conditional?.operator || "equals"}
+                        onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", value: "" }), operator: e.target.value as any } })}
+                      >
+                        <option value="equals">Equal to</option>
+                        <option value="notEquals">Not equal to</option>
+                        <option value="contains">Contains</option>
+                        <option value="greaterThan">Greater than</option>
+                        <option value="lessThan">Less than</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs text-gray-600 mb-1 block">This value</label>
+                      <Input
+                        value={field.conditional?.value !== undefined ? String(field.conditional.value) : ""}
+                        onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", operator: "equals" }), value: e.target.value } })}
+                        placeholder="Enter value"
+                        className="text-sm"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Read-only option */}
-            <div className="flex items-center gap-2 pt-2 border-t">
+            <div className="flex items-center gap-3 pt-4 border-t">
               <Checkbox
                 id={`readonly-${field.id}`}
                 checked={Boolean(field.readOnly)}
                 onCheckedChange={(v) => onChange({ ...field, readOnly: Boolean(v) })}
               />
-              <label htmlFor={`readonly-${field.id}`} className="text-sm">
-                Read-only (display only, cannot be edited)
-              </label>
+              <div>
+                <label htmlFor={`readonly-${field.id}`} className="text-sm font-medium cursor-pointer block">
+                  🔒 Make this field read-only
+                </label>
+                <p className="text-xs text-gray-500">Users can see the value but cannot edit it</p>
+              </div>
             </div>
           </div>
         </TabsContent>

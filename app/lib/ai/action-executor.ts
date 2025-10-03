@@ -1892,7 +1892,7 @@ async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
         include: {
           User: { select: { firstName: true, lastName: true } },
           Department: { select: { name: true } },
-          Document: { where: { deleted: false } },
+          Document: { where: { deletedAt: null } },
         },
       });
 

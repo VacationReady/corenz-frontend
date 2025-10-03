@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       name,
       slug: uniqueSlug,
       description,
-      formType: formType || "SUBMISSION",
+      formType: formType || "FORM",
       schema,
       companyId: session.user.companyId,
       visibleToRoles: audience?.visibleToRoles || [

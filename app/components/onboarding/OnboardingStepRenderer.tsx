@@ -23,7 +23,7 @@ type OnboardingStepProps = {
     instruction?: string;
     formFields?: { label: string; type: string }[];
     formId?: string; // ID of reusable form schema
-    form?: { formType: "SUBMISSION" | "DATA_SCREEN" };
+    form?: { formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN" };
     document?: { id: string; name: string; url: string };
     category?: string;
   };
@@ -45,7 +45,7 @@ export default function OnboardingStepRenderer({
   const [ack, setAck] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [formValues, setFormValues] = useState<{ [key: string]: string }>({});
-  const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN" | null>(
+  const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN" | null>(
     step.form?.formType || null,
   );
 

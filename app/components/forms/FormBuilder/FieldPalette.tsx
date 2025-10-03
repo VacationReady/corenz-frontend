@@ -133,7 +133,6 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
   {
     title: "Collections",
     items: [
-      { type: "table", label: "Table", hint: "Tabular entries", icon: TableIcon, defaults: { ...DEFAULT_FIELD_BASE, tableColumns: [ { id: "col1", label: "Column 1", type: "text" }, { id: "col2", label: "Column 2", type: "number" } ], maxEntries: 50 } },
       { type: "list", label: "List", hint: "Multiple text entries", icon: ListIcon, defaults: { ...DEFAULT_FIELD_BASE, allowMultiple: true, maxEntries: 20 } },
     ],
   },

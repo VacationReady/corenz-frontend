@@ -3,16 +3,27 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-// ✅ GET: List all forms for the company
-export async function GET() {
+// ✅ GET: List all forms for the company (with optional type filtering)
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Support filtering by form type (e.g., ?type=SURVEY or ?type=FORM,TABLE)
+  const { searchParams } = new URL(req.url);
+  const typeParam = searchParams.get("type");
+  
+  const whereClause: any = { companyId: session.user.companyId };
+  
+  if (typeParam) {
+    const types = typeParam.split(",").map(t => t.trim());
+    whereClause.formType = types.length === 1 ? types[0] : { in: types };
+  }
+
   const forms = await prisma.form.findMany({
-    where: { companyId: session.user.companyId },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
   });
 
@@ -91,7 +102,7 @@ export async function POST(req: Request) {
   // Debug logging for visibility settings
   console.log("DEBUG: Creating form with visibility settings:", {
     name,
-    formType: formType || "SUBMISSION",
+    formType: formType || "FORM",
     visibleToRoles: visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
     visibleToDepartments: visibleToDepartments || [],
     visibleToJobRoles: visibleToJobRoles || [],
@@ -105,7 +116,7 @@ export async function POST(req: Request) {
       name,
       slug,
       description,
-      formType: formType || "SUBMISSION",
+      formType: formType || "FORM",
       schema,
       companyId: session.user.companyId,
       visibleToRoles: visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],

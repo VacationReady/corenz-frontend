@@ -89,8 +89,10 @@ FIELD STRUCTURE:
 }
 
 FORM TYPES:
-- DATA_SCREEN: Ongoing data (editable, like employee profiles)
-- SUBMISSION: One-time submissions (surveys, requests)
+- FORM: Single-record forms (DEI, employee details)
+- TABLE: Multi-record data tables (training, commission)
+- SURVEY: One-time surveys (feedback, polls)
+- DATA_SCREEN: Ongoing data (editable, like profiles)
 `;
 
 export async function buildFormConversationally(
@@ -129,7 +131,7 @@ When you have enough information, respond with:
   "ready": true,
   "formName": "Form Name",
   "description": "What it's for",
-  "formType": "DATA_SCREEN" | "SUBMISSION",
+  "formType": "FORM" | "TABLE" | "SURVEY" | "DATA_SCREEN",
   "fields": [
     {
       "id": "field1",
@@ -199,7 +201,7 @@ If you need more information, respond with:
         description: aiResponse.description || "",
         slug,
         schema,
-        formType: aiResponse.formType || "SUBMISSION",
+        formType: aiResponse.formType || "FORM",
         visibleToRoles: aiResponse.visibility?.roles || ["ADMIN", "MANAGER", "EMPLOYEE"],
         visibleToDepartments: aiResponse.visibility?.departments || [],
         visibleToJobRoles: aiResponse.visibility?.jobRoles || [],
@@ -265,7 +267,7 @@ export async function deployForm(
         name: form.name,
         slug: form.slug,
         description: form.description || "",
-        formType: form.formType || "SUBMISSION",
+        formType: form.formType || "FORM",
         schema: form.schema,
         companyId,
         visibleToRoles: form.visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],

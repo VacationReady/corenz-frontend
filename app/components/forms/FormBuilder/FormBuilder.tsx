@@ -74,7 +74,7 @@ interface FormBuilderProps {
     name: string;
     slug: string;
     description?: string;
-    formType: "SUBMISSION" | "DATA_SCREEN";
+    formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
     schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
@@ -85,7 +85,7 @@ interface FormBuilderProps {
     name: string;
     slug?: string;
     description?: string;
-    formType?: "SUBMISSION" | "DATA_SCREEN";
+    formType?: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
     schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
@@ -127,8 +127,8 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   const [formDescription, setFormDescription] = useState(
     initialData?.description || "",
   );
-  const [formType, setFormType] = useState<"SUBMISSION" | "DATA_SCREEN">(
-    initialData?.formType || "SUBMISSION",
+  const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN">(
+    initialData?.formType || "FORM",
   );
   const [transactionalEnabled, setTransactionalEnabled] = useState<boolean>(
     Boolean(initialData?.transactionalEnabled) || false,
@@ -347,13 +347,15 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               <Label className="text-sm font-medium text-muted-foreground">
                 Form Type
               </Label>
-              <Select value={formType} onValueChange={(value) => setFormType(value as "SUBMISSION" | "DATA_SCREEN")}>
+              <Select value={formType} onValueChange={(value) => setFormType(value as "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN")}>
                 <SelectTrigger className="glass-subtle border-white/20 focus:border-primary/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="glass-premium">
-                  <SelectItem value="SUBMISSION">Submission Form</SelectItem>
-                  <SelectItem value="DATA_SCREEN">Data Screen</SelectItem>
+                  <SelectItem value="FORM">Form (Single Record)</SelectItem>
+                  <SelectItem value="TABLE">Table (Multiple Records)</SelectItem>
+                  <SelectItem value="SURVEY">Survey (One-time)</SelectItem>
+                  <SelectItem value="DATA_SCREEN">Data Screen (Legacy)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

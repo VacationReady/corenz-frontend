@@ -15,7 +15,7 @@ interface Form {
   name: string;
   slug: string;
   description?: string;
-  formType: "SUBMISSION" | "DATA_SCREEN";
+  formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
   schema: any[];
 }
 

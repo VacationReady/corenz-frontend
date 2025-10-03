@@ -92,16 +92,22 @@ const holidaySettings = [
 
 const formSettings = [
   {
-    title: "Forms & Surveys",
+    title: "Forms",
     href: "/settings/forms",
     icon: <ClipboardList className="h-5 w-5" />,
-    description: "Build custom forms to capture the data you need",
+    description: "Build custom forms and data tables for employees",
   },
   {
-    title: "Exit Interview Forms",
+    title: "Exit Interviews",
     href: "/settings/forms/exit-interview",
     icon: <UserMinus className="h-5 w-5" />,
-    description: "Manage exit interview templates and offboarding surveys",
+    description: "Manage exit interview templates and offboarding",
+  },
+  {
+    title: "Surveys",
+    href: "/settings/surveys",
+    icon: <FileText className="h-5 w-5" />,
+    description: "Create one-time surveys distributed through action items",
   },
 ];
 
@@ -287,7 +293,7 @@ export default function SettingsIndexPage() {
         onboarding: { completed: 0, total: 1 },
         documents: { completed: 0, total: 1 },
         workflows: { completed: 1, total: 2 },
-        forms: { completed: 0, total: 2 },
+        forms: { completed: 0, total: 3 },
         system: { completed: 1, total: 2 },
       });
     }
@@ -410,8 +416,8 @@ export default function SettingsIndexPage() {
             />
             <SettingSection
               id="forms"
-              label="Forms & Surveys"
-              description="Design and deploy custom forms and employee surveys"
+              label="Forms & Data Collection"
+              description="Design and deploy custom forms, data tables, and surveys"
               icon={<ClipboardList className="w-5 h-5" />}
               items={formSettings}
               completionStatus={completionData.forms}

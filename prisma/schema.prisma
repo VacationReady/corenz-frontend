@@ -727,7 +727,7 @@ model Form {
   visibleToDepartments String[]         @default([])
   visibleToJobRoles    String[]         @default([])
   slug                 String
-  formType             FormType         @default(SUBMISSION)
+  formType             FormType         @default(FORM)
   visibleToRoles       String[]         @default([])
   transactionalEnabled Boolean          @default(false)
   Company              Company          @relation(fields: [companyId], references: [id])
@@ -1702,7 +1702,9 @@ enum ExitInterviewFormTiming {
 }
 
 enum FormType {
-  SUBMISSION
+  SURVEY
+  FORM
+  TABLE
   DATA_SCREEN
 }
 

@@ -140,7 +140,7 @@ function FormDropdown({
             slug: "demographics",
             name: "Demographic Information",
             description: "Equality & diversity details",
-            formType: "SUBMISSION",
+            formType: "SURVEY",
             schema: [
               { id: "gender", type: "select", label: "Gender", required: false, options: ["Female","Male","Non-binary","Prefer not to say"] },
               { id: "ethnicity", type: "text", label: "Ethnicity", required: false },
@@ -152,7 +152,7 @@ function FormDropdown({
             slug: "emergency-contact",
             name: "Emergency Contact",
             description: "Primary emergency contact",
-            formType: "SUBMISSION",
+            formType: "SURVEY",
             schema: [
               { id: "contactName", type: "text", label: "Contact name", required: true },
               { id: "relationship", type: "text", label: "Relationship", required: true },
@@ -174,7 +174,7 @@ function FormDropdown({
             slug: "payroll-starter",
             name: "Payroll Starter",
             description: "Starter declaration & tax",
-            formType: "SUBMISSION",
+            formType: "SURVEY",
             schema: [
               { id: "niNumber", type: "text", label: "National Insurance number", required: true },
               { id: "taxCode", type: "text", label: "Initial tax code", required: false },

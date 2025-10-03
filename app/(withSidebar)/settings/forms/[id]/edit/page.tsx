@@ -61,7 +61,7 @@ export default function EditFormPage() {
     name: string;
     slug: string;
     description?: string;
-    formType: "SUBMISSION" | "DATA_SCREEN";
+    formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
     schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];

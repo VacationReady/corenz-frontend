@@ -41,7 +41,7 @@ export default function FormsPage() {
     const loadData = async () => {
       try {
         const [formsRes, deptRes, rolesRes] = await Promise.all([
-          fetch("/api/forms"),
+          fetch("/api/forms?type=FORM,TABLE,DATA_SCREEN"), // Exclude SURVEY types
           fetch("/api/departments"),
           fetch("/api/job-roles"),
         ]);

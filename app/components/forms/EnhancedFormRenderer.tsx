@@ -53,7 +53,7 @@ interface FormDataShape {
   form: {
     id: string;
     name: string;
-    formType: "SUBMISSION" | "DATA_SCREEN";
+    formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
     schema: AnyFormSchema;
   };
   data: Record<string, any>;

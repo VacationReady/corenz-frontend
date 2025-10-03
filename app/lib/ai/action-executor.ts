@@ -2088,7 +2088,7 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
       const turnoverRate = avgHeadcount > 0 ? (terminated / avgHeadcount) * 100 : 0;
 
       // By department if requested
-      let byDepartment = [];
+      let byDepartment: Array<{ departmentId: string | null; departmentName: string; count: number }> = [];
       if (groupBy === "department") {
         const deptData = await prisma.employee.groupBy({
           by: ['departmentId'],

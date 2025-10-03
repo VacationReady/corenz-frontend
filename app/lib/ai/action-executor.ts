@@ -2124,18 +2124,31 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
     },
 
     diversity: async () => {
-      // Gender distribution
-      const genderDist = await prisma.employee.groupBy({
-        by: ['gender'],
-        where: { companyId: action.companyId, isActive: true },
-        _count: true,
-      });
-
-      // Age distribution
+      // Fetch all active employees with gender and DOB
       const employees = await prisma.employee.findMany({
         where: { companyId: action.companyId, isActive: true },
-        include: { User: { select: { dateOfBirth: true } } },
+        include: { 
+          User: { 
+            select: { 
+              dateOfBirth: true,
+              genderOptionId: true,
+              GenderOption: { select: { label: true } },
+            } 
+          } 
+        },
       });
+
+      // Gender distribution - group manually
+      const genderCounts = new Map<string, number>();
+      employees.forEach(emp => {
+        const genderLabel = emp.User.GenderOption?.label || "Not specified";
+        genderCounts.set(genderLabel, (genderCounts.get(genderLabel) || 0) + 1);
+      });
+
+      const genderDist = Array.from(genderCounts.entries()).map(([label, count]) => ({
+        gender: label,
+        _count: count,
+      }));
 
       const ageRanges = {
         "18-25": 0,

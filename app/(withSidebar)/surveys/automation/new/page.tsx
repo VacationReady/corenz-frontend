@@ -21,10 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import {
-  Checkbox,
-  CheckboxGroup,
-} from "@/components/ui/Checkbox";
+import { Checkbox } from "@/components/ui/Checkbox";
 import {
   Repeat,
   Calendar,

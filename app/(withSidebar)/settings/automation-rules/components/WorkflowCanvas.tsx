@@ -32,20 +32,6 @@ import { DelayNode as RealDelayNode } from "./nodes/DelayNode";
 import { BranchNode as RealBranchNode } from "./nodes/BranchNode";
 import { LoopNode as RealLoopNode } from "./nodes/LoopNode";
 
-// Minimal placeholder components to avoid build errors
-const PlaceholderNode: React.FC<{ label: string; color: string }> = ({ label }) => (
-  <div className="min-w-[200px] p-3 rounded-xl border-2 bg-white shadow-sm">
-    <div className="font-medium text-sm">{label}</div>
-  </div>
-);
-
-const TriggerNode = () => <PlaceholderNode label="Trigger" color="#3b82f6" />;
-const ConditionNode = () => <PlaceholderNode label="Condition" color="#f59e0b" />;
-const ActionNode = () => <PlaceholderNode label="Action" color="#22c55e" />;
-const DelayNode = () => <PlaceholderNode label="Delay" color="#a855f7" />;
-const BranchNode = () => <PlaceholderNode label="Branch" color="#ec4899" />;
-const LoopNode = () => <PlaceholderNode label="Loop" color="#0ea5e9" />;
-
 const nodeTypes = {
   trigger: RealTriggerNode as any,
   condition: RealConditionNode as any,

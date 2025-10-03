@@ -99,27 +99,57 @@ Respond with JSON:
       },
     });
 
-    // Create custom fields form if it doesn't exist
-    if (!form && section === "custom") {
-      form = await prisma.form.create({
-        data: {
-          id: `form-custom-${Date.now()}`,
-          companyId,
+    // Create form if it doesn't exist (for custom, personal-information, bank-payroll, emergency-contacts)
+    if (!form && (section === "custom" || section === "personal-information" || section === "bank-payroll" || section === "emergency-contacts")) {
+      const formConfig = {
+        "custom": {
           name: "Custom Fields",
           slug: "custom-fields",
           description: "Additional custom employee information",
+        },
+        "personal-information": {
+          name: "Personal Details (Custom)",
+          slug: "personal-information-custom",
+          description: "Extended personal information fields",
+        },
+        "bank-payroll": {
+          name: "Bank & Payroll (Custom)",
+          slug: "bank-payroll-custom",
+          description: "Extended bank and payroll fields",
+        },
+        "emergency-contacts": {
+          name: "Emergency Contacts (Custom)",
+          slug: "emergency-contacts-custom",
+          description: "Extended emergency contact fields",
+        },
+      };
+
+      const config = formConfig[section as keyof typeof formConfig];
+      
+      form = await prisma.form.create({
+        data: {
+          id: `form-${section}-${Date.now()}`,
+          companyId,
+          name: config.name,
+          slug: config.slug,
+          description: config.description,
           formType: "DATA_SCREEN",
           schema: {
-            fields: [],
-            categories: [
+            sections: [
               {
-                id: "custom",
-                title: "Custom Information",
+                id: section,
+                title: config.name.replace(" (Custom)", ""),
+                columns: 1,
+                layout: "single",
+                hidden: false,
                 fields: [],
               },
             ],
           },
           isActive: true,
+          visibleToRoles: [], // Empty = visible to all
+          visibleToDepartments: [],
+          visibleToJobRoles: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -129,7 +159,7 @@ Respond with JSON:
     if (!form) {
       return {
         success: false,
-        error: `Form for section "${section}" not found`,
+        error: `Form for section "${section}" not found. Try creating a new form first, or add to "Custom Fields" instead.`,
       };
     }
 
@@ -141,19 +171,43 @@ Respond with JSON:
       custom: true, // Mark as custom field
     };
 
-    // Add to fields array
-    if (!updatedDefinition.fields) {
-      updatedDefinition.fields = [];
+    // Handle sections-based schema (new format)
+    if (updatedDefinition.sections && Array.isArray(updatedDefinition.sections)) {
+      // Find the first section or create one
+      if (updatedDefinition.sections.length === 0) {
+        updatedDefinition.sections.push({
+          id: section,
+          title: "Custom Fields",
+          columns: 1,
+          layout: "single",
+          hidden: false,
+          fields: [],
+        });
+      }
+      
+      // Add field to first section
+      const targetSection = updatedDefinition.sections[0];
+      if (!targetSection.fields) {
+        targetSection.fields = [];
+      }
+      targetSection.fields.push(newField);
     }
-    updatedDefinition.fields.push(newField);
+    // Handle legacy formats
+    else {
+      // Add to fields array (old format)
+      if (!updatedDefinition.fields) {
+        updatedDefinition.fields = [];
+      }
+      updatedDefinition.fields.push(newField);
 
-    // Add to appropriate category
-    if (updatedDefinition.categories) {
-      const targetCategory = updatedDefinition.categories.find(
-        (c: any) => c.id === "custom" || c.id === "personal" || c.id === section
-      );
-      if (targetCategory && !targetCategory.fields.includes(newField.id)) {
-        targetCategory.fields.push(newField.id);
+      // Add to appropriate category (old format)
+      if (updatedDefinition.categories) {
+        const targetCategory = updatedDefinition.categories.find(
+          (c: any) => c.id === "custom" || c.id === "personal" || c.id === section
+        );
+        if (targetCategory && !targetCategory.fields.includes(newField.id)) {
+          targetCategory.fields.push(newField.id);
+        }
       }
     }
 

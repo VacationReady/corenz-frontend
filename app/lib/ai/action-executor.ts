@@ -361,8 +361,11 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     
     if (!dates && (!startDate || !endDate)) {
       return {
-        success: false,
-        message: "What dates would you like to book?",
+        success: true,
+        message: `What dates would you like to book leave for ${pending.data.employeeName}?\n\n💡 Examples:\n• "Next Monday"\n• "Dec 20-27"\n• "Tomorrow for 3 days"\n• "Next week"`,
+        nextStep: {
+          question: "When should the leave start and end?",
+        },
       };
     }
 
@@ -555,14 +558,21 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
       const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
 
-      const approved = await prisma.$transaction(async (tx) => {
-        const entitlement = await tx.leaveEntitlement.findFirst({
-          where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
-        });
+      // Check balance first (outside transaction)
+      const entitlement = await prisma.leaveEntitlement.findFirst({
+        where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
+      });
 
-        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
-          throw new Error("Insufficient leave balance");
-        }
+      if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+        const available = entitlement ? entitlement.totalDays - entitlement.usedDays : 0;
+        clearPendingAction(action.userId, action.companyId);
+        return {
+          success: true,
+          message: `⚠️ **Insufficient leave balance**\n\n${pending.data.employeeName} only has ${available} days available, but this request needs ${totalDeduction} days.\n\n💡 Options:\n• Book fewer days\n• Use a different leave type\n• Request unpaid leave instead\n\nWhat would you like to do?`,
+        };
+      }
+
+      const approved = await prisma.$transaction(async (tx) => {
 
         await tx.leaveEntitlement.update({
           where: { id: entitlement.id },
@@ -1223,7 +1233,11 @@ async function handleDocumentUpload(action: AIAction): Promise<ActionResult> {
         });
 
       if (uploadError) {
-        throw new Error(`Supabase upload failed: ${uploadError.message}`);
+        clearPendingAction(action.userId, action.companyId);
+        return {
+          success: true,
+          message: `⚠️ **Upload failed:** ${uploadError.message}\n\n💡 Try:\n• Check file size (max 10MB)\n• Ensure file type is supported\n• Try uploading again\n\nWant to try a different file?`,
+        };
       }
 
       // Create signed URL for downloads

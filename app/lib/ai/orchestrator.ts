@@ -490,7 +490,26 @@ async function handleFieldCreation(
     };
   }
   
-  const result = await generateCustomField(prompt, "custom", companyId);
+  // Detect which section/form the user is referring to
+  const promptLower = prompt.toLowerCase();
+  let targetSection: "personal-information" | "bank-payroll" | "emergency-contacts" | "custom" = "custom";
+  let sectionDisplayName = "Custom Fields";
+  
+  if (promptLower.includes('personal information') || promptLower.includes('personal info') || 
+      promptLower.includes('person details') || promptLower.includes('personal details') ||
+      promptLower.includes('personal data')) {
+    targetSection = "personal-information";
+    sectionDisplayName = "Personal Information";
+  } else if (promptLower.includes('bank') || promptLower.includes('payroll') || 
+             promptLower.includes('payment')) {
+    targetSection = "bank-payroll";
+    sectionDisplayName = "Bank & Payroll";
+  } else if (promptLower.includes('emergency') || promptLower.includes('contact')) {
+    targetSection = "emergency-contacts";
+    sectionDisplayName = "Emergency Contacts";
+  }
+  
+  const result = await generateCustomField(prompt, targetSection, companyId);
   
   if (!result.success) {
     return {
@@ -501,7 +520,7 @@ async function handleFieldCreation(
 
   return {
     success: true,
-    message: `✅ Field Created!\n\n${result.message}`,
+    message: `✅ Field Created!\n\nAdded "${result.field?.label}" to **${sectionDisplayName}**\n\n📍 You can find it in: **Employees > [Any Employee] > ${sectionDisplayName}**\n\n💡 All employees will now have this field available to fill in.`,
     actionType: "field",
     result: result.field,
   };

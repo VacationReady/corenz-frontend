@@ -1885,25 +1885,47 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           <Card className="h-full flex flex-col overflow-hidden min-h-0">
             {generatedWorkflow ? (
               <>
-                <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Workflow className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold">{generatedWorkflow.name}</h3>
-                      <Badge variant="secondary" className="ml-auto">
-                        AI Generated
-                      </Badge>
+                <div className="p-6 border-b bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-md">
+                          <Workflow className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg">{generatedWorkflow.name}</h3>
+                          <Badge variant="secondary" className="mt-0.5 text-xs">
+                            AI Generated
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {generatedWorkflow.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-700">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          {generatedWorkflow.nodes?.filter((n: any) => n.type === 'trigger').length || 0} Trigger
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700">
+                          <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                          {generatedWorkflow.nodes?.filter((n: any) => n.type === 'condition').length || 0} Conditions
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-700">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          {generatedWorkflow.nodes?.filter((n: any) => n.type === 'action').length || 0} Actions
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{generatedWorkflow.description}</p>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    <Button variant="outline" size="sm" onClick={() => setGeneratedWorkflow(null)}>
-                      Clear
-                    </Button>
-                    <Button size="sm" onClick={handleSaveWorkflow} className="bg-gradient-to-r from-primary to-purple-600">
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Save Workflow
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setGeneratedWorkflow(null)}>
+                        Clear
+                      </Button>
+                      <Button size="sm" onClick={handleSaveWorkflow} className="bg-gradient-to-r from-primary to-purple-600">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Save Workflow
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
@@ -1914,6 +1936,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                     onTest={() => {}}
                     isValid={true}
                     isDirty={false}
+                    aiPreviewMode={true}
                   />
                 </div>
               </>

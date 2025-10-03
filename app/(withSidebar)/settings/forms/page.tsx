@@ -231,7 +231,7 @@ export default function FormsPage() {
           </Button>
           <Button asChild variant="ghost" className="h-10">
             <Link href="/settings/forms/new">
-              <Plus className="mr-2 h-5 w-5" />
+              <Plus className="mr-1.5 h-4 w-4" />
               Add New
             </Link>
           </Button>

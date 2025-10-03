@@ -41,7 +41,7 @@ ${conversationContext}
 AVAILABLE ACTIONS:
 - query_data: Find/count/analyze data ("How many...", "Show me...", "List...", "What is...", "Who is...")
 - update_employee: Change specific employee data ("Change X's bank to...", "Update Sarah's email...")
-- book_leave: Book holiday/leave ("Book leave for...", "Schedule holiday for...")
+- book_leave: Book holiday/leave ("Book leave for...", "Schedule holiday for...", "Book all employees annual leave...")
 - schedule_report: Schedule recurring reports ("Email CEO report every Monday...")
 - add_field: Add custom field to existing form ("Add 'Shirt Size' field...")
 - create_form: Build complete new form ("Create a feedback form", "Build an onboarding form")
@@ -50,6 +50,9 @@ AVAILABLE ACTIONS:
 - save_workflow: Save generated workflow ("Save this workflow", "Save it")
 - send_email: Send one-off emails ("Email all managers about...")
 - bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
+- bulk_document: Assign documents to multiple employees ("Send contract to all new hires", "Assign policy to everyone")
+- bulk_notification: Send notifications to groups ("Notify all managers", "Alert sales team")
+- bulk_workflow: Run workflows for multiple employees ("Run onboarding for new hires", "Send reminders to all")
 - upload_document: Upload and assign documents ("Assign this to Michael", "Upload employment contract for Sarah")
 - modify_settings: Change system config ("Change probation to 120 days...")
 - compliance_sweep: Run proactive compliance checks ("Check all visa expiries", "Find missing documents", "Run compliance check")
@@ -80,6 +83,8 @@ PARAMETER EXTRACTION:
 - reason: Explanation for the change (CRITICAL for audit compliance)
 - startDate/endDate: For leave booking - ALWAYS extract if mentioned (e.g., "next Monday", "Dec 20-27", "tomorrow", "next week")
 - leaveType: Leave category (e.g., "Annual Leave", "Sick Leave")
+- bulk: true for bulk leave booking (e.g., "all employees", "everyone", "all staff")
+- scope: "all" for company-wide, or department/audience for specific groups
 - reportType: Type of report
 - recipient: Who gets the report
 - schedule: Frequency (daily, weekly, "every Monday", "every 30 days")
@@ -99,6 +104,31 @@ LEAVE BOOKING EXAMPLES:
 - "Book sick leave for John tomorrow" → {actionType: "book_leave", parameters: {employeeName: "John", startDate: "tomorrow", endDate: "tomorrow", leaveType: "Sick Leave"}}
 - "need 2 days off 4 sarah next week" → {actionType: "book_leave", parameters: {employeeName: "Sarah", startDate: "next week"}}
 - "I want to book leave for James" → {actionType: "book_leave", parameters: {employeeName: "James"}} (no dates provided)
+
+BULK LEAVE BOOKING EXAMPLES:
+- "Book all employees annual leave between 21st December to 24th December" → {actionType: "book_leave", parameters: {bulk: true, scope: "all", startDate: "21st December", endDate: "24th December", leaveType: "Annual Leave"}}
+- "Please book all employees annual leave between 21st December to 24th December" → {actionType: "book_leave", parameters: {bulk: true, scope: "all", startDate: "21st December", endDate: "24th December", leaveType: "Annual Leave"}}
+- "Give everyone in sales annual leave from Dec 20-27" → {actionType: "book_leave", parameters: {bulk: true, department: "sales", startDate: "Dec 20", endDate: "Dec 27", leaveType: "Annual Leave"}}
+- "Book holiday for all IT staff next week" → {actionType: "book_leave", parameters: {bulk: true, department: "IT", startDate: "next week", leaveType: "Annual Leave"}}
+- "Schedule all employees off between Christmas and New Year" → {actionType: "book_leave", parameters: {bulk: true, scope: "all", startDate: "Christmas", endDate: "New Year", leaveType: "Annual Leave"}}
+- "Give everyone annual leave for the holidays" → {actionType: "book_leave", parameters: {bulk: true, scope: "all", leaveType: "Annual Leave"}}
+- "Book all managers sick leave tomorrow" → {actionType: "book_leave", parameters: {bulk: true, audience: "managers", startDate: "tomorrow", endDate: "tomorrow", leaveType: "Sick Leave"}}
+
+BULK DOCUMENT EXAMPLES:
+- "Send contract to all new hires" → {actionType: "bulk_document", parameters: {documentType: "contract", audience: "new_hires"}}
+- "Assign policy to everyone" → {actionType: "bulk_document", parameters: {documentType: "policy", scope: "all"}}
+- "Send handbook to all sales staff" → {actionType: "bulk_document", parameters: {documentType: "handbook", department: "sales"}}
+- "Give all managers the new policy document" → {actionType: "bulk_document", parameters: {documentType: "policy", audience: "managers"}}
+
+BULK NOTIFICATION EXAMPLES:
+- "Notify all managers about the meeting" → {actionType: "bulk_notification", parameters: {audience: "managers", message: "meeting"}}
+- "Alert sales team about the deadline" → {actionType: "bulk_notification", parameters: {department: "sales", message: "deadline"}}
+- "Send reminder to all employees" → {actionType: "bulk_notification", parameters: {scope: "all", message: "reminder"}}
+
+BULK WORKFLOW EXAMPLES:
+- "Run onboarding for new hires" → {actionType: "bulk_workflow", parameters: {workflowType: "onboarding", audience: "new_hires"}}
+- "Send reminders to all" → {actionType: "bulk_workflow", parameters: {workflowType: "reminder", scope: "all"}}
+- "Run compliance check for sales team" → {actionType: "bulk_workflow", parameters: {workflowType: "compliance", department: "sales"}}
 
 WORKFLOW CREATION EXAMPLES (INCLUDING VAGUE):
 - "Create workflow that alerts HR 60 days before contracts expire" → {actionType: "create_workflow", parameters: {}}

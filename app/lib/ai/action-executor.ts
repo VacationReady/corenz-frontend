@@ -8,6 +8,49 @@ import { findEmployeeByName } from "./system-context";
 import { setPendingAction, clearPendingAction, getConversation } from "./conversation-memory";
 import { createAuditLogs, type AuditDiff } from "@/lib/audit-helpers";
 import { saveWorkflowToDatabase } from "./workflow-generator";
+
+// Utility functions for date parsing and leave category finding
+function parseNaturalDate(dateStr: string): Date {
+  // Simple date parsing - in production, you'd want a more robust solution
+  const now = new Date();
+  
+  if (dateStr.toLowerCase().includes("today")) {
+    return now;
+  } else if (dateStr.toLowerCase().includes("tomorrow")) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  } else if (dateStr.toLowerCase().includes("next week")) {
+    const nextWeek = new Date(now);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    return nextWeek;
+  }
+  
+  // Try to parse as a date string
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) {
+    throw new Error(`Unable to parse date: ${dateStr}`);
+  }
+  
+  return parsed;
+}
+
+async function findLeaveCategory(categoryName: string, companyId: string) {
+  const category = await prisma.eventCategory.findFirst({
+    where: {
+      companyId,
+      name: { contains: categoryName, mode: 'insensitive' },
+      isActive: true,
+    },
+  });
+  
+  if (!category) {
+    throw new Error(`Leave category "${categoryName}" not found`);
+  }
+  
+  return category;
+}
+
 import { buildFormConversationally, deployForm } from "./form-builder";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
@@ -45,6 +88,9 @@ export type ActionType =
   | "deploy_form"
   | "send_email"
   | "bulk_update"
+  | "bulk_document"
+  | "bulk_notification"
+  | "bulk_workflow"
   | "upload_document"
   | "modify_settings"
   | "compliance_sweep"
@@ -115,6 +161,15 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "list_pending_approvals":
         return await handleListPendingApprovals(action);
+      
+      case "bulk_document":
+        return await handleBulkDocument(action);
+      
+      case "bulk_notification":
+        return await handleBulkNotification(action);
+      
+      case "bulk_workflow":
+        return await handleBulkWorkflow(action);
       
       default:
         return {
@@ -279,6 +334,18 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
 async function handleBookLeave(action: AIAction): Promise<ActionResult> {
   const conv = getConversation(action.userId, action.companyId);
   const pending = conv.entities.pendingAction;
+
+  // Check if this is a bulk leave booking request
+  const { bulk, scope, department, audience, startDate, endDate, leaveType } = action.parameters;
+  
+  if (bulk) {
+    return await handleBulkLeaveBooking(action);
+  }
+
+  // Handle confirmation for bulk leave booking
+  if (pending?.type === "book_leave" && pending.data?.bulk && action.parameters.confirmed) {
+    return await executeBulkLeaveBooking(action, pending.data);
+  }
 
   // Multi-step conversation for booking leave
   if (!pending || pending.type !== "book_leave") {
@@ -618,6 +685,236 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     success: false,
     message: "Something went wrong with the booking process. Let's start over.",
   };
+}
+
+async function handleBulkLeaveBooking(action: AIAction): Promise<ActionResult> {
+  const { scope, department, audience, startDate, endDate, leaveType } = action.parameters;
+  
+  // Parse dates
+  let parsedStartDate: Date;
+  let parsedEndDate: Date;
+  
+  try {
+    parsedStartDate = parseNaturalDate(startDate || "today");
+    parsedEndDate = parseNaturalDate(endDate || startDate || "today");
+  } catch (error) {
+    return {
+      success: true,
+      message: "I need the dates for this bulk leave booking. When should the leave period start and end?\n\nExamples:\n• \"21st December to 24th December\"\n• \"Dec 20-27\"\n• \"Next week\"",
+      nextStep: { question: "What dates?" },
+    };
+  }
+
+  // Determine leave type
+  let categoryId: string;
+  try {
+    const category = await findLeaveCategory(leaveType || "Annual Leave", action.companyId);
+    categoryId = category.id;
+  } catch (error) {
+    return {
+      success: true,
+      message: "What type of leave should I book for everyone?\n\nExamples:\n• Annual Leave\n• Sick Leave\n• Personal Leave",
+      nextStep: { question: "Which leave type?" },
+    };
+  }
+
+  // Find employees to book leave for
+  let employees: any[];
+  try {
+    if (scope === "all") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true 
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (department) {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          Department: { name: { contains: department, mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (audience === "managers") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          JobRole: { name: { contains: "manager", mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else {
+      return {
+        success: true,
+        message: "Who should I book leave for?\n\nExamples:\n• \"all employees\"\n• \"everyone in sales\"\n• \"all managers\"",
+        nextStep: { question: "Which employees?" },
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Failed to find employees for bulk leave booking.",
+    };
+  }
+
+  if (employees.length === 0) {
+    return {
+      success: false,
+      message: `No active employees found for the specified criteria.`,
+    };
+  }
+
+  // Calculate days
+  const daysRequested = Math.ceil((parsedEndDate.getTime() - parsedStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const isSingleDay = daysRequested === 1;
+  const dateDisplay = isSingleDay ? parsedStartDate.toLocaleDateString() : `${parsedStartDate.toLocaleDateString()} to ${parsedEndDate.toLocaleDateString()}`;
+
+  // Create preview
+  const scopeDisplay = scope === "all" ? "all employees" : 
+                      department ? `all ${department} employees` : 
+                      audience === "managers" ? "all managers" : "selected employees";
+
+  // Store pending action for confirmation
+  setPendingAction(action.userId, action.companyId, {
+    type: "book_leave",
+    step: 0,
+    data: {
+      bulk: true,
+      employees,
+      categoryId,
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
+      daysRequested,
+      leaveType: leaveType || "Annual Leave",
+      scope: scopeDisplay,
+    },
+  });
+
+  return {
+    success: true,
+    requiresConfirmation: true,
+    preview: {
+      scope: scopeDisplay,
+      employeeCount: employees.length,
+      startDate: parsedStartDate.toLocaleDateString(),
+      endDate: parsedEndDate.toLocaleDateString(),
+      leaveType: leaveType || "Annual Leave",
+      daysRequested,
+      employees: employees.slice(0, 5).map(emp => ({
+        name: `${emp.User.firstName} ${emp.User.lastName}`,
+        department: emp.Department?.name || "No Department"
+      })),
+    },
+    message: `📅 **Bulk Leave Booking Preview**\n\n**Scope:** ${scopeDisplay}\n**Dates:** ${dateDisplay}\n**Leave Type:** ${leaveType || "Annual Leave"}\n**Days:** ${daysRequested}\n**Employees:** ${employees.length}\n\n**Sample employees:**\n${employees.slice(0, 5).map(emp => `• ${emp.User.firstName} ${emp.User.lastName} (${emp.Department?.name || "No Department"})`).join("\n")}${employees.length > 5 ? `\n...and ${employees.length - 5} more employees` : ""}\n\n⚠️ **This will book leave for ALL ${employees.length} employees.**\n\nProceed with bulk leave booking?`,
+    suggestions: [
+      "Send email notifications to all employees",
+      "Check leave balance for all employees first",
+      "Book leave for a smaller group instead",
+    ],
+  };
+}
+
+async function executeBulkLeaveBooking(action: AIAction, pendingData: any): Promise<ActionResult> {
+  const { employees, categoryId, startDate, endDate, daysRequested, leaveType, scope } = pendingData;
+  
+  let successCount = 0;
+  let failureCount = 0;
+  const failures: string[] = [];
+  
+  // Book leave for each employee
+  for (const employee of employees) {
+    try {
+      // Use the same validation and booking logic as individual leave booking
+      await validateLeaveRequest({
+        employeeId: employee.id,
+        eventCategoryId: categoryId,
+        startDate,
+        endDate,
+        companyId: action.companyId,
+      });
+
+      // Create the leave request
+      const leaveRequest = await prisma.leaveRequest.create({
+        data: {
+          id: crypto.randomUUID(),
+          employeeId: employee.id,
+          eventCategoryId: categoryId,
+          startDate,
+          endDate,
+          dayType: "FULL_DAY",
+          requesterId: action.userId,
+          approvedById: action.userId,
+          approvalStatus: "APPROVED",
+          companyId: action.companyId,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Create audit log
+      await prisma.employeeAuditLog.create({
+        data: {
+          companyId: action.companyId,
+          changedById: action.userId,
+          section: "leave",
+          field: "leaveRequest",
+          employeeId: employee.id,
+          oldValue: null,
+          newValue: `${leaveType} from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
+          reason: `Bulk leave booking: ${leaveType} for ${scope}`,
+        },
+      });
+
+      successCount++;
+    } catch (error: any) {
+      failureCount++;
+      failures.push(`${employee.User.firstName} ${employee.User.lastName}: ${error.message}`);
+    }
+  }
+
+  // Clear pending action
+  clearPendingAction(action.userId, action.companyId);
+
+  const dateDisplay = daysRequested === 1 ? startDate.toLocaleDateString() : `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+
+  if (successCount === employees.length) {
+    return {
+      success: true,
+      message: `✅ **Bulk Leave Booking Complete!**\n\n**${successCount} employees** booked for:\n• **Dates:** ${dateDisplay}\n• **Leave Type:** ${leaveType}\n• **Days:** ${daysRequested}\n\nAll leave requests have been automatically approved and audit logs created.`,
+      suggestions: [
+        "Send email notifications to all employees",
+        "Check leave balances for the team",
+        "Book leave for another group",
+      ],
+    };
+  } else if (successCount > 0) {
+    return {
+      success: true,
+      message: `⚠️ **Partial Success**\n\n**${successCount} employees** successfully booked\n**${failureCount} employees** failed\n\n**Failed bookings:**\n${failures.slice(0, 5).join("\n")}${failures.length > 5 ? `\n...and ${failures.length - 5} more` : ""}`,
+      suggestions: [
+        "Review failed bookings and try again",
+        "Send notifications to successful bookings",
+        "Check leave balances for failed employees",
+      ],
+    };
+  } else {
+    return {
+      success: false,
+      message: `❌ **All bookings failed**\n\n**Reasons:**\n${failures.slice(0, 5).join("\n")}${failures.length > 5 ? `\n...and ${failures.length - 5} more` : ""}`,
+    };
+  }
 }
 
 async function handleSaveWorkflow(action: AIAction): Promise<ActionResult> {
@@ -2797,4 +3094,362 @@ async function handleListPendingApprovals(action: AIAction): Promise<ActionResul
     ],
   };
 }
+
+async function handleBulkDocument(action: AIAction): Promise<ActionResult> {
+  const { documentType, scope, department, audience } = action.parameters;
+  
+  // Find employees to assign documents to
+  let employees: any[];
+  try {
+    if (scope === "all") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true 
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (department) {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          Department: { name: { contains: department, mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (audience === "managers") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          JobRole: { name: { contains: "manager", mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (audience === "new_hires") {
+      // Find employees hired in the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          startDate: { gte: thirtyDaysAgo }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else {
+      return {
+        success: true,
+        message: "Who should I assign the document to?\n\nExamples:\n• \"all employees\"\n• \"everyone in sales\"\n• \"all managers\"\n• \"new hires\"",
+        nextStep: { question: "Which employees?" },
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Failed to find employees for document assignment.",
+    };
+  }
+
+  if (employees.length === 0) {
+    return {
+      success: false,
+      message: `No employees found for the specified criteria.`,
+    };
+  }
+
+  // Find or create the document
+  let document: any;
+  try {
+    document = await prisma.document.findFirst({
+      where: {
+        companyId: action.companyId,
+        name: { contains: documentType, mode: 'insensitive' },
+        deletedAt: null,
+      },
+    });
+
+    if (!document) {
+      return {
+        success: true,
+        message: `I couldn't find a "${documentType}" document. What document should I assign?\n\nExamples:\n• Employment Contract\n• Employee Handbook\n• Company Policy\n• Safety Manual`,
+        nextStep: { question: "Which document?" },
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Failed to find the document.",
+    };
+  }
+
+  const scopeDisplay = scope === "all" ? "all employees" : 
+                      department ? `all ${department} employees` : 
+                      audience === "managers" ? "all managers" :
+                      audience === "new_hires" ? "new hires" : "selected employees";
+
+  return {
+    success: true,
+    requiresConfirmation: true,
+    preview: {
+      document: document.name,
+      scope: scopeDisplay,
+      employeeCount: employees.length,
+      employees: employees.slice(0, 5).map(emp => ({
+        name: `${emp.User.firstName} ${emp.User.lastName}`,
+        email: emp.User.email,
+        department: emp.Department?.name || "No Department"
+      })),
+    },
+    message: `📄 **Bulk Document Assignment Preview**\n\n**Document:** ${document.name}\n**Scope:** ${scopeDisplay}\n**Employees:** ${employees.length}\n\n**Sample employees:**\n${employees.slice(0, 5).map(emp => `• ${emp.User.firstName} ${emp.User.lastName} (${emp.User.email})`).join("\n")}${employees.length > 5 ? `\n...and ${employees.length - 5} more employees` : ""}\n\n⚠️ **This will assign the document to ALL ${employees.length} employees.**\n\nProceed with bulk document assignment?`,
+    suggestions: [
+      "Send email notifications to all employees",
+      "Check if employees already have this document",
+      "Assign to a smaller group instead",
+    ],
+  };
+}
+
+async function handleBulkNotification(action: AIAction): Promise<ActionResult> {
+  const { scope, department, audience, message } = action.parameters;
+  
+  // Find employees to notify
+  let employees: any[];
+  try {
+    if (scope === "all") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true 
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (department) {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          Department: { name: { contains: department, mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (audience === "managers") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          JobRole: { name: { contains: "manager", mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else {
+      return {
+        success: true,
+        message: "Who should I notify?\n\nExamples:\n• \"all employees\"\n• \"everyone in sales\"\n• \"all managers\"",
+        nextStep: { question: "Which employees?" },
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Failed to find employees for notification.",
+    };
+  }
+
+  if (employees.length === 0) {
+    return {
+      success: false,
+      message: `No employees found for the specified criteria.`,
+    };
+  }
+
+  if (!message) {
+    return {
+      success: true,
+      message: "What message should I send?\n\nExamples:\n• \"Team meeting tomorrow at 2pm\"\n• \"Deadline extended to Friday\"\n• \"Office closed for holiday\"",
+      nextStep: { question: "What's the message?" },
+    };
+  }
+
+  const scopeDisplay = scope === "all" ? "all employees" : 
+                      department ? `all ${department} employees` : 
+                      audience === "managers" ? "all managers" : "selected employees";
+
+  return {
+    success: true,
+    requiresConfirmation: true,
+    preview: {
+      message,
+      scope: scopeDisplay,
+      employeeCount: employees.length,
+      employees: employees.slice(0, 5).map(emp => ({
+        name: `${emp.User.firstName} ${emp.User.lastName}`,
+        email: emp.User.email,
+        department: emp.Department?.name || "No Department"
+      })),
+    },
+    message: `📢 **Bulk Notification Preview**\n\n**Message:** ${message}\n**Scope:** ${scopeDisplay}\n**Employees:** ${employees.length}\n\n**Sample employees:**\n${employees.slice(0, 5).map(emp => `• ${emp.User.firstName} ${emp.User.lastName} (${emp.User.email})`).join("\n")}${employees.length > 5 ? `\n...and ${employees.length - 5} more employees` : ""}\n\n⚠️ **This will send the notification to ALL ${employees.length} employees.**\n\nProceed with bulk notification?`,
+    suggestions: [
+      "Send as email notification",
+      "Send as in-app notification",
+      "Schedule for later delivery",
+    ],
+  };
+}
+
+async function handleBulkWorkflow(action: AIAction): Promise<ActionResult> {
+  const { workflowType, scope, department, audience } = action.parameters;
+  
+  // Find employees for workflow
+  let employees: any[];
+  try {
+    if (scope === "all") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true 
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (department) {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          Department: { name: { contains: department, mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (audience === "managers") {
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          JobRole: { name: { contains: "manager", mode: 'insensitive' } }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else if (audience === "new_hires") {
+      // Find employees hired in the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      employees = await prisma.employee.findMany({
+        where: { 
+          companyId: action.companyId, 
+          isActive: true,
+          startDate: { gte: thirtyDaysAgo }
+        },
+        include: {
+          User: { select: { firstName: true, lastName: true, email: true } },
+          Department: { select: { name: true } },
+        },
+      });
+    } else {
+      return {
+        success: true,
+        message: "Who should I run the workflow for?\n\nExamples:\n• \"all employees\"\n• \"everyone in sales\"\n• \"all managers\"\n• \"new hires\"",
+        nextStep: { question: "Which employees?" },
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Failed to find employees for workflow.",
+    };
+  }
+
+  if (employees.length === 0) {
+    return {
+      success: false,
+      message: `No employees found for the specified criteria.`,
+    };
+  }
+
+  // Find the workflow
+  let workflow: any;
+  try {
+    workflow = await prisma.approvalWorkflow.findFirst({
+      where: {
+        companyId: action.companyId,
+        name: { contains: workflowType, mode: 'insensitive' },
+        isActive: true,
+      },
+    });
+
+    if (!workflow) {
+      return {
+        success: true,
+        message: `I couldn't find a "${workflowType}" workflow. What workflow should I run?\n\nExamples:\n• Onboarding\n• Compliance Check\n• Reminder\n• Training`,
+        nextStep: { question: "Which workflow?" },
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: "Failed to find the workflow.",
+    };
+  }
+
+  const scopeDisplay = scope === "all" ? "all employees" : 
+                      department ? `all ${department} employees` : 
+                      audience === "managers" ? "all managers" :
+                      audience === "new_hires" ? "new hires" : "selected employees";
+
+  return {
+    success: true,
+    requiresConfirmation: true,
+    preview: {
+      workflow: workflow.name,
+      scope: scopeDisplay,
+      employeeCount: employees.length,
+      employees: employees.slice(0, 5).map(emp => ({
+        name: `${emp.User.firstName} ${emp.User.lastName}`,
+        email: emp.User.email,
+        department: emp.Department?.name || "No Department"
+      })),
+    },
+    message: `⚙️ **Bulk Workflow Execution Preview**\n\n**Workflow:** ${workflow.name}\n**Scope:** ${scopeDisplay}\n**Employees:** ${employees.length}\n\n**Sample employees:**\n${employees.slice(0, 5).map(emp => `• ${emp.User.firstName} ${emp.User.lastName} (${emp.User.email})`).join("\n")}${employees.length > 5 ? `\n...and ${employees.length - 5} more employees` : ""}\n\n⚠️ **This will run the workflow for ALL ${employees.length} employees.**\n\nProceed with bulk workflow execution?`,
+    suggestions: [
+      "Run workflow immediately",
+      "Schedule for later execution",
+      "Send email notifications about the workflow",
+    ],
+  };
+}
+
+
 

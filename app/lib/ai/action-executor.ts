@@ -1848,7 +1848,7 @@ async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
       const results = await prisma.employee.findMany({
         where: {
           companyId: action.companyId,
-          status: "ACTIVE",
+          isActive: true,
           ...(normalizedDept && { Department: { name: normalizedDept } }),
         },
         include: {
@@ -1879,7 +1879,7 @@ async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
       const allEmployees = await prisma.employee.findMany({
         where: {
           companyId: action.companyId,
-          status: "ACTIVE",
+          isActive: true,
           ...(normalizedDept && { Department: { name: normalizedDept } }),
         },
         include: {
@@ -1908,7 +1908,7 @@ async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
       const missing = await prisma.employee.findMany({
         where: {
           companyId: action.companyId,
-          status: "ACTIVE",
+          isActive: true,
           OR: [
             { irdNumber: null },
             { irdNumber: "" },
@@ -1936,7 +1936,7 @@ async function handleComplianceSweep(action: AIAction): Promise<ActionResult> {
       const expiring = await prisma.employee.findMany({
         where: {
           companyId: action.companyId,
-          status: "ACTIVE",
+          isActive: true,
           contractEndDate: {
             lte: cutoffDate,
             gte: new Date(),
@@ -2060,7 +2060,7 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
       const terminated = await prisma.employee.count({
         where: {
           companyId: action.companyId,
-          status: "TERMINATED",
+          isActive: false,
           lastWorkingDate: {
             gte: startDate,
             lte: endDate,
@@ -2072,8 +2072,8 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
         where: {
           companyId: action.companyId,
           OR: [
-            { status: "ACTIVE" },
-            { status: "TERMINATED", lastWorkingDate: { gte: startDate } },
+            { isActive: true },
+            { isActive: false, lastWorkingDate: { gte: startDate } },
           ],
         },
       });
@@ -2087,7 +2087,7 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
           by: ['departmentId'],
           where: {
             companyId: action.companyId,
-            status: "TERMINATED",
+            isActive: false,
             lastWorkingDate: { gte: startDate, lte: endDate },
           },
           _count: true,
@@ -2120,13 +2120,13 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
       // Gender distribution
       const genderDist = await prisma.employee.groupBy({
         by: ['gender'],
-        where: { companyId: action.companyId, status: "ACTIVE" },
+        where: { companyId: action.companyId, isActive: true },
         _count: true,
       });
 
       // Age distribution
       const employees = await prisma.employee.findMany({
-        where: { companyId: action.companyId, status: "ACTIVE" },
+        where: { companyId: action.companyId, isActive: true },
         include: { User: { select: { dateOfBirth: true } } },
       });
 
@@ -2171,7 +2171,7 @@ async function handleAnalyticsDigest(action: AIAction): Promise<ActionResult> {
       const activeCount = await prisma.employee.count({
         where: {
           companyId: action.companyId,
-          status: "ACTIVE",
+          isActive: true,
         },
       });
 
@@ -2261,7 +2261,7 @@ async function handleTargetedComms(action: AIAction): Promise<ActionResult> {
   // Build recipient query
   let query: any = {
     companyId: action.companyId,
-    status: "ACTIVE",
+    isActive: true,
   };
 
   if (department) {
@@ -2389,7 +2389,7 @@ async function handlePolicyRollout(action: AIAction): Promise<ActionResult> {
   // Determine affected employees
   let query: any = {
     companyId: action.companyId,
-    status: "ACTIVE",
+    isActive: true,
   };
 
   if (scope !== "all" && department) {

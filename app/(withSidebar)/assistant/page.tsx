@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import type { ComponentType } from "react";
+import type { ReactNode, ComponentType } from "react";
 import { useSession } from "next-auth/react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -31,14 +31,10 @@ import {
   Database,
   Edit,
   Mail,
-  Clock,
   BarChart3,
   Settings,
-  UserPlus,
-  UserMinus,
   Briefcase,
   Shield,
-  Globe,
   Download,
   Upload,
   X,
@@ -61,6 +57,10 @@ interface Message {
   isLoading?: boolean;
   suggestions?: string[];
   summary?: string;
+  requiresConfirmation?: boolean;
+  preview?: any;
+  undoable?: boolean;
+  undoId?: string;
 }
 
 const CAPABILITY_CATEGORIES = [
@@ -303,45 +303,15 @@ const AI_CAPABILITIES = [
   },
 ];
 
+const KNOWN_NAME_KEYS = ["name", "fullName", "displayName", "firstName", "lastName"];
 
-const KNOWN_NAME_KEYS = [
-  "name",
-  "fullName",
-  "displayName",
-  "firstName",
-  "lastName",
-];
+const KNOWN_DEPARTMENT_KEYS = ["department", "Department.name", "team", "division"];
 
-const KNOWN_DEPARTMENT_KEYS = [
-  "department",
-  "Department.name",
-  "team",
-  "division",
-];
+const KNOWN_ROLE_KEYS = ["jobTitle", "role", "position", "title"];
 
-const KNOWN_ROLE_KEYS = [
-  "jobTitle",
-  "role",
-  "position",
-  "title",
-];
+const KNOWN_STATUS_KEYS = ["status", "employmentStatus", "state", "Stage", "type"];
 
-const KNOWN_STATUS_KEYS = [
-  "status",
-  "employmentStatus",
-  "state",
-  "Stage",
-  "type",
-];
-
-const KNOWN_START_KEYS = [
-  "startDate",
-  "employmentStartDate",
-  "hireDate",
-  "joinDate",
-  "start",
-  "commencementDate",
-];
+const KNOWN_START_KEYS = ["startDate", "employmentStartDate", "hireDate", "joinDate", "start", "commencementDate"];
 
 const HUMANIZED_KEY_OVERRIDES: Record<string, string> = {
   employeeCount: "Employees",
@@ -360,14 +330,10 @@ type MetricDefinition = {
   icon: ComponentType<{ className?: string }>;
 };
 
-function extractReadableSummary(
-  summary?: string,
-  message?: string
-): string | undefined {
+function extractReadableSummary(summary?: string, message?: string): string | undefined {
   if (summary && summary.trim().length > 0) {
     return summary.trim();
   }
-
   if (!message) return undefined;
 
   const firstMeaningfulLine = message
@@ -421,7 +387,7 @@ function deriveValueFromKeys(record: any, keys: string[]): string | undefined {
       let value = record;
       for (const part of parts) {
         if (value && typeof value === "object" && part in value) {
-          value = value[part as keyof typeof value];
+          value = (value as any)[part];
         } else {
           value = undefined;
           break;
@@ -530,7 +496,6 @@ function getMetricIconForKey(key: string): ComponentType<{ className?: string }>
   return Target;
 }
 
-
 export default function AIAssistantPage() {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -546,6 +511,9 @@ export default function AIAssistantPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [undoInProgress, setUndoInProgress] = useState<string | null>(null);
+
+  // Latest result insight panel state (from main)
   const [latestResult, setLatestResult] = useState<any>(null);
   const [latestResultMeta, setLatestResultMeta] = useState<{
     summary?: string;
@@ -565,13 +533,14 @@ export default function AIAssistantPage() {
   );
 
   const arrayPreview = useMemo(() => {
-    if (!Array.isArray(latestResult)) return [] as {
-      name: string;
-      role?: string;
-      department?: string;
-      status?: string;
-      startDateLabel?: string;
-    }[];
+    if (!Array.isArray(latestResult))
+      return [] as {
+        name: string;
+        role?: string;
+        department?: string;
+        status?: string;
+        startDateLabel?: string;
+      }[];
 
     return latestResult.slice(0, 5).map((item, index) => {
       const name = deriveName(item) || `Result ${index + 1}`;
@@ -679,9 +648,7 @@ export default function AIAssistantPage() {
     }
 
     return Object.entries(latestResult)
-      .filter(([, value]) =>
-        typeof value === "string" || typeof value === "boolean" || value === null || value === undefined
-      )
+      .filter(([, value]) => typeof value === "string" || typeof value === "boolean" || value === null || value === undefined)
       .map(([key, value]) => ({
         label: humanizeKey(key),
         value: value === null || value === undefined ? "—" : String(value),
@@ -827,18 +794,19 @@ export default function AIAssistantPage() {
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
-    
-    setUploadedFiles(prev => [...prev, ...files]);
-    
+
+    setUploadedFiles((prev) => [...prev, ...files]);
+
     // Auto-trigger conversation about the files
-    const fileNames = files.map(f => f.name).join(', ');
-    const message = files.length === 1
-      ? `I've uploaded ${files[0].name}. What should I do with it?`
-      : `I've uploaded ${files.length} files: ${fileNames}. What should I do with them?`;
-    
+    const fileNames = files.map((f) => f.name).join(", ");
+    const message =
+      files.length === 1
+        ? `I've uploaded ${files[0].name}. What should I do with it?`
+        : `I've uploaded ${files.length} files: ${fileNames}. What should I do with them?`;
+
     setTimeout(() => handleSendMessage(message), 100);
   };
 
@@ -852,7 +820,94 @@ export default function AIAssistantPage() {
   };
 
   const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const createAssistantMessage = (data: any): Message => ({
+    id: `assistant-${Date.now()}`,
+    role: "assistant",
+    content: data.message || "",
+    timestamp: new Date(),
+    actionType: data.actionType,
+    result: data.result,
+    suggestions: data.suggestions,
+    summary: data.summary,
+    requiresConfirmation: data.requiresConfirmation,
+    preview: data.preview,
+    undoable: data.undoable,
+    undoId: data.undoId,
+  });
+
+  const buildFriendlyErrorMessage = (error: any) => {
+    const rawMessage =
+      typeof error?.message === "string" ? error.message : typeof error === "string" ? error : "";
+    const errorMsg = rawMessage.toLowerCase();
+
+    if (errorMsg.includes("429") || errorMsg.includes("rate limit")) {
+      const resetTime = new Date(Date.now() + 3600000).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return {
+        friendlyMessage: `🕐 **You're using AI Assistant really well!**
+
+We've hit our hourly limit to keep costs manageable. This resets at ${resetTime}.
+
+**What you can do now:**
+✅ Save your current conversation
+✅ Check out the Workflow Library (no limits!)
+✅ Come back in an hour to continue
+
+*Tip: You can ask up to 100 questions per hour.*`,
+        toastMessage: "Rate limit reached - take a quick break!",
+      };
+    }
+
+    if (errorMsg.includes("api key") || errorMsg.includes("401") || errorMsg.includes("403")) {
+      return {
+        friendlyMessage: `🔑 **Hmm, there's a setup issue...**
+
+The AI features haven't been fully configured yet. This is quick to fix!
+
+**What needs to happen:**
+✅ An admin needs to add the OpenAI API key
+✅ Takes about 5 minutes to set up
+
+*Want to set this up? Check the SETUP_AI_ASSISTANT.md guide or contact your IT team.*`,
+        toastMessage: "Something went wrong - try refreshing",
+      };
+    }
+
+    if (errorMsg.includes("network") || errorMsg.includes("fetch")) {
+      return {
+        friendlyMessage: `🌐 **Connection hiccup...**
+
+It looks like there's a network issue. This usually fixes itself!
+
+**Try these:**
+✅ Check your internet connection
+✅ Refresh the page
+✅ Try your question again
+
+*Still having issues? Contact support.*`,
+        toastMessage: "Something went wrong - try refreshing",
+      };
+    }
+
+    return {
+      friendlyMessage: `😅 **Oops, something unexpected happened!**
+
+Don't worry - your data is safe. This is likely a temporary glitch.
+
+**What to try:**
+✅ Rephrase your question
+✅ Try a simpler query first
+✅ Refresh the page
+
+*Error details for support: ${rawMessage}*`,
+      toastMessage: "Something went wrong - try refreshing",
+    };
   };
 
   const handleSendMessage = async (messageText: string = input) => {
@@ -883,27 +938,24 @@ export default function AIAssistantPage() {
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      // NEW: Use unified orchestrator endpoint for intelligent routing
+      // Unified orchestrator endpoint
       let res;
-      
+
       if (uploadedFiles.length > 0) {
-        // Use FormData for file uploads
         const formData = new FormData();
-        formData.append('message', messageText);
-        
+        formData.append("message", messageText);
         uploadedFiles.forEach((file, idx) => {
           formData.append(`file_${idx}`, file);
         });
-        
+
         res = await fetch("/api/ai/chat", {
           method: "POST",
-          body: formData, // Browser sets correct Content-Type automatically
+          body: formData,
         });
-        
+
         // Clear uploaded files after sending
         setUploadedFiles([]);
       } else {
-        // Regular JSON for text-only messages
         res = await fetch("/api/ai/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -914,21 +966,26 @@ export default function AIAssistantPage() {
       const data = await res.json();
 
       // Handle errors from API
-      if (!data.success) {
-        throw new Error(data.message || data.error || "Request failed");
+      if (!data?.success) {
+        throw new Error(data?.message || data?.error || "Request failed");
       }
 
-      // Extract response
-      const response = {
-        content: data.message,
-        result: data.result,
-        suggestions: data.suggestions,
-        actionType: data.actionType || "info",
-      };
-
-      // Handle workflows (show in visual editor)
+      // Workflows show in visual editor
       if (data.actionType === "workflow" && data.result) {
         setGeneratedWorkflow(data.result);
+      }
+
+      // Update latest result panel for non-workflow responses
+      if (data.actionType !== "workflow") {
+        setLatestResult(data.result ?? null);
+        setLatestResultMeta({
+          summary: data.summary,
+          suggestions: data.suggestions,
+          actionType: data.actionType,
+          prompt: messageText,
+          timestamp: Date.now(),
+          message: data.message,
+        });
       }
 
       // Remove loading message and add response
@@ -936,88 +993,14 @@ export default function AIAssistantPage() {
         const filtered = prev.filter((m) => m.id !== loadingMessage.id);
         return [
           ...filtered,
-          {
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: response.content,
-            timestamp: new Date(),
-            actionType: response.actionType,
-            result: response.result,
-            suggestions: response.suggestions,
-            summary: data.summary,
-          },
+          createAssistantMessage({
+            ...data,
+            actionType: (data.actionType as ActionType) || "info",
+          }),
         ];
       });
-
-      if (response.actionType !== "workflow") {
-        if (response.result !== undefined && response.result !== null) {
-          setLatestResult(response.result);
-        } else {
-          setLatestResult(null);
-        }
-
-        setLatestResultMeta({
-          summary: data.summary,
-          suggestions: response.suggestions,
-          actionType: response.actionType,
-          prompt: messageText,
-          timestamp: Date.now(),
-          message: response.content,
-        });
-      }
     } catch (error: any) {
-      // Friendly error messages for non-technical users
-      let friendlyMessage = "";
-      const errorMsg = error.message?.toLowerCase() || "";
-
-      if (errorMsg.includes("429") || errorMsg.includes("rate limit")) {
-        const resetTime = new Date(Date.now() + 3600000).toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-        friendlyMessage = `🕐 **You're using AI Assistant really well!**
-
-We've hit our hourly limit to keep costs manageable. This resets at ${resetTime}.
-
-**What you can do now:**
-✅ Save your current conversation
-✅ Check out the Workflow Library (no limits!)
-✅ Come back in an hour to continue
-
-*Tip: You can ask up to 100 questions per hour.*`;
-      } else if (errorMsg.includes("api key") || errorMsg.includes("401") || errorMsg.includes("403")) {
-        friendlyMessage = `🔑 **Hmm, there's a setup issue...**
-
-The AI features haven't been fully configured yet. This is quick to fix!
-
-**What needs to happen:**
-✅ An admin needs to add the OpenAI API key
-✅ Takes about 5 minutes to set up
-
-*Want to set this up? Check the SETUP_AI_ASSISTANT.md guide or contact your IT team.*`;
-      } else if (errorMsg.includes("network") || errorMsg.includes("fetch")) {
-        friendlyMessage = `🌐 **Connection hiccup...**
-
-It looks like there's a network issue. This usually fixes itself!
-
-**Try these:**
-✅ Check your internet connection
-✅ Refresh the page
-✅ Try your question again
-
-*Still having issues? Contact support.*`;
-      } else {
-        friendlyMessage = `😅 **Oops, something unexpected happened!**
-
-Don't worry - your data is safe. This is likely a temporary glitch.
-
-**What to try:**
-✅ Rephrase your question
-✅ Try a simpler query first
-✅ Refresh the page
-
-*Error details for support: ${error.message}*`;
-      }
+      const { friendlyMessage, toastMessage } = buildFriendlyErrorMessage(error);
 
       setMessages((prev) => {
         const filtered = prev.filter((m) => m.id !== loadingMessage.id);
@@ -1031,44 +1014,272 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           },
         ];
       });
-      
+
       // Still show toast but friendlier
-      if (errorMsg.includes("429")) {
-        toast.error("Rate limit reached - take a quick break!");
-      } else {
-        toast.error("Something went wrong - try refreshing");
-      }
+      toast.error(toastMessage);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleUndo = async (undoId?: string) => {
+    if (!undoId || isProcessing || undoInProgress) return;
+
+    setIsProcessing(true);
+    setUndoInProgress(undoId);
+
+    const loadingMessage: Message = {
+      id: `assistant-undo-${Date.now()}`,
+      role: "assistant",
+      content: "Reverting change...",
+      timestamp: new Date(),
+      isLoading: true,
+    };
+
+    setMessages((prev) => [...prev, loadingMessage]);
+
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "undo", undoId }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || data.error || "Undo failed");
+      }
+
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== loadingMessage.id);
+        return [...filtered, createAssistantMessage(data)];
+      });
+    } catch (error: any) {
+      const { friendlyMessage, toastMessage } = buildFriendlyErrorMessage(error);
+
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.id !== loadingMessage.id);
+        return [
+          ...filtered,
+          {
+            id: `error-${Date.now()}`,
+            role: "assistant",
+            content: friendlyMessage,
+            timestamp: new Date(),
+          },
+        ];
+      });
+
+      toast.error(toastMessage);
+    } finally {
+      setIsProcessing(false);
+      setUndoInProgress(null);
+    }
+  };
+
+  const formatLabel = (label: string) =>
+    label
+      .replace(/([A-Z])/g, " $1")
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/(^|\s)([a-z])/g, (_, space, char) => `${space}${char.toUpperCase()}`);
+
+  const formatPrimitiveValue = (value: any) => {
+    if (value === null || value === undefined || value === "") {
+      return "—";
+    }
+
+    if (typeof value === "boolean") {
+      return value ? "Yes" : "No";
+    }
+
+    return String(value);
+  };
+
+  const renderPreviewContent = (preview: any): ReactNode => {
+    if (preview === null || preview === undefined) {
+      return <span className="text-sm text-foreground">—</span>;
+    }
+
+    const renderChanges = (changes: any[]): ReactNode => {
+      if (!Array.isArray(changes) || changes.length === 0) return null;
+
+      return (
+        <div className="space-y-2">
+          {changes.slice(0, 5).map((change, idx) => {
+            const { name, displayCurrent, displayNew, currentValue, newValue, change: delta, ...rest } = change || {};
+
+            return (
+              <div key={`${name || idx}-${idx}`} className="rounded-md border border-muted/40 bg-muted/30 p-2">
+                {name && <div className="text-sm font-medium text-foreground">{name}</div>}
+                {(displayCurrent !== undefined || currentValue !== undefined) && (
+                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>Current</span>
+                    <span className="font-medium text-foreground">
+                      {formatPrimitiveValue(displayCurrent ?? currentValue)}
+                    </span>
+                  </div>
+                )}
+                {(displayNew !== undefined || newValue !== undefined) && (
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>New</span>
+                    <span className="font-medium text-foreground">{formatPrimitiveValue(displayNew ?? newValue)}</span>
+                  </div>
+                )}
+                {delta !== undefined && (
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span>Change</span>
+                    <span className="font-medium text-foreground">{formatPrimitiveValue(delta)}</span>
+                  </div>
+                )}
+                {Object.entries(rest || {})
+                  .filter(([key]) => key !== "employeeId")
+                  .map(([key, value]) => (
+                    <div key={key} className="mt-1 flex flex-col rounded-md border border-muted/30 bg-background/60 px-2 py-1 text-[11px]">
+                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
+                      <div className="text-xs text-foreground">
+                        {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            );
+          })}
+          {changes.length > 5 && <div className="text-xs text-muted-foreground">+{changes.length - 5} more changes</div>}
+        </div>
+      );
+    };
+
+    if (Array.isArray(preview)) {
+      return (
+        <div className="space-y-2">
+          {preview.map((item, idx) => (
+            <div key={idx} className="rounded-md border border-muted/40 bg-muted/30 p-2 text-sm text-foreground">
+              {typeof item === "object" && item !== null ? (
+                <div className="grid gap-1">
+                  {Object.entries(item).map(([key, value]) => (
+                    <div key={key} className="flex flex-col rounded-md border border-muted/30 bg-background/60 px-2 py-1 text-xs">
+                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
+                      <div className="text-sm text-foreground">
+                        {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span>{formatPrimitiveValue(item)}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (typeof preview === "object") {
+      const previewObj = preview as Record<string, any>;
+
+      if (Array.isArray(previewObj.changes)) {
+        const { changes, ...rest } = previewObj;
+
+        return (
+          <div className="space-y-3">
+            {Object.keys(rest).length > 0 && (
+              <div className="grid gap-2">
+                {Object.entries(rest).map(([key, value]) => (
+                  <div key={key} className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
+                    <div className="text-sm text-foreground mt-1">
+                      {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Changes</div>
+              {renderChanges(changes)}
+            </div>
+          </div>
+        );
+      }
+
+      if (Array.isArray(previewObj.fields)) {
+        const { fields, ...rest } = previewObj;
+
+        return (
+          <div className="space-y-3">
+            {Object.keys(rest).length > 0 && (
+              <div className="grid gap-2">
+                {Object.entries(rest).map(([key, value]) => (
+                  <div key={key} className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
+                    <div className="text-sm text-foreground mt-1">
+                      {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Fields</div>
+              <ul className="space-y-1 text-sm text-foreground">
+                {fields.map((field: any, idx: number) => (
+                  <li key={idx} className="flex items-center justify-between gap-2 rounded-md border border-muted/30 bg-muted/20 px-2 py-1">
+                    <span className="font-medium">{field?.label || `Field ${idx + 1}`}</span>
+                    {field?.type && (
+                      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {formatPrimitiveValue(field.type)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="grid gap-2">
+          {Object.entries(previewObj).map(([key, value]) => (
+            <div key={key} className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
+              <div className="text-sm text-foreground mt-1">
+                {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return <span className="text-sm text-foreground">{formatPrimitiveValue(preview)}</span>;
+  };
+
+  const renderPreviewCard = (preview: any): ReactNode => {
+    if (!preview) return null;
+
+    return (
+      <div className="rounded-lg border border-muted bg-background p-3 shadow-sm" role="region" aria-label="Proposed changes preview" tabIndex={0}>
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Preview</div>
+        <div className="space-y-2 text-sm text-foreground" aria-live="polite">
+          {renderPreviewContent(preview)}
+        </div>
+      </div>
+    );
+  };
+
   const detectActionType = (text: string): ActionType => {
     const lower = text.toLowerCase();
-    if (
-      lower.includes("how many") ||
-      lower.includes("show me") ||
-      lower.includes("list") ||
-      lower.includes("find") ||
-      lower.includes("count")
-    ) {
+    if (lower.includes("how many") || lower.includes("show me") || lower.includes("list") || lower.includes("find") || lower.includes("count")) {
       return "query";
     }
-    if (
-      lower.includes("workflow") ||
-      lower.includes("automat") ||
-      lower.includes("alert") ||
-      lower.includes("remind") ||
-      lower.includes("trigger")
-    ) {
+    if (lower.includes("workflow") || lower.includes("automat") || lower.includes("alert") || lower.includes("remind") || lower.includes("trigger")) {
       return "workflow";
     }
-    if (
-      lower.includes("add field") ||
-      lower.includes("create field") ||
-      lower.includes("new field") ||
-      lower.includes("custom field")
-    ) {
+    if (lower.includes("add field") || lower.includes("create field") || lower.includes("new field") || lower.includes("custom field")) {
       return "field";
     }
     return "info";
@@ -1100,7 +1311,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     }
 
     let content = `${summary ? summary + "\n\n" : ""}${data.explanation}`;
-    
+
     if (data.data && Array.isArray(data.data) && data.data.length > 0) {
       content += `\n\nShowing ${Math.min(data.data.length, 10)} of ${data.data.length} total records.`;
     }
@@ -1213,16 +1424,14 @@ Don't worry - your data is safe. This is likely a temporary glitch.
   };
 
   // Check if AI is enabled
-  if (!session?.user || session.user.role === "EMPLOYEE") {
+  if (!session?.user || (session.user as any).role === "EMPLOYEE") {
     return (
       <PageShell title="AI Assistant" icon={<Bot className="w-6 h-6" />}>
         <div className="flex items-center justify-center h-96">
           <Card className="p-6 max-w-md text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-amber-500" />
             <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
-            <p className="text-sm text-muted-foreground">
-              AI Assistant features are only available to administrators.
-            </p>
+            <p className="text-sm text-muted-foreground">AI Assistant features are only available to administrators.</p>
           </Card>
         </div>
       </PageShell>
@@ -1244,90 +1453,92 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           >
             <Sparkles className="w-4 h-4" />
             What can I do?
-            <ChevronDown className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${showCapabilities ? "rotate-180" : ""}`} />
           </Button>
 
           {/* Render dropdown via portal to escape stacking context */}
-          {isMounted && showCapabilities && createPortal(
-            <>
-              {/* Backdrop */}
-              <div 
-                className="fixed inset-0 bg-black/20 z-[9998]" 
-                onClick={() => setShowCapabilities(false)}
-              />
-              {/* Dropdown */}
-              <div 
-                className="fixed w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999]"
-                style={{
-                  top: `${dropdownPosition.top}px`,
-                  right: `${dropdownPosition.right}px`,
-                }}
-              >
-                <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl z-10">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    AI Assistant Capabilities
-                  </h3>
-                  <p className="text-sm text-white/90 mt-1">
-                    Click any example to try it instantly • {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
-                  </p>
-                </div>
+          {isMounted &&
+            showCapabilities &&
+            createPortal(
+              <>
+                {/* Backdrop */}
+                <div className="fixed inset-0 bg-black/20 z-[9998]" onClick={() => setShowCapabilities(false)} />
+                {/* Dropdown */}
+                <div
+                  className="fixed w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999]"
+                  style={{
+                    top: `${dropdownPosition.top}px`,
+                    right: `${dropdownPosition.right}px`,
+                  }}
+                >
+                  <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl z-10">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      AI Assistant Capabilities
+                    </h3>
+                    <p className="text-sm text-white/90 mt-1">
+                      Click any example to try it instantly •{" "}
+                      {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
+                    </p>
+                  </div>
 
-                <div className="p-4 space-y-3">
-                  {AI_CAPABILITIES.map((category, idx) => (
-                    <div key={idx} className="pb-3 border-b last:border-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
-                          {category.icon}
-                        </div>
-                        <h4 className="font-semibold text-sm flex-1">{category.category}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {category.capabilities.length}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 gap-1.5">
-                        {category.capabilities.map((cap, capIdx) => (
-                          <button
-                            key={capIdx}
-                            onClick={() => {
-                              handleSendMessage(cap.example);
-                              setShowCapabilities(false);
-                            }}
-                            className="text-left p-2 rounded-lg hover:bg-muted transition-colors group"
+                  <div className="p-4 space-y-3">
+                    {AI_CAPABILITIES.map((category, idx) => (
+                      <div key={idx} className="pb-3 border-b last:border-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div
+                            className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}
                           >
-                            <div className="flex items-start gap-2">
-                              <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors">
-                                  {cap.action}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground mt-0.5 italic truncate">
-                                  "{cap.example}"
+                            {category.icon}
+                          </div>
+                          <h4 className="font-semibold text-sm flex-1">{category.category}</h4>
+                          <Badge variant="secondary" className="text-xs">
+                            {category.capabilities.length}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {category.capabilities.map((cap, capIdx) => (
+                            <button
+                              key={capIdx}
+                              onClick={() => {
+                                handleSendMessage(cap.example);
+                                setShowCapabilities(false);
+                              }}
+                              className="text-left p-2 rounded-lg hover:bg-muted transition-colors group"
+                            >
+                              <div className="flex items-start gap-2">
+                                <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors">
+                                    {cap.action}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground mt-0.5 italic truncate">
+                                    "{cap.example}"
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </button>
-                        ))}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
-                  <p className="text-xs text-muted-foreground">
-                    💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
-                  </p>
+                  <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
+                    <p className="text-xs text-muted-foreground">
+                      💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </>,
-            document.body
-          )}
+              </>,
+              document.body
+            )}
         </>
       }
     >
       <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
         {/* Left: Chat Interface */}
-        <div 
+        <div
           className="w-1/2 flex flex-col min-h-0 h-full relative"
           onDrop={handleFileDrop}
           onDragOver={handleDragOver}
@@ -1343,7 +1554,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               </div>
             </div>
           )}
-          
+
           <div className="flex flex-col h-full border rounded-lg bg-card shadow-sm">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
@@ -1369,7 +1580,9 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       className="group border rounded-lg p-3 hover:shadow-md transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50"
                     >
                       <div className="flex items-start gap-2.5">
-                        <div className={`flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-sm`}>
+                        <div
+                          className={`flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-sm`}
+                        >
                           {category.icon}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1384,9 +1597,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                 className="text-[10px] px-2.5 py-1 rounded-full bg-muted hover:bg-primary/10 transition-colors group/btn"
                                 title={example}
                               >
-                                <span className="block max-w-[200px] truncate">
-                                  {example}
-                                </span>
+                                <span className="block max-w-[200px] truncate">{example}</span>
                               </button>
                             ))}
                           </div>
@@ -1421,33 +1632,79 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             ) : (
               /* Messages */
               <div className="flex-1 p-4 space-y-4 overflow-auto">
-                {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    {msg.isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Thinking...</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="whitespace-pre-wrap text-sm">
-                          {msg.content}
+                {messages.map((msg) => {
+                  const isAssistant = msg.role === "assistant";
+
+                  return (
+                    <div key={msg.id} className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
+                      <div className={`max-w-[80%] ${isAssistant ? "space-y-2" : ""}`}>
+                        <div className={`rounded-lg p-3 ${isAssistant ? "bg-muted" : "bg-primary text-primary-foreground"}`}>
+                          {msg.isLoading ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Thinking...</span>
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                          )}
                         </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+
+                        {isAssistant && !msg.isLoading && (
+                          <div className="space-y-2">
+                            {msg.preview && <div>{renderPreviewCard(msg.preview)}</div>}
+
+                            {msg.requiresConfirmation && (
+                              <div className="flex flex-wrap gap-2" role="group" aria-label="Confirm or cancel proposed action">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSendMessage("yes")}
+                                  disabled={isProcessing}
+                                  aria-label="Confirm this action"
+                                  type="button"
+                                  autoFocus
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSendMessage("no")}
+                                  disabled={isProcessing}
+                                  aria-label="Cancel this action"
+                                  type="button"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            )}
+
+                            {msg.undoable && msg.undoId && (
+                              <div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUndo(msg.undoId)}
+                                  disabled={isProcessing || undoInProgress === msg.undoId}
+                                  aria-label="Undo this change"
+                                  type="button"
+                                >
+                                  {undoInProgress === msg.undoId ? (
+                                    <span className="flex items-center gap-2">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Undoing...
+                                    </span>
+                                  ) : (
+                                    "Undo"
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -1484,40 +1741,25 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 <div className="mb-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">Uploaded Files</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setUploadedFiles([])}
-                      className="h-6 text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setUploadedFiles([])} className="h-6 text-xs">
                       Clear all
                     </Button>
                   </div>
                   {uploadedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-2 rounded-lg border bg-card"
-                    >
+                    <div key={idx} className="flex items-center gap-3 p-2 rounded-lg border bg-card">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(idx)}
-                        className="h-6 w-6 p-0"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => removeFile(idx)} className="h-6 w-6 p-0">
                         <X className="w-3 h-3" />
                       </Button>
                     </div>
                   ))}
                 </div>
               )}
-              
+
               {showWelcome && !uploadedFiles.length && (
                 <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <ArrowRight className="w-4 h-4 text-primary animate-pulse" />
@@ -1532,16 +1774,15 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && !isProcessing && handleSendMessage()}
-                    placeholder={showWelcome ? "Type here: 'How many employees don't have IRD numbers?'" : "Ask anything..."}
+                    placeholder={
+                      showWelcome ? "Type here: 'How many employees don't have IRD numbers?'" : "Ask anything..."
+                    }
                     className="w-full rounded-lg border-2 px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-sm transition-all"
                     disabled={isProcessing}
                     autoFocus
                   />
                   {input && (
-                    <Badge 
-                      variant="secondary" 
-                      className="absolute right-14 top-1/2 -translate-y-1/2 text-xs"
-                    >
+                    <Badge variant="secondary" className="absolute right-14 top-1/2 -translate-y-1/2 text-xs">
                       Press Enter ↵
                     </Badge>
                   )}
@@ -1552,11 +1793,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   size="sm"
                   className="px-4 py-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
                 >
-                  {isProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
+                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
@@ -1572,28 +1809,18 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Workflow className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold">
-                        {generatedWorkflow.name}
-                      </h3>
-                      <Badge variant="secondary" className="ml-auto">AI Generated</Badge>
+                      <h3 className="font-semibold">{generatedWorkflow.name}</h3>
+                      <Badge variant="secondary" className="ml-auto">
+                        AI Generated
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {generatedWorkflow.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{generatedWorkflow.description}</p>
                   </div>
                   <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setGeneratedWorkflow(null)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setGeneratedWorkflow(null)}>
                       Clear
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleSaveWorkflow}
-                      className="bg-gradient-to-r from-primary to-purple-600"
-                    >
+                    <Button size="sm" onClick={handleSaveWorkflow} className="bg-gradient-to-r from-primary to-purple-600">
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Save Workflow
                     </Button>
@@ -1622,11 +1849,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         Latest Insight
                       </div>
                       <h3 className="text-xl font-bold text-foreground">{insightTitle}</h3>
-                      {readableSummary && (
-                        <p className="text-sm text-muted-foreground max-w-2xl">
-                          {readableSummary}
-                        </p>
-                      )}
+                      {readableSummary && <p className="text-sm text-muted-foreground max-w-2xl">{readableSummary}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       {lastUpdatedLabel && (
@@ -1634,12 +1857,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                           Updated {lastUpdatedLabel}
                         </Badge>
                       )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={handleExportResult}
-                      >
+                      <Button variant="outline" size="sm" className="gap-2" onClick={handleExportResult}>
                         <Download className="w-4 h-4" />
                         Quick Export
                       </Button>
@@ -1653,10 +1871,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                           {arrayMetrics.map((metric, idx) => {
                             const Icon = metric.icon;
                             return (
-                              <div
-                                key={`${metric.label}-${idx}`}
-                                className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm"
-                              >
+                              <div key={`${metric.label}-${idx}`} className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm">
                                 <div className="flex items-center gap-3">
                                   <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                     <Icon className="w-4 h-4" />
@@ -1665,14 +1880,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                     <div className="text-xs uppercase text-muted-foreground tracking-wide">
                                       {metric.label}
                                     </div>
-                                    <div className="text-lg font-semibold text-foreground">
-                                      {metric.value}
-                                    </div>
-                                    {metric.helper && (
-                                      <div className="text-xs text-muted-foreground">
-                                        {metric.helper}
-                                      </div>
-                                    )}
+                                    <div className="text-lg font-semibold text-foreground">{metric.value}</div>
+                                    {metric.helper && <div className="text-xs text-muted-foreground">{metric.helper}</div>}
                                   </div>
                                 </div>
                               </div>
@@ -1700,23 +1909,15 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                               return (
                                 <div key={`${person.name}-${idx}`} className="px-4 py-3 text-left text-sm">
                                   <div className="font-medium text-foreground">{person.name}</div>
-                                  {details && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      {details}
-                                    </div>
-                                  )}
+                                  {details && <div className="text-xs text-muted-foreground mt-1">{details}</div>}
                                   {person.startDateLabel && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      Start: {person.startDateLabel}
-                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">Start: {person.startDateLabel}</div>
                                   )}
                                 </div>
                               );
                             })
                           ) : (
-                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                              No people found for this view.
-                            </div>
+                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">No people found for this view.</div>
                           )}
                         </div>
                       </div>
@@ -1728,21 +1929,14 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                           {aggregateMetrics.map((metric, idx) => {
                             const Icon = metric.icon;
                             return (
-                              <div
-                                key={`${metric.label}-${idx}`}
-                                className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm"
-                              >
+                              <div key={`${metric.label}-${idx}`} className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm">
                                 <div className="flex items-center gap-3">
                                   <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                     <Icon className="w-4 h-4" />
                                   </div>
                                   <div>
-                                    <div className="text-xs uppercase text-muted-foreground tracking-wide">
-                                      {metric.label}
-                                    </div>
-                                    <div className="text-lg font-semibold text-foreground">
-                                      {metric.value}
-                                    </div>
+                                    <div className="text-xs uppercase text-muted-foreground tracking-wide">{metric.label}</div>
+                                    <div className="text-lg font-semibold text-foreground">{metric.value}</div>
                                   </div>
                                 </div>
                               </div>
@@ -1760,12 +1954,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                           <div className="divide-y text-sm">
                             {aggregateDetails.map((detail, idx) => (
                               <div key={`${detail.label}-${idx}`} className="flex items-center justify-between px-4 py-3">
-                                <div className="text-xs font-medium uppercase text-muted-foreground tracking-wide">
-                                  {detail.label}
-                                </div>
-                                <div className="text-sm text-foreground text-right max-w-[60%] break-words">
-                                  {detail.value}
-                                </div>
+                                <div className="text-xs font-medium uppercase text-muted-foreground tracking-wide">{detail.label}</div>
+                                <div className="text-sm text-foreground text-right max-w-[60%] break-words">{detail.value}</div>
                               </div>
                             ))}
                           </div>
@@ -1774,9 +1964,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
                       {primitiveResult && (
                         <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm p-6 text-center">
-                          <div className="text-xs uppercase text-muted-foreground tracking-wide mb-1">
-                            Result
-                          </div>
+                          <div className="text-xs uppercase text-muted-foreground tracking-wide mb-1">Result</div>
                           <div className="text-3xl font-bold text-foreground">{primitiveResult}</div>
                         </div>
                       )}
@@ -1852,9 +2040,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <Workflow className="w-7 h-7 text-white" />
                       </div>
                       <h4 className="text-sm font-semibold mb-2">Workflows</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Build automation visually from plain English
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Build automation visually from plain English</p>
                     </button>
                     <button
                       onClick={() => handleSendMessage("I want to add a custom field")}
@@ -1864,9 +2050,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <Plus className="w-7 h-7 text-white" />
                       </div>
                       <h4 className="text-sm font-semibold mb-2">Custom Fields</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Extend your system without code or migrations
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Extend your system without code or migrations</p>
                     </button>
                   </div>
 
@@ -1888,4 +2072,3 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     </PageShell>
   );
 }
-

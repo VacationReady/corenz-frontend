@@ -226,11 +226,8 @@ export default function FormsPage() {
 
         {/* Right: actions */}
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="h-10">
-            <Link href="/settings/forms/exit-interview">Exit Interview Forms</Link>
-          </Button>
           <Button asChild variant="ghost" className="h-10">
-            <Link href="/settings/forms/new">
+            <Link href="/settings/forms/new" className="flex items-center">
               <Plus className="mr-1.5 h-4 w-4" />
               Add New
             </Link>

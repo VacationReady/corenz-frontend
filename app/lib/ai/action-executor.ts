@@ -232,7 +232,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
   // Multi-step conversation for booking leave
   if (!pending || pending.type !== "book_leave") {
     // Step 1: Find employee
-    const { employeeName } = action.parameters;
+    const { employeeName, startDate, endDate } = action.parameters;
     
     if (!employeeName) {
       return {
@@ -264,7 +264,39 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
     const employee = employees[0];
 
-    // Set pending action
+    // Check if dates were provided in the initial request
+    if (startDate || endDate) {
+      // Dates were provided! Skip to asking for leave type
+      const start = startDate || endDate;
+      const end = endDate || startDate;
+      
+      setPendingAction(action.userId, action.companyId, {
+        type: "book_leave",
+        step: 2,  // Skip step 1 (dates), go directly to step 2 (leave type)
+        data: { employeeId: employee.id, employeeName: employee.name, startDate: start, endDate: end },
+      });
+
+      // Get leave categories
+      const categories = await prisma.eventCategory.findMany({
+        where: { companyId: action.companyId, isActive: true },
+        select: { id: true, name: true },
+      });
+
+      const isSingleDay = start === end;
+      const dateDisplay = isSingleDay ? start : `${start} to ${end}`;
+      
+      return {
+        success: true,
+        message: `Great! I'll book leave for **${employee.name}** on **${dateDisplay}**.\n\n**Which type of leave?**\n${categories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")}`,
+        nextStep: {
+          question: "Which leave type?",
+          options: categories.map(c => c.name),
+        },
+        data: { categories },
+      };
+    }
+
+    // No dates provided - ask for them
     setPendingAction(action.userId, action.companyId, {
       type: "book_leave",
       step: 1,

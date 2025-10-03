@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import type { ReactNode } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import type { ReactNode, ComponentType } from "react";
 import { useSession } from "next-auth/react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -31,14 +31,10 @@ import {
   Database,
   Edit,
   Mail,
-  Clock,
   BarChart3,
   Settings,
-  UserPlus,
-  UserMinus,
   Briefcase,
   Shield,
-  Globe,
   Download,
   Upload,
   X,
@@ -307,6 +303,198 @@ const AI_CAPABILITIES = [
   },
 ];
 
+const KNOWN_NAME_KEYS = ["name", "fullName", "displayName", "firstName", "lastName"];
+
+const KNOWN_DEPARTMENT_KEYS = ["department", "Department.name", "team", "division"];
+
+const KNOWN_ROLE_KEYS = ["jobTitle", "role", "position", "title"];
+
+const KNOWN_STATUS_KEYS = ["status", "employmentStatus", "state", "Stage", "type"];
+
+const KNOWN_START_KEYS = ["startDate", "employmentStartDate", "hireDate", "joinDate", "start", "commencementDate"];
+
+const HUMANIZED_KEY_OVERRIDES: Record<string, string> = {
+  employeeCount: "Employees",
+  totalSalary: "Total Salary",
+  averageSalary: "Average Salary",
+  maxSalary: "Highest Salary",
+  minSalary: "Lowest Salary",
+  missingCount: "Missing Records",
+  expiringSoon: "Expiring Soon",
+};
+
+type MetricDefinition = {
+  label: string;
+  value: string;
+  helper?: string;
+  icon: ComponentType<{ className?: string }>;
+};
+
+function extractReadableSummary(summary?: string, message?: string): string | undefined {
+  if (summary && summary.trim().length > 0) {
+    return summary.trim();
+  }
+  if (!message) return undefined;
+
+  const firstMeaningfulLine = message
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+
+  if (!firstMeaningfulLine) return undefined;
+
+  return firstMeaningfulLine.replace(/^[#>*`\-\d\.\s]+/, "").trim();
+}
+
+function flattenRecord(record: any, prefix = ""): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  if (!record || typeof record !== "object") {
+    if (prefix) {
+      result[prefix] = record;
+    }
+    return result;
+  }
+
+  Object.entries(record).forEach(([key, value]) => {
+    const nextKey = prefix ? `${prefix}.${key}` : key;
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      Object.assign(result, flattenRecord(value, nextKey));
+    } else {
+      result[nextKey] = value;
+    }
+  });
+
+  return result;
+}
+
+function escapeCsvValue(value: any): string {
+  if (value === null || value === undefined) return "";
+  const stringValue = String(value);
+  if (/[",\n]/.test(stringValue)) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+}
+
+function deriveValueFromKeys(record: any, keys: string[]): string | undefined {
+  if (!record) return undefined;
+
+  for (const key of keys) {
+    if (key.includes(".")) {
+      const parts = key.split(".");
+      let value = record;
+      for (const part of parts) {
+        if (value && typeof value === "object" && part in value) {
+          value = (value as any)[part];
+        } else {
+          value = undefined;
+          break;
+        }
+      }
+      if (value !== undefined && value !== null) {
+        return String(value);
+      }
+    } else if (record[key] !== undefined && record[key] !== null) {
+      const currentValue = record[key];
+      if (typeof currentValue === "string") {
+        if (key === "lastName" && record.firstName) {
+          return `${record.firstName} ${currentValue}`;
+        }
+        return currentValue;
+      }
+      if (typeof currentValue === "number") {
+        return currentValue.toString();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function deriveName(record: any): string | undefined {
+  const name = deriveValueFromKeys(record, KNOWN_NAME_KEYS);
+  if (name) return name;
+
+  if (record?.User) {
+    const fromUser = deriveValueFromKeys(record.User, ["fullName", "name", "firstName"]);
+    if (fromUser) {
+      const last = record.User.lastName ? ` ${record.User.lastName}` : "";
+      return `${fromUser}${last}`.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function deriveDepartment(record: any): string | undefined {
+  const department = deriveValueFromKeys(record, KNOWN_DEPARTMENT_KEYS);
+  if (department) return department;
+
+  if (record?.Department?.name) {
+    return record.Department.name;
+  }
+
+  return undefined;
+}
+
+function deriveRole(record: any): string | undefined {
+  return deriveValueFromKeys(record, KNOWN_ROLE_KEYS);
+}
+
+function deriveStatus(record: any): string | undefined {
+  return deriveValueFromKeys(record, KNOWN_STATUS_KEYS)?.replace(/_/g, " ");
+}
+
+function deriveStartDate(record: any): Date | undefined {
+  for (const key of KNOWN_START_KEYS) {
+    if (record?.[key]) {
+      const date = new Date(record[key]);
+      if (!Number.isNaN(date.getTime())) {
+        return date;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function formatDateLabel(date?: Date): string | undefined {
+  if (!date) return undefined;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function humanizeKey(key: string): string {
+  if (HUMANIZED_KEY_OVERRIDES[key]) {
+    return HUMANIZED_KEY_OVERRIDES[key];
+  }
+
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getMetricIconForKey(key: string): ComponentType<{ className?: string }> {
+  if (/salary|cost|budget|amount/i.test(key)) {
+    return BarChart3;
+  }
+  if (/average|mean|median/i.test(key)) {
+    return TrendingUp;
+  }
+  if (/count|total|employees|people/i.test(key)) {
+    return Users;
+  }
+  if (/expir|upcoming|due/i.test(key)) {
+    return Calendar;
+  }
+  return Target;
+}
 
 export default function AIAssistantPage() {
   const { data: session } = useSession();
@@ -324,6 +512,262 @@ export default function AIAssistantPage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [undoInProgress, setUndoInProgress] = useState<string | null>(null);
+
+  // Latest result insight panel state (from main)
+  const [latestResult, setLatestResult] = useState<any>(null);
+  const [latestResultMeta, setLatestResultMeta] = useState<{
+    summary?: string;
+    suggestions?: string[];
+    actionType?: ActionType;
+    prompt?: string;
+    timestamp: number;
+    message?: string;
+  } | null>(null);
+
+  const hasLatestResult = latestResult !== null && latestResult !== undefined;
+  const isArrayResult = Array.isArray(latestResult);
+
+  const readableSummary = useMemo(
+    () => extractReadableSummary(latestResultMeta?.summary, latestResultMeta?.message),
+    [latestResultMeta]
+  );
+
+  const arrayPreview = useMemo(() => {
+    if (!Array.isArray(latestResult))
+      return [] as {
+        name: string;
+        role?: string;
+        department?: string;
+        status?: string;
+        startDateLabel?: string;
+      }[];
+
+    return latestResult.slice(0, 5).map((item, index) => {
+      const name = deriveName(item) || `Result ${index + 1}`;
+      const role = deriveRole(item);
+      const department = deriveDepartment(item);
+      const status = deriveStatus(item);
+      const startDateLabel = formatDateLabel(deriveStartDate(item));
+
+      return {
+        name,
+        role: role || undefined,
+        department: department || undefined,
+        status: status || undefined,
+        startDateLabel: startDateLabel || undefined,
+      };
+    });
+  }, [latestResult]);
+
+  const arrayMetrics = useMemo(() => {
+    if (!Array.isArray(latestResult)) return [] as MetricDefinition[];
+
+    const metrics: MetricDefinition[] = [];
+    const departmentSet = new Set<string>();
+    const statusCounts = new Map<string, number>();
+    let upcomingStarts = 0;
+    const now = new Date();
+
+    latestResult.forEach((item) => {
+      const department = deriveDepartment(item);
+      if (department) {
+        departmentSet.add(department);
+      }
+
+      const status = deriveStatus(item);
+      if (status) {
+        statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+      }
+
+      const startDate = deriveStartDate(item);
+      if (startDate) {
+        const diffDays = (startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays >= 0 && diffDays <= 60) {
+          upcomingStarts += 1;
+        }
+      }
+    });
+
+    metrics.push({
+      label: "Total People",
+      value: latestResult.length.toLocaleString(),
+      helper: "Records in this view",
+      icon: Users,
+    });
+
+    if (departmentSet.size > 0) {
+      metrics.push({
+        label: "Departments",
+        value: departmentSet.size.toLocaleString(),
+        helper: "Represented",
+        icon: Briefcase,
+      });
+    }
+
+    if (upcomingStarts > 0) {
+      metrics.push({
+        label: "Upcoming Starts",
+        value: upcomingStarts.toLocaleString(),
+        helper: "Next 60 days",
+        icon: Calendar,
+      });
+    }
+
+    if (statusCounts.size > 0) {
+      const [topStatus, topCount] = Array.from(statusCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+      metrics.push({
+        label: "Top Status",
+        value: topCount.toLocaleString(),
+        helper: topStatus,
+        icon: CheckCircle,
+      });
+    }
+
+    return metrics.slice(0, 4);
+  }, [latestResult]);
+
+  const aggregateMetrics = useMemo(() => {
+    if (!latestResult || Array.isArray(latestResult) || typeof latestResult !== "object") {
+      return [] as MetricDefinition[];
+    }
+
+    return Object.entries(latestResult)
+      .filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+      .map(([key, value]) => ({
+        label: humanizeKey(key),
+        value: Number(value).toLocaleString(),
+        icon: getMetricIconForKey(key),
+        helper: undefined,
+      }))
+      .slice(0, 6);
+  }, [latestResult]);
+
+  const aggregateDetails = useMemo(() => {
+    if (!latestResult || Array.isArray(latestResult) || typeof latestResult !== "object") {
+      return [] as { label: string; value: string }[];
+    }
+
+    return Object.entries(latestResult)
+      .filter(([, value]) => typeof value === "string" || typeof value === "boolean" || value === null || value === undefined)
+      .map(([key, value]) => ({
+        label: humanizeKey(key),
+        value: value === null || value === undefined ? "—" : String(value),
+      }))
+      .slice(0, 6);
+  }, [latestResult]);
+
+  const primitiveResult = useMemo(() => {
+    if (!hasLatestResult) return undefined;
+    if (Array.isArray(latestResult)) return undefined;
+
+    if (typeof latestResult === "number") {
+      return latestResult.toLocaleString();
+    }
+    if (typeof latestResult === "boolean") {
+      return latestResult ? "Yes" : "No";
+    }
+    if (typeof latestResult === "string") {
+      return latestResult;
+    }
+
+    return undefined;
+  }, [hasLatestResult, latestResult]);
+
+  const followUpSuggestions = useMemo(() => {
+    const suggestions = new Set<string>();
+    (latestResultMeta?.suggestions || []).forEach((item) => {
+      if (item) suggestions.add(item);
+    });
+
+    if ((latestResultMeta?.actionType || "") === "query") {
+      suggestions.add("Can you break this down by department?");
+      suggestions.add("Who should follow up with these employees?");
+    }
+
+    if (Array.isArray(latestResult) && latestResult.length > 0) {
+      suggestions.add("Show me more details for the next group");
+    }
+
+    return Array.from(suggestions).slice(0, 3);
+  }, [latestResult, latestResultMeta]);
+
+  const shouldShowFollowUps = followUpSuggestions.length > 0 || latestResultMeta?.actionType === "query";
+
+  const insightTitle = useMemo(() => {
+    if (!latestResultMeta?.prompt) return "Latest Insight";
+    const trimmed = latestResultMeta.prompt.trim();
+    if (trimmed.length === 0) return "Latest Insight";
+    const maxLength = 80;
+    const label = trimmed.length > maxLength ? `${trimmed.slice(0, maxLength - 1)}…` : trimmed;
+    return `Results for “${label}”`;
+  }, [latestResultMeta?.prompt]);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!latestResultMeta?.timestamp) return undefined;
+    const date = new Date(latestResultMeta.timestamp);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }, [latestResultMeta]);
+
+  const handlePrefillPrompt = (prompt: string) => {
+    setInput(prompt);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  const handleExportResult = () => {
+    if (!hasLatestResult) return;
+
+    try {
+      if (typeof window === "undefined") return;
+
+      let blob: Blob;
+      let filename = `ai-result-${new Date().toISOString().slice(0, 10)}`;
+
+      if (Array.isArray(latestResult)) {
+        const rows = latestResult.map((item) => flattenRecord(item));
+        const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+
+        if (headers.length === 0) {
+          blob = new Blob([JSON.stringify(latestResult, null, 2)], {
+            type: "application/json;charset=utf-8;",
+          });
+          filename += ".json";
+        } else {
+          const csvLines = [headers.join(",")];
+          rows.forEach((row) => {
+            const line = headers.map((header) => escapeCsvValue(row[header])).join(",");
+            csvLines.push(line);
+          });
+          blob = new Blob([csvLines.join("\n")], {
+            type: "text/csv;charset=utf-8;",
+          });
+          filename += ".csv";
+        }
+      } else {
+        const content = typeof latestResult === "string" ? latestResult : JSON.stringify(latestResult, null, 2);
+        blob = new Blob([content], {
+          type: "application/json;charset=utf-8;",
+        });
+        filename += ".json";
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Export ready—check your downloads.");
+    } catch (error) {
+      toast.error("Couldn't export results. Please try again.");
+      console.error("Export error", error);
+    }
+  };
 
   // Track if component is mounted (for portal)
   useEffect(() => {
@@ -350,18 +794,19 @@ export default function AIAssistantPage() {
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
-    
-    setUploadedFiles(prev => [...prev, ...files]);
-    
+
+    setUploadedFiles((prev) => [...prev, ...files]);
+
     // Auto-trigger conversation about the files
-    const fileNames = files.map(f => f.name).join(', ');
-    const message = files.length === 1
-      ? `I've uploaded ${files[0].name}. What should I do with it?`
-      : `I've uploaded ${files.length} files: ${fileNames}. What should I do with them?`;
-    
+    const fileNames = files.map((f) => f.name).join(", ");
+    const message =
+      files.length === 1
+        ? `I've uploaded ${files[0].name}. What should I do with it?`
+        : `I've uploaded ${files.length} files: ${fileNames}. What should I do with them?`;
+
     setTimeout(() => handleSendMessage(message), 100);
   };
 
@@ -375,7 +820,7 @@ export default function AIAssistantPage() {
   };
 
   const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const createAssistantMessage = (data: any): Message => ({
@@ -395,11 +840,7 @@ export default function AIAssistantPage() {
 
   const buildFriendlyErrorMessage = (error: any) => {
     const rawMessage =
-      typeof error?.message === "string"
-        ? error.message
-        : typeof error === "string"
-          ? error
-          : "";
+      typeof error?.message === "string" ? error.message : typeof error === "string" ? error : "";
     const errorMsg = rawMessage.toLowerCase();
 
     if (errorMsg.includes("429") || errorMsg.includes("rate limit")) {
@@ -497,27 +938,24 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      // NEW: Use unified orchestrator endpoint for intelligent routing
+      // Unified orchestrator endpoint
       let res;
-      
+
       if (uploadedFiles.length > 0) {
-        // Use FormData for file uploads
         const formData = new FormData();
-        formData.append('message', messageText);
-        
+        formData.append("message", messageText);
         uploadedFiles.forEach((file, idx) => {
           formData.append(`file_${idx}`, file);
         });
-        
+
         res = await fetch("/api/ai/chat", {
           method: "POST",
-          body: formData, // Browser sets correct Content-Type automatically
+          body: formData,
         });
-        
+
         // Clear uploaded files after sending
         setUploadedFiles([]);
       } else {
-        // Regular JSON for text-only messages
         res = await fetch("/api/ai/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -528,13 +966,26 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       const data = await res.json();
 
       // Handle errors from API
-      if (!data.success) {
-        throw new Error(data.message || data.error || "Request failed");
+      if (!data?.success) {
+        throw new Error(data?.message || data?.error || "Request failed");
       }
 
-      // Handle workflows (show in visual editor)
+      // Workflows show in visual editor
       if (data.actionType === "workflow" && data.result) {
         setGeneratedWorkflow(data.result);
+      }
+
+      // Update latest result panel for non-workflow responses
+      if (data.actionType !== "workflow") {
+        setLatestResult(data.result ?? null);
+        setLatestResultMeta({
+          summary: data.summary,
+          suggestions: data.suggestions,
+          actionType: data.actionType,
+          prompt: messageText,
+          timestamp: Date.now(),
+          message: data.message,
+        });
       }
 
       // Remove loading message and add response
@@ -544,7 +995,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           ...filtered,
           createAssistantMessage({
             ...data,
-            actionType: data.actionType || "info",
+            actionType: (data.actionType as ActionType) || "info",
           }),
         ];
       });
@@ -658,21 +1109,10 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return (
         <div className="space-y-2">
           {changes.slice(0, 5).map((change, idx) => {
-            const {
-              name,
-              displayCurrent,
-              displayNew,
-              currentValue,
-              newValue,
-              change: delta,
-              ...rest
-            } = change || {};
+            const { name, displayCurrent, displayNew, currentValue, newValue, change: delta, ...rest } = change || {};
 
             return (
-              <div
-                key={`${name || idx}-${idx}`}
-                className="rounded-md border border-muted/40 bg-muted/30 p-2"
-              >
+              <div key={`${name || idx}-${idx}`} className="rounded-md border border-muted/40 bg-muted/30 p-2">
                 {name && <div className="text-sm font-medium text-foreground">{name}</div>}
                 {(displayCurrent !== undefined || currentValue !== undefined) && (
                   <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -685,9 +1125,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 {(displayNew !== undefined || newValue !== undefined) && (
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>New</span>
-                    <span className="font-medium text-foreground">
-                      {formatPrimitiveValue(displayNew ?? newValue)}
-                    </span>
+                    <span className="font-medium text-foreground">{formatPrimitiveValue(displayNew ?? newValue)}</span>
                   </div>
                 )}
                 {delta !== undefined && (
@@ -699,28 +1137,17 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 {Object.entries(rest || {})
                   .filter(([key]) => key !== "employeeId")
                   .map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="mt-1 flex flex-col rounded-md border border-muted/30 bg-background/60 px-2 py-1 text-[11px]"
-                    >
-                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">
-                        {formatLabel(key)}
-                      </span>
+                    <div key={key} className="mt-1 flex flex-col rounded-md border border-muted/30 bg-background/60 px-2 py-1 text-[11px]">
+                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
                       <div className="text-xs text-foreground">
-                        {typeof value === "object" && value !== null
-                          ? renderPreviewContent(value)
-                          : formatPrimitiveValue(value)}
+                        {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
                       </div>
                     </div>
                   ))}
               </div>
             );
           })}
-          {changes.length > 5 && (
-            <div className="text-xs text-muted-foreground">
-              +{changes.length - 5} more changes
-            </div>
-          )}
+          {changes.length > 5 && <div className="text-xs text-muted-foreground">+{changes.length - 5} more changes</div>}
         </div>
       );
     };
@@ -729,24 +1156,14 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return (
         <div className="space-y-2">
           {preview.map((item, idx) => (
-            <div
-              key={idx}
-              className="rounded-md border border-muted/40 bg-muted/30 p-2 text-sm text-foreground"
-            >
+            <div key={idx} className="rounded-md border border-muted/40 bg-muted/30 p-2 text-sm text-foreground">
               {typeof item === "object" && item !== null ? (
                 <div className="grid gap-1">
                   {Object.entries(item).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex flex-col rounded-md border border-muted/30 bg-background/60 px-2 py-1 text-xs"
-                    >
-                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">
-                        {formatLabel(key)}
-                      </span>
+                    <div key={key} className="flex flex-col rounded-md border border-muted/30 bg-background/60 px-2 py-1 text-xs">
+                      <span className="font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
                       <div className="text-sm text-foreground">
-                        {typeof value === "object" && value !== null
-                          ? renderPreviewContent(value)
-                          : formatPrimitiveValue(value)}
+                        {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
                       </div>
                     </div>
                   ))}
@@ -771,26 +1188,17 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             {Object.keys(rest).length > 0 && (
               <div className="grid gap-2">
                 {Object.entries(rest).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2"
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {formatLabel(key)}
-                    </span>
+                  <div key={key} className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
                     <div className="text-sm text-foreground mt-1">
-                      {typeof value === "object" && value !== null
-                        ? renderPreviewContent(value)
-                        : formatPrimitiveValue(value)}
+                      {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
                     </div>
                   </div>
                 ))}
               </div>
             )}
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Changes
-              </div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Changes</div>
               {renderChanges(changes)}
             </div>
           </div>
@@ -805,32 +1213,20 @@ Don't worry - your data is safe. This is likely a temporary glitch.
             {Object.keys(rest).length > 0 && (
               <div className="grid gap-2">
                 {Object.entries(rest).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2"
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {formatLabel(key)}
-                    </span>
+                  <div key={key} className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
                     <div className="text-sm text-foreground mt-1">
-                      {typeof value === "object" && value !== null
-                        ? renderPreviewContent(value)
-                        : formatPrimitiveValue(value)}
+                      {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
                     </div>
                   </div>
                 ))}
               </div>
             )}
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Fields
-              </div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Fields</div>
               <ul className="space-y-1 text-sm text-foreground">
                 {fields.map((field: any, idx: number) => (
-                  <li
-                    key={idx}
-                    className="flex items-center justify-between gap-2 rounded-md border border-muted/30 bg-muted/20 px-2 py-1"
-                  >
+                  <li key={idx} className="flex items-center justify-between gap-2 rounded-md border border-muted/30 bg-muted/20 px-2 py-1">
                     <span className="font-medium">{field?.label || `Field ${idx + 1}`}</span>
                     {field?.type && (
                       <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -848,17 +1244,10 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return (
         <div className="grid gap-2">
           {Object.entries(previewObj).map(([key, value]) => (
-            <div
-              key={key}
-              className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2"
-            >
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {formatLabel(key)}
-              </span>
+            <div key={key} className="flex flex-col rounded-md border border-muted/40 bg-muted/20 p-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatLabel(key)}</span>
               <div className="text-sm text-foreground mt-1">
-                {typeof value === "object" && value !== null
-                  ? renderPreviewContent(value)
-                  : formatPrimitiveValue(value)}
+                {typeof value === "object" && value !== null ? renderPreviewContent(value) : formatPrimitiveValue(value)}
               </div>
             </div>
           ))}
@@ -873,15 +1262,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     if (!preview) return null;
 
     return (
-      <div
-        className="rounded-lg border border-muted bg-background p-3 shadow-sm"
-        role="region"
-        aria-label="Proposed changes preview"
-        tabIndex={0}
-      >
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-          Preview
-        </div>
+      <div className="rounded-lg border border-muted bg-background p-3 shadow-sm" role="region" aria-label="Proposed changes preview" tabIndex={0}>
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Preview</div>
         <div className="space-y-2 text-sm text-foreground" aria-live="polite">
           {renderPreviewContent(preview)}
         </div>
@@ -891,30 +1273,13 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
   const detectActionType = (text: string): ActionType => {
     const lower = text.toLowerCase();
-    if (
-      lower.includes("how many") ||
-      lower.includes("show me") ||
-      lower.includes("list") ||
-      lower.includes("find") ||
-      lower.includes("count")
-    ) {
+    if (lower.includes("how many") || lower.includes("show me") || lower.includes("list") || lower.includes("find") || lower.includes("count")) {
       return "query";
     }
-    if (
-      lower.includes("workflow") ||
-      lower.includes("automat") ||
-      lower.includes("alert") ||
-      lower.includes("remind") ||
-      lower.includes("trigger")
-    ) {
+    if (lower.includes("workflow") || lower.includes("automat") || lower.includes("alert") || lower.includes("remind") || lower.includes("trigger")) {
       return "workflow";
     }
-    if (
-      lower.includes("add field") ||
-      lower.includes("create field") ||
-      lower.includes("new field") ||
-      lower.includes("custom field")
-    ) {
+    if (lower.includes("add field") || lower.includes("create field") || lower.includes("new field") || lower.includes("custom field")) {
       return "field";
     }
     return "info";
@@ -946,7 +1311,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     }
 
     let content = `${summary ? summary + "\n\n" : ""}${data.explanation}`;
-    
+
     if (data.data && Array.isArray(data.data) && data.data.length > 0) {
       content += `\n\nShowing ${Math.min(data.data.length, 10)} of ${data.data.length} total records.`;
     }
@@ -1059,16 +1424,14 @@ Don't worry - your data is safe. This is likely a temporary glitch.
   };
 
   // Check if AI is enabled
-  if (!session?.user || session.user.role === "EMPLOYEE") {
+  if (!session?.user || (session.user as any).role === "EMPLOYEE") {
     return (
       <PageShell title="AI Assistant" icon={<Bot className="w-6 h-6" />}>
         <div className="flex items-center justify-center h-96">
           <Card className="p-6 max-w-md text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-amber-500" />
             <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
-            <p className="text-sm text-muted-foreground">
-              AI Assistant features are only available to administrators.
-            </p>
+            <p className="text-sm text-muted-foreground">AI Assistant features are only available to administrators.</p>
           </Card>
         </div>
       </PageShell>
@@ -1090,90 +1453,92 @@ Don't worry - your data is safe. This is likely a temporary glitch.
           >
             <Sparkles className="w-4 h-4" />
             What can I do?
-            <ChevronDown className={`w-4 h-4 transition-transform ${showCapabilities ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 transition-transform ${showCapabilities ? "rotate-180" : ""}`} />
           </Button>
 
           {/* Render dropdown via portal to escape stacking context */}
-          {isMounted && showCapabilities && createPortal(
-            <>
-              {/* Backdrop */}
-              <div 
-                className="fixed inset-0 bg-black/20 z-[9998]" 
-                onClick={() => setShowCapabilities(false)}
-              />
-              {/* Dropdown */}
-              <div 
-                className="fixed w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999]"
-                style={{
-                  top: `${dropdownPosition.top}px`,
-                  right: `${dropdownPosition.right}px`,
-                }}
-              >
-                <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl z-10">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    AI Assistant Capabilities
-                  </h3>
-                  <p className="text-sm text-white/90 mt-1">
-                    Click any example to try it instantly • {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
-                  </p>
-                </div>
+          {isMounted &&
+            showCapabilities &&
+            createPortal(
+              <>
+                {/* Backdrop */}
+                <div className="fixed inset-0 bg-black/20 z-[9998]" onClick={() => setShowCapabilities(false)} />
+                {/* Dropdown */}
+                <div
+                  className="fixed w-[600px] max-h-[calc(100vh-200px)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999]"
+                  style={{
+                    top: `${dropdownPosition.top}px`,
+                    right: `${dropdownPosition.right}px`,
+                  }}
+                >
+                  <div className="sticky top-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 text-white p-4 rounded-t-xl z-10">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      AI Assistant Capabilities
+                    </h3>
+                    <p className="text-sm text-white/90 mt-1">
+                      Click any example to try it instantly •{" "}
+                      {AI_CAPABILITIES.reduce((sum, cat) => sum + cat.capabilities.length, 0)} actions available
+                    </p>
+                  </div>
 
-                <div className="p-4 space-y-3">
-                  {AI_CAPABILITIES.map((category, idx) => (
-                    <div key={idx} className="pb-3 border-b last:border-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}>
-                          {category.icon}
-                        </div>
-                        <h4 className="font-semibold text-sm flex-1">{category.category}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {category.capabilities.length}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-1 gap-1.5">
-                        {category.capabilities.map((cap, capIdx) => (
-                          <button
-                            key={capIdx}
-                            onClick={() => {
-                              handleSendMessage(cap.example);
-                              setShowCapabilities(false);
-                            }}
-                            className="text-left p-2 rounded-lg hover:bg-muted transition-colors group"
+                  <div className="p-4 space-y-3">
+                    {AI_CAPABILITIES.map((category, idx) => (
+                      <div key={idx} className="pb-3 border-b last:border-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div
+                            className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center text-white shadow-md flex-shrink-0`}
                           >
-                            <div className="flex items-start gap-2">
-                              <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors">
-                                  {cap.action}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground mt-0.5 italic truncate">
-                                  "{cap.example}"
+                            {category.icon}
+                          </div>
+                          <h4 className="font-semibold text-sm flex-1">{category.category}</h4>
+                          <Badge variant="secondary" className="text-xs">
+                            {category.capabilities.length}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {category.capabilities.map((cap, capIdx) => (
+                            <button
+                              key={capIdx}
+                              onClick={() => {
+                                handleSendMessage(cap.example);
+                                setShowCapabilities(false);
+                              }}
+                              className="text-left p-2 rounded-lg hover:bg-muted transition-colors group"
+                            >
+                              <div className="flex items-start gap-2">
+                                <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-xs text-foreground group-hover:text-primary transition-colors">
+                                    {cap.action}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground mt-0.5 italic truncate">
+                                    "{cap.example}"
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </button>
-                        ))}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
-                  <p className="text-xs text-muted-foreground">
-                    💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
-                  </p>
+                  <div className="sticky bottom-0 bg-gradient-to-t from-muted/90 to-transparent p-4 text-center rounded-b-xl backdrop-blur-sm">
+                    <p className="text-xs text-muted-foreground">
+                      💡 <strong>Pro tip:</strong> You can also type naturally - AI understands context!
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </>,
-            document.body
-          )}
+              </>,
+              document.body
+            )}
         </>
       }
     >
       <div className="flex h-[calc(100vh-10rem)] gap-4 max-w-[1800px] mx-auto">
         {/* Left: Chat Interface */}
-        <div 
+        <div
           className="w-1/2 flex flex-col min-h-0 h-full relative"
           onDrop={handleFileDrop}
           onDragOver={handleDragOver}
@@ -1189,7 +1554,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               </div>
             </div>
           )}
-          
+
           <div className="flex flex-col h-full border rounded-lg bg-card shadow-sm">
             {/* Welcome Screen */}
             {showWelcome && messages.length === 0 ? (
@@ -1215,7 +1580,9 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       className="group border rounded-lg p-3 hover:shadow-md transition-all duration-300 bg-gradient-to-br from-white to-gray-50/50"
                     >
                       <div className="flex items-start gap-2.5">
-                        <div className={`flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-sm`}>
+                        <div
+                          className={`flex-shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-sm`}
+                        >
                           {category.icon}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1230,9 +1597,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                 className="text-[10px] px-2.5 py-1 rounded-full bg-muted hover:bg-primary/10 transition-colors group/btn"
                                 title={example}
                               >
-                                <span className="block max-w-[200px] truncate">
-                                  {example}
-                                </span>
+                                <span className="block max-w-[200px] truncate">{example}</span>
                               </button>
                             ))}
                           </div>
@@ -1271,18 +1636,9 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   const isAssistant = msg.role === "assistant";
 
                   return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}
-                    >
+                    <div key={msg.id} className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
                       <div className={`max-w-[80%] ${isAssistant ? "space-y-2" : ""}`}>
-                        <div
-                          className={`rounded-lg p-3 ${
-                            isAssistant
-                              ? "bg-muted"
-                              : "bg-primary text-primary-foreground"
-                          }`}
-                        >
+                        <div className={`rounded-lg p-3 ${isAssistant ? "bg-muted" : "bg-primary text-primary-foreground"}`}>
                           {msg.isLoading ? (
                             <div className="flex items-center gap-2">
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -1298,11 +1654,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                             {msg.preview && <div>{renderPreviewCard(msg.preview)}</div>}
 
                             {msg.requiresConfirmation && (
-                              <div
-                                className="flex flex-wrap gap-2"
-                                role="group"
-                                aria-label="Confirm or cancel proposed action"
-                              >
+                              <div className="flex flex-wrap gap-2" role="group" aria-label="Confirm or cancel proposed action">
                                 <Button
                                   size="sm"
                                   onClick={() => handleSendMessage("yes")}
@@ -1389,40 +1741,25 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                 <div className="mb-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">Uploaded Files</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setUploadedFiles([])}
-                      className="h-6 text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setUploadedFiles([])} className="h-6 text-xs">
                       Clear all
                     </Button>
                   </div>
                   {uploadedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-2 rounded-lg border bg-card"
-                    >
+                    <div key={idx} className="flex items-center gap-3 p-2 rounded-lg border bg-card">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(idx)}
-                        className="h-6 w-6 p-0"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => removeFile(idx)} className="h-6 w-6 p-0">
                         <X className="w-3 h-3" />
                       </Button>
                     </div>
                   ))}
                 </div>
               )}
-              
+
               {showWelcome && !uploadedFiles.length && (
                 <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <ArrowRight className="w-4 h-4 text-primary animate-pulse" />
@@ -1437,16 +1774,15 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && !isProcessing && handleSendMessage()}
-                    placeholder={showWelcome ? "Type here: 'How many employees don't have IRD numbers?'" : "Ask anything..."}
+                    placeholder={
+                      showWelcome ? "Type here: 'How many employees don't have IRD numbers?'" : "Ask anything..."
+                    }
                     className="w-full rounded-lg border-2 px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-sm transition-all"
                     disabled={isProcessing}
                     autoFocus
                   />
                   {input && (
-                    <Badge 
-                      variant="secondary" 
-                      className="absolute right-14 top-1/2 -translate-y-1/2 text-xs"
-                    >
+                    <Badge variant="secondary" className="absolute right-14 top-1/2 -translate-y-1/2 text-xs">
                       Press Enter ↵
                     </Badge>
                   )}
@@ -1457,11 +1793,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   size="sm"
                   className="px-4 py-3 bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
                 >
-                  {isProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
+                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
@@ -1477,28 +1809,18 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Workflow className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold">
-                        {generatedWorkflow.name}
-                      </h3>
-                      <Badge variant="secondary" className="ml-auto">AI Generated</Badge>
+                      <h3 className="font-semibold">{generatedWorkflow.name}</h3>
+                      <Badge variant="secondary" className="ml-auto">
+                        AI Generated
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {generatedWorkflow.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{generatedWorkflow.description}</p>
                   </div>
                   <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setGeneratedWorkflow(null)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setGeneratedWorkflow(null)}>
                       Clear
                     </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={handleSaveWorkflow}
-                      className="bg-gradient-to-r from-primary to-purple-600"
-                    >
+                    <Button size="sm" onClick={handleSaveWorkflow} className="bg-gradient-to-r from-primary to-purple-600">
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Save Workflow
                     </Button>
@@ -1515,12 +1837,177 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   />
                 </div>
               </>
+            ) : hasLatestResult ? (
+              <div className="flex-1 relative overflow-auto">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-emerald-50 to-purple-50 opacity-60" />
+                <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+                <div className="relative z-10 h-full flex flex-col gap-6 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                        <Sparkles className="w-4 h-4" />
+                        Latest Insight
+                      </div>
+                      <h3 className="text-xl font-bold text-foreground">{insightTitle}</h3>
+                      {readableSummary && <p className="text-sm text-muted-foreground max-w-2xl">{readableSummary}</p>}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      {lastUpdatedLabel && (
+                        <Badge variant="secondary" className="text-xs">
+                          Updated {lastUpdatedLabel}
+                        </Badge>
+                      )}
+                      <Button variant="outline" size="sm" className="gap-2" onClick={handleExportResult}>
+                        <Download className="w-4 h-4" />
+                        Quick Export
+                      </Button>
+                    </div>
+                  </div>
+
+                  {isArrayResult ? (
+                    <>
+                      {arrayMetrics.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {arrayMetrics.map((metric, idx) => {
+                            const Icon = metric.icon;
+                            return (
+                              <div key={`${metric.label}-${idx}`} className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-muted-foreground tracking-wide">
+                                      {metric.label}
+                                    </div>
+                                    <div className="text-lg font-semibold text-foreground">{metric.value}</div>
+                                    {metric.helper && <div className="text-xs text-muted-foreground">{metric.helper}</div>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm">
+                        <div className="border-b px-4 py-3 flex items-center justify-between">
+                          <div className="font-semibold text-sm flex items-center gap-2">
+                            <Table className="w-4 h-4 text-primary" />
+                            Top People
+                          </div>
+                          {Array.isArray(latestResult) && latestResult.length > arrayPreview.length && (
+                            <Badge variant="secondary" className="text-xs">
+                              Showing {arrayPreview.length} of {latestResult.length}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="divide-y">
+                          {arrayPreview.length > 0 ? (
+                            arrayPreview.map((person, idx) => {
+                              const details = [person.role, person.department, person.status].filter(Boolean).join(" • ");
+                              return (
+                                <div key={`${person.name}-${idx}`} className="px-4 py-3 text-left text-sm">
+                                  <div className="font-medium text-foreground">{person.name}</div>
+                                  {details && <div className="text-xs text-muted-foreground mt-1">{details}</div>}
+                                  {person.startDateLabel && (
+                                    <div className="text-xs text-muted-foreground mt-1">Start: {person.startDateLabel}</div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">No people found for this view.</div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {aggregateMetrics.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {aggregateMetrics.map((metric, idx) => {
+                            const Icon = metric.icon;
+                            return (
+                              <div key={`${metric.label}-${idx}`} className="rounded-xl border bg-white/70 backdrop-blur-sm p-4 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <div className="text-xs uppercase text-muted-foreground tracking-wide">{metric.label}</div>
+                                    <div className="text-lg font-semibold text-foreground">{metric.value}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {aggregateDetails.length > 0 && (
+                        <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm">
+                          <div className="border-b px-4 py-3 font-semibold text-sm flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-primary" />
+                            Key Details
+                          </div>
+                          <div className="divide-y text-sm">
+                            {aggregateDetails.map((detail, idx) => (
+                              <div key={`${detail.label}-${idx}`} className="flex items-center justify-between px-4 py-3">
+                                <div className="text-xs font-medium uppercase text-muted-foreground tracking-wide">{detail.label}</div>
+                                <div className="text-sm text-foreground text-right max-w-[60%] break-words">{detail.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {primitiveResult && (
+                        <div className="rounded-xl border bg-white/80 backdrop-blur-sm shadow-sm p-6 text-center">
+                          <div className="text-xs uppercase text-muted-foreground tracking-wide mb-1">Result</div>
+                          <div className="text-3xl font-bold text-foreground">{primitiveResult}</div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {shouldShowFollowUps && (
+                    <div className="mt-auto border rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <h4 className="text-sm font-semibold">Quick follow-ups</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {followUpSuggestions.map((suggestion, idx) => (
+                          <Button
+                            key={`${suggestion}-${idx}`}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-auto py-2 px-3 border-dashed"
+                            onClick={() => handlePrefillPrompt(suggestion)}
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-auto py-2 px-3"
+                          onClick={() => handlePrefillPrompt("Can you summarise next steps for HR?")}
+                        >
+                          Ask follow-up
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
                 {/* Animated background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 opacity-50" />
                 <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-                
+
                 <div className="relative z-10">
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 mb-6 shadow-2xl animate-pulse">
                     <Sparkles className="w-10 h-10 text-white" />
@@ -1533,7 +2020,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                   </p>
 
                   <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
-                    <button 
+                    <button
                       onClick={() => handleSendMessage("Show me all employees")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
@@ -1545,7 +2032,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         Instant answers about your people, leave, and documents
                       </p>
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleSendMessage("I want to create a workflow")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
@@ -1553,11 +2040,9 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <Workflow className="w-7 h-7 text-white" />
                       </div>
                       <h4 className="text-sm font-semibold mb-2">Workflows</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Build automation visually from plain English
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Build automation visually from plain English</p>
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleSendMessage("I want to add a custom field")}
                       className="group text-center p-4 rounded-xl hover:bg-white/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                     >
@@ -1565,9 +2050,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <Plus className="w-7 h-7 text-white" />
                       </div>
                       <h4 className="text-sm font-semibold mb-2">Custom Fields</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Extend your system without code or migrations
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Extend your system without code or migrations</p>
                     </button>
                   </div>
 
@@ -1589,4 +2072,3 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     </PageShell>
   );
 }
-

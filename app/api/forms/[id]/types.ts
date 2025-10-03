@@ -98,6 +98,13 @@ export interface FieldLogic {
   goToPageWhen?: { when: ConditionGroup; pageId: string }[];
 }
 
+// Simple conditional for basic UI use
+export interface SimpleConditional {
+  field: string; // field ID to watch
+  operator: "equals" | "notEquals" | "contains" | "greaterThan" | "lessThan";
+  value: string | number | boolean;
+}
+
 export interface CalculationConfig {
   expression: string; // e.g. "baseSalary * 0.1"
   dependsOn?: string[]; // referenced field ids used by expression
@@ -163,6 +170,7 @@ export interface FormField {
 
   // Logic
   logic?: FieldLogic;
+  conditional?: SimpleConditional; // Simple conditional visibility
 
   // Calculations/read-only outputs
   calculation?: string; // legacy single-string expression

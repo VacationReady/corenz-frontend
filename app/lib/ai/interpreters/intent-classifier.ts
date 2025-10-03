@@ -56,12 +56,19 @@ PARAMETER EXTRACTION:
 - department: Department name (e.g., "sales", "engineering", "IT")
 - query: Description of employees to affect (for bulk updates)
 - reason: Explanation for the change (CRITICAL for audit compliance)
-- startDate/endDate: For leave booking
-- leaveType: Leave category
+- startDate/endDate: For leave booking - ALWAYS extract if mentioned (e.g., "next Monday", "Dec 20-27", "tomorrow", "next week")
+- leaveType: Leave category (e.g., "Annual Leave", "Sick Leave")
 - reportType: Type of report
 - recipient: Who gets the report
 - schedule: Frequency (daily, weekly, "every Monday", "every 30 days")
 - confirmed: true if message contains "yes", "confirm", "apply", "do it", "proceed"
+
+LEAVE BOOKING EXAMPLES:
+- "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
+- "Can you book some leave for Gary Middleton next Monday?" → {actionType: "book_leave", parameters: {employeeName: "Gary Middleton", startDate: "next Monday", endDate: "next Monday"}}
+- "Schedule holiday for Sarah from Dec 20-27" → {actionType: "book_leave", parameters: {employeeName: "Sarah", startDate: "Dec 20", endDate: "Dec 27"}}
+- "Book sick leave for John tomorrow" → {actionType: "book_leave", parameters: {employeeName: "John", startDate: "tomorrow", endDate: "tomorrow", leaveType: "Sick Leave"}}
+- "I want to book leave for James" → {actionType: "book_leave", parameters: {employeeName: "James"}} (no dates provided)
 
 BULK UPDATE EXAMPLES:
 - "Give everyone in sales a 10% raise" → {actionType: "bulk_update", parameters: {department: "sales", percentage: 10, operation: "increase", field: "salaryAmount"}}

@@ -117,102 +117,123 @@ export function VisibilitySettings({
   }
 
   return (
-    <Card className="p-4">
-      <h3 className="font-semibold mb-3 text-lg">Form Visibility</h3>
-      <div className="space-y-4">
-        {/* Roles */}
+    <div className="space-y-4">
+      {/* Roles */}
+      <div className="space-y-3">
         <div>
-          <h4 className="font-medium text-sm text-gray-700 mb-2">
-            Visible to Roles
+          <h4 className="font-medium text-sm mb-1">
+            User Roles *
           </h4>
-          <div className="space-y-2">
-            {AVAILABLE_ROLES.map((role) => (
-              <div key={role.value} className="flex items-center gap-2">
+          <p className="text-xs text-muted-foreground mb-2">
+            Select which user role levels can access this form
+          </p>
+        </div>
+        <div className="space-y-2">
+          {AVAILABLE_ROLES.map((role) => (
+            <div key={role.value} className="flex items-center gap-2">
+              <Checkbox
+                id={`role-${role.value}`}
+                checked={visibleToRoles.includes(role.value)}
+                onCheckedChange={(checked) =>
+                  handleRoleChange(role.value, Boolean(checked))
+                }
+              />
+              <label
+                htmlFor={`role-${role.value}`}
+                className="text-sm cursor-pointer"
+              >
+                {role.label}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Departments */}
+      {departments.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-white/10">
+          <div>
+            <h4 className="font-medium text-sm mb-1">
+              Restrict to Departments
+            </h4>
+            <p className="text-xs text-muted-foreground mb-2">
+              Optional: Limit to specific departments only
+            </p>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 glass-subtle rounded-lg p-3">
+            {departments.map((dept) => (
+              <div key={dept.id} className="flex items-center gap-2">
                 <Checkbox
-                  id={`role-${role.value}`}
-                  checked={visibleToRoles.includes(role.value)}
+                  id={`dept-${dept.id}`}
+                  checked={visibleToDepartments.includes(dept.id)}
                   onCheckedChange={(checked) =>
-                    handleRoleChange(role.value, Boolean(checked))
+                    handleDepartmentChange(dept.id, Boolean(checked))
                   }
                 />
                 <label
-                  htmlFor={`role-${role.value}`}
-                  className="text-sm cursor-pointer"
+                  htmlFor={`dept-${dept.id}`}
+                  className="text-sm cursor-pointer flex-1"
                 >
-                  {role.label}
+                  {dept.name}
                 </label>
               </div>
             ))}
           </div>
+          {visibleToDepartments.length > 0 && (
+            <p className="text-xs text-primary font-medium">
+              ✓ {visibleToDepartments.length} department(s) selected
+            </p>
+          )}
         </div>
+      )}
 
-        {/* Departments */}
-        {departments.length > 0 && (
+      {/* Job Roles */}
+      {jobRoles.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-white/10">
           <div>
-            <h4 className="font-medium text-sm text-gray-700 mb-2">
-              Specific Departments (optional)
+            <h4 className="font-medium text-sm mb-1">
+              Restrict to Job Roles
             </h4>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {departments.map((dept) => (
-                <div key={dept.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`dept-${dept.id}`}
-                    checked={visibleToDepartments.includes(dept.id)}
-                    onCheckedChange={(checked) =>
-                      handleDepartmentChange(dept.id, Boolean(checked))
-                    }
-                  />
-                  <label
-                    htmlFor={`dept-${dept.id}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {dept.name}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground mb-2">
+              Optional: Limit to specific job roles (e.g., only Drivers)
+            </p>
           </div>
-        )}
-
-        {/* Job Roles */}
-        {jobRoles.length > 0 && (
-          <div>
-            <h4 className="font-medium text-sm text-gray-700 mb-2">
-              Specific Job Roles (optional)
-            </h4>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {jobRoles.map((role) => (
-                <div key={role.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`jobrole-${role.id}`}
-                    checked={visibleToJobRoles.includes(role.id)}
-                    onCheckedChange={(checked) =>
-                      handleJobRoleChange(role.id, Boolean(checked))
-                    }
-                  />
-                  <label
-                    htmlFor={`jobrole-${role.id}`}
-                    className="text-sm cursor-pointer"
-                  >
-                    {role.name}
-                  </label>
-                </div>
-              ))}
-            </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 glass-subtle rounded-lg p-3">
+            {jobRoles.map((role) => (
+              <div key={role.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`jobrole-${role.id}`}
+                  checked={visibleToJobRoles.includes(role.id)}
+                  onCheckedChange={(checked) =>
+                    handleJobRoleChange(role.id, Boolean(checked))
+                  }
+                />
+                <label
+                  htmlFor={`jobrole-${role.id}`}
+                  className="text-sm cursor-pointer flex-1"
+                >
+                  {role.name}
+                </label>
+              </div>
+            ))}
           </div>
-        )}
-
-        <div className="text-xs text-gray-500 mt-3">
-          <p>
-            • If no specific departments or job roles are selected, the form
-            will be visible to all users with the selected roles.
-          </p>
-          <p>
-            • Selecting specific departments or job roles will restrict
-            visibility to only those groups.
-          </p>
+          {visibleToJobRoles.length > 0 && (
+            <p className="text-xs text-primary font-medium">
+              ✓ {visibleToJobRoles.length} job role(s) selected
+            </p>
+          )}
         </div>
+      )}
+
+      <div className="text-xs bg-blue-50 dark:bg-blue-950/20 text-blue-900 dark:text-blue-100 p-3 rounded-lg mt-4 space-y-1">
+        <p className="font-medium">How visibility works:</p>
+        <ul className="list-disc list-inside space-y-1 ml-1">
+          <li>Users must match <strong>all</strong> selected criteria</li>
+          <li>If no departments selected: visible to all departments</li>
+          <li>If no job roles selected: visible to all job roles</li>
+          <li>Example: Select &quot;Employee&quot; role + &quot;Driver&quot; job role for an HGV screening form</li>
+        </ul>
       </div>
-    </Card>
+    </div>
   );
 }

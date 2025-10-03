@@ -39,7 +39,6 @@ export default function NewExitInterviewTemplatePage() {
 
   const breadcrumbItems = [
     { label: 'Settings', href: '/settings' },
-    { label: 'Forms & Surveys', href: '/settings/forms' },
     { label: 'Exit Interview Forms', href: '/settings/forms/exit-interview' },
     { label: 'New Template', isCurrentPage: true }
   ]

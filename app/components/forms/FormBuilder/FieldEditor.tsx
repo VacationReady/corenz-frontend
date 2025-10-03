@@ -329,7 +329,7 @@ export function FieldEditor({
                   <option value="lessThan">Less Than</option>
                 </select>
                 <Input
-                  value={field.conditional?.value || ""}
+                  value={field.conditional?.value !== undefined ? String(field.conditional.value) : ""}
                   onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", operator: "equals" }), value: e.target.value } })}
                   placeholder="Value"
                   className="text-sm"

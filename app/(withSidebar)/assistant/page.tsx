@@ -571,7 +571,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     }
   };
 
-  const handleUndo = async (undoId: string) => {
+  const handleUndo = async (undoId?: string) => {
     if (!undoId || isProcessing || undoInProgress) return;
 
     setIsProcessing(true);

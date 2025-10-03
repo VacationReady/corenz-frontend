@@ -12,7 +12,7 @@ import { AnyFormSchema } from "@/api/forms/[id]/types";
 export default function EditSurveyPage() {
   const params = useParams();
   const router = useRouter();
-  const surveyId = params.id as string;
+  const surveyId = params?.id as string;
   const [loading, setLoading] = useState(true);
   const [survey, setSurvey] = useState<{
     id: string;

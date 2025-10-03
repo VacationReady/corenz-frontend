@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Plus, FileText, Settings, Trash2, MoreVertical, Eye, Filter, Info } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface Survey {
   id: string;
@@ -21,6 +22,7 @@ interface Survey {
 }
 
 export default function SurveysPage() {
+  const router = useRouter();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -156,33 +158,25 @@ export default function SurveysPage() {
                         </CardDescription>
                       )}
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <DropdownMenu
+                      trigger={
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/settings/surveys/${survey.id}/edit`}>
-                            <Settings className="h-4 w-4 mr-2" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/settings/surveys/${survey.id}/preview`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Preview
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(survey.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
+                      }
+                      align="right"
+                    >
+                      <DropdownMenuItem onClick={() => router.push(`/settings/surveys/${survey.id}/edit`)}>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(survey.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenu>
                   </div>
                 </CardHeader>

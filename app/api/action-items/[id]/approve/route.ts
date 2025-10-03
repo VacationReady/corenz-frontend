@@ -30,8 +30,7 @@ export async function POST(
         assignedTo: {
           select: {
             email: true,
-            firstName: true,
-            lastName: true,
+            name: true,
           },
         },
       },
@@ -158,7 +157,7 @@ export async function POST(
       if (requester) {
         const requesterUser = await prisma.user.findUnique({
           where: { id: requester },
-          select: { email: true, firstName: true },
+          select: { email: true, name: true },
         });
 
         if (requesterUser?.email) {
@@ -168,8 +167,8 @@ export async function POST(
               to: requesterUser.email,
               subject: `✅ Your bulk update request has been approved`,
               html: `
-                <p>Hi ${requesterUser.firstName || "there"},</p>
-                <p>Good news! Your bulk update request has been approved by ${session.user.firstName || "the CEO"}.</p>
+                <p>Hi ${requesterUser.name || "there"},</p>
+                <p>Good news! Your bulk update request has been approved by ${session.user.name || "the CEO"}.</p>
                 <p><strong>Request:</strong> ${actionItem.title}</p>
                 <p><strong>Changes applied:</strong> ${results.length} employees updated</p>
                 <p>All changes have been applied and audit logs have been created.</p>

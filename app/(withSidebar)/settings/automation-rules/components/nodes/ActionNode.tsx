@@ -7,7 +7,7 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
   return (
     <div
       className={cn(
-        "relative group min-w-[120px] max-w-[180px]",
+        "relative group min-w-[140px] max-w-[220px]",
         "bg-white rounded-lg border-2 transition-all cursor-move",
         selected
           ? "border-green-500 shadow-lg shadow-green-100"
@@ -37,9 +37,16 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
           </Badge>
         )}
         {data?.config?.subject && (
-          <p className="text-[9px] leading-tight text-green-700/70 line-clamp-1 pl-6 italic">
-            "{data.config.subject}"
-          </p>
+          <div className="space-y-0.5">
+            <p className="text-[9px] leading-tight text-green-700/70 line-clamp-1 pl-6 italic">
+              📧 {data.config.subject}
+            </p>
+            {data.config.body && (
+              <p className="text-[8px] leading-tight text-green-600/60 line-clamp-2 pl-6">
+                {data.config.body}
+              </p>
+            )}
+          </div>
         )}
       </div>
       <Handle

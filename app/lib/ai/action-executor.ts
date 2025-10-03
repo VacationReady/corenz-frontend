@@ -30,6 +30,7 @@ export interface ActionResult {
   undoId?: string;
   oldValue?: any;
   details?: string;
+  suggestions?: string[];
 }
 
 export type ActionType =
@@ -138,8 +139,11 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
   // Step 1: Find employee
   if (!employeeName) {
     return {
-      success: false,
-      message: "I need to know which employee to update. Can you provide their name?",
+      success: true,
+      message: "Sure! Which employee would you like to update?",
+      nextStep: {
+        question: "Which employee?",
+      },
     };
   }
 
@@ -147,16 +151,20 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
   
   if (employees.length === 0) {
     return {
-      success: false,
-      message: `I couldn't find an employee named "${employeeName}". Can you try a different name or check the spelling?`,
+      success: true,
+      message: `I couldn't find an employee named "${employeeName}". Can you try a different name?\n\n💡 Try using their full name or check the spelling.`,
     };
   }
 
   if (employees.length > 1 && !action.parameters.employeeId) {
     return {
-      success: false,
+      success: true,
       message: `I found ${employees.length} employees matching "${employeeName}":\n\n${employees.map((e, i) => `${i + 1}. ${e.name} (${e.department})`).join("\n")}\n\nWhich one did you mean?`,
       data: employees,
+      nextStep: {
+        question: "Which employee?",
+        options: employees.map(e => e.name),
+      },
     };
   }
 
@@ -165,8 +173,11 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
   // Step 2: Determine what to update
   if (!field || !value) {
     return {
-      success: false,
-      message: `What would you like to update for ${employee.name}? (e.g., bank details, email, phone, last name, first name, salary, department)`,
+      success: true,
+      message: `What would you like to update for ${employee.name}?\n\n💡 Examples: bank details, email, phone, last name, salary, department`,
+      nextStep: {
+        question: "What to update?",
+      },
     };
   }
 
@@ -235,6 +246,11 @@ async function handleUpdateEmployee(action: AIAction): Promise<ActionResult> {
       message: `✅ **Updated!** ${employee.name}'s ${field} is now: **${value}**\n\n${result.details || ''}\n\n_📋 Change recorded in audit log with reason: "${reason || 'Updated via AI Assistant'}"_`,
       undoable: true,
       undoId,
+      suggestions: [
+        `Send ${employee.name.split(' ')[0]} an email about this change`,
+        "Update another employee",
+        "Undo this change",
+      ],
     };
   }
 
@@ -421,18 +437,36 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
         data: { ...pending.data, categoryId: category.id, categoryName: category.name },
       });
     } else {
-      // No leave type provided
+      // No leave type provided - ask conversationally
+      const categories = await prisma.eventCategory.findMany({
+        where: { companyId: action.companyId },
+        select: { id: true, name: true },
+      });
+
+      let message = "Which type of leave would you like to book?\n\n";
+      categories.forEach((cat, idx) => {
+        message += `${idx + 1}. ${cat.name}\n`;
+      });
+
       return {
-        success: false,
-        message: "Which leave type would you like to use?",
+        success: true,
+        message,
+        nextStep: {
+          question: "Which leave type?",
+          options: categories.map(c => c.name),
+        },
       };
     }
 
     if (!category) {
       clearPendingAction(action.userId, action.companyId);
       return {
-        success: false,
-        message: "Leave type not found. Please start over.",
+        success: true,
+        message: "I couldn't find that leave type. Here are the available options:\n\n" + 
+                 (await prisma.eventCategory.findMany({
+                   where: { companyId: action.companyId },
+                   select: { name: true },
+                 })).map((c, i) => `${i + 1}. ${c.name}`).join("\n"),
       };
     }
 
@@ -534,8 +568,13 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
       return {
         success: true,
-        message: `✅ Leave booked successfully!\n\n${pending.data.employeeName}\n${pending.data.startDate} to ${pending.data.endDate}\n${category.name}\n\n📅 Calendar updated - Auto-approved\n💰 ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted from balance`,
+        message: `✅ Leave booked successfully!\n\n**${pending.data.employeeName}**\n📅 ${pending.data.startDate} to ${pending.data.endDate}\n🏖️ ${category.name}\n\n✅ Calendar updated - Auto-approved\n💰 ${totalDeduction} ${totalDeduction === 1 ? 'day' : 'days'} deducted from balance`,
         data: approved,
+        suggestions: [
+          `Send ${pending.data.employeeName.split(' ')[0]} an email confirmation`,
+          "Book leave for another employee",
+          "Check team leave coverage",
+        ],
       };
     } catch (error: any) {
       clearPendingAction(action.userId, action.companyId);

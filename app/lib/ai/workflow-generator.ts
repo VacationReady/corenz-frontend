@@ -77,6 +77,29 @@ WORKFLOW BUILDER UNDERSTANDING:
    - send_calendar_invite: Send calendar invitation
    - webhook: Send data to external system
 
+   CRITICAL FOR EMAIL ACTIONS:
+   When creating send_email actions, ALWAYS populate config with:
+   - subject: Clear, professional email subject
+   - body: Complete email message (personalized, warm, actionable)
+   - to: Who receives it (e.g., "employee", "manager", "hr", or email address)
+   
+   Example email action node:
+   {
+     "id": "action-1",
+     "type": "action",
+     "position": { "x": 250, "y": 200 },
+     "data": {
+       "label": "Send Welcome Email",
+       "icon": "✉️",
+       "actionType": "send_email",
+       "config": {
+         "subject": "Welcome to the team!",
+         "body": "Hi {{firstName}},\n\nWelcome to {{companyName}}! We're excited to have you join us.\n\nYour manager {{managerName}} will reach out soon to schedule your first meeting.\n\nBest regards,\n{{ceoName}}",
+         "to": "employee"
+       }
+     }
+   }
+
 3. **CONDITIONS** (Should we check something first?)
    Ask: "Do you want to only do this for certain people?" or "Any conditions?"
    
@@ -122,7 +145,7 @@ TECHNICAL OUTPUT FORMAT:
 
 Generate ReactFlow nodes/edges:
 - Triggers: y: 0, x: 250
-- Each node: 120px below previous
+- Each node: 200px below previous (give them space, no overlap!)
 - Node IDs: trigger-1, action-1, condition-1, etc.
 - Edges: { source, target, animated: true }
 
@@ -135,7 +158,13 @@ Node structure:
     label: string (user-friendly name),
     icon: string (emoji or icon name),
     triggerType/actionType/conditionType: string,
-    config: { field: value, ... }
+    config: { 
+      // For email actions, ALWAYS include:
+      subject: string (email subject line),
+      body: string (email message content),
+      to: string (recipient - e.g., "employee", "manager", "hr@company.com")
+      // Other fields as needed
+    }
   }
 }`;
 }
@@ -173,9 +202,10 @@ IMPORTANT:
 - Start with exactly ONE trigger node
 - Add at least ONE action node
 - Use real action/condition IDs from the available lists
-- Nodes flow vertically (increment y by 120)
+- Nodes flow vertically (increment y by 200 to avoid overlap!)
 - All IDs are unique
-- Use friendly, conversational labels for nodes`,
+- Use friendly, conversational labels for nodes
+- For send_email actions: ALWAYS include subject, body, and to in config`,
         },
       ],
       response_format: { type: "json_object" },

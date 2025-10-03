@@ -104,6 +104,20 @@ export interface PeopleAnalyticsResult {
   insights: AnalyticsInsight[];
 }
 
+type AnalyticsEmployeeRecord = {
+  id: string;
+  isActive: boolean;
+  departmentId: string | null;
+  locationId: string | null;
+  employmentType: string | null;
+  contractType: string | null;
+  jobRoleId: string | null;
+  startDate: Date | null;
+  lastWorkingDate: Date | null;
+  offboardingDate: Date | null;
+  contractEndDate: Date | null;
+};
+
 interface MonthBucket {
   key: string;
   label: string;
@@ -164,7 +178,7 @@ function toTitleCase(value: string) {
 }
 
 function computeExplorerDatasets(
-  employees: Awaited<ReturnType<typeof prisma.employee.findMany>>,
+  employees: AnalyticsEmployeeRecord[],
   options: {
     departmentMap: Map<string, string>;
     locationMap: Map<string, string>;
@@ -302,7 +316,7 @@ function computeExplorerDatasets(
 }
 
 function buildEmploymentTypeBreakdown(
-  employees: Awaited<ReturnType<typeof prisma.employee.findMany>>,
+  employees: AnalyticsEmployeeRecord[],
 ) {
   const totals = new Map<string, number>();
   for (const employee of employees) {
@@ -318,7 +332,7 @@ function buildEmploymentTypeBreakdown(
 }
 
 function buildTenureBands(
-  employees: Awaited<ReturnType<typeof prisma.employee.findMany>>,
+  employees: AnalyticsEmployeeRecord[],
   now: Date,
 ) {
   const bands = [
@@ -540,7 +554,7 @@ export async function getPeopleAnalytics(
 
   const range = filters.rangeInMonths;
 
-  const [employees, departments, locations, jobRoles] = await Promise.all([
+  const [employees, departments, locations, jobRoles] = (await Promise.all([
     prisma.employee.findMany({
       where: {
         companyId,
@@ -552,6 +566,7 @@ export async function getPeopleAnalytics(
         isActive: true,
         departmentId: true,
         locationId: true,
+        jobRoleId: true,
         employmentType: true,
         contractType: true,
         startDate: true,
@@ -575,7 +590,12 @@ export async function getPeopleAnalytics(
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-  ]);
+  ])) as [
+    AnalyticsEmployeeRecord[],
+    { id: string; name: string }[],
+    { id: string; name: string }[],
+    { id: string; name: string }[],
+  ];
 
   const now = new Date();
   const currentMonthStart = startOfMonth(now);

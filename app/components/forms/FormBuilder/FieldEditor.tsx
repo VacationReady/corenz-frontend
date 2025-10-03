@@ -137,6 +137,201 @@ export function FieldEditor({
               />
             </div>
 
+            {/* Table Column Configuration */}
+            {field.type === "table" && (
+              <div className="space-y-4 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900">
+                      📊 Table Columns <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Configure the columns for your table
+                    </p>
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={() => {
+                      const columns = field.tableColumns || [];
+                      const newColumn: TableColumn = {
+                        id: `col_${Date.now()}`,
+                        label: `Column ${columns.length + 1}`,
+                        type: "text",
+                        required: false,
+                      };
+                      onChange({ ...field, tableColumns: [...columns, newColumn] });
+                    }} 
+                    size="sm" 
+                    variant="default"
+                    className="h-8"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Column
+                  </Button>
+                </div>
+
+                {(!field.tableColumns || field.tableColumns.length === 0) && (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-500 bg-white rounded border-2 border-dashed">
+                    <AlertCircle className="h-8 w-8 mb-2 opacity-60" />
+                    <p className="text-sm italic">No columns yet. Click "Add Column" to start.</p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {field.tableColumns?.map((column, colIndex) => (
+                    <div key={column.id} className="bg-white p-4 rounded-lg border border-gray-200 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Column Label <span className="text-red-500">*</span>
+                              </label>
+                              <Input
+                                value={column.label}
+                                onChange={(e) => {
+                                  const newColumns = [...(field.tableColumns || [])];
+                                  newColumns[colIndex] = { ...column, label: e.target.value };
+                                  onChange({ ...field, tableColumns: newColumns });
+                                }}
+                                placeholder="e.g. Course Name"
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Column Type
+                              </label>
+                              <select
+                                className="border rounded w-full px-2 py-2 text-sm"
+                                value={column.type}
+                                onChange={(e) => {
+                                  const newColumns = [...(field.tableColumns || [])];
+                                  newColumns[colIndex] = { 
+                                    ...column, 
+                                    type: e.target.value as any,
+                                    // Clear options if switching away from select
+                                    options: e.target.value === "select" ? column.options : undefined
+                                  };
+                                  onChange({ ...field, tableColumns: newColumns });
+                                }}
+                              >
+                                <option value="text">Text</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="select">Dropdown</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Options for select type columns */}
+                          {column.type === "select" && (
+                            <div className="pl-2 border-l-2 border-blue-300">
+                              <label className="block text-xs font-medium text-gray-700 mb-2">
+                                Dropdown Options <span className="text-red-500">*</span>
+                              </label>
+                              <div className="space-y-2">
+                                {(column.options || []).map((option, optIndex) => (
+                                  <div key={optIndex} className="flex items-center gap-2">
+                                    <Input
+                                      value={option}
+                                      onChange={(e) => {
+                                        const newColumns = [...(field.tableColumns || [])];
+                                        const newOptions = [...(column.options || [])];
+                                        newOptions[optIndex] = e.target.value;
+                                        newColumns[colIndex] = { ...column, options: newOptions };
+                                        onChange({ ...field, tableColumns: newColumns });
+                                      }}
+                                      placeholder={`Option ${optIndex + 1}`}
+                                      className="flex-1 text-sm"
+                                    />
+                                    <Button
+                                      type="button"
+                                      onClick={() => {
+                                        const newColumns = [...(field.tableColumns || [])];
+                                        const newOptions = (column.options || []).filter((_, i) => i !== optIndex);
+                                        newColumns[colIndex] = { ...column, options: newOptions };
+                                        onChange({ ...field, tableColumns: newColumns });
+                                      }}
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 w-8 p-0 text-red-500"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                <Button
+                                  type="button"
+                                  onClick={() => {
+                                    const newColumns = [...(field.tableColumns || [])];
+                                    const newOptions = [...(column.options || []), ""];
+                                    newColumns[colIndex] = { ...column, options: newOptions };
+                                    onChange({ ...field, tableColumns: newColumns });
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full text-xs"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" /> Add Option
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`col-required-${column.id}`}
+                              checked={Boolean(column.required)}
+                              onCheckedChange={(v) => {
+                                const newColumns = [...(field.tableColumns || [])];
+                                newColumns[colIndex] = { ...column, required: Boolean(v) };
+                                onChange({ ...field, tableColumns: newColumns });
+                              }}
+                            />
+                            <label htmlFor={`col-required-${column.id}`} className="text-xs cursor-pointer">
+                              Required column
+                            </label>
+                          </div>
+                        </div>
+
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const newColumns = (field.tableColumns || []).filter((_, i) => i !== colIndex);
+                            onChange({ ...field, tableColumns: newColumns });
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Max entries configuration */}
+                <div className="pt-3 border-t border-blue-300">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    Maximum Rows (optional)
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={field.maxEntries ?? 50}
+                    onChange={(e) => onChange({ ...field, maxEntries: Number(e.target.value) || 50 })}
+                    placeholder="50"
+                    className="w-32 text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Limit how many rows users can add to the table
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

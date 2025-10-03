@@ -12,12 +12,20 @@ export const openai = new OpenAI({
 
 // Default model configuration
 export const AI_CONFIG = {
-  model: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
+  // Use fine-tuned model if available, otherwise fall back to base model
+  model: process.env.OPENAI_FINE_TUNED_MODEL || process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
   temperature: parseFloat(process.env.OPENAI_TEMPERATURE || "0.7"),
   maxTokens: 4096,
   topP: 1,
   frequencyPenalty: 0,
   presencePenalty: 0,
+};
+
+// Track which model type is being used
+export const AI_MODEL_INFO = {
+  isFineTuned: !!process.env.OPENAI_FINE_TUNED_MODEL,
+  modelId: AI_CONFIG.model,
+  baseModel: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
 };
 
 // Check if AI features are enabled

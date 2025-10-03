@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "test": "tsx --test tests/**/*.test.ts",
     "migrate:deploy": "prisma migrate deploy",
-    "scripts:init-workflows": "tsx scripts/initialize-default-workflows.ts"
+    "scripts:init-workflows": "tsx scripts/initialize-default-workflows.ts",
+    "evaluate-finetune": "tsx scripts/evaluate-finetune.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

@@ -16,7 +16,13 @@ export async function interpretIntent(
     messages: [
       {
         role: "system",
-        content: `You are an intent classifier for an HR system. Analyze the user's message and determine what action they want.
+        content: `You are an intent classifier for an HR system. You understand casual, slang-heavy, and partially incoherent language.
+
+LANGUAGE INTERPRETATION:
+- Interpret slang generously: "yo", "bro", "thx", "yea", "yup", "peeps" (people), "gimme" (give me), "lemme" (let me)
+- Handle typos and abbreviations: "u" (you), "r" (are), "n" (and), "4" (for), "2" (to/too), "bout" (about)
+- Understand emojis as emphasis: 💯 (excellent/perfect), 🏖️ (vacation/leave), etc.
+- Recognize confirmation slang: "yea", "yup", "ya", "do it", "go ahead", "fr fr" (for real)
 
 CRITICAL: If the user's message is unclear, vague, or you're not confident about the intent, respond with:
 {
@@ -26,7 +32,7 @@ CRITICAL: If the user's message is unclear, vague, or you're not confident about
   "reasoning": "unclear intent"
 }
 
-Do NOT guess. If you're not 90%+ confident, mark it as unclear.
+Do NOT guess. If you're not 90%+ confident, mark it as unclear. But DO interpret casual language patterns confidently.
 
 ${systemContext}
 
@@ -65,13 +71,16 @@ PARAMETER EXTRACTION:
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
+- "yo book some time off for Gary next monday bro" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
 - "Can you book some leave for Gary Middleton next Monday?" → {actionType: "book_leave", parameters: {employeeName: "Gary Middleton", startDate: "next Monday", endDate: "next Monday"}}
 - "Schedule holiday for Sarah from Dec 20-27" → {actionType: "book_leave", parameters: {employeeName: "Sarah", startDate: "Dec 20", endDate: "Dec 27"}}
 - "Book sick leave for John tomorrow" → {actionType: "book_leave", parameters: {employeeName: "John", startDate: "tomorrow", endDate: "tomorrow", leaveType: "Sick Leave"}}
+- "need 2 days off 4 sarah next week" → {actionType: "book_leave", parameters: {employeeName: "Sarah", startDate: "next week"}}
 - "I want to book leave for James" → {actionType: "book_leave", parameters: {employeeName: "James"}} (no dates provided)
 
 BULK UPDATE EXAMPLES:
 - "Give everyone in sales a 10% raise" → {actionType: "bulk_update", parameters: {department: "sales", percentage: 10, operation: "increase", field: "salaryAmount"}}
+- "give them all a 10% bump they deserve it" → {actionType: "bulk_update", parameters: {percentage: 10, operation: "increase", field: "salaryAmount"}} (uses conversation context for department)
 - "Increase IT salaries by 5%" → {actionType: "bulk_update", parameters: {department: "IT", percentage: 5, operation: "increase", field: "salaryAmount"}}
 - "Set all marketing to Wellington office" → {actionType: "bulk_update", parameters: {department: "marketing", field: "siteLocation", value: "Wellington"}}
 - "Move everyone in sales to the IT department" → {actionType: "bulk_update", parameters: {department: "sales", field: "departmentId", value: "IT"}}
@@ -81,7 +90,13 @@ BULK UPDATE EXAMPLES:
 
 DOCUMENT UPLOAD EXAMPLES:
 - "Assign this to Michael Dowdle" → {actionType: "upload_document", parameters: {employeeName: "Michael Dowdle"}}
+- "lemme upload this contract thing 4 mike" → {actionType: "upload_document", parameters: {employeeName: "mike"}}
 - "Upload employment contract for Sarah" → {actionType: "upload_document", parameters: {employeeName: "Sarah", category: "Employment Contract"}}
+
+QUERY DATA EXAMPLES (with casual language):
+- "how many peeps we got in sales??" → {actionType: "query_data", parameters: {department: "sales", queryType: "count"}}
+- "gimme sum analytics on whos been here the longest" → {actionType: "query_data", parameters: {queryType: "tenure_analysis"}}
+- "who aint got their ird# setup yet" → {actionType: "query_data", parameters: {field: "irdNumber", filterNull: true}}
 
 Respond with JSON:
 {

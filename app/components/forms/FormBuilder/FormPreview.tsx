@@ -246,6 +246,93 @@ function renderPreviewField(
           className={`${baseInput} file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
         />
       );
+    
+    case "table":
+      if (!field.tableColumns || field.tableColumns.length === 0) {
+        return (
+          <div className="text-gray-500 italic text-sm bg-gray-50 border border-dashed rounded p-4">
+            No columns configured for this table
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-3">
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {field.tableColumns.map((col) => (
+                    <th
+                      key={col.id}
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-700"
+                    >
+                      {col.label}
+                      {col.required && <span className="text-red-500 ml-1">*</span>}
+                    </th>
+                  ))}
+                  <th className="px-4 py-2 w-16"></th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                <tr>
+                  {field.tableColumns.map((col) => (
+                    <td key={col.id} className="px-4 py-2">
+                      {col.type === "select" ? (
+                        <select className="w-full border rounded px-2 py-1 text-xs bg-gray-50">
+                          <option value="">Select...</option>
+                          {col.options?.map((opt, i) => (
+                            <option key={i} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={col.type}
+                          className="w-full border rounded px-2 py-1 text-xs bg-gray-50"
+                          placeholder={col.type === "date" ? "YYYY-MM-DD" : "..."}
+                        />
+                      )}
+                    </td>
+                  ))}
+                  <td className="px-4 py-2 text-center">
+                    <button
+                      type="button"
+                      className="text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button
+            type="button"
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            + Add Row
+          </button>
+        </div>
+      );
+    
+    case "list":
+      return (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className={`${baseInput} flex-1`}
+              placeholder="List item 1"
+            />
+            <button type="button" className="text-gray-400 hover:text-gray-600 px-2">✕</button>
+          </div>
+          <button type="button" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            + Add Item
+          </button>
+        </div>
+      );
+    
     case "computed":
     case "readOnly":
       const calculatedValue = calculateFieldValue(field);

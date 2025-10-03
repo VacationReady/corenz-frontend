@@ -146,7 +146,7 @@ export function NodePropertiesPanel({
                   </div>
                 )}
                 <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded-lg">
-                  💡 <strong>Variables:</strong> Use {{firstName}}, {{lastName}}, {{companyName}}, {{managerName}}, {{ceoName}} to personalize emails
+                  💡 <strong>Variables:</strong> Use {`{{firstName}}`}, {`{{lastName}}`}, {`{{companyName}}`}, {`{{managerName}}`}, {`{{ceoName}}`} to personalize emails
                 </div>
               </>
             )}

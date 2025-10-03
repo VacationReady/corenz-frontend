@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { FileText, Library } from "lucide-react";
+import { FileText, Library, History } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { toast } from "@/hooks/use-toast";
+import { SendHistoryModal } from "@/components/reports/SendHistoryModal";
 
 interface SavedReport {
   id: number;
@@ -35,6 +36,7 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedReportForHistory, setSelectedReportForHistory] = useState<{ id: number; name: string } | null>(null);
   const router = useRouter();
   const breadcrumbs = useBreadcrumbs();
 
@@ -296,6 +298,13 @@ export default function ReportsPage() {
                   </Button>
                   <Button
                     variant="ghost"
+                    onClick={() => setSelectedReportForHistory({ id: report.id, name: report.name })}
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    History
+                  </Button>
+                  <Button
+                    variant="ghost"
                     disabled={deletingIds.includes(report.id)}
                     onClick={() => handleDelete(report.id)}
                   >
@@ -306,6 +315,15 @@ export default function ReportsPage() {
             ))}
           </TableBody>
         </Table>
+      )}
+
+      {selectedReportForHistory && (
+        <SendHistoryModal
+          isOpen={!!selectedReportForHistory}
+          onClose={() => setSelectedReportForHistory(null)}
+          reportId={selectedReportForHistory.id}
+          reportName={selectedReportForHistory.name}
+        />
       )}
     </PageShell>
   );

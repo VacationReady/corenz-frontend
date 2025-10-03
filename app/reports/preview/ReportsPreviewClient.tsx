@@ -24,9 +24,11 @@ import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Mail, History } from "lucide-react";
 import Papa from "papaparse";
 import { exportTableToPdf } from "@/lib/pdfExport";
+import { SendReportModal } from "@/components/reports/SendReportModal";
+import { SendHistoryModal } from "@/components/reports/SendHistoryModal";
 
 type ColumnDefinition = { header: string; accessorKey: string };
 type FieldMetadata = { label: string; isPII?: boolean };
@@ -189,6 +191,8 @@ export default function ReportsPreviewClient() {
   });
   const [showPIIModal, setShowPIIModal] = useState(false);
   const [piiAcknowledged, setPiiAcknowledged] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Client-side filters/sort config from saved reports
   const [activeFilters, setActiveFilters] = useState<any[]>([]);
@@ -979,6 +983,25 @@ export default function ReportsPreviewClient() {
                 : `Download Full CSV (${total} rows)`}
             </Button>
           ) : null}
+          {reportIdParam && (
+            <>
+              <Button 
+                onClick={() => setShowSendModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                Send Report
+              </Button>
+              <Button 
+                onClick={() => setShowHistoryModal(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <History className="w-4 h-4" />
+                View Send History
+              </Button>
+            </>
+          )}
           <Button onClick={handleSaveReport}>Save Report</Button>
         </div>
       </div>
@@ -1047,6 +1070,32 @@ export default function ReportsPreviewClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {reportIdParam && reportConfig && (
+        <>
+          <SendReportModal
+            isOpen={showSendModal}
+            onClose={() => setShowSendModal(false)}
+            reportId={parseInt(reportIdParam, 10)}
+            reportName={reportConfig.name || "Report"}
+            fields={effectiveSelectedFields}
+            filters={activeFilters}
+            sort={activeSort}
+            onSuccess={() => {
+              toast({
+                title: "Report sent",
+                description: "The report has been emailed successfully",
+              });
+            }}
+          />
+          <SendHistoryModal
+            isOpen={showHistoryModal}
+            onClose={() => setShowHistoryModal(false)}
+            reportId={parseInt(reportIdParam, 10)}
+            reportName={reportConfig.name || "Report"}
+          />
+        </>
+      )}
     </>
   );
 }

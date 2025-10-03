@@ -170,6 +170,7 @@ model Company {
   SCIMConfiguration                   SCIMConfiguration?
   SSOConfiguration                    SSOConfiguration?
   SavedReport                         SavedReport[]
+  ReportSendHistory                   ReportSendHistory[]
   TrainingProvider                    TrainingProvider[]
   TransactionalNotificationPreference TransactionalNotificationPreference[]
   TransactionalChangeRequest          TransactionalChangeRequest[]
@@ -1306,22 +1307,47 @@ model SSOConfiguration {
 }
 
 model SavedReport {
-  name        String
-  companyId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime
-  category    String
-  createdBy   String
-  id          Int      @id @default(autoincrement())
-  description String?
-  filters     Json?
-  pagination  Json?
-  sort        Json?
-  fields      String[]
-  Company     Company  @relation(fields: [companyId], references: [id])
-  User        User     @relation(fields: [createdBy], references: [id])
+  name              String
+  companyId         String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  category          String
+  createdBy         String
+  id                Int                 @id @default(autoincrement())
+  description       String?
+  filters           Json?
+  pagination        Json?
+  sort              Json?
+  fields            String[]
+  Company           Company             @relation(fields: [companyId], references: [id])
+  User              User                @relation(fields: [createdBy], references: [id])
+  ReportSendHistory ReportSendHistory[]
 
   @@unique([name, companyId])
+}
+
+model ReportSendHistory {
+  id               String   @id @default(uuid())
+  reportId         Int
+  reportName       String
+  sentBy           String
+  sentAt           DateTime @default(now())
+  recipientType    String // "DEPARTMENT", "JOB_ROLE", "MIXED"
+  departments      Json? // Array of department IDs and names
+  jobRoles         Json? // Array of job role IDs and names
+  recipientCount   Int
+  recipientEmails  Json // Array of email addresses
+  format           String // "PDF" or "EXCEL"
+  subject          String
+  messageBody      String?
+  companyId        String
+  SavedReport      SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  Company          Company     @relation(fields: [companyId], references: [id])
+  User             User        @relation(fields: [sentBy], references: [id])
+
+  @@index([reportId])
+  @@index([companyId, sentAt])
+  @@index([sentBy])
 }
 
 model TrainingProvider {
@@ -1413,6 +1439,7 @@ model User {
   PersonalInfoAudit_PersonalInfoAudit_changedByIdToUser                    PersonalInfoAudit[]             @relation("PersonalInfoAudit_changedByIdToUser")
   PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser                  PersonalInfoAudit[]             @relation("PersonalInfoAudit_subjectUserIdToUser")
   SavedReport                                                              SavedReport[]
+  ReportSendHistory                                                        ReportSendHistory[]
   Company                                                                  Company                         @relation(fields: [companyId], references: [id])
   Department_User_departmentIdToDepartment                                 Department?                     @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])
   GenderOption                                                             GenderOption?                   @relation(fields: [genderOptionId], references: [id])

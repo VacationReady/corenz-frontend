@@ -41,9 +41,13 @@ export async function GET(
         Employee: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
             Department: {
               select: {
                 name: true,
@@ -151,6 +155,7 @@ export async function POST(
     // Create response
     const response = await prisma.surveyResponse.create({
       data: {
+        id: crypto.randomUUID(),
         surveyId: id,
         employeeId: employee.id,
         responseData: validatedData.responseData,

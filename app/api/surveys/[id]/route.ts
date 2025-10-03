@@ -46,9 +46,13 @@ export async function GET(
             Employee: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
                 Department: {
                   select: {
                     name: true,
@@ -68,8 +72,12 @@ export async function GET(
             Employee: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
                 Department: {
                   select: {
                     name: true,

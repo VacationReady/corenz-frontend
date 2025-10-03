@@ -215,6 +215,20 @@ export const breadcrumbConfigs = {
       { label: "Org Chart", isCurrentPage: true },
     ],
   },
+  // Surveys section
+  surveys: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Surveys", isCurrentPage: true },
+    ],
+  },
+  surveysSection: (section: string) => ({
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Surveys", href: "/surveys" },
+      { label: section, isCurrentPage: true },
+    ],
+  }),
   // Form-specific breadcrumbs
   formDetail: (formName: string) => ({
     items: [

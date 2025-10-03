@@ -71,9 +71,9 @@ export function FieldEditor({
         <TabsList className="grid grid-cols-3 w-full mb-2">
           <TabsTrigger value="basics">Basics</TabsTrigger>
           <TabsTrigger value="validation">Validation</TabsTrigger>
-          <TabsTrigger value="data">Data</TabsTrigger>
+          <TabsTrigger value="conditions">Conditions</TabsTrigger>
         </TabsList>
-        <div className="text-xs text-gray-500 -mt-1 mb-2">Tip: Start with Basics for the label and help text. Use Data for options. Validation makes answers required.</div>
+        <div className="text-xs text-gray-500 -mt-1 mb-2">Tip: Start with Basics for the label and help text. Use Conditions for calculations and logic. Validation makes answers required.</div>
 
         <TabsContent value="basics">
           <div className="space-y-4">
@@ -304,243 +304,161 @@ export function FieldEditor({
           </div>
         </TabsContent>
 
-        {/* Data Tab */}
-        <TabsContent value="data">
+        {/* Conditions Tab */}
+        <TabsContent value="conditions">
           <div className="space-y-4">
-            {/* Appearance & Multiple */}
-            {(field.type === "select" || field.type === "multiselect" || field.type === "chips" || field.type === "radio" || field.type === "checkbox") && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Appearance</label>
-                  <select
-                    className="border rounded w-full px-2 py-2 text-sm"
-                    value={field.appearance || "dropdown"}
-                    onChange={(e) => onChange({ ...field, appearance: e.target.value as any })}
-                  >
-                    <option value="dropdown">Dropdown</option>
-                    <option value="chips">Chips</option>
-                    <option value="buttons">Buttons</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 mt-6">
-                  <Checkbox
-                    id={`multiple-${field.id}`}
-                    checked={Boolean(field.multiple)}
-                    onCheckedChange={(v) => onChange({ ...field, multiple: Boolean(v) })}
-                  />
-                  <label htmlFor={`multiple-${field.id}`} className="text-sm">Allow multiple</label>
-                </div>
-              </div>
-            )}
-
-            {/* Options Source */}
-            {(field.type === "select" || field.type === "multiselect" || field.type === "chips" || field.type === "radio" || field.type === "checkbox") && (
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Options Source</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <select
-                      className="border rounded w-full px-2 py-2 text-sm"
-                      value={field.optionsSource?.type || "static"}
-                      onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || {}), type: e.target.value as any } })}
-                    >
-                      <option value="static">Static</option>
-                      <option value="api">API</option>
-                      <option value="hrField">HR Field</option>
-                      <option value="custom">Custom</option>
-                    </select>
-                  </div>
-                </div>
-
-                {(!field.optionsSource || field.optionsSource.type === "static") && (
-                  <div className="text-xs text-gray-500">Using static options configured in Basics.</div>
-                )}
-
-                {field.optionsSource?.type === "api" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
-                      <Input
-                        value={field.optionsSource?.url || ""}
-                        onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || { type: "api" }), url: e.target.value } })}
-                        placeholder="https://api.example.com/options"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Method</label>
-                      <select
-                        className="border rounded w-full px-2 py-2 text-sm"
-                        value={field.optionsSource?.method || "GET"}
-                        onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || { type: "api" }), method: e.target.value as any } })}
-                      >
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Label field</label>
-                      <Input
-                        value={field.optionsSource?.labelField || ""}
-                        onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || { type: "api" }), labelField: e.target.value } })}
-                        placeholder="e.g. name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Value field</label>
-                      <Input
-                        value={field.optionsSource?.valueField || ""}
-                        onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || { type: "api" }), valueField: e.target.value } })}
-                        placeholder="e.g. id"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Depends on (comma separated field IDs)</label>
-                      <Input
-                        value={(field.optionsSource?.dependsOn || []).join(",")}
-                        onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || { type: "api" }), dependsOn: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) } })}
-                        placeholder="fieldA, fieldB"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Cache TTL (sec)</label>
-                      <Input
-                        type="number"
-                        value={field.optionsSource?.cacheTtlSeconds ?? ""}
-                        onChange={(e) => onChange({ ...field, optionsSource: { ...(field.optionsSource || { type: "api" }), cacheTtlSeconds: Number(e.target.value) || 0 } })}
-                        placeholder="e.g. 300"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Table/List column builder */}
-            {(field.type === "table") && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700">Table Columns</label>
-                  <Button type="button" size="sm" variant="outline" className="h-8 px-2"
-                    onClick={() => onChange({ ...field, tableColumns: [ ...(field.tableColumns || []), { id: `col${(field.tableColumns?.length || 0) + 1}`, label: "Column", type: "text" } as TableColumn ] })}
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Add Column
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {(field.tableColumns || []).map((col, idx) => (
-                    <div key={col.id || idx} className="grid grid-cols-5 gap-2 items-center">
-                      <Input
-                        value={col.label}
-                        onChange={(e) => {
-                          const cols = [...(field.tableColumns || [])];
-                          cols[idx] = { ...cols[idx], label: e.target.value };
-                          onChange({ ...field, tableColumns: cols });
-                        }}
-                        placeholder="Label"
-                      />
-                      <select
-                        className="border rounded px-2 py-2 text-sm"
-                        value={col.type}
-                        onChange={(e) => {
-                          const cols = [...(field.tableColumns || [])];
-                          cols[idx] = { ...cols[idx], type: e.target.value as any };
-                          onChange({ ...field, tableColumns: cols });
-                        }}
-                      >
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                        <option value="select">Select</option>
-                      </select>
-                      <Input
-                        value={(col.options || []).join(",")}
-                        onChange={(e) => {
-                          const cols = [...(field.tableColumns || [])];
-                          cols[idx] = { ...cols[idx], options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) };
-                          onChange({ ...field, tableColumns: cols });
-                        }}
-                        placeholder="Options (csv)"
-                      />
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={`col-req-${idx}`}
-                          checked={Boolean(col.required)}
-                          onCheckedChange={(v) => {
-                            const cols = [...(field.tableColumns || [])];
-                            cols[idx] = { ...cols[idx], required: Boolean(v) };
-                            onChange({ ...field, tableColumns: cols });
-                          }}
-                        />
-                        <label htmlFor={`col-req-${idx}`} className="text-xs">Required</label>
-                      </div>
-                      <Button type="button" size="sm" variant="outline" className="h-9" onClick={() => {
-                        const cols = (field.tableColumns || []).filter((_, i) => i !== idx);
-                        onChange({ ...field, tableColumns: cols });
-                      }}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Calculation */}
-            {(field.type === "computed" || field.calculation || field.calculationConfig) && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Calculation</label>
+            {/* Conditional Logic */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">Show this field when:</label>
+              <div className="grid grid-cols-3 gap-2">
                 <Input
-                  value={field.calculationConfig?.expression || field.calculation || ""}
-                  onChange={(e) => onChange({ ...field, calculationConfig: { ...(field.calculationConfig || {}), expression: e.target.value } })}
-                  placeholder="e.g. baseSalary * 0.1"
+                  value={field.conditional?.field || ""}
+                  onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { operator: "equals", value: "" }), field: e.target.value } })}
+                  placeholder="Field ID"
+                  className="text-sm"
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
-                    <select
-                      className="border rounded w-full px-2 py-2 text-sm"
-                      value={field.calculationConfig?.format || "number"}
-                      onChange={(e) =>
-                        onChange({
-                          ...field,
-                          calculationConfig: {
-                            expression: field.calculationConfig?.expression || field.calculation || "",
-                            ...(field.calculationConfig || {}),
-                            format: e.target.value as any,
-                          },
-                        })
-                      }
-                    >
-                      <option value="number">Number</option>
-                      <option value="currency">Currency</option>
-                      <option value="percentage">Percentage</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Precision</label>
-                    <Input
-                      type="number"
-                      value={field.calculationConfig?.precision ?? ""}
-                      onChange={(e) =>
-                        onChange({
-                          ...field,
-                          calculationConfig: {
-                            expression: field.calculationConfig?.expression || field.calculation || "",
-                            ...(field.calculationConfig || {}),
-                            precision: Number(e.target.value),
-                          },
-                        })
-                      }
-                      placeholder="e.g. 2"
+                <select
+                  className="border rounded px-2 py-2 text-sm"
+                  value={field.conditional?.operator || "equals"}
+                  onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", value: "" }), operator: e.target.value as any } })}
+                >
+                  <option value="equals">Equals</option>
+                  <option value="notEquals">Not Equals</option>
+                  <option value="contains">Contains</option>
+                  <option value="greaterThan">Greater Than</option>
+                  <option value="lessThan">Less Than</option>
+                </select>
+                <Input
+                  value={field.conditional?.value || ""}
+                  onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", operator: "equals" }), value: e.target.value } })}
+                  placeholder="Value"
+                  className="text-sm"
+                />
+              </div>
+              <p className="text-xs text-gray-500">Leave blank to always show this field</p>
+            </div>
+
+            {/* Calculation - for currency, number, and computed fields */}
+            {(field.type === "currency" || field.type === "number" || field.type === "computed" || field.type === "percentage") && (
+              <div className="space-y-3">
+                <div className="border-t pt-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Checkbox
+                      id={`enable-calc-${field.id}`}
+                      checked={Boolean(field.calculationConfig?.expression || field.calculation)}
+                      onCheckedChange={(v) => {
+                        if (!v) {
+                          onChange({ ...field, calculationConfig: undefined, calculation: undefined });
+                        } else {
+                          onChange({ ...field, calculationConfig: { expression: "", format: "number" } });
+                        }
+                      }}
                     />
+                    <label htmlFor={`enable-calc-${field.id}`} className="text-sm font-medium text-gray-700">
+                      Calculate automatically from other fields
+                    </label>
                   </div>
+                  
+                  {(field.calculationConfig?.expression || field.calculation) && (
+                    <div className="space-y-3 pl-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Calculation Expression
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs space-y-1">
+                                  <p>Examples:</p>
+                                  <p>• <code>fieldA * 0.25</code> (25% of fieldA)</p>
+                                  <p>• <code>fieldB + fieldC</code> (sum)</p>
+                                  <p>• <code>(fieldX - fieldY) * 1.15</code></p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </label>
+                        <Input
+                          value={field.calculationConfig?.expression || field.calculation || ""}
+                          onChange={(e) => onChange({ ...field, calculationConfig: { ...(field.calculationConfig || {}), expression: e.target.value } })}
+                          placeholder="e.g. totalBilled * 0.25"
+                          className="font-mono text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Use field IDs (e.g., <code className="bg-gray-100 px-1 rounded">totalBilled</code>) and operators (+, -, *, /)
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Display Format</label>
+                          <select
+                            className="border rounded w-full px-2 py-2 text-sm"
+                            value={field.calculationConfig?.format || (field.type === "currency" ? "currency" : "number")}
+                            onChange={(e) =>
+                              onChange({
+                                ...field,
+                                calculationConfig: {
+                                  expression: field.calculationConfig?.expression || field.calculation || "",
+                                  ...(field.calculationConfig || {}),
+                                  format: e.target.value as any,
+                                },
+                              })
+                            }
+                          >
+                            <option value="number">Number</option>
+                            <option value="currency">Currency</option>
+                            <option value="percentage">Percentage</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Decimal Places</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="10"
+                            value={field.calculationConfig?.precision ?? (field.type === "currency" ? 2 : 0)}
+                            onChange={(e) =>
+                              onChange({
+                                ...field,
+                                calculationConfig: {
+                                  expression: field.calculationConfig?.expression || field.calculation || "",
+                                  ...(field.calculationConfig || {}),
+                                  precision: Number(e.target.value),
+                                },
+                              })
+                            }
+                            placeholder="e.g. 2"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <p className="text-xs text-blue-800">
+                          <strong>Tip:</strong> For a 25% commission calculation, use: <code className="bg-white px-1 rounded">totalBilled * 0.25</code>
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
+
+            {/* Read-only option */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Checkbox
+                id={`readonly-${field.id}`}
+                checked={Boolean(field.readOnly)}
+                onCheckedChange={(v) => onChange({ ...field, readOnly: Boolean(v) })}
+              />
+              <label htmlFor={`readonly-${field.id}`} className="text-sm">
+                Read-only (display only, cannot be edited)
+              </label>
+            </div>
           </div>
         </TabsContent>
-
-        {/* Logic UI removed */}
       </Tabs>
     </div>
   );

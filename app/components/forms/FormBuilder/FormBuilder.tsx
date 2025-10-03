@@ -339,7 +339,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">
-                URL Slug
+                URL
               </Label>
               <Input
                 value={formSlug}
@@ -352,7 +352,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               />
               {!slugIsValid ? (
                 <p className="text-xs text-destructive">
-                  Slug must be unique and contain only lowercase letters, numbers, or hyphens.
+                  URL must be unique and contain only lowercase letters, numbers, or hyphens.
                 </p>
               ) : null}
             </div>

@@ -178,6 +178,7 @@ export async function processUserMessage(
       case "policy_rollout":
       case "check_approval_status":
       case "list_pending_approvals":
+      case "execute_workflow":
         result = await handleAction(intent, userId, companyId);
         break;
 

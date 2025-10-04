@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail } from "@/lib/email/template";
+import { createAutomationCalendarEvent } from "@/lib/calendar/createAutomationCalendarEvent";
 import { Node, Edge } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
 
@@ -27,6 +28,7 @@ if (typeof window === 'undefined') {
 interface WorkflowContext {
   workflowId: string;
   executionId: string;
+  executionRecordId: string;
   triggerId?: string;
   triggerData?: any;
   employee?: any;
@@ -34,6 +36,7 @@ interface WorkflowContext {
   variables: Record<string, any>;
   logs: ExecutionLog[];
   startTime: Date;
+  triggerSummary?: string;
 }
 
 interface ExecutionLog {
@@ -51,6 +54,8 @@ interface ExecutionResult {
   error?: string;
   logs: ExecutionLog[];
   duration: number;
+  executionId: string;
+  status: "COMPLETED" | "FAILED" | "SKIPPED";
 }
 
 export class WorkflowExecutionEngine {
@@ -136,6 +141,7 @@ export class WorkflowExecutionEngine {
     const context: WorkflowContext = {
       workflowId,
       executionId,
+      executionRecordId: executionId,
       triggerData,
       variables: {},
       logs: [],
@@ -156,6 +162,8 @@ export class WorkflowExecutionEngine {
       context.company = workflow.Company;
       this.activeExecutions.set(executionId, context);
 
+      await this.startExecutionRecord(workflow, context);
+
       // Parse workflow definition
       const definition = workflow.workflowDefinition as any;
       const nodes: Node[] = definition?.nodes || [];
@@ -170,11 +178,14 @@ export class WorkflowExecutionEngine {
       // Validate trigger
       const triggerValid = await this.validateTrigger(triggerNode, triggerData, context);
       if (!triggerValid) {
+        await this.recordExecution(workflow, context, false, "Trigger validation failed", "SKIPPED");
         return {
           success: false,
           error: "Trigger validation failed",
           logs: context.logs,
           duration: Date.now() - startTime.getTime(),
+          executionId,
+          status: "SKIPPED",
         };
       }
 
@@ -188,10 +199,12 @@ export class WorkflowExecutionEngine {
         success: true,
         logs: context.logs,
         duration: Date.now() - startTime.getTime(),
+        executionId,
+        status: "COMPLETED",
       };
     } catch (error: any) {
       console.error(`Workflow execution failed: ${error.message}`, error);
-      
+
       // Record failed execution
       const workflow = await prisma.automationRule.findUnique({
         where: { id: workflowId },
@@ -205,9 +218,57 @@ export class WorkflowExecutionEngine {
         error: error.message,
         logs: context.logs,
         duration: Date.now() - startTime.getTime(),
+        executionId,
+        status: "FAILED",
       };
     } finally {
       this.activeExecutions.delete(executionId);
+    }
+  }
+
+  private computeInitialTriggerSummary(workflow: any, context: WorkflowContext): string {
+    if (workflow.triggerType === "MANUAL") {
+      return "Manual execution requested";
+    }
+    if (workflow.triggerType === "SCHEDULED") {
+      return "Scheduled workflow invocation";
+    }
+    if (workflow.triggerType === "WEBHOOK") {
+      const source = context.triggerData?.source || context.triggerData?.payload?.source;
+      return `Webhook invocation${source ? ` from ${source}` : ""}`;
+    }
+    return `Triggered via ${workflow.triggerType}`;
+  }
+
+  private async startExecutionRecord(workflow: any, context: WorkflowContext): Promise<void> {
+    const safeTriggerData = context.triggerData
+      ? JSON.parse(JSON.stringify(context.triggerData))
+      : {};
+
+    const triggerSummary = this.computeInitialTriggerSummary(workflow, context);
+    context.triggerSummary = triggerSummary;
+
+    try {
+      await prisma.automationExecution.create({
+        data: {
+          id: context.executionRecordId,
+          ruleId: workflow.id,
+          companyId: workflow.companyId,
+          status: "RUNNING",
+          triggeredAt: context.startTime,
+          startedAt: context.startTime,
+          triggerData: safeTriggerData,
+          executionLog: [],
+          triggerSummary,
+          contextSnapshot: {},
+          lastHeartbeatAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error(
+        `[WorkflowExecutionEngine] Failed to create execution record for workflow ${workflow.id}:`,
+        error
+      );
     }
   }
 
@@ -221,7 +282,7 @@ export class WorkflowExecutionEngine {
     context: WorkflowContext
   ): Promise<void> {
     // Log node start
-    this.logExecution(context, node.id, node.type || "unknown", "started");
+    await this.logExecution(context, node.id, node.type || "unknown", "started");
 
     try {
       // Execute based on node type
@@ -233,7 +294,7 @@ export class WorkflowExecutionEngine {
         case "condition":
           const conditionMet = await this.evaluateCondition(node, context);
           if (!conditionMet) {
-            this.logExecution(context, node.id, "condition", "skipped", "Condition not met");
+            await this.logExecution(context, node.id, "condition", "skipped", "Condition not met");
             return; // Stop execution path
           }
           break;
@@ -259,7 +320,7 @@ export class WorkflowExecutionEngine {
       }
 
       // Log successful completion
-      this.logExecution(context, node.id, node.type || "unknown", "completed");
+      await this.logExecution(context, node.id, node.type || "unknown", "completed");
 
       // Find and execute next nodes
       const nextEdges = edges.filter((e) => e.source === node.id);
@@ -270,7 +331,7 @@ export class WorkflowExecutionEngine {
         }
       }
     } catch (error: any) {
-      this.logExecution(context, node.id, node.type || "unknown", "failed", error.message);
+      await this.logExecution(context, node.id, node.type || "unknown", "failed", error.message);
       throw error;
     }
   }
@@ -292,8 +353,12 @@ export class WorkflowExecutionEngine {
           where: { id: triggerData.employeeId },
           include: { User: true, Department: true, JobRole: true },
         });
+        if (context.employee?.User) {
+          const name = `${context.employee.User.firstName || ""} ${context.employee.User.lastName || ""}`.trim();
+          context.triggerSummary = `New employee created: ${name || context.employee.id}`;
+        }
         return !!context.employee;
-        
+
       case "DOCUMENT_EXPIRING":
         {
           const cfg = (node.data?.config ?? {}) as any;
@@ -328,11 +393,12 @@ export class WorkflowExecutionEngine {
           const items = [...driverLicences, ...trainingRecords, ...employmentChecks];
           if (items.length > 0) {
             context.variables.expiringDocuments = items;
+            context.triggerSummary = `Detected ${items.length} expiring compliance items`;
             return true;
           }
           return false;
         }
-        
+
       case "FORM_SUBMITTED":
         const formId = node.data?.config?.formId;
         if (!formId || !triggerData?.submissionId) return false;
@@ -345,18 +411,26 @@ export class WorkflowExecutionEngine {
         if (submission && submission.formId === formId) {
           context.employee = submission.Employee;
           context.variables.formSubmission = submission;
+          const name = submission.Employee?.User
+            ? `${submission.Employee.User.firstName || ""} ${submission.Employee.User.lastName || ""}`.trim()
+            : submission.employeeId;
+          context.triggerSummary = `Form submission received from ${name || "Unknown"}`;
           return true;
         }
         return false;
-        
+
       case "SCHEDULED":
         // Always valid for scheduled triggers
         return true;
         
       case "WEBHOOK":
         // Validate webhook payload
-        return !!triggerData?.payload;
-        
+        if (triggerData?.payload) {
+          context.triggerSummary = `Webhook received${triggerData?.payload?.event ? `: ${triggerData.payload.event}` : ""}`;
+          return true;
+        }
+        return false;
+
       case "LEAVE_REQUEST":
         if (!triggerData?.leaveRequestId) return false;
         const leaveRequest = await prisma.leaveRequest.findUnique({
@@ -365,8 +439,12 @@ export class WorkflowExecutionEngine {
         });
         context.employee = leaveRequest?.Employee;
         context.variables.leaveRequest = leaveRequest;
+        if (leaveRequest?.Employee?.User) {
+          const name = `${leaveRequest.Employee.User.firstName || ""} ${leaveRequest.Employee.User.lastName || ""}`.trim();
+          context.triggerSummary = `Leave request from ${name || leaveRequest.Employee.id}`;
+        }
         return !!leaveRequest;
-        
+
       default:
         return true;
     }
@@ -606,8 +684,13 @@ export class WorkflowExecutionEngine {
       default:
         console.warn(`Unknown action type: ${actionType} - treating as no-op`);
         // For unimplemented actions, log but don't fail
-        this.logExecution(context, `action-${actionType}`, 'action', 'completed', 
-          `Action type ${actionType} not yet implemented`);
+        await this.logExecution(
+          context,
+          `action-${actionType}`,
+          'action',
+          'completed',
+          `Action type ${actionType} not yet implemented`
+        );
     }
   }
 
@@ -1012,20 +1095,27 @@ export class WorkflowExecutionEngine {
   /**
    * Helper: Log execution step
    */
-  private logExecution(
+  private async logExecution(
     context: WorkflowContext,
     nodeId: string,
     nodeType: string,
     status: ExecutionLog["status"],
     message?: string
-  ): void {
-    context.logs.push({
+  ): Promise<void> {
+    const entry: ExecutionLog = {
       timestamp: new Date(),
       nodeId,
       nodeType,
       status,
       message,
-    });
+    };
+
+    context.logs.push(entry);
+
+    await Promise.all([
+      this.persistStepLog(context, nodeId, nodeType, status, message),
+      this.updateHeartbeat(context),
+    ]);
   }
 
   /**
@@ -1035,45 +1125,215 @@ export class WorkflowExecutionEngine {
     workflow: any,
     context: WorkflowContext,
     success: boolean,
-    error?: string
+    error?: string,
+    statusOverride?: "COMPLETED" | "FAILED" | "SKIPPED" | "CANCELLED" | "TIMED_OUT"
   ): Promise<void> {
     const duration = Date.now() - context.startTime.getTime();
-    // JSON-safe copies
     const safeLogs = (context.logs || []).map((l) => ({
       ...l,
       timestamp: new Date(l.timestamp).toISOString(),
     }));
     const safeTriggerData = context.triggerData
       ? JSON.parse(JSON.stringify(context.triggerData))
-      : undefined;
+      : {};
 
-    await prisma.automationExecution.create({
-      data: {
-        id: context.executionId,
-        ruleId: workflow.id,
-        companyId: workflow.companyId,
-        status: success ? "COMPLETED" : "FAILED",
-        triggeredAt: context.startTime,
-        triggerData: safeTriggerData,
-        executionLog: safeLogs,
-        errorMessage: error,
+    const triggerSummary = this.buildFinalTriggerSummary(workflow, context);
+    const status = statusOverride ?? (success ? "COMPLETED" : "FAILED");
+
+    const baseData = {
+      ruleId: workflow.id,
+      companyId: workflow.companyId,
+      status,
+      triggeredAt: context.startTime,
+      startedAt: context.startTime,
+      completedAt: new Date(),
+      durationMs: duration,
+      triggerData: safeTriggerData,
+      executionLog: safeLogs,
+      errorMessage: error,
+      triggerSummary,
+      contextSnapshot: {
+        employeeId: context.employee?.id,
+        variables: context.variables,
       },
-    });
-    
-    // Update workflow statistics
+      lastHeartbeatAt: new Date(),
+    };
+
+    try {
+      await prisma.automationExecution.update({
+        where: { id: context.executionRecordId },
+        data: baseData,
+      });
+    } catch (updateError) {
+      console.error(
+        `[WorkflowExecutionEngine] Failed to update execution ${context.executionRecordId}, attempting to create new record`,
+        updateError
+      );
+      await prisma.automationExecution.upsert({
+        where: { id: context.executionRecordId },
+        create: {
+          id: context.executionRecordId,
+          ...baseData,
+        },
+        update: baseData,
+      });
+    }
+
+    const shouldIncrementFailure = ["FAILED", "CANCELLED", "TIMED_OUT"].includes(status);
+
     await prisma.automationRule.update({
       where: { id: workflow.id },
       data: {
         lastExecutedAt: new Date(),
         executionCount: { increment: 1 },
-        successCount: success ? { increment: 1 } : undefined,
-        failureCount: !success ? { increment: 1 } : undefined,
-        averageExecutionTime: Math.round(
-          ((workflow.averageExecutionTime || 0) * workflow.executionCount + duration) / 
-          (workflow.executionCount + 1)
-        ),
+        successCount: status === "COMPLETED" ? { increment: 1 } : undefined,
+        failureCount: shouldIncrementFailure ? { increment: 1 } : undefined,
+        averageExecutionTime:
+          status === "COMPLETED"
+            ? Math.round(
+                ((workflow.averageExecutionTime || 0) * workflow.executionCount + duration) /
+                (workflow.executionCount + 1)
+              )
+            : undefined,
       },
     });
+  }
+
+  private buildFinalTriggerSummary(workflow: any, context: WorkflowContext): string {
+    if (context.triggerSummary) {
+      return context.triggerSummary;
+    }
+
+    if (context.employee?.User) {
+      const name = `${context.employee.User.firstName || ""} ${context.employee.User.lastName || ""}`.trim();
+      return `${workflow.triggerType} for ${name || context.employee.id}`;
+    }
+
+    switch (workflow.triggerType) {
+      case "SCHEDULED":
+        return "Scheduled execution";
+      case "WEBHOOK":
+        return "Webhook execution";
+      case "MANUAL":
+        return "Manually executed workflow";
+      default:
+        return `Workflow triggered: ${workflow.triggerType}`;
+    }
+  }
+
+  private mapStepStatus(status: ExecutionLog["status"]): "STARTED" | "COMPLETED" | "FAILED" | "SKIPPED" {
+    switch (status) {
+      case "started":
+        return "STARTED";
+      case "completed":
+        return "COMPLETED";
+      case "failed":
+        return "FAILED";
+      case "skipped":
+        return "SKIPPED";
+      default:
+        return "SKIPPED";
+    }
+  }
+
+  private async persistStepLog(
+    context: WorkflowContext,
+    nodeId: string,
+    nodeType: string,
+    status: ExecutionLog["status"],
+    message?: string
+  ): Promise<void> {
+    if (!context.executionRecordId) return;
+
+    const dbStatus = this.mapStepStatus(status);
+    const now = new Date();
+
+    try {
+      if (status === "started") {
+        await prisma.automationExecutionStep.upsert({
+          where: { executionId_nodeId: { executionId: context.executionRecordId, nodeId } },
+          update: {
+            status: dbStatus,
+            startedAt: now,
+            nodeType,
+            message,
+            errorMessage: null,
+          },
+          create: {
+            id: uuidv4(),
+            executionId: context.executionRecordId,
+            ruleId: context.workflowId,
+            nodeId,
+            nodeType,
+            status: dbStatus,
+            startedAt: now,
+            message,
+          },
+        });
+      } else {
+        await prisma.automationExecutionStep.update({
+          where: { executionId_nodeId: { executionId: context.executionRecordId, nodeId } },
+          data: {
+            status: dbStatus,
+            completedAt: now,
+            message,
+            errorMessage: status === "failed" ? message : null,
+            nodeType,
+          },
+        });
+      }
+    } catch (error) {
+      console.error(
+        `[WorkflowExecutionEngine] Failed to persist step log for execution ${context.executionRecordId} node ${nodeId}:`,
+        error
+      );
+      if (status !== "started") {
+        try {
+          await prisma.automationExecutionStep.upsert({
+            where: { executionId_nodeId: { executionId: context.executionRecordId, nodeId } },
+            create: {
+              id: uuidv4(),
+              executionId: context.executionRecordId,
+              ruleId: context.workflowId,
+              nodeId,
+              nodeType,
+              status: dbStatus,
+              startedAt: now,
+              completedAt: now,
+              message,
+              errorMessage: status === "failed" ? message : null,
+            },
+            update: {
+              status: dbStatus,
+              completedAt: now,
+              message,
+              errorMessage: status === "failed" ? message : null,
+              nodeType,
+            },
+          });
+        } catch (nestedError) {
+          console.error(
+            `[WorkflowExecutionEngine] Secondary attempt to persist step log failed for execution ${context.executionRecordId} node ${nodeId}:`,
+            nestedError
+          );
+        }
+      }
+    }
+  }
+
+  private async updateHeartbeat(context: WorkflowContext): Promise<void> {
+    if (!context.executionRecordId) return;
+    try {
+      await prisma.automationExecution.update({
+        where: { id: context.executionRecordId },
+        data: { lastHeartbeatAt: new Date() },
+      });
+    } catch (error) {
+      console.error(
+        `[WorkflowExecutionEngine] Failed to update heartbeat for execution ${context.executionRecordId}:`,
+        error
+      );
+    }
   }
 
   /**
@@ -1409,31 +1669,38 @@ export class WorkflowExecutionEngine {
    * Execute create calendar event action
    */
   private async executeCreateCalendarEvent(config: any, context: WorkflowContext): Promise<void> {
-    if (!context.employee) return;
+    if (!context.employee) {
+      throw new Error("Calendar event requires an employee context");
+    }
+
+    const companyId = context.company?.id || context.employee.companyId;
+    if (!companyId) {
+      throw new Error("Calendar event requires a company context");
+    }
 
     try {
-      const response = await fetch('/api/automation-actions/create-calendar-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          config,
-          employeeId: context.employee.id,
-          context: context.variables,
-        }),
+      const initiatorId =
+        typeof context.triggerData?.initiatorUserId === "string"
+          ? context.triggerData.initiatorUserId
+          : undefined;
+
+      const result = await createAutomationCalendarEvent({
+        config,
+        employeeId: context.employee.id,
+        companyId,
+        initiatorUserId: initiatorId,
+        context: context.variables,
       });
 
-      const result = await response.json();
-      
-      if (result.success) {
-        context.variables.calendarEvent = {
-          eventId: result.eventId,
-          scheduledFor: result.scheduledFor,
-          attendees: result.attendees,
-        };
-      }
+      context.variables.calendarEvent = {
+        eventId: result.eventId,
+        scheduledFor: result.scheduledFor,
+        attendeeCount: result.attendees,
+        attendees: result.attendees,
+      };
     } catch (error) {
-      console.error('Failed to create calendar event:', error);
-      throw new Error('Calendar event creation failed');
+      console.error("Failed to create calendar event:", error);
+      throw new Error("Calendar event creation failed");
     }
   }
 

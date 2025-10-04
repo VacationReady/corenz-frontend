@@ -112,6 +112,7 @@ model AutomationRule {
   isTemplate          Boolean               @default(false)
   category            String?
   AutomationExecution AutomationExecution[]
+  executionSteps      AutomationExecutionStep[]
   AutomationJob       AutomationJob[]
   Company             Company               @relation(fields: [companyId], references: [id])
   User                User                  @relation(fields: [createdBy], references: [id])

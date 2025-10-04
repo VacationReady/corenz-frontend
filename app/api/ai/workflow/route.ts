@@ -14,6 +14,7 @@ import {
   generateWorkflow,
   refineWorkflow,
   explainWorkflow,
+  handleNodeDiscovery,
 } from "@/lib/ai/workflow-generator";
 import { prisma } from "@/lib/prisma";
 
@@ -58,6 +59,16 @@ export async function POST(req: NextRequest) {
           );
         }
         const result = await generateWorkflow(prompt, session.user.companyId);
+        
+        // Handle clarification needed case
+        if (!result.success && result.error === "CLARIFICATION_NEEDED") {
+          return NextResponse.json({
+            success: false,
+            error: "CLARIFICATION_NEEDED",
+            clarification: result.clarification,
+          });
+        }
+        
         return NextResponse.json(result);
 
       case "refine":
@@ -89,6 +100,16 @@ export async function POST(req: NextRequest) {
         }
         const saved = await saveWorkflow(workflow, session.user);
         return NextResponse.json(saved);
+
+      case "discover":
+        if (!prompt) {
+          return NextResponse.json(
+            { error: "Query is required for discovery" },
+            { status: 400 }
+          );
+        }
+        const discovery = await handleNodeDiscovery(prompt);
+        return NextResponse.json(discovery);
 
       default:
         return NextResponse.json(

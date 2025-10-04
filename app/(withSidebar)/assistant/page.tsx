@@ -90,6 +90,14 @@ const CAPABILITY_CATEGORIES = [
       "Create review task for employees after 90 days",
       "Send birthday wishes to employees automatically",
     ],
+    discovery: [
+      "What triggers can I use to start workflows?",
+      "How do I filter employees in my workflows?",
+      "What actions are available for automation?",
+      "How do I handle errors in workflows?",
+      "Can I run multiple actions simultaneously?",
+      "What advanced node types are available?",
+    ],
   },
   {
     id: "customize",
@@ -1039,6 +1047,21 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
       // Handle errors from API
       if (!data?.success) {
+        // Handle clarification needed for workflows
+        if (data.error === "CLARIFICATION_NEEDED") {
+          // Remove loading message and add clarification response
+          setMessages((prev) => {
+            const filtered = prev.filter((m) => m.id !== loadingMessage.id);
+            return [
+              ...filtered,
+              createAssistantMessage({
+                message: data.clarification,
+                actionType: "info",
+              }),
+            ];
+          });
+          return;
+        }
         throw new Error(data?.message || data?.error || "Request failed");
       }
 
@@ -1363,6 +1386,15 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     if (lower.includes("add field") || lower.includes("create field") || lower.includes("new field") || lower.includes("custom field")) {
       return "field";
     }
+    
+    // Check for workflow capability discovery questions
+    if (lower.includes("what triggers") || lower.includes("trigger types") || lower.includes("what actions") || 
+        lower.includes("action types") || lower.includes("how do i filter") || lower.includes("conditions") ||
+        lower.includes("error handling") || lower.includes("parallel") || lower.includes("simultaneously") ||
+        lower.includes("node capabilities") || lower.includes("workflow features")) {
+      return "workflow";
+    }
+    
     return "info";
   };
 
@@ -1435,6 +1467,39 @@ Don't worry - your data is safe. This is likely a temporary glitch.
   };
 
   const handleWorkflow = async (prompt: string) => {
+    // Check if this is a discovery question about workflow capabilities
+    const isDiscoveryQuery = prompt.toLowerCase().includes('what triggers') || 
+                            prompt.toLowerCase().includes('what actions') ||
+                            prompt.toLowerCase().includes('how do i filter') ||
+                            prompt.toLowerCase().includes('error handling') ||
+                            prompt.toLowerCase().includes('parallel') ||
+                            prompt.toLowerCase().includes('node capabilities');
+    
+    if (isDiscoveryQuery) {
+      // Handle discovery queries
+      const res = await fetch("/api/ai/workflow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discover", prompt }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        return {
+          content: data.response,
+          actionType: "info" as ActionType,
+          suggestions: data.suggestions,
+        };
+      } else {
+        return {
+          content: data.response || "I'd be happy to help you learn about workflow capabilities! You can ask me about triggers, actions, conditions, error handling, parallel processing, or any other workflow topics.",
+          actionType: "info" as ActionType,
+        };
+      }
+    }
+    
+    // Handle regular workflow generation
     const res = await fetch("/api/ai/workflow", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1444,13 +1509,20 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     const data = await res.json();
 
     if (!data.success) {
+      // Handle clarification needed
+      if (data.error === "CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
       throw new Error(data.error || "Workflow generation failed");
     }
 
     setGeneratedWorkflow(data.workflow);
 
     return {
-      content: `✅ **Workflow Generated!**\n\n${data.workflow.name}\n\n${data.explanation || data.workflow.description}\n\nI've created a visual workflow on the right. Review it and click "Save Workflow" when ready.`,
+      content: `✅ **Workflow Generated!**\n\n**${data.workflow.name}**\n\n${data.explanation || data.workflow.description}\n\n**Workflow Details:**\n• **Category:** ${data.workflow.category || 'Custom'}\n• **Time Saved:** ${data.workflow.estimatedTime || 'Varies per execution'}\n• **Nodes:** ${data.workflow.nodes?.length || 0} steps\n• **Connections:** ${data.workflow.edges?.length || 0} links\n\nI've created a visual workflow on the right. Review it and click "Save Workflow" when ready.`,
       result: data.workflow,
     };
   };
@@ -1681,6 +1753,23 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                 <span className="block max-w-[200px] truncate">{example}</span>
                               </button>
                             ))}
+                            {/* Show discovery examples for workflow category */}
+                            {category.id === "workflows" && category.discovery && (
+                              <>
+                                <div className="w-full border-t border-muted/30 my-1"></div>
+                                <div className="w-full text-[9px] text-muted-foreground mb-1">💡 Learn about capabilities:</div>
+                                {category.discovery.slice(0, 2).map((discovery, idx) => (
+                                  <button
+                                    key={`discovery-${idx}`}
+                                    onClick={() => handleSendMessage(discovery)}
+                                    className="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors group/btn"
+                                    title={discovery}
+                                  >
+                                    <span className="block max-w-[180px] truncate">{discovery}</span>
+                                  </button>
+                                ))}
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1915,6 +2004,14 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 text-green-700">
                           <div className="w-2 h-2 rounded-full bg-green-500"></div>
                           {generatedWorkflow.nodes?.filter((n: any) => n.type === 'action').length || 0} Actions
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-700">
+                          <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                          {generatedWorkflow.nodes?.filter((n: any) => n.type === 'delay').length || 0} Delays
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-700">
+                          <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                          {generatedWorkflow.nodes?.filter((n: any) => n.type === 'branch').length || 0} Branches
                         </div>
                       </div>
                     </div>

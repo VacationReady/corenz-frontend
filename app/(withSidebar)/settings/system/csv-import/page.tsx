@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
@@ -24,7 +24,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import {
   Upload,
   Download,
@@ -43,6 +44,8 @@ import {
   Info,
   Eye,
   X,
+  ListChecks,
+  RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,6 +55,7 @@ interface ImportResult {
   failed: number;
   errors: Array<{ row: number; errors: string[] }>;
   created: Array<{ id: string; email: string; name: string }>;
+  updated: Array<{ id: string; email: string; name: string }>;
   activation?: {
     total: number;
     activated: number;
@@ -78,6 +82,215 @@ interface ImportProgress {
 
 type ImportType = "departments" | "job-roles" | "working-patterns" | "employees";
 
+interface ImportFieldGroup {
+  title: string;
+  description?: string;
+  fields: Array<{ label: string; required?: boolean; note?: string }>;
+}
+
+interface ImportTypeInfo {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  dependencies: string;
+  templateFile: string;
+  fieldGroups: ImportFieldGroup[];
+  keyNotes?: string[];
+}
+
+const importSequence: Array<{ label: string; value: ImportType }> = [
+  { label: "Departments", value: "departments" },
+  { label: "Job Roles", value: "job-roles" },
+  { label: "Working Patterns", value: "working-patterns" },
+  { label: "Employees", value: "employees" },
+];
+
+const getImportLabel = (type: ImportType) =>
+  importSequence.find(step => step.value === type)?.label ?? type;
+
+const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
+  switch (type) {
+    case "departments":
+      return {
+        title: "Departments",
+        description: "Organisational units, cost centres, and reporting structures",
+        icon: <Building className="h-5 w-5" />,
+        dependencies: "None – foundational data",
+        templateFile: "01_departments_template.csv",
+        fieldGroups: [
+          {
+            title: "Core details",
+            fields: [
+              { label: "name", required: true },
+              { label: "description" },
+              { label: "headEmail", note: "Must match an existing user" },
+              { label: "code" },
+              { label: "active" },
+            ],
+          },
+        ],
+      };
+    case "job-roles":
+      return {
+        title: "Job Roles",
+        description: "Job titles, levels, and pay bands for your organisation",
+        icon: <Users className="h-5 w-5" />,
+        dependencies: "Requires departments to be imported first",
+        templateFile: "02_job_roles_template.csv",
+        fieldGroups: [
+          {
+            title: "Role definition",
+            fields: [
+              { label: "name", required: true },
+              { label: "departmentName", required: true, note: "Must match a department" },
+              { label: "description" },
+              { label: "level" },
+              { label: "payGrade" },
+              { label: "active" },
+            ],
+          },
+        ],
+      };
+    case "working-patterns":
+      return {
+        title: "Working Patterns",
+        description: "Standard hours templates, shifts, and flexible schedules",
+        icon: <Clock className="h-5 w-5" />,
+        dependencies: "None – can be imported independently",
+        templateFile: "03_working_patterns_template.csv",
+        keyNotes: [
+          "Enter hours as decimal values (e.g. 7.5 for 7 hours 30 minutes).",
+          "Leave a day blank or set to 0 if no hours are worked on that day.",
+        ],
+        fieldGroups: [
+          {
+            title: "Pattern meta",
+            fields: [
+              { label: "name", required: true },
+              { label: "description" },
+              { label: "patternType" },
+              { label: "active" },
+            ],
+          },
+          {
+            title: "Weekly hours",
+            description: "Number of hours worked on each day of the week",
+            fields: [
+              { label: "mondayHours" },
+              { label: "tuesdayHours" },
+              { label: "wednesdayHours" },
+              { label: "thursdayHours" },
+              { label: "fridayHours" },
+              { label: "saturdayHours" },
+              { label: "sundayHours" },
+            ],
+          },
+        ],
+      };
+    case "employees":
+    default:
+      return {
+        title: "Employees",
+        description: "Full employee record including people data, payroll, compliance, and onboarding essentials",
+        icon: <Users className="h-5 w-5" />,
+        dependencies: "Requires departments, job roles, and working patterns",
+        templateFile: "04_employees_template.csv",
+        keyNotes: [
+          "Keep firstName and lastName as the first two columns in every CSV to guarantee accurate matching.",
+          "Dates should use the ISO format YYYY-MM-DD. Leave cells blank if data is not yet available.",
+        ],
+        fieldGroups: [
+          {
+            title: "Personal information",
+            description: "Matches the Personal Info panel in the employee profile",
+            fields: [
+              { label: "firstName", required: true },
+              { label: "lastName", required: true },
+              { label: "email", required: true },
+              { label: "phoneNumber" },
+              { label: "dateOfBirth" },
+              { label: "gender" },
+              { label: "street" },
+              { label: "city" },
+              { label: "postcode" },
+              { label: "country" },
+              { label: "nationalId" },
+              { label: "pronouns" },
+              { label: "residencyStatus" },
+            ],
+          },
+          {
+            title: "Holiday & leave setup",
+            description: "Seed Annual Leave balances ready for go-live",
+            fields: [
+              { label: "holidayTotalBalance" },
+              { label: "holidayCarryover" },
+              { label: "holidayCurrentBalance" },
+              { label: "holidayYear" },
+            ],
+          },
+          {
+            title: "Employment details",
+            fields: [
+              { label: "departmentName", note: "Must match an imported department" },
+              { label: "jobRoleName", note: "Must match an imported job role" },
+              { label: "employmentType" },
+              { label: "contractType" },
+              { label: "siteLocation" },
+              { label: "startDate" },
+              { label: "contractEndDate" },
+              { label: "workingPatternName", note: "Must match an imported working pattern" },
+              { label: "managerEmail" },
+              { label: "salaryAmount" },
+              { label: "hourlyRate" },
+            ],
+          },
+          {
+            title: "Emergency contacts",
+            fields: [
+              { label: "emergencyContactName" },
+              { label: "emergencyContactRelationship" },
+              { label: "emergencyContactPhone" },
+              { label: "emergencyContactEmail" },
+            ],
+          },
+          {
+            title: "Banking & payroll",
+            fields: [
+              { label: "bankAccountNumber" },
+              { label: "irdNumber" },
+              { label: "taxCode" },
+              { label: "kiwiSaverEnrolled" },
+              { label: "kiwiSaverContribution" },
+            ],
+          },
+          {
+            title: "Driver licence",
+            fields: [
+              { label: "driverLicenceType" },
+              { label: "driverLicenceNumber" },
+              { label: "driverLicenceIssueDate" },
+              { label: "driverLicenceExpiryDate" },
+            ],
+          },
+          {
+            title: "Training & compliance",
+            fields: [
+              { label: "trainingCourse" },
+              { label: "trainingProvider" },
+              { label: "trainingDateCompleted" },
+              { label: "trainingExpiryDate" },
+              { label: "employmentCheckType" },
+              { label: "employmentCheckDocumentNumber" },
+              { label: "employmentCheckIssueDate" },
+              { label: "employmentCheckExpiryDate" },
+            ],
+          },
+        ],
+      };
+  }
+};
+
 export default function CSVImportPage() {
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     status: "idle",
@@ -94,7 +307,10 @@ export default function CSVImportPage() {
     checkPermissions: true,
     promoteManagers: true,
   });
+  const [lastImportedType, setLastImportedType] = useState<ImportType | null>(null);
+  const [allowUpdates, setAllowUpdates] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInfo = getImportTypeInfo(selectedImportType);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -119,23 +335,28 @@ export default function CSVImportPage() {
   const handleImport = async () => {
     if (!selectedFile) return;
 
+    const currentType = selectedImportType;
+    const currentTypeLabel = getImportLabel(currentType);
+
     setImportProgress({
       status: "uploading",
       progress: 0,
-      message: "Uploading file...",
+      message: `Uploading ${currentTypeLabel.toLowerCase()} file...`,
     });
+    setLastImportedType(currentType);
 
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
+      formData.append("allowUpdates", allowUpdates ? "true" : "false");
 
       setImportProgress({
         status: "processing",
         progress: 50,
-        message: `Processing ${selectedImportType} data...`,
+        message: `Processing ${currentTypeLabel.toLowerCase()} data...`,
       });
 
-      const response = await fetch(`/api/csv-import/${selectedImportType}`, {
+      const response = await fetch(`/api/csv-import/${currentType}`, {
         method: "POST",
         body: formData,
       });
@@ -146,16 +367,52 @@ export default function CSVImportPage() {
         throw new Error(data.error || "Import failed");
       }
 
+      const hasFailures = (data.results?.failed ?? 0) > 0;
+      const rawResults = data.results ?? {};
+      const normalisedResults: ImportResult = {
+        total: rawResults.total ?? 0,
+        successful: rawResults.successful ?? 0,
+        failed: rawResults.failed ?? 0,
+        errors: rawResults.errors ?? [],
+        created: rawResults.created ?? [],
+        updated: rawResults.updated ?? [],
+        activation: rawResults.activation,
+      };
+
       setImportProgress({
         status: "completed",
         progress: 100,
-        message: "Import completed successfully!",
-        result: data.results,
+        message: `${currentTypeLabel} import completed successfully!`,
+        result: normalisedResults,
       });
 
       setShowResults(true);
-      toast.success(`Import completed: ${data.results.successful} ${selectedImportType} processed`);
+      const summarySegments = [] as string[];
+      if ((normalisedResults.created?.length ?? 0) > 0) {
+        summarySegments.push(`${normalisedResults.created.length} created`);
+      }
+      if ((normalisedResults.updated?.length ?? 0) > 0) {
+        summarySegments.push(`${normalisedResults.updated.length} updated`);
+      }
+      const summaryMessage =
+        summarySegments.length > 0
+          ? summarySegments.join(" · ")
+          : `${normalisedResults.successful} ${currentTypeLabel} processed`;
+      toast.success(`Import completed: ${summaryMessage}`);
 
+      setSelectedFile(null);
+      setValidationErrors([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      if (!hasFailures) {
+        const currentStepIndex = importSequence.findIndex(step => step.value === currentType);
+        const nextStep = currentStepIndex === -1 ? null : importSequence[currentStepIndex + 1];
+        if (nextStep) {
+          setSelectedImportType(nextStep.value);
+        }
+      }
     } catch (error) {
       setImportProgress({
         status: "error",
@@ -218,6 +475,8 @@ export default function CSVImportPage() {
     setShowResults(false);
     setShowActivationOptions(false);
     setValidationErrors([]);
+    setLastImportedType(null);
+    setAllowUpdates(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -260,7 +519,7 @@ export default function CSVImportPage() {
         progress: 100,
         message: "Employee activation completed successfully!",
         result: {
-          ...importProgress.result,
+          ...importProgress.result!,
           activation: data.results,
         },
       });
@@ -276,61 +535,6 @@ export default function CSVImportPage() {
         message: error instanceof Error ? error.message : "Activation failed",
       });
       toast.error("Employee activation failed");
-    }
-  };
-
-  const getImportTypeInfo = (type: ImportType) => {
-    switch (type) {
-      case "departments":
-        return {
-          title: "Departments",
-          description: "Organizational structure and departments",
-          icon: <Building className="h-5 w-5" />,
-          fields: ["name", "description", "headEmail", "code", "active"],
-          dependencies: "None - foundational data",
-        };
-      case "job-roles":
-        return {
-          title: "Job Roles",
-          description: "Job titles and role definitions",
-          icon: <Users className="h-5 w-5" />,
-          fields: ["name", "description", "departmentName", "level", "payGrade", "active"],
-          dependencies: "Requires departments to be imported first",
-        };
-      case "working-patterns":
-        return {
-          title: "Working Patterns",
-          description: "Work schedules and time patterns",
-          icon: <Clock className="h-5 w-5" />,
-          fields: ["name", "description", "patternType", "mondayHours", "tuesdayHours", "wednesdayHours", "thursdayHours", "fridayHours", "saturdayHours", "sundayHours", "active"],
-          dependencies: "None - can be imported independently",
-        };
-      case "employees":
-        return {
-          title: "Employees",
-          description: "Employee personal and employment data",
-          icon: <Users className="h-5 w-5" />,
-          fields: [
-            // Personal Information
-            "firstName", "lastName", "email", "phoneNumber", "dateOfBirth", 
-            "address", "city", "country", "postalCode", "nationalId", 
-            "pronouns", "residencyStatus",
-            // Emergency Contact
-            "emergencyContactName", "emergencyContactPhone", "emergencyContactRelationship",
-            // Employment Information
-            "departmentName", "jobTitle", "employmentType", "contractType", 
-            "startDate", "contractEndDate", "siteLocation",
-            // Compensation
-            "salary", "hourlyRate", "workingPatternName",
-            // Banking & Tax
-            "bankAccountNumber", "irdNumber", "taxCode",
-            // KiwiSaver
-            "kiwiSaverEnrolled", "kiwiSaverContribution",
-            // Management
-            "managerEmail"
-          ],
-          dependencies: "Requires departments, job roles, and working patterns",
-        };
     }
   };
 
@@ -438,15 +642,22 @@ export default function CSVImportPage() {
             {/* Import Type Info */}
             <div className="p-4 bg-muted/50 rounded-lg">
               <div className="flex items-start gap-3">
-                {getImportTypeInfo(selectedImportType).icon}
-                <div className="flex-1">
-                  <h4 className="font-medium">{getImportTypeInfo(selectedImportType).title}</h4>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {getImportTypeInfo(selectedImportType).description}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    <strong>Dependencies:</strong> {getImportTypeInfo(selectedImportType).dependencies}
-                  </p>
+                {importInfo.icon}
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <h4 className="font-medium">{importInfo.title}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {importInfo.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <span>
+                      <strong>Dependencies:</strong> {importInfo.dependencies}
+                    </span>
+                    <span>
+                      <strong>Template file:</strong> {importInfo.templateFile}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -461,7 +672,7 @@ export default function CSVImportPage() {
               Import Instructions
             </CardTitle>
             <CardDescription>
-              Follow these steps to import {getImportTypeInfo(selectedImportType).title.toLowerCase()} data via CSV
+              Follow these steps to import {importInfo.title.toLowerCase()} data via CSV
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -480,6 +691,19 @@ export default function CSVImportPage() {
                 </div>
               </div>
             </div>
+
+            {importInfo.keyNotes && importInfo.keyNotes.length > 0 && (
+              <Alert className="border-primary/20 bg-primary/5">
+                <AlertTitle>Implementation notes</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1">
+                    {importInfo.keyNotes.map((note, index) => (
+                      <li key={index}>{note}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-start gap-3">
@@ -500,7 +724,7 @@ export default function CSVImportPage() {
                 <div>
                   <h4 className="font-medium">Fill Data</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add {getImportTypeInfo(selectedImportType).title.toLowerCase()} information to the CSV file
+                    Add {importInfo.title.toLowerCase()} information to the CSV file
                   </p>
                 </div>
               </div>
@@ -525,6 +749,25 @@ export default function CSVImportPage() {
                     Review validation results and complete import
                   </p>
                 </div>
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <ListChecks className="h-4 w-4" />
+                Recommended import order
+              </h4>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {importSequence.map((step, index) => (
+                  <Badge
+                    key={step.value}
+                    variant={step.value === selectedImportType ? "default" : "outline"}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="text-xs font-semibold">{index + 1}</span>
+                    {step.label}
+                  </Badge>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -573,6 +816,34 @@ export default function CSVImportPage() {
               </Alert>
             )}
 
+            {selectedImportType === "employees" && (
+              <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-4 space-y-3">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium">Existing employee updates</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Enable this option to merge new personal, employment, and payroll details for people who already exist in
+                    Corenz.
+                  </p>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <Label htmlFor="allow-updates" className="text-sm font-medium">
+                      Allow updates for existing employees
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Matching emails will be updated while new rows are created as usual.
+                    </p>
+                  </div>
+                  <Switch
+                    id="allow-updates"
+                    checked={allowUpdates}
+                    onCheckedChange={setAllowUpdates}
+                    disabled={importProgress.status === "processing" || importProgress.status === "uploading"}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button
                 onClick={handleImport}
@@ -580,7 +851,7 @@ export default function CSVImportPage() {
                 className="flex-1"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Import {getImportTypeInfo(selectedImportType).title}
+                Import {importInfo.title}
               </Button>
             </div>
           </CardContent>
@@ -596,6 +867,11 @@ export default function CSVImportPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {lastImportedType && (
+                <div className="text-sm text-muted-foreground">
+                  Import summary for {getImportLabel(lastImportedType)}
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className={getStatusColor()}>{importProgress.message}</span>
@@ -606,12 +882,18 @@ export default function CSVImportPage() {
 
               {importProgress.status === "completed" && importProgress.result && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        {importProgress.result.successful}
+                        {importProgress.result.created.length}
                       </div>
-                      <div className="text-sm text-muted-foreground">Successful</div>
+                      <div className="text-sm text-muted-foreground">Created</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {importProgress.result.updated.length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Updated</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-red-600">
@@ -620,12 +902,15 @@ export default function CSVImportPage() {
                       <div className="text-sm text-muted-foreground">Failed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-indigo-600">
                         {importProgress.result.total}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total</div>
+                      <div className="text-sm text-muted-foreground">Total processed</div>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground text-center md:text-left">
+                    Successful rows: {importProgress.result.successful}
+                  </p>
 
                   {/* Employee Activation Options */}
                   {selectedImportType === "employees" && importProgress.result.created && importProgress.result.created.length > 0 && (
@@ -786,6 +1071,26 @@ export default function CSVImportPage() {
                 </div>
               )}
 
+              {importProgress.result.updated.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <RefreshCcw className="h-4 w-4 text-blue-600" />
+                    Updated ({importProgress.result.updated.length})
+                  </h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {importProgress.result.updated.map((employee, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
+                        <div>
+                          <div className="font-medium">{employee.name}</div>
+                          <div className="text-sm text-muted-foreground">{employee.email}</div>
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-800">Updated</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Errors */}
               {importProgress.result.errors.length > 0 && (
                 <div>
@@ -816,25 +1121,53 @@ export default function CSVImportPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Supported Fields
+              Template Field Blueprint
             </CardTitle>
             <CardDescription>
-              Complete list of fields that can be imported for {getImportTypeInfo(selectedImportType).title.toLowerCase()}
+              Complete list of fields that can be imported for {importInfo.title.toLowerCase()}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <h4 className="font-medium flex items-center gap-2">
-                {getImportTypeInfo(selectedImportType).icon}
-                {getImportTypeInfo(selectedImportType).title} Fields
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {getImportTypeInfo(selectedImportType).fields.map((field, index) => (
-                  <div key={index} className="text-sm text-muted-foreground">
-                    • {field}
-                  </div>
-                ))}
+          <CardContent className="space-y-6">
+            <div className="flex items-start gap-3">
+              {importInfo.icon}
+              <div>
+                <h4 className="font-medium">{importInfo.title} template structure</h4>
+                <p className="text-sm text-muted-foreground">
+                  Review the grouped columns below before preparing your CSV to minimise rework during onboarding.
+                </p>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {importInfo.fieldGroups.map((group, index) => (
+                <div key={index} className="border rounded-lg p-4 bg-muted/40 space-y-3">
+                  <div>
+                    <h5 className="font-medium">{group.title}</h5>
+                    {group.description && (
+                      <p className="text-sm text-muted-foreground">{group.description}</p>
+                    )}
+                  </div>
+                  <ul className="space-y-2">
+                    {group.fields.map((field, fieldIndex) => (
+                      <li key={fieldIndex} className="rounded-md border bg-background/50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium">{field.label}</span>
+                          <span
+                            className={`text-[10px] font-semibold uppercase tracking-wide ${
+                              field.required ? "text-primary" : "text-muted-foreground"
+                            }`}
+                          >
+                            {field.required ? "Required" : "Optional"}
+                          </span>
+                        </div>
+                        {field.note && (
+                          <p className="text-xs text-muted-foreground mt-1">{field.note}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

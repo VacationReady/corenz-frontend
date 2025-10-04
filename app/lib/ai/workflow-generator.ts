@@ -494,6 +494,32 @@ When users request reports, be like a data analyst helping them:
 5. Generate the report with explanations
 6. Offer scheduling and automation options
 
+**Email Delivery Conversations:**
+When users request email delivery of reports, be like an email automation expert:
+- "Great idea! What format would work best? PDF for presentations, Excel for data analysis, or CSV for importing?"
+- "Perfect! Who should receive this? Individual managers, entire departments, or specific roles?"
+- "Excellent! Should this be a one-time email or would you like it scheduled regularly?"
+- "Good question! Would you like me to include a summary in the email body, or just attach the file?"
+- "Smart thinking! What subject line should I use? Something like 'Monthly Employee Report - December 2024'?"
+
+**Email Delivery Options to Recognize:**
+- "Email report PDF" → PDF attachment via email
+- "Send Excel report" → Excel file via email
+- "Email CSV data" → CSV attachment via email
+- "Attach report" → File attachment in email
+- "Email to managers" → Targeted email delivery
+- "Send to HR team" → Group email delivery
+- "Via email" → Email delivery method
+- "Email format" → Email as delivery method
+
+**Conversational Flow for Email Delivery:**
+1. Recognize the email delivery request
+2. Ask about report type and data requirements
+3. Clarify email recipients and targeting
+4. Confirm file format preferences
+5. Set up scheduling and automation
+6. Configure email content and subject lines
+
 TECHNICAL OUTPUT FORMAT:
 ========================
 
@@ -628,7 +654,77 @@ export async function generateWorkflow(
     /table.*data/i,
   ];
 
+  // Check for email delivery requests with specific formats
+  const emailDeliveryPatterns = [
+    /email.*report.*pdf/i,
+    /send.*report.*pdf/i,
+    /email.*report.*excel/i,
+    /send.*report.*excel/i,
+    /email.*report.*csv/i,
+    /send.*report.*csv/i,
+    /email.*pdf/i,
+    /send.*pdf/i,
+    /email.*excel/i,
+    /send.*excel/i,
+    /email.*csv/i,
+    /send.*csv/i,
+    /attach.*report/i,
+    /attachment.*report/i,
+    /report.*attachment/i,
+    /email.*attachment/i,
+    /send.*attachment/i,
+    /deliver.*report/i,
+    /distribute.*report/i,
+    /share.*report.*email/i,
+    /email.*to.*manager/i,
+    /send.*to.*hr/i,
+    /email.*to.*team/i,
+    /send.*to.*department/i,
+    /report.*via.*email/i,
+    /via.*email/i,
+    /email.*format/i,
+    /send.*format/i,
+  ];
+
   const isReportRequest = reportPatterns.some(pattern => pattern.test(prompt));
+  const isEmailDelivery = emailDeliveryPatterns.some(pattern => pattern.test(prompt));
+
+  if (isEmailDelivery) {
+    return {
+      success: false,
+      error: "EMAIL_DELIVERY_CLARIFICATION_NEEDED",
+      clarification: `Perfect! I can help you email reports in various formats. 📧📊
+
+**Let me clarify the email delivery details:**
+
+**📋 Report Details:**
+• What kind of report do you want to send? (Employee, Performance, Attendance, Leave, etc.)
+• What specific data should be included?
+
+**📧 Email Recipients:**
+• Who should receive this report? (Managers, HR, specific departments, executives)
+• Should I email individuals or groups?
+
+**📄 File Format:**
+• What format would you prefer? 
+  - **PDF:** Professional, formatted reports with charts
+  - **Excel:** Data tables that can be edited and analyzed
+  - **CSV:** Raw data for importing into other systems
+  - **Multiple formats:** Send the same report in different formats
+
+**📅 Schedule & Timing:**
+• Is this a one-time email or recurring?
+• When should it be sent? (Now, scheduled time, or triggered by events)
+
+**📝 Email Content:**
+• Should I include a summary in the email body?
+• Any specific subject line or message?
+
+**Example:** "Email a monthly employee report in PDF format to all managers, including headcount and turnover data for last month, with a summary in the email"
+
+Just tell me what you need and I'll set up the perfect email delivery! 🚀`
+    };
+  }
 
   if (isReportRequest) {
     return {
@@ -1322,6 +1418,57 @@ export async function handleNodeDiscovery(query: string): Promise<{
           "How do I build a performance dashboard?",
           "What reports work for attendance tracking?",
           "How do I schedule automated reports?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('email') && (lowerQuery.includes('report') || lowerQuery.includes('pdf') || lowerQuery.includes('excel') || lowerQuery.includes('csv'))) {
+      return {
+        success: true,
+        response: `📧 **Here's everything you can do with email report delivery:**
+
+**📄 File Formats Available:**
+• **PDF Reports:** Professional, formatted reports with charts and graphs
+• **Excel Files:** Data tables that can be edited, sorted, and analyzed
+• **CSV Files:** Raw data for importing into other systems and databases
+• **Multiple Formats:** Send the same report in different formats to different people
+
+**👥 Email Recipients:**
+• **Individual Recipients:** Send to specific managers, HR staff, executives
+• **Department Groups:** Email entire departments (Sales, Engineering, HR, etc.)
+• **Role-based Groups:** Send to all managers, all employees, specific roles
+• **Custom Lists:** Create custom recipient lists for specific needs
+
+**📅 Delivery Scheduling:**
+• **One-time Emails:** Send immediately or at a specific time
+• **Recurring Emails:** Daily, weekly, monthly, quarterly schedules
+• **Triggered Emails:** Send when specific events occur (new hire, performance review due, etc.)
+• **On-demand:** Generate and send reports whenever requested
+
+**📝 Email Customization:**
+• **Subject Lines:** Customizable subject lines for each report type
+• **Email Body:** Include summaries, key insights, or instructions
+• **Personalization:** Use recipient names and relevant data
+• **Branding:** Company logos and professional formatting
+
+**🚀 Advanced Features:**
+• **Smart Scheduling:** Send reports at optimal times for each recipient
+• **Conditional Delivery:** Only send if certain criteria are met
+• **Delivery Tracking:** Know who opened and downloaded reports
+• **Archive Options:** Keep copies of all sent reports
+
+**Real-world Examples:**
+• **Monthly Manager Reports:** PDF summaries sent to all managers on the 1st of each month
+• **Weekly HR Dashboard:** Excel file with employee data sent to HR team every Monday
+• **Quarterly Executive Summary:** Comprehensive PDF report sent to C-suite
+• **Daily Attendance Alerts:** CSV file sent to supervisors for attendance issues
+
+**What kind of email delivery are you thinking about?** I can help you set up the perfect automated system! 📬`,
+        suggestions: [
+          "Show me how to email monthly reports in PDF format",
+          "How do I send Excel reports to managers?",
+          "Can I schedule automated report emails?",
+          "How do I customize email content and recipients?"
         ]
       };
     }

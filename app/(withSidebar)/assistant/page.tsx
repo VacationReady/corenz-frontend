@@ -106,6 +106,14 @@ const CAPABILITY_CATEGORIES = [
       "Make a headcount summary for HR",
       "Display leave analytics by department",
     ],
+    emailExamples: [
+      "Email monthly report in PDF to all managers",
+      "Send Excel attendance data to HR team",
+      "Email CSV export to accounting department",
+      "Send performance report PDF to executives",
+      "Email leave summary to department heads",
+      "Send turnover report Excel to HR director",
+    ],
     discovery: [
       "What triggers can I use to start workflows?",
       "How do I filter employees in my workflows?",
@@ -1064,7 +1072,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       // Handle errors from API
       if (!data?.success) {
         // Handle clarification needed for workflows
-        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED" || data.error === "REPORT_CLARIFICATION_NEEDED") {
+        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED" || data.error === "REPORT_CLARIFICATION_NEEDED" || data.error === "EMAIL_DELIVERY_CLARIFICATION_NEEDED") {
           // Remove loading message and add clarification response
           setMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== loadingMessage.id);
@@ -1419,6 +1427,15 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return "workflow";
     }
     
+    // Check for email delivery requests
+    if (lower.includes("email") && (lower.includes("report") || lower.includes("pdf") || lower.includes("excel") || lower.includes("csv")) ||
+        lower.includes("send") && (lower.includes("report") || lower.includes("pdf") || lower.includes("excel") || lower.includes("csv")) ||
+        lower.includes("attach") && lower.includes("report") || lower.includes("email") && lower.includes("attachment") ||
+        lower.includes("email") && lower.includes("to") && (lower.includes("manager") || lower.includes("hr") || lower.includes("team") || lower.includes("department")) ||
+        lower.includes("via") && lower.includes("email") || lower.includes("email") && lower.includes("format")) {
+      return "workflow";
+    }
+    
     // Check for report requests
     if (lower.includes("create") && lower.includes("report") || lower.includes("generate") && lower.includes("report") ||
         lower.includes("make") && lower.includes("report") || lower.includes("build") && lower.includes("report") ||
@@ -1431,8 +1448,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
         lower.includes("attendance") && lower.includes("report") || lower.includes("leave") && lower.includes("report") ||
         lower.includes("payroll") && lower.includes("report") || lower.includes("turnover") && lower.includes("report") ||
         lower.includes("headcount") && lower.includes("report") || lower.includes("export") && lower.includes("data") ||
-        lower.includes("download") && lower.includes("report") || lower.includes("email") && lower.includes("report") ||
-        lower.includes("send") && lower.includes("report") || lower.includes("view") && lower.includes("data") ||
+        lower.includes("download") && lower.includes("report") || lower.includes("view") && lower.includes("data") ||
         lower.includes("display") && lower.includes("data") || lower.includes("visualize") && lower.includes("data") ||
         lower.includes("chart") && lower.includes("data") || lower.includes("graph") && lower.includes("data")) {
       return "workflow";
@@ -1568,6 +1584,13 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       }
       // Handle report clarification needed
       if (data.error === "REPORT_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle email delivery clarification needed
+      if (data.error === "EMAIL_DELIVERY_CLARIFICATION_NEEDED") {
         return {
           content: data.clarification,
           actionType: "info" as ActionType,
@@ -1823,6 +1846,24 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                     title={bulkExample}
                                   >
                                     <span className="block max-w-[180px] truncate">{bulkExample}</span>
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                            
+                            {/* Show email delivery examples for workflow category */}
+                            {category.id === "workflows" && category.emailExamples && (
+                              <>
+                                <div className="w-full border-t border-muted/30 my-1"></div>
+                                <div className="w-full text-[9px] text-muted-foreground mb-1">📧 Email Delivery:</div>
+                                {category.emailExamples.slice(0, 2).map((emailExample, idx) => (
+                                  <button
+                                    key={`email-${idx}`}
+                                    onClick={() => handleSendMessage(emailExample)}
+                                    className="text-[9px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors group/btn"
+                                    title={emailExample}
+                                  >
+                                    <span className="block max-w-[180px] truncate">{emailExample}</span>
                                   </button>
                                 ))}
                               </>

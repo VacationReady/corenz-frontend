@@ -102,6 +102,9 @@ const importSequence: Array<{ label: string; value: ImportType }> = [
   { label: "Employees", value: "employees" },
 ];
 
+const getImportLabel = (type: ImportType) =>
+  importSequence.find(step => step.value === type)?.label ?? type;
+
 const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
   switch (type) {
     case "departments":
@@ -301,6 +304,7 @@ export default function CSVImportPage() {
     checkPermissions: true,
     promoteManagers: true,
   });
+  const [lastImportedType, setLastImportedType] = useState<ImportType | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInfo = getImportTypeInfo(selectedImportType);
 
@@ -327,11 +331,15 @@ export default function CSVImportPage() {
   const handleImport = async () => {
     if (!selectedFile) return;
 
+    const currentType = selectedImportType;
+    const currentTypeLabel = getImportLabel(currentType);
+
     setImportProgress({
       status: "uploading",
       progress: 0,
-      message: "Uploading file...",
+      message: `Uploading ${currentTypeLabel.toLowerCase()} file...`,
     });
+    setLastImportedType(currentType);
 
     try {
       const formData = new FormData();
@@ -340,10 +348,10 @@ export default function CSVImportPage() {
       setImportProgress({
         status: "processing",
         progress: 50,
-        message: `Processing ${selectedImportType} data...`,
+        message: `Processing ${currentTypeLabel.toLowerCase()} data...`,
       });
 
-      const response = await fetch(`/api/csv-import/${selectedImportType}`, {
+      const response = await fetch(`/api/csv-import/${currentType}`, {
         method: "POST",
         body: formData,
       });
@@ -354,16 +362,31 @@ export default function CSVImportPage() {
         throw new Error(data.error || "Import failed");
       }
 
+      const hasFailures = (data.results?.failed ?? 0) > 0;
+
       setImportProgress({
         status: "completed",
         progress: 100,
-        message: "Import completed successfully!",
+        message: `${currentTypeLabel} import completed successfully!`,
         result: data.results,
       });
 
       setShowResults(true);
-      toast.success(`Import completed: ${data.results.successful} ${selectedImportType} processed`);
+      toast.success(`Import completed: ${data.results.successful} ${currentTypeLabel} processed`);
 
+      setSelectedFile(null);
+      setValidationErrors([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      if (!hasFailures) {
+        const currentStepIndex = importSequence.findIndex(step => step.value === currentType);
+        const nextStep = currentStepIndex === -1 ? null : importSequence[currentStepIndex + 1];
+        if (nextStep) {
+          setSelectedImportType(nextStep.value);
+        }
+      }
     } catch (error) {
       setImportProgress({
         status: "error",
@@ -426,6 +449,7 @@ export default function CSVImportPage() {
     setShowResults(false);
     setShowActivationOptions(false);
     setValidationErrors([]);
+    setLastImportedType(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -788,6 +812,11 @@ export default function CSVImportPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {lastImportedType && (
+                <div className="text-sm text-muted-foreground">
+                  Import summary for {getImportLabel(lastImportedType)}
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className={getStatusColor()}>{importProgress.message}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
@@ -88,7 +88,7 @@ interface ImportFieldGroup {
 interface ImportTypeInfo {
   title: string;
   description: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   dependencies: string;
   templateFile: string;
   fieldGroups: ImportFieldGroup[];

@@ -256,18 +256,22 @@ export default function SendSurveyPage() {
         targetAudience.excludedEmployees = excludedEmployees;
       }
 
+      const requestBody = {
+        formId: selectedTemplate,
+        name: surveyName,
+        description: surveyDescription || undefined,
+        deadline: deadline && deadline.trim() !== "" ? deadline : undefined,
+        targetAudience,
+      };
+      
+      console.log("Sending survey data:", requestBody);
+      
       const response = await fetch("/api/surveys", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          formId: selectedTemplate,
-          name: surveyName,
-          description: surveyDescription,
-          deadline: deadline || null,
-          targetAudience,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
@@ -276,6 +280,7 @@ export default function SendSurveyPage() {
         router.push("/surveys/active");
       } else {
         const error = await response.json();
+        console.error("Survey send error:", error);
         toast.error(error.error || "Failed to send survey");
       }
     } catch (error) {

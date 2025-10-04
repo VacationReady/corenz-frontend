@@ -8,7 +8,7 @@ const createSurveySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   formId: z.string(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().datetime().optional().or(z.literal("")),
   targetAudience: z.object({
     departments: z.array(z.string()).optional(),
     jobRoles: z.array(z.string()).optional(),
@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(survey, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("Survey validation error:", error.errors);
       return NextResponse.json(
         { error: "Invalid data", details: error.errors },
         { status: 400 }

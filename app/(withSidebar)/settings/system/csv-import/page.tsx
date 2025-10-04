@@ -102,6 +102,189 @@ const importSequence: Array<{ label: string; value: ImportType }> = [
   { label: "Employees", value: "employees" },
 ];
 
+const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
+  switch (type) {
+    case "departments":
+      return {
+        title: "Departments",
+        description: "Organisational units, cost centres, and reporting structures",
+        icon: <Building className="h-5 w-5" />,
+        dependencies: "None – foundational data",
+        templateFile: "01_departments_template.csv",
+        fieldGroups: [
+          {
+            title: "Core details",
+            fields: [
+              { label: "name", required: true },
+              { label: "description" },
+              { label: "headEmail", note: "Must match an existing user" },
+              { label: "code" },
+              { label: "active" },
+            ],
+          },
+        ],
+      };
+    case "job-roles":
+      return {
+        title: "Job Roles",
+        description: "Job titles, levels, and pay bands for your organisation",
+        icon: <Users className="h-5 w-5" />,
+        dependencies: "Requires departments to be imported first",
+        templateFile: "02_job_roles_template.csv",
+        fieldGroups: [
+          {
+            title: "Role definition",
+            fields: [
+              { label: "name", required: true },
+              { label: "departmentName", required: true, note: "Must match a department" },
+              { label: "description" },
+              { label: "level" },
+              { label: "payGrade" },
+              { label: "active" },
+            ],
+          },
+        ],
+      };
+    case "working-patterns":
+      return {
+        title: "Working Patterns",
+        description: "Standard hours templates, shifts, and flexible schedules",
+        icon: <Clock className="h-5 w-5" />,
+        dependencies: "None – can be imported independently",
+        templateFile: "03_working_patterns_template.csv",
+        keyNotes: [
+          "Enter hours as decimal values (e.g. 7.5 for 7 hours 30 minutes).",
+          "Leave a day blank or set to 0 if no hours are worked on that day.",
+        ],
+        fieldGroups: [
+          {
+            title: "Pattern meta",
+            fields: [
+              { label: "name", required: true },
+              { label: "description" },
+              { label: "patternType" },
+              { label: "active" },
+            ],
+          },
+          {
+            title: "Weekly hours",
+            description: "Number of hours worked on each day of the week",
+            fields: [
+              { label: "mondayHours" },
+              { label: "tuesdayHours" },
+              { label: "wednesdayHours" },
+              { label: "thursdayHours" },
+              { label: "fridayHours" },
+              { label: "saturdayHours" },
+              { label: "sundayHours" },
+            ],
+          },
+        ],
+      };
+    case "employees":
+    default:
+      return {
+        title: "Employees",
+        description: "Full employee record including people data, payroll, compliance, and onboarding essentials",
+        icon: <Users className="h-5 w-5" />,
+        dependencies: "Requires departments, job roles, and working patterns",
+        templateFile: "04_employees_template.csv",
+        keyNotes: [
+          "Keep firstName and lastName as the first two columns in every CSV to guarantee accurate matching.",
+          "Dates should use the ISO format YYYY-MM-DD. Leave cells blank if data is not yet available.",
+        ],
+        fieldGroups: [
+          {
+            title: "Personal information",
+            description: "Matches the Personal Info panel in the employee profile",
+            fields: [
+              { label: "firstName", required: true },
+              { label: "lastName", required: true },
+              { label: "email", required: true },
+              { label: "phoneNumber" },
+              { label: "dateOfBirth" },
+              { label: "gender" },
+              { label: "street" },
+              { label: "city" },
+              { label: "postcode" },
+              { label: "country" },
+              { label: "nationalId" },
+              { label: "pronouns" },
+              { label: "residencyStatus" },
+            ],
+          },
+          {
+            title: "Holiday & leave setup",
+            description: "Seed Annual Leave balances ready for go-live",
+            fields: [
+              { label: "holidayTotalBalance" },
+              { label: "holidayCarryover" },
+              { label: "holidayCurrentBalance" },
+              { label: "holidayYear" },
+            ],
+          },
+          {
+            title: "Employment details",
+            fields: [
+              { label: "departmentName", note: "Must match an imported department" },
+              { label: "jobRoleName", note: "Must match an imported job role" },
+              { label: "employmentType" },
+              { label: "contractType" },
+              { label: "siteLocation" },
+              { label: "startDate" },
+              { label: "contractEndDate" },
+              { label: "workingPatternName", note: "Must match an imported working pattern" },
+              { label: "managerEmail" },
+              { label: "salaryAmount" },
+              { label: "hourlyRate" },
+            ],
+          },
+          {
+            title: "Emergency contacts",
+            fields: [
+              { label: "emergencyContactName" },
+              { label: "emergencyContactRelationship" },
+              { label: "emergencyContactPhone" },
+              { label: "emergencyContactEmail" },
+            ],
+          },
+          {
+            title: "Banking & payroll",
+            fields: [
+              { label: "bankAccountNumber" },
+              { label: "irdNumber" },
+              { label: "taxCode" },
+              { label: "kiwiSaverEnrolled" },
+              { label: "kiwiSaverContribution" },
+            ],
+          },
+          {
+            title: "Driver licence",
+            fields: [
+              { label: "driverLicenceType" },
+              { label: "driverLicenceNumber" },
+              { label: "driverLicenceIssueDate" },
+              { label: "driverLicenceExpiryDate" },
+            ],
+          },
+          {
+            title: "Training & compliance",
+            fields: [
+              { label: "trainingCourse" },
+              { label: "trainingProvider" },
+              { label: "trainingDateCompleted" },
+              { label: "trainingExpiryDate" },
+              { label: "employmentCheckType" },
+              { label: "employmentCheckDocumentNumber" },
+              { label: "employmentCheckIssueDate" },
+              { label: "employmentCheckExpiryDate" },
+            ],
+          },
+        ],
+      };
+  }
+};
+
 export default function CSVImportPage() {
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     status: "idle",
@@ -301,189 +484,6 @@ export default function CSVImportPage() {
         message: error instanceof Error ? error.message : "Activation failed",
       });
       toast.error("Employee activation failed");
-    }
-  };
-
-  const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
-    switch (type) {
-      case "departments":
-        return {
-          title: "Departments",
-          description: "Organisational units, cost centres, and reporting structures",
-          icon: <Building className="h-5 w-5" />,
-          dependencies: "None – foundational data",
-          templateFile: "01_departments_template.csv",
-          fieldGroups: [
-            {
-              title: "Core details",
-              fields: [
-                { label: "name", required: true },
-                { label: "description" },
-                { label: "headEmail", note: "Must match an existing user" },
-                { label: "code" },
-                { label: "active" },
-              ],
-            },
-          ],
-        };
-      case "job-roles":
-        return {
-          title: "Job Roles",
-          description: "Job titles, levels, and pay bands for your organisation",
-          icon: <Users className="h-5 w-5" />,
-          dependencies: "Requires departments to be imported first",
-          templateFile: "02_job_roles_template.csv",
-          fieldGroups: [
-            {
-              title: "Role definition",
-              fields: [
-                { label: "name", required: true },
-                { label: "departmentName", required: true, note: "Must match a department" },
-                { label: "description" },
-                { label: "level" },
-                { label: "payGrade" },
-                { label: "active" },
-              ],
-            },
-          ],
-        };
-      case "working-patterns":
-        return {
-          title: "Working Patterns",
-          description: "Standard hours templates, shifts, and flexible schedules",
-          icon: <Clock className="h-5 w-5" />,
-          dependencies: "None – can be imported independently",
-          templateFile: "03_working_patterns_template.csv",
-          keyNotes: [
-            "Enter hours as decimal values (e.g. 7.5 for 7 hours 30 minutes).",
-            "Leave a day blank or set to 0 if no hours are worked on that day.",
-          ],
-          fieldGroups: [
-            {
-              title: "Pattern meta",
-              fields: [
-                { label: "name", required: true },
-                { label: "description" },
-                { label: "patternType" },
-                { label: "active" },
-              ],
-            },
-            {
-              title: "Weekly hours",
-              description: "Number of hours worked on each day of the week",
-              fields: [
-                { label: "mondayHours" },
-                { label: "tuesdayHours" },
-                { label: "wednesdayHours" },
-                { label: "thursdayHours" },
-                { label: "fridayHours" },
-                { label: "saturdayHours" },
-                { label: "sundayHours" },
-              ],
-            },
-          ],
-        };
-      case "employees":
-      default:
-        return {
-          title: "Employees",
-          description: "Full employee record including people data, payroll, compliance, and onboarding essentials",
-          icon: <Users className="h-5 w-5" />,
-          dependencies: "Requires departments, job roles, and working patterns",
-          templateFile: "04_employees_template.csv",
-          keyNotes: [
-            "Keep firstName and lastName as the first two columns in every CSV to guarantee accurate matching.",
-            "Dates should use the ISO format YYYY-MM-DD. Leave cells blank if data is not yet available.",
-          ],
-          fieldGroups: [
-            {
-              title: "Personal information",
-              description: "Matches the Personal Info panel in the employee profile",
-              fields: [
-                { label: "firstName", required: true },
-                { label: "lastName", required: true },
-                { label: "email", required: true },
-                { label: "phoneNumber" },
-                { label: "dateOfBirth" },
-                { label: "gender" },
-                { label: "street" },
-                { label: "city" },
-                { label: "postcode" },
-                { label: "country" },
-                { label: "nationalId" },
-                { label: "pronouns" },
-                { label: "residencyStatus" },
-              ],
-            },
-            {
-              title: "Holiday & leave setup",
-              description: "Seed Annual Leave balances ready for go-live",
-              fields: [
-                { label: "holidayTotalBalance" },
-                { label: "holidayCarryover" },
-                { label: "holidayCurrentBalance" },
-                { label: "holidayYear" },
-              ],
-            },
-            {
-              title: "Employment details",
-              fields: [
-                { label: "departmentName", note: "Must match an imported department" },
-                { label: "jobRoleName", note: "Must match an imported job role" },
-                { label: "employmentType" },
-                { label: "contractType" },
-                { label: "siteLocation" },
-                { label: "startDate" },
-                { label: "contractEndDate" },
-                { label: "workingPatternName", note: "Must match an imported working pattern" },
-                { label: "managerEmail" },
-                { label: "salaryAmount" },
-                { label: "hourlyRate" },
-              ],
-            },
-            {
-              title: "Emergency contacts",
-              fields: [
-                { label: "emergencyContactName" },
-                { label: "emergencyContactRelationship" },
-                { label: "emergencyContactPhone" },
-                { label: "emergencyContactEmail" },
-              ],
-            },
-            {
-              title: "Banking & payroll",
-              fields: [
-                { label: "bankAccountNumber" },
-                { label: "irdNumber" },
-                { label: "taxCode" },
-                { label: "kiwiSaverEnrolled" },
-                { label: "kiwiSaverContribution" },
-              ],
-            },
-            {
-              title: "Driver licence",
-              fields: [
-                { label: "driverLicenceType" },
-                { label: "driverLicenceNumber" },
-                { label: "driverLicenceIssueDate" },
-                { label: "driverLicenceExpiryDate" },
-              ],
-            },
-            {
-              title: "Training & compliance",
-              fields: [
-                { label: "trainingCourse" },
-                { label: "trainingProvider" },
-                { label: "trainingDateCompleted" },
-                { label: "trainingExpiryDate" },
-                { label: "employmentCheckType" },
-                { label: "employmentCheckDocumentNumber" },
-                { label: "employmentCheckIssueDate" },
-                { label: "employmentCheckExpiryDate" },
-              ],
-            },
-          ],
-        };
     }
   };
 

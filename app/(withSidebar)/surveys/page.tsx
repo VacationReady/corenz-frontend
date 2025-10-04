@@ -172,7 +172,7 @@ export default function SurveysDashboard() {
               </p>
               <div className="flex items-center mt-2 text-xs text-blue-600">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
-                <span>+{stats.totalSurveys - stats.activeSurveys} total</span>
+                <span>{stats.totalSurveys} total</span>
               </div>
             </CardContent>
           </Card>
@@ -187,12 +187,8 @@ export default function SurveysDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-green-900">{stats.totalResponses}</div>
               <p className="text-xs text-green-700 mt-1">
-                This month
+                All time
               </p>
-              <div className="flex items-center mt-2 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                <span>+12% from last month</span>
-              </div>
             </CardContent>
           </Card>
 
@@ -208,10 +204,6 @@ export default function SurveysDashboard() {
               <p className="text-xs text-purple-700 mt-1">
                 Average completion
               </p>
-              <div className="flex items-center mt-2 text-xs text-purple-600">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                <span>Above industry avg</span>
-              </div>
             </CardContent>
           </Card>
 
@@ -227,111 +219,109 @@ export default function SurveysDashboard() {
               <p className="text-xs text-amber-700 mt-1">
                 Require attention
               </p>
-              <div className="flex items-center mt-2 text-xs text-amber-600">
-                <Clock className="h-3 w-3 mr-1" />
-                <span>Deadlines approaching</span>
-              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Response Trends Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Response Trends
-              </CardTitle>
-              <CardDescription>
-                Survey responses over the past 12 months
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={formatResponseTrends(stats.responseTrends)}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis 
-                      dataKey="month" 
-                      className="text-xs"
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="responses" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Charts Section - Only show when there's data */}
+        {stats.responseTrends.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Response Trends Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Response Trends
+                </CardTitle>
+                <CardDescription>
+                  Survey responses over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={formatResponseTrends(stats.responseTrends)}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis 
+                        dataKey="month" 
+                        className="text-xs"
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }} 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="responses" 
+                        stroke="#3b82f6" 
+                        strokeWidth={3}
+                        dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Survey Status Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Survey Status
-              </CardTitle>
-              <CardDescription>
-                Distribution of surveys by status
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
-                        { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
-                        { name: 'Draft', value: stats.totalSurveys - stats.activeSurveys - stats.completedSurveys, color: '#f59e0b' },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {[
-                        { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
-                        { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
-                        { name: 'Draft', value: stats.totalSurveys - stats.activeSurveys - stats.completedSurveys, color: '#f59e0b' },
-                      ].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }} 
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Survey Status Distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Survey Status
+                </CardTitle>
+                <CardDescription>
+                  Distribution of surveys by status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
+                          { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
+                          { name: 'Draft', value: stats.totalSurveys - stats.activeSurveys - stats.completedSurveys, color: '#f59e0b' },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {[
+                          { name: 'Active', value: stats.activeSurveys, color: '#10b981' },
+                          { name: 'Completed', value: stats.completedSurveys, color: '#6366f1' },
+                          { name: 'Draft', value: stats.totalSurveys - stats.activeSurveys - stats.completedSurveys, color: '#f59e0b' },
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }} 
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">

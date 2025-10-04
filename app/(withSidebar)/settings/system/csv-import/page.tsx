@@ -14,6 +14,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,8 @@ interface ImportProgress {
   result?: ImportResult;
 }
 
+type ImportType = "departments" | "job-roles" | "working-patterns" | "employees";
+
 export default function CSVImportPage() {
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     status: "idle",
@@ -67,6 +70,7 @@ export default function CSVImportPage() {
     message: "",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedImportType, setSelectedImportType] = useState<ImportType>("departments");
   const [showResults, setShowResults] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,10 +111,10 @@ export default function CSVImportPage() {
       setImportProgress({
         status: "processing",
         progress: 50,
-        message: "Processing employee data...",
+        message: `Processing ${selectedImportType} data...`,
       });
 
-      const response = await fetch("/api/csv-import/employees", {
+      const response = await fetch(`/api/csv-import/${selectedImportType}`, {
         method: "POST",
         body: formData,
       });
@@ -129,7 +133,7 @@ export default function CSVImportPage() {
       });
 
       setShowResults(true);
-      toast.success(`Import completed: ${data.results.successful} employees created`);
+      toast.success(`Import completed: ${data.results.successful} ${selectedImportType} processed`);
 
     } catch (error) {
       setImportProgress({
@@ -143,14 +147,14 @@ export default function CSVImportPage() {
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await fetch("/api/csv-import/employees");
+      const response = await fetch(`/api/csv-import/${selectedImportType}`);
       if (!response.ok) throw new Error("Failed to download template");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "employee_import_template.csv";
+      a.download = `${selectedImportType}_import_template.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -173,6 +177,43 @@ export default function CSVImportPage() {
     setValidationErrors([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const getImportTypeInfo = (type: ImportType) => {
+    switch (type) {
+      case "departments":
+        return {
+          title: "Departments",
+          description: "Organizational structure and departments",
+          icon: <Building className="h-5 w-5" />,
+          fields: ["name", "description", "headEmail", "code", "active"],
+          dependencies: "None - foundational data",
+        };
+      case "job-roles":
+        return {
+          title: "Job Roles",
+          description: "Job titles and role definitions",
+          icon: <Users className="h-5 w-5" />,
+          fields: ["name", "description", "departmentName", "level", "payGrade", "active"],
+          dependencies: "Requires departments to be imported first",
+        };
+      case "working-patterns":
+        return {
+          title: "Working Patterns",
+          description: "Work schedules and time patterns",
+          icon: <Clock className="h-5 w-5" />,
+          fields: ["name", "description", "patternType", "mondayHours", "tuesdayHours", "wednesdayHours", "thursdayHours", "fridayHours", "saturdayHours", "sundayHours", "active"],
+          dependencies: "None - can be imported independently",
+        };
+      case "employees":
+        return {
+          title: "Employees",
+          description: "Employee personal and employment data",
+          icon: <Users className="h-5 w-5" />,
+          fields: ["firstName", "lastName", "email", "phoneNumber", "dateOfBirth", "address", "city", "country", "postalCode", "emergencyContactName", "emergencyContactPhone", "emergencyContactRelationship", "bankAccountNumber", "departmentName", "jobTitle", "employmentType", "contractType", "startDate", "salary", "workingPatternName", "managerEmail"],
+          dependencies: "Requires departments, job roles, and working patterns",
+        };
     }
   };
 
@@ -226,6 +267,71 @@ export default function CSVImportPage() {
       }
     >
       <div className="space-y-6">
+        {/* Import Type Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Select Import Type
+            </CardTitle>
+            <CardDescription>
+              Choose the type of data you want to import
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="import-type">Import Type</Label>
+              <Select value={selectedImportType} onValueChange={(value: ImportType) => setSelectedImportType(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="departments">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      Departments
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="job-roles">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Job Roles
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="working-patterns">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Working Patterns
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="employees">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Employees
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Import Type Info */}
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-start gap-3">
+                {getImportTypeInfo(selectedImportType).icon}
+                <div className="flex-1">
+                  <h4 className="font-medium">{getImportTypeInfo(selectedImportType).title}</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {getImportTypeInfo(selectedImportType).description}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Dependencies:</strong> {getImportTypeInfo(selectedImportType).dependencies}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Import Instructions */}
         <Card>
           <CardHeader>
@@ -234,7 +340,7 @@ export default function CSVImportPage() {
               Import Instructions
             </CardTitle>
             <CardDescription>
-              Follow these steps to import employee data via CSV
+              Follow these steps to import {getImportTypeInfo(selectedImportType).title.toLowerCase()} data via CSV
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -257,7 +363,7 @@ export default function CSVImportPage() {
                 <div>
                   <h4 className="font-medium">Fill Data</h4>
                   <p className="text-sm text-muted-foreground">
-                    Add employee information to the CSV file
+                    Add {getImportTypeInfo(selectedImportType).title.toLowerCase()} information to the CSV file
                   </p>
                 </div>
               </div>
@@ -337,7 +443,7 @@ export default function CSVImportPage() {
                 className="flex-1"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Import Employees
+                Import {getImportTypeInfo(selectedImportType).title}
               </Button>
             </div>
           </CardContent>
@@ -454,84 +560,21 @@ export default function CSVImportPage() {
               Supported Fields
             </CardTitle>
             <CardDescription>
-              Complete list of fields that can be imported via CSV
+              Complete list of fields that can be imported for {getImportTypeInfo(selectedImportType).title.toLowerCase()}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Personal Information
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• firstName (required)</li>
-                  <li>• lastName (required)</li>
-                  <li>• email (required)</li>
-                  <li>• phoneNumber</li>
-                  <li>• dateOfBirth</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Address Information
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• address</li>
-                  <li>• city</li>
-                  <li>• country</li>
-                  <li>• postalCode</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Building className="h-4 w-4" />
-                  Employment Information
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• departmentName</li>
-                  <li>• jobTitle</li>
-                  <li>• employmentType</li>
-                  <li>• contractType</li>
-                  <li>• startDate</li>
-                  <li>• managerEmail</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Compensation
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• salary</li>
-                  <li>• workingPatternName</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Banking
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• bankAccountNumber</li>
-                </ul>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  Emergency Contact
-                </h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• emergencyContactName</li>
-                  <li>• emergencyContactPhone</li>
-                  <li>• emergencyContactRelationship</li>
-                </ul>
+            <div className="space-y-2">
+              <h4 className="font-medium flex items-center gap-2">
+                {getImportTypeInfo(selectedImportType).icon}
+                {getImportTypeInfo(selectedImportType).title} Fields
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {getImportTypeInfo(selectedImportType).fields.map((field, index) => (
+                  <div key={index} className="text-sm text-muted-foreground">
+                    • {field}
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

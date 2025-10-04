@@ -90,27 +90,27 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Find or create department
+        // Find department (must exist)
         let department = null;
         if (validatedData.departmentName) {
           department = await prisma.department.findFirst({
-            where: { name: validatedData.departmentName },
+            where: { 
+              name: validatedData.departmentName,
+              companyId: session.user.companyId,
+            },
           });
           
           if (!department) {
-            department = await prisma.department.create({
-              data: {
-                id: crypto.randomUUID(),
-                name: validatedData.departmentName,
-                description: `Auto-created during CSV import`,
-                companyId: session.user.companyId,
-                updatedAt: new Date(),
-              },
+            results.failed++;
+            results.errors.push({
+              row: rowNumber,
+              errors: [`Department "${validatedData.departmentName}" not found. Please import departments first.`],
             });
+            continue;
           }
         }
 
-        // Find or create job role
+        // Find job role (must exist)
         let jobRole = null;
         if (validatedData.jobTitle) {
           jobRole = await prisma.jobRole.findFirst({
@@ -121,15 +121,12 @@ export async function POST(request: NextRequest) {
           });
           
           if (!jobRole) {
-            jobRole = await prisma.jobRole.create({
-              data: {
-                id: crypto.randomUUID(),
-                name: validatedData.jobTitle,
-                description: `Auto-created during CSV import`,
-                companyId: session.user.companyId,
-                updatedAt: new Date(),
-              },
+            results.failed++;
+            results.errors.push({
+              row: rowNumber,
+              errors: [`Job role "${validatedData.jobTitle}" not found. Please import job roles first.`],
             });
+            continue;
           }
         }
 
@@ -146,12 +143,24 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Find working pattern if provided
+        // Find working pattern (must exist if provided)
         let workingPattern = null;
         if (validatedData.workingPatternName) {
           workingPattern = await prisma.workingPattern.findFirst({
-            where: { name: validatedData.workingPatternName },
+            where: { 
+              name: validatedData.workingPatternName,
+              companyId: session.user.companyId,
+            },
           });
+          
+          if (!workingPattern) {
+            results.failed++;
+            results.errors.push({
+              row: rowNumber,
+              errors: [`Working pattern "${validatedData.workingPatternName}" not found. Please import working patterns first.`],
+            });
+            continue;
+          }
         }
 
         // Create user first

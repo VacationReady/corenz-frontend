@@ -112,16 +112,13 @@ export default function AdminSidebar({
           </SidebarSection>
 
           <SidebarSection title="Surveys" collapsed={collapsed}>
-            {surveyLinks.map((link) => (
-              <SidebarItem
-                key={link.href}
-                href={link.href}
-                icon={link.icon}
-                label={link.label}
-                collapsed={collapsed}
-                onClick={onMobileNavigate}
-              />
-            ))}
+            <SidebarItem
+              href="/surveys"
+              icon={BarChart3}
+              label="Dashboard"
+              collapsed={collapsed}
+              onClick={onMobileNavigate}
+            />
           </SidebarSection>
 
           <SidebarSection title="System" collapsed={collapsed}>
@@ -195,11 +192,5 @@ const appLibraryLink = {
   label: "App Library",
 };
 
-const surveyLinks = [
-  { href: "/surveys", icon: BarChart3, label: "Dashboard" },
-  { href: "/surveys/active", icon: Send, label: "Active Surveys" },
-  { href: "/surveys/automation", icon: Repeat, label: "Automation" },
-  { href: "/surveys/analytics", icon: TrendingUp, label: "Analytics" },
-];
 
 const settingsLink = { href: "/settings", icon: Settings, label: "Settings" };

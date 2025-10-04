@@ -51,53 +51,16 @@ export default function SurveyAutomationPage() {
   useEffect(() => {
     const loadAutomations = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const res = await fetch("/api/surveys/automation");
-        
-        // Mock data for now
-        setAutomations([
-          {
-            id: "1",
-            name: "Monthly Employee Satisfaction",
-            description: "Send satisfaction survey to all employees on the 1st of each month",
-            surveyTemplate: "Employee Satisfaction Survey",
-            frequency: "monthly",
-            trigger: "scheduled",
-            targetAudience: "All employees",
-            isActive: true,
-            lastRun: "2024-01-01",
-            nextRun: "2024-02-01",
-            totalRuns: 12,
-          },
-          {
-            id: "2",
-            name: "90-Day New Hire Check-in",
-            description: "Send onboarding feedback survey 90 days after start date",
-            surveyTemplate: "Onboarding Experience Survey",
-            frequency: "custom",
-            trigger: "onboarding_complete",
-            targetAudience: "New hires (90 days)",
-            isActive: true,
-            lastRun: "2024-01-15",
-            nextRun: "2024-01-25",
-            totalRuns: 8,
-          },
-          {
-            id: "3",
-            name: "Annual Performance Review",
-            description: "Send performance feedback survey on work anniversary",
-            surveyTemplate: "Performance Review Survey",
-            frequency: "annually",
-            trigger: "anniversary",
-            targetAudience: "All employees",
-            isActive: false,
-            lastRun: "2023-12-15",
-            nextRun: "2024-12-15",
-            totalRuns: 1,
-          },
-        ]);
+        const res = await fetch("/api/surveys/automation");
+        if (res.ok) {
+          const data = await res.json();
+          setAutomations(data.automations || []);
+        } else {
+          setAutomations([]);
+        }
       } catch (error) {
-        toast.error("Failed to load automation rules");
+        console.error("Failed to load automation rules:", error);
+        setAutomations([]);
       } finally {
         setLoading(false);
       }

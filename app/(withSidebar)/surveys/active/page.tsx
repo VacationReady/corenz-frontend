@@ -49,50 +49,16 @@ export default function ActiveSurveysPage() {
   useEffect(() => {
     const loadActiveSurveys = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const res = await fetch("/api/surveys/active");
-        
-        // Mock data for now
-        setSurveys([
-          {
-            id: "1",
-            name: "Q1 Employee Satisfaction",
-            templateName: "Employee Satisfaction Survey",
-            sentDate: "2024-01-15",
-            deadline: "2024-01-29",
-            totalRecipients: 25,
-            responses: 20,
-            responseRate: 80,
-            status: "active",
-            daysRemaining: 3,
-          },
-          {
-            id: "2",
-            name: "Manager Feedback - Engineering",
-            templateName: "Manager Feedback Survey",
-            sentDate: "2024-01-20",
-            deadline: "2024-02-03",
-            totalRecipients: 15,
-            responses: 12,
-            responseRate: 80,
-            status: "active",
-            daysRemaining: 8,
-          },
-          {
-            id: "3",
-            name: "New Hire Onboarding",
-            templateName: "Onboarding Experience Survey",
-            sentDate: "2024-01-10",
-            deadline: "2024-01-24",
-            totalRecipients: 8,
-            responses: 7,
-            responseRate: 87.5,
-            status: "completed",
-            daysRemaining: -1,
-          },
-        ]);
+        const res = await fetch("/api/surveys?status=ACTIVE");
+        if (res.ok) {
+          const data = await res.json();
+          setSurveys(data.surveys || []);
+        } else {
+          setSurveys([]);
+        }
       } catch (error) {
-        toast.error("Failed to load active surveys");
+        console.error("Failed to load active surveys:", error);
+        setSurveys([]);
       } finally {
         setLoading(false);
       }

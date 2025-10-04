@@ -81,56 +81,28 @@ export default function SurveyAnalyticsPage() {
   useEffect(() => {
     const loadAnalytics = async () => {
       try {
-        // TODO: Replace with actual API calls
-        // const [analyticsRes, trendsRes] = await Promise.all([
-        //   fetch("/api/surveys/analytics"),
-        //   fetch("/api/surveys/trends"),
-        // ]);
+        const [analyticsRes, trendsRes] = await Promise.all([
+          fetch("/api/surveys/analytics"),
+          fetch("/api/surveys/trends"),
+        ]);
         
-        // Mock data for now
-        setAnalytics([
-          {
-            id: "1",
-            name: "Q1 Employee Satisfaction",
-            templateName: "Employee Satisfaction Survey",
-            totalResponses: 20,
-            responseRate: 80,
-            completionDate: "2024-01-29",
-            averageScore: 4.2,
-            keyInsights: [
-              "High satisfaction with work-life balance",
-              "Communication improvements needed",
-              "Strong team collaboration scores"
-            ],
-            sentimentScore: 0.75,
-            topThemes: ["Work Environment", "Communication", "Growth Opportunities"],
-          },
-          {
-            id: "2",
-            name: "Manager Feedback - Engineering",
-            templateName: "Manager Feedback Survey",
-            totalResponses: 12,
-            responseRate: 80,
-            completionDate: "2024-02-03",
-            averageScore: 4.5,
-            keyInsights: [
-              "Excellent leadership support",
-              "Clear career development paths",
-              "Regular feedback appreciated"
-            ],
-            sentimentScore: 0.85,
-            topThemes: ["Leadership", "Career Development", "Feedback"],
-          },
-        ]);
+        if (analyticsRes.ok) {
+          const analyticsData = await analyticsRes.json();
+          setAnalytics(analyticsData.analytics || []);
+        } else {
+          setAnalytics([]);
+        }
 
-        setTrends([
-          { period: "Jan 2024", responseRate: 78, satisfactionScore: 4.1, totalResponses: 32 },
-          { period: "Dec 2023", responseRate: 82, satisfactionScore: 4.3, totalResponses: 28 },
-          { period: "Nov 2023", responseRate: 75, satisfactionScore: 4.0, totalResponses: 25 },
-          { period: "Oct 2023", responseRate: 80, satisfactionScore: 4.2, totalResponses: 30 },
-        ]);
+        if (trendsRes.ok) {
+          const trendsData = await trendsRes.json();
+          setTrends(trendsData.trends || []);
+        } else {
+          setTrends([]);
+        }
       } catch (error) {
-        toast.error("Failed to load analytics data");
+        console.error("Failed to load analytics data:", error);
+        setAnalytics([]);
+        setTrends([]);
       } finally {
         setLoading(false);
       }
@@ -247,29 +219,137 @@ export default function SurveyAnalyticsPage() {
           </Card>
         </div>
 
-        {/* Advanced Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Response Trends Chart */}
+        {/* Advanced Charts - Only show when there's data */}
+        {trends.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Response Trends Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <LineChart className="h-5 w-5" />
+                  Response Trends
+                </CardTitle>
+                <CardDescription>
+                  Survey response rates and satisfaction scores over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart data={trends}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis 
+                        dataKey="period" 
+                        className="text-xs"
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis className="text-xs" tick={{ fontSize: 12 }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }} 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="responseRate" 
+                        stroke="#3b82f6" 
+                        strokeWidth={3}
+                        dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                        name="Response Rate (%)"
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="satisfactionScore" 
+                        stroke="#10b981" 
+                        strokeWidth={3}
+                        dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                        name="Satisfaction Score"
+                      />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Response Distribution - Only show when there's analytics data */}
+            {analytics.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PieChart className="h-5 w-5" />
+                    Response Distribution
+                  </CardTitle>
+                  <CardDescription>
+                    Survey completion status breakdown
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={[
+                            { name: 'Completed', value: analytics.reduce((sum, a) => sum + a.totalResponses, 0), color: '#10b981' },
+                            { name: 'Pending', value: Math.max(0, analytics.reduce((sum, a) => sum + (a.totalResponses / a.responseRate * 100) - a.totalResponses, 0)), color: '#f59e0b' },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {[
+                            { name: 'Completed', value: analytics.reduce((sum, a) => sum + a.totalResponses, 0), color: '#10b981' },
+                            { name: 'Pending', value: Math.max(0, analytics.reduce((sum, a) => sum + (a.totalResponses / a.responseRate * 100) - a.totalResponses, 0)), color: '#f59e0b' },
+                          ].map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'white', 
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            fontSize: '12px'
+                          }} 
+                        />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Sentiment Analysis Chart - Only show when there's analytics data */}
+        {analytics.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <LineChart className="h-5 w-5" />
-                Response Trends
+                <Brain className="h-5 w-5" />
+                Sentiment Analysis
               </CardTitle>
               <CardDescription>
-                Survey response rates and satisfaction scores over time
+                AI-powered sentiment analysis of survey responses
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsLineChart data={trends}>
+                  <RechartsBarChart data={analytics.map(survey => ({
+                    category: survey.name,
+                    positive: Math.round(survey.sentimentScore * 100),
+                    neutral: Math.round((1 - survey.sentimentScore) * 50),
+                    negative: Math.round((1 - survey.sentimentScore) * 50),
+                  }))}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                    <XAxis 
-                      dataKey="period" 
-                      className="text-xs"
-                      tick={{ fontSize: 12 }}
-                    />
+                    <XAxis dataKey="category" className="text-xs" tick={{ fontSize: 12 }} />
                     <YAxis className="text-xs" tick={{ fontSize: 12 }} />
                     <Tooltip 
                       contentStyle={{ 
@@ -279,118 +359,15 @@ export default function SurveyAnalyticsPage() {
                         fontSize: '12px'
                       }} 
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="responseRate" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                      name="Response Rate (%)"
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="satisfactionScore" 
-                      stroke="#10b981" 
-                      strokeWidth={3}
-                      dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                      name="Satisfaction Score"
-                    />
-                  </RechartsLineChart>
+                    <Bar dataKey="positive" stackId="a" fill="#10b981" name="Positive" />
+                    <Bar dataKey="neutral" stackId="a" fill="#f59e0b" name="Neutral" />
+                    <Bar dataKey="negative" stackId="a" fill="#ef4444" name="Negative" />
+                  </RechartsBarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
-
-          {/* Response Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                Response Distribution
-              </CardTitle>
-              <CardDescription>
-                Survey completion status breakdown
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      data={[
-                        { name: 'Completed', value: 85, color: '#10b981' },
-                        { name: 'Pending', value: 15, color: '#f59e0b' },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {[
-                        { name: 'Completed', value: 85, color: '#10b981' },
-                        { name: 'Pending', value: 15, color: '#f59e0b' },
-                      ].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }} 
-                    />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sentiment Analysis Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
-              Sentiment Analysis
-            </CardTitle>
-            <CardDescription>
-              AI-powered sentiment analysis of survey responses
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={[
-                  { category: 'Work Environment', positive: 85, neutral: 10, negative: 5 },
-                  { category: 'Communication', positive: 70, neutral: 20, negative: 10 },
-                  { category: 'Leadership', positive: 90, neutral: 5, negative: 5 },
-                  { category: 'Growth', positive: 75, neutral: 15, negative: 10 },
-                  { category: 'Benefits', positive: 80, neutral: 15, negative: 5 },
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="category" className="text-xs" tick={{ fontSize: 12 }} />
-                  <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }} 
-                  />
-                  <Bar dataKey="positive" stackId="a" fill="#10b981" name="Positive" />
-                  <Bar dataKey="neutral" stackId="a" fill="#f59e0b" name="Neutral" />
-                  <Bar dataKey="negative" stackId="a" fill="#ef4444" name="Negative" />
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        )}
 
         {/* Survey Analytics */}
         {loading ? (

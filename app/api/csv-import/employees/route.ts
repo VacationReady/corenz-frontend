@@ -202,6 +202,17 @@ const normaliseTaxCode = (value: string | undefined): TaxCode | undefined => {
   return TAX_CODE_LOOKUP[withSpaces] || TAX_CODE_LOOKUP[condensed];
 };
 
+const parseBooleanFlag = (value: unknown): boolean | undefined => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalised = value.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalised)) return true;
+    if (["false", "0", "no", "off"].includes(normalised)) return false;
+  }
+  return undefined;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -210,6 +221,10 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
+    const allowUpdates =
+      parseBooleanFlag(formData.get("allowUpdates")) ??
+      parseBooleanFlag(request.nextUrl.searchParams.get("allowUpdates")) ??
+      false;
     const file = formData.get("file") as File;
     
     if (!file) {
@@ -233,7 +248,10 @@ export async function POST(request: NextRequest) {
       failed: 0,
       errors: [] as Array<{ row: number; errors: string[] }>,
       created: [] as Array<{ id: string; email: string; name: string }>,
+      updated: [] as Array<{ id: string; email: string; name: string }>,
     };
+
+    const importBatchId = `csv_import_${Date.now()}`;
 
     // Process each record
     for (let i = 0; i < records.length; i++) {
@@ -250,20 +268,31 @@ export async function POST(request: NextRequest) {
 
         // Check if user already exists
         const existingUser = await prisma.user.findFirst({
-          where: { email },
+          where: {
+            email,
+            companyId: session.user.companyId,
+          },
+          include: {
+            Employee: true,
+          },
         });
 
-        if (existingUser) {
+        if (existingUser && !allowUpdates) {
           results.failed++;
           results.errors.push({
             row: rowNumber,
-            errors: [`User with email ${validatedData.email} already exists`],
+            errors: [
+              `User with email ${validatedData.email} already exists. Enable "Allow updates for existing employees" to merge changes.`,
+            ],
           });
           continue;
         }
 
+        const canUpdateExistingUser = Boolean(existingUser && allowUpdates);
+
         const phoneNumber = trimToUndefined(validatedData.phoneNumber);
-        const dateOfBirth = parseOptionalDate(validatedData.dateOfBirth, "dateOfBirth") ?? null;
+        const dateOfBirthValue = parseOptionalDate(validatedData.dateOfBirth, "dateOfBirth");
+        const dateOfBirth = dateOfBirthValue ?? null;
         const gender = trimToUndefined(validatedData.gender);
         const street = trimToUndefined(validatedData.street) ?? trimToUndefined(validatedData.address);
         const city = trimToUndefined(validatedData.city);
@@ -313,8 +342,9 @@ export async function POST(request: NextRequest) {
         );
         const bankAccountNumber = trimToUndefined(validatedData.bankAccountNumber);
         const irdNumber = trimToUndefined(validatedData.irdNumber);
+        const taxCodeInput = trimToUndefined(validatedData.taxCode);
         const taxCode = normaliseTaxCode(validatedData.taxCode);
-        if (trimToUndefined(validatedData.taxCode) && !taxCode) {
+        if (taxCodeInput && !taxCode) {
           throw new Error(
             `Invalid taxCode "${validatedData.taxCode}". Please use a valid New Zealand tax code (e.g. M, M SL, S, etc.).`
           );
@@ -517,64 +547,147 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create user first
-        const user = await prisma.user.create({
-          data: {
-            id: crypto.randomUUID(),
-            email,
-            password: "temp-password", // Will need to be reset
+        let user;
+        let employee;
+        let employeeAction: "CREATED" | "UPDATED" = "CREATED";
+
+        if (canUpdateExistingUser && existingUser) {
+          const userUpdateData: Record<string, unknown> = {
             firstName,
             lastName,
-            phone: phoneNumber,
-            dateOfBirth,
-            addressStreet: street,
-            addressCity: city,
-            addressPostcode: postcode,
-            addressCountry: country,
-            emergencyContactName,
-            emergencyContactPhone,
-            emergencyContactRelationship,
-            nationalId,
-            pronouns,
-            residencyStatus,
-            genderOptionId,
-            companyId: session.user.companyId,
-            isActivated: false, // Will need to activate
             updatedAt: new Date(),
-          },
-        });
+          };
 
-        if (managerUser) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { managerId: managerUser.id },
+          if (phoneNumber !== undefined) userUpdateData.phone = phoneNumber;
+          if (dateOfBirthValue !== undefined) userUpdateData.dateOfBirth = dateOfBirth;
+          if (street !== undefined) userUpdateData.addressStreet = street;
+          if (city !== undefined) userUpdateData.addressCity = city;
+          if (postcode !== undefined) userUpdateData.addressPostcode = postcode;
+          if (country !== undefined) userUpdateData.addressCountry = country;
+          if (emergencyContactName !== undefined) userUpdateData.emergencyContactName = emergencyContactName;
+          if (emergencyContactPhone !== undefined) userUpdateData.emergencyContactPhone = emergencyContactPhone;
+          if (emergencyContactRelationship !== undefined) {
+            userUpdateData.emergencyContactRelationship = emergencyContactRelationship;
+          }
+          if (nationalId !== undefined) userUpdateData.nationalId = nationalId;
+          if (pronouns !== undefined) userUpdateData.pronouns = pronouns;
+          if (residencyStatus !== undefined) userUpdateData.residencyStatus = residencyStatus;
+          if (genderOptionId !== undefined) userUpdateData.genderOptionId = genderOptionId;
+          if (managerUser) {
+            userUpdateData.managerId = managerUser.id;
+          }
+
+          user = await prisma.user.update({
+            where: { id: existingUser.id },
+            data: userUpdateData,
+          });
+
+          const employeeUpdateData: Record<string, unknown> = {};
+          if (bankAccountNumber !== undefined) employeeUpdateData.bankAccountNumber = bankAccountNumber;
+          if (contractType !== undefined) employeeUpdateData.contractType = contractType;
+          if (employmentType !== undefined) employeeUpdateData.employmentType = employmentType;
+          if (salaryAmount !== undefined) employeeUpdateData.salaryAmount = salaryAmount;
+          if (hourlyRate !== undefined) employeeUpdateData.hourlyRate = hourlyRate;
+          if (startDate !== undefined) employeeUpdateData.startDate = startDate ?? null;
+          if (contractEndDate !== undefined) employeeUpdateData.contractEndDate = contractEndDate ?? null;
+          if (siteLocation !== undefined) employeeUpdateData.siteLocation = siteLocation;
+          if (irdNumber !== undefined) employeeUpdateData.irdNumber = irdNumber;
+          if (taxCodeInput !== undefined) employeeUpdateData.taxCode = taxCode ?? null;
+          if (kiwiSaverEnrolled !== undefined) employeeUpdateData.kiwiSaverEnrolled = kiwiSaverEnrolled;
+          if (kiwiSaverContribution !== undefined) {
+            employeeUpdateData.kiwiSaverContribution = kiwiSaverContribution;
+          }
+          if (department) employeeUpdateData.departmentId = department.id;
+          if (jobRole) employeeUpdateData.jobRoleId = jobRole.id;
+          if (workingPattern) employeeUpdateData.workingPatternId = workingPattern.id;
+
+          const employeeWasExisting = Boolean(existingUser.Employee);
+          const upsertedEmployee = await prisma.employee.upsert({
+            where: { userId: existingUser.id },
+            update: employeeUpdateData,
+            create: {
+              id: crypto.randomUUID(),
+              userId: existingUser.id,
+              bankAccountNumber,
+              contractType,
+              employmentType,
+              salaryAmount,
+              hourlyRate,
+              startDate: startDate ?? null,
+              contractEndDate: contractEndDate ?? null,
+              siteLocation,
+              irdNumber,
+              taxCode: taxCode ?? null,
+              kiwiSaverEnrolled,
+              kiwiSaverContribution,
+              departmentId: department?.id,
+              jobRoleId: jobRole?.id,
+              workingPatternId: workingPattern?.id,
+              companyId: session.user.companyId,
+              isActive: true,
+            },
+          });
+
+          employee = upsertedEmployee;
+          employeeAction = employeeWasExisting ? "UPDATED" : "CREATED";
+        } else {
+          user = await prisma.user.create({
+            data: {
+              id: crypto.randomUUID(),
+              email,
+              password: "temp-password", // Will need to be reset
+              firstName,
+              lastName,
+              phone: phoneNumber,
+              dateOfBirth,
+              addressStreet: street,
+              addressCity: city,
+              addressPostcode: postcode,
+              addressCountry: country,
+              emergencyContactName,
+              emergencyContactPhone,
+              emergencyContactRelationship,
+              nationalId,
+              pronouns,
+              residencyStatus,
+              genderOptionId,
+              companyId: session.user.companyId,
+              isActivated: false, // Will need to activate
+              updatedAt: new Date(),
+            },
+          });
+
+          if (managerUser) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { managerId: managerUser.id },
+            });
+          }
+
+          employee = await prisma.employee.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId: user.id,
+              bankAccountNumber,
+              contractType,
+              employmentType,
+              salaryAmount,
+              hourlyRate,
+              startDate: startDate ?? null,
+              contractEndDate: contractEndDate ?? null,
+              siteLocation,
+              irdNumber,
+              taxCode: taxCode ?? null,
+              kiwiSaverEnrolled,
+              kiwiSaverContribution,
+              departmentId: department?.id,
+              jobRoleId: jobRole?.id,
+              workingPatternId: workingPattern?.id,
+              companyId: session.user.companyId,
+              isActive: true,
+            },
           });
         }
-
-        // Create employee
-        const employee = await prisma.employee.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: user.id,
-            bankAccountNumber,
-            contractType,
-            employmentType,
-            salaryAmount,
-            hourlyRate,
-            startDate: startDate ?? null,
-            contractEndDate: contractEndDate ?? null,
-            siteLocation,
-            irdNumber,
-            taxCode: taxCode ?? null,
-            kiwiSaverEnrolled,
-            kiwiSaverContribution,
-            departmentId: department?.id,
-            jobRoleId: jobRole?.id,
-            workingPatternId: workingPattern?.id,
-            companyId: session.user.companyId,
-            isActive: true,
-          },
-        });
 
         if (holidayTotalBalance !== undefined || holidayCarryover !== undefined || holidayCurrentBalance !== undefined) {
           let annualCategory = await prisma.eventCategory.findFirst({
@@ -638,31 +751,70 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        if (emergencyContactName) {
-          await prisma.emergencyContact.create({
-            data: {
-              id: crypto.randomUUID(),
-              employeeId: employee.id,
-              name: emergencyContactName,
-              relationship: emergencyContactRelationship ?? null,
-              phone: emergencyContactPhone ?? null,
-              email: emergencyContactEmail ?? null,
-            },
+        if (
+          emergencyContactName !== undefined ||
+          emergencyContactRelationship !== undefined ||
+          emergencyContactPhone !== undefined ||
+          emergencyContactEmail !== undefined
+        ) {
+          const existingContact = await prisma.emergencyContact.findFirst({
+            where: { employeeId: employee.id },
           });
+
+          if (existingContact) {
+            await prisma.emergencyContact.update({
+              where: { id: existingContact.id },
+              data: {
+                name: emergencyContactName ?? existingContact.name,
+                relationship: emergencyContactRelationship ?? existingContact.relationship,
+                phone: emergencyContactPhone ?? existingContact.phone,
+                email: emergencyContactEmail ?? existingContact.email,
+              },
+            });
+          } else if (emergencyContactName) {
+            await prisma.emergencyContact.create({
+              data: {
+                id: crypto.randomUUID(),
+                employeeId: employee.id,
+                name: emergencyContactName,
+                relationship: emergencyContactRelationship ?? null,
+                phone: emergencyContactPhone ?? null,
+                email: emergencyContactEmail ?? null,
+              },
+            });
+          }
         }
 
         if (driverLicenceType) {
-          await prisma.driverLicence.create({
-            data: {
-              id: crypto.randomUUID(),
-              employeeId: employee.id,
-              type: driverLicenceType,
-              licenceNumber: driverLicenceNumber!,
-              issueDate: driverLicenceIssueDate!,
-              expiryDate: driverLicenceExpiryDate!,
-              updatedAt: new Date(),
-            },
+          const existingLicence = await prisma.driverLicence.findFirst({
+            where: { employeeId: employee.id },
+            orderBy: { updatedAt: "desc" },
           });
+
+          if (existingLicence) {
+            await prisma.driverLicence.update({
+              where: { id: existingLicence.id },
+              data: {
+                type: driverLicenceType,
+                licenceNumber: driverLicenceNumber!,
+                issueDate: driverLicenceIssueDate!,
+                expiryDate: driverLicenceExpiryDate!,
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            await prisma.driverLicence.create({
+              data: {
+                id: crypto.randomUUID(),
+                employeeId: employee.id,
+                type: driverLicenceType,
+                licenceNumber: driverLicenceNumber!,
+                issueDate: driverLicenceIssueDate!,
+                expiryDate: driverLicenceExpiryDate!,
+                updatedAt: new Date(),
+              },
+            });
+          }
         }
 
         if (trainingCourse) {
@@ -706,49 +858,90 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          await prisma.trainingRecord.create({
-            data: {
-              id: crypto.randomUUID(),
+          const existingTraining = await prisma.trainingRecord.findFirst({
+            where: {
               employeeId: employee.id,
               courseId: course.id,
               providerId: provider.id,
-              dateCompleted: trainingDateCompleted!,
-              expiryDate: trainingExpiryDate ?? null,
-              updatedAt: new Date(),
             },
           });
+
+          if (existingTraining) {
+            await prisma.trainingRecord.update({
+              where: { id: existingTraining.id },
+              data: {
+                dateCompleted: trainingDateCompleted!,
+                expiryDate: trainingExpiryDate ?? null,
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            await prisma.trainingRecord.create({
+              data: {
+                id: crypto.randomUUID(),
+                employeeId: employee.id,
+                courseId: course.id,
+                providerId: provider.id,
+                dateCompleted: trainingDateCompleted!,
+                expiryDate: trainingExpiryDate ?? null,
+                updatedAt: new Date(),
+              },
+            });
+          }
         }
 
         if (employmentCheckType) {
-          await prisma.employmentCheck.create({
-            data: {
-              id: crypto.randomUUID(),
+          const existingCheck = await prisma.employmentCheck.findFirst({
+            where: {
               employeeId: employee.id,
               typeOfCheck: employmentCheckType,
-              documentNumber: employmentCheckDocumentNumber!,
-              dateOfIssue: employmentCheckIssueDate!,
-              expiryDate: employmentCheckExpiryDate!,
-              updatedAt: new Date(),
             },
           });
+
+          if (existingCheck) {
+            await prisma.employmentCheck.update({
+              where: { id: existingCheck.id },
+              data: {
+                documentNumber: employmentCheckDocumentNumber!,
+                dateOfIssue: employmentCheckIssueDate!,
+                expiryDate: employmentCheckExpiryDate!,
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            await prisma.employmentCheck.create({
+              data: {
+                id: crypto.randomUUID(),
+                employeeId: employee.id,
+                typeOfCheck: employmentCheckType,
+                documentNumber: employmentCheckDocumentNumber!,
+                dateOfIssue: employmentCheckIssueDate!,
+                expiryDate: employmentCheckExpiryDate!,
+                updatedAt: new Date(),
+              },
+            });
+          }
         }
 
         // Create audit log entry
         await auditLog({
           entityType: "EMPLOYEE",
           entityId: employee.id,
-          action: "CREATED",
+          action: employeeAction,
           actorId: session.user.id,
           actorType: "USER",
           companyId: session.user.companyId,
           employeeId: employee.id,
           section: "CSV_IMPORT",
-          field: "__create__",
+          field: employeeAction === "UPDATED" ? "__update__" : "__create__",
           oldValue: undefined,
-          newValue: "Employee created via CSV import",
+          newValue:
+            employeeAction === "UPDATED"
+              ? "Employee updated via CSV import"
+              : "Employee created via CSV import",
           reason: "CSV Import",
           metadata: {
-            importBatch: `csv_import_${Date.now()}`,
+            importBatch: `${importBatchId}_row_${rowNumber}`,
             rowNumber,
             importedFields: Object.keys(validatedData),
             holiday: {
@@ -762,15 +955,25 @@ export async function POST(request: NextRequest) {
               trainingRecordCreated: Boolean(trainingCourse),
               employmentCheckCreated: Boolean(employmentCheckType),
             },
+            updateMode: canUpdateExistingUser,
           },
         });
 
         results.successful++;
-        results.created.push({
-          id: employee.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-        });
+        const displayName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
+        if (employeeAction === "UPDATED") {
+          results.updated.push({
+            id: employee.id,
+            email: user.email,
+            name: displayName,
+          });
+        } else {
+          results.created.push({
+            id: employee.id,
+            email: user.email,
+            name: displayName,
+          });
+        }
 
       } catch (error) {
         results.failed++;
@@ -800,10 +1003,12 @@ export async function POST(request: NextRequest) {
         successful: results.successful,
         failed: results.failed,
         fileName: file.name,
+        updated: results.updated.length,
       },
       metadata: {
         importType: "EMPLOYEES",
         errors: results.errors,
+        allowUpdates,
       },
     });
 

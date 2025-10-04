@@ -52,6 +52,21 @@ interface ImportResult {
   failed: number;
   errors: Array<{ row: number; errors: string[] }>;
   created: Array<{ id: string; email: string; name: string }>;
+  activation?: {
+    total: number;
+    activated: number;
+    emailsSent: number;
+    permissionsChecked: number;
+    managersPromoted: number;
+    errors: Array<{ employeeId: string; error: string }>;
+    details: Array<{
+      employeeId: string;
+      name: string;
+      email: string;
+      status: string;
+      actions: string[];
+    }>;
+  };
 }
 
 interface ImportProgress {
@@ -73,6 +88,12 @@ export default function CSVImportPage() {
   const [selectedImportType, setSelectedImportType] = useState<ImportType>("departments");
   const [showResults, setShowResults] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showActivationOptions, setShowActivationOptions] = useState(false);
+  const [activationOptions, setActivationOptions] = useState({
+    sendEmails: true,
+    checkPermissions: true,
+    promoteManagers: true,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,9 +216,66 @@ export default function CSVImportPage() {
     });
     setSelectedFile(null);
     setShowResults(false);
+    setShowActivationOptions(false);
     setValidationErrors([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleActivateEmployees = async () => {
+    if (!importProgress.result?.created) {
+      toast.error("No employees to activate");
+      return;
+    }
+
+    const employeeIds = importProgress.result.created.map((emp: any) => emp.id);
+
+    setImportProgress({
+      status: "processing",
+      progress: 50,
+      message: "Activating employees and sending welcome emails...",
+    });
+
+    try {
+      const response = await fetch("/api/csv-import/employees/activate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeIds,
+          ...activationOptions,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Activation failed");
+      }
+
+      setImportProgress({
+        status: "completed",
+        progress: 100,
+        message: "Employee activation completed successfully!",
+        result: {
+          ...importProgress.result,
+          activation: data.results,
+        },
+      });
+
+      toast.success(
+        `Activation completed: ${data.results.activated} employees activated, ${data.results.emailsSent} emails sent`
+      );
+
+    } catch (error) {
+      setImportProgress({
+        status: "error",
+        progress: 0,
+        message: error instanceof Error ? error.message : "Activation failed",
+      });
+      toast.error("Employee activation failed");
     }
   };
 
@@ -509,25 +587,147 @@ export default function CSVImportPage() {
               </div>
 
               {importProgress.status === "completed" && importProgress.result && (
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {importProgress.result.successful}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {importProgress.result.successful}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Successful</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">Successful</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">
-                      {importProgress.result.failed}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">
+                        {importProgress.result.failed}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Failed</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">Failed</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {importProgress.result.total}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {importProgress.result.total}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">Total</div>
                   </div>
+
+                  {/* Employee Activation Options */}
+                  {selectedImportType === "employees" && importProgress.result.created && importProgress.result.created.length > 0 && (
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="font-medium">Employee Activation</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Activate imported employees and send welcome emails
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowActivationOptions(!showActivationOptions)}
+                        >
+                          {showActivationOptions ? "Hide Options" : "Show Options"}
+                        </Button>
+                      </div>
+
+                      {showActivationOptions && (
+                        <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="sendEmails"
+                                checked={activationOptions.sendEmails}
+                                onChange={(e) =>
+                                  setActivationOptions(prev => ({
+                                    ...prev,
+                                    sendEmails: e.target.checked,
+                                  }))
+                                }
+                                className="rounded"
+                              />
+                              <label htmlFor="sendEmails" className="text-sm font-medium">
+                                Send activation emails
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="checkPermissions"
+                                checked={activationOptions.checkPermissions}
+                                onChange={(e) =>
+                                  setActivationOptions(prev => ({
+                                    ...prev,
+                                    checkPermissions: e.target.checked,
+                                  }))
+                                }
+                                className="rounded"
+                              />
+                              <label htmlFor="checkPermissions" className="text-sm font-medium">
+                                Assign default permissions
+                              </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="promoteManagers"
+                                checked={activationOptions.promoteManagers}
+                                onChange={(e) =>
+                                  setActivationOptions(prev => ({
+                                    ...prev,
+                                    promoteManagers: e.target.checked,
+                                  }))
+                                }
+                                className="rounded"
+                              />
+                              <label htmlFor="promoteManagers" className="text-sm font-medium">
+                                Auto-promote employees with direct reports to manager
+                              </label>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={handleActivateEmployees}
+                            className="w-full"
+                          >
+                            <Mail className="w-4 h-4 mr-2" />
+                            Activate {importProgress.result.created.length} Employees
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Activation Results */}
+                  {importProgress.result.activation && (
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium text-green-600 mb-2">Activation Results:</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-green-600">
+                            {importProgress.result.activation.activated}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Activated</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-blue-600">
+                            {importProgress.result.activation.emailsSent}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Emails Sent</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-purple-600">
+                            {importProgress.result.activation.managersPromoted}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Managers Promoted</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-orange-600">
+                            {importProgress.result.activation.permissionsChecked}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Permissions Checked</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

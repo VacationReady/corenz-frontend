@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import {
   Upload,
   Download,
@@ -44,6 +45,7 @@ import {
   Eye,
   X,
   ListChecks,
+  RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +55,7 @@ interface ImportResult {
   failed: number;
   errors: Array<{ row: number; errors: string[] }>;
   created: Array<{ id: string; email: string; name: string }>;
+  updated: Array<{ id: string; email: string; name: string }>;
   activation?: {
     total: number;
     activated: number;
@@ -305,6 +308,7 @@ export default function CSVImportPage() {
     promoteManagers: true,
   });
   const [lastImportedType, setLastImportedType] = useState<ImportType | null>(null);
+  const [allowUpdates, setAllowUpdates] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInfo = getImportTypeInfo(selectedImportType);
 
@@ -344,6 +348,7 @@ export default function CSVImportPage() {
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
+      formData.append("allowUpdates", allowUpdates ? "true" : "false");
 
       setImportProgress({
         status: "processing",
@@ -363,16 +368,37 @@ export default function CSVImportPage() {
       }
 
       const hasFailures = (data.results?.failed ?? 0) > 0;
+      const rawResults = data.results ?? {};
+      const normalisedResults: ImportResult = {
+        total: rawResults.total ?? 0,
+        successful: rawResults.successful ?? 0,
+        failed: rawResults.failed ?? 0,
+        errors: rawResults.errors ?? [],
+        created: rawResults.created ?? [],
+        updated: rawResults.updated ?? [],
+        activation: rawResults.activation,
+      };
 
       setImportProgress({
         status: "completed",
         progress: 100,
         message: `${currentTypeLabel} import completed successfully!`,
-        result: data.results,
+        result: normalisedResults,
       });
 
       setShowResults(true);
-      toast.success(`Import completed: ${data.results.successful} ${currentTypeLabel} processed`);
+      const summarySegments = [] as string[];
+      if ((normalisedResults.created?.length ?? 0) > 0) {
+        summarySegments.push(`${normalisedResults.created.length} created`);
+      }
+      if ((normalisedResults.updated?.length ?? 0) > 0) {
+        summarySegments.push(`${normalisedResults.updated.length} updated`);
+      }
+      const summaryMessage =
+        summarySegments.length > 0
+          ? summarySegments.join(" · ")
+          : `${normalisedResults.successful} ${currentTypeLabel} processed`;
+      toast.success(`Import completed: ${summaryMessage}`);
 
       setSelectedFile(null);
       setValidationErrors([]);
@@ -450,6 +476,7 @@ export default function CSVImportPage() {
     setShowActivationOptions(false);
     setValidationErrors([]);
     setLastImportedType(null);
+    setAllowUpdates(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -492,7 +519,7 @@ export default function CSVImportPage() {
         progress: 100,
         message: "Employee activation completed successfully!",
         result: {
-          ...importProgress.result,
+          ...importProgress.result!,
           activation: data.results,
         },
       });
@@ -789,6 +816,34 @@ export default function CSVImportPage() {
               </Alert>
             )}
 
+            {selectedImportType === "employees" && (
+              <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-4 space-y-3">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium">Existing employee updates</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Enable this option to merge new personal, employment, and payroll details for people who already exist in
+                    Corenz.
+                  </p>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <Label htmlFor="allow-updates" className="text-sm font-medium">
+                      Allow updates for existing employees
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Matching emails will be updated while new rows are created as usual.
+                    </p>
+                  </div>
+                  <Switch
+                    id="allow-updates"
+                    checked={allowUpdates}
+                    onCheckedChange={setAllowUpdates}
+                    disabled={importProgress.status === "processing" || importProgress.status === "uploading"}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button
                 onClick={handleImport}
@@ -827,12 +882,18 @@ export default function CSVImportPage() {
 
               {importProgress.status === "completed" && importProgress.result && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        {importProgress.result.successful}
+                        {importProgress.result.created.length}
                       </div>
-                      <div className="text-sm text-muted-foreground">Successful</div>
+                      <div className="text-sm text-muted-foreground">Created</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {importProgress.result.updated.length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Updated</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-red-600">
@@ -841,12 +902,15 @@ export default function CSVImportPage() {
                       <div className="text-sm text-muted-foreground">Failed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-2xl font-bold text-indigo-600">
                         {importProgress.result.total}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total</div>
+                      <div className="text-sm text-muted-foreground">Total processed</div>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground text-center md:text-left">
+                    Successful rows: {importProgress.result.successful}
+                  </p>
 
                   {/* Employee Activation Options */}
                   {selectedImportType === "employees" && importProgress.result.created && importProgress.result.created.length > 0 && (
@@ -1001,6 +1065,26 @@ export default function CSVImportPage() {
                           <div className="text-sm text-muted-foreground">{employee.email}</div>
                         </div>
                         <Badge className="bg-green-100 text-green-800">Created</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {importProgress.result.updated.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <RefreshCcw className="h-4 w-4 text-blue-600" />
+                    Updated ({importProgress.result.updated.length})
+                  </h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {importProgress.result.updated.map((employee, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
+                        <div>
+                          <div className="font-medium">{employee.name}</div>
+                          <div className="text-sm text-muted-foreground">{employee.email}</div>
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-800">Updated</Badge>
                       </div>
                     ))}
                   </div>

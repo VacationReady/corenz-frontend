@@ -202,6 +202,17 @@ const normaliseTaxCode = (value: string | undefined): TaxCode | undefined => {
   return TAX_CODE_LOOKUP[withSpaces] || TAX_CODE_LOOKUP[condensed];
 };
 
+const parseBooleanFlag = (value: unknown): boolean | undefined => {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalised = value.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalised)) return true;
+    if (["false", "0", "no", "off"].includes(normalised)) return false;
+  }
+  return undefined;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -210,9 +221,14 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const allowUpdates = String(formData.get("allowUpdates") ?? "false").toLowerCase() === "true";
+    // Robustly support both form field and query param for allowUpdates
+    const allowUpdates =
+      parseBooleanFlag(formData.get("allowUpdates")) ??
+      parseBooleanFlag(request.nextUrl.searchParams.get("allowUpdates")) ??
+      false;
+
     const file = formData.get("file") as File;
-    
+
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
@@ -267,7 +283,9 @@ export async function POST(request: NextRequest) {
           results.failed++;
           results.errors.push({
             row: rowNumber,
-            errors: [`User with email ${validatedData.email} already exists`],
+            errors: [
+              `User with email ${validatedData.email} already exists. Enable "Allow updates for existing employees" to merge changes.`,
+            ],
           });
           continue;
         }
@@ -512,10 +530,11 @@ export async function POST(request: NextRequest) {
           if (existingGender) {
             genderOptionId = existingGender.id;
           } else {
-            const genderKeyBase = gender
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "_")
-              .replace(/^_|_$/g, "") || "custom_gender";
+            const genderKeyBase =
+              gender
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_|_$/g, "") || "custom_gender";
             const genderOption = await prisma.genderOption.create({
               data: {
                 id: crypto.randomUUID(),
@@ -805,10 +824,7 @@ export async function POST(request: NextRequest) {
           let course = await prisma.course.findFirst({
             where: {
               name: { equals: trainingCourse, mode: "insensitive" },
-              OR: [
-                { companyId: session.user.companyId },
-                { companyId: null },
-              ],
+              OR: [{ companyId: session.user.companyId }, { companyId: null }],
             },
           });
 
@@ -825,10 +841,7 @@ export async function POST(request: NextRequest) {
           let provider = await prisma.trainingProvider.findFirst({
             where: {
               name: { equals: trainingProvider!, mode: "insensitive" },
-              OR: [
-                { companyId: session.user.companyId },
-                { companyId: null },
-              ],
+              OR: [{ companyId: session.user.companyId }, { companyId: null }],
             },
           });
 
@@ -958,13 +971,12 @@ export async function POST(request: NextRequest) {
             name: displayName,
           });
         }
-
       } catch (error) {
         results.failed++;
         if (error instanceof z.ZodError) {
           results.errors.push({
             row: rowNumber,
-            errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+            errors: error.errors.map((e) => `${e.path.join(".")}: ${e.message}`),
           });
         } else {
           results.errors.push({
@@ -1000,13 +1012,9 @@ export async function POST(request: NextRequest) {
       message: "Import completed",
       results,
     });
-
   } catch (error) {
     console.error("CSV import error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -1192,10 +1200,9 @@ export async function GET() {
       ],
     ];
 
-    const csvContent = [
-      headers.join(","),
-      ...sampleData.map(row => row.map(cell => `"${cell}"`).join(",")),
-    ].join("\n");
+    const csvContent = [headers.join(","), ...sampleData.map((row) => row.map((cell) => `"${cell}"`).join(","))].join(
+      "\n"
+    );
 
     return new NextResponse(csvContent, {
       headers: {
@@ -1203,12 +1210,8 @@ export async function GET() {
         "Content-Disposition": "attachment; filename=employee_import_template.csv",
       },
     });
-
   } catch (error) {
     console.error("Template generation error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

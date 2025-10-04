@@ -81,11 +81,12 @@ export default async function EmployeeLayout({
     });
   });
 
-  // FINAL QUERY: fetch forms with proper filter
+  // FINAL QUERY: fetch forms with proper filter (EXCLUDE SURVEYS)
   let forms = await prisma.form.findMany({
     where: {
       companyId: employee.companyId || "",
       isActive: true,
+      formType: { not: "SURVEY" }, // EXCLUDE SURVEY FORMS FROM EMPLOYEE PROFILES
       AND: [
         {
           OR: [

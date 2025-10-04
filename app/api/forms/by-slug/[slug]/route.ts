@@ -118,6 +118,7 @@ export async function GET(
         slug: slug,
         companyId: session.user.companyId,
         isActive: true,
+        formType: { not: "SURVEY" }, // BLOCK SURVEY FORMS FROM EMPLOYEE ROUTES
         ...visibilityFilter,
       },
       select: {

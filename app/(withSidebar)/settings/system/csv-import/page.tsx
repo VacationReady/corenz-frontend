@@ -166,6 +166,27 @@ export default function CSVImportPage() {
     }
   };
 
+  const handleDownloadAll = async () => {
+    try {
+      const response = await fetch("/api/csv-import/download-all");
+      if (!response.ok) throw new Error("Failed to download templates");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "csv_import_templates.zip";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("All templates downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to download templates");
+    }
+  };
+
   const resetImport = () => {
     setImportProgress({
       status: "idle",
@@ -257,6 +278,10 @@ export default function CSVImportPage() {
             <Download className="w-4 h-4 mr-2" />
             Download Template
           </Button>
+          <Button variant="outline" onClick={handleDownloadAll}>
+            <Download className="w-4 h-4 mr-2" />
+            Download All
+          </Button>
           {importProgress.status !== "idle" && (
             <Button variant="outline" onClick={resetImport}>
               <X className="w-4 h-4 mr-2" />
@@ -344,6 +369,22 @@ export default function CSVImportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Quick Start Option */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-3">
+                <Download className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-900">Quick Start</h4>
+                  <p className="text-sm text-blue-700 mb-2">
+                    New to CSV imports? Use the "Download All" button above to get all templates at once with detailed instructions.
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    Includes: Departments → Job Roles → Working Patterns → Employees (in correct order)
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">

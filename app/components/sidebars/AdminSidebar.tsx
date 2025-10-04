@@ -111,15 +111,13 @@ export default function AdminSidebar({
             ))}
           </SidebarSection>
 
-          <SidebarSection title="Surveys" collapsed={collapsed}>
-            <SidebarItem
-              href="/surveys"
-              icon={BarChart3}
-              label="Dashboard"
-              collapsed={collapsed}
-              onClick={onMobileNavigate}
-            />
-          </SidebarSection>
+          <SidebarItem
+            href="/surveys"
+            icon={BarChart3}
+            label="Surveys"
+            collapsed={collapsed}
+            onClick={onMobileNavigate}
+          />
 
           <SidebarSection title="System" collapsed={collapsed}>
             <SidebarItem

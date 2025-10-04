@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
@@ -107,6 +107,8 @@ const importSequence: Array<{ label: string; value: ImportType }> = [
 
 const getImportLabel = (type: ImportType) =>
   importSequence.find(step => step.value === type)?.label ?? type;
+
+const ALLOW_UPDATES_STORAGE_KEY = "csv-import-allow-employee-updates";
 
 const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
   switch (type) {
@@ -312,6 +314,19 @@ export default function CSVImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInfo = getImportTypeInfo(selectedImportType);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storedPreference = window.localStorage.getItem(ALLOW_UPDATES_STORAGE_KEY);
+    if (storedPreference === null) return;
+    const shouldAllowUpdates = storedPreference === "true";
+    setAllowUpdates(current => (current === shouldAllowUpdates ? current : shouldAllowUpdates));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(ALLOW_UPDATES_STORAGE_KEY, allowUpdates ? "true" : "false");
+  }, [allowUpdates]);
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -476,7 +491,6 @@ export default function CSVImportPage() {
     setShowActivationOptions(false);
     setValidationErrors([]);
     setLastImportedType(null);
-    setAllowUpdates(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }

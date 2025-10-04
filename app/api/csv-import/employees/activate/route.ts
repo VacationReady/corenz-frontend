@@ -164,29 +164,37 @@ export async function POST(request: NextRequest) {
 
             const { html, text } = renderPeopleCoreEmail({
               preheader: "Welcome to PeopleCore! Activate your account",
-              greeting: `Hello ${employeeName}`,
-              content: `
-                <p>Welcome to PeopleCore! Your account has been created and you're now part of our team.</p>
-                
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin: 0 0 10px 0; color: #333;">Your Details:</h3>
-                  <ul style="margin: 0; padding-left: 20px;">
-                    <li><strong>Name:</strong> ${employeeName}</li>
-                    <li><strong>Email:</strong> ${employee.User.email}</li>
-                    ${employee.Department ? `<li><strong>Department:</strong> ${employee.Department.name}</li>` : ''}
-                    ${employee.JobRole ? `<li><strong>Job Role:</strong> ${employee.JobRole.name}</li>` : ''}
-                    ${actions.includes('promoted_to_manager') ? '<li><strong>Role:</strong> Manager</li>' : ''}
-                  </ul>
-                </div>
-
-                <p>To get started, please activate your account by clicking the button below:</p>
-              `,
-              buttonText: "Activate Account",
-              buttonUrl: activationLink,
-              footer: `
-                <p>If you have any questions, please don't hesitate to reach out to your manager or HR team.</p>
-                <p>Welcome aboard!</p>
-              `,
+              title: "Welcome to PeopleCore - Activate Your Account",
+              intro: [
+                `Hello ${employeeName}`,
+                "Welcome to PeopleCore! Your account has been created and you're now part of our team.",
+              ],
+              sections: [
+                {
+                  title: "Your Details",
+                  description: [
+                    `Name: ${employeeName}`,
+                    `Email: ${employee.User.email}`,
+                    ...(employee.Department ? [`Department: ${employee.Department.name}`] : []),
+                    ...(employee.JobRole ? [`Job Role: ${employee.JobRole.name}`] : []),
+                    ...(actions.includes('promoted_to_manager') ? ['Role: Manager'] : []),
+                  ],
+                },
+                {
+                  title: "Next Steps",
+                  description: [
+                    "To get started, please activate your account by clicking the button below:",
+                  ],
+                },
+              ],
+              ctas: {
+                label: "Activate Account",
+                href: activationLink,
+              },
+              outro: [
+                "If you have any questions, please don't hesitate to reach out to your manager or HR team.",
+                "Welcome aboard!",
+              ],
             });
 
             await resend.emails.send({

@@ -7,6 +7,7 @@ import { parse } from "csv-parse/sync";
 import { auditLog } from "@/lib/audit";
 
 const employeeImportSchema = z.object({
+  // Personal Information (User model)
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Valid email is required"),
@@ -16,17 +17,39 @@ const employeeImportSchema = z.object({
   city: z.string().optional(),
   country: z.string().optional(),
   postalCode: z.string().optional(),
+  nationalId: z.string().optional(),
+  pronouns: z.string().optional(),
+  residencyStatus: z.string().optional(),
+  
+  // Emergency Contact (User model)
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   emergencyContactRelationship: z.string().optional(),
-  bankAccountNumber: z.string().optional(),
+  
+  // Employment Information (Employee model)
   departmentName: z.string().optional(),
   jobTitle: z.string().optional(),
   employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN", "TEMPORARY"]).optional(),
   contractType: z.enum(["PERMANENT", "FIXED_TERM", "PROBATIONARY", "CONSULTANT"]).optional(),
   startDate: z.string().optional(),
+  contractEndDate: z.string().optional(),
+  siteLocation: z.string().optional(),
+  
+  // Compensation (Employee model)
   salary: z.string().transform(val => val ? parseFloat(val) : undefined).optional(),
+  hourlyRate: z.string().transform(val => val ? parseFloat(val) : undefined).optional(),
   workingPatternName: z.string().optional(),
+  
+  // Banking & Tax (Employee model)
+  bankAccountNumber: z.string().optional(),
+  irdNumber: z.string().optional(),
+  taxCode: z.string().optional(),
+  
+  // KiwiSaver (Employee model)
+  kiwiSaverEnrolled: z.string().transform(val => val?.toLowerCase() === 'true' || val?.toLowerCase() === 'yes' || val === '1').optional(),
+  kiwiSaverContribution: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
+  
+  // Management
   managerEmail: z.string().email().optional(),
 });
 
@@ -180,6 +203,9 @@ export async function POST(request: NextRequest) {
             emergencyContactName: validatedData.emergencyContactName,
             emergencyContactPhone: validatedData.emergencyContactPhone,
             emergencyContactRelationship: validatedData.emergencyContactRelationship,
+            nationalId: validatedData.nationalId,
+            pronouns: validatedData.pronouns,
+            residencyStatus: validatedData.residencyStatus,
             companyId: session.user.companyId,
             isActivated: false, // Will need to activate
             updatedAt: new Date(),
@@ -195,12 +221,20 @@ export async function POST(request: NextRequest) {
             contractType: validatedData.contractType,
             employmentType: validatedData.employmentType,
             salaryAmount: validatedData.salary,
+            hourlyRate: validatedData.hourlyRate,
             startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
+            contractEndDate: validatedData.contractEndDate ? new Date(validatedData.contractEndDate) : null,
+            siteLocation: validatedData.siteLocation,
+            irdNumber: validatedData.irdNumber,
+            taxCode: validatedData.taxCode as any,
+            kiwiSaverEnrolled: validatedData.kiwiSaverEnrolled,
+            kiwiSaverContribution: validatedData.kiwiSaverContribution,
             departmentId: department?.id,
             jobRoleId: jobRole?.id,
             workingPatternId: workingPattern?.id,
             companyId: session.user.companyId,
             isActive: true,
+            updatedAt: new Date(),
           },
         });
 
@@ -307,6 +341,7 @@ export async function GET() {
 
     // Create template CSV content
     const headers = [
+      // Personal Information
       "firstName",
       "lastName", 
       "email",
@@ -316,17 +351,33 @@ export async function GET() {
       "city",
       "country",
       "postalCode",
+      "nationalId",
+      "pronouns",
+      "residencyStatus",
+      // Emergency Contact
       "emergencyContactName",
       "emergencyContactPhone",
       "emergencyContactRelationship",
-      "bankAccountNumber",
+      // Employment Information
       "departmentName",
       "jobTitle",
       "employmentType",
       "contractType",
       "startDate",
+      "contractEndDate",
+      "siteLocation",
+      // Compensation
       "salary",
+      "hourlyRate",
       "workingPatternName",
+      // Banking & Tax
+      "bankAccountNumber",
+      "irdNumber",
+      "taxCode",
+      // KiwiSaver
+      "kiwiSaverEnrolled",
+      "kiwiSaverContribution",
+      // Management
       "managerEmail",
     ];
 
@@ -341,17 +392,27 @@ export async function GET() {
         "New York",
         "USA",
         "10001",
+        "123456789",
+        "he/him",
+        "Citizen",
         "Jane Doe",
         "+1-555-0124",
         "Spouse",
-        "1234567890",
         departments[0]?.name || "Engineering",
         jobRoles[0]?.name || "Software Engineer",
         "FULL_TIME",
         "PERMANENT",
         "2024-01-01",
+        "2025-12-31",
+        "Auckland Office",
         "75000",
+        "45.00",
         workingPatterns[0]?.name || "Standard",
+        "1234567890",
+        "123456789",
+        "M",
+        "true",
+        "3",
         "manager@company.com",
       ],
       [
@@ -364,17 +425,27 @@ export async function GET() {
         "San Francisco",
         "USA",
         "94102",
+        "987654321",
+        "she/her",
+        "Permanent Resident",
         "John Smith",
         "+1-555-0126",
         "Spouse",
-        "0987654321",
         departments[1]?.name || "Marketing",
         jobRoles[1]?.name || "Marketing Manager",
         "FULL_TIME",
         "PERMANENT",
-        "2024-01-15",
+        "2024-01-01",
+        "",
+        "Wellington Office",
         "85000",
-        workingPatterns[0]?.name || "Standard",
+        "",
+        workingPatterns[1]?.name || "Flexible",
+        "0987654321",
+        "987654321",
+        "S",
+        "false",
+        "",
         "director@company.com",
       ],
     ];

@@ -310,7 +310,25 @@ export default function CSVImportPage() {
           title: "Employees",
           description: "Employee personal and employment data",
           icon: <Users className="h-5 w-5" />,
-          fields: ["firstName", "lastName", "email", "phoneNumber", "dateOfBirth", "address", "city", "country", "postalCode", "emergencyContactName", "emergencyContactPhone", "emergencyContactRelationship", "bankAccountNumber", "departmentName", "jobTitle", "employmentType", "contractType", "startDate", "salary", "workingPatternName", "managerEmail"],
+          fields: [
+            // Personal Information
+            "firstName", "lastName", "email", "phoneNumber", "dateOfBirth", 
+            "address", "city", "country", "postalCode", "nationalId", 
+            "pronouns", "residencyStatus",
+            // Emergency Contact
+            "emergencyContactName", "emergencyContactPhone", "emergencyContactRelationship",
+            // Employment Information
+            "departmentName", "jobTitle", "employmentType", "contractType", 
+            "startDate", "contractEndDate", "siteLocation",
+            // Compensation
+            "salary", "hourlyRate", "workingPatternName",
+            // Banking & Tax
+            "bankAccountNumber", "irdNumber", "taxCode",
+            // KiwiSaver
+            "kiwiSaverEnrolled", "kiwiSaverContribution",
+            // Management
+            "managerEmail"
+          ],
           dependencies: "Requires departments, job roles, and working patterns",
         };
     }

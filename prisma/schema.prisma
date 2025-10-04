@@ -20,15 +20,43 @@ model AutomationExecution {
   ruleId         String
   companyId      String
   triggeredAt    DateTime                  @default(now())
+  startedAt      DateTime                  @default(now())
+  completedAt    DateTime?
+  durationMs     Int?
   status         AutomationExecutionStatus
   triggerData    Json
   executionLog   Json?
   errorMessage   String?
+  triggerSummary String?
+  contextSnapshot Json?
+  lastHeartbeatAt DateTime?
   Company        Company                   @relation(fields: [companyId], references: [id])
   AutomationRule AutomationRule            @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  steps          AutomationExecutionStep[]
 
   @@index([companyId, status])
   @@index([ruleId, triggeredAt])
+}
+
+model AutomationExecutionStep {
+  id           String                          @id
+  executionId  String
+  ruleId       String
+  nodeId       String
+  nodeType     String
+  status       AutomationExecutionStepStatus
+  startedAt    DateTime                        @default(now())
+  completedAt  DateTime?
+  message      String?
+  errorMessage String?
+  metadata     Json?
+
+  execution    AutomationExecution             @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  rule         AutomationRule                  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@unique([executionId, nodeId])
+  @@index([ruleId, nodeId])
+  @@index([executionId, status])
 }
 
 model AutomationJob {
@@ -84,6 +112,7 @@ model AutomationRule {
   isTemplate          Boolean               @default(false)
   category            String?
   AutomationExecution AutomationExecution[]
+  executionSteps      AutomationExecutionStep[]
   AutomationJob       AutomationJob[]
   Company             Company               @relation(fields: [companyId], references: [id])
   User                User                  @relation(fields: [createdBy], references: [id])
@@ -1771,6 +1800,15 @@ enum AuditEntityType {
 enum AutomationExecutionStatus {
   PENDING
   RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+  CANCELLED
+  TIMED_OUT
+}
+
+enum AutomationExecutionStepStatus {
+  STARTED
   COMPLETED
   FAILED
   SKIPPED

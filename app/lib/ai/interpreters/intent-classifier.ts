@@ -53,6 +53,7 @@ AVAILABLE ACTIONS:
 - bulk_document: Assign documents to multiple employees ("Send contract to all new hires", "Assign policy to everyone")
 - bulk_notification: Send notifications to groups ("Notify all managers", "Alert sales team")
 - bulk_workflow: Run workflows for multiple employees ("Run onboarding for new hires", "Send reminders to all")
+- execute_workflow: Execute an existing automation now ("Run the onboarding workflow for Zoe", "Trigger the visa alert workflow")
 - upload_document: Upload and assign documents ("Assign this to Michael", "Upload employment contract for Sarah")
 - modify_settings: Change system config ("Change probation to 120 days...")
 - compliance_sweep: Run proactive compliance checks ("Check all visa expiries", "Find missing documents", "Run compliance check")
@@ -129,6 +130,12 @@ BULK WORKFLOW EXAMPLES:
 - "Run onboarding for new hires" → {actionType: "bulk_workflow", parameters: {workflowType: "onboarding", audience: "new_hires"}}
 - "Send reminders to all" → {actionType: "bulk_workflow", parameters: {workflowType: "reminder", scope: "all"}}
 - "Run compliance check for sales team" → {actionType: "bulk_workflow", parameters: {workflowType: "compliance", department: "sales"}}
+
+WORKFLOW EXECUTION EXAMPLES:
+- "Run the onboarding workflow for Zoe" → {actionType: "execute_workflow", parameters: {workflowName: "onboarding", employeeName: "Zoe"}}
+- "Trigger the visa alert workflow now" → {actionType: "execute_workflow", parameters: {workflowName: "visa alert"}}
+- "Execute workflow 123" → {actionType: "execute_workflow", parameters: {workflowId: "123"}}
+- "Fire the contract expiry automation for Gary" → {actionType: "execute_workflow", parameters: {workflowName: "contract expiry", employeeName: "Gary"}}
 
 WORKFLOW CREATION EXAMPLES (INCLUDING VAGUE):
 - "Create workflow that alerts HR 60 days before contracts expire" → {actionType: "create_workflow", parameters: {}}

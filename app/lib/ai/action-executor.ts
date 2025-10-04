@@ -8,6 +8,7 @@ import { findEmployeeByName } from "./system-context";
 import { setPendingAction, clearPendingAction, getConversation } from "./conversation-memory";
 import { createAuditLogs, type AuditDiff } from "@/lib/audit-helpers";
 import { saveWorkflowToDatabase } from "./workflow-generator";
+import { workflowEngine } from "@/lib/workflows/WorkflowExecutionEngine";
 
 // Utility functions for date parsing and leave category finding
 function parseNaturalDate(dateStr: string): Date {
@@ -98,7 +99,8 @@ export type ActionType =
   | "targeted_comms"
   | "policy_rollout"
   | "check_approval_status"
-  | "list_pending_approvals";
+  | "list_pending_approvals"
+  | "execute_workflow";
 
 export interface AIAction {
   type: ActionType;
@@ -161,16 +163,19 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "list_pending_approvals":
         return await handleListPendingApprovals(action);
-      
+
       case "bulk_document":
         return await handleBulkDocument(action);
-      
+
       case "bulk_notification":
         return await handleBulkNotification(action);
-      
+
       case "bulk_workflow":
         return await handleBulkWorkflow(action);
-      
+
+      case "execute_workflow":
+        return await handleExecuteWorkflow(action);
+
       default:
         return {
           success: false,
@@ -3317,6 +3322,229 @@ async function handleBulkNotification(action: AIAction): Promise<ActionResult> {
       "Send as email notification",
       "Send as in-app notification",
       "Schedule for later delivery",
+    ],
+  };
+}
+
+async function handleExecuteWorkflow(action: AIAction): Promise<ActionResult> {
+  const conv = getConversation(action.userId, action.companyId);
+  const pending = conv.entities.pendingAction;
+
+  const {
+    workflowId,
+    workflowName,
+    employeeName,
+    payload,
+    triggerData,
+    confirmed,
+  } = action.parameters || {};
+
+  if (pending?.type === "execute_workflow" && confirmed) {
+    try {
+      const pendingData = pending.data || {};
+      const workflow = pendingData.workflow;
+      const executionTrigger = pendingData.triggerData || {};
+
+      if (!workflow) {
+        clearPendingAction(action.userId, action.companyId);
+        return {
+          success: false,
+          message: "I lost track of the workflow details. Let's start again—what workflow would you like me to run?",
+        };
+      }
+
+      const result = await workflowEngine.executeWorkflow(workflow.id, executionTrigger);
+      clearPendingAction(action.userId, action.companyId);
+
+      const completedSteps = result.logs.filter((log) => log.status === "completed").slice(0, 5);
+      const stepSummary = completedSteps
+        .map((log) => `• ${log.nodeType} (${log.nodeId})` + (log.message ? ` – ${log.message}` : ""))
+        .join("\n");
+
+      const baseMessage = result.success
+        ? `🚀 **${workflow.name}** completed in ${(result.duration / 1000).toFixed(1)}s.`
+        : `⚠️ **${workflow.name}** ran into an issue after ${(result.duration / 1000).toFixed(1)}s.`;
+
+      return {
+        success: result.success,
+        message: `${baseMessage}\n\nExecution ID: ${result.executionId}\nStatus: ${result.status}\n\n${stepSummary ? `Key steps:\n${stepSummary}\n\n` : ""}${
+          result.error ? `Error: ${result.error}` : "Execution telemetry captured."
+        }`,
+        data: {
+          executionId: result.executionId,
+          status: result.status,
+          logs: result.logs,
+          durationMs: result.duration,
+        },
+        suggestions: [
+          "Show me the execution logs",
+          "Run this workflow again",
+          "Activate a different workflow",
+        ],
+      };
+    } catch (error: any) {
+      clearPendingAction(action.userId, action.companyId);
+      return {
+        success: false,
+        message: `Workflow execution failed: ${error.message}`,
+      };
+    }
+  }
+
+  let workflowRecord = pending?.type === "execute_workflow" ? pending.data?.workflow : null;
+
+  if (!workflowRecord) {
+    if (workflowId) {
+      workflowRecord = await prisma.automationRule.findFirst({
+        where: { id: workflowId, companyId: action.companyId },
+      });
+    } else if (workflowName) {
+      const matches = await prisma.automationRule.findMany({
+        where: {
+          companyId: action.companyId,
+          name: { contains: workflowName, mode: "insensitive" },
+          isActive: true,
+        },
+        take: 5,
+      });
+
+      if (matches.length === 0) {
+        return {
+          success: false,
+          message: `I couldn't find a workflow matching "${workflowName}". Try the exact name or say "list workflows".`,
+        };
+      }
+
+      if (matches.length > 1) {
+        return {
+          success: true,
+          message: `I found ${matches.length} workflows. Which one should I run?\n\n${matches
+            .map((wf, idx) => `${idx + 1}. **${wf.name}** – Trigger: ${wf.triggerType}`)
+            .join("\n")}`,
+          nextStep: { question: "Which workflow number?" },
+        };
+      }
+
+      workflowRecord = matches[0];
+    } else {
+      return {
+        success: true,
+        message: "Sure—what's the name of the workflow you want me to run?",
+        nextStep: { question: "Workflow name?" },
+      };
+    }
+  }
+
+  if (!workflowRecord) {
+    return {
+      success: false,
+      message: "I couldn't find that workflow. Can you give me the name or ID?",
+    };
+  }
+
+  let selectedEmployee = pending?.type === "execute_workflow" ? pending.data?.employee : undefined;
+
+  if (employeeName) {
+    const matches = await findEmployeeByName(employeeName, action.companyId);
+    if (matches.length === 0) {
+      return {
+        success: true,
+        message: `I couldn't find anyone named "${employeeName}". Could you check the spelling or provide more detail?`,
+        nextStep: { question: "Who should this run for?" },
+      };
+    }
+
+    if (matches.length > 1) {
+      return {
+        success: true,
+        message: `I found multiple employees. Which one should I use?\n\n${matches
+          .map((emp, idx) => `${idx + 1}. **${emp.name}** (${emp.department})`)
+          .join("\n")}`,
+        data: matches,
+        nextStep: { question: "Which employee?" },
+      };
+    }
+
+    selectedEmployee = matches[0];
+  }
+
+  const triggerPayload: Record<string, any> = {
+    ...(triggerData || {}),
+    ...(payload || {}),
+    manual: true,
+    source: "ai_assistant",
+    requestedBy: action.userId,
+  };
+
+  if (selectedEmployee) {
+    triggerPayload.employeeId = selectedEmployee.id;
+    triggerPayload.employeeName = selectedEmployee.name;
+  }
+
+  const missingInputs: string[] = [];
+  switch (workflowRecord.triggerType) {
+    case "EMPLOYEE_CREATED":
+    case "EMPLOYEE_UPDATED":
+    case "EMPLOYEE_START_DATE":
+      if (!selectedEmployee) missingInputs.push("employee");
+      break;
+    case "LEAVE_REQUEST":
+      if (!selectedEmployee) missingInputs.push("employee");
+      if (!triggerPayload.leaveRequestId) missingInputs.push("leave request");
+      break;
+    case "FORM_SUBMITTED":
+      if (!triggerPayload.submissionId) missingInputs.push("form submission");
+      break;
+    case "WEBHOOK":
+      if (!triggerPayload.payload) missingInputs.push("webhook payload");
+      break;
+    default:
+      break;
+  }
+
+  if (missingInputs.length > 0) {
+    return {
+      success: true,
+      message: `To run **${workflowRecord.name}**, I still need: ${missingInputs
+        .map((item) => item)
+        .join(", ")}.`,
+      nextStep: { question: `Provide ${missingInputs[0]}` },
+    };
+  }
+
+  setPendingAction(action.userId, action.companyId, {
+    type: "execute_workflow",
+    step: 1,
+    data: {
+      workflow: workflowRecord,
+      triggerData: triggerPayload,
+      employee: selectedEmployee,
+    },
+  });
+
+  const preview = {
+    workflow: workflowRecord.name,
+    trigger: workflowRecord.triggerType,
+    employee: selectedEmployee?.name || "Not specified",
+    triggerPayload,
+  };
+
+  const description = workflowRecord.description
+    ? workflowRecord.description
+    : "No description provided.";
+
+  return {
+    success: true,
+    requiresConfirmation: true,
+    preview,
+    message: `I can run **${workflowRecord.name}** (trigger: ${workflowRecord.triggerType}).\n\n${description}\n\n` +
+      `${selectedEmployee ? `Target employee: **${selectedEmployee.name}**\n` : ""}` +
+      `Execution will be recorded with full audit telemetry and step-level logs.\n\n` +
+      `Ready for me to run it now?`,
+    suggestions: [
+      "Yes, run it now",
+      "Review workflow steps first",
+      "Run a different workflow",
     ],
   };
 }

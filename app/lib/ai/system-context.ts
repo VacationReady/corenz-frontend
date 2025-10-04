@@ -20,6 +20,18 @@ export interface SystemContext {
   workflows: {
     total: number;
     active: number;
+    running: number;
+    failed24h: number;
+    lastRunSummary?: string;
+    recentExecutions: Array<{
+      id: string;
+      name: string;
+      status: string;
+      triggeredAt: string;
+      completedAt?: string | null;
+      durationMs?: number | null;
+      errorMessage?: string | null;
+    }>;
   };
   recentActivity: {
     newHires: number;
@@ -41,6 +53,9 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       workflows,
       contractsExpiringSoon,
       pendingLeaveRequests,
+      runningExecutions,
+      failedExecutions24h,
+      recentExecutionsRaw,
     ] = await Promise.all([
       // Total employees
       prisma.employee.count({ where: { companyId } }),
@@ -108,11 +123,56 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
           approvalStatus: "PENDING",
         },
       }),
+
+      prisma.automationExecution.count({
+        where: { companyId, status: "RUNNING" },
+      }),
+
+      prisma.automationExecution.count({
+        where: {
+          companyId,
+          status: "FAILED",
+          triggeredAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+
+      prisma.automationExecution.findMany({
+        where: { companyId },
+        orderBy: { triggeredAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          triggeredAt: true,
+          completedAt: true,
+          durationMs: true,
+          errorMessage: true,
+          triggerSummary: true,
+          AutomationRule: { select: { name: true } },
+        },
+      }),
     ]);
 
     const activeWorkflows = await prisma.automationRule.count({
       where: { companyId, isActive: true },
     });
+
+    const recentExecutions = recentExecutionsRaw.map((exec) => ({
+      id: exec.id,
+      name: exec.AutomationRule?.name || "Unnamed Workflow",
+      status: exec.status,
+      triggeredAt: exec.triggeredAt.toISOString(),
+      completedAt: exec.completedAt ? exec.completedAt.toISOString() : null,
+      durationMs: exec.durationMs,
+      errorMessage: exec.errorMessage,
+    }));
+
+    const lastRun = recentExecutions.find((exec) => exec.completedAt);
+    const lastRunSummary = lastRun
+      ? `${lastRun.name} ${lastRun.status.toLowerCase()} at ${new Date(lastRun.completedAt || lastRun.triggeredAt).toLocaleString("en-NZ")}`
+      : undefined;
 
     // Group employees by department
     const byDepartment: Record<string, number> = {};
@@ -151,6 +211,10 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       workflows: {
         total: workflows._count.id,
         active: activeWorkflows,
+        running: runningExecutions,
+        failed24h: failedExecutions24h,
+        lastRunSummary,
+        recentExecutions,
       },
       recentActivity: {
         newHires: await getNewHiresCount(companyId),
@@ -254,12 +318,23 @@ export async function findEmployeeByName(
 
 // Build AI context string
 export function buildAIContextString(context: SystemContext): string {
+  const recentWorkflowLines = context.workflows.recentExecutions
+    .map((exec) => {
+      const when = new Date(exec.completedAt || exec.triggeredAt).toLocaleString("en-NZ");
+      const outcome = exec.status.toLowerCase();
+      return `  • ${exec.name}: ${outcome} @ ${when}${exec.errorMessage ? ` (error: ${exec.errorMessage})` : ""}`;
+    })
+    .join("\n");
+
   return `
 SYSTEM OVERVIEW:
 - Total Employees: ${context.employees.total} (${context.employees.active} active)
 - Departments: ${context.departments.length}
 - Job Roles: ${context.jobRoles.length}
 - Active Workflows: ${context.workflows.active}
+- Workflows Running Now: ${context.workflows.running}
+- Workflow Failures (24h): ${context.workflows.failed24h}
+- Last Workflow Run: ${context.workflows.lastRunSummary || "No executions yet"}
 
 KEY METRICS:
 - Employees without IRD: ${context.employees.withoutIRD}
@@ -267,6 +342,9 @@ KEY METRICS:
 - Pending leave requests: ${context.recentActivity.pendingLeave}
 - Expiring documents: ${context.recentActivity.expiringDocuments}
 - New hires (last 30 days): ${context.recentActivity.newHires}
+
+RECENT WORKFLOW EXECUTIONS:
+${recentWorkflowLines || "  • No workflow executions logged"}
 
 DEPARTMENTS: ${context.departments.map(d => `${d.name} (${d.count})`).join(", ")}
 

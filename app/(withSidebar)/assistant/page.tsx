@@ -114,6 +114,14 @@ const CAPABILITY_CATEGORIES = [
       "Email leave summary to department heads",
       "Send turnover report Excel to HR director",
     ],
+    hrExamples: [
+      "Add new employee John Smith as Sales Manager",
+      "Request 5 days annual leave for Sarah Johnson",
+      "Onboard new Marketing Manager starting Monday",
+      "Upload employment contracts with expiry alerts",
+      "Set up leave approval workflow for managers",
+      "Create monthly employee report for HR team",
+    ],
     discovery: [
       "What triggers can I use to start workflows?",
       "How do I filter employees in my workflows?",
@@ -1072,7 +1080,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       // Handle errors from API
       if (!data?.success) {
         // Handle clarification needed for workflows
-        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED" || data.error === "REPORT_CLARIFICATION_NEEDED" || data.error === "EMAIL_DELIVERY_CLARIFICATION_NEEDED") {
+        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED" || data.error === "REPORT_CLARIFICATION_NEEDED" || data.error === "EMAIL_DELIVERY_CLARIFICATION_NEEDED" || data.error === "EMPLOYEE_MANAGEMENT_CLARIFICATION_NEEDED" || data.error === "LEAVE_MANAGEMENT_CLARIFICATION_NEEDED" || data.error === "ONBOARDING_CLARIFICATION_NEEDED" || data.error === "DOCUMENT_MANAGEMENT_CLARIFICATION_NEEDED" || data.error === "APPROVAL_WORKFLOW_CLARIFICATION_NEEDED") {
           // Remove loading message and add clarification response
           setMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== loadingMessage.id);
@@ -1436,6 +1444,61 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return "workflow";
     }
     
+    // Check for employee management requests
+    if (lower.includes("add") && lower.includes("employee") || lower.includes("hire") && lower.includes("employee") ||
+        lower.includes("new") && lower.includes("employee") || lower.includes("create") && lower.includes("employee") ||
+        lower.includes("employee") && lower.includes("profile") || lower.includes("update") && lower.includes("employee") ||
+        lower.includes("edit") && lower.includes("employee") || lower.includes("employee") && lower.includes("information") ||
+        lower.includes("employee") && lower.includes("details") || lower.includes("employee") && lower.includes("management") ||
+        lower.includes("manage") && lower.includes("employees") || lower.includes("employee") && lower.includes("directory") ||
+        lower.includes("find") && lower.includes("employee") || lower.includes("search") && lower.includes("employee")) {
+      return "workflow";
+    }
+    
+    // Check for leave management requests
+    if (lower.includes("leave") && lower.includes("request") || lower.includes("request") && lower.includes("leave") ||
+        lower.includes("book") && lower.includes("leave") || lower.includes("apply") && lower.includes("leave") ||
+        lower.includes("holiday") && lower.includes("request") || lower.includes("time") && lower.includes("off") ||
+        lower.includes("vacation") && lower.includes("request") || lower.includes("sick") && lower.includes("leave") ||
+        lower.includes("approve") && lower.includes("leave") || lower.includes("reject") && lower.includes("leave") ||
+        lower.includes("leave") && lower.includes("approval") || lower.includes("leave") && lower.includes("balance") ||
+        lower.includes("leave") && lower.includes("entitlement") || lower.includes("leave") && lower.includes("policy") ||
+        lower.includes("leave") && lower.includes("calendar") || lower.includes("leave") && lower.includes("management")) {
+      return "workflow";
+    }
+    
+    // Check for onboarding/offboarding requests
+    if (lower.includes("onboard") && lower.includes("employee") || lower.includes("employee") && lower.includes("onboarding") ||
+        lower.includes("new") && lower.includes("hire") || lower.includes("welcome") && lower.includes("employee") ||
+        lower.includes("onboarding") && lower.includes("process") || lower.includes("onboarding") && lower.includes("workflow") ||
+        lower.includes("offboard") && lower.includes("employee") || lower.includes("employee") && lower.includes("offboarding") ||
+        lower.includes("exit") && lower.includes("interview") || lower.includes("departure") || lower.includes("leaving") && lower.includes("employee") ||
+        lower.includes("resignation") || lower.includes("termination") || lower.includes("offboarding") && lower.includes("process")) {
+      return "workflow";
+    }
+    
+    // Check for document management requests
+    if (lower.includes("upload") && lower.includes("document") || lower.includes("document") && lower.includes("upload") ||
+        lower.includes("add") && lower.includes("document") || lower.includes("create") && lower.includes("document") ||
+        lower.includes("document") && lower.includes("management") || lower.includes("manage") && lower.includes("documents") ||
+        lower.includes("document") && lower.includes("types") || lower.includes("document") && lower.includes("categories") ||
+        lower.includes("document") && lower.includes("expiry") || lower.includes("expiry") && lower.includes("alert") ||
+        lower.includes("document") && lower.includes("expiration") || lower.includes("expired") && lower.includes("document") ||
+        lower.includes("document") && lower.includes("compliance") || lower.includes("policy") && lower.includes("document") ||
+        lower.includes("employee") && lower.includes("documents") || lower.includes("contract") && lower.includes("document")) {
+      return "workflow";
+    }
+    
+    // Check for approval workflow requests
+    if (lower.includes("approval") && lower.includes("workflow") || lower.includes("workflow") && lower.includes("approval") ||
+        lower.includes("approve") && lower.includes("workflow") || lower.includes("approval") && lower.includes("process") ||
+        lower.includes("multi") && lower.includes("level") && lower.includes("approval") || lower.includes("approval") && lower.includes("chain") ||
+        lower.includes("pending") && lower.includes("approval") || lower.includes("approval") && lower.includes("queue") ||
+        lower.includes("approval") && lower.includes("status") || lower.includes("approval") && lower.includes("rules") ||
+        lower.includes("approval") && lower.includes("policy") || lower.includes("approval") && lower.includes("matrix")) {
+      return "workflow";
+    }
+    
     // Check for report requests
     if (lower.includes("create") && lower.includes("report") || lower.includes("generate") && lower.includes("report") ||
         lower.includes("make") && lower.includes("report") || lower.includes("build") && lower.includes("report") ||
@@ -1591,6 +1654,41 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       }
       // Handle email delivery clarification needed
       if (data.error === "EMAIL_DELIVERY_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle employee management clarification needed
+      if (data.error === "EMPLOYEE_MANAGEMENT_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle leave management clarification needed
+      if (data.error === "LEAVE_MANAGEMENT_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle onboarding clarification needed
+      if (data.error === "ONBOARDING_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle document management clarification needed
+      if (data.error === "DOCUMENT_MANAGEMENT_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle approval workflow clarification needed
+      if (data.error === "APPROVAL_WORKFLOW_CLARIFICATION_NEEDED") {
         return {
           content: data.clarification,
           actionType: "info" as ActionType,
@@ -1846,6 +1944,24 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                     title={bulkExample}
                                   >
                                     <span className="block max-w-[180px] truncate">{bulkExample}</span>
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                            
+                            {/* Show HR examples for workflow category */}
+                            {category.id === "workflows" && category.hrExamples && (
+                              <>
+                                <div className="w-full border-t border-muted/30 my-1"></div>
+                                <div className="w-full text-[9px] text-muted-foreground mb-1">👥 HR Operations:</div>
+                                {category.hrExamples.slice(0, 2).map((hrExample, idx) => (
+                                  <button
+                                    key={`hr-${idx}`}
+                                    onClick={() => handleSendMessage(hrExample)}
+                                    className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 transition-colors group/btn"
+                                    title={hrExample}
+                                  >
+                                    <span className="block max-w-[180px] truncate">{hrExample}</span>
                                   </button>
                                 ))}
                               </>

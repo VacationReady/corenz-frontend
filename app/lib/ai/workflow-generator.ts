@@ -520,6 +520,46 @@ When users request email delivery of reports, be like an email automation expert
 5. Set up scheduling and automation
 6. Configure email content and subject lines
 
+**Employee Management Conversations:**
+When users request employee management help, be like an HR specialist:
+- "Great! Are you adding a new employee or updating existing information?"
+- "Perfect! What's the employee's role and department? I'll help you set up the right access and permissions."
+- "Excellent! Do you need help with personal details, employment information, or documentation?"
+- "Good question! Should I set up system access, equipment assignment, or onboarding workflows?"
+- "Smart thinking! Do you want me to create the employee profile and notify their manager?"
+
+**Leave Management Conversations:**
+When users request leave management help, be like a leave administrator:
+- "Perfect! What type of leave are you requesting? Annual, sick, personal, or something else?"
+- "Great! When do you need the leave and for how many days?"
+- "Excellent! Should I check the leave balance first and calculate remaining entitlements?"
+- "Good question! Do you need manager approval, or is this urgent leave?"
+- "Smart thinking! Should I notify the team about coverage or update the calendar?"
+
+**Onboarding/Offboarding Conversations:**
+When users request onboarding help, be like an onboarding specialist:
+- "Excellent! Are you onboarding a new hire or offboarding someone who's leaving?"
+- "Perfect! What's their role and when do they start? I'll set up the right process."
+- "Great! Do you need IT setup, equipment assignment, or training schedules?"
+- "Good question! Should I assign a buddy, schedule orientation, or create first-day agenda?"
+- "Smart thinking! Do you want automated notifications and check-ins throughout the process?"
+
+**Document Management Conversations:**
+When users request document help, be like a document administrator:
+- "Perfect! Are you uploading documents, setting up expiry alerts, or organizing existing files?"
+- "Great! What type of documents? Contracts, certificates, policies, or employee records?"
+- "Excellent! Do you need expiry notifications and renewal workflows?"
+- "Good question! Who should have access to these documents and what security level?"
+- "Smart thinking! Should I create templates for future use or set up approval workflows?"
+
+**Approval Workflow Conversations:**
+When users request approval help, be like a workflow specialist:
+- "Great! What needs approval? Leave requests, expenses, hiring, or policy changes?"
+- "Perfect! Who should approve? Single person or multiple levels with escalation?"
+- "Excellent! Do you want parallel approvals (multiple people) or sequential (one after another)?"
+- "Good question! What's the timeline and what happens if no response?"
+- "Smart thinking! Should I set up automatic notifications and status updates?"
+
 TECHNICAL OUTPUT FORMAT:
 ========================
 
@@ -686,8 +726,338 @@ export async function generateWorkflow(
     /send.*format/i,
   ];
 
+  // Check for employee management requests
+  const employeeManagementPatterns = [
+    /add.*employee/i,
+    /hire.*employee/i,
+    /new.*employee/i,
+    /create.*employee/i,
+    /employee.*profile/i,
+    /update.*employee/i,
+    /edit.*employee/i,
+    /employee.*information/i,
+    /employee.*details/i,
+    /employee.*data/i,
+    /employee.*record/i,
+    /employee.*file/i,
+    /employee.*management/i,
+    /manage.*employees/i,
+    /employee.*directory/i,
+    /employee.*list/i,
+    /find.*employee/i,
+    /search.*employee/i,
+    /employee.*search/i,
+    /employee.*lookup/i,
+  ];
+
+  // Check for leave management requests
+  const leaveManagementPatterns = [
+    /leave.*request/i,
+    /request.*leave/i,
+    /book.*leave/i,
+    /apply.*leave/i,
+    /leave.*application/i,
+    /holiday.*request/i,
+    /time.*off/i,
+    /vacation.*request/i,
+    /sick.*leave/i,
+    /personal.*leave/i,
+    /approve.*leave/i,
+    /reject.*leave/i,
+    /leave.*approval/i,
+    /leave.*balance/i,
+    /leave.*entitlement/i,
+    /leave.*policy/i,
+    /leave.*rules/i,
+    /leave.*calendar/i,
+    /leave.*schedule/i,
+    /leave.*management/i,
+    /manage.*leave/i,
+    /leave.*admin/i,
+  ];
+
+  // Check for onboarding/offboarding requests
+  const onboardingPatterns = [
+    /onboard.*employee/i,
+    /employee.*onboarding/i,
+    /new.*hire/i,
+    /welcome.*employee/i,
+    /onboarding.*process/i,
+    /onboarding.*workflow/i,
+    /onboarding.*template/i,
+    /first.*day/i,
+    /new.*starter/i,
+    /induction/i,
+    /orientation/i,
+    /offboard.*employee/i,
+    /employee.*offboarding/i,
+    /exit.*interview/i,
+    /departure/i,
+    /leaving.*employee/i,
+    /resignation/i,
+    /termination/i,
+    /offboarding.*process/i,
+    /offboarding.*workflow/i,
+  ];
+
+  // Check for document management requests
+  const documentManagementPatterns = [
+    /upload.*document/i,
+    /document.*upload/i,
+    /add.*document/i,
+    /create.*document/i,
+    /document.*management/i,
+    /manage.*documents/i,
+    /document.*types/i,
+    /document.*categories/i,
+    /document.*expiry/i,
+    /expiry.*alert/i,
+    /document.*expiration/i,
+    /expired.*document/i,
+    /document.*compliance/i,
+    /compliance.*document/i,
+    /policy.*document/i,
+    /employee.*documents/i,
+    /hr.*documents/i,
+    /contract.*document/i,
+    /agreement.*document/i,
+    /certificate.*document/i,
+  ];
+
+  // Check for approval workflow requests
+  const approvalPatterns = [
+    /approval.*workflow/i,
+    /workflow.*approval/i,
+    /approve.*workflow/i,
+    /approval.*process/i,
+    /multi.*level.*approval/i,
+    /approval.*chain/i,
+    /approval.*hierarchy/i,
+    /pending.*approval/i,
+    /approval.*queue/i,
+    /approval.*status/i,
+    /approval.*rules/i,
+    /approval.*policy/i,
+    /approval.*matrix/i,
+    /approval.*threshold/i,
+    /approval.*limit/i,
+  ];
+
   const isReportRequest = reportPatterns.some(pattern => pattern.test(prompt));
   const isEmailDelivery = emailDeliveryPatterns.some(pattern => pattern.test(prompt));
+  const isEmployeeManagement = employeeManagementPatterns.some(pattern => pattern.test(prompt));
+  const isLeaveManagement = leaveManagementPatterns.some(pattern => pattern.test(prompt));
+  const isOnboarding = onboardingPatterns.some(pattern => pattern.test(prompt));
+  const isDocumentManagement = documentManagementPatterns.some(pattern => pattern.test(prompt));
+  const isApproval = approvalPatterns.some(pattern => pattern.test(prompt));
+
+  if (isEmployeeManagement) {
+    return {
+      success: false,
+      error: "EMPLOYEE_MANAGEMENT_CLARIFICATION_NEEDED",
+      clarification: `Great! I can help you with employee management. 👥
+
+**Let me understand what you need:**
+
+**👤 Employee Action:**
+• Are you adding a new employee, updating existing info, or managing employee data?
+• What specific employee information do you need to work with?
+
+**📋 Information Needed:**
+• Personal details (name, contact, address, emergency contacts)
+• Employment details (role, department, manager, start date, salary)
+• Documentation (contracts, ID documents, certificates)
+• Access and permissions (system access, building access, equipment)
+
+**🎯 Purpose:**
+• New hire onboarding?
+• Employee profile updates?
+• Data migration or bulk updates?
+• Compliance or audit requirements?
+
+**📊 Scope:**
+• Individual employee or multiple employees?
+• Specific department or company-wide?
+• Any particular employee types or roles?
+
+**Example:** "Add a new Sales Manager named John Smith, starting March 1st, reporting to Sarah Johnson, with full system access and company laptop"
+
+Just tell me what you need and I'll guide you through the employee management process! 🚀`
+    };
+  }
+
+  if (isLeaveManagement) {
+    return {
+      success: false,
+      error: "LEAVE_MANAGEMENT_CLARIFICATION_NEEDED",
+      clarification: `Perfect! I can help you with leave management. 🏖️
+
+**Let me understand your leave request:**
+
+**📅 Leave Details:**
+• What type of leave? (Annual, sick, personal, maternity, paternity, etc.)
+• When do you need the leave? (Start and end dates)
+• How many days/hours are you requesting?
+
+**👤 Employee Information:**
+• Who is requesting the leave? (Yourself or managing for someone else)
+• Is this for a specific employee or multiple people?
+
+**📋 Leave Type:**
+• Annual leave/vacation
+• Sick leave/medical
+• Personal leave
+• Maternity/Paternity leave
+• Study leave
+• Unpaid leave
+• Other (please specify)
+
+**⚖️ Approval Process:**
+• Do you need manager approval?
+• Is this urgent or can it wait for standard approval?
+• Any special circumstances or documentation needed?
+
+**📊 Balance Check:**
+• Would you like me to check leave balance first?
+• Should I calculate the impact on remaining entitlements?
+
+**Example:** "Request 5 days annual leave for Sarah Johnson from March 15-19, with manager approval and balance check"
+
+Just tell me what you need and I'll handle your leave request! 🚀`
+    };
+  }
+
+  if (isOnboarding) {
+    return {
+      success: false,
+      error: "ONBOARDING_CLARIFICATION_NEEDED",
+      clarification: `Excellent! I can help you with onboarding or offboarding. 🚀
+
+**Let me understand the process:**
+
+**🔄 Process Type:**
+• Onboarding a new employee?
+• Offboarding a departing employee?
+• Exit interview setup?
+• Process improvement or template creation?
+
+**👤 Employee Details:**
+• Who is being onboarded/offboarded?
+• What's their role and department?
+• When does the process start?
+• Any special requirements or circumstances?
+
+**📋 Onboarding Needs:**
+• IT setup and system access
+• Equipment and workspace assignment
+• Documentation and contracts
+• Training and orientation schedule
+• Buddy or mentor assignment
+• First day/week agenda
+
+**👋 Offboarding Needs:**
+• Exit interview scheduling
+• System access removal
+• Equipment return
+• Knowledge transfer
+• Final documentation
+• Farewell communications
+
+**🎯 Workflow:**
+• Use existing template or create custom process?
+• Who needs to be involved in approvals?
+• Any automated notifications needed?
+
+**Example:** "Onboard new Marketing Manager starting Monday, with IT setup, equipment assignment, and 30-60-90 day check-ins"
+
+Just tell me what you need and I'll set up the perfect onboarding/offboarding process! 🚀`
+    };
+  }
+
+  if (isDocumentManagement) {
+    return {
+      success: false,
+      error: "DOCUMENT_MANAGEMENT_CLARIFICATION_NEEDED",
+      clarification: `Perfect! I can help you with document management. 📄
+
+**Let me understand your document needs:**
+
+**📋 Document Action:**
+• Uploading new documents?
+• Organizing existing documents?
+• Setting up expiry alerts?
+• Managing document compliance?
+• Creating document templates?
+
+**📁 Document Type:**
+• Employee contracts and agreements
+• ID documents and certificates
+• Policy documents and handbooks
+• Training materials and certifications
+• Compliance and regulatory documents
+• HR forms and templates
+
+**👤 Scope:**
+• Individual employee documents?
+• Department or role-specific documents?
+• Company-wide policies and procedures?
+• Template creation for future use?
+
+**⏰ Expiry Management:**
+• Do you need expiry alerts and notifications?
+• What's the renewal process for expiring documents?
+• Who should be notified when documents expire?
+
+**🔒 Security & Access:**
+• Who should have access to these documents?
+• Any confidentiality or security requirements?
+• Approval workflows for document access?
+
+**Example:** "Upload employment contracts for new hires, set 60-day expiry alerts, and notify HR managers when renewals are needed"
+
+Just tell me what you need and I'll help you manage your documents! 🚀`
+    };
+  }
+
+  if (isApproval) {
+    return {
+      success: false,
+      error: "APPROVAL_WORKFLOW_CLARIFICATION_NEEDED",
+      clarification: `Great! I can help you set up approval workflows. ✅
+
+**Let me understand your approval needs:**
+
+**🎯 Approval Purpose:**
+• What needs approval? (Leave requests, expenses, hiring, policy changes, etc.)
+• Is this for a specific process or general workflow?
+
+**👥 Approval Chain:**
+• Who should approve? (Manager, HR, Finance, Director, etc.)
+• Single approval or multiple levels?
+• Parallel approvals (multiple people) or sequential (one after another)?
+• Any delegation or backup approvers needed?
+
+**📋 Approval Criteria:**
+• What triggers the approval process?
+• Any automatic approvals for certain conditions?
+• Thresholds or limits that require higher approval?
+• Emergency or urgent approval processes?
+
+**⏰ Timing:**
+• How long should approvals take?
+• What happens if no response within timeframe?
+• Escalation procedures for delayed approvals?
+
+**📊 Notifications:**
+• Who gets notified when approval is needed?
+• How should approvers be notified? (Email, in-app, etc.)
+• Status updates for requestors?
+
+**Example:** "Set up leave approval for Sales team: manager approval for up to 5 days, director approval for longer periods, with 48-hour response time"
+
+Just tell me what you need and I'll create the perfect approval workflow! 🚀`
+    };
+  }
 
   if (isEmailDelivery) {
     return {
@@ -1469,6 +1839,267 @@ export async function handleNodeDiscovery(query: string): Promise<{
           "How do I send Excel reports to managers?",
           "Can I schedule automated report emails?",
           "How do I customize email content and recipients?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('employee') && (lowerQuery.includes('management') || lowerQuery.includes('add') || lowerQuery.includes('hire') || lowerQuery.includes('profile'))) {
+      return {
+        success: true,
+        response: `👥 **Here's everything you can do with employee management:**
+
+**👤 Employee Actions:**
+• **Add New Employees:** Complete onboarding with personal and employment details
+• **Update Profiles:** Modify existing employee information and data
+• **Manage Records:** Organize employee files and documentation
+• **Search & Find:** Locate employees by name, role, department, or criteria
+• **Bulk Operations:** Update multiple employees at once
+
+**📋 Information Management:**
+• **Personal Details:** Name, contact, address, emergency contacts, demographics
+• **Employment Info:** Role, department, manager, start date, salary, benefits
+• **Documentation:** Contracts, ID documents, certificates, compliance records
+• **Access Control:** System permissions, building access, equipment assignment
+• **Performance Data:** Goals, reviews, ratings, achievements
+
+**🎯 Employee Lifecycle:**
+• **Pre-hire:** Candidate management and interview scheduling
+• **Onboarding:** First day setup, training, equipment, introductions
+• **Active Employment:** Profile updates, role changes, performance tracking
+• **Offboarding:** Exit interviews, access removal, knowledge transfer
+
+**📊 Advanced Features:**
+• **Role-based Access:** Different information visible based on user permissions
+• **Audit Trails:** Track all changes and modifications to employee data
+• **Integration:** Connect with payroll, benefits, and other HR systems
+• **Reporting:** Generate employee reports and analytics
+• **Compliance:** Ensure data protection and regulatory requirements
+
+**Real-world Examples:**
+• **New Hire Setup:** Add employee, assign role, set up access, notify team
+• **Role Changes:** Update department, manager, salary, and permissions
+• **Bulk Updates:** Change manager for entire team or update company-wide policies
+• **Employee Lookup:** Find employee details, contact info, or reporting structure
+
+**What employee management task are you working on?** I can help you navigate the process! 🚀`,
+        suggestions: [
+          "How do I add a new employee?",
+          "Show me how to update employee information",
+          "How do I find employee details?",
+          "Can I update multiple employees at once?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('leave') || lowerQuery.includes('holiday') || lowerQuery.includes('time off') || lowerQuery.includes('vacation')) {
+      return {
+        success: true,
+        response: `🏖️ **Here's everything you can do with leave management:**
+
+**📅 Leave Types:**
+• **Annual Leave:** Vacation time and personal days
+• **Sick Leave:** Medical appointments and illness
+• **Personal Leave:** Family events and personal matters
+• **Maternity/Paternity:** Parental leave and family time
+• **Study Leave:** Educational and training time off
+• **Unpaid Leave:** Extended time off without pay
+
+**🔄 Leave Process:**
+• **Request Leave:** Submit leave applications with dates and reasons
+• **Approval Workflows:** Manager and HR approval processes
+• **Balance Tracking:** Monitor remaining leave entitlements
+• **Calendar Integration:** View team availability and coverage
+• **Notifications:** Automated alerts and status updates
+
+**👥 Management Features:**
+• **Team Overview:** See all team leave requests and balances
+• **Approval Queue:** Manage pending leave approvals
+• **Coverage Planning:** Assign backup coverage for absences
+• **Policy Enforcement:** Ensure compliance with leave policies
+• **Reporting:** Generate leave reports and analytics
+
+**📊 Advanced Features:**
+• **Entitlement Calculations:** Automatic accrual and carryover
+• **Holiday Management:** Public holidays and company shutdowns
+• **Bulk Operations:** Process multiple leave requests
+• **Integration:** Connect with payroll and calendar systems
+• **Compliance:** Track leave usage for legal requirements
+
+**Real-world Examples:**
+• **Leave Request:** Submit 5 days annual leave with manager approval
+• **Team Management:** Approve leave requests and plan coverage
+• **Balance Check:** Review remaining leave entitlements
+• **Holiday Planning:** Set up company shutdown periods
+
+**What leave management task do you need help with?** I can guide you through the process! 🚀`,
+        suggestions: [
+          "How do I request leave?",
+          "Show me how to approve leave requests",
+          "How do I check leave balances?",
+          "Can I set up company holidays?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('onboard') || lowerQuery.includes('offboard') || lowerQuery.includes('new hire') || lowerQuery.includes('exit interview')) {
+      return {
+        success: true,
+        response: `🚀 **Here's everything you can do with onboarding and offboarding:**
+
+**👋 Onboarding Process:**
+• **Pre-boarding:** Welcome emails and preparation materials
+• **First Day:** Orientation, introductions, and workspace setup
+• **IT Setup:** System access, equipment, and security setup
+• **Training:** Role-specific training and company orientation
+• **Buddy System:** Assign mentors and support networks
+• **Check-ins:** 30-60-90 day progress reviews
+
+**👋 Offboarding Process:**
+• **Exit Interview:** Structured feedback and departure interviews
+• **Knowledge Transfer:** Document processes and handover tasks
+• **Access Removal:** System access and security cleanup
+• **Equipment Return:** Laptop, keys, and company property
+• **Final Documentation:** Last day procedures and farewell
+• **Alumni Network:** Stay connected with former employees
+
+**📋 Template Management:**
+• **Onboarding Templates:** Customizable workflows for different roles
+• **Checklist Items:** Tasks, deadlines, and responsible parties
+• **Document Collection:** Required forms and documentation
+• **Training Modules:** Role-specific learning paths
+• **Welcome Materials:** Company information and resources
+
+**🔄 Workflow Automation:**
+• **Triggered Actions:** Automatic tasks based on start dates
+• **Notifications:** Alerts for managers, IT, and HR teams
+• **Progress Tracking:** Monitor completion of onboarding tasks
+• **Escalation:** Reminders for overdue items
+• **Integration:** Connect with other HR systems and tools
+
+**Real-world Examples:**
+• **New Marketing Manager:** IT setup, equipment, training, buddy assignment
+• **Sales Team Onboarding:** Product training, CRM access, territory assignment
+• **Engineering New Hire:** Development environment, code access, team intro
+• **Executive Exit:** Knowledge transfer, client handover, farewell planning
+
+**What onboarding or offboarding process do you need help with?** I can set up the perfect workflow! 🚀`,
+        suggestions: [
+          "How do I onboard a new employee?",
+          "Show me how to set up exit interviews",
+          "How do I create onboarding templates?",
+          "Can I automate onboarding tasks?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('document') || lowerQuery.includes('upload') || lowerQuery.includes('file') || lowerQuery.includes('expiry')) {
+      return {
+        success: true,
+        response: `📄 **Here's everything you can do with document management:**
+
+**📁 Document Types:**
+• **Employee Documents:** Contracts, agreements, and personal files
+• **Compliance Documents:** Certificates, licenses, and regulatory forms
+• **Policy Documents:** Handbooks, procedures, and guidelines
+• **Training Materials:** Certifications, courses, and learning resources
+• **HR Forms:** Templates, applications, and administrative documents
+
+**📋 Document Actions:**
+• **Upload & Store:** Secure document storage with version control
+• **Categorize & Tag:** Organize documents by type, department, or purpose
+• **Access Control:** Set permissions and visibility rules
+• **Search & Find:** Locate documents quickly with advanced search
+• **Share & Collaborate:** Controlled document sharing and collaboration
+
+**⏰ Expiry Management:**
+• **Expiry Tracking:** Monitor document expiration dates
+• **Alert System:** Notify before documents expire
+• **Renewal Workflows:** Automated renewal processes
+• **Compliance Monitoring:** Ensure regulatory compliance
+• **Audit Trails:** Track document history and changes
+
+**🔒 Security Features:**
+• **Access Levels:** Role-based document access
+• **Confidentiality:** Secure handling of sensitive information
+• **Backup & Recovery:** Data protection and disaster recovery
+• **Audit Logs:** Track who accessed what and when
+• **Encryption:** Secure document storage and transmission
+
+**🚀 Advanced Features:**
+• **Template Library:** Reusable document templates
+• **Automated Workflows:** Document approval and processing
+• **Integration:** Connect with other HR and business systems
+• **Mobile Access:** Document access from any device
+• **Version Control:** Track document changes and history
+
+**Real-world Examples:**
+• **Contract Management:** Upload employment contracts with expiry alerts
+• **Compliance Tracking:** Monitor professional certifications and licenses
+• **Policy Distribution:** Share updated handbooks with all employees
+• **Training Records:** Track completion certificates and renewals
+
+**What document management task do you need help with?** I can guide you through the process! 🚀`,
+        suggestions: [
+          "How do I upload employee documents?",
+          "Show me how to set up expiry alerts",
+          "How do I organize document categories?",
+          "Can I create document templates?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('approval') || lowerQuery.includes('workflow') || lowerQuery.includes('approve') || lowerQuery.includes('pending')) {
+      return {
+        success: true,
+        response: `✅ **Here's everything you can do with approval workflows:**
+
+**🎯 Approval Types:**
+• **Leave Requests:** Vacation, sick leave, and time off approvals
+• **Expense Claims:** Travel, meals, and business expense approvals
+• **Hiring Decisions:** Job offers and recruitment approvals
+• **Policy Changes:** HR policy and procedure approvals
+• **Budget Requests:** Financial and resource allocation approvals
+
+**👥 Approval Chains:**
+• **Single Approval:** One person approves the request
+• **Multi-level Approval:** Sequential approvals through hierarchy
+• **Parallel Approval:** Multiple people approve simultaneously
+• **Conditional Approval:** Different paths based on criteria
+• **Delegation:** Backup approvers when primary is unavailable
+
+**⚖️ Approval Rules:**
+• **Threshold-based:** Different approval levels for different amounts
+• **Role-based:** Approval based on employee role or department
+• **Time-based:** Expedited approval for urgent requests
+• **Conditional:** Special rules for specific circumstances
+• **Escalation:** Automatic escalation for delayed approvals
+
+**📊 Workflow Features:**
+• **Status Tracking:** Monitor approval progress and status
+• **Notifications:** Email and in-app alerts for approvers
+• **Deadlines:** Time limits and escalation procedures
+• **Audit Trails:** Complete history of approval decisions
+• **Reporting:** Approval metrics and performance analytics
+
+**🚀 Advanced Features:**
+• **Smart Routing:** Automatic routing based on business rules
+• **Integration:** Connect with other systems and workflows
+• **Mobile Approval:** Approve requests from mobile devices
+• **Bulk Operations:** Process multiple approvals at once
+• **Custom Fields:** Add specific information to approval requests
+
+**Real-world Examples:**
+• **Leave Approval:** Manager approval for up to 5 days, director for longer
+• **Expense Approval:** Supervisor approval under $500, manager over $500
+• **Hiring Approval:** HR approval for standard roles, CEO for executive positions
+• **Policy Approval:** Legal review, then management approval for policy changes
+
+**What approval workflow do you need to set up?** I can create the perfect approval process! 🚀`,
+        suggestions: [
+          "How do I set up leave approval workflows?",
+          "Show me how to create expense approval processes",
+          "How do I manage approval queues?",
+          "Can I set up conditional approval rules?"
         ]
       };
     }

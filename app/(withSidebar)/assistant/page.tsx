@@ -90,6 +90,14 @@ const CAPABILITY_CATEGORIES = [
       "Create review task for employees after 90 days",
       "Send birthday wishes to employees automatically",
     ],
+    bulkExamples: [
+      "I have a Christmas shutdown can you book that off?",
+      "Book everyone off for the holiday period",
+      "Company shutdown for end of year",
+      "Office closed for annual break",
+      "Mass leave booking for all staff",
+      "Bulk holiday request for everyone",
+    ],
     discovery: [
       "What triggers can I use to start workflows?",
       "How do I filter employees in my workflows?",
@@ -1048,7 +1056,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       // Handle errors from API
       if (!data?.success) {
         // Handle clarification needed for workflows
-        if (data.error === "CLARIFICATION_NEEDED") {
+        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED") {
           // Remove loading message and add clarification response
           setMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== loadingMessage.id);
@@ -1395,6 +1403,14 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return "workflow";
     }
     
+    // Check for bulk action requests
+    if (lower.includes("christmas shutdown") || lower.includes("holiday shutdown") || lower.includes("company shutdown") ||
+        lower.includes("book") && (lower.includes("everyone") || lower.includes("all")) && lower.includes("off") ||
+        lower.includes("mass leave") || lower.includes("bulk leave") || lower.includes("everyone off") ||
+        lower.includes("office closed") || lower.includes("company holiday") || lower.includes("annual shutdown")) {
+      return "workflow";
+    }
+    
     return "info";
   };
 
@@ -1511,6 +1527,13 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     if (!data.success) {
       // Handle clarification needed
       if (data.error === "CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle bulk action clarification needed
+      if (data.error === "BULK_ACTION_CLARIFICATION_NEEDED") {
         return {
           content: data.clarification,
           actionType: "info" as ActionType,
@@ -1753,6 +1776,24 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                 <span className="block max-w-[200px] truncate">{example}</span>
                               </button>
                             ))}
+                            {/* Show bulk action examples for workflow category */}
+                            {category.id === "workflows" && category.bulkExamples && (
+                              <>
+                                <div className="w-full border-t border-muted/30 my-1"></div>
+                                <div className="w-full text-[9px] text-muted-foreground mb-1">🎄 Bulk Actions:</div>
+                                {category.bulkExamples.slice(0, 2).map((bulkExample, idx) => (
+                                  <button
+                                    key={`bulk-${idx}`}
+                                    onClick={() => handleSendMessage(bulkExample)}
+                                    className="text-[9px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors group/btn"
+                                    title={bulkExample}
+                                  >
+                                    <span className="block max-w-[180px] truncate">{bulkExample}</span>
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                            
                             {/* Show discovery examples for workflow category */}
                             {category.id === "workflows" && category.discovery && (
                               <>

@@ -441,6 +441,31 @@ Based on what they're building, suggest improvements:
 - "Good start! For something like this, you might also want to add error handling in case the email fails, and maybe track who received it."
 - "Nice! You could make this even more powerful by adding parallel processing - send the email and create a task at the same time for faster execution."
 
+**Bulk Action Conversations:**
+When users request bulk actions like company shutdowns, be conversational:
+- "Great idea! Is this for the whole company or just certain departments?"
+- "Perfect! When should this shutdown period be? Just Christmas Day, or longer?"
+- "Smart thinking! Should this be booked as annual leave, or as a company holiday?"
+- "Excellent! Should I email everyone about the shutdown dates, or just managers?"
+- "Good question! Do you want to exclude any essential staff who need to work?"
+
+**Bulk Action Examples to Recognize:**
+- "Christmas shutdown" → Company holiday booking
+- "Book everyone off" → Bulk leave request
+- "Company holiday" → Mass leave booking
+- "Office closed" → Shutdown period
+- "Mass leave" → Bulk annual leave
+- "Everyone off" → Company-wide leave
+- "Annual shutdown" → Year-end closure
+- "Holiday period" → Extended leave booking
+
+**Conversational Flow for Bulk Actions:**
+1. Recognize the bulk action request
+2. Ask clarifying questions about scope, dates, and type
+3. Confirm the details before proceeding
+4. Generate the appropriate workflow
+5. Explain what will happen and who will be affected
+
 TECHNICAL OUTPUT FORMAT:
 ========================
 
@@ -476,23 +501,97 @@ export async function generateWorkflow(
 ): Promise<WorkflowGenerationResult> {
   try {
     // Check if the prompt is too vague and needs clarification
-    const vaguePatterns = [
-      /workflow for my boss/i,
-      /workflow for.*boss/i,
-      /create.*workflow/i,
-      /make.*workflow/i,
-      /build.*workflow/i,
-      /workflow.*for/i,
-    ];
+  const vaguePatterns = [
+    /workflow for my boss/i,
+    /workflow for.*boss/i,
+    /create.*workflow/i,
+    /make.*workflow/i,
+    /build.*workflow/i,
+    /workflow.*for/i,
+  ];
 
-    const isVague = vaguePatterns.some(pattern => pattern.test(prompt)) && 
-                    prompt.length < 50; // Short prompts are likely vague
+  const isVague = vaguePatterns.some(pattern => pattern.test(prompt)) &&
+                  prompt.length < 50; // Short prompts are likely vague
 
-    if (isVague) {
-      return {
-        success: false,
-        error: "CLARIFICATION_NEEDED",
-        clarification: `I'd love to help you create a workflow! To build the right automation, I need a bit more detail:
+  // Check for bulk action requests
+  const bulkPatterns = [
+    /christmas shutdown/i,
+    /holiday shutdown/i,
+    /company shutdown/i,
+    /book.*off.*everyone/i,
+    /book.*off.*all/i,
+    /book.*off.*company/i,
+    /shutdown.*leave/i,
+    /mass.*leave/i,
+    /bulk.*leave/i,
+    /everyone.*off/i,
+    /all.*employees.*off/i,
+    /company.*holiday/i,
+    /office.*closed/i,
+    /book.*holiday.*all/i,
+    /annual.*shutdown/i,
+    /end.*year.*shutdown/i,
+    /book.*everyone.*off/i,
+    /book.*all.*off/i,
+    /close.*office/i,
+    /shut.*down/i,
+    /holiday.*period/i,
+    /company.*closure/i,
+    /mass.*holiday/i,
+    /bulk.*holiday/i,
+    /everyone.*holiday/i,
+    /all.*staff.*off/i,
+    /company.*break/i,
+    /office.*holiday/i,
+    /annual.*break/i,
+    /christmas.*break/i,
+    /new.*year.*break/i,
+    /year.*end.*break/i,
+    /can you book.*off/i,
+    /i have.*shutdown/i,
+    /we have.*shutdown/i,
+    /need.*shutdown/i,
+    /want.*shutdown/i,
+  ];
+
+  const isBulkAction = bulkPatterns.some(pattern => pattern.test(prompt));
+
+  if (isBulkAction) {
+    return {
+      success: false,
+      error: "BULK_ACTION_CLARIFICATION_NEEDED",
+      clarification: `Great idea! I can help you set up a bulk leave booking for a company shutdown. 🎄
+
+**Let me clarify a few details:**
+
+**📅 Dates:**
+• When does the shutdown start and end?
+• Is it just Christmas Day and Boxing Day, or longer?
+
+**👥 Who should this apply to?**
+• The whole company?
+• Just certain departments?
+• Everyone except essential staff?
+
+**📋 Leave Type:**
+• Should this be booked as annual leave?
+• Or as a company holiday (no leave deducted)?
+
+**📧 Notifications:**
+• Should I email everyone about this?
+• Include managers in the notifications?
+
+**Example:** "Book off the whole company from December 23rd to January 2nd as annual leave, and email everyone with the dates"
+
+Just tell me what you need and I'll create the perfect bulk action! 🚀`
+    };
+  }
+
+  if (isVague) {
+    return {
+      success: false,
+      error: "CLARIFICATION_NEEDED",
+      clarification: `I'd love to help you create a workflow! To build the right automation, I need a bit more detail:
 
 **What should this workflow do for your boss?**
 
@@ -508,8 +607,8 @@ Here are some examples:
 • Who should receive notifications?
 
 The more specific you are, the better I can help! 🚀`
-      };
-    }
+    };
+  }
 
     const completion = await openai.chat.completions.create({
       model: AI_CONFIG.model,

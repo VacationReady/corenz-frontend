@@ -98,6 +98,14 @@ const CAPABILITY_CATEGORIES = [
       "Mass leave booking for all staff",
       "Bulk holiday request for everyone",
     ],
+    reportExamples: [
+      "Create a monthly employee report for Sales",
+      "Generate a performance dashboard for managers",
+      "Show me attendance data for this quarter",
+      "Build a turnover report for last year",
+      "Make a headcount summary for HR",
+      "Display leave analytics by department",
+    ],
     discovery: [
       "What triggers can I use to start workflows?",
       "How do I filter employees in my workflows?",
@@ -1056,7 +1064,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       // Handle errors from API
       if (!data?.success) {
         // Handle clarification needed for workflows
-        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED") {
+        if (data.error === "CLARIFICATION_NEEDED" || data.error === "BULK_ACTION_CLARIFICATION_NEEDED" || data.error === "REPORT_CLARIFICATION_NEEDED") {
           // Remove loading message and add clarification response
           setMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== loadingMessage.id);
@@ -1411,6 +1419,25 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       return "workflow";
     }
     
+    // Check for report requests
+    if (lower.includes("create") && lower.includes("report") || lower.includes("generate") && lower.includes("report") ||
+        lower.includes("make") && lower.includes("report") || lower.includes("build") && lower.includes("report") ||
+        lower.includes("show") && lower.includes("report") || lower.includes("report") && (lower.includes("on") || lower.includes("about") || lower.includes("for")) ||
+        lower.includes("analytics") || lower.includes("dashboard") || lower.includes("summary") && lower.includes("report") ||
+        lower.includes("monthly") && lower.includes("report") || lower.includes("quarterly") && lower.includes("report") ||
+        lower.includes("annual") && lower.includes("report") || lower.includes("weekly") && lower.includes("report") ||
+        lower.includes("daily") && lower.includes("report") || lower.includes("employee") && lower.includes("report") ||
+        lower.includes("hr") && lower.includes("report") || lower.includes("performance") && lower.includes("report") ||
+        lower.includes("attendance") && lower.includes("report") || lower.includes("leave") && lower.includes("report") ||
+        lower.includes("payroll") && lower.includes("report") || lower.includes("turnover") && lower.includes("report") ||
+        lower.includes("headcount") && lower.includes("report") || lower.includes("export") && lower.includes("data") ||
+        lower.includes("download") && lower.includes("report") || lower.includes("email") && lower.includes("report") ||
+        lower.includes("send") && lower.includes("report") || lower.includes("view") && lower.includes("data") ||
+        lower.includes("display") && lower.includes("data") || lower.includes("visualize") && lower.includes("data") ||
+        lower.includes("chart") && lower.includes("data") || lower.includes("graph") && lower.includes("data")) {
+      return "workflow";
+    }
+    
     return "info";
   };
 
@@ -1534,6 +1561,13 @@ Don't worry - your data is safe. This is likely a temporary glitch.
       }
       // Handle bulk action clarification needed
       if (data.error === "BULK_ACTION_CLARIFICATION_NEEDED") {
+        return {
+          content: data.clarification,
+          actionType: "info" as ActionType,
+        };
+      }
+      // Handle report clarification needed
+      if (data.error === "REPORT_CLARIFICATION_NEEDED") {
         return {
           content: data.clarification,
           actionType: "info" as ActionType,
@@ -1789,6 +1823,24 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                     title={bulkExample}
                                   >
                                     <span className="block max-w-[180px] truncate">{bulkExample}</span>
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                            
+                            {/* Show report examples for workflow category */}
+                            {category.id === "workflows" && category.reportExamples && (
+                              <>
+                                <div className="w-full border-t border-muted/30 my-1"></div>
+                                <div className="w-full text-[9px] text-muted-foreground mb-1">📊 Reports & Analytics:</div>
+                                {category.reportExamples.slice(0, 2).map((reportExample, idx) => (
+                                  <button
+                                    key={`report-${idx}`}
+                                    onClick={() => handleSendMessage(reportExample)}
+                                    className="text-[9px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 transition-colors group/btn"
+                                    title={reportExample}
+                                  >
+                                    <span className="block max-w-[180px] truncate">{reportExample}</span>
                                   </button>
                                 ))}
                               </>

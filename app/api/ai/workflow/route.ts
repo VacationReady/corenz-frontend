@@ -111,6 +111,16 @@ export async function POST(req: NextRequest) {
         const discovery = await handleNodeDiscovery(prompt);
         return NextResponse.json(discovery);
 
+      case "report":
+        if (!prompt) {
+          return NextResponse.json(
+            { error: "Query is required for report discovery" },
+            { status: 400 }
+          );
+        }
+        const reportDiscovery = await handleNodeDiscovery(prompt);
+        return NextResponse.json(reportDiscovery);
+
       default:
         return NextResponse.json(
           { error: "Invalid action" },

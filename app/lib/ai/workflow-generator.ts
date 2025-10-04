@@ -466,6 +466,34 @@ When users request bulk actions like company shutdowns, be conversational:
 4. Generate the appropriate workflow
 5. Explain what will happen and who will be affected
 
+**Report Creation Conversations:**
+When users request reports, be like a data analyst helping them:
+- "Great idea! What kind of report are you looking for? Employee data, performance metrics, or something else?"
+- "Perfect! Which employees should I include? All staff, specific departments, or certain criteria?"
+- "Excellent! What time period? Last month, this quarter, or a custom date range?"
+- "Good question! What specific information do you need? Headcount, turnover, attendance, performance?"
+- "Smart thinking! How should I deliver this? View online, email it, or download as a file?"
+
+**Report Types to Recognize:**
+- "Create report" → General report request
+- "Monthly report" → Recurring time-based report
+- "Employee report" → People-focused analytics
+- "Performance report" → Metrics and KPIs
+- "Attendance report" → Time and presence data
+- "Leave report" → Holiday and absence data
+- "Payroll report" → Compensation and benefits
+- "Turnover report" → Retention and exit analytics
+- "Headcount report" → Staffing levels and changes
+- "Compliance report" → Regulatory and policy data
+
+**Conversational Flow for Reports:**
+1. Recognize the report request
+2. Ask about report type, scope, and timeframe
+3. Clarify data requirements and metrics
+4. Confirm delivery method and recipients
+5. Generate the report with explanations
+6. Offer scheduling and automation options
+
 TECHNICAL OUTPUT FORMAT:
 ========================
 
@@ -553,6 +581,88 @@ export async function generateWorkflow(
     /need.*shutdown/i,
     /want.*shutdown/i,
   ];
+
+  // Check for report creation requests
+  const reportPatterns = [
+    /create.*report/i,
+    /generate.*report/i,
+    /make.*report/i,
+    /build.*report/i,
+    /show.*report/i,
+    /report.*on/i,
+    /report.*about/i,
+    /report.*for/i,
+    /analytics.*report/i,
+    /dashboard.*report/i,
+    /summary.*report/i,
+    /monthly.*report/i,
+    /quarterly.*report/i,
+    /annual.*report/i,
+    /weekly.*report/i,
+    /daily.*report/i,
+    /employee.*report/i,
+    /hr.*report/i,
+    /performance.*report/i,
+    /attendance.*report/i,
+    /leave.*report/i,
+    /payroll.*report/i,
+    /turnover.*report/i,
+    /headcount.*report/i,
+    /diversity.*report/i,
+    /training.*report/i,
+    /compliance.*report/i,
+    /audit.*report/i,
+    /export.*data/i,
+    /download.*report/i,
+    /print.*report/i,
+    /email.*report/i,
+    /send.*report/i,
+    /share.*report/i,
+    /view.*data/i,
+    /show.*data/i,
+    /display.*data/i,
+    /present.*data/i,
+    /visualize.*data/i,
+    /chart.*data/i,
+    /graph.*data/i,
+    /table.*data/i,
+  ];
+
+  const isReportRequest = reportPatterns.some(pattern => pattern.test(prompt));
+
+  if (isReportRequest) {
+    return {
+      success: false,
+      error: "REPORT_CLARIFICATION_NEEDED",
+      clarification: `Excellent! I can help you create a comprehensive report. 📊
+
+**Let me understand what you need:**
+
+**📋 Report Type:**
+• What kind of report? (Employee, Performance, Attendance, Leave, Payroll, etc.)
+• What's the main focus or question you want answered?
+
+**👥 Who/What:**
+• Which employees should be included? (All, specific departments, managers, etc.)
+• Any specific criteria or filters?
+
+**📅 Time Period:**
+• What date range? (This month, last quarter, year-to-date, custom dates)
+• Is this a one-time report or recurring?
+
+**📊 Data & Metrics:**
+• What specific information do you need? (Headcount, turnover, performance, attendance, etc.)
+• Any particular calculations or comparisons?
+
+**📧 Delivery:**
+• How should I deliver this? (View online, email, download, schedule recurring)
+• Who should receive it?
+
+**Example:** "Create a monthly employee report for the Sales department showing headcount, new hires, and turnover for last month, and email it to the Sales manager"
+
+Just tell me what you need and I'll build the perfect report! 🚀`
+    };
+  }
 
   const isBulkAction = bulkPatterns.some(pattern => pattern.test(prompt));
 
@@ -1157,6 +1267,61 @@ export async function handleNodeDiscovery(query: string): Promise<{
           "How do I check multiple conditions in parallel?",
           "What's the difference between 'wait for all' and 'wait for any'?",
           "How do I merge results from parallel actions?"
+        ]
+      };
+    }
+    
+    if (lowerQuery.includes('report') || lowerQuery.includes('analytics') || lowerQuery.includes('data') || lowerQuery.includes('dashboard')) {
+      return {
+        success: true,
+        response: `📊 **Here's everything you can do with reports and analytics:**
+
+**📋 Report Types Available:**
+• **Employee Reports:** Headcount, demographics, org chart data
+• **Performance Reports:** Goals, reviews, ratings, achievements
+• **Attendance Reports:** Time tracking, overtime, punctuality
+• **Leave Reports:** Holiday usage, sick days, leave balances
+• **Payroll Reports:** Salary, benefits, compensation analysis
+• **Turnover Reports:** Exit interviews, retention rates, reasons for leaving
+• **Training Reports:** Course completion, certifications, skill gaps
+• **Compliance Reports:** Policy adherence, document status, audits
+
+**📅 Time Periods:**
+• **Real-time:** Current data, live dashboards
+• **Daily:** End-of-day summaries, daily metrics
+• **Weekly:** Weekly trends, performance snapshots
+• **Monthly:** Monthly summaries, KPI tracking
+• **Quarterly:** Quarterly business reviews, trends
+• **Annual:** Year-end reports, annual reviews
+• **Custom:** Any date range you specify
+
+**👥 Filtering Options:**
+• **By Department:** Sales, Engineering, Marketing, HR, etc.
+• **By Role:** Managers, individual contributors, executives
+• **By Location:** Office locations, remote workers
+• **By Tenure:** New hires, veterans, specific time ranges
+• **By Performance:** High performers, needs improvement
+• **By Status:** Active, on leave, contractors
+
+**📊 Data Visualizations:**
+• **Charts:** Bar charts, pie charts, line graphs
+• **Tables:** Detailed data tables with sorting
+• **Dashboards:** Interactive real-time displays
+• **Exports:** PDF, Excel, CSV downloads
+• **Emails:** Automated report delivery
+
+**🚀 Automation Options:**
+• **Scheduled Reports:** Daily, weekly, monthly auto-generation
+• **Triggered Reports:** Generate when specific events occur
+• **Email Delivery:** Automatic distribution to stakeholders
+• **Dashboard Updates:** Real-time data refresh
+
+**What kind of report are you thinking about?** I can help you build exactly what you need! 📈`,
+        suggestions: [
+          "Show me how to create a monthly employee report",
+          "How do I build a performance dashboard?",
+          "What reports work for attendance tracking?",
+          "How do I schedule automated reports?"
         ]
       };
     }

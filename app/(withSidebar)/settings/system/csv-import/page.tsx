@@ -468,11 +468,8 @@ export default function CSVImportPage() {
                   <li>• firstName (required)</li>
                   <li>• lastName (required)</li>
                   <li>• email (required)</li>
-                  <li>• personalEmail</li>
                   <li>• phoneNumber</li>
                   <li>• dateOfBirth</li>
-                  <li>• gender</li>
-                  <li>• maritalStatus</li>
                 </ul>
               </div>
               
@@ -484,11 +481,8 @@ export default function CSVImportPage() {
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• address</li>
                   <li>• city</li>
-                  <li>• state</li>
-                  <li>• postalCode</li>
                   <li>• country</li>
-                  <li>• nationalId</li>
-                  <li>• passportNumber</li>
+                  <li>• postalCode</li>
                 </ul>
               </div>
               
@@ -498,7 +492,6 @@ export default function CSVImportPage() {
                   Employment Information
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• employeeId</li>
                   <li>• departmentName</li>
                   <li>• jobTitle</li>
                   <li>• employmentType</li>
@@ -515,7 +508,6 @@ export default function CSVImportPage() {
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• salary</li>
-                  <li>• currency</li>
                   <li>• workingPatternName</li>
                 </ul>
               </div>
@@ -523,14 +515,10 @@ export default function CSVImportPage() {
               <div className="space-y-2">
                 <h4 className="font-medium flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Banking & Tax
+                  Banking
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• bankAccountNumber</li>
-                  <li>• bankRoutingNumber</li>
-                  <li>• bankName</li>
-                  <li>• taxId</li>
-                  <li>• socialSecurityNumber</li>
                 </ul>
               </div>
               

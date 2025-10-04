@@ -12,8 +12,11 @@ const createSurveySchema = z.object({
   targetAudience: z.object({
     departments: z.array(z.string()).optional(),
     jobRoles: z.array(z.string()).optional(),
+    locations: z.array(z.string()).optional(),
     roles: z.array(z.string()).optional(),
     employees: z.array(z.string()).optional(),
+    excludedEmployees: z.array(z.string()).optional(),
+    allEmployees: z.boolean().optional(),
   }).optional(),
 });
 

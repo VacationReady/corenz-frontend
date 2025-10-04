@@ -68,6 +68,12 @@ interface JobRole {
   employeeCount: number;
 }
 
+interface Location {
+  id: string;
+  name: string;
+  employeeCount: number;
+}
+
 interface Employee {
   id: string;
   firstName: string;
@@ -75,6 +81,7 @@ interface Employee {
   email: string;
   departmentName?: string;
   jobRoleName?: string;
+  locationName?: string;
 }
 
 export default function SendSurveyPage() {
@@ -89,26 +96,32 @@ export default function SendSurveyPage() {
   const [deadline, setDeadline] = useState("");
   
   // Target audience
-  const [targetType, setTargetType] = useState<"all" | "departments" | "roles" | "individuals">("all");
+  const [targetType, setTargetType] = useState<"all" | "departments" | "roles" | "locations" | "individuals">("all");
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [excludedEmployees, setExcludedEmployees] = useState<string[]>([]);
   
   // Data
   const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [filteredExcludedEmployees, setFilteredExcludedEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [excludedSearchTerm, setExcludedSearchTerm] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [templatesRes, departmentsRes, jobRolesRes, employeesRes] = await Promise.all([
+        const [templatesRes, departmentsRes, jobRolesRes, locationsRes, employeesRes] = await Promise.all([
           fetch("/api/forms?type=SURVEY"),
           fetch("/api/departments"),
           fetch("/api/job-roles"),
+          fetch("/api/locations"),
           fetch("/api/employees"),
         ]);
 
@@ -127,10 +140,16 @@ export default function SendSurveyPage() {
           setJobRoles(jobRolesData.jobRoles || []);
         }
 
+        if (locationsRes.ok) {
+          const locationsData = await locationsRes.json();
+          setLocations(Array.isArray(locationsData) ? locationsData : []);
+        }
+
         if (employeesRes.ok) {
           const employeesData = await employeesRes.json();
           setEmployees(employeesData.employees || []);
           setFilteredEmployees(employeesData.employees || []);
+          setFilteredExcludedEmployees(employeesData.employees || []);
         }
       } catch (error) {
         console.error("Failed to load data:", error);
@@ -154,31 +173,60 @@ export default function SendSurveyPage() {
     }
   }, [searchTerm, employees]);
 
+  useEffect(() => {
+    // Filter excluded employees based on search term
+    if (excludedSearchTerm) {
+      const filtered = employees.filter(emp => 
+        `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(excludedSearchTerm.toLowerCase()) ||
+        emp.email.toLowerCase().includes(excludedSearchTerm.toLowerCase())
+      );
+      setFilteredExcludedEmployees(filtered);
+    } else {
+      setFilteredExcludedEmployees(employees);
+    }
+  }, [excludedSearchTerm, employees]);
+
   const getSelectedTemplate = () => {
     return templates.find(t => t.id === selectedTemplate);
   };
 
   const getTargetEmployeeCount = () => {
+    let targetEmployees: Employee[] = [];
+    
     switch (targetType) {
       case "all":
-        return employees.length;
+        targetEmployees = employees;
+        break;
       case "departments":
-        return employees.filter(emp => 
+        targetEmployees = employees.filter(emp => 
           selectedDepartments.some(deptId => 
             departments.find(d => d.id === deptId)?.name === emp.departmentName
           )
-        ).length;
+        );
+        break;
       case "roles":
-        return employees.filter(emp => 
+        targetEmployees = employees.filter(emp => 
           selectedRoles.some(roleId => 
             jobRoles.find(r => r.id === roleId)?.name === emp.jobRoleName
           )
-        ).length;
+        );
+        break;
+      case "locations":
+        targetEmployees = employees.filter(emp => 
+          selectedLocations.some(locId => 
+            locations.find(l => l.id === locId)?.name === emp.locationName
+          )
+        );
+        break;
       case "individuals":
-        return selectedEmployees.length;
+        targetEmployees = employees.filter(emp => selectedEmployees.includes(emp.id));
+        break;
       default:
-        return 0;
+        targetEmployees = [];
     }
+    
+    // Remove excluded employees
+    return targetEmployees.filter(emp => !excludedEmployees.includes(emp.id)).length;
   };
 
   const handleSendSurvey = async () => {
@@ -195,10 +243,17 @@ export default function SendSurveyPage() {
         targetAudience.departments = selectedDepartments;
       } else if (targetType === "roles") {
         targetAudience.jobRoles = selectedRoles;
+      } else if (targetType === "locations") {
+        targetAudience.locations = selectedLocations;
       } else if (targetType === "individuals") {
         targetAudience.employees = selectedEmployees;
       } else {
         targetAudience.allEmployees = true;
+      }
+      
+      // Add excluded employees to all targeting types
+      if (excludedEmployees.length > 0) {
+        targetAudience.excludedEmployees = excludedEmployees;
       }
 
       const response = await fetch("/api/surveys", {
@@ -312,7 +367,7 @@ export default function SendSurveyPage() {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <Label>Target Audience</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div 
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                       targetType === "all" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
@@ -349,6 +404,19 @@ export default function SendSurveyPage() {
                       <Briefcase className="h-6 w-6 mb-2" />
                       <span className="font-medium">Job Roles</span>
                       <span className="text-sm text-muted-foreground">{jobRoles.length} roles</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      targetType === "locations" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    onClick={() => setTargetType("locations")}
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <Building className="h-6 w-6 mb-2" />
+                      <span className="font-medium">Locations</span>
+                      <span className="text-sm text-muted-foreground">{locations.length} locations</span>
                     </div>
                   </div>
 
@@ -419,6 +487,35 @@ export default function SendSurveyPage() {
                 </div>
               )}
 
+              {targetType === "locations" && (
+                <div className="space-y-3">
+                  <Label>Select Locations</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {locations.map((location) => {
+                      const employeeCount = employees.filter(emp => emp.locationName === location.name).length;
+                      return (
+                        <div key={location.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`loc-${location.id}`}
+                            checked={selectedLocations.includes(location.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedLocations([...selectedLocations, location.id]);
+                              } else {
+                                setSelectedLocations(selectedLocations.filter(id => id !== location.id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`loc-${location.id}`} className="text-sm">
+                            {location.name} ({employeeCount})
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {targetType === "individuals" && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -463,11 +560,58 @@ export default function SendSurveyPage() {
                 </div>
               )}
 
+              {/* Excluded Employees Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Label>Exclude Specific Employees (Optional)</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {excludedEmployees.length} excluded
+                  </span>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search employees to exclude..."
+                    value={excludedSearchTerm}
+                    onChange={(e) => setExcludedSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="max-h-40 overflow-y-auto border rounded-lg">
+                  {filteredExcludedEmployees.map((employee) => (
+                    <div key={employee.id} className="flex items-center space-x-2 p-3 hover:bg-gray-50">
+                      <Checkbox
+                        id={`exclude-emp-${employee.id}`}
+                        checked={excludedEmployees.includes(employee.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setExcludedEmployees([...excludedEmployees, employee.id]);
+                          } else {
+                            setExcludedEmployees(excludedEmployees.filter(id => id !== employee.id));
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`exclude-emp-${employee.id}`} className="flex-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>{employee.firstName} {employee.lastName}</span>
+                          <span className="text-muted-foreground">
+                            {employee.departmentName} • {employee.jobRoleName}
+                          </span>
+                        </div>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-blue-600" />
                   <span className="font-medium text-blue-900">
                     Survey will be sent to {getTargetEmployeeCount()} employees
+                    {excludedEmployees.length > 0 && (
+                      <span className="text-blue-700"> (excluding {excludedEmployees.length})</span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -516,8 +660,14 @@ export default function SendSurveyPage() {
                     {targetType === "all" && "All Employees"}
                     {targetType === "departments" && `${selectedDepartments.length} selected departments`}
                     {targetType === "roles" && `${selectedRoles.length} selected job roles`}
+                    {targetType === "locations" && `${selectedLocations.length} selected locations`}
                     {targetType === "individuals" && `${selectedEmployees.length} selected employees`}
                   </p>
+                  {excludedEmployees.length > 0 && (
+                    <p className="text-sm text-orange-600">
+                      Excluding {excludedEmployees.length} employees
+                    </p>
+                  )}
                   <p className="text-sm text-muted-foreground">
                     Total recipients: {getTargetEmployeeCount()} employees
                   </p>
@@ -611,7 +761,13 @@ export default function SendSurveyPage() {
               onClick={() => setStep(step + 1)}
               disabled={
                 (step === 1 && (!selectedTemplate || !surveyName)) ||
-                (step === 2 && getTargetEmployeeCount() === 0)
+                (step === 2 && (
+                  getTargetEmployeeCount() === 0 ||
+                  (targetType === "departments" && selectedDepartments.length === 0) ||
+                  (targetType === "roles" && selectedRoles.length === 0) ||
+                  (targetType === "locations" && selectedLocations.length === 0) ||
+                  (targetType === "individuals" && selectedEmployees.length === 0)
+                ))
               }
             >
               Next

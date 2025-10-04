@@ -132,7 +132,7 @@ export default function SendSurveyPage() {
 
         if (departmentsRes.ok) {
           const departmentsData = await departmentsRes.json();
-          setDepartments(departmentsData.departments || []);
+          setDepartments(Array.isArray(departmentsData) ? departmentsData : []);
         }
 
         if (jobRolesRes.ok) {
@@ -147,9 +147,9 @@ export default function SendSurveyPage() {
 
         if (employeesRes.ok) {
           const employeesData = await employeesRes.json();
-          setEmployees(employeesData.employees || []);
-          setFilteredEmployees(employeesData.employees || []);
-          setFilteredExcludedEmployees(employeesData.employees || []);
+          setEmployees(Array.isArray(employeesData) ? employeesData : []);
+          setFilteredEmployees(Array.isArray(employeesData) ? employeesData : []);
+          setFilteredExcludedEmployees(Array.isArray(employeesData) ? employeesData : []);
         }
       } catch (error) {
         console.error("Failed to load data:", error);
@@ -439,24 +439,27 @@ export default function SendSurveyPage() {
                 <div className="space-y-3">
                   <Label>Select Departments</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {departments.map((dept) => (
-                      <div key={dept.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`dept-${dept.id}`}
-                          checked={selectedDepartments.includes(dept.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedDepartments([...selectedDepartments, dept.id]);
-                            } else {
-                              setSelectedDepartments(selectedDepartments.filter(id => id !== dept.id));
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`dept-${dept.id}`} className="text-sm">
-                          {dept.name} ({dept.employeeCount})
-                        </Label>
-                      </div>
-                    ))}
+                    {departments.map((dept) => {
+                      const employeeCount = employees.filter(emp => emp.departmentName === dept.name).length;
+                      return (
+                        <div key={dept.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`dept-${dept.id}`}
+                            checked={selectedDepartments.includes(dept.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDepartments([...selectedDepartments, dept.id]);
+                              } else {
+                                setSelectedDepartments(selectedDepartments.filter(id => id !== dept.id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`dept-${dept.id}`} className="text-sm">
+                            {dept.name} ({employeeCount})
+                          </Label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -465,24 +468,27 @@ export default function SendSurveyPage() {
                 <div className="space-y-3">
                   <Label>Select Job Roles</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {jobRoles.map((role) => (
-                      <div key={role.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`role-${role.id}`}
-                          checked={selectedRoles.includes(role.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedRoles([...selectedRoles, role.id]);
-                            } else {
-                              setSelectedRoles(selectedRoles.filter(id => id !== role.id));
-                            }
-                          }}
-                        />
-                        <Label htmlFor={`role-${role.id}`} className="text-sm">
-                          {role.name} ({role.employeeCount})
-                        </Label>
-                      </div>
-                    ))}
+                    {jobRoles.map((role) => {
+                      const employeeCount = employees.filter(emp => emp.jobRoleName === role.name).length;
+                      return (
+                        <div key={role.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`role-${role.id}`}
+                            checked={selectedRoles.includes(role.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedRoles([...selectedRoles, role.id]);
+                              } else {
+                                setSelectedRoles(selectedRoles.filter(id => id !== role.id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`role-${role.id}`} className="text-sm">
+                            {role.name} ({employeeCount})
+                          </Label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

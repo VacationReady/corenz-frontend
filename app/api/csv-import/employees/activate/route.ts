@@ -67,6 +67,10 @@ export async function POST(request: NextRequest) {
         const actions: string[] = [];
         let status = "processed";
 
+        const employeeName =
+          `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+          employee.User.email;
+
         // 1. Activate the employee
         if (!employee.User.isActivated) {
           await prisma.user.update({
@@ -157,10 +161,6 @@ export async function POST(request: NextRequest) {
             const activationLink = `${baseUrl}/activate?token=${activationToken}&companyId=${encodeURIComponent(
               session.user.companyId,
             )}&redirect=${encodeURIComponent(redirectPath)}`;
-
-            const employeeName =
-              `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
-              employee.User.email;
 
             const { html, text } = renderPeopleCoreEmail({
               preheader: "Welcome to PeopleCore! Activate your account",

@@ -111,14 +111,6 @@ export default function AdminSidebar({
             ))}
           </SidebarSection>
 
-          <SidebarItem
-            href="/surveys"
-            icon={BarChart3}
-            label="Surveys"
-            collapsed={collapsed}
-            onClick={onMobileNavigate}
-          />
-
           <SidebarSection title="System" collapsed={collapsed}>
             <SidebarItem
               href={settingsLink.href}
@@ -174,6 +166,7 @@ const hrToolsLinks = [
   { href: "/analytics", icon: LineChart, label: "Analytics" },
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },
+  { href: "/surveys", icon: BarChart3, label: "Surveys" },
 ];
 
 const bulkActionLinks = [

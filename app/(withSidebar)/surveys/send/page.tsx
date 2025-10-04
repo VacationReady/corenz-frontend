@@ -114,7 +114,7 @@ export default function SendSurveyPage() {
 
         if (templatesRes.ok) {
           const templatesData = await templatesRes.json();
-          setTemplates(templatesData.forms || []);
+          setTemplates(Array.isArray(templatesData) ? templatesData : []);
         }
 
         if (departmentsRes.ok) {

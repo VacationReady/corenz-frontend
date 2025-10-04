@@ -519,7 +519,7 @@ export default function CSVImportPage() {
         progress: 100,
         message: "Employee activation completed successfully!",
         result: {
-          ...importProgress.result,
+          ...importProgress.result!,
           activation: data.results,
         },
       });

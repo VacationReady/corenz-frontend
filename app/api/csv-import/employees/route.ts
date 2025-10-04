@@ -234,7 +234,6 @@ export async function POST(request: NextRequest) {
             workingPatternId: workingPattern?.id,
             companyId: session.user.companyId,
             isActive: true,
-            updatedAt: new Date(),
           },
         });
 

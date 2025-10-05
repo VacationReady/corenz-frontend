@@ -196,8 +196,8 @@ export async function POST() {
           }
         }
 
-        // Wipe user-scoped data for those employees (requests they made, tokens, sessions, etc.)
-        let scrubbedUsers = 0;
+        // Delete users completely instead of just scrubbing them
+        let deletedUsers = 0;
 
         if (userIds.length) {
           const userScopedOperations: Array<
@@ -235,37 +235,15 @@ export async function POST() {
             await runInChunks(userIds, operation);
           }
 
-          // Skip session cleanup as NextAuth may be using JWT strategy
-          // Sessions will naturally expire or be invalidated on next request
-
-          // Scrub users: placeholder email + reset core fields
-          const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
+          // Delete users completely from the database
           await runInChunks(userIds, async (batch) => {
             try {
-              // Update users one by one to avoid transaction issues
-              for (const userId of batch) {
-                await tx.user.update({
-                  where: { id: userId },
-                  data: {
-                    email: `deleted-${userId}${placeholderSuffix}`,
-                    firstName: 'Deleted',
-                    lastName: 'User',
-                    phone: null,
-                    managerId: null,
-                    permissionProfileId: null,
-                    departmentId: null,
-                    jobRoleId: null,
-                    genderOptionId: null,
-                    isActivated: false,
-                    role: Role.EMPLOYEE,
-                    canManageTenants: false,
-                    updatedAt: new Date(),
-                  },
-                });
-                scrubbedUsers += 1;
-              }
+              const { count } = await tx.user.deleteMany({
+                where: { id: { in: batch } },
+              });
+              deletedUsers += count;
             } catch (error) {
-              console.warn("Failed to scrub some users during reset", error);
+              console.warn("Failed to delete some users during reset", error);
             }
           });
         }
@@ -294,7 +272,7 @@ export async function POST() {
 
         return {
           removedEmployees,
-          scrubbedUsers,
+          deletedUsers,
           removedDepartments: departments.count,
           removedJobRoles: jobRoles.count,
           removedWorkingPatterns: workingPatterns.count,

@@ -48,7 +48,15 @@ export async function GET() {
     const companyId = session.user.companyId;
 
     const users = await prisma.user.findMany({
-      where: { companyId },
+      where: { 
+        companyId,
+        // Exclude deleted users (those with placeholder emails)
+        NOT: {
+          email: {
+            contains: "@reset.peoplecore.invalid"
+          }
+        }
+      },
       include: {
         Employee: {
           select: {

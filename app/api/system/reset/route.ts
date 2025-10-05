@@ -210,15 +210,17 @@ export async function POST() {
       } as const;
     });
 
+    const resetActor = session.user.email ?? currentUserId;
+
     await auditLog({
       entityId: companyId,
       entityType: "COMPANY",
       action: "RESET",
       actorId: currentUserId,
       actorType: "USER",
-      summary: `Company data reset by ${session.user.email ?? currentUserId}`,
+      summary: `Company data reset by ${resetActor}`,
       metadata: {
-        resetBy: session.user.email ?? currentUserId,
+        resetBy: resetActor,
         ...summary,
       },
     });

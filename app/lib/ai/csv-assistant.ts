@@ -33,7 +33,7 @@ USER QUERY: ${userQuery}
 Available CSV fields and their descriptions:
 - firstName, lastName, email (REQUIRED)
 - Personal info: phoneNumber, dateOfBirth, gender, street, city, postcode, country, nationalId, pronouns, residencyStatus
-- Employment: departmentName, jobRoleName, jobTitle, employmentType, contractType, siteLocation, startDate, contractEndDate, workingPatternName, lineManagerName
+- Employment: departmentName, jobRoleName, jobTitle, employmentType, contractType, siteLocation, startDate, contractEndDate, workingPatternName, managerEmail, lineManagerName
 - Compensation: salaryAmount, hourlyRate
 - Payroll: bankAccountNumber, irdNumber, taxCode, kiwiSaverEnrolled, kiwiSaverContribution
 - Emergency contacts: emergencyContactName, emergencyContactRelationship, emergencyContactPhone, emergencyContactEmail
@@ -50,7 +50,7 @@ IMPORTANT RULES:
 5. Tax codes: M, ME, M SL, ME SL, SB, SB SL, S, S SL, SH, SH SL, ST, ST SL, SA, SA SL, SL, SED, STC, CAE, EDW, ND, NS, NC, NCC, WT, P
 6. Boolean values: Yes/No, True/False, 1/0
 7. Departments and job roles must exist in the system before importing employees
-8. Line managers must match an existing employee name
+8. Manager details must match an existing employee (by email or lineManagerName)
 9. Working patterns must exist in the system
 
 Provide helpful, conversational guidance. If the user is asking about:
@@ -131,6 +131,7 @@ export async function generateCSVTemplate(
       startDate: "2024-01-08",
       contractEndDate: "",
       workingPatternName: "Standard 40hr",
+      managerEmail: "engineering.lead@company.com",
       lineManagerName: "Amelia Clark",
       salaryAmount: "85000",
       hourlyRate: "",
@@ -162,9 +163,9 @@ export async function generateCSVTemplate(
     
     // Create sample row
     const sampleRow = fields.map(field => {
-      const value = sampleData[field as keyof typeof sampleData] || "";
+      const value = (sampleData as any)[field] || "";
       // Escape values that contain commas or quotes
-      if (value.includes(",") || value.includes('"')) {
+      if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
         return `"${value.replace(/"/g, '""')}"`;
       }
       return value;
@@ -174,7 +175,7 @@ export async function generateCSVTemplate(
 
     return {
       success: true,
-      message: `Here's a CSV template with the fields you requested:\n\n\`\`\`csv\n${template}\n\`\`\`\n\n**Important Notes:**\n- Only firstName, lastName, and email are required\n- Dates must be in YYYY-MM-DD format\n- Department and job role names must exist in your system\n- Provide lineManagerName to link reporting lines\n- Boolean values: Yes/No, True/False, or 1/0`,
+      message: `Here's a CSV template with the fields you requested:\n\n\`\`\`csv\n${template}\n\`\`\`\n\n**Important Notes:**\n- Only firstName, lastName, and email are required\n- Dates must be in YYYY-MM-DD format\n- Department and job role names must exist in your system\n- Provide managerEmail or lineManagerName to link reporting lines\n- Boolean values: Yes/No, True/False, or 1/0`,
       template,
     };
   } catch (error: any) {

@@ -41,6 +41,7 @@ const employeeImportSchema = z.object({
   startDate: z.string().optional(),
   contractEndDate: z.string().optional(),
   workingPatternName: z.string().optional(),
+  managerEmail: z.string().optional(),
   lineManagerName: z.string().optional(),
   lineManager: z.string().optional(),
   salaryAmount: z.string().optional(),
@@ -330,8 +331,14 @@ export async function POST(request: NextRequest) {
         const startDate = parseOptionalDate(validatedData.startDate, "startDate");
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);
+
+        const managerEmail = trimToUndefined(validatedData.managerEmail);
         const lineManagerName =
           trimToUndefined(validatedData.lineManagerName) ?? trimToUndefined(validatedData.lineManager);
+
+        if (managerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(managerEmail)) {
+          throw new Error(`Invalid managerEmail "${managerEmail}". Provide a valid email address.`);
+        }
 
         const salaryAmount = parseOptionalNumber(
           validatedData.salaryAmount ?? validatedData.salary,
@@ -476,37 +483,50 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Find line manager if provided
+        // Resolve manager: prefer managerEmail; fall back to lineManagerName
         let managerUser = null;
+        const managerErrors: string[] = [];
         const lineManagerErrors: string[] = [];
 
-        if (lineManagerName) {
+        if (managerEmail) {
+          managerUser = await prisma.user.findFirst({
+            where: {
+              companyId: session.user.companyId,
+              email: managerEmail,
+            },
+          });
+
+          if (!managerUser) {
+            managerErrors.push(
+              `Manager with email "${managerEmail}" not found. Import managers before their team members.`
+            );
+          }
+        }
+
+        if (!managerUser && lineManagerName) {
           const managerNameParts = lineManagerName.split(/\s+/).filter(Boolean);
           const nameSearchConditions: Prisma.UserWhereInput[] = [];
 
           if (managerNameParts.length >= 2) {
-            const firstName = managerNameParts[0];
-            const lastName = managerNameParts.slice(1).join(" ");
+            const firstNamePart = managerNameParts[0];
+            const lastNamePart = managerNameParts.slice(1).join(" ");
             nameSearchConditions.push({
               AND: [
-                { firstName: { equals: firstName, mode: "insensitive" } },
-                { lastName: { equals: lastName, mode: "insensitive" } },
+                { firstName: { equals: firstNamePart, mode: "insensitive" } },
+                { lastName: { equals: lastNamePart, mode: "insensitive" } },
               ],
             });
           }
 
+          // exact full-name match on "name"
           nameSearchConditions.push({
             name: { equals: lineManagerName, mode: "insensitive" },
           });
 
           if (managerNameParts.length === 1) {
             const [singleName] = managerNameParts;
-            nameSearchConditions.push({
-              firstName: { equals: singleName, mode: "insensitive" },
-            });
-            nameSearchConditions.push({
-              lastName: { equals: singleName, mode: "insensitive" },
-            });
+            nameSearchConditions.push({ firstName: { equals: singleName, mode: "insensitive" } });
+            nameSearchConditions.push({ lastName: { equals: singleName, mode: "insensitive" } });
           }
 
           managerUser = await prisma.user.findFirst({
@@ -523,11 +543,11 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (!managerUser && lineManagerErrors.length > 0) {
+        if (!managerUser && (managerErrors.length > 0 || lineManagerErrors.length > 0)) {
           results.failed++;
           results.errors.push({
             row: rowNumber,
-            errors: lineManagerErrors,
+            errors: [...managerErrors, ...lineManagerErrors],
           });
           continue;
         }
@@ -1104,6 +1124,7 @@ export async function GET() {
       "startDate",
       "contractEndDate",
       "workingPatternName",
+      "managerEmail",
       "lineManagerName",
       "salaryAmount",
       "hourlyRate",
@@ -1157,6 +1178,7 @@ export async function GET() {
         "2024-01-08",
         "",
         workingPatterns[0]?.name || "Standard 40hr",
+        "engineering.lead@company.com",
         "Amelia Clark",
         "85000",
         "",
@@ -1208,6 +1230,7 @@ export async function GET() {
         "2023-09-01",
         "2025-08-31",
         workingPatterns[1]?.name || "Hybrid 32hr",
+        "marketing.director@company.com",
         "Liam Johnson",
         "92000",
         "",

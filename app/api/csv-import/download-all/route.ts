@@ -65,7 +65,9 @@ export async function GET() {
 
     const departmentCsvContent = [
       departmentHeaders.join(","),
-      ...departmentSampleData.map(row => row.map(cell => `"${cell}"`).join(",")),
+      ...departmentSampleData.map((row) =>
+        row.map((cell) => `"${cell}"`).join(",")
+      ),
     ].join("\n");
 
     zip.file("01_departments_template.csv", departmentCsvContent);
@@ -109,7 +111,9 @@ export async function GET() {
 
     const jobRoleCsvContent = [
       jobRoleHeaders.join(","),
-      ...jobRoleSampleData.map(row => row.map(cell => `"${cell}"`).join(",")),
+      ...jobRoleSampleData.map((row) =>
+        row.map((cell) => `"${cell}"`).join(",")
+      ),
     ].join("\n");
 
     zip.file("02_job_roles_template.csv", jobRoleCsvContent);
@@ -173,7 +177,9 @@ export async function GET() {
 
     const workingPatternCsvContent = [
       workingPatternHeaders.join(","),
-      ...workingPatternSampleData.map(row => row.map(cell => `"${cell}"`).join(",")),
+      ...workingPatternSampleData.map((row) =>
+        row.map((cell) => `"${cell}"`).join(",")
+      ),
     ].join("\n");
 
     zip.file("03_working_patterns_template.csv", workingPatternCsvContent);
@@ -205,6 +211,7 @@ export async function GET() {
       "startDate",
       "contractEndDate",
       "workingPatternName",
+      "managerEmail",
       "lineManagerName",
       "salaryAmount",
       "hourlyRate",
@@ -258,6 +265,7 @@ export async function GET() {
         "2024-01-08",
         "",
         workingPatterns[0]?.name || "Standard 40hr",
+        "engineering.lead@company.com",
         "Amelia Clark",
         "85000",
         "",
@@ -309,6 +317,7 @@ export async function GET() {
         "2023-09-01",
         "2025-08-31",
         workingPatterns[1]?.name || "Hybrid 32hr",
+        "marketing.director@company.com",
         "Liam Johnson",
         "92000",
         "",
@@ -338,7 +347,9 @@ export async function GET() {
 
     const employeeCsvContent = [
       employeeHeaders.join(","),
-      ...employeeSampleData.map(row => row.map(cell => `"${cell}"`).join(",")),
+      ...employeeSampleData.map((row) =>
+        row.map((cell) => `"${cell}"`).join(",")
+      ),
     ].join("\n");
 
     zip.file("04_employees_template.csv", employeeCsvContent);
@@ -373,7 +384,7 @@ Please import the files in this exact order:
 
 ### Employees
 - **Required**: firstName, lastName, email (keep these as the first columns)
-- **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, lineManagerName
+- **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, managerEmail and/or lineManagerName
 - **Optional**: Holiday balances, payroll & bank data, KiwiSaver settings, emergency contacts, driver licence, training, employment checks
 - **Formatting**:
   - Dates must use YYYY-MM-DD
@@ -415,11 +426,11 @@ If you encounter any issues, please check the error messages in the import resul
     return new NextResponse(zipBuffer as any, {
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": "attachment; filename=csv_import_templates.zip",
+        "Content-Disposition":
+          "attachment; filename=csv_import_templates.zip",
         "Content-Length": zipBuffer.length.toString(),
       },
     });
-
   } catch (error) {
     console.error("Download all templates error:", error);
     return NextResponse.json(

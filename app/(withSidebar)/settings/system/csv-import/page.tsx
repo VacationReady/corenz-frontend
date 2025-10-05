@@ -864,10 +864,7 @@ export default function CSVImportPage() {
               onOpenChange={handleResetDialogChange}
             >
               <DialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  disabled={resettingSystem}
-                >
+                <Button variant="danger" disabled={resettingSystem}>
                   {resettingSystem ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
@@ -904,7 +901,7 @@ export default function CSVImportPage() {
                     Cancel
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="danger"
                     onClick={handleSystemReset}
                     disabled={resettingSystem}
                   >

@@ -206,6 +206,7 @@ export async function GET() {
       "contractEndDate",
       "workingPatternName",
       "managerEmail",
+      "lineManagerName",
       "salaryAmount",
       "hourlyRate",
       "bankAccountNumber",
@@ -259,6 +260,7 @@ export async function GET() {
         "",
         workingPatterns[0]?.name || "Standard 40hr",
         "engineering.lead@company.com",
+        "Amelia Clark",
         "85000",
         "",
         "12-1234-1234567-00",
@@ -310,6 +312,7 @@ export async function GET() {
         "2025-08-31",
         workingPatterns[1]?.name || "Hybrid 32hr",
         "marketing.director@company.com",
+        "Liam Johnson",
         "92000",
         "",
         "98-7654-0987654-00",
@@ -373,7 +376,7 @@ Please import the files in this exact order:
 
 ### Employees
 - **Required**: firstName, lastName, email (keep these as the first columns)
-- **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, managerEmail
+- **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, managerEmail or lineManagerName
 - **Optional**: Holiday balances, payroll & bank data, KiwiSaver settings, emergency contacts, driver licence, training, employment checks
 - **Formatting**:
   - Dates must use YYYY-MM-DD

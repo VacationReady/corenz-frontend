@@ -216,6 +216,7 @@ export async function POST() {
       action: "RESET",
       actorId: currentUserId,
       actorType: "USER",
+      summary: `Company data reset by ${session.user.email ?? currentUserId}`,
       metadata: {
         resetBy: session.user.email ?? currentUserId,
         ...summary,

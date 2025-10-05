@@ -118,6 +118,7 @@ interface ApiEmployee {
   isActive: boolean;
   profileImageUrl?: string | null;
   managerUserId?: string | null;
+  permissionProfileName?: string | null;
 }
 
 interface OrgEmployee {
@@ -199,8 +200,12 @@ function OrgChartPageClient() {
       }
 
       try {
-        const res = await fetch("/api/employees?status=all", {
+        const res = await fetch("/api/org-chart", {
           credentials: "include",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
         });
 
         if (!res.ok) {
@@ -216,24 +221,35 @@ function OrgChartPageClient() {
         setRawEmployees(
           data.map((raw) => {
             const emp = raw as Partial<ApiEmployee> & Record<string, unknown>;
+            const rawRole =
+              typeof emp.role === "string" ? (emp.role as string) : undefined;
 
             const safeRole: ApiEmployee["role"] = (() => {
-              switch (emp.role) {
+              switch (rawRole) {
                 case "ADMIN":
                 case "MANAGER":
                 case "EMPLOYEE":
-                  return emp.role;
+                  return rawRole;
+                case "SUPER_ADMIN":
+                  return "ADMIN";
                 default:
                   return "EMPLOYEE";
               }
             })();
 
+            const employeeId = String(emp.id ?? "").trim();
+            const userId = String(emp.userId ?? "").trim();
+            const managerIdRaw =
+              typeof emp.managerUserId === "string"
+                ? emp.managerUserId.trim()
+                : "";
+
             return {
-              id: String(emp.id ?? ""),
-              userId: String(emp.userId ?? ""),
+              id: employeeId,
+              userId: userId || employeeId,
               firstName: (emp.firstName as string | null | undefined) ?? null,
               lastName: (emp.lastName as string | null | undefined) ?? null,
-              email: String(emp.email ?? ""),
+              email: String(emp.email ?? "").trim(),
               phone: (emp.phone as string | null | undefined) ?? null,
               role: safeRole,
               departmentId: (emp.departmentId as string | null | undefined) ?? null,
@@ -245,8 +261,9 @@ function OrgChartPageClient() {
               isActive: Boolean(emp.isActive),
               profileImageUrl:
                 (emp.profileImageUrl as string | null | undefined) ?? null,
-              managerUserId:
-                (emp.managerUserId as string | null | undefined) ?? null,
+              managerUserId: managerIdRaw.length > 0 ? managerIdRaw : null,
+              permissionProfileName:
+                (emp.permissionProfileName as string | null | undefined) ?? null,
             } satisfies ApiEmployee;
           }),
         );
@@ -271,7 +288,19 @@ function OrgChartPageClient() {
   const employeesByUserId = useMemo(() => {
     const map = new Map<string, ApiEmployee>();
     rawEmployees.forEach((emp) => {
-      map.set(emp.userId, emp);
+      if (emp.userId) {
+        map.set(emp.userId, emp);
+      }
+    });
+    return map;
+  }, [rawEmployees]);
+
+  const employeesByEmployeeId = useMemo(() => {
+    const map = new Map<string, ApiEmployee>();
+    rawEmployees.forEach((emp) => {
+      if (emp.id) {
+        map.set(emp.id, emp);
+      }
     });
     return map;
   }, [rawEmployees]);
@@ -286,7 +315,8 @@ function OrgChartPageClient() {
         .trim();
       const safeName = fullName.length > 0 ? fullName : emp.email;
       const manager = emp.managerUserId
-        ? employeesByUserId.get(emp.managerUserId)
+        ? employeesByUserId.get(emp.managerUserId) ??
+          employeesByEmployeeId.get(emp.managerUserId)
         : undefined;
       const managerFullName = manager
         ? `${manager.firstName ?? ""} ${manager.lastName ?? ""}`
@@ -308,34 +338,56 @@ function OrgChartPageClient() {
         profileImageUrl: emp.profileImageUrl ?? null,
         managerUserId: emp.managerUserId ?? null,
         managerName: managerFullName,
+        permissionProfileName: emp.permissionProfileName ?? null,
       } satisfies OrgEmployee;
     });
-  }, [rawEmployees, employeesByUserId]);
+  }, [rawEmployees, employeesByUserId, employeesByEmployeeId]);
 
   const orgForest = useMemo<OrgNode[]>(() => {
     const byUserId = new Map<string, OrgNode>();
+    const byEmployeeId = new Map<string, OrgNode>();
+    const byEmail = new Map<string, OrgNode>();
     const nodes = normalizedEmployees.map<OrgNode>((emp) => ({
       ...emp,
       children: [],
     }));
 
     nodes.forEach((node) => {
-      byUserId.set(node.userId, node);
+      if (node.userId) {
+        byUserId.set(node.userId, node);
+      }
+      if (node.id) {
+        byEmployeeId.set(node.id, node);
+      }
+      if (node.email) {
+        byEmail.set(node.email.toLowerCase(), node);
+      }
     });
 
     const roots: OrgNode[] = [];
 
     nodes.forEach((node) => {
-      const managerId = node.managerUserId;
-      if (
-        managerId &&
-        managerId !== node.userId &&
-        byUserId.has(managerId)
-      ) {
-        byUserId.get(managerId)!.children.push(node);
-      } else {
+      const managerId =
+        typeof node.managerUserId === "string"
+          ? node.managerUserId.trim()
+          : "";
+
+      if (!managerId || managerId === node.userId) {
         roots.push(node);
+        return;
       }
+
+      const managerNode =
+        byUserId.get(managerId) ??
+        byEmployeeId.get(managerId) ??
+        byEmail.get(managerId.toLowerCase());
+
+      if (managerNode && managerNode !== node) {
+        managerNode.children.push(node);
+        return;
+      }
+
+      roots.push(node);
     });
 
     const sortNodes = (list: OrgNode[]) => {

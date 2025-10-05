@@ -52,7 +52,7 @@ export async function POST() {
             where: { employeeId: { in: employeeIds } },
           }),
           tx.documentSignatureField.deleteMany({
-            where: { employeeId: { in: employeeIds } },
+            where: { assignedEmployeeId: { in: employeeIds } },
           }),
           tx.documentAcknowledgement.deleteMany({
             where: { employeeId: { in: employeeIds } },

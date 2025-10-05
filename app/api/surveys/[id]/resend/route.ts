@@ -34,6 +34,8 @@ export async function POST(
                 User: {
                   select: {
                     email: true,
+                    firstName: true,
+                    lastName: true,
                   },
                 },
               },
@@ -63,7 +65,7 @@ export async function POST(
     try {
       const emailRecipients = pendingRecipients.map(recipient => ({
         email: recipient.Employee.User.email,
-        name: `${recipient.Employee.firstName} ${recipient.Employee.lastName}`,
+        name: `${recipient.Employee.User.firstName || ''} ${recipient.Employee.User.lastName || ''}`.trim(),
       }));
 
       const emailResult = await sendSurveyReminder({

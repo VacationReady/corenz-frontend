@@ -31,184 +31,203 @@ export async function POST() {
   const currentUserId = session.user.id;
 
   try {
-    const summary = await prisma.$transaction(async (tx) => {
-      const employees = await tx.employee.findMany({
-        where: {
-          companyId,
-          NOT: { userId: currentUserId },
-        },
-        select: { id: true, userId: true },
-      });
-
-      const employeeIds = employees.map((emp) => emp.id);
-      const userIds = employees.map((emp) => emp.userId);
-
-      if (employeeIds.length) {
-        await Promise.all([
-          tx.documentSignatureArtifact.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.documentSignatureEmployee.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.documentSignatureField.deleteMany({
-            where: { assignedEmployeeId: { in: employeeIds } },
-          }),
-          tx.documentAcknowledgement.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.driverLicence.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.emergencyContact.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeeAuditLog.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeeOffboarding.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeePerformanceReview.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeeWorkingPatternAssignment.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employmentCheck.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.formAssignment.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.formDataRecord.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.formSubmission.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.surveyRecipient.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.surveyResponse.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.leaveEntitlement.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.leaveRequest.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.onboardingInstance.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.trainingRecord.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.transactionalChangeRequest.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.actionItem.deleteMany({
-            where: { relatedEmployeeId: { in: employeeIds } },
-          }),
-        ]);
-      }
-
-      if (userIds.length) {
-        const userScopedTasks = [
-          tx.leaveRequest.deleteMany({
-            where: {
-              companyId,
-              OR: [
-                { requesterId: { in: userIds } },
-                { approvedById: { in: userIds } },
-              ],
-            },
-          }),
-          tx.actionItem.deleteMany({
-            where: {
-              companyId,
-              assignedToId: { in: userIds },
-            },
-          }),
-          tx.activationToken.deleteMany({ where: { userId: { in: userIds } } }),
-          tx.newsPost.deleteMany({ where: { authorId: { in: userIds } } }),
-          tx.newsReaction.deleteMany({ where: { userId: { in: userIds } } }),
-          tx.newsBookmark.deleteMany({ where: { userId: { in: userIds } } }),
-          tx.globalAuditLog.deleteMany({
-            where: { companyId, actorId: { in: userIds } },
-          }),
-          tx.user.updateMany({
-            where: { id: { in: userIds } },
-            data: { role: Role.EMPLOYEE, canManageTenants: false },
-          }),
-        ];
-
-        await Promise.all(userScopedTasks);
-
-        try {
-          await tx.$executeRaw(
-            Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
-              userIds,
-            )})`,
-          );
-        } catch (error) {
-          console.warn("Failed to remove persisted sessions during reset", error);
-        }
-      }
-
-      const { count: removedEmployees } = await tx.employee.deleteMany({
-        where: { id: { in: employeeIds } },
-      });
-
-      for (const userId of userIds) {
-        const placeholderEmail = `${userId}@${RESET_EMAIL_DOMAIN}`;
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            email: placeholderEmail,
-            firstName: "Deleted",
-            lastName: "User",
-            phone: null,
-            managerId: null,
-            permissionProfileId: null,
-            departmentId: null,
-            jobRoleId: null,
-            genderOptionId: null,
-            isActivated: false,
-            role: Role.EMPLOYEE,
-            canManageTenants: false,
+    const summary = await prisma.$transaction(
+      async (tx) => {
+        const employees = await tx.employee.findMany({
+          where: {
+            companyId,
+            NOT: { userId: currentUserId },
           },
+          select: { id: true, userId: true },
         });
-      }
 
-      const departments = await tx.department.deleteMany({ where: { companyId } });
-      const jobRoles = await tx.jobRole.deleteMany({ where: { companyId } });
-      const workingPatterns = await tx.workingPattern.deleteMany({
-        where: { companyId },
-      });
-      const genderOptions = await tx.genderOption.deleteMany({
-        where: { companyId },
-      });
-      const eventRuleOverrides = await tx.eventRuleOverride.deleteMany({
-        where: { companyId },
-      });
-      const eventRules = await tx.eventRule.deleteMany({ where: { companyId } });
-      const eventCategories = await tx.eventCategory.deleteMany({
-        where: { companyId, systemDefined: false },
-      });
+        const employeeIds = employees.map((emp) => emp.id);
+        const userIds = employees
+          .map((emp) => emp.userId)
+          .filter(
+            (userId): userId is string =>
+              typeof userId === "string" && userId.length > 0,
+          );
 
-      return {
-        removedEmployees,
-        scrubbedUsers: userIds.length,
-        removedDepartments: departments.count,
-        removedJobRoles: jobRoles.count,
-        removedWorkingPatterns: workingPatterns.count,
-        removedGenderOptions: genderOptions.count,
-        removedEventCategories: eventCategories.count,
-        removedEventRules: eventRules.count + eventRuleOverrides.count,
-      } as const;
-    });
+        let removedEmployees = 0;
+        let scrubbedUsers = 0;
+
+        if (employeeIds.length) {
+          const employeeScope = Prisma.sql`
+            SELECT "id"
+            FROM "Employee"
+            WHERE "companyId" = ${companyId}
+              AND ("userId" IS NULL OR "userId" <> ${currentUserId})
+          `;
+
+          const employeeScopedTargets: Array<{
+            table: string;
+            column?: string;
+          }> = [
+            { table: "DocumentSignatureArtifact" },
+            { table: "DocumentSignatureEmployee" },
+            { table: "DocumentSignatureField", column: '"assignedEmployeeId"' },
+            { table: "DocumentAcknowledgement" },
+            { table: "DriverLicence" },
+            { table: "EmergencyContact" },
+            { table: "EmployeeAuditLog" },
+            { table: "EmployeeOffboarding" },
+            { table: "EmployeePerformanceReview" },
+            { table: "EmployeeWorkingPatternAssignment" },
+            { table: "EmploymentCheck" },
+            { table: "FormAssignment" },
+            { table: "FormDataRecord" },
+            { table: "FormSubmission" },
+            { table: "SurveyRecipient" },
+            { table: "SurveyResponse" },
+            { table: "LeaveEntitlement" },
+            { table: "LeaveRequest" },
+            { table: "OnboardingInstance" },
+            { table: "TrainingRecord" },
+            { table: "TransactionalChangeRequest" },
+            { table: "ActionItem", column: '"relatedEmployeeId"' },
+          ];
+
+          for (const { table, column = '"employeeId"' } of employeeScopedTargets) {
+            await tx.$executeRaw(
+              Prisma.sql`
+                DELETE FROM ${Prisma.raw(`"${table}"`)}
+                WHERE ${Prisma.raw(column)} IN (${employeeScope})
+              `,
+            );
+          }
+        }
+
+        if (userIds.length) {
+          const userScope = Prisma.sql`
+            SELECT "userId"
+            FROM "Employee"
+            WHERE "companyId" = ${companyId}
+              AND "userId" IS NOT NULL
+              AND "userId" <> ${currentUserId}
+          `;
+
+          await tx.$executeRaw(
+            Prisma.sql`
+              DELETE FROM "LeaveRequest"
+              WHERE "companyId" = ${companyId}
+                AND (
+                  "requesterId" IN (${userScope}) OR
+                  "approvedById" IN (${userScope})
+                )
+            `,
+          );
+
+          const userScopedTargets: Array<{
+            table: string;
+            column?: string;
+            extra?: Prisma.Sql;
+          }> = [
+            {
+              table: "ActionItem",
+              column: '"assignedToId"',
+              extra: Prisma.sql`"companyId" = ${companyId}`,
+            },
+            { table: "ActivationToken" },
+            { table: "NewsPost", column: '"authorId"' },
+            { table: "NewsReaction" },
+            { table: "NewsBookmark" },
+          ];
+
+          for (const { table, column = '"userId"', extra } of userScopedTargets) {
+            const extraCondition = extra
+              ? Prisma.sql`${extra} AND`
+              : Prisma.sql``;
+
+            await tx.$executeRaw(
+              Prisma.sql`
+                DELETE FROM ${Prisma.raw(`"${table}"`)}
+                WHERE ${extraCondition} ${Prisma.raw(column)} IN (${userScope})
+              `,
+            );
+          }
+
+          await tx.$executeRaw(
+            Prisma.sql`
+              DELETE FROM "GlobalAuditLog"
+              WHERE "companyId" = ${companyId}
+                AND "actorId" IN (${userScope})
+            `,
+          );
+
+          await tx.$executeRaw(
+            Prisma.sql`
+              DELETE FROM "Session"
+              WHERE "userId" IN (${userScope})
+            `,
+          );
+
+          const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
+          const scrubbed = await tx.$queryRaw<{ count: bigint }>(
+            Prisma.sql`
+              SELECT COUNT(*)::int AS count
+              FROM (
+                UPDATE "User"
+                SET
+                  "email" = "id" || ${placeholderSuffix},
+                  "firstName" = 'Deleted',
+                  "lastName" = 'User',
+                  "phone" = NULL,
+                  "managerId" = NULL,
+                  "permissionProfileId" = NULL,
+                  "departmentId" = NULL,
+                  "jobRoleId" = NULL,
+                  "genderOptionId" = NULL,
+                  "isActivated" = FALSE,
+                  "role" = ${Role.EMPLOYEE},
+                  "canManageTenants" = FALSE,
+                  "updatedAt" = NOW()
+                WHERE "id" IN (${userScope})
+                RETURNING 1
+              ) AS updated
+            `,
+          );
+
+          scrubbedUsers = Number(scrubbed[0]?.count ?? 0);
+        }
+
+        const deletionResult = await tx.employee.deleteMany({
+          where: { companyId, NOT: { userId: currentUserId } },
+        });
+        removedEmployees = deletionResult.count;
+
+        const departments = await tx.department.deleteMany({ where: { companyId } });
+        const jobRoles = await tx.jobRole.deleteMany({ where: { companyId } });
+        const workingPatterns = await tx.workingPattern.deleteMany({
+          where: { companyId },
+        });
+        const genderOptions = await tx.genderOption.deleteMany({
+          where: { companyId },
+        });
+        const eventRuleOverrides = await tx.eventRuleOverride.deleteMany({
+          where: { companyId },
+        });
+        const eventRules = await tx.eventRule.deleteMany({ where: { companyId } });
+        const eventCategories = await tx.eventCategory.deleteMany({
+          where: { companyId, systemDefined: false },
+        });
+
+        return {
+          removedEmployees,
+          scrubbedUsers,
+          removedDepartments: departments.count,
+          removedJobRoles: jobRoles.count,
+          removedWorkingPatterns: workingPatterns.count,
+          removedGenderOptions: genderOptions.count,
+          removedEventCategories: eventCategories.count,
+          removedEventRules: eventRules.count + eventRuleOverrides.count,
+        } as const;
+      },
+      {
+        maxWait: 5_000,
+        timeout: 60_000,
+      },
+    );
 
     const resetActor = session.user.email ?? currentUserId;
 

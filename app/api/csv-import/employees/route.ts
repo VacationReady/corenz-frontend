@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { parse } from "csv-parse/sync";
 import { auditLog } from "@/lib/audit";
-import { TaxCode } from "@prisma/client";
+import { Prisma, TaxCode } from "@prisma/client";
 
 const employeeImportSchema = z.object({
   // Personal information
@@ -42,6 +42,8 @@ const employeeImportSchema = z.object({
   contractEndDate: z.string().optional(),
   workingPatternName: z.string().optional(),
   managerEmail: z.string().optional(),
+  lineManagerName: z.string().optional(),
+  lineManager: z.string().optional(),
   salaryAmount: z.string().optional(),
   salary: z.string().optional(),
   hourlyRate: z.string().optional(),
@@ -330,6 +332,8 @@ export async function POST(request: NextRequest) {
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);
         const managerEmail = trimToUndefined(validatedData.managerEmail);
+        const lineManagerName =
+          trimToUndefined(validatedData.lineManagerName) ?? trimToUndefined(validatedData.lineManager);
         if (managerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(managerEmail)) {
           throw new Error(`Invalid managerEmail "${managerEmail}". Provide a valid email address.`);
         }
@@ -479,6 +483,8 @@ export async function POST(request: NextRequest) {
 
         // Find manager if provided
         let managerUser = null;
+        const managerErrors: string[] = [];
+
         if (managerEmail) {
           managerUser = await prisma.user.findFirst({
             where: {
@@ -488,13 +494,62 @@ export async function POST(request: NextRequest) {
           });
 
           if (!managerUser) {
-            results.failed++;
-            results.errors.push({
-              row: rowNumber,
-              errors: [`Manager with email "${managerEmail}" not found. Import managers before their team members.`],
-            });
-            continue;
+            managerErrors.push(
+              `Manager with email "${managerEmail}" not found. Import managers before their team members.`
+            );
           }
+        }
+
+        if (!managerUser && lineManagerName) {
+          const managerNameParts = lineManagerName.split(/\s+/).filter(Boolean);
+          const nameSearchConditions: Prisma.UserWhereInput[] = [];
+
+          if (managerNameParts.length >= 2) {
+            const firstName = managerNameParts[0];
+            const lastName = managerNameParts.slice(1).join(" ");
+            nameSearchConditions.push({
+              AND: [
+                { firstName: { equals: firstName, mode: "insensitive" } },
+                { lastName: { equals: lastName, mode: "insensitive" } },
+              ],
+            });
+          }
+
+          nameSearchConditions.push({
+            name: { equals: lineManagerName, mode: "insensitive" },
+          });
+
+          if (managerNameParts.length === 1) {
+            const [singleName] = managerNameParts;
+            nameSearchConditions.push({
+              firstName: { equals: singleName, mode: "insensitive" },
+            });
+            nameSearchConditions.push({
+              lastName: { equals: singleName, mode: "insensitive" },
+            });
+          }
+
+          managerUser = await prisma.user.findFirst({
+            where: {
+              companyId: session.user.companyId,
+              OR: nameSearchConditions,
+            },
+          });
+
+          if (!managerUser) {
+            managerErrors.push(
+              `Line manager "${lineManagerName}" not found. Import managers before their team members.`
+            );
+          }
+        }
+
+        if (!managerUser && managerErrors.length > 0) {
+          results.failed++;
+          results.errors.push({
+            row: rowNumber,
+            errors: managerErrors,
+          });
+          continue;
         }
 
         // Find working pattern (must exist if provided)
@@ -1070,6 +1125,7 @@ export async function GET() {
       "contractEndDate",
       "workingPatternName",
       "managerEmail",
+      "lineManagerName",
       "salaryAmount",
       "hourlyRate",
       "bankAccountNumber",
@@ -1123,6 +1179,7 @@ export async function GET() {
         "",
         workingPatterns[0]?.name || "Standard 40hr",
         "engineering.lead@company.com",
+        "Amelia Clark",
         "85000",
         "",
         "12-1234-1234567-00",
@@ -1174,6 +1231,7 @@ export async function GET() {
         "2025-08-31",
         workingPatterns[1]?.name || "Hybrid 32hr",
         "marketing.director@company.com",
+        "Liam Johnson",
         "92000",
         "",
         "98-7654-0987654-00",

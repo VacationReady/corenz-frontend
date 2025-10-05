@@ -58,6 +58,8 @@ export async function POST() {
   const currentUserId = session.user.id;
 
   try {
+    console.log(`Starting system reset for company: ${companyId}, current user: ${currentUserId}`);
+    
     const summary = await prisma.$transaction(
       async (tx) => {
         // Helpers to run generic operations in chunks using the global CHUNK_SIZE
@@ -229,6 +231,35 @@ export async function POST() {
               tx.globalAuditLog.deleteMany({
                 where: { companyId, actorId: { in: ids } },
               }),
+            // Delete additional user-related records that might block user deletion
+            (ids) =>
+              tx.surveyRecipient.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.surveyResponse.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.formAssignment.deleteMany({ where: { assignedToId: { in: ids } } }),
+            (ids) =>
+              tx.formSubmission.deleteMany({ where: { submittedById: { in: ids } } }),
+            (ids) =>
+              tx.documentAcknowledgement.deleteMany({ where: { acknowledgedById: { in: ids } } }),
+            (ids) =>
+              tx.employeeAuditLog.deleteMany({ where: { changedById: { in: ids } } }),
+            (ids) =>
+              tx.employeePerformanceReview.deleteMany({ where: { reviewerId: { in: ids } } }),
+            (ids) =>
+              tx.onboardingAssignment.deleteMany({ where: { assignedToId: { in: ids } } }),
+            (ids) =>
+              tx.offboardingTask.deleteMany({ where: { assignedToId: { in: ids } } }),
+            (ids) =>
+              tx.offboardingTask.deleteMany({ where: { completedById: { in: ids } } }),
+            (ids) =>
+              tx.savedReport.deleteMany({ where: { createdById: { in: ids } } }),
+            (ids) =>
+              tx.reportSendHistory.deleteMany({ where: { sentById: { in: ids } } }),
+            (ids) =>
+              tx.transactionalChangeRequest.deleteMany({ where: { requesterId: { in: ids } } }),
+            (ids) =>
+              tx.transactionalChangeRequest.deleteMany({ where: { decidedById: { in: ids } } }),
           ];
 
           for (const operation of userScopedOperations) {
@@ -238,12 +269,15 @@ export async function POST() {
           // Delete users completely from the database
           await runInChunks(userIds, async (batch) => {
             try {
+              console.log(`Attempting to delete ${batch.length} users: ${batch.join(', ')}`);
               const { count } = await tx.user.deleteMany({
                 where: { id: { in: batch } },
               });
               deletedUsers += count;
+              console.log(`Successfully deleted ${count} users`);
             } catch (error) {
-              console.warn("Failed to delete some users during reset", error);
+              console.error("Failed to delete some users during reset", error);
+              console.error("User IDs that failed:", batch);
             }
           });
         }
@@ -252,6 +286,8 @@ export async function POST() {
         const { count: removedEmployees } = await tx.employee.deleteMany({
           where: { companyId, NOT: { userId: currentUserId } },
         });
+        
+        console.log(`Deleted ${removedEmployees} employees`);
 
         // Company-level reference data
         const departments = await tx.department.deleteMany({ where: { companyId } });
@@ -302,6 +338,7 @@ export async function POST() {
       },
     });
 
+    console.log(`System reset completed successfully:`, summary);
     return NextResponse.json({ success: true, summary });
   } catch (error) {
     console.error("Failed to reset company data", error);

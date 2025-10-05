@@ -613,10 +613,13 @@ The AI Assistant is continuously improving. Your feedback helps make it better!
 3. **Leave Booking**
    - "Book 3 days leave for [employee name]"
 
-4. **Create a Workflow**
+4. **Send Activation Email**
+   - "Send login invite to [employee name]"
+
+5. **Create a Workflow**
    - "Alert me about expiring contracts"
 
-5. **Custom Field**
+6. **Custom Field**
    - "Add a T-Shirt Size field"
 
 ---

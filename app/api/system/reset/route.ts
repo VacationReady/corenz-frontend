@@ -198,6 +198,13 @@ export async function POST() {
           }
         }
 
+        // Remove employees themselves FIRST (excluding the current user)
+        const { count: removedEmployees } = await tx.employee.deleteMany({
+          where: { companyId, NOT: { userId: currentUserId } },
+        });
+        
+        console.log(`Deleted ${removedEmployees} employees`);
+
         // Delete users completely instead of just scrubbing them
         let deletedUsers = 0;
 
@@ -237,7 +244,7 @@ export async function POST() {
             await runInChunks(userIds, operation);
           }
 
-          // Delete users completely from the database
+          // Delete users completely from the database (now safe since employees are deleted)
           await runInChunks(userIds, async (batch) => {
             try {
               console.log(`Attempting to delete ${batch.length} users: ${batch.join(', ')}`);
@@ -252,13 +259,6 @@ export async function POST() {
             }
           });
         }
-
-        // Remove employees themselves (excluding the current user)
-        const { count: removedEmployees } = await tx.employee.deleteMany({
-          where: { companyId, NOT: { userId: currentUserId } },
-        });
-        
-        console.log(`Deleted ${removedEmployees} employees`);
 
         // Company-level reference data
         const departments = await tx.department.deleteMany({ where: { companyId } });

@@ -320,9 +320,11 @@ export const DEFAULT_SURVEY_TEMPLATES: SurveyTemplateDefinition[] = [
   },
 ];
 
-let ensurePromise: Promise<any[]> | null = null;
+let ensurePromise: Promise<any[] | { forms?: any[] }> | null = null;
 
-export async function ensureDefaultSurveyTemplates(): Promise<any[]> {
+export async function ensureDefaultSurveyTemplates(): Promise<
+  any[] | { forms?: any[] }
+> {
   if (!ensurePromise) {
     ensurePromise = (async () => {
       let list: any[] = [];

@@ -72,7 +72,7 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       runningExecutions,
       failedExecutions24h,
       recentExecutionsRaw,
-      csvImports,
+      csvImportEmployees,
       recentCsvImports,
     ] = await Promise.all([
       // Total employees
@@ -173,12 +173,15 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       }),
 
       // CSV Import data - count total imports (using EmployeeAuditLog)
-      prisma.employeeAuditLog.count({
+      prisma.employeeAuditLog.findMany({
         where: {
           companyId,
           section: "CSV_IMPORT",
         },
-        distinct: ["employeeId"],
+        select: {
+          employeeId: true,
+        },
+        distinct: "employeeId",
       }),
 
       // Recent CSV imports (using EmployeeAuditLog)
@@ -315,7 +318,7 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
         ],
         supportedDataTypes: ["text", "email", "date", "number", "boolean", "currency"],
         lastImportDate,
-        totalImports: csvImports,
+        totalImports: csvImportEmployees.length,
         recentImports: processedCsvImports,
       },
     };

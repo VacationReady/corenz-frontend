@@ -201,6 +201,10 @@ function OrgChartPageClient() {
       try {
         const res = await fetch("/api/employees?status=all", {
           credentials: "include",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+          },
         });
 
         if (!res.ok) {
@@ -228,12 +232,19 @@ function OrgChartPageClient() {
               }
             })();
 
+            const employeeId = String(emp.id ?? "").trim();
+            const userId = String(emp.userId ?? "").trim();
+            const managerIdRaw =
+              typeof emp.managerUserId === "string"
+                ? emp.managerUserId.trim()
+                : "";
+
             return {
-              id: String(emp.id ?? ""),
-              userId: String(emp.userId ?? ""),
+              id: employeeId,
+              userId: userId || employeeId,
               firstName: (emp.firstName as string | null | undefined) ?? null,
               lastName: (emp.lastName as string | null | undefined) ?? null,
-              email: String(emp.email ?? ""),
+              email: String(emp.email ?? "").trim(),
               phone: (emp.phone as string | null | undefined) ?? null,
               role: safeRole,
               departmentId: (emp.departmentId as string | null | undefined) ?? null,
@@ -245,8 +256,7 @@ function OrgChartPageClient() {
               isActive: Boolean(emp.isActive),
               profileImageUrl:
                 (emp.profileImageUrl as string | null | undefined) ?? null,
-              managerUserId:
-                (emp.managerUserId as string | null | undefined) ?? null,
+              managerUserId: managerIdRaw.length > 0 ? managerIdRaw : null,
             } satisfies ApiEmployee;
           }),
         );
@@ -328,6 +338,8 @@ function OrgChartPageClient() {
   const orgForest = useMemo<OrgNode[]>(() => {
     const byUserId = new Map<string, OrgNode>();
     const byEmployeeId = new Map<string, OrgNode>();
+    const byEmail = new Map<string, OrgNode>();
+
     const nodes = normalizedEmployees.map<OrgNode>((emp) => ({
       ...emp,
       children: [],
@@ -337,34 +349,38 @@ function OrgChartPageClient() {
       if (node.userId) {
         byUserId.set(node.userId, node);
       }
-      byEmployeeId.set(node.id, node);
+      if (node.id) {
+        byEmployeeId.set(node.id, node);
+      }
+      if (node.email) {
+        byEmail.set(node.email.toLowerCase(), node);
+      }
     });
 
     const roots: OrgNode[] = [];
 
     nodes.forEach((node) => {
-      const managerId = node.managerUserId;
-      if (
-        managerId &&
-        managerId !== node.userId
-      ) {
-        const managerNode =
-          byUserId.get(managerId) ?? byEmployeeId.get(managerId);
+      const managerId =
+        typeof node.managerUserId === "string"
+          ? node.managerUserId.trim()
+          : "";
 
-        if (managerNode && managerNode !== node) {
-          managerNode.children.push(node);
-          return;
-        }
-      } else {
+      if (!managerId || managerId === node.userId) {
         roots.push(node);
         return;
       }
 
-      if (!managerId) {
-        roots.push(node);
-      } else if (!byUserId.has(managerId) && !byEmployeeId.has(managerId)) {
-        roots.push(node);
+      const managerNode =
+        byUserId.get(managerId) ??
+        byEmployeeId.get(managerId) ??
+        byEmail.get(managerId.toLowerCase());
+
+      if (managerNode && managerNode !== node) {
+        managerNode.children.push(node);
+        return;
       }
+
+      roots.push(node);
     });
 
     const sortNodes = (list: OrgNode[]) => {

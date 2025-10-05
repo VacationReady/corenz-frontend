@@ -31,188 +31,268 @@ export async function POST() {
   const currentUserId = session.user.id;
 
   try {
-    const summary = await prisma.$transaction(async (tx) => {
-      const employees = await tx.employee.findMany({
-        where: {
-          companyId,
-          NOT: { userId: currentUserId },
-        },
-        select: { id: true, userId: true },
-      });
+    const summary = await prisma.$transaction(
+      async (tx) => {
+        // Helpers to safely batch large IN() deletes/updates to avoid parameter/lock issues
+        const chunk = <T,>(items: T[], size = 100) => {
+          const result: T[][] = [];
+          for (let i = 0; i < items.length; i += size) {
+            result.push(items.slice(i, i + size));
+          }
+          return result;
+        };
 
-      const employeeIds = employees.map((emp) => emp.id);
-      const userIds = employees
-        .map((emp) => emp.userId)
-        .filter((userId): userId is string => typeof userId === "string" && userId.length > 0);
+        const runInChunks = async <T>(
+          ids: T[],
+          handler: (batch: T[]) => Promise<unknown>,
+        ) => {
+          for (const batch of chunk(ids)) {
+            if (!batch.length) continue;
+            await handler(batch);
+          }
+        };
 
-      if (employeeIds.length) {
-        await Promise.all([
-          tx.documentSignatureArtifact.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.documentSignatureEmployee.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.documentSignatureField.deleteMany({
-            where: { assignedEmployeeId: { in: employeeIds } },
-          }),
-          tx.documentAcknowledgement.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.driverLicence.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.emergencyContact.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeeAuditLog.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeeOffboarding.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeePerformanceReview.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employeeWorkingPatternAssignment.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.employmentCheck.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.formAssignment.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.formDataRecord.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.formSubmission.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.surveyRecipient.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.surveyResponse.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.leaveEntitlement.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.leaveRequest.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.onboardingInstance.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.trainingRecord.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.transactionalChangeRequest.deleteMany({
-            where: { employeeId: { in: employeeIds } },
-          }),
-          tx.actionItem.deleteMany({
-            where: { relatedEmployeeId: { in: employeeIds } },
-          }),
-        ]);
-      }
+        // Gather all employees in this company except the current user
+        const employees = await tx.employee.findMany({
+          where: {
+            companyId,
+            NOT: { userId: currentUserId },
+          },
+          select: { id: true, userId: true },
+        });
 
-      if (userIds.length) {
-        const userScopedTasks = [
-          tx.leaveRequest.deleteMany({
-            where: {
-              companyId,
-              OR: [
-                { requesterId: { in: userIds } },
-                { approvedById: { in: userIds } },
-              ],
-            },
-          }),
-          tx.actionItem.deleteMany({
-            where: {
-              companyId,
-              assignedToId: { in: userIds },
-            },
-          }),
-          tx.activationToken.deleteMany({ where: { userId: { in: userIds } } }),
-          tx.newsPost.deleteMany({ where: { authorId: { in: userIds } } }),
-          tx.newsReaction.deleteMany({ where: { userId: { in: userIds } } }),
-          tx.newsBookmark.deleteMany({ where: { userId: { in: userIds } } }),
-          tx.globalAuditLog.deleteMany({
-            where: { companyId, actorId: { in: userIds } },
-          }),
-          tx.user.updateMany({
-            where: { id: { in: userIds } },
-            data: { role: Role.EMPLOYEE, canManageTenants: false },
-          }),
-        ];
-
-        await Promise.all(userScopedTasks);
-
-        try {
-          await tx.$executeRaw(
-            Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
-              userIds,
-            )})`,
+        const employeeIds = employees.map((emp) => emp.id);
+        const userIds = employees
+          .map((emp) => emp.userId)
+          .filter(
+            (userId): userId is string =>
+              typeof userId === "string" && userId.length > 0,
           );
-        } catch (error) {
-          console.warn("Failed to remove persisted sessions during reset", error);
+
+        // Wipe all employee-scoped data in safe chunks
+        if (employeeIds.length) {
+          const employeeScopedDeletions: Array<
+            (ids: string[]) => Promise<unknown>
+          > = [
+            (ids) =>
+              tx.documentSignatureArtifact.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentSignatureEmployee.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentSignatureField.deleteMany({
+                where: { assignedEmployeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentAcknowledgement.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.driverLicence.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.emergencyContact.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeAuditLog.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeOffboarding.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeePerformanceReview.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeWorkingPatternAssignment.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employmentCheck.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formAssignment.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formDataRecord.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formSubmission.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.surveyRecipient.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.surveyResponse.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.leaveEntitlement.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.leaveRequest.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.onboardingInstance.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.trainingRecord.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.transactionalChangeRequest.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.actionItem.deleteMany({
+                where: { relatedEmployeeId: { in: ids } },
+              }),
+          ];
+
+          for (const deleteOperation of employeeScopedDeletions) {
+            await runInChunks(employeeIds, deleteOperation);
+          }
         }
-      }
 
-      const { count: removedEmployees } = await tx.employee.deleteMany({
-        where: { id: { in: employeeIds } },
-      });
+        // Wipe user-scoped data for those employees (requests they made, tokens, sessions, etc.)
+        if (userIds.length) {
+          const userScopedOperations: Array<
+            (ids: string[]) => Promise<unknown>
+          > = [
+            (ids) =>
+              tx.leaveRequest.deleteMany({
+                where: {
+                  companyId,
+                  OR: [
+                    { requesterId: { in: ids } },
+                    { approvedById: { in: ids } },
+                  ],
+                },
+              }),
+            (ids) =>
+              tx.actionItem.deleteMany({
+                where: {
+                  companyId,
+                  assignedToId: { in: ids },
+                },
+              }),
+            (ids) =>
+              tx.activationToken.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) => tx.newsPost.deleteMany({ where: { authorId: { in: ids } } }),
+            (ids) =>
+              tx.newsReaction.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.newsBookmark.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.globalAuditLog.deleteMany({
+                where: { companyId, actorId: { in: ids } },
+              }),
+            (ids) =>
+              tx.user.updateMany({
+                where: { id: { in: ids } },
+                data: { role: Role.EMPLOYEE, canManageTenants: false },
+              }),
+          ];
 
-      if (userIds.length) {
-        for (const userId of userIds) {
-          const placeholderEmail = `${userId}@${RESET_EMAIL_DOMAIN}`;
-          await tx.user.update({
-            where: { id: userId },
-            data: {
-              email: placeholderEmail,
-              firstName: "Deleted",
-              lastName: "User",
-              phone: null,
-              managerId: null,
-              permissionProfileId: null,
-              departmentId: null,
-              jobRoleId: null,
-              genderOptionId: null,
-              isActivated: false,
-              role: Role.EMPLOYEE,
-              canManageTenants: false,
-            },
-          });
+          for (const operation of userScopedOperations) {
+            await runInChunks(userIds, operation);
+          }
+
+          // Explicitly clear Sessions in chunks using raw SQL (NextAuth sessions)
+          for (const batch of chunk(userIds)) {
+            if (!batch.length) continue;
+            try {
+              await tx.$executeRaw(
+                Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
+                  batch,
+                )})`,
+              );
+            } catch (error) {
+              console.warn(
+                "Failed to remove persisted sessions during reset",
+                error,
+              );
+            }
+          }
         }
-      }
 
-      const departments = await tx.department.deleteMany({ where: { companyId } });
-      const jobRoles = await tx.jobRole.deleteMany({ where: { companyId } });
-      const workingPatterns = await tx.workingPattern.deleteMany({
-        where: { companyId },
-      });
-      const genderOptions = await tx.genderOption.deleteMany({
-        where: { companyId },
-      });
-      const eventRuleOverrides = await tx.eventRuleOverride.deleteMany({
-        where: { companyId },
-      });
-      const eventRules = await tx.eventRule.deleteMany({ where: { companyId } });
-      const eventCategories = await tx.eventCategory.deleteMany({
-        where: { companyId, systemDefined: false },
-      });
+        // Remove employees themselves
+        const { count: removedEmployees } = await tx.employee.deleteMany({
+          where: { id: { in: employeeIds } },
+        });
 
-      return {
-        removedEmployees,
-        scrubbedUsers: userIds.length,
-        removedDepartments: departments.count,
-        removedJobRoles: jobRoles.count,
-        removedWorkingPatterns: workingPatterns.count,
-        removedGenderOptions: genderOptions.count,
-        removedEventCategories: eventCategories.count,
-        removedEventRules: eventRules.count + eventRuleOverrides.count,
-      } as const;
-    });
+        // Scrub the corresponding user accounts (placeholder email + reset fields)
+        if (userIds.length) {
+          for (const userId of userIds) {
+            const placeholderEmail = `${userId}@${RESET_EMAIL_DOMAIN}`;
+            await tx.user.update({
+              where: { id: userId },
+              data: {
+                email: placeholderEmail,
+                firstName: "Deleted",
+                lastName: "User",
+                phone: null,
+                managerId: null,
+                permissionProfileId: null,
+                departmentId: null,
+                jobRoleId: null,
+                genderOptionId: null,
+                isActivated: false,
+                role: Role.EMPLOYEE,
+                canManageTenants: false,
+              },
+            });
+          }
+        }
+
+        // Company-level reference data
+        const departments = await tx.department.deleteMany({ where: { companyId } });
+        const jobRoles = await tx.jobRole.deleteMany({ where: { companyId } });
+        const workingPatterns = await tx.workingPattern.deleteMany({
+          where: { companyId },
+        });
+        const genderOptions = await tx.genderOption.deleteMany({
+          where: { companyId },
+        });
+        const eventRuleOverrides = await tx.eventRuleOverride.deleteMany({
+          where: { companyId },
+        });
+        const eventRules = await tx.eventRule.deleteMany({ where: { companyId } });
+        const eventCategories = await tx.eventCategory.deleteMany({
+          where: { companyId, systemDefined: false },
+        });
+
+        return {
+          removedEmployees,
+          scrubbedUsers: userIds.length,
+          removedDepartments: departments.count,
+          removedJobRoles: jobRoles.count,
+          removedWorkingPatterns: workingPatterns.count,
+          removedGenderOptions: genderOptions.count,
+          removedEventCategories: eventCategories.count,
+          removedEventRules: eventRules.count + eventRuleOverrides.count,
+        } as const;
+      },
+      {
+        maxWait: 5_000,
+        timeout: 60_000,
+      },
+    );
 
     const resetActor = session.user.email ?? currentUserId;
 

@@ -38,7 +38,7 @@ import {
   Download,
   Upload,
   X,
-  Map,
+  Map as MapIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
@@ -2221,7 +2221,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       disabled={isProcessing}
                       className="text-xs bg-green-500/10 text-green-600 hover:bg-green-500/20"
                     >
-                      <Map className="w-3 h-3" />
+                      <MapIcon className="w-3 h-3" />
                       <span className="ml-1">Field Mapping</span>
                     </Button>
                   </div>

@@ -167,7 +167,7 @@ export async function POST(
 
       await sendSurveyNotification({
         surveyName: survey.name,
-        surveyDescription: survey.description,
+        surveyDescription: survey.description || undefined,
         surveyId: survey.id,
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
         recipients: emailRecipients,

@@ -192,16 +192,16 @@ export default function SurveysDashboard() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)]" />
           <CardContent className="relative z-10 flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-white">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-medium uppercase tracking-wider text-gray-800">
                 <Sparkles className="h-3 w-3" /> Template library spotlight
               </div>
-              <h2 className="text-xl font-semibold text-white md:text-2xl">
+              <h2 className="text-xl font-semibold text-gray-900 md:text-2xl">
                 Kickstart surveys with curated experiences
               </h2>
-              <p className="text-sm text-white/90">
+              <p className="text-sm text-gray-700">
                 Choose from eNPS, pulse, and annual engagement templates—each crafted with premium employee experience in mind.
               </p>
-              <div className="flex flex-wrap gap-2 text-xs text-white/80">
+              <div className="flex flex-wrap gap-2 text-xs text-gray-800">
                 {curatedTemplates.map(({ definition, instance }) => (
                   <span
                     key={definition.slug}
@@ -220,13 +220,13 @@ export default function SurveysDashboard() {
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm backdrop-blur">
-              <p className="text-xs uppercase tracking-wide text-white/80">Templates ready</p>
-              <div className="mt-2 flex items-baseline gap-2 text-3xl font-semibold">
+            <div className="rounded-2xl border border-white/20 bg-white/20 p-4 text-sm backdrop-blur">
+              <p className="text-xs uppercase tracking-wide text-gray-800">Templates ready</p>
+              <div className="mt-2 flex items-baseline gap-2 text-3xl font-semibold text-gray-900">
                 {templateLibrary.length}
-                <span className="text-sm text-white/80">available</span>
+                <span className="text-sm text-gray-700">available</span>
               </div>
-              <p className="mt-3 text-xs text-white/90">
+              <p className="mt-3 text-xs text-gray-700">
                 {templatesLoading
                   ? "Generating your starter library…"
                   : "Edit any template before sending or scheduling."}
@@ -238,7 +238,7 @@ export default function SurveysDashboard() {
                     Send a survey
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="border-white/40 text-white hover:bg-white/10">
+                <Button asChild variant="outline" className="border-gray-300 text-gray-800 hover:bg-white/50 bg-white/30">
                   <Link href="/settings/surveys">
                     <Settings className="mr-2 h-4 w-4" />
                     Refine templates

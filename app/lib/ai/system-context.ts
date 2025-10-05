@@ -173,26 +173,26 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       }),
 
       // CSV Import data - count total imports
-      prisma.auditLog.count({
+      prisma.globalAuditLog.count({
         where: {
           companyId,
-          section: "CSV_IMPORT",
+          entityType: "CSV_IMPORT",
           action: "COMPLETED",
         },
       }),
 
       // Recent CSV imports
-      prisma.auditLog.findMany({
+      prisma.globalAuditLog.findMany({
         where: {
           companyId,
-          section: "CSV_IMPORT",
+          entityType: "CSV_IMPORT",
           action: "COMPLETED",
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { timestamp: "desc" },
         take: 5,
         select: {
           id: true,
-          createdAt: true,
+          timestamp: true,
           changes: true,
           metadata: true,
         },
@@ -229,7 +229,7 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
         recordCount: changes?.totalRecords || 0,
         successCount: changes?.successful || 0,
         errorCount: changes?.failed || 0,
-        importedAt: importLog.createdAt.toISOString(),
+        importedAt: importLog.timestamp.toISOString(),
       };
     });
 

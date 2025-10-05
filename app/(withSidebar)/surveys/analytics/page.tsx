@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/Card";
 import {
   TrendingUp,
   BarChart3,

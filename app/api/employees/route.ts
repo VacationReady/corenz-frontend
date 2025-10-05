@@ -155,6 +155,7 @@ export async function GET(req: Request) {
             createdAt: true,
             profileImageUrl: true,
             managerId: true,
+            isActivated: true,
             PermissionProfile: { select: { name: true } },
           },
         },

@@ -38,6 +38,7 @@ import {
   Download,
   Upload,
   X,
+  Map,
 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";

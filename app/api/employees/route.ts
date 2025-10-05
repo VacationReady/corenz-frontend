@@ -206,6 +206,7 @@ export async function GET(req: Request) {
           jobRoleId: emp.JobRole?.id ?? null,
           jobRoleName: emp.JobRole?.name ?? null,
           isActive: emp.isActive,
+          isActivated: emp.User.isActivated,
           offboardingStatus: emp.offboardingStatus,
           lastWorkingDate: emp.lastWorkingDate,
           offboardingRecord: emp.EmployeeOffboarding,

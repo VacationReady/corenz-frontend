@@ -37,6 +37,7 @@ interface Employee {
   jobRoleId?: string;
   jobRoleName?: string;
   isActive: boolean;
+  isActivated: boolean;
   offboardingStatus?: string;
   lastWorkingDate?: string;
   offboardingRecord?: {
@@ -260,20 +261,28 @@ function EmployeesContent() {
             ],
           },
         },
-        cell: ({ row }) => (
-          row.original.isActive ? (
-            <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
-          ) : (
+        cell: ({ row }) => {
+          const emp = row.original as Employee;
+          return (
             <div className="flex flex-col gap-1">
-              <Badge variant="secondary" className="bg-gray-100 text-gray-800">Archived</Badge>
-              {row.original.offboardingRecord && (
+              <div className="flex items-center gap-2">
+                {emp.isActive ? (
+                  <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">Archived</Badge>
+                )}
+                <Badge variant={emp.isActivated ? "outline" : "destructive"} className="text-xs">
+                  {emp.isActivated ? "Activated" : "Pending"}
+                </Badge>
+              </div>
+              {!emp.isActive && emp.offboardingRecord && (
                 <Badge variant="outline" className="text-xs">
-                  {row.original.offboardingRecord.offboardingType.replace("_", " ")}
+                  {emp.offboardingRecord.offboardingType.replace("_", " ")}
                 </Badge>
               )}
             </div>
-          )
-        ),
+          );
+        },
       },
       {
         id: "actions",
@@ -325,17 +334,17 @@ function EmployeesContent() {
                     const res = await fetch(`/api/employees/${emp.id}/send-invite`, { method: "POST" });
                     if (!res.ok) {
                       const data = await res.json().catch(() => ({}));
-                      toast.error(data.error || "Failed to send invite");
+                      toast.error(data.error || "Failed to send activation email");
                       return;
                     }
-                    toast.success("Login invite sent");
+                    toast.success(`Activation email sent to ${emp.email}`);
                     fetchData(activeTab);
                   } catch (e) {
-                    toast.error("Network error sending invite");
+                    toast.error("Network error sending activation email");
                   }
                 }}
               >
-                Resend invite
+                {emp.isActivated ? "Resend activation email" : "Send activation email"}
               </DropdownMenuItem>
               {row.original.isActive && !row.original.offboardingRecord && (
                 <DropdownMenuItem onClick={() => handleStartOffboarding(row.original)} className="text-orange-600">

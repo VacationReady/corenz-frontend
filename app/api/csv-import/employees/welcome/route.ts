@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
 
     const userFilter: Prisma.UserWhereInput = {
       companyId: session.user.companyId,
-      isActivated: false,
     };
 
     if (nameTokens.length) {
@@ -142,10 +141,8 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      if (user.isActivated) {
-        summary.skipped++;
-        continue;
-      }
+      // Always send activation email regardless of activation status
+      // This allows resending activation emails to already activated users
 
       try {
         const employeeName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;

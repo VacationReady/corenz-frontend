@@ -88,6 +88,7 @@ export type ActionType =
   | "create_form"
   | "deploy_form"
   | "send_email"
+  | "send_activation_email"
   | "bulk_update"
   | "bulk_document"
   | "bulk_notification"
@@ -108,6 +109,94 @@ export interface AIAction {
   parameters: Record<string, any>;
   userId: string;
   companyId: string;
+}
+
+// Forward declaration for activation email handler
+async function handleSendActivationEmail(action: AIAction): Promise<ActionResult> {
+  const { employeeName, confirmed } = action.parameters;
+
+  if (!employeeName) {
+    return {
+      success: false,
+      message: "Who should I send the activation email to? Please provide an employee name.",
+    };
+  }
+
+  // Find the employee
+  const employees = await findEmployeeByName(employeeName, action.companyId);
+  
+  if (employees.length === 0) {
+    return {
+      success: false,
+      message: `I couldn't find an employee named "${employeeName}". Please check the spelling or try a different name.`,
+    };
+  }
+
+  if (employees.length > 1) {
+    const employeeList = employees.map(emp => `• ${emp.name} (${emp.email})`).join('\n');
+    return {
+      success: false,
+      message: `I found multiple employees with that name:\n\n${employeeList}\n\nPlease be more specific with the name.`,
+    };
+  }
+
+  const employee = employees[0];
+
+  // Get full employee details for activation status
+  const fullEmployee = await prisma.employee.findFirst({
+    where: { id: employee.id, companyId: action.companyId },
+    include: { User: { select: { firstName: true, lastName: true, email: true, isActivated: true } } }
+  });
+
+  if (!fullEmployee) {
+    return {
+      success: false,
+      message: `Employee not found in database.`,
+    };
+  }
+
+  if (!confirmed) {
+    return {
+      success: true,
+      requiresConfirmation: true,
+      preview: { 
+        employeeName: `${fullEmployee.User.firstName} ${fullEmployee.User.lastName}`,
+        email: fullEmployee.User.email,
+        isActivated: fullEmployee.User.isActivated
+      },
+      message: `📧 **Send Activation Email Preview:**\n\n**Employee:** ${fullEmployee.User.firstName} ${fullEmployee.User.lastName}\n**Email:** ${fullEmployee.User.email}\n**Current Status:** ${fullEmployee.User.isActivated ? 'Already Activated' : 'Pending Activation'}\n\nSend activation email now?`,
+    };
+  }
+
+  try {
+    // Call the existing send-invite API endpoint
+    const response = await fetch(`${process.env.NEXTAUTH_URL}/api/employees/${fullEmployee.id}/send-invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to send activation email');
+    }
+
+    return {
+      success: true,
+      message: `✅ Activation email sent to ${fullEmployee.User.firstName} ${fullEmployee.User.lastName} (${fullEmployee.User.email})!`,
+      data: {
+        employeeId: fullEmployee.id,
+        email: fullEmployee.User.email,
+        sentAt: new Date().toISOString()
+      }
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `❌ Failed to send activation email: ${error.message}`,
+    };
+  }
 }
 
 export async function executeAction(action: AIAction): Promise<ActionResult> {
@@ -139,6 +228,9 @@ export async function executeAction(action: AIAction): Promise<ActionResult> {
       
       case "send_email":
         return await handleSendEmail(action);
+      
+      case "send_activation_email":
+        return await handleSendActivationEmail(action);
       
       case "bulk_update":
         return await handleBulkUpdate(action);

@@ -53,6 +53,7 @@ AVAILABLE ACTIONS:
 - csv_errors: Analyze CSV import errors ("CSV import errors", "Why is my CSV failing", "Fix CSV import")
 - csv_mapping: Map CSV fields to system fields ("Map my CSV fields", "Field mapping for CSV")
 - send_email: Send one-off emails ("Email all managers about...")
+- send_activation_email: Send login activation emails to employees ("Send login invite to John", "Send activation email to Sarah", "Send login invite to x y z")
 - bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
 - bulk_document: Assign documents to multiple employees ("Send contract to all new hires", "Assign policy to everyone")
 - bulk_notification: Send notifications to groups ("Notify all managers", "Alert sales team")
@@ -98,11 +99,17 @@ PARAMETER EXTRACTION:
 - scope: Who to check (e.g., "all", "department")
 - audience: Who to communicate with (e.g., "managers", "hr_team", "all")
 - subject: Email subject or topic
+- employeeName: For activation emails - name of employee to send activation email to
 - policyType: Type of policy (e.g., "leave", "wfh", "general")
 - policyDetails: Details about the policy change
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
+
+ACTIVATION EMAIL EXAMPLES:
+- "Send login invite to John Smith" → {actionType: "send_activation_email", parameters: {employeeName: "John Smith"}}
+- "Send activation email to Sarah" → {actionType: "send_activation_email", parameters: {employeeName: "Sarah"}}
+- "Send login invite to x y z" → {actionType: "send_activation_email", parameters: {employeeName: "x y z"}}
 - "yo book some time off for Gary next monday bro" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
 - "Can you book some leave for Gary Middleton next Monday?" → {actionType: "book_leave", parameters: {employeeName: "Gary Middleton", startDate: "next Monday", endDate: "next Monday"}}
 - "Schedule holiday for Sarah from Dec 20-27" → {actionType: "book_leave", parameters: {employeeName: "Sarah", startDate: "Dec 20", endDate: "Dec 27"}}

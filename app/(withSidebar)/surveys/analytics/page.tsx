@@ -304,7 +304,7 @@ export default function SurveyAnalyticsPage() {
                         <Checkbox
                           id="schedule"
                           checked={scheduleWeekly}
-                          onCheckedChange={setScheduleWeekly}
+                          onCheckedChange={(checked) => setScheduleWeekly(checked === true)}
                         />
                         <Label htmlFor="schedule" className="text-sm">
                           Schedule weekly digest

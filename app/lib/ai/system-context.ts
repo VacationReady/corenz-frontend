@@ -172,29 +172,28 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
         },
       }),
 
-      // CSV Import data - count total imports
-      prisma.globalAuditLog.count({
+      // CSV Import data - count total imports (using EmployeeAuditLog)
+      prisma.employeeAuditLog.count({
         where: {
           companyId,
-          entityType: "CSV_IMPORT",
-          action: "COMPLETED",
+          section: "CSV_IMPORT",
         },
+        distinct: ["employeeId"],
       }),
 
-      // Recent CSV imports
-      prisma.globalAuditLog.findMany({
+      // Recent CSV imports (using EmployeeAuditLog)
+      prisma.employeeAuditLog.findMany({
         where: {
           companyId,
-          entityType: "CSV_IMPORT",
-          action: "COMPLETED",
+          section: "CSV_IMPORT",
         },
-        orderBy: { timestamp: "desc" },
+        orderBy: { changedAt: "desc" },
         take: 5,
         select: {
           id: true,
-          timestamp: true,
-          changes: true,
-          metadata: true,
+          changedAt: true,
+          newValue: true,
+          employeeId: true,
         },
       }),
     ]);
@@ -220,16 +219,13 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
 
     // Process CSV import data
     const processedCsvImports = recentCsvImports.map((importLog) => {
-      const changes = importLog.changes as any;
-      const metadata = importLog.metadata as any;
-      
       return {
         id: importLog.id,
-        fileName: metadata?.fileName || "Unknown file",
-        recordCount: changes?.totalRecords || 0,
-        successCount: changes?.successful || 0,
-        errorCount: changes?.failed || 0,
-        importedAt: importLog.timestamp.toISOString(),
+        fileName: "Employee CSV Import",
+        recordCount: 1, // Each log entry represents one employee
+        successCount: 1,
+        errorCount: 0,
+        importedAt: importLog.changedAt.toISOString(),
       };
     });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
@@ -14,6 +15,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/Badge";
 import {
   Select,
   SelectContent,
@@ -24,6 +26,7 @@ import {
 import { Checkbox } from "@/components/ui/Checkbox";
 import {
   Repeat,
+  Send,
   Calendar,
   Users,
   Clock,
@@ -33,8 +36,10 @@ import {
   Zap,
   Brain,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ensureDefaultSurveyTemplates, findTemplateMetaBySlug } from "@/lib/survey-templates";
 
 interface SurveyTemplate {
   id: string;
@@ -42,6 +47,7 @@ interface SurveyTemplate {
   description?: string;
   formType: string;
   schema: any;
+  slug?: string;
 }
 
 interface Department {
@@ -80,18 +86,25 @@ export default function CreateAutomationPage() {
   const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
 
   useEffect(() => {
+    if (!formId && templates.length) {
+      setFormId(templates[0].id);
+    }
+  }, [templates, formId]);
+
+  useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
       try {
-        const [templatesRes, departmentsRes, jobRolesRes] = await Promise.all([
-          fetch("/api/forms?type=SURVEY"),
+        const ensuredTemplates = await ensureDefaultSurveyTemplates();
+        const normalizedTemplates = Array.isArray(ensuredTemplates)
+          ? ensuredTemplates
+          : ensuredTemplates?.forms || [];
+        setTemplates(normalizedTemplates);
+
+        const [departmentsRes, jobRolesRes] = await Promise.all([
           fetch("/api/departments"),
           fetch("/api/job-roles"),
         ]);
-
-        if (templatesRes.ok) {
-          const templatesData = await templatesRes.json();
-          setTemplates(templatesData.forms || []);
-        }
 
         if (departmentsRes.ok) {
           const departmentsData = await departmentsRes.json();
@@ -105,11 +118,29 @@ export default function CreateAutomationPage() {
       } catch (error) {
         console.error("Failed to load data:", error);
         toast.error("Failed to load automation data");
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
   }, []);
+
+  const selectedTemplate = templates.find((template) => template.id === formId);
+  const selectedTemplateMeta = findTemplateMetaBySlug(selectedTemplate?.slug);
+
+  const handleTemplateChange = (value: string) => {
+    setFormId(value);
+    const template = templates.find((t) => t.id === value);
+    if (template) {
+      if (!name) {
+        setName(`${template.name} Automation`);
+      }
+      if (!description) {
+        setDescription(template.description || "");
+      }
+    }
+  };
 
   const getSelectedTemplate = () => {
     return templates.find(t => t.id === formId);
@@ -211,6 +242,60 @@ export default function CreateAutomationPage() {
       }}
     >
       <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)]" />
+          <CardContent className="relative z-10 flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-white">
+                <Sparkles className="h-3 w-3" /> Automated survey journeys
+              </div>
+              <h2 className="text-xl font-semibold text-white md:text-2xl">
+                Put your survey library on autopilot
+              </h2>
+              <p className="text-sm text-slate-200">
+                Schedule eNPS, pulse, and annual engagement templates once and gather rich sentiment throughout the year.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                {templates.slice(0, 3).map((template) => {
+                  const meta = findTemplateMetaBySlug(template.slug);
+                  return (
+                    <span
+                      key={template.id}
+                      className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1"
+                    >
+                      <span className="text-base">{meta?.emoji ?? "🗂️"}</span>
+                      {template.name}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm backdrop-blur-md">
+              <p className="text-xs uppercase tracking-wide text-slate-200">Library ready</p>
+              <div className="mt-2 flex items-baseline gap-2 text-3xl font-semibold">
+                {templates.length}
+                <span className="text-sm text-slate-200">templates</span>
+              </div>
+              <p className="mt-3 text-xs text-slate-100">
+                Edit templates in settings before automation kicks in.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button asChild variant="secondary" className="bg-white text-slate-900 hover:bg-white/90">
+                  <Link href="/surveys/send">
+                    <Send className="mr-2 h-4 w-4" />
+                    Send instantly
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="border-white/40 text-white hover:bg-white/10">
+                  <Link href="/settings/surveys">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Manage templates
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -249,26 +334,94 @@ export default function CreateAutomationPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="template">Survey Template *</Label>
-                  <Select value={formId} onValueChange={setFormId}>
+                  <Select
+                    value={formId}
+                    onValueChange={handleTemplateChange}
+                    disabled={loading || templates.length === 0}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a survey template" />
+                      <SelectValue
+                        placeholder={loading ? "Loading templates..." : "Select a survey template"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {templates.map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{template.name}</span>
-                            {template.description && (
-                              <span className="text-sm text-muted-foreground">
-                                {template.description}
+                      {templates.map((template) => {
+                        const meta = findTemplateMetaBySlug(template.slug);
+                        return (
+                          <SelectItem key={template.id} value={template.id} className="py-2">
+                            <div className="flex flex-col gap-1 text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{meta?.emoji ?? "🗂️"}</span>
+                                <span className="font-medium">{template.name}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {meta?.description ?? template.description ?? "Custom automation"}
                               </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Personalise any template in settings—the automation always pulls the latest version.
+                  </p>
                 </div>
+
+                {selectedTemplate && (
+                  <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${
+                          selectedTemplateMeta?.accentGradient || "from-slate-200 via-slate-100 to-slate-200"
+                        }`}
+                      >
+                        <span className="text-xl">{selectedTemplateMeta?.emoji ?? "🗂️"}</span>
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <h4 className="text-sm font-semibold text-primary">{selectedTemplate.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedTemplateMeta?.description ||
+                              selectedTemplate.description ||
+                              "Automate recurring touchpoints with a polished employee experience."}
+                          </p>
+                        </div>
+                        {selectedTemplateMeta?.highlights?.length ? (
+                          <div className="flex flex-wrap gap-2">
+                            {selectedTemplateMeta.highlights.map((highlight) => (
+                              <Badge key={highlight} variant="outline" className="bg-white text-[11px] text-primary">
+                                {highlight}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Button asChild variant="outline" size="sm">
+                            <Link
+                              href={`/settings/surveys/${selectedTemplate.id}/edit`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Settings className="mr-2 h-4 w-4" />
+                              Edit template
+                            </Link>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:bg-primary/10"
+                            onClick={() => setFormId("")}
+                          >
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Swap template
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

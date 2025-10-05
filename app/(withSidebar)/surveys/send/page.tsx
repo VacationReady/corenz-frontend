@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import {
   Card,
@@ -14,6 +15,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/Badge";
 import {
   Select,
   SelectContent,
@@ -45,8 +47,11 @@ import {
   Building,
   Briefcase,
   User,
+  Sparkles,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ensureDefaultSurveyTemplates, findTemplateMetaBySlug } from "@/lib/survey-templates";
 
 interface SurveyTemplate {
   id: string;
@@ -54,6 +59,7 @@ interface SurveyTemplate {
   description?: string;
   formType: string;
   schema: any;
+  slug?: string;
 }
 
 interface Department {
@@ -86,8 +92,11 @@ interface Employee {
 
 export default function SendSurveyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [templatePrefilled, setTemplatePrefilled] = useState(false);
   
   // Form data
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
@@ -114,22 +123,24 @@ export default function SendSurveyPage() {
   const [filteredExcludedEmployees, setFilteredExcludedEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [excludedSearchTerm, setExcludedSearchTerm] = useState("");
+  const templateFromQuery = searchParams?.get("template") || "";
 
   useEffect(() => {
     const loadData = async () => {
+      setInitializing(true);
       try {
-        const [templatesRes, departmentsRes, jobRolesRes, locationsRes, employeesRes] = await Promise.all([
-          fetch("/api/forms?type=SURVEY"),
+        const ensuredTemplates = await ensureDefaultSurveyTemplates();
+        const normalizedTemplates = Array.isArray(ensuredTemplates)
+          ? ensuredTemplates
+          : ensuredTemplates?.forms || [];
+        setTemplates(normalizedTemplates);
+
+        const [departmentsRes, jobRolesRes, locationsRes, employeesRes] = await Promise.all([
           fetch("/api/departments"),
           fetch("/api/job-roles"),
           fetch("/api/locations"),
           fetch("/api/employees"),
         ]);
-
-        if (templatesRes.ok) {
-          const templatesData = await templatesRes.json();
-          setTemplates(Array.isArray(templatesData) ? templatesData : []);
-        }
 
         if (departmentsRes.ok) {
           const departmentsData = await departmentsRes.json();
@@ -155,11 +166,33 @@ export default function SendSurveyPage() {
       } catch (error) {
         console.error("Failed to load data:", error);
         toast.error("Failed to load survey data");
+      } finally {
+        setInitializing(false);
       }
     };
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!templateFromQuery || !templates.length || templatePrefilled) return;
+    const match = templates.find((template) => template.slug === templateFromQuery);
+    if (match) {
+      setSelectedTemplate(match.id);
+      setSurveyName(match.name);
+      setSurveyDescription(match.description || "");
+      setTemplatePrefilled(true);
+    }
+  }, [templateFromQuery, templates, templatePrefilled]);
+
+  const handleTemplateChange = (value: string) => {
+    setSelectedTemplate(value);
+    const template = templates.find((t) => t.id === value);
+    if (template) {
+      setSurveyName(template.name);
+      setSurveyDescription(template.description || "");
+    }
+  };
 
   useEffect(() => {
     // Filter employees based on search term
@@ -294,6 +327,8 @@ export default function SendSurveyPage() {
   };
 
   const renderStepContent = () => {
+    const selectedTemplateData = getSelectedTemplate();
+    const selectedTemplateMeta = findTemplateMetaBySlug(selectedTemplateData?.slug);
     switch (step) {
       case 1:
         return (
@@ -307,26 +342,106 @@ export default function SendSurveyPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="template">Survey Template *</Label>
-                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <Select
+                  value={selectedTemplate}
+                  onValueChange={handleTemplateChange}
+                  disabled={initializing || templates.length === 0}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a survey template" />
+                    <SelectValue
+                      placeholder={initializing ? "Loading templates..." : "Select a survey template"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{template.name}</span>
-                          {template.description && (
-                            <span className="text-sm text-muted-foreground">
-                              {template.description}
+                    {templates.map((template) => {
+                      const meta = findTemplateMetaBySlug(template.slug);
+                      return (
+                        <SelectItem key={template.id} value={template.id} className="py-2">
+                          <div className="flex flex-col gap-1 text-left">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{meta?.emoji ?? "📝"}</span>
+                              <span className="font-medium">{template.name}</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {meta?.description ?? template.description ?? "Custom survey"}
                             </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Need tweaks? Open any template in settings to tailor tone, branding, or follow-up prompts before sending.
+                </p>
+                {initializing && (
+                  <p className="text-xs text-muted-foreground">Preparing curated templates…</p>
+                )}
               </div>
+
+              {selectedTemplateData && (
+                <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-4 transition">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br ${
+                        selectedTemplateMeta?.accentGradient || "from-slate-200 via-slate-100 to-slate-200"
+                      }`}
+                    >
+                      <span className="text-2xl">{selectedTemplateMeta?.emoji ?? "📝"}</span>
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-primary">
+                          {selectedTemplateData.name}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedTemplateMeta?.description ||
+                            selectedTemplateData.description ||
+                            "Personalise this survey to match your employee voice before sharing."}
+                        </p>
+                      </div>
+                      {selectedTemplateMeta?.highlights?.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTemplateMeta.highlights.map((highlight) => (
+                            <Badge key={highlight} variant="secondary" className="bg-white text-[11px] text-primary">
+                              {highlight}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Link
+                            href={`/settings/surveys/${selectedTemplateData.id}/edit`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            Edit template
+                          </Link>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:bg-primary/10"
+                          onClick={() => {
+                            setSelectedTemplate("");
+                            setTemplatePrefilled(false);
+                          }}
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Choose another
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="name">Survey Name *</Label>

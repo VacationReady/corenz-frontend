@@ -93,6 +93,8 @@ export async function POST(
             id: true,
             email: true,
             role: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -160,7 +162,7 @@ export async function POST(
     try {
       const emailRecipients = employees.map(emp => ({
         email: emp.User.email,
-        name: `${emp.firstName} ${emp.lastName}`,
+        name: `${emp.User.firstName || ''} ${emp.User.lastName || ''}`.trim(),
       }));
 
       await sendSurveyNotification({

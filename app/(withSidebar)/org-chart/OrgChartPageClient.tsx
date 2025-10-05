@@ -199,7 +199,7 @@ function OrgChartPageClient() {
       }
 
       try {
-        const res = await fetch("/api/employees?status=active", {
+        const res = await fetch("/api/employees?status=all", {
           credentials: "include",
         });
 
@@ -278,6 +278,9 @@ function OrgChartPageClient() {
 
   const normalizedEmployees = useMemo<OrgEmployee[]>(() => {
     return rawEmployees.map((emp) => {
+      const phoneValue =
+        typeof emp.phone === "string" ? emp.phone.trim() : "";
+      const normalizedPhone = phoneValue.length > 0 ? phoneValue : null;
       const fullName = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`
         .replace(/\s+/g, " ")
         .trim();
@@ -296,7 +299,7 @@ function OrgChartPageClient() {
         userId: emp.userId,
         fullName: safeName,
         email: emp.email,
-        phone: emp.phone ?? null,
+        phone: normalizedPhone,
         jobTitle: emp.jobRoleName ?? null,
         jobRoleId: emp.jobRoleId ?? null,
         department: emp.departmentName ?? null,
@@ -518,10 +521,20 @@ function OrgChartPageClient() {
     () => countNodes(filteredForest),
     [filteredForest],
   );
-  const managerCount = useMemo(
-    () => normalizedEmployees.filter((emp) => emp.role === "MANAGER").length,
-    [normalizedEmployees],
-  );
+  const managerCount = useMemo(() => {
+    const seenManagers = new Set<string>();
+
+    const stack = [...orgForest];
+    while (stack.length) {
+      const node = stack.pop()!;
+      if (node.children.length > 0) {
+        seenManagers.add(node.userId);
+      }
+      node.children.forEach((child) => stack.push(child));
+    }
+
+    return seenManagers.size;
+  }, [orgForest]);
   const departmentCount = departmentOptions.length;
 
   const isFiltered = useMemo(() => {

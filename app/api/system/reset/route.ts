@@ -271,7 +271,7 @@ export async function POST() {
                   "role" = ${Role.EMPLOYEE},
                   "canManageTenants" = FALSE,
                   "updatedAt" = NOW()
-                WHERE "id" IN (${Prisma.join(batch)})
+                WHERE "id" IN (${Prisma.join(batch)}) AND "companyId" = ${companyId}
               `,
             );
             scrubbedUsers += Number(updatedCount ?? 0);

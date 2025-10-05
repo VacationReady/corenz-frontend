@@ -244,6 +244,33 @@ function OrgChartPageClient() {
                 ? emp.managerUserId.trim()
                 : "";
 
+            // Merge-resolved: robustly derive permissionProfileName with fallbacks
+            const permissionProfileName = (() => {
+              const rawProfileName = (
+                emp as { permissionProfileName?: unknown }
+              ).permissionProfileName;
+              if (typeof rawProfileName === "string") {
+                const trimmed = rawProfileName.trim();
+                if (trimmed.length > 0) return trimmed;
+              }
+
+              const permissionProfile = (
+                emp as { permissionProfile?: { name?: unknown } | null }
+              ).permissionProfile;
+              if (
+                permissionProfile &&
+                typeof permissionProfile === "object"
+              ) {
+                const maybeName = (permissionProfile as { name?: unknown }).name;
+                if (typeof maybeName === "string") {
+                  const trimmed = maybeName.trim();
+                  if (trimmed.length > 0) return trimmed;
+                }
+              }
+
+              return null;
+            })();
+
             return {
               id: employeeId,
               userId: userId || employeeId,
@@ -262,8 +289,7 @@ function OrgChartPageClient() {
               profileImageUrl:
                 (emp.profileImageUrl as string | null | undefined) ?? null,
               managerUserId: managerIdRaw.length > 0 ? managerIdRaw : null,
-              permissionProfileName:
-                (emp.permissionProfileName as string | null | undefined) ?? null,
+              permissionProfileName,
             } satisfies ApiEmployee;
           }),
         );

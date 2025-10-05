@@ -60,6 +60,17 @@ export async function POST() {
   try {
     const summary = await prisma.$transaction(
       async (tx) => {
+        // Helpers to run generic operations in chunks using the global CHUNK_SIZE
+        const runInChunks = async <T>(
+          ids: T[],
+          handler: (batch: T[]) => Promise<unknown>,
+        ) => {
+          await runChunked(ids, CHUNK_SIZE, async (batch) => {
+            await handler(batch);
+          });
+        };
+
+        // Gather all employees in this company except the current user
         const employees = await tx.employee.findMany({
           where: {
             companyId,
@@ -80,176 +91,169 @@ export async function POST() {
           ),
         );
 
-        let removedEmployees = 0;
-        let scrubbedUsers = 0;
-
+        // Wipe all employee-scoped data in safe chunks
         if (employeeIds.length) {
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.documentSignatureArtifact.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.documentSignatureEmployee.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.documentSignatureField.deleteMany({
-              where: { assignedEmployeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.documentAcknowledgement.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.driverLicence.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.emergencyContact.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.employeeAuditLog.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.employeeOffboarding.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.employeePerformanceReview.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.employeeWorkingPatternAssignment.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.employmentCheck.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.formAssignment.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.formDataRecord.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.formSubmission.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.surveyRecipient.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.surveyResponse.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.leaveEntitlement.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.leaveRequest.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.onboardingInstance.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.trainingRecord.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.transactionalChangeRequest.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.actionItem.deleteMany({
-              where: { relatedEmployeeId: { in: chunk } },
-            });
-          });
-          await runChunked(employeeIds, CHUNK_SIZE, async (chunk) => {
-            await tx.document.deleteMany({
-              where: { employeeId: { in: chunk } },
-            });
-          });
+          const employeeScopedDeletions: Array<
+            (ids: string[]) => Promise<unknown>
+          > = [
+            (ids) =>
+              tx.documentSignatureArtifact.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentSignatureEmployee.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentSignatureField.deleteMany({
+                where: { assignedEmployeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentAcknowledgement.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.driverLicence.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.emergencyContact.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeAuditLog.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeOffboarding.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeePerformanceReview.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeWorkingPatternAssignment.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employmentCheck.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formAssignment.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formDataRecord.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formSubmission.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.surveyRecipient.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.surveyResponse.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.leaveEntitlement.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.leaveRequest.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.onboardingInstance.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.trainingRecord.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.transactionalChangeRequest.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.actionItem.deleteMany({
+                where: { relatedEmployeeId: { in: ids } },
+              }),
+            // Ensure any employee-bound documents are removed
+            (ids) =>
+              tx.document.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+          ];
+
+          for (const deleteOperation of employeeScopedDeletions) {
+            await runInChunks(employeeIds, deleteOperation);
+          }
         }
 
+        // Wipe user-scoped data for those employees (requests they made, tokens, sessions, etc.)
+        let scrubbedUsers = 0;
+
         if (userIds.length) {
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.leaveRequest.deleteMany({
-              where: {
-                companyId,
-                OR: [
-                  { requesterId: { in: chunk } },
-                  { approvedById: { in: chunk } },
-                ],
-              },
-            });
+          const userScopedOperations: Array<
+            (ids: string[]) => Promise<unknown>
+          > = [
+            (ids) =>
+              tx.leaveRequest.deleteMany({
+                where: {
+                  companyId,
+                  OR: [
+                    { requesterId: { in: ids } },
+                    { approvedById: { in: ids } },
+                  ],
+                },
+              }),
+            (ids) =>
+              tx.actionItem.deleteMany({
+                where: { companyId, assignedToId: { in: ids } },
+              }),
+            (ids) =>
+              tx.activationToken.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.newsPost.deleteMany({ where: { authorId: { in: ids } } }),
+            (ids) =>
+              tx.newsReaction.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.newsBookmark.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.globalAuditLog.deleteMany({
+                where: { companyId, actorId: { in: ids } },
+              }),
+          ];
+
+          for (const operation of userScopedOperations) {
+            await runInChunks(userIds, operation);
+          }
+
+          // Explicitly clear NextAuth sessions in chunks using raw SQL
+          await runInChunks(userIds, async (batch) => {
+            try {
+              await tx.$executeRaw(
+                Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
+                  batch,
+                )})`,
+              );
+            } catch (error) {
+              console.warn(
+                "Failed to remove persisted sessions during reset",
+                error,
+              );
+            }
           });
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.actionItem.deleteMany({
-              where: { companyId, assignedToId: { in: chunk } },
-            });
-          });
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.activationToken.deleteMany({
-              where: { userId: { in: chunk } },
-            });
-          });
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.newsPost.deleteMany({
-              where: { authorId: { in: chunk } },
-            });
-          });
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.newsReaction.deleteMany({
-              where: { userId: { in: chunk } },
-            });
-          });
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.newsBookmark.deleteMany({
-              where: { userId: { in: chunk } },
-            });
-          });
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            await tx.globalAuditLog.deleteMany({
-              where: { companyId, actorId: { in: chunk } },
-            });
-          });
+
+          // Scrub users: placeholder email + reset core fields
           const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
-
-          await runChunked(userIds, CHUNK_SIZE, async (chunk) => {
-            const idList = Prisma.join(
-              chunk.map((id) => Prisma.sql`${id}`),
-            );
-
+          await runInChunks(userIds, async (batch) => {
             const updatedCount = await tx.$executeRaw(
               Prisma.sql`
                 UPDATE "User"
@@ -267,20 +271,19 @@ export async function POST() {
                   "role" = ${Role.EMPLOYEE},
                   "canManageTenants" = FALSE,
                   "updatedAt" = NOW()
-                WHERE "companyId" = ${companyId}
-                  AND "id" = ANY(ARRAY[${idList}]::uuid[])
+                WHERE "id" IN (${Prisma.join(batch)})
               `,
             );
-
             scrubbedUsers += Number(updatedCount ?? 0);
           });
         }
 
-        const deletionResult = await tx.employee.deleteMany({
-          where: { id: { in: employeeIds } },
+        // Remove employees themselves (excluding the current user)
+        const { count: removedEmployees } = await tx.employee.deleteMany({
+          where: { companyId, NOT: { userId: currentUserId } },
         });
-        removedEmployees = deletionResult.count;
 
+        // Company-level reference data
         const departments = await tx.department.deleteMany({ where: { companyId } });
         const jobRoles = await tx.jobRole.deleteMany({ where: { companyId } });
         const workingPatterns = await tx.workingPattern.deleteMany({

@@ -47,52 +47,27 @@ export async function GET() {
   try {
     const companyId = session.user.companyId;
 
-    const employees = await prisma.employee.findMany({
+    const users = await prisma.user.findMany({
       where: { companyId },
       include: {
-        Department: { select: { id: true, name: true } },
-        JobRole: { select: { id: true, name: true } },
-        User: {
+        Employee: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            role: true,
-            isActivated: true,
-            managerId: true,
-            profileImageUrl: true,
-            PermissionProfile: { select: { name: true } },
-            Department_User_departmentIdToDepartment: {
-              select: { id: true, name: true },
-            },
+            isActive: true,
+            departmentId: true,
+            jobRoleId: true,
+            Department: { select: { id: true, name: true } },
             JobRole: { select: { id: true, name: true } },
           },
         },
-      },
-      orderBy: [
-        { User: { firstName: "asc" } },
-        { User: { lastName: "asc" } },
-        { User: { email: "asc" } },
-      ],
-    });
-
-    const employeeUserIds = new Set(employees.map((employee) => employee.userId));
-
-    const standaloneUsers = await prisma.user.findMany({
-      where: {
-        companyId,
-        id: { notIn: Array.from(employeeUserIds) },
-      },
-      include: {
         Department_User_departmentIdToDepartment: {
           select: { id: true, name: true },
         },
-        JobRole: { select: { id: true, name: true } },
-        PermissionProfile: { select: { name: true } },
-        Employee: {
-          select: { id: true },
+        JobRole: {
+          select: { id: true, name: true },
+        },
+        PermissionProfile: {
+          select: { name: true },
         },
       },
       orderBy: [
@@ -102,76 +77,46 @@ export async function GET() {
       ],
     });
 
-    const formattedEmployees = await Promise.all(
-      employees.map(async (employee) => {
-        const user = employee.User;
+    const enriched = await Promise.all(
+      users.map(async (user) => {
+        const employee = user.Employee;
         const department =
-          employee.Department ?? user?.Department_User_departmentIdToDepartment;
-        const jobRole = employee.JobRole ?? user?.JobRole;
+          employee?.Department ?? user.Department_User_departmentIdToDepartment;
+        const jobRole = employee?.JobRole ?? user.JobRole;
 
         return {
-          id: employee.id,
-          userId: user?.id ?? employee.userId,
-          firstName: user?.firstName ?? null,
-          lastName: user?.lastName ?? null,
-          email: user?.email ?? "",
-          phone: user?.phone ?? null,
-          role: normalizeRole(user?.role),
-          departmentId: department?.id ?? null,
-          departmentName: department?.name ?? null,
-          jobRoleId: jobRole?.id ?? null,
-          jobRoleName: jobRole?.name ?? null,
-          isActive: employee.isActive,
-          profileImageUrl: await getSignedProfileUrl(user?.profileImageUrl),
-          managerUserId: user?.managerId ?? null,
-          permissionProfileName: user?.PermissionProfile?.name ?? null,
-        } as const;
-      }),
-    );
-
-    const formattedStandaloneUsers = await Promise.all(
-      standaloneUsers.map(async (user) => {
-        const department = user.Department_User_departmentIdToDepartment;
-        const jobRole = user.JobRole;
-
-        return {
-          id: user.Employee?.id ?? user.id,
+          id: employee?.id ?? user.id,
           userId: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: normalizeRole(user.role),
+          firstName: user.firstName ?? null,
+          lastName: user.lastName ?? null,
+          email: user.email ?? "",
+          phone: user.phone ?? null,
+          role: normalizeRole(user.role as string | null | undefined),
           departmentId: department?.id ?? null,
           departmentName: department?.name ?? null,
           jobRoleId: jobRole?.id ?? null,
           jobRoleName: jobRole?.name ?? null,
-          isActive: user.isActivated ?? false,
+          isActive: employee?.isActive ?? user.isActivated ?? false,
           profileImageUrl: await getSignedProfileUrl(user.profileImageUrl),
-          managerUserId: user.managerId,
+          managerUserId: user.managerId ?? null,
           permissionProfileName: user.PermissionProfile?.name ?? null,
         } as const;
-      }),
+      })
     );
 
-    const combined = [...formattedEmployees, ...formattedStandaloneUsers].sort(
-      (a, b) => {
-        const nameA = `${a.firstName ?? ""} ${a.lastName ?? ""}`
-          .trim()
-          .toLowerCase();
-        const nameB = `${b.firstName ?? ""} ${b.lastName ?? ""}`
-          .trim()
-          .toLowerCase();
+    // Stable sort by full name, then email (merges intent from codex branch)
+    const sorted = enriched.sort((a, b) => {
+      const nameA = `${a.firstName ?? ""} ${a.lastName ?? ""}`.trim().toLowerCase();
+      const nameB = `${b.firstName ?? ""} ${b.lastName ?? ""}`.trim().toLowerCase();
 
-        if (nameA && nameB && nameA !== nameB) {
-          return nameA.localeCompare(nameB);
-        }
+      if (nameA && nameB && nameA !== nameB) {
+        return nameA.localeCompare(nameB);
+      }
 
-        return a.email.localeCompare(b.email);
-      },
-    );
+      return (a.email ?? "").localeCompare(b.email ?? "");
+    });
 
-    return NextResponse.json(combined);
+    return NextResponse.json(sorted);
   } catch (error) {
     console.error("Failed to load org chart data", error);
     return NextResponse.json(

@@ -303,6 +303,15 @@ export async function POST(request: NextRequest) {
     };
 
     const importBatchId = `csv_import_${Date.now()}`;
+    
+    // Track manager relationships for second pass processing
+    const managerRelationships: Array<{
+      userId: string;
+      email: string;
+      managerEmail?: string;
+      lineManagerName?: string;
+      rowNumber: number;
+    }> = [];
 
     // Process each record
     for (let i = 0; i < records.length; i++) {
@@ -597,14 +606,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (!managerUser && (managerErrors.length > 0 || lineManagerErrors.length > 0)) {
-          results.failed++;
-          results.errors.push({
-            row: rowNumber,
-            errors: [...managerErrors, ...lineManagerErrors],
-          });
-          continue;
-        }
+        // Store manager info for later processing (don't fail import if manager not found)
+        const managerInfo = {
+          managerEmail,
+          lineManagerName,
+          managerUser,
+        };
 
         // Find working pattern (must exist if provided)
         let workingPattern = null;
@@ -685,18 +692,12 @@ export async function POST(request: NextRequest) {
           if (pronouns !== undefined) userUpdateData.pronouns = pronouns;
           if (residencyStatus !== undefined) userUpdateData.residencyStatus = residencyStatus;
           if (genderOptionId !== undefined) userUpdateData.genderOptionId = genderOptionId;
-          if (managerUser) {
-            userUpdateData.managerId = managerUser.id;
-          }
+          // Skip manager assignment during initial import - will be handled in second pass
 
           user = await prisma.user.update({
             where: { id: existingUser.id },
             data: userUpdateData,
           });
-
-          if (managerUser) {
-            await promoteManagerIfNeeded(managerUser.id, session.user.companyId);
-          }
 
           const employeeUpdateData: Record<string, unknown> = {};
           if (bankAccountNumber !== undefined) employeeUpdateData.bankAccountNumber = bankAccountNumber;
@@ -773,14 +774,7 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          if (managerUser) {
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { managerId: managerUser.id },
-            });
-
-            await promoteManagerIfNeeded(managerUser.id, session.user.companyId);
-          }
+          // Skip manager assignment during initial import - will be handled in second pass
 
           employee = await prisma.employee.create({
             data: {
@@ -1086,6 +1080,17 @@ export async function POST(request: NextRequest) {
             name: displayName,
           });
         }
+
+        // Track manager relationship for second pass if specified
+        if (managerInfo.managerEmail || managerInfo.lineManagerName) {
+          managerRelationships.push({
+            userId: user.id,
+            email: user.email,
+            managerEmail: managerInfo.managerEmail,
+            lineManagerName: managerInfo.lineManagerName,
+            rowNumber,
+          });
+        }
       } catch (error) {
         results.failed++;
         if (error instanceof z.ZodError) {
@@ -1100,6 +1105,99 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+    }
+
+    // Second pass: Process manager relationships
+    const managerWarnings: Array<{ row: number; errors: string[] }> = [];
+    
+    for (const relationship of managerRelationships) {
+      try {
+        let managerUser = null;
+        
+        // Try to find manager by email first
+        if (relationship.managerEmail) {
+          managerUser = await prisma.user.findFirst({
+            where: {
+              companyId: session.user.companyId,
+              email: relationship.managerEmail,
+            },
+          });
+        }
+        
+        // If not found by email, try by name
+        if (!managerUser && relationship.lineManagerName) {
+          const managerNameParts = relationship.lineManagerName.split(/\s+/).filter(Boolean);
+          const nameSearchConditions: Prisma.UserWhereInput[] = [];
+
+          if (managerNameParts.length >= 2) {
+            const firstNamePart = managerNameParts[0];
+            const lastNamePart = managerNameParts.slice(1).join(" ");
+            nameSearchConditions.push({
+              AND: [
+                { firstName: { equals: firstNamePart, mode: "insensitive" } },
+                { lastName: { equals: lastNamePart, mode: "insensitive" } },
+              ],
+            });
+          }
+
+          nameSearchConditions.push({
+            name: { equals: relationship.lineManagerName, mode: "insensitive" },
+          });
+
+          if (managerNameParts.length === 1) {
+            const [singleName] = managerNameParts;
+            nameSearchConditions.push({ firstName: { equals: singleName, mode: "insensitive" } });
+            nameSearchConditions.push({ lastName: { equals: singleName, mode: "insensitive" } });
+          }
+
+          const matchingManagers = await prisma.user.findMany({
+            where: {
+              companyId: session.user.companyId,
+              OR: nameSearchConditions,
+            },
+            take: 2,
+          });
+
+          if (matchingManagers.length === 1) {
+            managerUser = matchingManagers[0];
+          } else if (matchingManagers.length > 1) {
+            managerWarnings.push({
+              row: relationship.rowNumber,
+              errors: [`Multiple managers match "${relationship.lineManagerName}". Manager relationship not set.`],
+            });
+            continue;
+          }
+        }
+        
+        // If manager found, update the relationship
+        if (managerUser) {
+          await prisma.user.update({
+            where: { id: relationship.userId },
+            data: { managerId: managerUser.id },
+          });
+          
+          // Promote manager if needed
+          await promoteManagerIfNeeded(managerUser.id, session.user.companyId);
+        } else {
+          // Add warning but don't fail the import
+          const managerRef = relationship.managerEmail || relationship.lineManagerName;
+          managerWarnings.push({
+            row: relationship.rowNumber,
+            errors: [`Manager "${managerRef}" not found. Employee imported without manager relationship.`],
+          });
+        }
+      } catch (error) {
+        console.warn(`Failed to set manager for user ${relationship.userId}:`, error);
+        managerWarnings.push({
+          row: relationship.rowNumber,
+          errors: [`Failed to set manager relationship: ${error instanceof Error ? error.message : 'Unknown error'}`],
+        });
+      }
+    }
+    
+    // Add manager warnings to results
+    if (managerWarnings.length > 0) {
+      results.errors.push(...managerWarnings);
     }
 
     // Create audit log for the entire import

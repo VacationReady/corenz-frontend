@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/Checkbox";
 import {
   Upload,
   Download,
@@ -46,6 +47,10 @@ import {
   X,
   ListChecks,
   RefreshCcw,
+  Target,
+  Send,
+  Filter,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -81,6 +86,24 @@ interface ImportProgress {
 }
 
 type ImportType = "departments" | "job-roles" | "working-patterns" | "employees";
+
+interface WelcomeEmailSummary {
+  targeted: number;
+  sent: number;
+  skipped: number;
+  errors: Array<{ employeeId: string; email: string; reason: string }>;
+}
+
+interface WelcomeFilters {
+  departmentIds: string[];
+  locationIds: string[];
+  nameQuery: string;
+}
+
+interface SelectableOption {
+  id: string;
+  name: string;
+}
 
 interface ImportFieldGroup {
   title: string;
@@ -311,6 +334,19 @@ export default function CSVImportPage() {
   });
   const [lastImportedType, setLastImportedType] = useState<ImportType | null>(null);
   const [allowUpdates, setAllowUpdates] = useState(false);
+  const [showWelcomeEmailOptions, setShowWelcomeEmailOptions] = useState(false);
+  const [welcomeFilters, setWelcomeFilters] = useState<WelcomeFilters>({
+    departmentIds: [],
+    locationIds: [],
+    nameQuery: "",
+  });
+  const [welcomeSummary, setWelcomeSummary] = useState<WelcomeEmailSummary | null>(null);
+  const [welcomeMetadataLoaded, setWelcomeMetadataLoaded] = useState(false);
+  const [welcomeMetadataLoading, setWelcomeMetadataLoading] = useState(false);
+  const [welcomeMetadataError, setWelcomeMetadataError] = useState<string | null>(null);
+  const [availableDepartments, setAvailableDepartments] = useState<SelectableOption[]>([]);
+  const [availableLocations, setAvailableLocations] = useState<SelectableOption[]>([]);
+  const [isSendingWelcomeEmails, setIsSendingWelcomeEmails] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInfo = getImportTypeInfo(selectedImportType);
 
@@ -326,6 +362,101 @@ export default function CSVImportPage() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(ALLOW_UPDATES_STORAGE_KEY, allowUpdates ? "true" : "false");
   }, [allowUpdates]);
+
+  useEffect(() => {
+    if (selectedImportType !== "employees") {
+      setShowWelcomeEmailOptions(false);
+      setWelcomeSummary(null);
+      setWelcomeFilters({
+        departmentIds: [],
+        locationIds: [],
+        nameQuery: "",
+      });
+    }
+  }, [selectedImportType]);
+
+  useEffect(() => {
+    if (
+      !showWelcomeEmailOptions ||
+      selectedImportType !== "employees" ||
+      welcomeMetadataLoaded ||
+      welcomeMetadataLoading
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+    const controller = new AbortController();
+
+    const loadMetadata = async () => {
+      try {
+        setWelcomeMetadataLoading(true);
+        setWelcomeMetadataError(null);
+
+        const [departmentResponse, locationResponse] = await Promise.all([
+          fetch("/api/departments", { signal: controller.signal }),
+          fetch("/api/locations", { signal: controller.signal }),
+        ]);
+
+        if (!departmentResponse.ok) {
+          const error = await departmentResponse.json().catch(() => ({}));
+          throw new Error(error.error || "Failed to load departments");
+        }
+
+        if (!locationResponse.ok) {
+          const error = await locationResponse.json().catch(() => ({}));
+          throw new Error(error.error || "Failed to load locations");
+        }
+
+        const [departmentData, locationData] = await Promise.all([
+          departmentResponse.json(),
+          locationResponse.json(),
+        ]);
+
+        if (isCancelled) return;
+
+        setAvailableDepartments(
+          Array.isArray(departmentData)
+            ? departmentData.map((dept: any) => ({
+                id: String(dept.id),
+                name: String(dept.name ?? "Unnamed department"),
+              }))
+            : [],
+        );
+        setAvailableLocations(
+          Array.isArray(locationData)
+            ? locationData.map((loc: any) => ({
+                id: String(loc.id),
+                name: String(loc.name ?? "Unnamed location"),
+              }))
+            : [],
+        );
+        setWelcomeMetadataLoaded(true);
+      } catch (error) {
+        if (isCancelled) return;
+        console.error("Failed to load welcome email metadata", error);
+        setWelcomeMetadataError(
+          error instanceof Error ? error.message : "Unable to load welcome email filters",
+        );
+      } finally {
+        if (!isCancelled) {
+          setWelcomeMetadataLoading(false);
+        }
+      }
+    };
+
+    loadMetadata();
+
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
+  }, [
+    showWelcomeEmailOptions,
+    selectedImportType,
+    welcomeMetadataLoaded,
+    welcomeMetadataLoading,
+  ]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -549,6 +680,79 @@ export default function CSVImportPage() {
         message: error instanceof Error ? error.message : "Activation failed",
       });
       toast.error("Employee activation failed");
+    }
+  };
+
+  const handleSendWelcomeEmails = async (rolloutType: "all" | "gradual") => {
+    if (rolloutType === "gradual") {
+      const hasDepartmentFilter = welcomeFilters.departmentIds.length > 0;
+      const hasLocationFilter = welcomeFilters.locationIds.length > 0;
+      const hasNameFilter = welcomeFilters.nameQuery.trim().length > 0;
+
+      if (!hasDepartmentFilter && !hasLocationFilter && !hasNameFilter) {
+        toast.error("Choose at least one filter before sending a gradual rollout.");
+        return;
+      }
+    }
+
+    try {
+      setIsSendingWelcomeEmails(true);
+      setWelcomeSummary(null);
+
+      const response = await fetch("/api/csv-import/employees/welcome", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rolloutType,
+          filters:
+            rolloutType === "gradual"
+              ? {
+                  departmentIds: welcomeFilters.departmentIds,
+                  locationIds: welcomeFilters.locationIds,
+                  nameQuery: welcomeFilters.nameQuery.trim(),
+                }
+              : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send welcome emails");
+      }
+
+      if (data.summary) {
+        setWelcomeSummary({
+          targeted: Number(data.summary.targeted ?? 0),
+          sent: Number(data.summary.sent ?? 0),
+          skipped: Number(data.summary.skipped ?? 0),
+          errors: Array.isArray(data.summary.errors)
+            ? data.summary.errors.map((error: any) => ({
+                employeeId: String(error.employeeId ?? "unknown"),
+                email: String(error.email ?? "unknown"),
+                reason: String(error.reason ?? "Unknown error"),
+              }))
+            : [],
+        });
+      }
+
+      const targeted = data.summary?.targeted ?? 0;
+      const sent = data.summary?.sent ?? 0;
+
+      if (targeted === 0) {
+        toast.info("No eligible employees found for the selected filters.");
+      } else if (sent === 0) {
+        toast.warning("Eligible employees were found but no emails were sent.");
+      } else {
+        toast.success(`Sent welcome emails to ${sent} employee${sent === 1 ? "" : "s"}.`);
+      }
+    } catch (error) {
+      console.error("Failed to send welcome emails", error);
+      toast.error(error instanceof Error ? error.message : "Failed to send welcome emails");
+    } finally {
+      setIsSendingWelcomeEmails(false);
     }
   };
 
@@ -927,89 +1131,384 @@ export default function CSVImportPage() {
                   </p>
 
                   {/* Employee Activation Options */}
-                  {selectedImportType === "employees" && importProgress.result.created && importProgress.result.created.length > 0 && (
-                    <div className="border-t pt-4">
-                      <div className="flex items-center justify-between mb-4">
+                  {selectedImportType === "employees" && (
+                    <div className="border-t pt-4 space-y-4">
+                      {importProgress.result.created && importProgress.result.created.length > 0 && (
                         <div>
-                          <h4 className="font-medium">Employee Activation</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Activate imported employees and send welcome emails
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowActivationOptions(!showActivationOptions)}
-                        >
-                          {showActivationOptions ? "Hide Options" : "Show Options"}
-                        </Button>
-                      </div>
-
-                      {showActivationOptions && (
-                        <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                          <div className="space-y-3">
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="sendEmails"
-                                checked={activationOptions.sendEmails}
-                                onChange={(e) =>
-                                  setActivationOptions(prev => ({
-                                    ...prev,
-                                    sendEmails: e.target.checked,
-                                  }))
-                                }
-                                className="rounded"
-                              />
-                              <label htmlFor="sendEmails" className="text-sm font-medium">
-                                Send activation emails
-                              </label>
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h4 className="font-medium">Employee Activation</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Activate imported employees and send welcome emails
+                              </p>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="checkPermissions"
-                                checked={activationOptions.checkPermissions}
-                                onChange={(e) =>
-                                  setActivationOptions(prev => ({
-                                    ...prev,
-                                    checkPermissions: e.target.checked,
-                                  }))
-                                }
-                                className="rounded"
-                              />
-                              <label htmlFor="checkPermissions" className="text-sm font-medium">
-                                Assign default permissions
-                              </label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="promoteManagers"
-                                checked={activationOptions.promoteManagers}
-                                onChange={(e) =>
-                                  setActivationOptions(prev => ({
-                                    ...prev,
-                                    promoteManagers: e.target.checked,
-                                  }))
-                                }
-                                className="rounded"
-                              />
-                              <label htmlFor="promoteManagers" className="text-sm font-medium">
-                                Auto-promote employees with direct reports to manager
-                              </label>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowActivationOptions(!showActivationOptions)}
+                            >
+                              {showActivationOptions ? "Hide Options" : "Show Options"}
+                            </Button>
                           </div>
 
-                          <Button
-                            onClick={handleActivateEmployees}
-                            className="w-full"
-                          >
-                            <Mail className="w-4 h-4 mr-2" />
-                            Activate {importProgress.result.created.length} Employees
-                          </Button>
+                          {showActivationOptions && (
+                            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                              <div className="space-y-3">
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="sendEmails"
+                                    checked={activationOptions.sendEmails}
+                                    onChange={(e) =>
+                                      setActivationOptions(prev => ({
+                                        ...prev,
+                                        sendEmails: e.target.checked,
+                                      }))
+                                    }
+                                    className="rounded"
+                                  />
+                                  <label htmlFor="sendEmails" className="text-sm font-medium">
+                                    Send activation emails
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="checkPermissions"
+                                    checked={activationOptions.checkPermissions}
+                                    onChange={(e) =>
+                                      setActivationOptions(prev => ({
+                                        ...prev,
+                                        checkPermissions: e.target.checked,
+                                      }))
+                                    }
+                                    className="rounded"
+                                  />
+                                  <label htmlFor="checkPermissions" className="text-sm font-medium">
+                                    Assign default permissions
+                                  </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="promoteManagers"
+                                    checked={activationOptions.promoteManagers}
+                                    onChange={(e) =>
+                                      setActivationOptions(prev => ({
+                                        ...prev,
+                                        promoteManagers: e.target.checked,
+                                      }))
+                                    }
+                                    className="rounded"
+                                  />
+                                  <label htmlFor="promoteManagers" className="text-sm font-medium">
+                                    Auto-promote employees with direct reports to manager
+                                  </label>
+                                </div>
+                              </div>
+
+                              <Button onClick={handleActivateEmployees} className="w-full">
+                                <Mail className="w-4 h-4 mr-2" />
+                                Activate {importProgress.result.created.length} Employees
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
+
+                      {/* Welcome email rollout */}
+                      <div className="rounded-lg border bg-muted/40 p-4 space-y-4">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                          <div className="space-y-1">
+                            <h4 className="font-medium">Send welcome emails</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Invite employees to activate their PeopleCore accounts on demand.
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={() => {
+                              setShowWelcomeEmailOptions(prev => !prev);
+                              if (!showWelcomeEmailOptions) {
+                                setWelcomeSummary(null);
+                              }
+                            }}
+                          >
+                            {showWelcomeEmailOptions ? "Hide welcome email" : "Send welcome email"}
+                          </Button>
+                        </div>
+
+                        {showWelcomeEmailOptions && (
+                          <div className="space-y-4">
+                            {welcomeMetadataError && (
+                              <Alert variant="destructive">
+                                <AlertTitle>Filter data unavailable</AlertTitle>
+                                <AlertDescription>{welcomeMetadataError}</AlertDescription>
+                              </Alert>
+                            )}
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              {/* Gradual rollout card */}
+                              <Card className="border-primary/40 bg-primary/5">
+                                <CardHeader>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <Target className="h-5 w-5 text-primary" />
+                                    Gradual rollout
+                                  </CardTitle>
+                                  <CardDescription>
+                                    Filter by department, location, or name to stagger invites.
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                  {welcomeMetadataLoading ? (
+                                    <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Loading filter options…
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-4">
+                                      <div>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Departments
+                                          </Label>
+                                          {welcomeFilters.departmentIds.length > 0 && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              type="button"
+                                              onClick={() =>
+                                                setWelcomeFilters(prev => ({
+                                                  ...prev,
+                                                  departmentIds: [],
+                                                }))
+                                              }
+                                            >
+                                              Clear
+                                            </Button>
+                                          )}
+                                        </div>
+                                        <div className="mt-2 max-h-32 space-y-2 overflow-y-auto rounded-xl border bg-background p-3">
+                                          {availableDepartments.length === 0 ? (
+                                            <p className="text-xs text-muted-foreground">
+                                              No departments available yet.
+                                            </p>
+                                          ) : (
+                                            availableDepartments.map(department => {
+                                              const checkboxId = `welcome-department-${department.id}`;
+                                              const isChecked = welcomeFilters.departmentIds.includes(department.id);
+                                              return (
+                                                <label
+                                                  key={department.id}
+                                                  htmlFor={checkboxId}
+                                                  className="flex items-center gap-2 text-sm"
+                                                >
+                                                  <Checkbox
+                                                    id={checkboxId}
+                                                    checked={isChecked}
+                                                    onCheckedChange={checked =>
+                                                      setWelcomeFilters(prev => ({
+                                                        ...prev,
+                                                        departmentIds:
+                                                          checked === true
+                                                            ? Array.from(
+                                                                new Set([
+                                                                  ...prev.departmentIds,
+                                                                  department.id,
+                                                                ]),
+                                                              )
+                                                            : prev.departmentIds.filter(id => id !== department.id),
+                                                      }))
+                                                    }
+                                                  />
+                                                  <span>{department.name}</span>
+                                                </label>
+                                              );
+                                            })
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Locations
+                                          </Label>
+                                          {welcomeFilters.locationIds.length > 0 && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              type="button"
+                                              onClick={() =>
+                                                setWelcomeFilters(prev => ({
+                                                  ...prev,
+                                                  locationIds: [],
+                                                }))
+                                              }
+                                            >
+                                              Clear
+                                            </Button>
+                                          )}
+                                        </div>
+                                        <div className="mt-2 max-h-32 space-y-2 overflow-y-auto rounded-xl border bg-background p-3">
+                                          {availableLocations.length === 0 ? (
+                                            <p className="text-xs text-muted-foreground">
+                                              No locations available yet.
+                                            </p>
+                                          ) : (
+                                            availableLocations.map(location => {
+                                              const checkboxId = `welcome-location-${location.id}`;
+                                              const isChecked = welcomeFilters.locationIds.includes(location.id);
+                                              return (
+                                                <label
+                                                  key={location.id}
+                                                  htmlFor={checkboxId}
+                                                  className="flex items-center gap-2 text-sm"
+                                                >
+                                                  <Checkbox
+                                                    id={checkboxId}
+                                                    checked={isChecked}
+                                                    onCheckedChange={checked =>
+                                                      setWelcomeFilters(prev => ({
+                                                        ...prev,
+                                                        locationIds:
+                                                          checked === true
+                                                            ? Array.from(
+                                                                new Set([
+                                                                  ...prev.locationIds,
+                                                                  location.id,
+                                                                ]),
+                                                              )
+                                                            : prev.locationIds.filter(id => id !== location.id),
+                                                      }))
+                                                    }
+                                                  />
+                                                  <span>{location.name}</span>
+                                                </label>
+                                              );
+                                            })
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <Label
+                                          htmlFor="welcome-name-query"
+                                          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                                        >
+                                          Names or emails
+                                        </Label>
+                                        <Input
+                                          id="welcome-name-query"
+                                          placeholder="Search by name or email"
+                                          value={welcomeFilters.nameQuery}
+                                          onChange={event =>
+                                            setWelcomeFilters(prev => ({
+                                              ...prev,
+                                              nameQuery: event.target.value,
+                                            }))
+                                          }
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                          Separate multiple names or email fragments with commas.
+                                        </p>
+                                      </div>
+
+                                      <Button
+                                        type="button"
+                                        variant="primary"
+                                        size="sm"
+                                        className="w-full"
+                                        disabled={isSendingWelcomeEmails || welcomeMetadataLoading}
+                                        onClick={() => handleSendWelcomeEmails("gradual")}
+                                      >
+                                        {isSendingWelcomeEmails ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <Filter className="h-4 w-4" />
+                                        )}
+                                        <span>Send to matching employees</span>
+                                      </Button>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+
+                              {/* Send to all card */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="flex items-center gap-2">
+                                    <Send className="h-5 w-5 text-primary" />
+                                    Send to everyone
+                                  </CardTitle>
+                                  <CardDescription>
+                                    Notify every employee who hasn’t activated their account yet.
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                  <p className="text-sm text-muted-foreground">
+                                    Perfect for launch day—this will email all inactive employees with a fresh
+                                    activation link so they can set their password and get started straight away.
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="primary"
+                                    size="sm"
+                                    className="w-full"
+                                    disabled={isSendingWelcomeEmails}
+                                    onClick={() => handleSendWelcomeEmails("all")}
+                                  >
+                                    {isSendingWelcomeEmails ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Mail className="h-4 w-4" />
+                                    )}
+                                    <span>Send to all inactive employees</span>
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            {welcomeSummary && (
+                              <Alert>
+                                <AlertTitle>Welcome email summary</AlertTitle>
+                                <AlertDescription>
+                                  <div className="space-y-1 text-sm">
+                                    <p>
+                                      {welcomeSummary.sent} of {welcomeSummary.targeted} employee
+                                      {welcomeSummary.targeted === 1 ? "" : "s"} received an invite.
+                                    </p>
+                                    {welcomeSummary.skipped > 0 && (
+                                      <p>
+                                        {welcomeSummary.skipped} employee
+                                        {welcomeSummary.skipped === 1 ? " was" : "s were"} skipped because they already had
+                                        active accounts or were missing contact details.
+                                      </p>
+                                    )}
+                                    {welcomeSummary.errors.length > 0 && (
+                                      <div className="space-y-1">
+                                        <p>
+                                          {welcomeSummary.errors.length} email
+                                          {welcomeSummary.errors.length === 1 ? "" : "s"} could not be sent:
+                                        </p>
+                                        <ul className="list-disc list-inside text-xs">
+                                          {welcomeSummary.errors.map(error => (
+                                            <li key={error.employeeId}>
+                                              {error.email}: {error.reason}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 

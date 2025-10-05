@@ -33,6 +33,26 @@ export async function POST() {
   try {
     const summary = await prisma.$transaction(
       async (tx) => {
+        // Helpers to safely batch large IN() deletes/updates to avoid parameter/lock issues
+        const chunk = <T,>(items: T[], size = 100) => {
+          const result: T[][] = [];
+          for (let i = 0; i < items.length; i += size) {
+            result.push(items.slice(i, i + size));
+          }
+          return result;
+        };
+
+        const runInChunks = async <T>(
+          ids: T[],
+          handler: (batch: T[]) => Promise<unknown>,
+        ) => {
+          for (const batch of chunk(ids)) {
+            if (!batch.length) continue;
+            await handler(batch);
+          }
+        };
+
+        // Gather all employees in this company except the current user
         const employees = await tx.employee.findMany({
           where: {
             companyId,
@@ -44,124 +64,169 @@ export async function POST() {
         const employeeIds = employees.map((emp) => emp.id);
         const userIds = employees
           .map((emp) => emp.userId)
-          .filter(
-            (userId): userId is string =>
-              typeof userId === "string" && userId.length > 0,
-          );
+          .filter((userId): userId is string => typeof userId === "string" && userId.length > 0);
 
-        let removedEmployees = 0;
-        let scrubbedUsers = 0;
-
+        // Wipe all employee-scoped data in safe chunks
         if (employeeIds.length) {
-          const employeeScope = Prisma.sql`
-            SELECT "id"
-            FROM "Employee"
-            WHERE "companyId" = ${companyId}
-              AND ("userId" IS NULL OR "userId" <> ${currentUserId})
-          `;
-
-          const employeeScopedTargets: Array<{
-            table: string;
-            column?: string;
-          }> = [
-            { table: "DocumentSignatureArtifact" },
-            { table: "DocumentSignatureEmployee" },
-            { table: "DocumentSignatureField", column: '"assignedEmployeeId"' },
-            { table: "DocumentAcknowledgement" },
-            { table: "DriverLicence" },
-            { table: "EmergencyContact" },
-            { table: "EmployeeAuditLog" },
-            { table: "EmployeeOffboarding" },
-            { table: "EmployeePerformanceReview" },
-            { table: "EmployeeWorkingPatternAssignment" },
-            { table: "EmploymentCheck" },
-            { table: "FormAssignment" },
-            { table: "FormDataRecord" },
-            { table: "FormSubmission" },
-            { table: "SurveyRecipient" },
-            { table: "SurveyResponse" },
-            { table: "LeaveEntitlement" },
-            { table: "LeaveRequest" },
-            { table: "OnboardingInstance" },
-            { table: "TrainingRecord" },
-            { table: "TransactionalChangeRequest" },
-            { table: "ActionItem", column: '"relatedEmployeeId"' },
+          const employeeScopedDeletions: Array<
+            (ids: string[]) => Promise<unknown>
+          > = [
+            (ids) =>
+              tx.documentSignatureArtifact.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentSignatureEmployee.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentSignatureField.deleteMany({
+                where: { assignedEmployeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.documentAcknowledgement.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.driverLicence.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.emergencyContact.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeAuditLog.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeOffboarding.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeePerformanceReview.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employeeWorkingPatternAssignment.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.employmentCheck.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formAssignment.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formDataRecord.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.formSubmission.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.surveyRecipient.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.surveyResponse.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.leaveEntitlement.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.leaveRequest.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.onboardingInstance.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.trainingRecord.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.transactionalChangeRequest.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.actionItem.deleteMany({
+                where: { relatedEmployeeId: { in: ids } },
+              }),
           ];
 
-          for (const { table, column = '"employeeId"' } of employeeScopedTargets) {
-            await tx.$executeRaw(
-              Prisma.sql`
-                DELETE FROM ${Prisma.raw(`"${table}"`)}
-                WHERE ${Prisma.raw(column)} IN (${employeeScope})
-              `,
-            );
+          for (const deleteOperation of employeeScopedDeletions) {
+            await runInChunks(employeeIds, deleteOperation);
           }
         }
 
+        // Wipe user-scoped data for those employees (requests they made, tokens, sessions, etc.)
+        let scrubbedUsers = 0;
+
         if (userIds.length) {
-          const userScope = Prisma.sql`
-            SELECT "userId"
-            FROM "Employee"
-            WHERE "companyId" = ${companyId}
-              AND "userId" IS NOT NULL
-              AND "userId" <> ${currentUserId}
-          `;
-
-          await tx.$executeRaw(
-            Prisma.sql`
-              DELETE FROM "LeaveRequest"
-              WHERE "companyId" = ${companyId}
-                AND (
-                  "requesterId" IN (${userScope}) OR
-                  "approvedById" IN (${userScope})
-                )
-            `,
-          );
-
-          const userScopedTargets: Array<{
-            table: string;
-            column?: string;
-            extra?: Prisma.Sql;
-          }> = [
-            {
-              table: "ActionItem",
-              column: '"assignedToId"',
-              extra: Prisma.sql`"companyId" = ${companyId}`,
-            },
-            { table: "ActivationToken" },
-            { table: "NewsPost", column: '"authorId"' },
-            { table: "NewsReaction" },
-            { table: "NewsBookmark" },
+          const userScopedOperations: Array<
+            (ids: string[]) => Promise<unknown>
+          > = [
+            (ids) =>
+              tx.leaveRequest.deleteMany({
+                where: {
+                  companyId,
+                  OR: [
+                    { requesterId: { in: ids } },
+                    { approvedById: { in: ids } },
+                  ],
+                },
+              }),
+            (ids) =>
+              tx.actionItem.deleteMany({
+                where: {
+                  companyId,
+                  assignedToId: { in: ids },
+                },
+              }),
+            (ids) =>
+              tx.activationToken.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) => tx.newsPost.deleteMany({ where: { authorId: { in: ids } } }),
+            (ids) =>
+              tx.newsReaction.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.newsBookmark.deleteMany({ where: { userId: { in: ids } } }),
+            (ids) =>
+              tx.globalAuditLog.deleteMany({
+                where: { companyId, actorId: { in: ids } },
+              }),
+            // We'll set role/canManageTenants as part of the bulk scrub below.
           ];
 
-          for (const { table, column = '"userId"', extra } of userScopedTargets) {
-            const extraCondition = extra
-              ? Prisma.sql`${extra} AND`
-              : Prisma.sql``;
-
-            await tx.$executeRaw(
-              Prisma.sql`
-                DELETE FROM ${Prisma.raw(`"${table}"`)}
-                WHERE ${extraCondition} ${Prisma.raw(column)} IN (${userScope})
-              `,
-            );
+          for (const operation of userScopedOperations) {
+            await runInChunks(userIds, operation);
           }
 
-          await tx.$executeRaw(
-            Prisma.sql`
-              DELETE FROM "GlobalAuditLog"
-              WHERE "companyId" = ${companyId}
-                AND "actorId" IN (${userScope})
-            `,
-          );
+          // Explicitly clear Sessions in chunks using raw SQL (NextAuth sessions)
+          for (const batch of chunk(userIds)) {
+            if (!batch.length) continue;
+            try {
+              await tx.$executeRaw(
+                Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
+                  batch,
+                )})`,
+              );
+            } catch (error) {
+              console.warn(
+                "Failed to remove persisted sessions during reset",
+                error,
+              );
+            }
+          }
 
-          await tx.$executeRaw(
-            Prisma.sql`
-              DELETE FROM "Session"
-              WHERE "userId" IN (${userScope})
-            `,
-          );
-
+          // Bulk-scrub users with a single UPDATE using id-derived placeholder email.
+          const userScope = Prisma.sql`${Prisma.join(userIds)}`;
           const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
           const scrubbed = await tx.$queryRaw<Array<{ count: bigint }>>(
             Prisma.sql`
@@ -187,15 +252,15 @@ export async function POST() {
               ) AS updated
             `,
           );
-
           scrubbedUsers = Number(scrubbed[0]?.count ?? 0);
         }
 
-        const deletionResult = await tx.employee.deleteMany({
+        // Remove employees themselves (excluding the current user)
+        const { count: removedEmployees } = await tx.employee.deleteMany({
           where: { companyId, NOT: { userId: currentUserId } },
         });
-        removedEmployees = deletionResult.count;
 
+        // Company-level reference data
         const departments = await tx.department.deleteMany({ where: { companyId } });
         const jobRoles = await tx.jobRole.deleteMany({ where: { companyId } });
         const workingPatterns = await tx.workingPattern.deleteMany({

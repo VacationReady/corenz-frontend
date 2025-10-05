@@ -343,6 +343,7 @@ function OrgChartPageClient() {
     const byUserId = new Map<string, OrgNode>();
     const byEmployeeId = new Map<string, OrgNode>();
     const byEmail = new Map<string, OrgNode>();
+
     const nodes = normalizedEmployees.map<OrgNode>((emp) => ({
       ...emp,
       children: [],

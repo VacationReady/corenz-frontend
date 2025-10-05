@@ -253,7 +253,32 @@ Add new fields without coding or database changes.
 
 ## 📧 **6. Email & Communications**
 
-Send notifications and reports.
+Send notifications, reports, and employee activation emails.
+
+### **Employee Activation Emails**
+```
+✅ "Send login invite to John Smith"
+✅ "Send activation email to Sarah Johnson"
+✅ "Send login invite to x y z"
+
+AI: "📧 Send Activation Email Preview:
+     Employee: John Smith
+     Email: john.smith@company.com
+     Current Status: Pending Activation
+     
+     Send activation email now?"
+
+You: "Yes"
+
+AI: "✅ Activation email sent to John Smith (john.smith@company.com)!"
+```
+
+**What Happens:**
+- ✅ Finds employee by name (handles multiple matches gracefully)
+- ✅ Shows current activation status before sending
+- ✅ Sends activation email with login link
+- ✅ Works for both new and existing employees
+- ✅ Can resend to already-activated employees if needed
 
 ### **One-Off Emails**
 ```

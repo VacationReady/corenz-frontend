@@ -311,33 +311,76 @@ export async function POST(request: NextRequest) {
       managerEmail?: string;
       lineManagerName?: string;
       rowNumber: number;
+      managerUserId?: string;
     }> = [];
 
-    // Process each record
-    for (let i = 0; i < records.length; i++) {
-      const record = records[i];
-      const rowNumber = i + 2; // +2 because CSV headers are row 1, data starts at row 2
+    // Pre-load reference data to avoid repeated database queries
+    console.log("Pre-loading reference data...");
+    const [departments, jobRoles, workingPatterns, genderOptions, existingUsers] = await Promise.all([
+      prisma.department.findMany({
+        where: { companyId: session.user.companyId },
+        select: { id: true, name: true },
+      }),
+      prisma.jobRole.findMany({
+        where: { companyId: session.user.companyId },
+        select: { id: true, name: true },
+      }),
+      prisma.workingPattern.findMany({
+        where: { companyId: session.user.companyId },
+        select: { id: true, name: true },
+      }),
+      prisma.genderOption.findMany({
+        where: { companyId: session.user.companyId },
+        select: { id: true, label: true },
+      }),
+      prisma.user.findMany({
+        where: { companyId: session.user.companyId },
+        select: { id: true, email: true, firstName: true, lastName: true, name: true },
+      }),
+    ]);
 
-      try {
-        // Validate the record
-        const validatedData = employeeImportSchema.parse(record);
+    // Create lookup maps for faster access
+    const departmentMap = new Map(departments.map(d => [d.name.toLowerCase(), d]));
+    const jobRoleMap = new Map(jobRoles.map(jr => [jr.name.toLowerCase(), jr]));
+    const workingPatternMap = new Map(workingPatterns.map(wp => [wp.name.toLowerCase(), wp]));
+    const genderOptionMap = new Map(genderOptions.map(go => [go.label.toLowerCase(), go]));
+    const userEmailMap = new Map(existingUsers.map(u => [u.email.toLowerCase(), u]));
+
+    // Process records in batches to avoid timeouts
+    const BATCH_SIZE = 25; // Reduced batch size for better performance
+    const batches = [];
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+      batches.push(records.slice(i, i + BATCH_SIZE));
+    }
+
+    // Process each batch
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} records)`);
+
+      for (let i = 0; i < batch.length; i++) {
+        const record = batch[i];
+        const rowNumber = (batchIndex * BATCH_SIZE) + i + 2; // +2 because CSV headers are row 1, data starts at row 2
+
+        try {
+          // Validate the record
+          const validatedData = employeeImportSchema.parse(record);
 
         const email = validatedData.email.trim().toLowerCase();
         const firstName = validatedData.firstName.trim();
         const lastName = validatedData.lastName.trim();
 
         // Check if user already exists
-        const existingUser = await prisma.user.findFirst({
-          where: {
-            email,
-            companyId: session.user.companyId,
-          },
-          include: {
-            Employee: true,
-          },
-        });
+        const existingUser = userEmailMap.get(email);
+        let existingUserWithEmployee = null;
+        if (existingUser) {
+          existingUserWithEmployee = await prisma.user.findFirst({
+            where: { id: existingUser.id },
+            include: { Employee: true },
+          });
+        }
 
-        if (existingUser && !allowUpdates) {
+        if (existingUserWithEmployee && !allowUpdates) {
           results.failed++;
           results.errors.push({
             row: rowNumber,
@@ -502,12 +545,7 @@ export async function POST(request: NextRequest) {
         // Find department (must exist)
         let department = null;
         if (departmentName) {
-          department = await prisma.department.findFirst({
-            where: {
-              name: departmentName,
-              companyId: session.user.companyId,
-            },
-          });
+          department = departmentMap.get(departmentName.toLowerCase());
 
           if (!department) {
             results.failed++;
@@ -522,12 +560,7 @@ export async function POST(request: NextRequest) {
         // Find job role (must exist)
         let jobRole = null;
         if (jobRoleName) {
-          jobRole = await prisma.jobRole.findFirst({
-            where: {
-              name: jobRoleName,
-              companyId: session.user.companyId,
-            },
-          });
+          jobRole = jobRoleMap.get(jobRoleName.toLowerCase());
 
           if (!jobRole) {
             results.failed++;
@@ -616,12 +649,7 @@ export async function POST(request: NextRequest) {
         // Find working pattern (must exist if provided)
         let workingPattern = null;
         if (workingPatternName) {
-          workingPattern = await prisma.workingPattern.findFirst({
-            where: {
-              name: workingPatternName,
-              companyId: session.user.companyId,
-            },
-          });
+          workingPattern = workingPatternMap.get(workingPatternName.toLowerCase());
 
           if (!workingPattern) {
             results.failed++;
@@ -636,12 +664,7 @@ export async function POST(request: NextRequest) {
         // Handle gender option lookups
         let genderOptionId: string | undefined;
         if (gender) {
-          const existingGender = await prisma.genderOption.findFirst({
-            where: {
-              companyId: session.user.companyId,
-              label: { equals: gender, mode: "insensitive" },
-            },
-          });
+          const existingGender = genderOptionMap.get(gender.toLowerCase());
 
           if (existingGender) {
             genderOptionId = existingGender.id;
@@ -670,7 +693,7 @@ export async function POST(request: NextRequest) {
         let employee;
         let employeeAction: "CREATED" | "UPDATED" = "CREATED";
 
-        if (canUpdateExistingUser && existingUser) {
+        if (canUpdateExistingUser && existingUserWithEmployee) {
           const userUpdateData: Record<string, unknown> = {
             firstName,
             lastName,
@@ -695,7 +718,7 @@ export async function POST(request: NextRequest) {
           // Skip manager assignment during initial import - will be handled in second pass
 
           user = await prisma.user.update({
-            where: { id: existingUser.id },
+            where: { id: existingUserWithEmployee.id },
             data: userUpdateData,
           });
 
@@ -718,13 +741,13 @@ export async function POST(request: NextRequest) {
           if (jobRole) employeeUpdateData.jobRoleId = jobRole.id;
           if (workingPattern) employeeUpdateData.workingPatternId = workingPattern.id;
 
-          const employeeWasExisting = Boolean(existingUser.Employee);
+          const employeeWasExisting = Boolean(existingUserWithEmployee.Employee);
           const upsertedEmployee = await prisma.employee.upsert({
-            where: { userId: existingUser.id },
+            where: { userId: existingUserWithEmployee.id },
             update: employeeUpdateData,
             create: {
               id: crypto.randomUUID(),
-              userId: existingUser.id,
+              userId: existingUserWithEmployee.id,
               bankAccountNumber,
               contractType,
               employmentType,
@@ -1105,10 +1128,22 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+      
+      // Log progress after each batch
+      console.log(`Batch ${batchIndex + 1}/${batches.length} completed. Success: ${results.successful}, Failed: ${results.failed}`);
+    }
     }
 
     // Second pass: Process manager relationships
+    console.log(`Processing ${managerRelationships.length} manager relationships...`);
     const managerWarnings: Array<{ row: number; errors: string[] }> = [];
+    
+    // Refresh user map with newly created users
+    const allUsers = await prisma.user.findMany({
+      where: { companyId: session.user.companyId },
+      select: { id: true, email: true, firstName: true, lastName: true, name: true },
+    });
+    const updatedUserEmailMap = new Map(allUsers.map(u => [u.email.toLowerCase(), u]));
     
     for (const relationship of managerRelationships) {
       try {
@@ -1116,47 +1151,45 @@ export async function POST(request: NextRequest) {
         
         // Try to find manager by email first
         if (relationship.managerEmail) {
-          managerUser = await prisma.user.findFirst({
-            where: {
-              companyId: session.user.companyId,
-              email: relationship.managerEmail,
-            },
-          });
+          managerUser = updatedUserEmailMap.get(relationship.managerEmail.toLowerCase());
         }
         
-        // If not found by email, try by name
+        // If not found by email, try by name using in-memory search
         if (!managerUser && relationship.lineManagerName) {
           const managerNameParts = relationship.lineManagerName.split(/\s+/).filter(Boolean);
-          const nameSearchConditions: Prisma.UserWhereInput[] = [];
+          const matchingManagers = [];
 
-          if (managerNameParts.length >= 2) {
-            const firstNamePart = managerNameParts[0];
-            const lastNamePart = managerNameParts.slice(1).join(" ");
-            nameSearchConditions.push({
-              AND: [
-                { firstName: { equals: firstNamePart, mode: "insensitive" } },
-                { lastName: { equals: lastNamePart, mode: "insensitive" } },
-              ],
-            });
+          for (const user of allUsers) {
+            const userFirstName = (user.firstName || '').toLowerCase();
+            const userLastName = (user.lastName || '').toLowerCase();
+            const userName = (user.name || '').toLowerCase();
+            const searchName = relationship.lineManagerName.toLowerCase();
+
+            // Try different matching strategies
+            if (managerNameParts.length >= 2) {
+              const firstNamePart = managerNameParts[0].toLowerCase();
+              const lastNamePart = managerNameParts.slice(1).join(" ").toLowerCase();
+              
+              if (userFirstName === firstNamePart && userLastName === lastNamePart) {
+                matchingManagers.push(user);
+                continue;
+              }
+            }
+
+            // Try full name match
+            if (userName === searchName) {
+              matchingManagers.push(user);
+              continue;
+            }
+
+            // Try single name match
+            if (managerNameParts.length === 1) {
+              const singleName = managerNameParts[0].toLowerCase();
+              if (userFirstName === singleName || userLastName === singleName) {
+                matchingManagers.push(user);
+              }
+            }
           }
-
-          nameSearchConditions.push({
-            name: { equals: relationship.lineManagerName, mode: "insensitive" },
-          });
-
-          if (managerNameParts.length === 1) {
-            const [singleName] = managerNameParts;
-            nameSearchConditions.push({ firstName: { equals: singleName, mode: "insensitive" } });
-            nameSearchConditions.push({ lastName: { equals: singleName, mode: "insensitive" } });
-          }
-
-          const matchingManagers = await prisma.user.findMany({
-            where: {
-              companyId: session.user.companyId,
-              OR: nameSearchConditions,
-            },
-            take: 2,
-          });
 
           if (matchingManagers.length === 1) {
             managerUser = matchingManagers[0];
@@ -1169,15 +1202,9 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // If manager found, update the relationship
+        // Store successful manager relationships for batch update
         if (managerUser) {
-          await prisma.user.update({
-            where: { id: relationship.userId },
-            data: { managerId: managerUser.id },
-          });
-          
-          // Promote manager if needed
-          await promoteManagerIfNeeded(managerUser.id, session.user.companyId);
+          relationship.managerUserId = managerUser.id;
         } else {
           // Add warning but don't fail the import
           const managerRef = relationship.managerEmail || relationship.lineManagerName;
@@ -1193,6 +1220,37 @@ export async function POST(request: NextRequest) {
           errors: [`Failed to set manager relationship: ${error instanceof Error ? error.message : 'Unknown error'}`],
         });
       }
+    }
+    
+    // Batch update manager relationships
+    const successfulRelationships = managerRelationships.filter(r => r.managerUserId);
+    console.log(`Updating ${successfulRelationships.length} manager relationships...`);
+    
+    if (successfulRelationships.length > 0) {
+      // Process in batches to avoid overwhelming the database
+      const updateBatchSize = 20;
+      for (let i = 0; i < successfulRelationships.length; i += updateBatchSize) {
+        const batch = successfulRelationships.slice(i, i + updateBatchSize);
+        
+        await Promise.all(
+          batch.map(relationship =>
+            prisma.user.update({
+              where: { id: relationship.userId },
+              data: { managerId: relationship.managerUserId },
+            })
+          )
+        );
+      }
+      
+      // Promote managers if needed (collect unique manager IDs first)
+      const uniqueManagerIds = [...new Set(successfulRelationships.map(r => r.managerUserId).filter(Boolean))];
+      console.log(`Promoting ${uniqueManagerIds.length} managers if needed...`);
+      
+      await Promise.all(
+        uniqueManagerIds.map(managerId =>
+          promoteManagerIfNeeded(managerId!, session.user.companyId)
+        )
+      );
     }
     
     // Add manager warnings to results

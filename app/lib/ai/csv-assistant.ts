@@ -163,9 +163,9 @@ export async function generateCSVTemplate(
     
     // Create sample row
     const sampleRow = fields.map(field => {
-      const value = sampleData[field as keyof typeof sampleData] || "";
+      const value = (sampleData as any)[field] || "";
       // Escape values that contain commas or quotes
-      if (value.includes(",") || value.includes('"')) {
+      if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
         return `"${value.replace(/"/g, '""')}"`;
       }
       return value;
@@ -205,7 +205,7 @@ Common CSV import issues and solutions:
 2. Invalid email format
 3. Invalid date format (should be YYYY-MM-DD)
 4. Department/job role not found in system
-5. Manager email not found
+5. Line manager not found
 6. Invalid employment type or contract type
 7. Invalid tax code
 8. Invalid boolean values

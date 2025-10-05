@@ -331,9 +331,11 @@ export async function POST(request: NextRequest) {
         const startDate = parseOptionalDate(validatedData.startDate, "startDate");
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);
+
         const managerEmail = trimToUndefined(validatedData.managerEmail);
         const lineManagerName =
           trimToUndefined(validatedData.lineManagerName) ?? trimToUndefined(validatedData.lineManager);
+
         if (managerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(managerEmail)) {
           throw new Error(`Invalid managerEmail "${managerEmail}". Provide a valid email address.`);
         }
@@ -481,15 +483,16 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Find manager if provided
+        // Resolve manager: prefer managerEmail; fall back to lineManagerName
         let managerUser = null;
         const managerErrors: string[] = [];
+        const lineManagerErrors: string[] = [];
 
         if (managerEmail) {
           managerUser = await prisma.user.findFirst({
             where: {
-              email: managerEmail,
               companyId: session.user.companyId,
+              email: managerEmail,
             },
           });
 
@@ -505,28 +508,25 @@ export async function POST(request: NextRequest) {
           const nameSearchConditions: Prisma.UserWhereInput[] = [];
 
           if (managerNameParts.length >= 2) {
-            const firstName = managerNameParts[0];
-            const lastName = managerNameParts.slice(1).join(" ");
+            const firstNamePart = managerNameParts[0];
+            const lastNamePart = managerNameParts.slice(1).join(" ");
             nameSearchConditions.push({
               AND: [
-                { firstName: { equals: firstName, mode: "insensitive" } },
-                { lastName: { equals: lastName, mode: "insensitive" } },
+                { firstName: { equals: firstNamePart, mode: "insensitive" } },
+                { lastName: { equals: lastNamePart, mode: "insensitive" } },
               ],
             });
           }
 
+          // exact full-name match on "name"
           nameSearchConditions.push({
             name: { equals: lineManagerName, mode: "insensitive" },
           });
 
           if (managerNameParts.length === 1) {
             const [singleName] = managerNameParts;
-            nameSearchConditions.push({
-              firstName: { equals: singleName, mode: "insensitive" },
-            });
-            nameSearchConditions.push({
-              lastName: { equals: singleName, mode: "insensitive" },
-            });
+            nameSearchConditions.push({ firstName: { equals: singleName, mode: "insensitive" } });
+            nameSearchConditions.push({ lastName: { equals: singleName, mode: "insensitive" } });
           }
 
           managerUser = await prisma.user.findFirst({
@@ -537,17 +537,17 @@ export async function POST(request: NextRequest) {
           });
 
           if (!managerUser) {
-            managerErrors.push(
+            lineManagerErrors.push(
               `Line manager "${lineManagerName}" not found. Import managers before their team members.`
             );
           }
         }
 
-        if (!managerUser && managerErrors.length > 0) {
+        if (!managerUser && (managerErrors.length > 0 || lineManagerErrors.length > 0)) {
           results.failed++;
           results.errors.push({
             row: rowNumber,
-            errors: managerErrors,
+            errors: [...managerErrors, ...lineManagerErrors],
           });
           continue;
         }

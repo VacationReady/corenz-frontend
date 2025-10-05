@@ -265,10 +265,9 @@ const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
               { label: "startDate" },
               { label: "contractEndDate" },
               { label: "workingPatternName", note: "Must match an imported working pattern" },
-              { label: "managerEmail" },
               {
                 label: "lineManagerName",
-                note: "Full name of the line manager (used if managerEmail is not provided)",
+                note: "Full name of the line manager used to build reporting lines",
               },
               { label: "salaryAmount" },
               { label: "hourlyRate" },

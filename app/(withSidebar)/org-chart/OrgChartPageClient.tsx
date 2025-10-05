@@ -199,7 +199,7 @@ function OrgChartPageClient() {
       }
 
       try {
-        const res = await fetch("/api/employees?status=active", {
+        const res = await fetch("/api/employees?status=all", {
           credentials: "include",
         });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
@@ -30,9 +30,15 @@ import {
   Zap,
   ArrowUpRight,
   ArrowDownRight,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+import {
+  DEFAULT_SURVEY_TEMPLATES,
+  ensureDefaultSurveyTemplates,
+  findTemplateMetaBySlug,
+} from "@/lib/survey-templates";
 
 interface SurveyStats {
   totalSurveys: number;
@@ -77,6 +83,8 @@ export default function SurveysDashboard() {
   });
   const [activeSurveys, setActiveSurveys] = useState<ActiveSurvey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [templateLibrary, setTemplateLibrary] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -105,6 +113,30 @@ export default function SurveysDashboard() {
 
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        setTemplatesLoading(true);
+        const forms = await ensureDefaultSurveyTemplates();
+        setTemplateLibrary(Array.isArray(forms) ? forms : []);
+      } catch (error) {
+        console.error("Failed to load survey templates:", error);
+      } finally {
+        setTemplatesLoading(false);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
+  const curatedTemplates = useMemo(() => {
+    const bySlug = new Map((templateLibrary || []).map((template: any) => [template.slug, template]));
+    return DEFAULT_SURVEY_TEMPLATES.map((definition) => ({
+      definition,
+      instance: bySlug.get(definition.slug),
+    }));
+  }, [templateLibrary]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -156,6 +188,67 @@ export default function SurveysDashboard() {
       }
     >
       <div className="space-y-6">
+        <Card className="relative overflow-hidden border border-primary/10 bg-gradient-to-br from-slate-900 via-indigo-900 to-blue-900 text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)]" />
+          <CardContent className="relative z-10 flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wider">
+                <Sparkles className="h-3 w-3" /> Template library spotlight
+              </div>
+              <h2 className="text-xl font-semibold text-white md:text-2xl">
+                Kickstart surveys with curated experiences
+              </h2>
+              <p className="text-sm text-slate-200">
+                Choose from eNPS, pulse, and annual engagement templates—each crafted with premium employee experience in mind.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+                {curatedTemplates.map(({ definition, instance }) => (
+                  <span
+                    key={definition.slug}
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${
+                      instance ? "bg-white/10" : "bg-white/5"
+                    }`}
+                  >
+                    <span className="text-base">{definition.emoji}</span>
+                    {definition.name}
+                    {!instance && (
+                      <Badge variant="secondary" className="ml-2 border-white/30 bg-white/20 text-[10px] text-white">
+                        Seeding…
+                      </Badge>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm backdrop-blur">
+              <p className="text-xs uppercase tracking-wide text-slate-200">Templates ready</p>
+              <div className="mt-2 flex items-baseline gap-2 text-3xl font-semibold">
+                {templateLibrary.length}
+                <span className="text-sm text-slate-200">available</span>
+              </div>
+              <p className="mt-3 text-xs text-slate-100">
+                {templatesLoading
+                  ? "Generating your starter library…"
+                  : "Edit any template before sending or scheduling."}
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button asChild variant="secondary" className="bg-white text-slate-900 hover:bg-white/90">
+                  <Link href="/surveys/send">
+                    <Send className="mr-2 h-4 w-4" />
+                    Send a survey
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="border-white/40 text-white hover:bg-white/10">
+                  <Link href="/settings/surveys">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Refine templates
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">

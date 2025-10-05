@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useSession } from "next-auth/react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
@@ -320,6 +321,7 @@ const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
 };
 
 export default function CSVImportPage() {
+  const { data: session } = useSession();
   const [importProgress, setImportProgress] = useState<ImportProgress>({
     status: "idle",
     progress: 0,
@@ -337,6 +339,14 @@ export default function CSVImportPage() {
   });
   const [lastImportedType, setLastImportedType] = useState<ImportType | null>(null);
   const [allowUpdates, setAllowUpdates] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resettingSystem, setResettingSystem] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+
+  const isAdmin =
+    session?.user?.role === "ADMIN" ||
+    session?.user?.role === "SUPER_ADMIN" ||
+    session?.user?.canManageTenants === true;
   const [showWelcomeEmailOptions, setShowWelcomeEmailOptions] = useState(false);
   const [welcomeFilters, setWelcomeFilters] = useState<WelcomeFilters>({
     departmentIds: [],
@@ -630,6 +640,45 @@ export default function CSVImportPage() {
     }
   };
 
+  const handleResetDialogChange = (open: boolean) => {
+    setResetDialogOpen(open);
+    if (!open) {
+      setResetError(null);
+    }
+  };
+
+  const handleSystemReset = async () => {
+    setResettingSystem(true);
+    setResetError(null);
+
+    try {
+      const response = await fetch("/api/system/reset", {
+        method: "POST",
+        credentials: "include",
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message =
+          (payload && typeof payload.error === "string" && payload.error) ||
+          "We couldn't reset the data. Please try again.";
+        setResetError(message);
+        return;
+      }
+
+      resetImport();
+      toast.success(
+        "All company data linked to this import has been cleared. You're ready to start fresh.",
+      );
+      setResetDialogOpen(false);
+    } catch (error) {
+      console.error("System reset failed", error);
+      setResetError("Unexpected error while resetting data. Please try again.");
+    } finally {
+      setResettingSystem(false);
+    }
+  };
+
   const handleActivateEmployees = async () => {
     if (!importProgress.result?.created) {
       toast.error("No employees to activate");
@@ -808,6 +857,64 @@ export default function CSVImportPage() {
               <X className="w-4 h-4 mr-2" />
               Reset
             </Button>
+          )}
+          {isAdmin && (
+            <Dialog
+              open={resetDialogOpen}
+              onOpenChange={handleResetDialogChange}
+            >
+              <DialogTrigger asChild>
+                <Button variant="danger" disabled={resettingSystem}>
+                  {resettingSystem ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                  )}
+                  Reset system
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="space-y-4">
+                <DialogHeader>
+                  <DialogTitle>Reset company data</DialogTitle>
+                  <DialogDescription>
+                    Remove all employees, departments, job roles, working patterns,
+                    and leave settings created via CSV import. Your own admin user is
+                    preserved so you can start again.
+                  </DialogDescription>
+                </DialogHeader>
+                <Alert variant="destructive">
+                  <AlertTitle>This cannot be undone</AlertTitle>
+                  <AlertDescription>
+                    Confirming will permanently erase imported data. Make sure you
+                    have backups of any reports you need to keep.
+                  </AlertDescription>
+                </Alert>
+                {resetError && (
+                  <p className="text-sm text-destructive">{resetError}</p>
+                )}
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleResetDialogChange(false)}
+                    disabled={resettingSystem}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={handleSystemReset}
+                    disabled={resettingSystem}
+                  >
+                    {resettingSystem ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCcw className="w-4 h-4 mr-2" />
+                    )}
+                    Confirm reset
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       }

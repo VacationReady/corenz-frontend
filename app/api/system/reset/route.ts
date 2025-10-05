@@ -6,6 +6,33 @@ import { auditLog } from "@/lib/audit";
 import { Prisma, Role } from "@prisma/client";
 
 const RESET_EMAIL_DOMAIN = "reset.peoplecore.invalid";
+const CHUNK_SIZE = 200;
+
+const chunkValues = <T>(values: readonly T[], chunkSize: number): T[][] => {
+  if (values.length === 0) {
+    return [];
+  }
+
+  const result: T[][] = [];
+  for (let index = 0; index < values.length; index += chunkSize) {
+    result.push(values.slice(index, index + chunkSize));
+  }
+
+  return result;
+};
+
+const runChunked = async <T>(
+  values: readonly T[],
+  chunkSize: number,
+  handler: (chunk: T[]) => Promise<void>,
+) => {
+  const chunks = chunkValues(values, chunkSize);
+  for (const chunk of chunks) {
+    if (chunk.length > 0) {
+      await handler(chunk);
+    }
+  }
+};
 
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -33,23 +60,14 @@ export async function POST() {
   try {
     const summary = await prisma.$transaction(
       async (tx) => {
-        // Helpers to safely batch large IN() deletes/updates to avoid parameter/lock issues
-        const chunk = <T,>(items: T[], size = 100) => {
-          const result: T[][] = [];
-          for (let i = 0; i < items.length; i += size) {
-            result.push(items.slice(i, i + size));
-          }
-          return result;
-        };
-
+        // Helpers to run generic operations in chunks using the global CHUNK_SIZE
         const runInChunks = async <T>(
           ids: T[],
           handler: (batch: T[]) => Promise<unknown>,
         ) => {
-          for (const batch of chunk(ids)) {
-            if (!batch.length) continue;
+          await runChunked(ids, CHUNK_SIZE, async (batch) => {
             await handler(batch);
-          }
+          });
         };
 
         // Gather all employees in this company except the current user
@@ -61,10 +79,17 @@ export async function POST() {
           select: { id: true, userId: true },
         });
 
-        const employeeIds = employees.map((emp) => emp.id);
-        const userIds = employees
-          .map((emp) => emp.userId)
-          .filter((userId): userId is string => typeof userId === "string" && userId.length > 0);
+        const employeeIds = Array.from(new Set(employees.map((emp) => emp.id)));
+        const userIds = Array.from(
+          new Set(
+            employees
+              .map((emp) => emp.userId)
+              .filter(
+                (userId): userId is string =>
+                  typeof userId === "string" && userId.length > 0,
+              ),
+          ),
+        );
 
         // Wipe all employee-scoped data in safe chunks
         if (employeeIds.length) {
@@ -159,6 +184,11 @@ export async function POST() {
               tx.actionItem.deleteMany({
                 where: { relatedEmployeeId: { in: ids } },
               }),
+            // Ensure any employee-bound documents are removed
+            (ids) =>
+              tx.document.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
           ];
 
           for (const deleteOperation of employeeScopedDeletions) {
@@ -185,14 +215,12 @@ export async function POST() {
               }),
             (ids) =>
               tx.actionItem.deleteMany({
-                where: {
-                  companyId,
-                  assignedToId: { in: ids },
-                },
+                where: { companyId, assignedToId: { in: ids } },
               }),
             (ids) =>
               tx.activationToken.deleteMany({ where: { userId: { in: ids } } }),
-            (ids) => tx.newsPost.deleteMany({ where: { authorId: { in: ids } } }),
+            (ids) =>
+              tx.newsPost.deleteMany({ where: { authorId: { in: ids } } }),
             (ids) =>
               tx.newsReaction.deleteMany({ where: { userId: { in: ids } } }),
             (ids) =>
@@ -201,16 +229,14 @@ export async function POST() {
               tx.globalAuditLog.deleteMany({
                 where: { companyId, actorId: { in: ids } },
               }),
-            // We'll set role/canManageTenants as part of the bulk scrub below.
           ];
 
           for (const operation of userScopedOperations) {
             await runInChunks(userIds, operation);
           }
 
-          // Explicitly clear Sessions in chunks using raw SQL (NextAuth sessions)
-          for (const batch of chunk(userIds)) {
-            if (!batch.length) continue;
+          // Explicitly clear NextAuth sessions in chunks using raw SQL
+          await runInChunks(userIds, async (batch) => {
             try {
               await tx.$executeRaw(
                 Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
@@ -223,18 +249,16 @@ export async function POST() {
                 error,
               );
             }
-          }
+          });
 
-          // Bulk-scrub users with a single UPDATE using id-derived placeholder email.
-          const userScope = Prisma.sql`${Prisma.join(userIds)}`;
+          // Scrub users: placeholder email + reset core fields
           const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
-          const scrubbed = await tx.$queryRaw<Array<{ count: bigint }>>(
-            Prisma.sql`
-              SELECT COUNT(*)::int AS count
-              FROM (
+          await runInChunks(userIds, async (batch) => {
+            const updatedCount = await tx.$executeRaw(
+              Prisma.sql`
                 UPDATE "User"
                 SET
-                  "email" = "id" || ${placeholderSuffix},
+                  "email" = concat('deleted-', "id"::text, ${placeholderSuffix}),
                   "firstName" = 'Deleted',
                   "lastName" = 'User',
                   "phone" = NULL,
@@ -247,12 +271,11 @@ export async function POST() {
                   "role" = ${Role.EMPLOYEE},
                   "canManageTenants" = FALSE,
                   "updatedAt" = NOW()
-                WHERE "id" IN (${userScope})
-                RETURNING 1
-              ) AS updated
-            `,
-          );
-          scrubbedUsers = Number(scrubbed[0]?.count ?? 0);
+                WHERE "id" IN (${Prisma.join(batch)})
+              `,
+            );
+            scrubbedUsers += Number(updatedCount ?? 0);
+          });
         }
 
         // Remove employees themselves (excluding the current user)

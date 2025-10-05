@@ -221,13 +221,17 @@ function OrgChartPageClient() {
         setRawEmployees(
           data.map((raw) => {
             const emp = raw as Partial<ApiEmployee> & Record<string, unknown>;
+            const rawRole =
+              typeof emp.role === "string" ? (emp.role as string) : undefined;
 
             const safeRole: ApiEmployee["role"] = (() => {
-              switch (emp.role) {
+              switch (rawRole) {
                 case "ADMIN":
                 case "MANAGER":
                 case "EMPLOYEE":
-                  return emp.role;
+                  return rawRole;
+                case "SUPER_ADMIN":
+                  return "ADMIN";
                 default:
                   return "EMPLOYEE";
               }

@@ -529,14 +529,21 @@ export async function POST(request: NextRequest) {
             nameSearchConditions.push({ lastName: { equals: singleName, mode: "insensitive" } });
           }
 
-          managerUser = await prisma.user.findFirst({
+          const matchingManagers = await prisma.user.findMany({
             where: {
               companyId: session.user.companyId,
               OR: nameSearchConditions,
             },
+            take: 2,
           });
 
-          if (!managerUser) {
+          if (matchingManagers.length === 1) {
+            managerUser = matchingManagers[0];
+          } else if (matchingManagers.length > 1) {
+            lineManagerErrors.push(
+              `Multiple managers match the name "${lineManagerName}". Provide managerEmail to import this employee.`
+            );
+          } else {
             lineManagerErrors.push(
               `Line manager "${lineManagerName}" not found. Import managers before their team members.`
             );

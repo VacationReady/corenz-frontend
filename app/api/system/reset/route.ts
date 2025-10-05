@@ -41,7 +41,9 @@ export async function POST() {
       });
 
       const employeeIds = employees.map((emp) => emp.id);
-      const userIds = employees.map((emp) => emp.userId);
+      const userIds = employees
+        .map((emp) => emp.userId)
+        .filter((userId): userId is string => typeof userId === "string" && userId.length > 0);
 
       if (employeeIds.length) {
         await Promise.all([
@@ -161,25 +163,27 @@ export async function POST() {
         where: { id: { in: employeeIds } },
       });
 
-      for (const userId of userIds) {
-        const placeholderEmail = `${userId}@${RESET_EMAIL_DOMAIN}`;
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            email: placeholderEmail,
-            firstName: "Deleted",
-            lastName: "User",
-            phone: null,
-            managerId: null,
-            permissionProfileId: null,
-            departmentId: null,
-            jobRoleId: null,
-            genderOptionId: null,
-            isActivated: false,
-            role: Role.EMPLOYEE,
-            canManageTenants: false,
-          },
-        });
+      if (userIds.length) {
+        for (const userId of userIds) {
+          const placeholderEmail = `${userId}@${RESET_EMAIL_DOMAIN}`;
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              email: placeholderEmail,
+              firstName: "Deleted",
+              lastName: "User",
+              phone: null,
+              managerId: null,
+              permissionProfileId: null,
+              departmentId: null,
+              jobRoleId: null,
+              genderOptionId: null,
+              isActivated: false,
+              role: Role.EMPLOYEE,
+              canManageTenants: false,
+            },
+          });
+        }
       }
 
       const departments = await tx.department.deleteMany({ where: { companyId } });

@@ -271,7 +271,19 @@ function OrgChartPageClient() {
   const employeesByUserId = useMemo(() => {
     const map = new Map<string, ApiEmployee>();
     rawEmployees.forEach((emp) => {
-      map.set(emp.userId, emp);
+      if (emp.userId) {
+        map.set(emp.userId, emp);
+      }
+    });
+    return map;
+  }, [rawEmployees]);
+
+  const employeesByEmployeeId = useMemo(() => {
+    const map = new Map<string, ApiEmployee>();
+    rawEmployees.forEach((emp) => {
+      if (emp.id) {
+        map.set(emp.id, emp);
+      }
     });
     return map;
   }, [rawEmployees]);
@@ -286,7 +298,8 @@ function OrgChartPageClient() {
         .trim();
       const safeName = fullName.length > 0 ? fullName : emp.email;
       const manager = emp.managerUserId
-        ? employeesByUserId.get(emp.managerUserId)
+        ? employeesByUserId.get(emp.managerUserId) ??
+          employeesByEmployeeId.get(emp.managerUserId)
         : undefined;
       const managerFullName = manager
         ? `${manager.firstName ?? ""} ${manager.lastName ?? ""}`
@@ -310,17 +323,21 @@ function OrgChartPageClient() {
         managerName: managerFullName,
       } satisfies OrgEmployee;
     });
-  }, [rawEmployees, employeesByUserId]);
+  }, [rawEmployees, employeesByUserId, employeesByEmployeeId]);
 
   const orgForest = useMemo<OrgNode[]>(() => {
     const byUserId = new Map<string, OrgNode>();
+    const byEmployeeId = new Map<string, OrgNode>();
     const nodes = normalizedEmployees.map<OrgNode>((emp) => ({
       ...emp,
       children: [],
     }));
 
     nodes.forEach((node) => {
-      byUserId.set(node.userId, node);
+      if (node.userId) {
+        byUserId.set(node.userId, node);
+      }
+      byEmployeeId.set(node.id, node);
     });
 
     const roots: OrgNode[] = [];
@@ -329,11 +346,23 @@ function OrgChartPageClient() {
       const managerId = node.managerUserId;
       if (
         managerId &&
-        managerId !== node.userId &&
-        byUserId.has(managerId)
+        managerId !== node.userId
       ) {
-        byUserId.get(managerId)!.children.push(node);
+        const managerNode =
+          byUserId.get(managerId) ?? byEmployeeId.get(managerId);
+
+        if (managerNode && managerNode !== node) {
+          managerNode.children.push(node);
+          return;
+        }
       } else {
+        roots.push(node);
+        return;
+      }
+
+      if (!managerId) {
+        roots.push(node);
+      } else if (!byUserId.has(managerId) && !byEmployeeId.has(managerId)) {
         roots.push(node);
       }
     });

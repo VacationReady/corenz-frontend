@@ -86,6 +86,35 @@ export default function EmployeeFormPage() {
     );
   }
 
+  // BLOCK SURVEY FORMS FROM EMPLOYEE PROFILES
+  if (form.formType === "SURVEY") {
+    return (
+      <PageShell title="Access Denied" description="Surveys are not accessible through employee profiles">
+        <div className="text-center py-16">
+          <p className="text-gray-500 mb-4">
+            Surveys are only accessible through the dedicated Surveys section. 
+            Please use the Surveys menu to access survey forms.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={() => router.push("/surveys")}
+              variant="primary"
+            >
+              Go to Surveys
+            </Button>
+            <Button
+              onClick={() => router.push(`/employees/${employeeId}/overview`)}
+              variant="outline"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Employee
+            </Button>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell
       title={form.name}

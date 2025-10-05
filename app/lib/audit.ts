@@ -6,6 +6,7 @@ export interface AuditLogData {
   action: string;
   actorId: string;
   actorType: "USER" | "SYSTEM";
+  summary?: string;
   changes?: any;
   metadata?: any;
   companyId?: string;

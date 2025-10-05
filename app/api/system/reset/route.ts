@@ -231,35 +231,6 @@ export async function POST() {
               tx.globalAuditLog.deleteMany({
                 where: { companyId, actorId: { in: ids } },
               }),
-            // Delete additional user-related records that might block user deletion
-            (ids) =>
-              tx.surveyRecipient.deleteMany({ where: { userId: { in: ids } } }),
-            (ids) =>
-              tx.surveyResponse.deleteMany({ where: { userId: { in: ids } } }),
-            (ids) =>
-              tx.formAssignment.deleteMany({ where: { assignedToId: { in: ids } } }),
-            (ids) =>
-              tx.formSubmission.deleteMany({ where: { submittedById: { in: ids } } }),
-            (ids) =>
-              tx.documentAcknowledgement.deleteMany({ where: { acknowledgedById: { in: ids } } }),
-            (ids) =>
-              tx.employeeAuditLog.deleteMany({ where: { changedById: { in: ids } } }),
-            (ids) =>
-              tx.employeePerformanceReview.deleteMany({ where: { reviewerId: { in: ids } } }),
-            (ids) =>
-              tx.onboardingAssignment.deleteMany({ where: { assignedToId: { in: ids } } }),
-            (ids) =>
-              tx.offboardingTask.deleteMany({ where: { assignedToId: { in: ids } } }),
-            (ids) =>
-              tx.offboardingTask.deleteMany({ where: { completedById: { in: ids } } }),
-            (ids) =>
-              tx.savedReport.deleteMany({ where: { createdById: { in: ids } } }),
-            (ids) =>
-              tx.reportSendHistory.deleteMany({ where: { sentById: { in: ids } } }),
-            (ids) =>
-              tx.transactionalChangeRequest.deleteMany({ where: { requesterId: { in: ids } } }),
-            (ids) =>
-              tx.transactionalChangeRequest.deleteMany({ where: { decidedById: { in: ids } } }),
           ];
 
           for (const operation of userScopedOperations) {

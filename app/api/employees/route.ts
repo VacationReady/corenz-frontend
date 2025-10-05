@@ -155,6 +155,7 @@ export async function GET(req: Request) {
             createdAt: true,
             profileImageUrl: true,
             managerId: true,
+            PermissionProfile: { select: { name: true } },
           },
         },
         Department: {
@@ -209,6 +210,7 @@ export async function GET(req: Request) {
           lastWorkingDate: emp.lastWorkingDate,
           offboardingRecord: emp.EmployeeOffboarding,
           profileImageUrl: profileUrl,
+          permissionProfileName: emp.User.PermissionProfile?.name ?? null,
         } as const;
       }),
     );

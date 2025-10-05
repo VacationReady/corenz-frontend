@@ -1,16 +1,20 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -77,6 +81,11 @@ export default function SurveyAnalyticsPage() {
   const [analytics, setAnalytics] = useState<SurveyAnalytics[]>([]);
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [emailRecipients, setEmailRecipients] = useState("");
+  const [digestMessage, setDigestMessage] = useState("");
+  const [scheduleWeekly, setScheduleWeekly] = useState(false);
+  const [sendingDigest, setSendingDigest] = useState(false);
 
   useEffect(() => {
     const loadAnalytics = async () => {
@@ -123,9 +132,106 @@ export default function SurveyAnalyticsPage() {
     return "Negative";
   };
 
-  const handleExportAnalytics = () => {
-    // TODO: Implement export functionality
-    toast.success("Analytics exported successfully");
+  const handleDownloadCSV = () => {
+    const csvData = generateAnalyticsCSV(analytics);
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `survey_analytics_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast.success("CSV downloaded successfully");
+    setExportDialogOpen(false);
+  };
+
+  const handleSendDigest = async () => {
+    if (!emailRecipients.trim()) {
+      toast.error("Please enter at least one email address");
+      return;
+    }
+
+    const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+    const invalidEmails = emails.filter(email => !email.includes('@'));
+    
+    if (invalidEmails.length > 0) {
+      toast.error("Please enter valid email addresses");
+      return;
+    }
+
+    setSendingDigest(true);
+    try {
+      // For now, we'll send a digest for the first survey as an example
+      // In a real implementation, you might want to aggregate all surveys
+      const firstSurvey = analytics[0];
+      if (!firstSurvey) {
+        toast.error("No survey data available to send");
+        return;
+      }
+
+      const response = await fetch(`/api/surveys/${firstSurvey.id}/digest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipients: emails,
+          message: digestMessage.trim() || undefined,
+          schedule: scheduleWeekly ? "WEEKLY" : null,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message || "Digest sent successfully");
+        setExportDialogOpen(false);
+        setEmailRecipients("");
+        setDigestMessage("");
+        setScheduleWeekly(false);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to send digest");
+      }
+    } catch (error) {
+      console.error("Error sending digest:", error);
+      toast.error("Failed to send digest");
+    } finally {
+      setSendingDigest(false);
+    }
+  };
+
+  const generateAnalyticsCSV = (data: SurveyAnalytics[]): string => {
+    const headers = [
+      'Survey Name',
+      'Template',
+      'Total Responses',
+      'Response Rate (%)',
+      'Average Score',
+      'Sentiment Score (%)',
+      'Completion Date',
+      'Key Insights',
+      'Top Themes'
+    ];
+
+    const rows = data.map(survey => [
+      survey.name,
+      survey.templateName,
+      survey.totalResponses.toString(),
+      survey.responseRate.toString(),
+      survey.averageScore?.toString() || 'N/A',
+      (survey.sentimentScore * 100).toFixed(0),
+      new Date(survey.completionDate).toLocaleDateString(),
+      survey.keyInsights.join('; '),
+      survey.topThemes.join('; ')
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    return csvContent;
   };
 
   return (
@@ -142,10 +248,82 @@ export default function SurveyAnalyticsPage() {
       }}
       action={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportAnalytics}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
+          <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Export Survey Analytics</DialogTitle>
+                <DialogDescription>
+                  Choose how you'd like to export or share your survey analytics data.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="space-y-4">
+                  <Button 
+                    onClick={handleDownloadCSV} 
+                    className="w-full justify-start" 
+                    variant="outline"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download as CSV
+                  </Button>
+                  
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3">Email Results to Management</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="recipients">Email Recipients</Label>
+                        <Input
+                          id="recipients"
+                          placeholder="manager@company.com, executive@company.com"
+                          value={emailRecipients}
+                          onChange={(e) => setEmailRecipients(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Separate multiple emails with commas
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="message">Optional Message</Label>
+                        <Textarea
+                          id="message"
+                          placeholder="Add a personal message to the digest..."
+                          value={digestMessage}
+                          onChange={(e) => setDigestMessage(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="schedule"
+                          checked={scheduleWeekly}
+                          onCheckedChange={setScheduleWeekly}
+                        />
+                        <Label htmlFor="schedule" className="text-sm">
+                          Schedule weekly digest
+                        </Label>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleSendDigest} 
+                        disabled={sendingDigest}
+                        className="w-full"
+                      >
+                        {sendingDigest ? "Sending..." : "Send Digest"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline">
             <Filter className="w-4 h-4 mr-2" />
             Filter

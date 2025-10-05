@@ -71,12 +71,28 @@ export default function SurveyAutomationPage() {
 
   const handleToggleAutomation = async (automationId: string, isActive: boolean) => {
     try {
-      // TODO: Implement toggle automation API call
-      setAutomations(prev => prev.map(auto => 
-        auto.id === automationId ? { ...auto, isActive: !isActive } : auto
-      ));
-      toast.success(`Automation ${isActive ? 'paused' : 'activated'} successfully`);
+      const response = await fetch("/api/surveys/automation", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: automationId,
+          isActive: !isActive,
+        }),
+      });
+
+      if (response.ok) {
+        setAutomations(prev => prev.map(auto => 
+          auto.id === automationId ? { ...auto, isActive: !isActive } : auto
+        ));
+        toast.success(`Automation ${isActive ? 'paused' : 'activated'} successfully`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update automation");
+      }
     } catch (error) {
+      console.error("Error toggling automation:", error);
       toast.error("Failed to update automation");
     }
   };
@@ -85,10 +101,19 @@ export default function SurveyAutomationPage() {
     if (!confirm("Are you sure you want to delete this automation rule?")) return;
     
     try {
-      // TODO: Implement delete automation API call
-      setAutomations(prev => prev.filter(auto => auto.id !== automationId));
-      toast.success("Automation rule deleted successfully");
+      const response = await fetch(`/api/surveys/automation?id=${automationId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setAutomations(prev => prev.filter(auto => auto.id !== automationId));
+        toast.success("Automation rule deleted successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to delete automation rule");
+      }
     } catch (error) {
+      console.error("Error deleting automation:", error);
       toast.error("Failed to delete automation rule");
     }
   };

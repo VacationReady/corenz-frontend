@@ -15,6 +15,14 @@ const createAutomationSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const updateAutomationSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+  nextRunAt: z.string().datetime().optional().nullable(),
+});
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -155,6 +163,138 @@ export async function POST(request: NextRequest) {
     console.error("Error creating survey automation:", error);
     return NextResponse.json(
       { error: "Failed to create automation" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const validatedData = updateAutomationSchema.parse(body);
+
+    // Verify automation exists and belongs to company
+    const existingAutomation = await prisma.surveyAutomation.findFirst({
+      where: {
+        id: validatedData.id,
+        companyId: session.user.companyId,
+      },
+    });
+
+    if (!existingAutomation) {
+      return NextResponse.json(
+        { error: "Automation not found" },
+        { status: 404 }
+      );
+    }
+
+    // Calculate next run time if reactivating
+    let nextRunAt = validatedData.nextRunAt ? new Date(validatedData.nextRunAt) : undefined;
+    if (validatedData.isActive === true && !existingAutomation.isActive && existingAutomation.frequency) {
+      const now = new Date();
+      switch (existingAutomation.frequency) {
+        case "WEEKLY":
+          nextRunAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "MONTHLY":
+          nextRunAt = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+          break;
+        case "QUARTERLY":
+          nextRunAt = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate());
+          break;
+        case "ANNUALLY":
+          nextRunAt = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+          break;
+      }
+    }
+
+    const updateData: any = {
+      ...validatedData,
+      updatedAt: new Date(),
+    };
+
+    if (nextRunAt) {
+      updateData.nextRunAt = nextRunAt;
+    }
+
+    const automation = await prisma.surveyAutomation.update({
+      where: { id: validatedData.id },
+      data: updateData,
+      include: {
+        Form: true,
+        CreatedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(automation);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid data", details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    console.error("Error updating survey automation:", error);
+    return NextResponse.json(
+      { error: "Failed to update automation" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Automation ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify automation exists and belongs to company
+    const automation = await prisma.surveyAutomation.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+      },
+    });
+
+    if (!automation) {
+      return NextResponse.json(
+        { error: "Automation not found" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.surveyAutomation.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting survey automation:", error);
+    return NextResponse.json(
+      { error: "Failed to delete automation" },
       { status: 500 }
     );
   }

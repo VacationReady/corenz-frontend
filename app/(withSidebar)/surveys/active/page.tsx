@@ -52,7 +52,12 @@ export default function ActiveSurveysPage() {
         const res = await fetch("/api/surveys?status=ACTIVE");
         if (res.ok) {
           const data = await res.json();
-          setSurveys(data.surveys || []);
+          // Normalize status to lowercase for UI consistency
+          const normalizedSurveys = (data.surveys || []).map((survey: any) => ({
+            ...survey,
+            status: survey.status.toLowerCase(),
+          }));
+          setSurveys(normalizedSurveys);
         } else {
           setSurveys([]);
         }
@@ -84,18 +89,56 @@ export default function ActiveSurveysPage() {
 
   const handlePauseSurvey = async (surveyId: string) => {
     try {
-      // TODO: Implement pause survey API call
-      toast.success("Survey paused successfully");
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "PAUSED" }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSurveys(prev => prev.map(survey => 
+          survey.id === surveyId 
+            ? { ...survey, status: "paused" }
+            : survey
+        ));
+        toast.success("Survey paused successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to pause survey");
+      }
     } catch (error) {
+      console.error("Error pausing survey:", error);
       toast.error("Failed to pause survey");
     }
   };
 
   const handleResumeSurvey = async (surveyId: string) => {
     try {
-      // TODO: Implement resume survey API call
-      toast.success("Survey resumed successfully");
+      const response = await fetch(`/api/surveys/${surveyId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSurveys(prev => prev.map(survey => 
+          survey.id === surveyId 
+            ? { ...survey, status: "active" }
+            : survey
+        ));
+        toast.success("Survey resumed successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to resume survey");
+      }
     } catch (error) {
+      console.error("Error resuming survey:", error);
       toast.error("Failed to resume survey");
     }
   };

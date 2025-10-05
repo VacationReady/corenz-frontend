@@ -11,6 +11,7 @@ const sendSurveySchema = z.object({
     jobRoles: z.array(z.string()).optional(),
     roles: z.array(z.string()).optional(),
     employees: z.array(z.string()).optional(),
+    excludedEmployees: z.array(z.string()).optional(),
     allEmployees: z.boolean().optional(),
   }).optional(),
   deadline: z.string().datetime().optional(),
@@ -57,7 +58,7 @@ export async function POST(
     };
 
     if (validatedData.targetAudience) {
-      const { departments, jobRoles, roles, employees, allEmployees } = validatedData.targetAudience;
+      const { departments, jobRoles, roles, employees, excludedEmployees, allEmployees } = validatedData.targetAudience;
 
       if (employees && employees.length > 0) {
         employeeWhere.id = { in: employees };
@@ -79,6 +80,13 @@ export async function POST(
         if (conditions.length > 0) {
           employeeWhere.OR = conditions;
         }
+      }
+
+      // Apply excluded employees filter
+      if (excludedEmployees && excludedEmployees.length > 0) {
+        employeeWhere.id = employeeWhere.id 
+          ? { ...employeeWhere.id, notIn: excludedEmployees }
+          : { notIn: excludedEmployees };
       }
     } else {
       // Default to all employees if no specific audience
@@ -154,7 +162,10 @@ export async function POST(
         sentDate: new Date(),
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
         totalRecipients: employees.length,
-        metadata: validatedData.targetAudience,
+        metadata: {
+          ...survey.metadata,
+          ...validatedData.targetAudience,
+        },
       },
     });
 

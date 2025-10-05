@@ -64,10 +64,7 @@ export async function POST() {
         const employeeIds = employees.map((emp) => emp.id);
         const userIds = employees
           .map((emp) => emp.userId)
-          .filter(
-            (userId): userId is string =>
-              typeof userId === "string" && userId.length > 0,
-          );
+          .filter((userId): userId is string => typeof userId === "string" && userId.length > 0);
 
         // Wipe all employee-scoped data in safe chunks
         if (employeeIds.length) {
@@ -170,6 +167,8 @@ export async function POST() {
         }
 
         // Wipe user-scoped data for those employees (requests they made, tokens, sessions, etc.)
+        let scrubbedUsers = 0;
+
         if (userIds.length) {
           const userScopedOperations: Array<
             (ids: string[]) => Promise<unknown>
@@ -202,11 +201,7 @@ export async function POST() {
               tx.globalAuditLog.deleteMany({
                 where: { companyId, actorId: { in: ids } },
               }),
-            (ids) =>
-              tx.user.updateMany({
-                where: { id: { in: ids } },
-                data: { role: Role.EMPLOYEE, canManageTenants: false },
-              }),
+            // We'll set role/canManageTenants as part of the bulk scrub below.
           ];
 
           for (const operation of userScopedOperations) {
@@ -229,36 +224,41 @@ export async function POST() {
               );
             }
           }
+
+          // Bulk-scrub users with a single UPDATE using id-derived placeholder email.
+          const userScope = Prisma.sql`${Prisma.join(userIds)}`;
+          const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
+          const scrubbed = await tx.$queryRaw<Array<{ count: bigint }>>(
+            Prisma.sql`
+              SELECT COUNT(*)::int AS count
+              FROM (
+                UPDATE "User"
+                SET
+                  "email" = "id" || ${placeholderSuffix},
+                  "firstName" = 'Deleted',
+                  "lastName" = 'User',
+                  "phone" = NULL,
+                  "managerId" = NULL,
+                  "permissionProfileId" = NULL,
+                  "departmentId" = NULL,
+                  "jobRoleId" = NULL,
+                  "genderOptionId" = NULL,
+                  "isActivated" = FALSE,
+                  "role" = ${Role.EMPLOYEE},
+                  "canManageTenants" = FALSE,
+                  "updatedAt" = NOW()
+                WHERE "id" IN (${userScope})
+                RETURNING 1
+              ) AS updated
+            `,
+          );
+          scrubbedUsers = Number(scrubbed[0]?.count ?? 0);
         }
 
-        // Remove employees themselves
+        // Remove employees themselves (excluding the current user)
         const { count: removedEmployees } = await tx.employee.deleteMany({
-          where: { id: { in: employeeIds } },
+          where: { companyId, NOT: { userId: currentUserId } },
         });
-
-        // Scrub the corresponding user accounts (placeholder email + reset fields)
-        if (userIds.length) {
-          for (const userId of userIds) {
-            const placeholderEmail = `${userId}@${RESET_EMAIL_DOMAIN}`;
-            await tx.user.update({
-              where: { id: userId },
-              data: {
-                email: placeholderEmail,
-                firstName: "Deleted",
-                lastName: "User",
-                phone: null,
-                managerId: null,
-                permissionProfileId: null,
-                departmentId: null,
-                jobRoleId: null,
-                genderOptionId: null,
-                isActivated: false,
-                role: Role.EMPLOYEE,
-                canManageTenants: false,
-              },
-            });
-          }
-        }
 
         // Company-level reference data
         const departments = await tx.department.deleteMany({ where: { companyId } });
@@ -279,7 +279,7 @@ export async function POST() {
 
         return {
           removedEmployees,
-          scrubbedUsers: userIds.length,
+          scrubbedUsers,
           removedDepartments: departments.count,
           removedJobRoles: jobRoles.count,
           removedWorkingPatterns: workingPatterns.count,

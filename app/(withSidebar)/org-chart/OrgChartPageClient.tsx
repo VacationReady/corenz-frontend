@@ -118,6 +118,7 @@ interface ApiEmployee {
   isActive: boolean;
   profileImageUrl?: string | null;
   managerUserId?: string | null;
+  permissionProfileName?: string | null;
 }
 
 interface OrgEmployee {
@@ -199,7 +200,7 @@ function OrgChartPageClient() {
       }
 
       try {
-        const res = await fetch("/api/employees?status=all", {
+        const res = await fetch("/api/org-chart", {
           credentials: "include",
           cache: "no-store",
           headers: {
@@ -257,6 +258,8 @@ function OrgChartPageClient() {
               profileImageUrl:
                 (emp.profileImageUrl as string | null | undefined) ?? null,
               managerUserId: managerIdRaw.length > 0 ? managerIdRaw : null,
+              permissionProfileName:
+                (emp.permissionProfileName as string | null | undefined) ?? null,
             } satisfies ApiEmployee;
           }),
         );
@@ -331,6 +334,7 @@ function OrgChartPageClient() {
         profileImageUrl: emp.profileImageUrl ?? null,
         managerUserId: emp.managerUserId ?? null,
         managerName: managerFullName,
+        permissionProfileName: emp.permissionProfileName ?? null,
       } satisfies OrgEmployee;
     });
   }, [rawEmployees, employeesByUserId, employeesByEmployeeId]);

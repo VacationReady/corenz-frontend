@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { auditLog } from "@/lib/audit";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 
 const RESET_EMAIL_DOMAIN = "reset.peoplecore.invalid";
 
@@ -138,9 +138,23 @@ export async function POST() {
           tx.globalAuditLog.deleteMany({
             where: { companyId, actorId: { in: userIds } },
           }),
+          tx.user.updateMany({
+            where: { id: { in: userIds } },
+            data: { role: Role.EMPLOYEE, canManageTenants: false },
+          }),
         ];
 
         await Promise.all(userScopedTasks);
+
+        try {
+          await tx.$executeRaw(
+            Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
+              userIds,
+            )})`,
+          );
+        } catch (error) {
+          console.warn("Failed to remove persisted sessions during reset", error);
+        }
       }
 
       const { count: removedEmployees } = await tx.employee.deleteMany({
@@ -162,6 +176,8 @@ export async function POST() {
             jobRoleId: null,
             genderOptionId: null,
             isActivated: false,
+            role: Role.EMPLOYEE,
+            canManageTenants: false,
           },
         });
       }

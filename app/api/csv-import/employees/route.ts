@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { parse } from "csv-parse/sync";
 import { auditLog } from "@/lib/audit";
-import { Prisma, TaxCode } from "@prisma/client";
+import { Prisma, TaxCode, Role } from "@prisma/client";
 
 const employeeImportSchema = z.object({
   // Personal information
@@ -202,6 +202,53 @@ const normaliseTaxCode = (value: string | undefined): TaxCode | undefined => {
   const withSpaces = upper.replace(/[_-]+/g, " ");
   const condensed = withSpaces.replace(/\s+/g, "");
   return TAX_CODE_LOOKUP[withSpaces] || TAX_CODE_LOOKUP[condensed];
+};
+
+const promoteManagerIfNeeded = async (
+  managerUserId: string,
+  companyId: string,
+) => {
+  try {
+    const managerUser = await prisma.user.findFirst({
+      where: { id: managerUserId, companyId },
+      select: { id: true, role: true },
+    });
+
+    if (!managerUser) {
+      return;
+    }
+
+    if (
+      managerUser.role === Role.ADMIN ||
+      managerUser.role === Role.MANAGER ||
+      managerUser.role === Role.SUPER_ADMIN
+    ) {
+      return;
+    }
+
+    if (managerUser.role === Role.EMPLOYEE) {
+      const managerProfile = await prisma.permissionProfile.findFirst({
+        where: {
+          companyId,
+          name: { equals: "Manager", mode: "insensitive" },
+        },
+        select: { id: true },
+      });
+
+      await prisma.user.update({
+        where: { id: managerUserId },
+        data: {
+          role: Role.MANAGER,
+          ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
+        },
+      });
+    }
+  } catch (error) {
+    console.warn(
+      `Failed to auto-promote manager role for ${managerUserId}:`,
+      error,
+    );
+  }
 };
 
 const parseBooleanFlag = (value: unknown): boolean | undefined => {
@@ -647,6 +694,10 @@ export async function POST(request: NextRequest) {
             data: userUpdateData,
           });
 
+          if (managerUser) {
+            await promoteManagerIfNeeded(managerUser.id, session.user.companyId);
+          }
+
           const employeeUpdateData: Record<string, unknown> = {};
           if (bankAccountNumber !== undefined) employeeUpdateData.bankAccountNumber = bankAccountNumber;
           if (contractType !== undefined) employeeUpdateData.contractType = contractType;
@@ -727,6 +778,8 @@ export async function POST(request: NextRequest) {
               where: { id: user.id },
               data: { managerId: managerUser.id },
             });
+
+            await promoteManagerIfNeeded(managerUser.id, session.user.companyId);
           }
 
           employee = await prisma.employee.create({

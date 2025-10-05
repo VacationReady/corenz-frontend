@@ -94,6 +94,7 @@ export default function SendSurveyPage() {
   const [surveyName, setSurveyName] = useState("");
   const [surveyDescription, setSurveyDescription] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [anonymizationLevel, setAnonymizationLevel] = useState<"public" | "department" | "location" | "full">("public");
   
   // Target audience
   const [targetType, setTargetType] = useState<"all" | "departments" | "roles" | "locations" | "individuals">("all");
@@ -262,6 +263,7 @@ export default function SendSurveyPage() {
         description: surveyDescription || undefined,
         deadline: deadline && deadline.trim() !== "" ? deadline : undefined,
         targetAudience,
+        anonymizationLevel,
       };
       
       console.log("Sending survey data:", requestBody);
@@ -355,6 +357,49 @@ export default function SendSurveyPage() {
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="anonymization">Response Anonymization</Label>
+                <Select value={anonymizationLevel} onValueChange={(value: "public" | "department" | "location" | "full") => setAnonymizationLevel(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select anonymization level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Public</span>
+                        <span className="text-sm text-muted-foreground">
+                          Responses are visible with employee names
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="department">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Anonymize by Department</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show department but hide individual names
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="location">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Anonymize by Location</span>
+                        <span className="text-sm text-muted-foreground">
+                          Show location but hide individual names
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="full">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Fully Anonymous</span>
+                        <span className="text-sm text-muted-foreground">
+                          Hide all identifying information
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -664,6 +709,16 @@ export default function SendSurveyPage() {
                     <p className="text-sm">{new Date(deadline).toLocaleString()}</p>
                   </div>
                 )}
+
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Anonymization Level</Label>
+                  <p className="text-sm">
+                    {anonymizationLevel === "public" && "Public - Responses visible with names"}
+                    {anonymizationLevel === "department" && "Department-level anonymization"}
+                    {anonymizationLevel === "location" && "Location-level anonymization"}
+                    {anonymizationLevel === "full" && "Fully anonymous responses"}
+                  </p>
+                </div>
 
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">Target Audience</Label>

@@ -9,6 +9,7 @@ const createSurveySchema = z.object({
   description: z.string().optional(),
   formId: z.string(),
   deadline: z.string().datetime().optional().or(z.literal("")),
+  anonymizationLevel: z.enum(["public", "department", "location", "full"]).default("public"),
   targetAudience: z.object({
     departments: z.array(z.string()).optional(),
     jobRoles: z.array(z.string()).optional(),
@@ -127,7 +128,10 @@ export async function POST(request: NextRequest) {
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
         companyId: session.user.companyId,
         createdById: session.user.id,
-        metadata: validatedData.targetAudience,
+        metadata: {
+          ...validatedData.targetAudience,
+          anonymizationLevel: validatedData.anonymizationLevel,
+        },
         updatedAt: new Date(),
       },
       include: {

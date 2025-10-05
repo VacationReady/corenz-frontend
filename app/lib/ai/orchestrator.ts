@@ -21,6 +21,7 @@ import {
   suggestBetterPhrasing 
 } from "./conversational-intelligence";
 import { isApprovalRequest } from "./interpreters/confirmation-detector";
+import { provideCSVGuidance, generateCSVTemplate, analyzeCSVErrors, suggestFieldMapping } from "./csv-assistant";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -199,10 +200,18 @@ export async function processUserMessage(
         result = await handleFormCreation(userMessage, userId, companyId);
         break;
 
+      case "csv_help":
+      case "csv_guidance":
+      case "csv_template":
+      case "csv_errors":
+      case "csv_mapping":
+        result = await handleCSVAssistance(userMessage, companyId, intent.actionType);
+        break;
+
       default:
         result = {
           success: true,
-          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Data queries** - 'Show me sales team salaries'\n• **Bulk actions** - 'Give IT a 10% raise'\n• **Leave booking** - 'Book holiday for Sarah'\n• **Document upload** - Drag & drop files\n• **Workflows** - 'Create alert for expiring contracts'\n\nWhat would you like to do?",
+          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Data queries** - 'Show me sales team salaries'\n• **Bulk actions** - 'Give IT a 10% raise'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import' or 'Show me CSV template'\n• **Document upload** - Drag & drop files\n• **Workflows** - 'Create alert for expiring contracts'\n\nWhat would you like to do?",
         };
     }
 
@@ -620,6 +629,63 @@ async function parseContextualParameters(message: string, pending: any): Promise
   
   // Fallback to simple extraction
   return { value: message.trim() };
+}
+
+async function handleCSVAssistance(
+  userMessage: string,
+  companyId: string,
+  actionType: string
+): Promise<OrchestratorResult> {
+  try {
+    let result;
+    
+    switch (actionType) {
+      case "csv_template":
+        // Extract fields from user message if provided
+        const fieldMatch = userMessage.match(/(?:fields?|columns?)\s*[:\-]?\s*([^.]+)/i);
+        const fields = fieldMatch 
+          ? fieldMatch[1].split(/[,\s]+/).map(f => f.trim()).filter(Boolean)
+          : ["firstName", "lastName", "email", "departmentName", "jobRoleName", "startDate"];
+        
+        result = await generateCSVTemplate(fields, companyId);
+        break;
+        
+      case "csv_errors":
+        // This would need error data passed in - for now provide general guidance
+        result = await provideCSVGuidance("I'm having errors with my CSV import. What are the most common issues?", companyId);
+        break;
+        
+      case "csv_mapping":
+        // Extract user fields from message
+        const userFieldsMatch = userMessage.match(/(?:fields?|columns?)\s*[:\-]?\s*([^.]+)/i);
+        const userFields = userFieldsMatch 
+          ? userFieldsMatch[1].split(/[,\s]+/).map(f => f.trim()).filter(Boolean)
+          : [];
+        
+        if (userFields.length > 0) {
+          result = await suggestFieldMapping(userFields, companyId);
+        } else {
+          result = await provideCSVGuidance("Help me map my CSV fields to the system fields", companyId);
+        }
+        break;
+        
+      default:
+        result = await provideCSVGuidance(userMessage, companyId);
+    }
+    
+    return {
+      success: result.success,
+      message: result.message,
+      actionType: "csv_help",
+      result: result,
+    };
+  } catch (error: any) {
+    console.error("[CSV Assistance Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble helping with CSV imports right now. Please try again later.",
+    };
+  }
 }
 
 // Removed - users just want their answers, not suggestions

@@ -38,6 +38,22 @@ export interface SystemContext {
     pendingLeave: number;
     expiringDocuments: number;
   };
+  csvImport: {
+    availableFields: string[];
+    requiredFields: string[];
+    optionalFields: string[];
+    supportedDataTypes: string[];
+    lastImportDate?: string;
+    totalImports: number;
+    recentImports: Array<{
+      id: string;
+      fileName: string;
+      recordCount: number;
+      successCount: number;
+      errorCount: number;
+      importedAt: string;
+    }>;
+  };
 }
 
 export async function getSystemContext(companyId: string): Promise<SystemContext> {
@@ -56,6 +72,8 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       runningExecutions,
       failedExecutions24h,
       recentExecutionsRaw,
+      csvImports,
+      recentCsvImports,
     ] = await Promise.all([
       // Total employees
       prisma.employee.count({ where: { companyId } }),
@@ -153,6 +171,32 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
           AutomationRule: { select: { name: true } },
         },
       }),
+
+      // CSV Import data - count total imports
+      prisma.auditLog.count({
+        where: {
+          companyId,
+          section: "CSV_IMPORT",
+          action: "COMPLETED",
+        },
+      }),
+
+      // Recent CSV imports
+      prisma.auditLog.findMany({
+        where: {
+          companyId,
+          section: "CSV_IMPORT",
+          action: "COMPLETED",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          createdAt: true,
+          changes: true,
+          metadata: true,
+        },
+      }),
     ]);
 
     const activeWorkflows = await prisma.automationRule.count({
@@ -173,6 +217,24 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
     const lastRunSummary = lastRun
       ? `${lastRun.name} ${lastRun.status.toLowerCase()} at ${new Date(lastRun.completedAt || lastRun.triggeredAt).toLocaleString("en-NZ")}`
       : undefined;
+
+    // Process CSV import data
+    const processedCsvImports = recentCsvImports.map((importLog) => {
+      const changes = importLog.changes as any;
+      const metadata = importLog.metadata as any;
+      
+      return {
+        id: importLog.id,
+        fileName: metadata?.fileName || "Unknown file",
+        recordCount: changes?.totalRecords || 0,
+        successCount: changes?.successful || 0,
+        errorCount: changes?.failed || 0,
+        importedAt: importLog.createdAt.toISOString(),
+      };
+    });
+
+    const lastCsvImport = processedCsvImports[0];
+    const lastImportDate = lastCsvImport ? new Date(lastCsvImport.importedAt).toLocaleDateString("en-NZ") : undefined;
 
     // Group employees by department
     const byDepartment: Record<string, number> = {};
@@ -220,6 +282,45 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
         newHires: await getNewHiresCount(companyId),
         pendingLeave: pendingLeaveRequests,
         expiringDocuments: await getExpiringDocumentsCount(companyId),
+      },
+      csvImport: {
+        availableFields: [
+          "firstName", "lastName", "email", "phoneNumber", "dateOfBirth", "gender",
+          "street", "address", "city", "postcode", "postalCode", "country", "nationalId", 
+          "pronouns", "residencyStatus", "holidayTotalBalance", "holidayCarryover", 
+          "holidayCurrentBalance", "holidayYear", "departmentName", "jobRoleName", 
+          "jobTitle", "employmentType", "contractType", "siteLocation", "startDate", 
+          "contractEndDate", "workingPatternName", "managerEmail", "salaryAmount", 
+          "salary", "hourlyRate", "hourly", "emergencyContactName", 
+          "emergencyContactRelationship", "emergencyContactPhone", "emergencyContactEmail",
+          "bankAccountNumber", "irdNumber", "taxCode", "kiwiSaverEnrolled", 
+          "kiwiSaverContribution", "driverLicenceType", "driverLicenceNumber", 
+          "driverLicenceIssueDate", "driverLicenceExpiryDate", "trainingCourse", 
+          "trainingProvider", "trainingDateCompleted", "trainingExpiryDate", 
+          "employmentCheckType", "employmentCheckDocumentNumber", "employmentCheckIssueDate", 
+          "employmentCheckExpiryDate"
+        ],
+        requiredFields: ["firstName", "lastName", "email"],
+        optionalFields: [
+          "phoneNumber", "dateOfBirth", "gender", "street", "address", "city", 
+          "postcode", "postalCode", "country", "nationalId", "pronouns", 
+          "residencyStatus", "holidayTotalBalance", "holidayCarryover", 
+          "holidayCurrentBalance", "holidayYear", "departmentName", "jobRoleName", 
+          "jobTitle", "employmentType", "contractType", "siteLocation", "startDate", 
+          "contractEndDate", "workingPatternName", "managerEmail", "salaryAmount", 
+          "salary", "hourlyRate", "hourly", "emergencyContactName", 
+          "emergencyContactRelationship", "emergencyContactPhone", "emergencyContactEmail",
+          "bankAccountNumber", "irdNumber", "taxCode", "kiwiSaverEnrolled", 
+          "kiwiSaverContribution", "driverLicenceType", "driverLicenceNumber", 
+          "driverLicenceIssueDate", "driverLicenceExpiryDate", "trainingCourse", 
+          "trainingProvider", "trainingDateCompleted", "trainingExpiryDate", 
+          "employmentCheckType", "employmentCheckDocumentNumber", "employmentCheckIssueDate", 
+          "employmentCheckExpiryDate"
+        ],
+        supportedDataTypes: ["text", "email", "date", "number", "boolean", "currency"],
+        lastImportDate,
+        totalImports: csvImports,
+        recentImports: processedCsvImports,
       },
     };
   } catch (error) {
@@ -351,6 +452,13 @@ DEPARTMENTS: ${context.departments.map(d => `${d.name} (${d.count})`).join(", ")
 AVAILABLE FORMS: ${context.forms.map(f => f.name).join(", ")}
 
 LEAVE TYPES: ${context.leaveCategories.map(c => c.name).join(", ")}
+
+CSV IMPORT CAPABILITIES:
+- Total imports completed: ${context.csvImport.totalImports}
+- Last import: ${context.csvImport.lastImportDate || "No imports yet"}
+- Available fields: ${context.csvImport.availableFields.length} total
+- Required fields: ${context.csvImport.requiredFields.join(", ")}
+- Recent imports: ${context.csvImport.recentImports.length > 0 ? context.csvImport.recentImports.map(imp => `${imp.fileName} (${imp.successCount}/${imp.recordCount} records)`).join(", ") : "None"}
 `;
 }
 

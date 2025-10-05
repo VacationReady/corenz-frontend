@@ -78,6 +78,22 @@ const CAPABILITY_CATEGORIES = [
     ],
   },
   {
+    id: "csv-import",
+    title: "Need help with CSV imports?",
+    icon: <Upload className="w-6 h-6" />,
+    gradient: "from-green-500 to-emerald-500",
+    examples: [
+      "Help me with CSV import",
+      "Show me a CSV template",
+      "What fields can I import in CSV?",
+      "CSV import is failing - help me fix it",
+      "Map my CSV fields to system fields",
+      "What's the format for dates in CSV?",
+      "How do I import employee data?",
+      "CSV template with personal info fields",
+    ],
+  },
+  {
     id: "workflows",
     title: "What workflow can I build today?",
     icon: <Zap className="w-6 h-6" />,
@@ -201,11 +217,11 @@ const QUICK_ACTIONS = [
     color: "bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20",
   },
   {
-    label: "Missing IRD Numbers",
-    icon: <Search className="w-4 h-4" />,
-    prompt: "How many employees don't have IRD numbers?",
+    label: "CSV Import Help",
+    icon: <Upload className="w-4 h-4" />,
+    prompt: "Help me with CSV import",
     type: "query" as ActionType,
-    color: "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20",
+    color: "bg-green-500/10 text-green-600 hover:bg-green-500/20",
   },
   {
     label: "Contract Expiry Alert",
@@ -230,6 +246,21 @@ const AI_CAPABILITIES = [
       { action: "View document status", example: "Who has expiring visas?" },
       { action: "Calculate statistics", example: "Average salary by department" },
       { action: "Identify trends", example: "Show turnover rate by month" },
+    ],
+  },
+  {
+    category: "📁 CSV Import & Data Management",
+    icon: <Upload className="w-5 h-5" />,
+    color: "from-green-500 to-emerald-500",
+    capabilities: [
+      { action: "CSV import guidance", example: "Help me with CSV import" },
+      { action: "Generate CSV templates", example: "Show me a CSV template with personal info" },
+      { action: "Field mapping assistance", example: "Map my CSV fields to system fields" },
+      { action: "Error troubleshooting", example: "Why is my CSV import failing?" },
+      { action: "Data format guidance", example: "What's the correct date format for CSV?" },
+      { action: "Import validation", example: "Check my CSV data before importing" },
+      { action: "Bulk import strategies", example: "How do I import 1000 employees efficiently?" },
+      { action: "Import history tracking", example: "Show me my recent CSV imports" },
     ],
   },
   {
@@ -2150,6 +2181,49 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                       <span className="ml-2">{action.label}</span>
                     </Button>
                   ))}
+                </div>
+                
+                {/* CSV Import Assistant */}
+                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Upload className="w-4 h-4 text-green-600" />
+                    <span className="text-xs font-medium text-green-800">CSV Import Assistant</span>
+                  </div>
+                  <p className="text-xs text-green-700 mb-2">
+                    Get help with importing employee data, generating templates, and troubleshooting import issues.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSendMessage("Help me with CSV import")}
+                      disabled={isProcessing}
+                      className="text-xs bg-green-500/10 text-green-600 hover:bg-green-500/20"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span className="ml-1">Import Help</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSendMessage("Show me a CSV template")}
+                      disabled={isProcessing}
+                      className="text-xs bg-green-500/10 text-green-600 hover:bg-green-500/20"
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span className="ml-1">Get Template</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSendMessage("Help me map my CSV fields")}
+                      disabled={isProcessing}
+                      className="text-xs bg-green-500/10 text-green-600 hover:bg-green-500/20"
+                    >
+                      <Map className="w-3 h-3" />
+                      <span className="ml-1">Field Mapping</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}

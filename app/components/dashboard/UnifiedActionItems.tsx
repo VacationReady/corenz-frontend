@@ -108,6 +108,27 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 });
               }
             });
+          } else if (item.type === 'SURVEY') {
+            // Survey completion tasks
+            items.push({
+              id: `action-${item.id}`,
+              type: "task",
+              title: item.title,
+              subtitle: item.metadata?.surveyName ? `Survey: ${item.metadata.surveyName}` : "Survey",
+              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+              metadata: item,
+              actionLabel: "Complete Survey",
+              onAction: async () => {
+                // Navigate to survey completion page or open survey modal
+                if (item.metadata?.surveyId && item.metadata?.formSchema) {
+                  // For now, we'll redirect to a survey completion page
+                  // In the future, this could open a modal with the survey form
+                  window.location.href = `/surveys/complete/${item.metadata.surveyId}?actionItemId=${item.id}`;
+                } else {
+                  toast.error('Survey data not available');
+                }
+              }
+            });
           } else {
             // Regular workflow tasks
             items.push({

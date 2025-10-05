@@ -200,7 +200,7 @@ function OrgChartPageClient() {
       }
 
       try {
-        const res = await fetch("/api/employees?status=all", {
+        const res = await fetch("/api/org-chart", {
           credentials: "include",
           cache: "no-store",
           headers: {
@@ -244,31 +244,27 @@ function OrgChartPageClient() {
                 ? emp.managerUserId.trim()
                 : "";
 
+            // Merge-resolved: robustly derive permissionProfileName with fallbacks
             const permissionProfileName = (() => {
               const rawProfileName = (
                 emp as { permissionProfileName?: unknown }
               ).permissionProfileName;
               if (typeof rawProfileName === "string") {
                 const trimmed = rawProfileName.trim();
-                if (trimmed.length > 0) {
-                  return trimmed;
-                }
+                if (trimmed.length > 0) return trimmed;
               }
 
               const permissionProfile = (
-                emp as { permissionProfile?: { name?: unknown } }
+                emp as { permissionProfile?: { name?: unknown } | null }
               ).permissionProfile;
               if (
                 permissionProfile &&
-                typeof permissionProfile === "object" &&
-                permissionProfile !== null
+                typeof permissionProfile === "object"
               ) {
                 const maybeName = (permissionProfile as { name?: unknown }).name;
                 if (typeof maybeName === "string") {
                   const trimmed = maybeName.trim();
-                  if (trimmed.length > 0) {
-                    return trimmed;
-                  }
+                  if (trimmed.length > 0) return trimmed;
                 }
               }
 
@@ -377,6 +373,7 @@ function OrgChartPageClient() {
     const byUserId = new Map<string, OrgNode>();
     const byEmployeeId = new Map<string, OrgNode>();
     const byEmail = new Map<string, OrgNode>();
+
     const nodes = normalizedEmployees.map<OrgNode>((emp) => ({
       ...emp,
       children: [],

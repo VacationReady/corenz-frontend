@@ -290,7 +290,8 @@ export default function SendSurveyPage() {
         targetAudience.excludedEmployees = excludedEmployees;
       }
 
-      const requestBody = {
+      // Step 1: Create the survey
+      const createBody = {
         formId: selectedTemplate,
         name: surveyName,
         description: surveyDescription || undefined,
@@ -299,25 +300,55 @@ export default function SendSurveyPage() {
         anonymizationLevel,
       };
       
-      console.log("Sending survey data:", requestBody);
+      console.log("Creating survey:", createBody);
       
-      const response = await fetch("/api/surveys", {
+      const createResponse = await fetch("/api/surveys", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(createBody),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        toast.success(`Survey sent to ${result.recipients} employees successfully!`);
-        router.push("/surveys/active");
-      } else {
-        const error = await response.json();
-        console.error("Survey send error:", error);
-        toast.error(error.error || "Failed to send survey");
+      if (!createResponse.ok) {
+        const error = await createResponse.json();
+        console.error("Survey creation error:", error);
+        toast.error(error.error || "Failed to create survey");
+        return;
       }
+
+      const createdSurvey = await createResponse.json();
+      console.log("Survey created:", createdSurvey);
+
+      // Step 2: Send the survey to recipients (creates action items and recipients)
+      const sendBody = {
+        targetAudience,
+        deadline: deadline && deadline.trim() !== "" ? deadline : undefined,
+        sendImmediately: true,
+      };
+
+      console.log("Sending survey to recipients:", sendBody);
+
+      const sendResponse = await fetch(`/api/surveys/${createdSurvey.id}/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(sendBody),
+      });
+
+      if (!sendResponse.ok) {
+        const error = await sendResponse.json();
+        console.error("Survey send error:", error);
+        toast.error(error.error || "Failed to send survey to recipients");
+        return;
+      }
+
+      const sendResult = await sendResponse.json();
+      console.log("Survey sent:", sendResult);
+      
+      toast.success(`Survey successfully sent to ${sendResult.recipients} employee${sendResult.recipients !== 1 ? 's' : ''}!`);
+      router.push("/surveys/active");
     } catch (error) {
       console.error("Error sending survey:", error);
       toast.error("Failed to send survey");

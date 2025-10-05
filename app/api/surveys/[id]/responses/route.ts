@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const submitResponseSchema = z.object({
   responseData: z.record(z.any()),
+  actionItemId: z.string().optional(),
 });
 
 export async function GET(

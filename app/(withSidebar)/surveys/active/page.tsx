@@ -102,9 +102,22 @@ export default function ActiveSurveysPage() {
 
   const handleSendReminder = async (surveyId: string) => {
     try {
-      // TODO: Implement send reminder API call
-      toast.success("Reminder sent successfully");
+      const response = await fetch(`/api/surveys/${surveyId}/resend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message || "Reminder sent successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to send reminder");
+      }
     } catch (error) {
+      console.error("Error sending reminder:", error);
       toast.error("Failed to send reminder");
     }
   };

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { sendSurveyNotification } from "@/lib/email/surveyNotification";
 
 const sendSurveySchema = z.object({
   targetAudience: z.object({
@@ -92,6 +93,8 @@ export async function POST(
             id: true,
             email: true,
             role: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -154,6 +157,27 @@ export async function POST(
         metadata: validatedData.targetAudience,
       },
     });
+
+    // Send email notifications
+    try {
+      const emailRecipients = employees.map(emp => ({
+        email: emp.User.email,
+        name: `${emp.User.firstName || ''} ${emp.User.lastName || ''}`.trim(),
+      }));
+
+      await sendSurveyNotification({
+        surveyName: survey.name,
+        surveyDescription: survey.description || undefined,
+        surveyId: survey.id,
+        deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
+        recipients: emailRecipients,
+      });
+
+      console.log(`Survey notifications sent to ${emailRecipients.length} recipients`);
+    } catch (emailError) {
+      console.error("Failed to send survey notification emails:", emailError);
+      // Don't fail the entire operation if emails fail
+    }
 
     return NextResponse.json({
       survey: updatedSurvey,

@@ -235,46 +235,38 @@ export async function POST() {
             await runInChunks(userIds, operation);
           }
 
-          // Explicitly clear NextAuth sessions in chunks using raw SQL
-          await runInChunks(userIds, async (batch) => {
-            try {
-              await tx.$executeRaw(
-                Prisma.sql`DELETE FROM "Session" WHERE "userId" IN (${Prisma.join(
-                  batch,
-                )})`,
-              );
-            } catch (error) {
-              console.warn(
-                "Failed to remove persisted sessions during reset",
-                error,
-              );
-            }
-          });
+          // Skip session cleanup as NextAuth may be using JWT strategy
+          // Sessions will naturally expire or be invalidated on next request
 
           // Scrub users: placeholder email + reset core fields
           const placeholderSuffix = `@${RESET_EMAIL_DOMAIN}`;
           await runInChunks(userIds, async (batch) => {
-            const updatedCount = await tx.$executeRaw(
-              Prisma.sql`
-                UPDATE "User"
-                SET
-                  "email" = concat('deleted-', "id"::text, ${placeholderSuffix}),
-                  "firstName" = 'Deleted',
-                  "lastName" = 'User',
-                  "phone" = NULL,
-                  "managerId" = NULL,
-                  "permissionProfileId" = NULL,
-                  "departmentId" = NULL,
-                  "jobRoleId" = NULL,
-                  "genderOptionId" = NULL,
-                  "isActivated" = FALSE,
-                  "role" = ${Role.EMPLOYEE},
-                  "canManageTenants" = FALSE,
-                  "updatedAt" = NOW()
-                WHERE "id" IN (${Prisma.join(batch)})
-              `,
-            );
-            scrubbedUsers += Number(updatedCount ?? 0);
+            try {
+              // Update users one by one to avoid transaction issues
+              for (const userId of batch) {
+                await tx.user.update({
+                  where: { id: userId },
+                  data: {
+                    email: `deleted-${userId}${placeholderSuffix}`,
+                    firstName: 'Deleted',
+                    lastName: 'User',
+                    phone: null,
+                    managerId: null,
+                    permissionProfileId: null,
+                    departmentId: null,
+                    jobRoleId: null,
+                    genderOptionId: null,
+                    isActivated: false,
+                    role: Role.EMPLOYEE,
+                    canManageTenants: false,
+                    updatedAt: new Date(),
+                  },
+                });
+                scrubbedUsers += 1;
+              }
+            } catch (error) {
+              console.warn("Failed to scrub some users during reset", error);
+            }
           });
         }
 

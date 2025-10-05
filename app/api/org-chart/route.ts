@@ -96,7 +96,7 @@ export async function GET() {
           departmentName: department?.name ?? null,
           jobRoleId: jobRole?.id ?? null,
           jobRoleName: jobRole?.name ?? null,
-          isActive: employee?.isActive ?? user.isActivated ?? false,
+          isActive: employee?.isActive ?? true, // If employee record exists, they should be considered active
           profileImageUrl: await getSignedProfileUrl(user.profileImageUrl),
           managerUserId: user.managerId ?? null,
           permissionProfileName: user.PermissionProfile?.name ?? null,

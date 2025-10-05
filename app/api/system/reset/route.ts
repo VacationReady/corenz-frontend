@@ -217,7 +217,10 @@ export async function POST() {
       actorId: currentUserId,
       actorType: "USER",
       summary: `Company data reset by ${session.user.email ?? currentUserId}`,
-      metadata: summary,
+      metadata: {
+        resetBy: session.user.email ?? currentUserId,
+        ...summary,
+      },
     });
 
     return NextResponse.json({ success: true, summary });

@@ -22,6 +22,7 @@ import {
 } from "./conversational-intelligence";
 import { isApprovalRequest } from "./interpreters/confirmation-detector";
 import { provideCSVGuidance, generateCSVTemplate, analyzeCSVErrors, suggestFieldMapping } from "./csv-assistant";
+import { processSurveyRequest } from "./survey-assistant";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -208,10 +209,19 @@ export async function processUserMessage(
         result = await handleCSVAssistance(userMessage, companyId, intent.actionType);
         break;
 
+      case "create_survey":
+      case "send_survey":
+      case "analyze_survey":
+      case "track_completion":
+      case "digest_results":
+      case "survey_status":
+        result = await handleSurveyRequest(userMessage, companyId, userId);
+        break;
+
       default:
         result = {
           success: true,
-          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Data queries** - 'Show me sales team salaries'\n• **Bulk actions** - 'Give IT a 10% raise'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import' or 'Show me CSV template'\n• **Document upload** - Drag & drop files\n• **Workflows** - 'Create alert for expiring contracts'\n\nWhat would you like to do?",
+          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Data queries** - 'Show me sales team salaries'\n• **Bulk actions** - 'Give IT a 10% raise'\n• **Leave booking** - 'Book holiday for Sarah'\n• **Survey management** - 'Create a pulse survey' or 'Send survey to engineering'\n• **Survey analytics** - 'Show me survey results' or 'Who hasn't completed the survey?'\n• **CSV imports** - 'Help me with CSV import' or 'Show me CSV template'\n• **Document upload** - Drag & drop files\n• **Workflows** - 'Create alert for expiring contracts'\n\nWhat would you like to do?",
         };
     }
 
@@ -684,6 +694,35 @@ async function handleCSVAssistance(
     return {
       success: false,
       message: "I'm having trouble helping with CSV imports right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle survey-related requests
+ */
+async function handleSurveyRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string
+): Promise<OrchestratorResult> {
+  try {
+    const result = await processSurveyRequest(userMessage, companyId, userId);
+    
+    return {
+      success: result.success,
+      message: result.message,
+      actionType: result.actionType,
+      result: result.data,
+      requiresConfirmation: result.requiresConfirmation,
+      preview: result.preview,
+      suggestions: result.suggestions,
+    };
+  } catch (error: any) {
+    console.error("[Survey Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with survey management right now. Please try again later.",
     };
   }
 }

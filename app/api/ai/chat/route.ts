@@ -186,6 +186,17 @@ export async function GET() {
           "Set up departments",
         ],
       },
+      {
+        category: "Survey Management",
+        actions: [
+          "Create pulse surveys",
+          "Send surveys to teams",
+          "Analyze survey results",
+          "Track completion rates",
+          "Generate survey insights",
+          "Check survey status",
+        ],
+      },
     ],
     examples: [
       "How many employees don't have IRD numbers?",
@@ -194,6 +205,12 @@ export async function GET() {
       "Email the CEO a headcount report every Monday",
       "Add a 'T-Shirt Size' dropdown to personal information",
       "Create a workflow that alerts HR 60 days before contracts expire",
+      "Create a pulse survey for the engineering team",
+      "Send the weekly pulse survey to all employees",
+      "Show me completion rates for the engagement survey",
+      "Analyze last month's pulse survey results",
+      "Who hasn't completed the satisfaction survey?",
+      "Summarize feedback from the annual engagement survey",
     ],
   });
 }

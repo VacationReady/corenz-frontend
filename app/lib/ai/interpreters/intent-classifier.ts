@@ -67,6 +67,12 @@ AVAILABLE ACTIONS:
 - policy_rollout: Announce and track policy changes ("Roll out new leave policy", "Announce WFH policy to Engineering")
 - check_approval_status: Check status of user's approval requests ("Check approval status", "Has my request been approved?", "Show my approval requests")
 - list_pending_approvals: List all pending approvals company-wide ("Show all pending approvals", "What needs approval?", "List approval requests")
+- create_survey: Create new surveys ("Create a pulse survey", "Build an engagement survey", "Make a feedback form")
+- send_survey: Deploy surveys to employees ("Send the pulse survey to engineering", "Launch the engagement survey", "Deploy survey to all employees")
+- analyze_survey: Analyze survey results and responses ("Show me pulse survey results", "Analyze engagement data", "Survey analytics")
+- track_completion: Track who has/hasn't completed surveys ("Who hasn't completed the survey?", "Show completion rates", "Track survey responses")
+- digest_results: Generate insights from survey data ("Summarize survey feedback", "What are the key findings?", "Digest survey results")
+- survey_status: Check status of active surveys ("What surveys are running?", "Survey status", "Active surveys")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
@@ -102,6 +108,13 @@ PARAMETER EXTRACTION:
 - employeeName: For activation emails - name of employee to send activation email to
 - policyType: Type of policy (e.g., "leave", "wfh", "general")
 - policyDetails: Details about the policy change
+- surveyType: Type of survey (e.g., "pulse", "engagement", "enps", "annual", "feedback")
+- surveyName: Name of specific survey to work with
+- targetAudience: Who should receive the survey (e.g., "engineering", "all", "managers")
+- deadline: When survey should be completed by
+- timeframe: Time period for analysis (e.g., "last_week", "this_month", "quarter")
+- analysisType: Type of analysis requested (e.g., "trends", "sentiment", "department")
+- focusArea: Specific area to focus on (e.g., "engagement", "satisfaction", "workload")
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
@@ -215,6 +228,31 @@ POLICY ROLLOUT EXAMPLES (CASUAL/TYPO-HEAVY):
 - "push out new policy to sales team" → {actionType: "policy_rollout", parameters: {department: "Sales"}}
 - "yo we need to rollout that policy we talked about" → {actionType: "policy_rollout", parameters: {}}
 - "announce wfh to everyone" → {actionType: "policy_rollout", parameters: {policyType: "wfh", scope: "all"}}
+
+SURVEY EXAMPLES (CASUAL/TYPO-HEAVY):
+- "create a pulse survey" → {actionType: "create_survey", parameters: {surveyType: "pulse"}}
+- "make me an engagement survey 4 the team" → {actionType: "create_survey", parameters: {surveyType: "engagement"}}
+- "build a feedback form" → {actionType: "create_survey", parameters: {surveyType: "feedback"}}
+- "yo can u make a survey bout satisfaction" → {actionType: "create_survey", parameters: {surveyType: "feedback", focusArea: "satisfaction"}}
+- "send the pulse survey to engineering" → {actionType: "send_survey", parameters: {surveyName: "pulse", targetAudience: "engineering"}}
+- "launch the weekly pulse 2 everyone" → {actionType: "send_survey", parameters: {surveyName: "weekly pulse", targetAudience: "all"}}
+- "deploy survey to all employees by friday" → {actionType: "send_survey", parameters: {targetAudience: "all", deadline: "friday"}}
+- "send engagement survey to managers" → {actionType: "send_survey", parameters: {surveyName: "engagement", targetAudience: "managers"}}
+- "show me pulse survey results" → {actionType: "analyze_survey", parameters: {surveyName: "pulse"}}
+- "analyze engagement data from last month" → {actionType: "analyze_survey", parameters: {surveyName: "engagement", timeframe: "last_month"}}
+- "gimme survey analytics" → {actionType: "analyze_survey", parameters: {}}
+- "what r the trends in our surveys" → {actionType: "analyze_survey", parameters: {analysisType: "trends"}}
+- "who hasnt completed the survey?" → {actionType: "track_completion", parameters: {}}
+- "show completion rates 4 pulse survey" → {actionType: "track_completion", parameters: {surveyName: "pulse"}}
+- "track survey responses from engineering" → {actionType: "track_completion", parameters: {targetAudience: "engineering"}}
+- "who aint done the engagement thing yet" → {actionType: "track_completion", parameters: {surveyName: "engagement"}}
+- "summarize survey feedback" → {actionType: "digest_results", parameters: {}}
+- "what r the key findings from pulse" → {actionType: "digest_results", parameters: {surveyName: "pulse"}}
+- "digest survey results bout workload" → {actionType: "digest_results", parameters: {focusArea: "workload"}}
+- "gimme insights from last weeks survey" → {actionType: "digest_results", parameters: {timeframe: "last_week"}}
+- "what surveys r running?" → {actionType: "survey_status", parameters: {}}
+- "survey status plz" → {actionType: "survey_status", parameters: {}}
+- "show me active surveys" → {actionType: "survey_status", parameters: {}}
 
 Respond with JSON:
 {

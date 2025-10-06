@@ -16,6 +16,15 @@ export interface SurveyAssistantResult {
   suggestions?: string[];
 }
 
+interface SurveyTemplate {
+  name: string;
+  slug: string;
+  description: string;
+  highlights: string[];
+  schema: any;
+  id?: string;
+}
+
 /**
  * Main survey assistant orchestrator
  */
@@ -559,7 +568,7 @@ function extractFocusArea(message: string): string | null {
 }
 
 // API helper functions connecting to actual endpoints
-async function getSurveyTemplates() {
+async function getSurveyTemplates(): Promise<SurveyTemplate[]> {
   try {
     const response = await fetch('/api/forms?type=SURVEY');
     if (response.ok) {
@@ -567,7 +576,7 @@ async function getSurveyTemplates() {
       const forms = Array.isArray(data) ? data : data.forms || [];
       
       // Map to template format
-      return forms.map((form: any) => ({
+      return forms.map((form: any): SurveyTemplate => ({
         name: form.name,
         slug: form.slug,
         description: form.description,
@@ -603,7 +612,7 @@ async function getSurveyTemplates() {
       highlights: ["Engagement benchmarks", "Leadership & culture insights", "Open feedback prompts"],
       schema: {}
     }
-  ];
+  ] as SurveyTemplate[];
 }
 
 async function getAvailableSurveys(companyId: string) {

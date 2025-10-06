@@ -76,10 +76,23 @@ export async function processSurveyRequest(
     case "survey_status":
       return await handleSurveyStatus(userMessage, companyId, userId, intent.parameters);
     
+    case "automation_detected":
+      return {
+        success: true,
+        message: "I can see you're looking to **automate survey processes**! For complex automation like recurring surveys with email results, I'll connect you with our automation specialist.\n\nYour request involves:\n• **Scheduling** - Regular survey deployment\n• **Email automation** - Results delivery\n• **Data processing** - Analytics and reporting\n\nWould you like me to help set up this automation workflow?",
+        actionType: "redirect_to_automation",
+        data: { originalMessage: userMessage },
+        suggestions: [
+          "Set up monthly eNPS automation",
+          "Create engagement survey workflow", 
+          "Build custom survey automation"
+        ]
+      };
+    
     default:
       return {
         success: false,
-        message: "I'm not sure what you want to do with surveys. I can help you:\n• **Create surveys** - 'Create a pulse survey'\n• **Send surveys** - 'Send the weekly pulse to engineering team'\n• **Analyze results** - 'Show me pulse survey results'\n• **Track completion** - 'Who hasn't completed the engagement survey?'\n• **Digest insights** - 'Summarize the feedback from last week's pulse'"
+        message: "I'm not sure what you want to do with surveys. I can help you:\n• **Create surveys** - 'Create a pulse survey'\n• **Send surveys** - 'Send the weekly pulse to engineering team'\n• **Analyze results** - 'Show me pulse survey results'\n• **Track completion** - 'Who hasn't completed the engagement survey?'\n• **Digest insights** - 'Summarize the feedback from last week's pulse'\n• **Automate surveys** - 'Send eNPS monthly and email results'"
       };
   }
 }
@@ -89,6 +102,14 @@ export async function processSurveyRequest(
  */
 async function classifySurveyIntent(userMessage: string): Promise<{ type: string; parameters: any }> {
   const msg = userMessage.toLowerCase();
+  
+  // Check for automation patterns first (these should be handled by survey-automation-assistant)
+  if (isAutomationRequest(msg)) {
+    return {
+      type: "automation_detected",
+      parameters: { originalMessage: userMessage }
+    };
+  }
   
   // Survey creation patterns
   if (msg.includes("create") && (msg.includes("survey") || msg.includes("pulse") || msg.includes("feedback"))) {
@@ -836,4 +857,48 @@ function generateResponseSummary(responses: any[]): any {
     lastResponse: responses.length > 0 ? responses[responses.length - 1].createdAt : null,
     avgCompletionTime: "5-10 minutes"
   };
+}
+
+/**
+ * Detect if the user is asking for survey automation vs simple survey operations
+ */
+function isAutomationRequest(message: string): boolean {
+  const automationKeywords = [
+    // Scheduling patterns
+    "monthly", "weekly", "quarterly", "every", "recurring", "regularly", "schedule", "automate", "automation",
+    "every 30 days", "every month", "every week", "every quarter", "once a month", "once a week",
+    
+    // Email/notification patterns
+    "email results", "send results", "email the results", "email them", "notify", "alert",
+    "email to", "send to", "results to", "report to", "summary to",
+    
+    // Workflow patterns  
+    "workflow", "build a workflow", "create workflow", "set up", "build automation",
+    "automate the process", "automatic", "automatically",
+    
+    // Complex automation patterns
+    "anonymize", "anonymise", "by department", "and then", "after", "when",
+    "trigger", "lifecycle", "onboarding", "exit", "probation",
+    
+    // CEO/stakeholder patterns (indicates enterprise automation)
+    "ceo", "leadership", "executive", "stakeholder", "director", "management"
+  ];
+  
+  // Check for multiple automation indicators
+  const matches = automationKeywords.filter(keyword => 
+    message.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  // If 2+ automation keywords, likely automation request
+  if (matches.length >= 2) return true;
+  
+  // Single strong automation indicators
+  const strongIndicators = [
+    "automate", "automation", "workflow", "recurring", "every 30 days", 
+    "monthly and email", "weekly and email", "schedule and send"
+  ];
+  
+  return strongIndicators.some(indicator => 
+    message.toLowerCase().includes(indicator.toLowerCase())
+  );
 }

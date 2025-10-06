@@ -101,7 +101,13 @@ export type ActionType =
   | "policy_rollout"
   | "check_approval_status"
   | "list_pending_approvals"
-  | "execute_workflow";
+  | "execute_workflow"
+  | "conversational_guidance"
+  | "integrated_automation"
+  | "multi_function_workflow"
+  | "smart_bulk_operations"
+  | "intelligent_communications"
+  | "dynamic_form_building";
 
 export interface AIAction {
   type: ActionType;

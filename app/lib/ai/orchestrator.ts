@@ -23,6 +23,14 @@ import {
 import { isApprovalRequest } from "./interpreters/confirmation-detector";
 import { provideCSVGuidance, generateCSVTemplate, analyzeCSVErrors, suggestFieldMapping } from "./csv-assistant";
 import { processSurveyRequest } from "./survey-assistant";
+import { processSurveyAutomationRequest } from "./survey-automation-assistant";
+import { 
+  handleIntegratedAutomation,
+  handleMultiFunctionWorkflow,
+  handleSmartBulkOperations,
+  handleIntelligentCommunications,
+  handleDynamicFormBuilding
+} from "./integration-orchestrator";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -218,10 +226,40 @@ export async function processUserMessage(
         result = await handleSurveyRequest(userMessage, companyId, userId);
         break;
 
+      case "create_survey_automation":
+      case "create_complex_automation":
+        result = await handleSurveyAutomationRequest(userMessage, companyId, userId, intent.parameters);
+        break;
+
+      case "conversational_guidance":
+        // Handle vague requests by asking intelligent questions
+        result = await handleConversationalGuidance(userMessage, companyId, userId, intent.parameters);
+        break;
+
+      case "integrated_automation":
+        result = await handleIntegratedAutomation(userMessage, companyId, userId, intent.parameters);
+        break;
+
+      case "multi_function_workflow":
+        result = await handleMultiFunctionWorkflow(userMessage, companyId, userId, intent.parameters);
+        break;
+
+      case "smart_bulk_operations":
+        result = await handleSmartBulkOperations(userMessage, companyId, userId, intent.parameters);
+        break;
+
+      case "intelligent_communications":
+        result = await handleIntelligentCommunications(userMessage, companyId, userId, intent.parameters);
+        break;
+
+      case "dynamic_form_building":
+        result = await handleDynamicFormBuilding(userMessage, companyId, userId, intent.parameters);
+        break;
+
       default:
         result = {
           success: true,
-          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Data queries** - 'Show me sales team salaries'\n• **Bulk actions** - 'Give IT a 10% raise'\n• **Leave booking** - 'Book holiday for Sarah'\n• **Survey management** - 'Create a pulse survey' or 'Send survey to engineering'\n• **Survey analytics** - 'Show me survey results' or 'Who hasn't completed the survey?'\n• **CSV imports** - 'Help me with CSV import' or 'Show me CSV template'\n• **Document upload** - Drag & drop files\n• **Workflows** - 'Create alert for expiring contracts'\n\nWhat would you like to do?",
+          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Conversational HR** - Just tell me what you want: 'I need surveys' or 'Help with onboarding'\n• **Survey automation** - 'Send eNPS monthly and email results' or 'Automate engagement surveys'\n• **Integrated workflows** - 'When someone joins, send welcome email and schedule survey'\n• **Smart bulk operations** - 'Give sales a raise but get approval first'\n• **Intelligent communications** - 'Email managers but customize by department'\n• **Dynamic forms** - 'Create form that changes based on department'\n• **Data queries** - 'Show me sales team salaries'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import'\n\nWhat would you like to do?",
         };
     }
 
@@ -723,6 +761,67 @@ async function handleSurveyRequest(
     return {
       success: false,
       message: "I'm having trouble with survey management right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle survey automation requests
+ */
+async function handleSurveyAutomationRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  parameters: any
+): Promise<OrchestratorResult> {
+  try {
+    const result = await processSurveyAutomationRequest(userMessage, companyId, userId, parameters);
+    
+    return {
+      success: result.success,
+      message: result.message,
+      actionType: result.actionType,
+      result: result.data,
+      requiresConfirmation: result.requiresConfirmation,
+      preview: result.preview,
+      suggestions: result.suggestions,
+    };
+  } catch (error: any) {
+    console.error("[Survey Automation Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble setting up survey automation right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle conversational guidance for vague requests
+ */
+async function handleConversationalGuidance(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  parameters: any
+): Promise<OrchestratorResult> {
+  try {
+    // Use the conversational engine to ask intelligent questions
+    const { handleConversationalRequest } = await import("./conversational-engine");
+    const result = await handleConversationalRequest(userMessage, companyId, userId);
+    
+    return {
+      success: result.success,
+      message: result.message,
+      actionType: "conversational_guidance",
+      requiresConfirmation: false,
+      suggestions: result.suggestions,
+    };
+  } catch (error: any) {
+    console.error("[Conversational Guidance Error]", error);
+    return {
+      success: true,
+      message: "I'd love to help! Could you tell me a bit more about what you're trying to accomplish? For example:\n\n• Setting up surveys or feedback collection\n• Automating HR processes\n• Managing employee communications\n• Building forms or workflows\n\nWhat's your main goal?",
+      suggestions: ["Set up surveys", "Automate processes", "Manage communications", "Build forms"]
     };
   }
 }

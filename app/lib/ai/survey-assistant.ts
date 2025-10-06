@@ -226,7 +226,7 @@ async function handleSurveyDeployment(
     // Find specific survey
     const survey = surveys.find(s => 
       s.name.toLowerCase().includes(surveyName.toLowerCase()) ||
-      s.slug.toLowerCase().includes(surveyName.toLowerCase())
+      (s.slug && s.slug.toLowerCase().includes(surveyName.toLowerCase()))
     );
     
     if (!survey) {

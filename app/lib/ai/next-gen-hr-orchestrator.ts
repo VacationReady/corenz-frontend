@@ -49,7 +49,7 @@ export async function processNextGenHRRequest(
   }
 
   // Analyze the request with REVOLUTIONARY AI intelligence
-  const analysis = await analyzeNextGenIntent(userMessage, conversationHistory, companyId);
+  const analysis = await analyzeNextGenIntent(userMessage, conversationHistory || [], companyId);
   
   // Route to appropriate next-gen handler
   switch (analysis.primaryIntent) {
@@ -72,7 +72,7 @@ export async function processNextGenHRRequest(
       return await handleDynamicFormBuilding(userMessage, analysis, companyId, userId);
     
     default:
-      return await handleConversationalRequest(userMessage, companyId, userId, conversationHistory);
+      return await handleConversationalRequest(userMessage, companyId, userId, conversationHistory || []);
   }
 }
 

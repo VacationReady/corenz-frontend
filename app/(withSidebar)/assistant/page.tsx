@@ -149,8 +149,8 @@ const CAPABILITY_CATEGORIES = [
     ],
   },
   {
-    id: "customize",
-    title: "How can I customize employee data?",
+    id: "customise",
+    title: "How can I customise employee data?",
     icon: <Plus className="w-6 h-6" />,
     gradient: "from-emerald-500 to-teal-500",
     examples: [
@@ -310,7 +310,7 @@ const AI_CAPABILITIES = [
     ],
   },
   {
-    category: "➕ Customize System",
+    category: "➕ Customise System",
     icon: <Plus className="w-5 h-5" />,
     color: "from-rose-500 to-pink-500",
     capabilities: [
@@ -321,7 +321,7 @@ const AI_CAPABILITIES = [
       { action: "Create job roles", example: "Add 'Senior Product Designer' role" },
       { action: "Modify form fields", example: "Make emergency contact required" },
       { action: "Add validation rules", example: "Validate IRD number format" },
-      { action: "Customize options", example: "Add 'Wellington' to office locations" },
+      { action: "Customise options", example: "Add 'Wellington' to office locations" },
     ],
   },
   {
@@ -1931,7 +1931,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                     Welcome to AI Assistant
                   </h2>
                   <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    Ask questions, build workflows, and customize your system in plain English.
+                    Ask questions, build workflows, and customise your system in plain English.
                   </p>
                 </div>
 

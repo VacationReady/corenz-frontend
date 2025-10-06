@@ -40,9 +40,6 @@ export default async function EmployeeDashboard() {
             <Link href="/bulk-actions?action=messaging">
               <Button size="sm" variant="outline" icon={<Mail className="h-4 w-4" />}>Email Employee</Button>
             </Link>
-            <Link href="/assistant">
-              <Button size="sm" className="bg-gradient-to-r from-primary via-[hsl(var(--sunset-2))] to-[hsl(var(--sunset-3))] hover:from-primary/90 hover:via-[hsl(var(--sunset-2))]/90 hover:to-[hsl(var(--sunset-3))]/90 shadow-premium" icon={<Bot className="h-4 w-4" />}>AI Chatbot</Button>
-            </Link>
           </div>
         ) : null
       }

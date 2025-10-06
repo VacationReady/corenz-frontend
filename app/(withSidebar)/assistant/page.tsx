@@ -1786,8 +1786,8 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     }
   };
 
-  // Check if AI is enabled
-  if (!session?.user || (session.user as any).role === "EMPLOYEE") {
+  // Check if AI is enabled - only ADMIN and SUPER_ADMIN can access
+  if (!session?.user || !["ADMIN", "SUPER_ADMIN"].includes((session.user as any).role)) {
     return (
       <PageShell title="AI Assistant" icon={<Bot className="w-6 h-6" />}>
         <div className="flex items-center justify-center h-96">

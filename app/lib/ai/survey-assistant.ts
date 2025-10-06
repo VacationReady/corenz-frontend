@@ -25,6 +25,15 @@ interface SurveyTemplate {
   id?: string;
 }
 
+interface Survey {
+  id: string;
+  name: string;
+  slug?: string;
+  status?: string;
+  deadline?: string;
+  [key: string]: any;
+}
+
 /**
  * Main survey assistant orchestrator
  */
@@ -615,7 +624,7 @@ async function getSurveyTemplates(): Promise<SurveyTemplate[]> {
   ] as SurveyTemplate[];
 }
 
-async function getAvailableSurveys(companyId: string) {
+async function getAvailableSurveys(companyId: string): Promise<Survey[]> {
   try {
     const response = await fetch(`/api/surveys?companyId=${companyId}`);
     if (response.ok) {

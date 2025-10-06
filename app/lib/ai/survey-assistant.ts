@@ -34,6 +34,19 @@ interface Survey {
   [key: string]: any;
 }
 
+interface Employee {
+  id: string;
+  name: string;
+  department?: string;
+  [key: string]: any;
+}
+
+interface CompletionData {
+  completed: Employee[];
+  pending: Employee[];
+  overdue: Employee[];
+}
+
 /**
  * Main survey assistant orchestrator
  */
@@ -674,7 +687,7 @@ async function getSurveyAnalytics(companyId: string, surveyName?: string, timefr
   return [];
 }
 
-async function getSurveyCompletionData(companyId: string, surveyName?: string, department?: string | null) {
+async function getSurveyCompletionData(companyId: string, surveyName?: string, department?: string | null): Promise<CompletionData | null> {
   try {
     const surveys = await getAvailableSurveys(companyId);
     const targetSurvey = surveyName 
@@ -702,9 +715,9 @@ async function getSurveyCompletionData(companyId: string, surveyName?: string, d
         : list;
       
       return {
-        completed: filterByDept(completed),
-        pending: filterByDept(pending),
-        overdue: [] // Would need deadline logic
+        completed: filterByDept(completed) as Employee[],
+        pending: filterByDept(pending) as Employee[],
+        overdue: [] as Employee[] // Would need deadline logic
       };
     }
   } catch (error) {

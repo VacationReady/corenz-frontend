@@ -22,7 +22,7 @@ export async function handleIntegratedAutomation(
   if (components.needsGuidance) {
     return {
       success: true,
-      message: components.guidanceMessage,
+      message: components.guidanceMessage || "I need more information to help you with this automation.",
       requiresConfirmation: false,
       suggestions: components.suggestions
     };
@@ -59,7 +59,7 @@ export async function handleMultiFunctionWorkflow(
   if (workflowComponents.needsGuidance) {
     return {
       success: true,
-      message: workflowComponents.guidanceMessage,
+      message: workflowComponents.guidanceMessage || "I need more information to help you with this workflow.",
       requiresConfirmation: false,
       suggestions: workflowComponents.suggestions
     };
@@ -96,7 +96,7 @@ export async function handleSmartBulkOperations(
   if (bulkComponents.needsGuidance) {
     return {
       success: true,
-      message: bulkComponents.guidanceMessage,
+      message: bulkComponents.guidanceMessage || "I need more information to help you with this bulk operation.",
       requiresConfirmation: false,
       suggestions: bulkComponents.suggestions
     };
@@ -133,7 +133,7 @@ export async function handleIntelligentCommunications(
   if (commComponents.needsGuidance) {
     return {
       success: true,
-      message: commComponents.guidanceMessage,
+      message: commComponents.guidanceMessage || "I need more information to help you with this communication.",
       requiresConfirmation: false,
       suggestions: commComponents.suggestions
     };
@@ -170,7 +170,7 @@ export async function handleDynamicFormBuilding(
   if (formComponents.needsGuidance) {
     return {
       success: true,
-      message: formComponents.guidanceMessage,
+      message: formComponents.guidanceMessage || "I need more information to help you with this form.",
       requiresConfirmation: false,
       suggestions: formComponents.suggestions
     };

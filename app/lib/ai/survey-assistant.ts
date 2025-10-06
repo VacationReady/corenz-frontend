@@ -54,11 +54,16 @@ export async function processSurveyRequest(
 }
 
 /**
+ * Classify survey intent from user message
+ */
+async function classifySurveyIntent(userMessage: string): Promise<{ type: string; parameters: any }> {
+  const msg = userMessage.toLowerCase();
+  
   // Survey creation patterns
   if (msg.includes("create") && (msg.includes("survey") || msg.includes("pulse") || msg.includes("feedback"))) {
     return {
       type: "create_survey",
-      parameters: extractSurveyCreationParams(userMessage)
+      parameters: {}
     };
   }
   
@@ -67,7 +72,7 @@ export async function processSurveyRequest(
       (msg.includes("survey") || msg.includes("pulse"))) {
     return {
       type: "send_survey",
-      parameters: extractDeploymentParams(userMessage)
+      parameters: {}
     };
   }
   
@@ -77,7 +82,7 @@ export async function processSurveyRequest(
       (msg.includes("survey") || msg.includes("pulse"))) {
     return {
       type: "analyze_survey",
-      parameters: extractAnalyticsParams(userMessage)
+      parameters: {}
     };
   }
   
@@ -87,7 +92,7 @@ export async function processSurveyRequest(
       (msg.includes("survey") || msg.includes("pulse"))) {
     return {
       type: "track_completion",
-      parameters: extractTrackingParams(userMessage)
+      parameters: {}
     };
   }
   
@@ -97,7 +102,7 @@ export async function processSurveyRequest(
       (msg.includes("survey") || msg.includes("pulse"))) {
     return {
       type: "digest_results",
-      parameters: extractDigestionParams(userMessage)
+      parameters: {}
     };
   }
   

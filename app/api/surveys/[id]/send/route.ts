@@ -163,7 +163,7 @@ export async function POST(
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
         totalRecipients: employees.length,
         metadata: {
-          ...(survey.metadata || {}),
+          ...(survey.metadata && typeof survey.metadata === 'object' ? survey.metadata : {}),
           ...(validatedData.targetAudience || {}),
         },
       },

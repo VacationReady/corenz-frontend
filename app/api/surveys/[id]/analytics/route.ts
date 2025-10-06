@@ -210,15 +210,15 @@ export async function GET(
           try {
             const data = r.responseData as any;
             const scores = Object.values(data || {})
-              .filter(value => typeof value === 'number' && value >= 1 && value <= 5);
+              .filter((value): value is number => typeof value === 'number' && value >= 1 && value <= 5);
             return scores.length > 0 
-              ? scores.reduce((sum: any, val: any) => sum + val, 0) / scores.length 
+              ? scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length 
               : null;
           } catch {
             return null;
           }
         })
-        .filter(score => score !== null) as number[];
+        .filter((score): score is number => score !== null);
       
       departmentAnalytics[dept].average = deptScores.length > 0
         ? Math.round((deptScores.reduce((sum, score) => sum + score, 0) / deptScores.length) * 10) / 10

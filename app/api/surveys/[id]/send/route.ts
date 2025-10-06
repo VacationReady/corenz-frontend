@@ -164,7 +164,7 @@ export async function POST(
         totalRecipients: employees.length,
         metadata: {
           ...(survey.metadata || {}),
-          ...validatedData.targetAudience,
+          ...(validatedData.targetAudience || {}),
         },
       },
     });

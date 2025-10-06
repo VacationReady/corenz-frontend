@@ -194,7 +194,8 @@ export async function POST(
 
     // Trigger AI analysis for the new response (async, don't wait)
     try {
-      const employee = await prisma.employee.findUnique({
+      // Get additional employee details for AI analysis
+      const employeeDetails = await prisma.employee.findUnique({
         where: { id: employee.id },
         include: {
           User: {
@@ -212,12 +213,12 @@ export async function POST(
         }
       });
 
-      if (employee) {
+      if (employeeDetails) {
         const responseData = {
-          employeeId: employee.id,
-          employeeName: `${employee.User.firstName} ${employee.User.lastName}`,
-          department: employee.Department?.name || 'Unknown',
-          position: employee.JobRole?.name || 'Unknown',
+          employeeId: employeeDetails.id,
+          employeeName: `${employeeDetails.User.firstName} ${employeeDetails.User.lastName}`,
+          department: employeeDetails.Department?.name || 'Unknown',
+          position: employeeDetails.JobRole?.name || 'Unknown',
           responseData: validatedData.responseData,
           submittedAt: response.submittedAt.toISOString()
         };

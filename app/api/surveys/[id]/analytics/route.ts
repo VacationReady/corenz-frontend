@@ -121,7 +121,10 @@ export async function GET(
               }
               
               responseAnalytics[key].responses.push(value);
-              responseAnalytics[key].distribution[value as keyof typeof responseAnalytics[key].distribution]++;
+              const distribution = responseAnalytics[key].distribution;
+              if (value >= 1 && value <= 5) {
+                distribution[value as keyof typeof distribution]++;
+              }
             }
           });
         } catch (error) {

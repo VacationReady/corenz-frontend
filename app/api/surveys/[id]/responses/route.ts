@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { analyzeIndividualResponse } from "@/lib/ai/survey-analyzer";
 
 const submitResponseSchema = z.object({
   responseData: z.record(z.any()),
@@ -189,6 +190,46 @@ export async function POST(
           completedAt: new Date(),
         },
       });
+    }
+
+    // Trigger AI analysis for the new response (async, don't wait)
+    try {
+      const employee = await prisma.employee.findUnique({
+        where: { id: employee.id },
+        include: {
+          User: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          },
+          Department: {
+            select: { name: true }
+          },
+          JobRole: {
+            select: { name: true }
+          }
+        }
+      });
+
+      if (employee) {
+        const responseData = {
+          employeeId: employee.id,
+          employeeName: `${employee.User.firstName} ${employee.User.lastName}`,
+          department: employee.Department?.name || 'Unknown',
+          position: employee.JobRole?.name || 'Unknown',
+          responseData: validatedData.responseData,
+          submittedAt: response.submittedAt.toISOString()
+        };
+
+        // Run AI analysis in background (don't await to avoid blocking response)
+        analyzeIndividualResponse(id, responseData).catch(error => {
+          console.error("Background AI analysis failed:", error);
+        });
+      }
+    } catch (aiError) {
+      console.error("Error preparing AI analysis:", aiError);
+      // Don't fail the response submission if AI analysis fails
     }
 
     return NextResponse.json({ 

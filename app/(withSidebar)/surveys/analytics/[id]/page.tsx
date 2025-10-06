@@ -115,7 +115,7 @@ interface IndividualSurveyAnalytics {
 
 export default function IndividualSurveyAnalyticsPage() {
   const params = useParams();
-  const surveyId = params.id as string;
+  const surveyId = params?.id as string;
   
   const [analytics, setAnalytics] = useState<IndividualSurveyAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,6 +125,35 @@ export default function IndividualSurveyAnalyticsPage() {
   const [scheduleWeekly, setScheduleWeekly] = useState(false);
   const [sendingDigest, setSendingDigest] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // Early return if no surveyId
+  if (!surveyId) {
+    return (
+      <PageShell
+        title="Survey Analytics"
+        description="Survey not found"
+        icon={<TrendingUp className="w-6 h-6" />}
+      >
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Survey ID not found
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md">
+              The survey ID could not be determined from the URL.
+            </p>
+            <Button asChild variant="primary">
+              <Link href="/surveys/analytics">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Analytics
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </PageShell>
+    );
+  }
 
   useEffect(() => {
     const loadAnalytics = async () => {

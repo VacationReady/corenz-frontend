@@ -35,11 +35,23 @@ export async function GET(
             Employee: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                department: true,
-                position: true,
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+                Department: {
+                  select: {
+                    name: true,
+                  },
+                },
+                JobRole: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -50,11 +62,23 @@ export async function GET(
             Employee: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                department: true,
-                position: true,
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+                Department: {
+                  select: {
+                    name: true,
+                  },
+                },
+                JobRole: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -169,7 +193,7 @@ export async function GET(
     // Group responses by department
     const departmentAnalytics: { [key: string]: { responses: number; average: number } } = {};
     survey.SurveyResponses.forEach(response => {
-      const dept = response.Employee?.department || 'Unknown';
+      const dept = response.Employee?.Department?.name || 'Unknown';
       if (!departmentAnalytics[dept]) {
         departmentAnalytics[dept] = { responses: 0, average: 0 };
       }
@@ -179,7 +203,7 @@ export async function GET(
     // Calculate department averages
     Object.keys(departmentAnalytics).forEach(dept => {
       const deptResponses = survey.SurveyResponses.filter(
-        r => (r.Employee?.department || 'Unknown') === dept
+        r => (r.Employee?.Department?.name || 'Unknown') === dept
       );
       const deptScores = deptResponses
         .map(r => {
@@ -230,10 +254,10 @@ export async function GET(
         id: response.id,
         employee: response.Employee ? {
           id: response.Employee.id,
-          name: `${response.Employee.firstName} ${response.Employee.lastName}`,
-          email: response.Employee.email,
-          department: response.Employee.department,
-          position: response.Employee.position,
+          name: `${response.Employee.User.firstName} ${response.Employee.User.lastName}`,
+          email: response.Employee.User.email,
+          department: response.Employee.Department?.name || 'Unknown',
+          position: response.Employee.JobRole?.name || 'Unknown',
         } : null,
         submittedAt: response.submittedAt,
         responseData: response.responseData,
@@ -242,10 +266,10 @@ export async function GET(
         id: recipient.id,
         employee: recipient.Employee ? {
           id: recipient.Employee.id,
-          name: `${recipient.Employee.firstName} ${recipient.Employee.lastName}`,
-          email: recipient.Employee.email,
-          department: recipient.Employee.department,
-          position: recipient.Employee.position,
+          name: `${recipient.Employee.User.firstName} ${recipient.Employee.User.lastName}`,
+          email: recipient.Employee.User.email,
+          department: recipient.Employee.Department?.name || 'Unknown',
+          position: recipient.Employee.JobRole?.name || 'Unknown',
         } : null,
         status: recipient.status,
         sentAt: recipient.sentAt,

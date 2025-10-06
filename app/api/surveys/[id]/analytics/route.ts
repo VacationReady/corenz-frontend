@@ -27,7 +27,7 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            formData: true,
+            schema: true,
           },
         },
         SurveyResponses: {
@@ -87,15 +87,15 @@ export async function GET(
     };
 
     if (survey.SurveyResponses.length > 0) {
-      // Parse form data to get questions
+      // Parse form schema to get questions
       let questions: any[] = [];
       try {
-        const formData = survey.Form.formData as any;
-        if (formData?.fields) {
-          questions = formData.fields;
+        const formSchema = survey.Form.schema as any;
+        if (formSchema?.fields) {
+          questions = formSchema.fields;
         }
       } catch (error) {
-        console.error("Error parsing form data:", error);
+        console.error("Error parsing form schema:", error);
       }
 
       // Calculate average score from response data

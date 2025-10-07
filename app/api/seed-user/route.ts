@@ -1,12 +1,9 @@
-// pages/api/seed-user.ts
+// app/api/seed-user/route.ts - Migrated from Pages Router
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+export async function POST(req: NextRequest) {
   try {
     const hashedPassword = await bcrypt.hash("password123", 10);
     const company = await prisma.company.findFirst();
@@ -28,9 +25,9 @@ export default async function handler(
       },
     });
 
-    res.status(200).json({ message: "Test user created", user });
+    return NextResponse.json({ message: "Test user created", user });
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: error.message });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

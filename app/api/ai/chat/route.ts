@@ -197,6 +197,20 @@ export async function GET() {
           "Check survey status",
         ],
       },
+      {
+        category: "Journey Designer",
+        actions: [
+          "Create employee journey templates",
+          "Design onboarding experiences",
+          "Optimize existing journeys",
+          "Add experience blocks to journeys",
+          "Create A/B experiments for journeys",
+          "Analyze journey performance",
+          "Generate journey content",
+          "Add decision gateways",
+          "Suggest journey improvements",
+        ],
+      },
     ],
     examples: [
       "How many employees don't have IRD numbers?",
@@ -211,6 +225,13 @@ export async function GET() {
       "Analyze last month's pulse survey results",
       "Who hasn't completed the satisfaction survey?",
       "Summarize feedback from the annual engagement survey",
+      "Create an onboarding journey for software engineers",
+      "Design a new hire experience with welcome email and training",
+      "Optimize the current onboarding journey performance",
+      "Add a survey block after the welcome email in the journey",
+      "Create an A/B test for welcome email timing",
+      "Show me how the onboarding journey is performing",
+      "Generate content for the welcome email experience block",
     ],
   });
 }

@@ -1,0 +1,44 @@
+﻿
+> peoplecore-frontend@1.0.0 build
+> next build
+
+   Ôû▓ Next.js 15.5.4
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À optimizePackageImports
+
+   Creating an optimized production build ...
+node.exe : Failed to compile.
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (Failed to compile.:String) [], Remote  
+  Exception
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+
+./app/api/journeys/[id]/publish/route.ts
+Module not found: Can't resolve 
+'@/app/api/auth/[...nextauth]/route'
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+./app/api/journeys/[id]/route.ts
+Module not found: Can't resolve 
+'@/app/api/auth/[...nextauth]/route'
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+./app/api/journeys/route.ts
+Module not found: Can't resolve 
+'@/app/api/auth/[...nextauth]/route'
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+> Build failed because of webpack errors

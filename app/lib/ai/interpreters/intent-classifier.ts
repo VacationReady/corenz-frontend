@@ -90,6 +90,15 @@ AVAILABLE ACTIONS:
 - track_completion: Track who has/hasn't completed surveys ("Who hasn't completed the survey?", "Show completion rates", "Track survey responses")
 - digest_results: Generate insights from survey data ("Summarize survey feedback", "What are the key findings?", "Digest survey results")
 - survey_status: Check status of active surveys ("What surveys are running?", "Survey status", "Active surveys")
+- create_journey: Create new employee journey templates ("Create an onboarding journey", "Design a new hire experience", "Build a development path")
+- optimize_journey: Improve existing journeys ("Optimize the onboarding journey", "Improve employee experience", "Make this journey better")
+- add_experience_block: Add blocks to journeys ("Add a survey to the journey", "Insert a training module", "Add a check-in meeting")
+- create_experiment: Create A/B tests for journeys ("Test welcome email timing", "Create experiment for onboarding", "A/B test this journey")
+- analyze_performance: Analyze journey metrics ("Show journey analytics", "How is the onboarding performing?", "Journey completion rates")
+- suggest_improvements: Get AI suggestions for journeys ("Suggest improvements", "What can be optimized?", "How to make this better?")
+- add_decision_gateway: Add conditional logic to journeys ("Add decision point", "Route based on performance", "Create conditional path")
+- generate_content: Generate content for journey blocks ("Write welcome email", "Create survey questions", "Generate training content")
+- journey_design: General journey design requests ("Help with journey design", "Design employee experience", "Create journey")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")

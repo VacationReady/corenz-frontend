@@ -208,6 +208,8 @@ model Company {
   User                                User[]
   WorkingPattern                      WorkingPattern[]
   ActionItems                         ActionItem[]              @relation("Company_ActionItem")
+  JourneyTemplates                    JourneyTemplate[]
+  PersonaProfiles                     PersonaProfile[]
 }
 
 model ContractTypeOption {
@@ -454,6 +456,7 @@ model Employee {
   TrainingRecord                   TrainingRecord[]
   TransactionalChangeRequest       TransactionalChangeRequest[]
   ActionItems                      ActionItem[]                   @relation("Employee_ActionItem_Related")
+  JourneyInstances                 JourneyInstance[]
 
   @@unique([companyId, irdNumber])
 }
@@ -1606,6 +1609,15 @@ model User {
   TransactionalChangeRequest_Requester                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_requesterIdToUser")
   TransactionalChangeRequest_DecidedBy                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_decidedByIdToUser")
   ActionItems                                                              ActionItem[]                   @relation("User_ActionItem_AssignedTo")
+  CreatedJourneyTemplates                                                  JourneyTemplate[]              @relation("JourneyTemplateCreator")
+  ModifiedJourneyTemplates                                                 JourneyTemplate[]              @relation("JourneyTemplateModifier")
+  LockedGovernanceItems                                                    GovernanceLock[]               @relation("GovernanceLockLockedBy")
+  UnlockedGovernanceItems                                                  GovernanceLock[]               @relation("GovernanceLockUnlockedBy")
+  JourneyCollaborations                                                    JourneyCollaborator[]
+  AddedJourneyCollaborators                                                JourneyCollaborator[]          @relation("JourneyCollaboratorAddedBy")
+  AuthoredJourneyComments                                                  JourneyComment[]               @relation("JourneyCommentAuthor")
+  ResolvedJourneyComments                                                  JourneyComment[]               @relation("JourneyCommentResolver")
+  CreatedJourneyVersions                                                   JourneyVersion[]
 
   @@unique([email, companyId])
 }
@@ -2026,4 +2038,372 @@ enum PublicHolidayTemplate {
   NZ
   AU
   UK
+}
+
+// Journey Designer Models
+model JourneyTemplate {
+  id                   String                @id
+  companyId            String
+  name                 String
+  description          String?
+  persona              String?               // Target persona (e.g., "New Hire", "Manager", "Senior Engineer")
+  duration             Int?                  // Duration in days
+  businessGoals        Json?                 // Array of business objectives
+  status               JourneyStatus         @default(DRAFT)
+  version              Int                   @default(1)
+  isTemplate           Boolean               @default(false)
+  category             String?
+  tags                 String[]              @default([])
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  createdBy            String
+  lastModifiedBy       String?
+  publishedAt          DateTime?
+  archivedAt           DateTime?
+  
+  // Relationships
+  Company              Company               @relation(fields: [companyId], references: [id])
+  Creator              User                  @relation("JourneyTemplateCreator", fields: [createdBy], references: [id])
+  LastModifier         User?                 @relation("JourneyTemplateModifier", fields: [lastModifiedBy], references: [id])
+  
+  phases               JourneyPhase[]
+  metricBindings       MetricBinding[]
+  experiments          ExperimentVariant[]
+  governanceLocks      GovernanceLock[]
+  instances            JourneyInstance[]
+  collaborators        JourneyCollaborator[]
+  comments             JourneyComment[]
+  versions             JourneyVersion[]
+
+  @@unique([companyId, name])
+  @@index([companyId, status])
+  @@index([persona])
+  @@index([category])
+}
+
+model JourneyPhase {
+  id                   String                @id
+  journeyTemplateId    String
+  name                 String
+  description          String?
+  order                Int
+  duration             Int?                  // Duration in days
+  phaseType            JourneyPhaseType      @default(SEQUENTIAL)
+  isRequired           Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  experienceBlocks     ExperienceBlock[]
+  decisionGateways     DecisionGateway[]
+
+  @@index([journeyTemplateId, order])
+}
+
+model ExperienceBlock {
+  id                   String                @id
+  journeyPhaseId       String
+  name                 String
+  description          String?
+  blockType            ExperienceBlockType
+  order                Int
+  estimatedDuration    Int?                  // Duration in hours
+  isRequired           Boolean               @default(true)
+  slaHours             Int?                  // SLA in hours
+  responsibleRole      String?               // Role responsible for this block
+  automationConfig     Json?                 // Configuration for automation
+  assets               Json?                 // Linked assets (forms, documents, etc.)
+  successCriteria      Json?                 // Success criteria definition
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  journeyPhase         JourneyPhase          @relation(fields: [journeyPhaseId], references: [id], onDelete: Cascade)
+  feedbackSignals      FeedbackSignal[]
+  governanceLocks      GovernanceLock[]
+
+  @@index([journeyPhaseId, order])
+}
+
+model DecisionGateway {
+  id                   String                @id
+  journeyPhaseId       String
+  name                 String
+  description          String?
+  condition            Json                  // Conditional logic definition
+  order                Int
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  journeyPhase         JourneyPhase          @relation(fields: [journeyPhaseId], references: [id], onDelete: Cascade)
+
+  @@index([journeyPhaseId, order])
+}
+
+model MetricBinding {
+  id                   String                @id
+  journeyTemplateId    String
+  metricName           String
+  metricType           MetricType
+  targetValue          Float?
+  currentValue         Float?
+  dataSource           String?               // Where the metric data comes from
+  updateFrequency      String?               // How often to update (daily, weekly, etc.)
+  isKPI                Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([journeyTemplateId])
+  @@index([metricType])
+}
+
+model ExperimentVariant {
+  id                   String                @id
+  journeyTemplateId    String
+  name                 String
+  description          String?
+  trafficAllocation    Float                 @default(50.0) // Percentage of traffic
+  isControl            Boolean               @default(false)
+  status               ExperimentStatus      @default(DRAFT)
+  startDate            DateTime?
+  endDate              DateTime?
+  confidenceLevel      Float?                // Statistical confidence
+  variantConfig        Json                  // Configuration differences from control
+  results              Json?                 // Experiment results
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([journeyTemplateId, status])
+}
+
+model GovernanceLock {
+  id                   String                @id
+  journeyTemplateId    String?
+  experienceBlockId    String?
+  lockType             GovernanceLockType
+  reason               String
+  lockedBy             String
+  lockedAt             DateTime              @default(now())
+  unlockedAt           DateTime?
+  unlockedBy           String?
+  approvalRequired     Boolean               @default(true)
+  approvalWorkflowId   String?
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate?      @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  experienceBlock      ExperienceBlock?      @relation(fields: [experienceBlockId], references: [id], onDelete: Cascade)
+  LockedByUser         User                  @relation("GovernanceLockLockedBy", fields: [lockedBy], references: [id])
+  UnlockedByUser       User?                 @relation("GovernanceLockUnlockedBy", fields: [unlockedBy], references: [id])
+
+  @@index([journeyTemplateId])
+  @@index([experienceBlockId])
+  @@index([lockType])
+}
+
+model FeedbackSignal {
+  id                   String                @id
+  experienceBlockId    String
+  signalType           FeedbackSignalType
+  content              String
+  sentiment            SentimentType?
+  metadata             Json?                 // Additional context
+  participantId        String?               // Anonymous participant identifier
+  collectedAt          DateTime              @default(now())
+  
+  // Relationships
+  experienceBlock      ExperienceBlock       @relation(fields: [experienceBlockId], references: [id], onDelete: Cascade)
+
+  @@index([experienceBlockId, signalType])
+  @@index([sentiment])
+  @@index([collectedAt])
+}
+
+model PersonaProfile {
+  id                   String                @id
+  companyId            String
+  name                 String
+  description          String?
+  characteristics      Json                  // Persona characteristics
+  geography            String?
+  lifecycleStage       String?
+  goalMetrics          Json?                 // Associated goal metrics
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  Company              Company               @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
+}
+
+model JourneyInstance {
+  id                   String                @id
+  journeyTemplateId    String
+  participantId        String                // Employee or user going through journey
+  status               JourneyInstanceStatus @default(IN_PROGRESS)
+  startedAt            DateTime              @default(now())
+  completedAt          DateTime?
+  currentPhaseId       String?
+  currentBlockId       String?
+  progress             Float                 @default(0.0) // Percentage complete
+  metadata             Json?                 // Instance-specific data
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id])
+  participant          Employee              @relation(fields: [participantId], references: [id])
+
+  @@index([journeyTemplateId, status])
+  @@index([participantId])
+  @@index([status])
+}
+
+model JourneyCollaborator {
+  id                   String                @id
+  journeyTemplateId    String
+  userId               String
+  role                 CollaboratorRole      @default(VIEWER)
+  addedAt              DateTime              @default(now())
+  addedBy              String
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  user                 User                  @relation(fields: [userId], references: [id])
+  addedByUser          User                  @relation("JourneyCollaboratorAddedBy", fields: [addedBy], references: [id])
+
+  @@unique([journeyTemplateId, userId])
+  @@index([journeyTemplateId])
+}
+
+model JourneyComment {
+  id                   String                @id
+  journeyTemplateId    String
+  blockId              String?               // Optional: comment on specific block
+  content              String
+  authorId             String
+  parentId             String?               // For threaded comments
+  isResolved           Boolean               @default(false)
+  resolvedBy           String?
+  resolvedAt           DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  author               User                  @relation("JourneyCommentAuthor", fields: [authorId], references: [id])
+  resolver             User?                 @relation("JourneyCommentResolver", fields: [resolvedBy], references: [id])
+  parent               JourneyComment?       @relation("JourneyCommentThread", fields: [parentId], references: [id])
+  replies              JourneyComment[]      @relation("JourneyCommentThread")
+
+  @@index([journeyTemplateId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model JourneyVersion {
+  id                   String                @id
+  journeyTemplateId    String
+  version              Int
+  changes              Json                  // Description of changes made
+  createdBy            String
+  createdAt            DateTime              @default(now())
+  snapshot             Json                  // Full journey snapshot
+  
+  // Relationships
+  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  creator              User                  @relation(fields: [createdBy], references: [id])
+
+  @@unique([journeyTemplateId, version])
+  @@index([journeyTemplateId])
+}
+
+// Journey Designer Enums
+enum JourneyStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  DEPRECATED
+}
+
+enum JourneyPhaseType {
+  SEQUENTIAL
+  PARALLEL
+  CONDITIONAL
+}
+
+enum ExperienceBlockType {
+  TASK
+  FORM
+  COMMUNICATION
+  TRAINING
+  APPROVAL
+  AUTOMATION
+  MILESTONE
+  SURVEY
+  DOCUMENT
+  MEETING
+}
+
+enum MetricType {
+  COMPLETION_RATE
+  SATISFACTION_SCORE
+  TIME_TO_COMPLETE
+  ENGAGEMENT_SCORE
+  RETENTION_RATE
+  CUSTOM
+}
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum GovernanceLockType {
+  COMPLIANCE
+  APPROVAL_REQUIRED
+  LEGAL_REVIEW
+  BUDGET_APPROVAL
+  CUSTOM
+}
+
+enum FeedbackSignalType {
+  COMMENT
+  RATING
+  COMPLETION
+  SKIP
+  ERROR
+  SUGGESTION
+}
+
+enum SentimentType {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum JourneyInstanceStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ON_HOLD
+}
+
+enum CollaboratorRole {
+  OWNER
+  EDITOR
+  REVIEWER
+  VIEWER
 }

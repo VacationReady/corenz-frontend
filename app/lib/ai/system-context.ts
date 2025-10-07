@@ -38,6 +38,28 @@ export interface SystemContext {
     pendingLeave: number;
     expiringDocuments: number;
   };
+  journeys: {
+    total: number;
+    active: number;
+    templates: number;
+    published: number;
+    draft: number;
+    byPersona: Record<string, number>;
+    recentJourneys: Array<{
+      id: string;
+      name: string;
+      status: string;
+      persona: string;
+      phases: number;
+      completionRate?: number;
+      createdAt: string;
+    }>;
+    performanceMetrics: {
+      avgCompletionRate: number;
+      avgSatisfactionScore: number;
+      totalParticipants: number;
+    };
+  };
   csvImport: {
     availableFields: string[];
     requiredFields: string[];
@@ -74,6 +96,11 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       recentExecutionsRaw,
       csvImportEmployees,
       recentCsvImports,
+      totalJourneys,
+      activeJourneys,
+      draftJourneys,
+      recentJourneys,
+      completedJourneyInstances,
     ] = await Promise.all([
       // Total employees
       prisma.employee.count({ where: { companyId } }),
@@ -199,6 +226,13 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
           employeeId: true,
         },
       }),
+
+      // Journey Templates (will be enabled after Prisma generation)
+      Promise.resolve(0), // totalJourneys
+      Promise.resolve(0), // activeJourneys  
+      Promise.resolve(0), // draftJourneys
+      Promise.resolve([]), // recentJourneys
+      Promise.resolve(0), // completedJourneyInstances
     ]);
 
     const activeWorkflows = await prisma.automationRule.count({
@@ -320,6 +354,28 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
         lastImportDate,
         totalImports: csvImportEmployees.length,
         recentImports: processedCsvImports,
+      },
+      journeys: {
+        total: totalJourneys,
+        active: activeJourneys,
+        templates: totalJourneys, // For now, all journeys are templates
+        published: activeJourneys,
+        draft: draftJourneys,
+        byPersona: {}, // Will be populated when Prisma is generated
+        recentJourneys: recentJourneys.map((j: any) => ({
+          id: j.id || "placeholder",
+          name: j.name || "Sample Journey",
+          status: j.status || "DRAFT",
+          persona: j.persona || "General",
+          phases: j._count?.phases || 0,
+          completionRate: 0,
+          createdAt: j.createdAt || new Date().toISOString(),
+        })),
+        performanceMetrics: {
+          avgCompletionRate: 0,
+          avgSatisfactionScore: 0,
+          totalParticipants: completedJourneyInstances,
+        },
       },
     };
   } catch (error) {

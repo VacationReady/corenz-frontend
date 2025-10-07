@@ -24,6 +24,7 @@ import { isApprovalRequest } from "./interpreters/confirmation-detector";
 import { provideCSVGuidance, generateCSVTemplate, analyzeCSVErrors, suggestFieldMapping } from "./csv-assistant";
 import { processSurveyRequest } from "./survey-assistant";
 import { processSurveyAutomationRequest } from "./survey-automation-assistant";
+import { journeyAssistant } from "./journey-assistant";
 import { 
   handleIntegratedAutomation,
   handleMultiFunctionWorkflow,
@@ -256,10 +257,22 @@ export async function processUserMessage(
         result = await handleDynamicFormBuilding(userMessage, companyId, userId, intent.parameters);
         break;
 
+      case "create_journey":
+      case "optimize_journey":
+      case "add_experience_block":
+      case "create_experiment":
+      case "analyze_performance":
+      case "suggest_improvements":
+      case "add_decision_gateway":
+      case "generate_content":
+      case "journey_design":
+        result = await handleJourneyRequest(userMessage, companyId, userId, intent);
+        break;
+
       default:
         result = {
           success: true,
-          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Conversational HR** - Just tell me what you want: 'I need surveys' or 'Help with onboarding'\n• **Survey automation** - 'Send eNPS monthly and email results' or 'Automate engagement surveys'\n• **Integrated workflows** - 'When someone joins, send welcome email and schedule survey'\n• **Smart bulk operations** - 'Give sales a raise but get approval first'\n• **Intelligent communications** - 'Email managers but customize by department'\n• **Dynamic forms** - 'Create form that changes based on department'\n• **Data queries** - 'Show me sales team salaries'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import'\n\nWhat would you like to do?",
+          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Journey Designer** - 'Create an onboarding journey' or 'Design employee experience for new hires'\n• **Journey Optimization** - 'Optimize the onboarding journey' or 'Suggest improvements for this journey'\n• **Experience Blocks** - 'Add a survey to the journey' or 'Insert training module after welcome email'\n• **A/B Experiments** - 'Test welcome email timing' or 'Create experiment for onboarding journey'\n• **Journey Analytics** - 'Show journey performance' or 'How is the onboarding performing?'\n• **Conversational HR** - Just tell me what you want: 'I need surveys' or 'Help with onboarding'\n• **Survey automation** - 'Send eNPS monthly and email results' or 'Automate engagement surveys'\n• **Integrated workflows** - 'When someone joins, send welcome email and schedule survey'\n• **Smart bulk operations** - 'Give sales a raise but get approval first'\n• **Intelligent communications** - 'Email managers but customize by department'\n• **Dynamic forms** - 'Create form that changes based on department'\n• **Data queries** - 'Show me sales team salaries'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import'\n\nWhat would you like to do?",
         };
     }
 
@@ -822,6 +835,43 @@ async function handleConversationalGuidance(
       success: true,
       message: "I'd love to help! Could you tell me a bit more about what you're trying to accomplish? For example:\n\n• Setting up surveys or feedback collection\n• Automating HR processes\n• Managing employee communications\n• Building forms or workflows\n\nWhat's your main goal?",
       suggestions: ["Set up surveys", "Automate processes", "Manage communications", "Build forms"]
+    };
+  }
+}
+
+/**
+ * Handle journey design requests
+ */
+async function handleJourneyRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    const context = {
+      mode: "journey_designer" as const,
+      companyId,
+      userId,
+    };
+
+    const result = await journeyAssistant.processRequest({
+      message: userMessage,
+      context,
+    });
+    
+    return {
+      success: true,
+      message: result.message,
+      actionType: intent.actionType || "journey_design",
+      result: result.journeyUpdates,
+      suggestions: result.suggestions,
+    };
+  } catch (error: any) {
+    console.error("[Journey Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with journey design right now. Please try again later.",
     };
   }
 }

@@ -1,36 +1,28 @@
-// pages/api/set-password.ts
-
-import { NextApiRequest, NextApiResponse } from "next";
+// app/api/set-password/route.ts - Migrated from Pages Router
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail } from "@/lib/email/template";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { token, password, companyId } = req.body;
-
-  if (!token || !password) {
-    return res.status(400).json({ error: "Missing token or password" });
-  }
-
+export async function POST(req: NextRequest) {
   try {
+    const { token, password, companyId } = await req.json();
+
+    if (!token || !password) {
+      return NextResponse.json({ error: "Missing token or password" }, { status: 400 });
+    }
+
     // Server-side password policy enforcement
     const hasMinLength = typeof password === "string" && password.length >= 6;
     const hasUppercase = /[A-Z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
     const hasSpecial = /[^A-Za-z0-9]/.test(password);
     if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecial) {
-      return res.status(400).json({
+      return NextResponse.json({
         error:
           "Password must be at least 6 characters and include an uppercase letter, a number, and a special character.",
-      });
+      }, { status: 400 });
     }
 
     // 1. Validate token
@@ -39,7 +31,7 @@ export default async function handler(
     });
 
     if (!storedToken) {
-      return res.status(400).json({ error: "Invalid or expired token" });
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
     }
 
     // 2. Get user by token.userId
@@ -48,12 +40,12 @@ export default async function handler(
     });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // 3. Enforce tenant match if provided (defense-in-depth)
     if (companyId && user.companyId !== companyId) {
-      return res.status(400).json({ error: "Activation link is not for this tenant" });
+      return NextResponse.json({ error: "Activation link is not for this tenant" }, { status: 400 });
     }
 
     // 4. Get employee linked to user
@@ -62,7 +54,7 @@ export default async function handler(
     });
 
     if (!employee) {
-      return res.status(404).json({ error: "Employee not found" });
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
     // 5. Hash new password
@@ -125,9 +117,9 @@ export default async function handler(
       console.warn("Failed to send admin activation email:", e);
     }
 
-    return res.status(200).json({ message: "Password set successfully" });
+    return NextResponse.json({ message: "Password set successfully" });
   } catch (error) {
     console.error("Error in set-password:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

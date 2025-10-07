@@ -6,9 +6,10 @@ import { prisma } from "@/lib/prisma";
 // POST /api/journeys/[id]/publish - Publish a journey template
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,7 +18,7 @@ export async function POST(
     // Check if journey exists and user has permission
     const journey = await prisma.journeyTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -57,7 +58,7 @@ export async function POST(
 
     // Publish the journey
     const publishedJourney = await prisma.journeyTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: "PUBLISHED",
         publishedAt: new Date(),
@@ -83,7 +84,7 @@ export async function POST(
         userId: session.user.id,
         action: "JOURNEY_PUBLISHED",
         entityType: "JourneyTemplate",
-        entityId: params.id,
+        entityId: id,
         details: {
           journeyName: journey.name,
           version: journey.version,

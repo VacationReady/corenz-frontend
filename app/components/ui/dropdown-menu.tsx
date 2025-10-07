@@ -5,18 +5,24 @@ import { Menu, Transition, Portal } from "@headlessui/react";
 import { cn } from "@/lib/utils"; // If you don&apos;t have this, replace with className joins.
 
 type DropdownMenuProps = {
-  trigger: React.ReactNode;
   children: React.ReactNode;
   align?: "left" | "right";
 };
 
 export function DropdownMenu({
-  trigger,
   children,
   align = "right",
 }: DropdownMenuProps) {
   const buttonRef = useRef<HTMLDivElement | null>(null);
   const [positionStyles, setPositionStyles] = useState<React.CSSProperties>({});
+
+  // Find trigger and content from children
+  const triggerChild = React.Children.toArray(children).find(
+    (child) => React.isValidElement(child) && child.type === DropdownMenuTrigger
+  );
+  const contentChild = React.Children.toArray(children).find(
+    (child) => React.isValidElement(child) && child.type === DropdownMenuContent
+  );
 
   return (
     <Menu as="div" className="relative inline-block text-left">
@@ -37,7 +43,7 @@ export function DropdownMenu({
         return (
           <>
             <Menu.Button ref={buttonRef as any} as="div" className="inline-block">
-              {trigger}
+              {triggerChild}
             </Menu.Button>
             <Transition
               as={Fragment}
@@ -56,7 +62,7 @@ export function DropdownMenu({
                   )}
                   style={positionStyles}
                 >
-                  {children}
+                  {contentChild}
                 </Menu.Items>
               </Portal>
             </Transition>

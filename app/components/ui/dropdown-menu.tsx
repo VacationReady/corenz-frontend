@@ -107,3 +107,34 @@ export function DropdownMenuItem({
     </Menu.Item>
   );
 }
+
+// Radix UI-style compatibility exports
+export const DropdownMenuTrigger = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }
+>(({ children, asChild, ...props }, ref) => {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      ...props,
+      ref,
+    });
+  }
+  return (
+    <div ref={ref} {...props}>
+      {children}
+    </div>
+  );
+});
+DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
+
+export const DropdownMenuContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "center" | "end" }
+>(({ children, align = "end", ...props }, ref) => {
+  return (
+    <div ref={ref} {...props}>
+      {children}
+    </div>
+  );
+});
+DropdownMenuContent.displayName = "DropdownMenuContent";

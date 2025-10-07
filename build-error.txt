@@ -1,0 +1,297 @@
+﻿
+> peoplecore-frontend@1.0.0 build
+> next build
+
+   Ôû▓ Next.js 15.5.4
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À optimizePackageImports
+
+   Creating an optimized production build ...
+node.exe :  ÔÜá Compiled with warnings in 
+2.5min
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    ( ÔÜá Compiled with warnings in 2.5min  
+  :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+Attempted import error: 
+'DropdownMenuTrigger' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuTrigger').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+Attempted import error: 
+'DropdownMenuContent' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuContent').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+Attempted import error: 
+'DropdownMenuTrigger' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuTrigger').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+Attempted import error: 
+'DropdownMenuContent' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuContent').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+Attempted import error: 
+'DropdownMenuTrigger' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuTrigger').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+Attempted import error: 
+'DropdownMenuContent' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuContent').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/components/ui/Checkbox.tsx
+There are multiple modules with names that 
+only differ in casing.
+This can lead to unexpected behavior when 
+compiling on a filesystem with other 
+case-semantic.
+Use equal casing. Compare these module 
+identifiers:
+* javascript/auto|C:\Users\macke\Downloads\c
+orenz restart\clean-corenz-frontend\node_mod
+ules\next\dist\build\webpack\loaders\next-fl
+ight-client-module-loader.js!C:\Users\macke\
+Downloads\corenz restart\clean-corenz-fronte
+nd\node_modules\next\dist\build\webpack\load
+ers\next-swc-loader.js??ruleSet[1].rules[16]
+.oneOf[6].use[1]!C:\Users\macke\Downloads\co
+renz restart\clean-corenz-frontend\app\compo
+nents\ui\Checkbox.tsx|app-pages-browser
+    Used by 19 module(s), i. e.
+    javascript/auto|C:\Users\macke\Downloads
+\corenz restart\clean-corenz-frontend\node_m
+odules\next\dist\build\webpack\loaders\next-
+flight-client-module-loader.js!C:\Users\mack
+e\Downloads\corenz restart\clean-corenz-fron
+tend\node_modules\next\dist\build\webpack\lo
+aders\next-swc-loader.js??ruleSet[1].rules[1
+6].oneOf[6].use[1]!C:\Users\macke\Downloads\
+corenz restart\clean-corenz-frontend\app\exi
+t-interview\[token]\page.tsx|app-pages-brows
+er
+* javascript/auto|C:\Users\macke\Downloads\c
+orenz restart\clean-corenz-frontend\node_mod
+ules\next\dist\build\webpack\loaders\next-fl
+ight-client-module-loader.js!C:\Users\macke\
+Downloads\corenz restart\clean-corenz-fronte
+nd\node_modules\next\dist\build\webpack\load
+ers\next-swc-loader.js??ruleSet[1].rules[16]
+.oneOf[6].use[1]!C:\Users\macke\Downloads\co
+renz restart\clean-corenz-frontend\app\compo
+nents\ui\checkbox.tsx|app-pages-browser
+    Used by 1 module(s), i. e.
+    javascript/auto|C:\Users\macke\Downloads
+\corenz restart\clean-corenz-frontend\node_m
+odules\next\dist\build\webpack\loaders\next-
+flight-client-module-loader.js!C:\Users\mack
+e\Downloads\corenz restart\clean-corenz-fron
+tend\node_modules\next\dist\build\webpack\lo
+aders\next-swc-loader.js??ruleSet[1].rules[1
+6].oneOf[6].use[1]!C:\Users\macke\Downloads\
+corenz restart\clean-corenz-frontend\app\(wi
+thSidebar)\journeys\components\JourneyScopin
+gDialog.tsx|app-pages-browser
+
+Import trace for requested module:
+./app/components/ui/Checkbox.tsx
+./app/exit-interview/[token]/page.tsx
+
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+Attempted import error: 
+'DropdownMenuTrigger' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuTrigger').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+Attempted import error: 
+'DropdownMenuContent' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuContent').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+Attempted import error: 
+'DropdownMenuTrigger' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuTrigger').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+Attempted import error: 
+'DropdownMenuContent' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuContent').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/DecisionGatewayNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+Attempted import error: 
+'DropdownMenuTrigger' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuTrigger').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+Attempted import error: 
+'DropdownMenuContent' is not exported from 
+'@/components/ui/dropdown-menu' (imported 
+as 'DropdownMenuContent').
+
+Import trace for requested module:
+./app/(withSidebar)/journeys/components/node
+s/ExperienceBlockNode.tsx
+./app/(withSidebar)/journeys/components/Jour
+neyCanvas.tsx
+./app/(withSidebar)/journeys/page.tsx
+
+./app/components/ui/Checkbox.tsx
+There are multiple modules with names that 
+only differ in casing.
+This can lead to unexpected behavior when 
+compiling on a filesystem with other 
+case-semantic.
+Use equal casing. Compare these module 
+identifiers:
+* javascript/auto|C:\Users\macke\Downloads\c
+orenz restart\clean-corenz-frontend\node_mod
+ules\next\dist\build\webpack\loaders\next-fl
+ight-client-module-loader.js!C:\Users\macke\
+Downloads\corenz restart\clean-corenz-fronte
+nd\node_modules\next\dist\build\webpack\load
+ers\next-swc-loader.js??ruleSet[1].rules[16]
+.oneOf[7].use[1]!C:\Users\macke\Downloads\co
+renz restart\clean-corenz-frontend\app\compo
+nents\ui\Checkbox.tsx|ssr
+    Used by 19 module(s), i. e.
+    javascript/auto|C:\Users\macke\Downloads
+\corenz restart\clean-corenz-frontend\node_m
+odules\next\dist\build\webpack\loaders\next-
+flight-client-module-loader.js!C:\Users\mack
+e\Downloads\corenz restart\clean-corenz-fron
+tend\node_modules\next\dist\build\webpack\lo
+aders\next-swc-loader.js??ruleSet[1].rules[1
+6].oneOf[7].use[1]!C:\Users\macke\Downloads\
+corenz restart\clean-corenz-frontend\app\exi
+t-interview\[token]\page.tsx|ssr
+* javascript/auto|C:\Users\macke\Downloads\c
+orenz restart\clean-corenz-frontend\node_mod
+ules\next\dist\build\webpack\loaders\next-fl
+ight-client-module-loader.js!C:\Users\macke\
+Downloads\corenz restart\clean-corenz-fronte
+nd\node_modules\next\dist\build\webpack\load
+ers\next-swc-loader.js??ruleSet[1].rules[16]
+.oneOf[7].use[1]!C:\Users\macke\Downloads\co
+renz restart\clean-corenz-frontend\app\compo
+nents\ui\checkbox.tsx|ssr
+    Used by 1 module(s), i. e.
+    javascript/auto|C:\Users\macke\Downloads
+\corenz restart\clean-corenz-frontend\node_m
+odules\next\dist\build\webpack\loaders\next-
+flight-client-module-loader.js!C:\Users\mack
+e\Downloads\corenz restart\clean-corenz-fron
+tend\node_modules\next\dist\build\webpack\lo
+aders\next-swc-loader.js??ruleSet[1].rules[1
+6].oneOf[7].use[1]!C:\Users\macke\Downloads\
+corenz restart\clean-corenz-frontend\app\(wi
+thSidebar)\journeys\components\JourneyScopin
+gDialog.tsx|ssr
+
+Import trace for requested module:
+./app/components/ui/Checkbox.tsx
+./app/exit-interview/[token]/page.tsx
+
+   Skipping linting
+   Checking validity of types ...

@@ -312,7 +312,7 @@ export function AssistantConsole({ journey, onJourneyUpdate, onClose }: Assistan
                         {message.actions.map((action) => (
                           <Button
                             key={action.id}
-                            variant={action.type === "primary" ? "default" : "outline"}
+                            variant={action.type === "primary" ? "primary" : "outline"}
                             size="sm"
                             onClick={action.action}
                             className="text-xs"

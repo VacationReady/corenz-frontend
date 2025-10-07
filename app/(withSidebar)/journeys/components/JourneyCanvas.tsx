@@ -28,11 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Toolbar,
-  ToolbarButton,
-  ToolbarSeparator,
-} from "@/components/ui/toolbar";
-import {
   Save,
   Play,
   Pause,

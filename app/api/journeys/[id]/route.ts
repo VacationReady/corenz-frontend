@@ -19,9 +19,10 @@ const updateJourneySchema = z.object({
 // GET /api/journeys/[id] - Get a specific journey template
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,7 +30,7 @@ export async function GET(
 
     const journey = await prisma.journeyTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -133,9 +134,10 @@ export async function GET(
 // PUT /api/journeys/[id] - Update a journey template
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -147,7 +149,7 @@ export async function PUT(
     // Check if journey exists and user has permission
     const existingJourney = await prisma.journeyTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -174,7 +176,7 @@ export async function PUT(
     // Create version snapshot before updating
     await prisma.journeyVersion.create({
       data: {
-        journeyTemplateId: params.id,
+        journeyTemplateId: id,
         version: existingJourney.version + 1,
         changes: {
           updatedBy: session.user.id,
@@ -188,7 +190,7 @@ export async function PUT(
 
     // Update the journey
     const updatedJourney = await prisma.journeyTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...validatedData,
         lastModifiedBy: session.user.id,
@@ -226,9 +228,10 @@ export async function PUT(
 // DELETE /api/journeys/[id] - Delete a journey template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -237,7 +240,7 @@ export async function DELETE(
     // Check if journey exists and user has permission
     const journey = await prisma.journeyTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -279,7 +282,7 @@ export async function DELETE(
 
     // Soft delete by archiving
     await prisma.journeyTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: "ARCHIVED",
         archivedAt: new Date(),

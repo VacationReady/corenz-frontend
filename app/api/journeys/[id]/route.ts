@@ -176,6 +176,7 @@ export async function PUT(
     // Create version snapshot before updating
     await prisma.journeyVersion.create({
       data: {
+        id: crypto.randomUUID(),
         journeyTemplateId: id,
         version: existingJourney.version + 1,
         changes: {

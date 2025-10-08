@@ -1693,50 +1693,68 @@ function EnhancedWorkflowCanvasInner({
             {!readOnly && (
               <>
                 <div className="flex items-center bg-white/90 backdrop-blur rounded-md">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyAutoLayout("dagre")}
-                    title="Hierarchical layout"
-                  >
-                    <Layout className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyAutoLayout("grid")}
-                    title="Grid layout"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyAutoLayout("circular")}
-                    title="Circular layout"
-                  >
-                    <Circle className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => applyAutoLayout("lanes")}
-                    title="Swimlane layout"
-                  >
-                    <Layers className="h-4 w-4" />
-                  </Button>
                   <Select
-                    value={layoutDirection}
-                    onValueChange={(value: any) => setLayoutDirection(value)}
+                    onValueChange={(value: string) => {
+                      if (value.startsWith('direction-')) {
+                        setLayoutDirection(value.replace('direction-', '') as any);
+                      } else {
+                        applyAutoLayout(value);
+                      }
+                    }}
                   >
-                    <SelectTrigger className="w-20 h-8 border-0">
-                      <SelectValue />
+                    <SelectTrigger className="w-32 h-8 border-0">
+                      <SelectValue placeholder="View" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="TB">Top-Bottom</SelectItem>
-                      <SelectItem value="LR">Left-Right</SelectItem>
-                      <SelectItem value="BT">Bottom-Top</SelectItem>
-                      <SelectItem value="RL">Right-Left</SelectItem>
+                      <SelectItem value="dagre">
+                        <div className="flex items-center gap-2">
+                          <Layout className="h-4 w-4" />
+                          Hierarchical
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="grid">
+                        <div className="flex items-center gap-2">
+                          <Grid3x3 className="h-4 w-4" />
+                          Grid
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="circular">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-4 w-4" />
+                          Circular
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="lanes">
+                        <div className="flex items-center gap-2">
+                          <Layers className="h-4 w-4" />
+                          Swimlane
+                        </div>
+                      </SelectItem>
+                      <div className="border-t my-1" />
+                      <SelectItem value="direction-TB">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">↕</span>
+                          Top-Bottom
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="direction-LR">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">↔</span>
+                          Left-Right
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="direction-BT">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">↕</span>
+                          Bottom-Top
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="direction-RL">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">↔</span>
+                          Right-Left
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

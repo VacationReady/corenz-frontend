@@ -1,6 +1,99 @@
 import { openai } from "./openai-client";
 import { prisma } from "@/lib/prisma";
 
+// Comprehensive knowledge base about Journey Designer
+const JOURNEY_KNOWLEDGE_BASE = `
+# What are Employee Journeys?
+
+**Employee Journeys** are AI-powered, HR-friendly experiences that guide employees through important milestones and processes in their career lifecycle. Think of them as intelligent, automated workflows designed specifically for creating exceptional employee experiences.
+
+## Key Concepts:
+
+### 🎯 **What Makes Journeys Different?**
+- **Experience-Focused**: Unlike technical automation rules, journeys are designed around the employee experience
+- **Visual & Intuitive**: Easy-to-design visual canvas that HR teams can understand and manage
+- **AI-Powered**: Built-in intelligence to optimize timing, content, and engagement
+- **Flexible**: Can adapt based on employee responses, role, department, or performance
+
+### 🚀 **Common Journey Types:**
+
+1. **Onboarding Journeys**: Welcome new hires with structured experiences
+   - Day 1 welcome email
+   - Week 1 training modules
+   - 30-day check-in surveys
+   - 90-day performance reviews
+
+2. **Development Journeys**: Career growth and skill development paths
+   - Leadership development programs
+   - Skills training sequences
+   - Mentorship pairing
+   - Progress tracking
+
+3. **Performance Journeys**: Review cycles and improvement plans
+   - Pre-review preparation
+   - Manager 1-on-1 scheduling
+   - Feedback collection
+   - Goal setting and tracking
+
+4. **Offboarding Journeys**: Smooth transitions for departing employees
+   - Exit interviews
+   - Equipment collection
+   - Knowledge transfer
+   - Alumni network invitations
+
+5. **Custom Journeys**: Tailored to your specific needs
+   - Promotion pathways
+   - Return-to-work programs
+   - Location transfers
+   - Project-based experiences
+
+### 🧩 **Journey Components:**
+
+**Experience Blocks** are the building blocks of journeys:
+- 📧 **Communications**: Welcome emails, notifications, announcements
+- 📊 **Surveys**: Pulse checks, feedback forms, satisfaction scores
+- 📚 **Training**: Learning modules, skill development, certifications
+- ✅ **Tasks**: Action items, deliverables, assignments
+- 👥 **Meetings**: 1-on-1s, check-ins, team introductions
+- ✔️ **Approvals**: Manager sign-offs, stakeholder reviews
+- 📄 **Documents**: Policies, contracts, handbooks
+- 🎯 **Milestones**: Key achievements and celebrations
+
+**Decision Gateways** add smart conditional logic:
+- Route employees down different paths based on their department, role, or responses
+- Personalize experiences based on performance or engagement scores
+- Create adaptive journeys that respond to employee needs
+
+**A/B Experiments** let you optimize:
+- Test different welcome email timings
+- Compare onboarding approaches
+- Experiment with check-in frequency
+- Data-driven improvement
+
+### 💡 **How I Can Help:**
+
+I can help you with:
+- **Creating** new journey templates from scratch
+- **Optimizing** existing journeys for better engagement
+- **Adding** experience blocks and touchpoints
+- **Designing** A/B experiments to test improvements
+- **Analyzing** journey performance and metrics
+- **Generating** personalized content for any block
+- **Suggesting** improvements based on best practices
+
+### 📊 **Journey Metrics:**
+
+Track success with:
+- Completion rates
+- Satisfaction scores
+- Time-to-productivity
+- Engagement levels
+- Drop-off points
+- Feedback sentiment
+
+The goal is to create seamless, engaging experiences that make employees feel supported and valued throughout their entire journey with your company.
+`;
+
 export interface JourneyAssistantRequest {
   message: string;
   context: {
@@ -59,6 +152,28 @@ export class JourneyAssistant {
   }
 
   private async analyzeIntent(message: string, context: any) {
+    // First, check if this is a question about what journeys are (fast path)
+    const messageLower = message.toLowerCase();
+    const isIntroQuestion = 
+      messageLower.includes('what are journeys') ||
+      messageLower.includes('what is a journey') ||
+      messageLower.includes("what's a journey") ||
+      messageLower.includes('explain journeys') ||
+      messageLower.includes('tell me about journeys') ||
+      messageLower.includes('what are these journeys') ||
+      messageLower.includes('i dont know what') ||
+      messageLower.includes("i don't know what") ||
+      (messageLower.includes('what') && messageLower.includes('journey') && message.split(' ').length <= 5);
+    
+    // If it's an intro question, immediately route to general_query
+    if (isIntroQuestion) {
+      return { 
+        type: "general_query", 
+        confidence: 1.0,
+        parameters: { isIntroQuestion: true }
+      };
+    }
+
     const prompt = `
     Analyze this user message in the context of Journey Designer and determine the intent:
 
@@ -74,7 +189,10 @@ export class JourneyAssistant {
     - suggest_improvements: User wants AI suggestions
     - add_decision_gateway: User wants to add conditional logic
     - generate_content: User wants to generate content for blocks
-    - general_query: General question or conversation
+    - general_query: General question about journeys, how they work, or conversation (use for "what are journeys", "how do journeys work", "tell me about journeys", etc.)
+
+    IMPORTANT: If the user is asking questions like "What are journeys?", "How do they work?", "Tell me about journeys", or similar, 
+    always classify as "general_query" even if you're not sure. These are learning questions, not action requests.
 
     Return a JSON object with:
     {
@@ -356,13 +474,92 @@ ${suggestions.map((suggestion, i) =>
   }
 
   private async handleGeneralQuery(message: string, context: any): Promise<JourneyAssistantResponse> {
+    // Detect if this is an introductory question about what journeys are
+    const messageLower = message.toLowerCase();
+    const isIntroQuestion = 
+      messageLower.includes('what are journeys') ||
+      messageLower.includes('what is a journey') ||
+      messageLower.includes("what's a journey") ||
+      messageLower.includes('explain journeys') ||
+      messageLower.includes('tell me about journeys') ||
+      messageLower.includes('what are these journeys') ||
+      messageLower.includes('i dont know what') ||
+      messageLower.includes("i don't know what") ||
+      (messageLower.includes('what') && messageLower.includes('journey') && message.split(' ').length <= 5);
+    
+    // If asking what journeys are, provide comprehensive explanation
+    if (isIntroQuestion) {
+      return {
+        message: `Great question! Let me explain what Employee Journeys are.
+
+**Employee Journeys** are AI-powered, HR-friendly experiences that guide employees through important milestones in their career lifecycle. Think of them as intelligent, automated workflows designed specifically for creating exceptional employee experiences.
+
+### 🎯 **What Makes Journeys Special?**
+
+- **Experience-Focused**: Unlike technical automation rules, journeys are designed around the employee experience
+- **Visual & Intuitive**: Easy-to-design visual canvas that HR teams can understand
+- **AI-Powered**: Built-in intelligence to optimize timing, content, and engagement
+- **Flexible**: Adapt based on employee responses, role, department, or performance
+
+### 🚀 **Common Use Cases:**
+
+1. **Onboarding Journeys**: Welcome new hires (Day 1 email → Week 1 training → 30-day survey → 90-day review)
+2. **Development Journeys**: Career growth and skill development paths
+3. **Performance Journeys**: Review cycles and improvement plans
+4. **Offboarding Journeys**: Smooth transitions for departing employees
+
+### 🧩 **Journey Components:**
+
+**Experience Blocks** are the building blocks:
+- 📧 Communications (emails, notifications)
+- 📊 Surveys (pulse checks, feedback)
+- 📚 Training (learning modules)
+- ✅ Tasks (action items)
+- 👥 Meetings (1-on-1s, check-ins)
+- 📄 Documents (policies, handbooks)
+
+**Decision Gateways** add smart conditional logic to personalize paths based on department, role, or responses.
+
+**A/B Experiments** let you test and optimize different approaches.
+
+### 💡 **What I Can Help With:**
+
+- Creating new journey templates
+- Optimizing existing journeys
+- Adding experience blocks
+- Analyzing performance
+- Generating content
+- Suggesting improvements
+
+Would you like to create your first journey or learn more about a specific aspect?`,
+        suggestions: [
+          "Create a new hire onboarding journey",
+          "Show me a journey example",
+          "What are experience blocks?",
+          "How do A/B experiments work?",
+        ],
+      };
+    }
+
+    // For other general queries, use AI with full journey knowledge
     const prompt = `
-    You are an expert HR Journey Designer assistant. The user asked: "${message}"
+    You are an expert HR Journey Designer assistant with deep knowledge about employee journey design.
     
-    Context: ${JSON.stringify(context)}
+    USER QUESTION: "${message}"
     
-    Provide a helpful response about journey design, employee experience, or HR automation.
-    Be conversational, knowledgeable, and offer specific suggestions.
+    CONTEXT: ${JSON.stringify(context)}
+    
+    JOURNEY DESIGNER KNOWLEDGE BASE:
+    ${JOURNEY_KNOWLEDGE_BASE}
+    
+    INSTRUCTIONS:
+    - Provide a helpful, conversational response
+    - Draw from the knowledge base above to answer accurately
+    - Be specific and actionable
+    - If the question is about journeys in general, explain what they are
+    - If the question is about capabilities, explain what you can help with
+    - If the question is vague, ask clarifying questions
+    - Keep responses concise but informative (2-4 paragraphs max)
     `;
 
     try {

@@ -98,7 +98,7 @@ AVAILABLE ACTIONS:
 - suggest_improvements: Get AI suggestions for journeys ("Suggest improvements", "What can be optimized?", "How to make this better?")
 - add_decision_gateway: Add conditional logic to journeys ("Add decision point", "Route based on performance", "Create conditional path")
 - generate_content: Generate content for journey blocks ("Write welcome email", "Create survey questions", "Generate training content")
-- journey_design: General journey design requests ("Help with journey design", "Design employee experience", "Create journey")
+- journey_design: General journey design requests ("Help with journey design", "Design employee experience", "Create journey", "What are journeys?", "How do journeys work?", "Tell me about journeys", "I dont know what they are")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")

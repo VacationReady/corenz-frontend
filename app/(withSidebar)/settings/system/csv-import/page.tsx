@@ -687,10 +687,14 @@ export default function CSVImportPage() {
 
     const employeeIds = importProgress.result.created.map((emp: any) => emp.id);
 
+    const message = activationOptions.sendEmails 
+      ? "Activating employees and sending welcome emails..."
+      : "Activating employees and setting up permissions...";
+    
     setImportProgress({
       status: "processing",
       progress: 50,
-      message: "Activating employees and sending welcome emails...",
+      message,
     });
 
     try {
@@ -1150,7 +1154,7 @@ export default function CSVImportPage() {
                   <h4 className="text-sm font-medium">Existing employee updates</h4>
                   <p className="text-xs text-muted-foreground">
                     Enable this option to merge new personal, employment, and payroll details for people who already exist in
-                    Corenz.
+                    PeopleCore.
                   </p>
                 </div>
                 <div className="flex items-start justify-between gap-4">

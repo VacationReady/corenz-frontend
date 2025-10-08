@@ -172,7 +172,6 @@ export const TriggerConfiguration: React.FC<TriggerConfigurationProps> = ({
   errors = {},
 }) => {
   const triggerInfo = triggerTypes.find(t => t.id === triggerType);
-  if (!triggerInfo) return null;
 
   const getFieldOptions = (field: any) => {
     if (triggerType === "FORM_SUBMITTED" && field.key === "formId") {
@@ -186,24 +185,61 @@ export const TriggerConfiguration: React.FC<TriggerConfigurationProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md">
-        {triggerInfo.icon}
-        <div>
-          <p className="text-sm font-medium">{triggerInfo.name}</p>
-          <p className="text-xs text-muted-foreground">{triggerInfo.description}</p>
-        </div>
+      {/* Trigger Type Selector */}
+      <div>
+        <Label htmlFor="triggerType" className="text-xs font-medium">
+          Trigger Type
+          <span className="text-red-500 ml-0.5">*</span>
+        </Label>
+        <Select
+          value={triggerType}
+          onValueChange={(value) => {
+            // Clear trigger config when changing type to force immediate re-render
+            onUpdate({ triggerType: value, triggerConfig: {} });
+          }}
+        >
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue placeholder="Select a trigger..." />
+          </SelectTrigger>
+          <SelectContent>
+            {triggerTypes.map((trigger: any) => (
+              <SelectItem key={trigger.id} value={trigger.id}>
+                <div className="flex items-center gap-2">
+                  {trigger.icon}
+                  <span>{trigger.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.triggerType && (
+          <p className="text-xs text-destructive mt-1">{errors.triggerType}</p>
+        )}
       </div>
 
-      {triggerInfo.configFields.map((field: any) => (
-        <ConfigField
-          key={field.key}
-          field={field}
-          value={triggerConfig[field.key]}
-          onChange={(value) => onUpdate({ ...triggerConfig, [field.key]: value })}
-          options={getFieldOptions(field)}
-          error={errors[`triggerConfig.${field.key}`]}
-        />
-      ))}
+      {/* Trigger Configuration Fields */}
+      {triggerInfo && (
+        <>
+          <div className="flex items-center gap-2 pt-2">
+            {triggerInfo.icon}
+            <div>
+              <p className="text-sm font-medium">{triggerInfo.name}</p>
+              <p className="text-xs text-muted-foreground">{triggerInfo.description}</p>
+            </div>
+          </div>
+
+          {triggerInfo.configFields.map((field: any) => (
+            <ConfigField
+              key={`${triggerType}-${field.key}`} // Force re-render when trigger type changes
+              field={field}
+              value={triggerConfig[field.key]}
+              onChange={(value) => onUpdate({ triggerType, triggerConfig: { ...triggerConfig, [field.key]: value } })}
+              options={getFieldOptions(field)}
+              error={errors[`triggerConfig.${field.key}`]}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 };

@@ -236,11 +236,25 @@ const DraggableNode: React.FC<NodeProps & { isDragging?: boolean }> = ({
           <CardContent className="pt-0 pb-4 px-4">
             <div className="space-y-3 text-sm">
               {/* Render configuration based on node type */}
-              {type === "trigger" && data.triggerType && (
+              {type === "trigger" && (
                 <TriggerConfiguration
-                  triggerType={data.triggerType}
-                  triggerConfig={data.config || {}}
-                  onUpdate={(config) => onUpdate({ ...data, config })}
+                  triggerType={data.triggerType || ""}
+                  triggerConfig={data.triggerConfig || {}}
+                  onUpdate={(updatedData) => {
+                    // Handle both triggerType and triggerConfig updates
+                    if (updatedData.triggerType !== undefined) {
+                      onUpdate({ 
+                        ...data, 
+                        triggerType: updatedData.triggerType, 
+                        triggerConfig: updatedData.triggerConfig || {} 
+                      });
+                    } else {
+                      onUpdate({ 
+                        ...data, 
+                        triggerConfig: updatedData.triggerConfig || data.triggerConfig 
+                      });
+                    }
+                  }}
                   triggerTypes={data.triggerTypes || []}
                   formsOptions={data.formsOptions || []}
                   documentTypeOptions={data.documentTypeOptions || []}
@@ -661,16 +675,29 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
                   type="trigger"
                   data={{
                     triggerType: formData.triggerType,
-                    config: formData.triggerConfig,
+                    triggerConfig: formData.triggerConfig,
                     name: triggerTypes.find(t => t.id === formData.triggerType)?.name,
                     triggerTypes,
                     formsOptions,
                     documentTypeOptions,
-                    errors: Object.keys(validationErrors)
-                      .filter(key => key.startsWith('triggerConfig.'))
-                      .reduce((acc, key) => ({ ...acc, [key]: validationErrors[key] }), {}),
+                    errors: {
+                      triggerType: validationErrors.triggerType,
+                      ...Object.keys(validationErrors)
+                        .filter(key => key.startsWith('triggerConfig.'))
+                        .reduce((acc, key) => ({ ...acc, [key]: validationErrors[key] }), {}),
+                    },
                   }}
-                  onUpdate={(data) => setFormData({ ...formData, triggerConfig: data.config || {} })}
+                  onUpdate={(updatedData) => {
+                    // Handle both triggerType and triggerConfig updates from TriggerConfiguration
+                    const newFormData = { ...formData };
+                    if (updatedData.triggerType !== undefined) {
+                      newFormData.triggerType = updatedData.triggerType;
+                    }
+                    if (updatedData.triggerConfig !== undefined) {
+                      newFormData.triggerConfig = updatedData.triggerConfig;
+                    }
+                    setFormData(newFormData);
+                  }}
                   errors={validationErrors.triggerType ? [validationErrors.triggerType] : undefined}
                   isExpanded={expandedNodes.trigger !== false}
                   onToggleExpand={() => toggleNodeExpanded("trigger")}
@@ -679,6 +706,7 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
             </div>
 
             {/* Add Condition Button */}
+{{ ... }}
             {formData.triggerType && (
               <AddStepButton
                 onAddCondition={addCondition}

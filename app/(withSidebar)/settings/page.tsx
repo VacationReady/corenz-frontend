@@ -33,6 +33,7 @@ import {
   HelpCircle,
   Info,
   UserMinus,
+  Sailboat,
 } from "lucide-react";
 import {
   Accordion,
@@ -135,6 +136,12 @@ const workflowSettings = [
     href: "/settings/automation-rules",
     icon: <Repeat className="h-5 w-5" />,
     description: "Automate repetitive tasks with smart triggers",
+  },
+  {
+    title: "Journeys",
+    href: "/settings/journeys",
+    icon: <Sailboat className="h-5 w-5" />,
+    description: "Design employee experience journeys with AI assistance",
   },
   {
     title: "Transactional Notifications",

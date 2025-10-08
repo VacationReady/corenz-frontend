@@ -47,6 +47,11 @@ export async function GET(req: NextRequest) {
     const employeeId = searchParams.get("employeeId");
     const includeKeyResults = searchParams.get("includeKeyResults") === "true";
 
+    // Fetch employee record for the current user
+    const employee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+    });
+
     let objectives: any[] = [];
 
     if (type === "company" || !type) {
@@ -118,9 +123,9 @@ export async function GET(req: NextRequest) {
 
     if (type === "personal" || employeeId) {
       const canViewAll = isManagerOrAdmin(session.user.role);
-      const targetEmployeeId = employeeId || session.user.employee?.id;
+      const targetEmployeeId = employeeId || employee?.id;
 
-      if (!canViewAll && employeeId && employeeId !== session.user.employee?.id) {
+      if (!canViewAll && employeeId && employeeId !== employee?.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -170,6 +175,11 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Fetch employee record for the current user
+    const employee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+    });
 
     const body = await req.json();
     const validated = objectiveSchema.parse(body);
@@ -285,7 +295,7 @@ export async function POST(req: NextRequest) {
       // Verify user can create objectives for this employee
       const canCreate =
         isManagerOrAdmin(session.user.role) ||
-        session.user.employee?.id === objectiveData.employeeId;
+        (employee && employee.id === objectiveData.employeeId);
 
       if (!canCreate) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -210,6 +210,7 @@ model Company {
   ActionItems                         ActionItem[]              @relation("Company_ActionItem")
   JourneyTemplates                    JourneyTemplate[]
   PersonaProfiles                     PersonaProfile[]
+  CompanyObjectives                   CompanyObjective[]
 }
 
 model ContractTypeOption {
@@ -1618,6 +1619,18 @@ model User {
   AuthoredJourneyComments                                                  JourneyComment[]               @relation("JourneyCommentAuthor")
   ResolvedJourneyComments                                                  JourneyComment[]               @relation("JourneyCommentResolver")
   CreatedJourneyVersions                                                   JourneyVersion[]
+  // Performance Management Relations
+  OwnedCompanyObjectives                                                   CompanyObjective[]             @relation("CompanyObjectiveOwner")
+  CreatedCompanyObjectives                                                 CompanyObjective[]             @relation("CompanyObjectiveCreator")
+  OwnedTeamObjectives                                                      TeamObjective[]                @relation("TeamObjectiveOwner")
+  CreatedTeamObjectives                                                    TeamObjective[]                @relation("TeamObjectiveCreator")
+  ObjectiveUpdates                                                         ObjectiveUpdate[]
+  CreatedPerformanceTemplates                                              PerformanceTemplate[]
+  OrganizedMeetings                                                        PerformanceMeeting[]           @relation("MeetingOrganizer")
+  MeetingNotes                                                             MeetingNote[]
+  AssignedMeetingActionItems                                               MeetingActionItem[]            @relation("MeetingActionItemAssignee")
+  CreatedReviewCycles                                                      PerformanceReviewCycle[]
+  ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
 
   @@unique([email, companyId])
 }
@@ -2406,4 +2419,565 @@ enum CollaboratorRole {
   EDITOR
   REVIEWER
   VIEWER
+}
+
+// ===================================
+// Performance Management System
+// ===================================
+
+// Cascading Objectives - Company level objectives
+model CompanyObjective {
+  id                  String                @id
+  companyId           String
+  title               String
+  description         String?
+  owner               String?               // User who owns this objective
+  status              ObjectiveStatus       @default(NOT_STARTED)
+  progress            Int                   @default(0)
+  dueDate             DateTime?
+  startDate           DateTime?
+  priority            ObjectivePriority     @default(MEDIUM)
+  tags                String[]              @default([])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  createdBy           String
+  
+  // Relationships
+  Company             Company               @relation(fields: [companyId], references: [id])
+  Owner               User?                 @relation("CompanyObjectiveOwner", fields: [owner], references: [id])
+  Creator             User                  @relation("CompanyObjectiveCreator", fields: [createdBy], references: [id])
+  
+  keyResults          ObjectiveKeyResult[]
+  teamObjectives      TeamObjective[]       @relation("CompanyObjectiveAlignment")
+  updates             ObjectiveUpdate[]
+  
+  @@index([companyId, status])
+  @@index([owner])
+  @@index([dueDate])
+}
+
+// Team/Department level objectives
+model TeamObjective {
+  id                  String                @id
+  companyId           String
+  teamId              String?               // Department/Team ID
+  title               String
+  description         String?
+  owner               String?               // User who owns this objective
+  parentObjectiveId   String?               // Links to CompanyObjective
+  status              ObjectiveStatus       @default(NOT_STARTED)
+  progress            Int                   @default(0)
+  dueDate             DateTime?
+  startDate           DateTime?
+  priority            ObjectivePriority     @default(MEDIUM)
+  tags                String[]              @default([])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  createdBy           String
+  
+  // Relationships
+  Owner               User?                 @relation("TeamObjectiveOwner", fields: [owner], references: [id])
+  ParentObjective     CompanyObjective?     @relation("CompanyObjectiveAlignment", fields: [parentObjectiveId], references: [id])
+  Creator             User                  @relation("TeamObjectiveCreator", fields: [createdBy], references: [id])
+  
+  keyResults          ObjectiveKeyResult[]
+  personalObjectives  PersonalObjective[]   @relation("TeamObjectiveAlignment")
+  updates             ObjectiveUpdate[]
+  
+  @@index([teamId])
+  @@index([parentObjectiveId])
+  @@index([owner])
+}
+
+// Individual/Personal objectives
+model PersonalObjective {
+  id                  String                @id
+  employeeId          String
+  companyId           String
+  title               String
+  description         String?
+  parentObjectiveId   String?               // Links to TeamObjective
+  status              ObjectiveStatus       @default(NOT_STARTED)
+  progress            Int                   @default(0)
+  dueDate             DateTime?
+  startDate           DateTime?
+  priority            ObjectivePriority     @default(MEDIUM)
+  tags                String[]              @default([])
+  visibility          ObjectiveVisibility   @default(TEAM)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  // Relationships
+  ParentObjective     TeamObjective?        @relation("TeamObjectiveAlignment", fields: [parentObjectiveId], references: [id])
+  
+  keyResults          ObjectiveKeyResult[]
+  updates             ObjectiveUpdate[]
+  
+  @@index([employeeId])
+  @@index([parentObjectiveId])
+  @@index([companyId])
+}
+
+// Key Results for objectives (OKR style)
+model ObjectiveKeyResult {
+  id                  String                @id
+  title               String
+  description         String?
+  targetValue         Float
+  currentValue        Float                 @default(0)
+  unit                String?               // e.g., "%", "users", "revenue"
+  status              ObjectiveStatus       @default(NOT_STARTED)
+  dueDate             DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  // Polymorphic relationship to objectives
+  companyObjectiveId  String?
+  teamObjectiveId     String?
+  personalObjectiveId String?
+  
+  // Relationships
+  CompanyObjective    CompanyObjective?     @relation(fields: [companyObjectiveId], references: [id], onDelete: Cascade)
+  TeamObjective       TeamObjective?        @relation(fields: [teamObjectiveId], references: [id], onDelete: Cascade)
+  PersonalObjective   PersonalObjective?    @relation(fields: [personalObjectiveId], references: [id], onDelete: Cascade)
+  
+  @@index([companyObjectiveId])
+  @@index([teamObjectiveId])
+  @@index([personalObjectiveId])
+}
+
+// Progress updates and comments on objectives
+model ObjectiveUpdate {
+  id                  String                @id
+  content             String
+  progress            Int?                  // Progress percentage at time of update
+  authorId            String
+  createdAt           DateTime              @default(now())
+  
+  // Polymorphic relationship to objectives
+  companyObjectiveId  String?
+  teamObjectiveId     String?
+  personalObjectiveId String?
+  
+  // Relationships
+  Author              User                  @relation(fields: [authorId], references: [id])
+  CompanyObjective    CompanyObjective?     @relation(fields: [companyObjectiveId], references: [id], onDelete: Cascade)
+  TeamObjective       TeamObjective?        @relation(fields: [teamObjectiveId], references: [id], onDelete: Cascade)
+  PersonalObjective   PersonalObjective?    @relation(fields: [personalObjectiveId], references: [id], onDelete: Cascade)
+  
+  @@index([companyObjectiveId])
+  @@index([teamObjectiveId])
+  @@index([personalObjectiveId])
+  @@index([authorId])
+}
+
+// Performance meeting templates (1-2-1, review templates)
+model PerformanceTemplate {
+  id                  String                @id
+  companyId           String
+  name                String
+  description         String?
+  type                TemplateType
+  icon                String?
+  isDefault           Boolean               @default(false)
+  isActive            Boolean               @default(true)
+  version             Int                   @default(1)
+  tags                String[]              @default([])
+  visibility          TemplateVisibility    @default(COMPANY)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  createdBy           String
+  
+  // Relationships
+  Creator             User                  @relation(fields: [createdBy], references: [id])
+  
+  sections            TemplateSection[]
+  meetings            PerformanceMeeting[]
+  reviewCycles        PerformanceReviewCycle[]
+  
+  @@index([companyId, type])
+  @@index([isActive])
+}
+
+// Template sections/questions
+model TemplateSection {
+  id                  String                @id
+  templateId          String
+  title               String
+  description         String?
+  order               Int
+  isRequired          Boolean               @default(false)
+  
+  // Relationships
+  Template            PerformanceTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  questions           TemplateQuestion[]
+  
+  @@index([templateId, order])
+}
+
+// Individual questions within sections
+model TemplateQuestion {
+  id                  String                @id
+  sectionId           String
+  question            String
+  description         String?
+  type                QuestionType          @default(TEXT)
+  order               Int
+  isRequired          Boolean               @default(false)
+  options             Json?                 // For multiple choice/rating questions
+  
+  // Relationships
+  Section             TemplateSection       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  
+  @@index([sectionId, order])
+}
+
+// 1-2-1 and performance meetings
+model PerformanceMeeting {
+  id                  String                @id
+  companyId           String
+  title               String
+  description         String?
+  templateId          String?
+  organizerId         String
+  participantIds      String[]              // Array of user IDs
+  scheduledAt         DateTime
+  duration            Int                   @default(60)  // Minutes
+  location            String?
+  meetingUrl          String?
+  status              MeetingStatus         @default(SCHEDULED)
+  agenda              Json?                 // Pre-filled from template
+  isRecurring         Boolean               @default(false)
+  recurrence          Json?                 // Recurrence rules
+  seriesId            String?               // For recurring meetings
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  completedAt         DateTime?
+  
+  // Relationships
+  Template            PerformanceTemplate?  @relation(fields: [templateId], references: [id])
+  Organizer           User                  @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+  
+  notes               MeetingNote[]
+  actionItems         MeetingActionItem[]
+  
+  @@index([companyId, scheduledAt])
+  @@index([organizerId])
+  @@index([status])
+  @@index([seriesId])
+}
+
+// Meeting notes captured during 1-2-1s
+model MeetingNote {
+  id                  String                @id
+  meetingId           String
+  content             String
+  authorId            String
+  sectionTitle        String?               // From template section
+  isPrivate           Boolean               @default(false)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  // Relationships
+  Meeting             PerformanceMeeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  Author              User                  @relation(fields: [authorId], references: [id])
+  
+  @@index([meetingId])
+  @@index([authorId])
+}
+
+// Action items from meetings
+model MeetingActionItem {
+  id                  String                @id
+  meetingId           String
+  title               String
+  description         String?
+  assigneeId          String
+  dueDate             DateTime?
+  status              ActionItemStatus      @default(TODO)
+  priority            ActionItemPriority    @default(MEDIUM)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  completedAt         DateTime?
+  
+  // Relationships
+  Meeting             PerformanceMeeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  Assignee            User                  @relation("MeetingActionItemAssignee", fields: [assigneeId], references: [id])
+  
+  @@index([meetingId])
+  @@index([assigneeId, status])
+  @@index([dueDate])
+}
+
+// 360 Review Cycles
+model PerformanceReviewCycle {
+  id                  String                @id
+  companyId           String
+  name                String
+  description         String?
+  templateId          String?
+  type                ReviewCycleType       @default(ANNUAL)
+  status              CycleStatus           @default(DRAFT)
+  startDate           DateTime
+  endDate             DateTime
+  selfReviewDeadline  DateTime?
+  managerReviewDeadline DateTime?
+  peerReviewDeadline  DateTime?
+  isAnonymousPeer     Boolean               @default(true)
+  participantIds      String[]              // Employees in this cycle
+  settings            Json?                 // Cycle-specific settings
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  createdBy           String
+  
+  // Relationships
+  Template            PerformanceTemplate?  @relation(fields: [templateId], references: [id])
+  Creator             User                  @relation(fields: [createdBy], references: [id])
+  
+  participants        CycleParticipant[]
+  insights            CycleInsight[]
+  
+  @@index([companyId, status])
+  @@index([startDate, endDate])
+}
+
+// Participants in review cycles (employees being reviewed)
+model CycleParticipant {
+  id                  String                @id
+  cycleId             String
+  employeeId          String
+  status              ParticipantStatus     @default(NOT_STARTED)
+  selfReviewCompleted Boolean               @default(false)
+  selfReviewCompletedAt DateTime?
+  managerReviewCompleted Boolean            @default(false)
+  managerReviewCompletedAt DateTime?
+  peerReviewsRequested Int                  @default(0)
+  peerReviewsCompleted Int                  @default(0)
+  overallScore        Float?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  // Relationships
+  Cycle               PerformanceReviewCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  
+  reviews             ReviewSubmission[]
+  
+  @@unique([cycleId, employeeId])
+  @@index([cycleId, status])
+  @@index([employeeId])
+}
+
+// Individual review submissions (self, manager, peer, direct report)
+model ReviewSubmission {
+  id                  String                @id
+  participantId       String
+  cycleId             String
+  reviewerId          String
+  reviewerRole        ReviewerRole
+  revieweeId          String                // Person being reviewed
+  responses           Json                  // Answers to template questions
+  overallRating       Float?
+  strengths           String?
+  developmentAreas    String?
+  comments            String?
+  status              SubmissionStatus      @default(DRAFT)
+  isAnonymous         Boolean               @default(false)
+  submittedAt         DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  // Relationships
+  Participant         CycleParticipant      @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  Reviewer            User                  @relation("ReviewSubmissionReviewer", fields: [reviewerId], references: [id])
+  
+  @@index([participantId])
+  @@index([cycleId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+}
+
+// Analytics and insights from review cycles
+model CycleInsight {
+  id                  String                @id
+  cycleId             String
+  insightType         InsightType
+  title               String
+  description         String?
+  data                Json                  // Aggregated data/metrics
+  generatedAt         DateTime              @default(now())
+  
+  // Relationships
+  Cycle               PerformanceReviewCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  
+  @@index([cycleId, insightType])
+}
+
+// Notification rules for performance events
+model PerformanceNotificationRule {
+  id                  String                @id
+  companyId           String
+  name                String
+  description         String?
+  eventType           NotificationEventType
+  recipientRoles      String[]              // EMPLOYEE, MANAGER, HR, ADMIN
+  offsetDays          Int?                  // Days before/after event
+  channels            NotificationChannel[] // EMAIL, IN_APP, SLACK
+  templateContent     Json?                 // Email template
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  
+  @@index([companyId, eventType])
+  @@index([isActive])
+}
+
+// Enums for Performance Management
+
+enum ObjectiveStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AT_RISK
+  COMPLETED
+  CANCELLED
+  DEFERRED
+}
+
+enum ObjectivePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ObjectiveVisibility {
+  PRIVATE
+  TEAM
+  DEPARTMENT
+  COMPANY
+}
+
+enum TemplateType {
+  ONE_TO_ONE
+  PROBATION_REVIEW
+  QUARTERLY_REVIEW
+  ANNUAL_REVIEW
+  MID_YEAR_REVIEW
+  PROJECT_RETROSPECTIVE
+  CUSTOM
+}
+
+enum TemplateVisibility {
+  PRIVATE
+  TEAM
+  DEPARTMENT
+  COMPANY
+}
+
+enum QuestionType {
+  TEXT
+  TEXTAREA
+  RATING
+  MULTIPLE_CHOICE
+  YES_NO
+  DATE
+  NUMBER
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum ActionItemStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ActionItemPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ReviewCycleType {
+  PROBATION
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  AD_HOC
+}
+
+enum CycleStatus {
+  DRAFT
+  ACTIVE
+  IN_PROGRESS
+  REVIEW_PHASE
+  COMPLETED
+  ARCHIVED
+}
+
+enum ParticipantStatus {
+  NOT_STARTED
+  SELF_REVIEW_PENDING
+  PEER_REVIEW_PENDING
+  MANAGER_REVIEW_PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReviewerRole {
+  SELF
+  MANAGER
+  PEER
+  DIRECT_REPORT
+  SKIP_LEVEL
+  HR
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+}
+
+enum InsightType {
+  COMPLETION_RATE
+  ENGAGEMENT_SCORE
+  RATING_DISTRIBUTION
+  STRENGTH_THEME
+  DEVELOPMENT_THEME
+  PEER_FEEDBACK_SUMMARY
+  MANAGER_ALIGNMENT
+  CUSTOM
+}
+
+enum NotificationEventType {
+  OBJECTIVE_CREATED
+  OBJECTIVE_DUE_SOON
+  OBJECTIVE_OVERDUE
+  MEETING_SCHEDULED
+  MEETING_REMINDER
+  MEETING_COMPLETED
+  ACTION_ITEM_ASSIGNED
+  ACTION_ITEM_DUE
+  REVIEW_CYCLE_STARTED
+  REVIEW_SELF_DUE
+  REVIEW_PEER_DUE
+  REVIEW_MANAGER_DUE
+  REVIEW_COMPLETED
+  FEEDBACK_REQUESTED
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  SLACK
+  SMS
 }

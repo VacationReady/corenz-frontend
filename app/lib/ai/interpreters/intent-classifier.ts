@@ -99,6 +99,14 @@ AVAILABLE ACTIONS:
 - add_decision_gateway: Add conditional logic to journeys ("Add decision point", "Route based on performance", "Create conditional path")
 - generate_content: Generate content for journey blocks ("Write welcome email", "Create survey questions", "Generate training content")
 - journey_design: General journey design requests ("Help with journey design", "Design employee experience", "Create journey", "What are journeys?", "How do journeys work?", "Tell me about journeys", "I dont know what they are")
+- create_objective: Create new objectives/OKRs ("Create a company objective", "Set quarterly goals", "Add personal objective", "Create OKR")
+- update_objective: Update objective progress or details ("Update objective progress to 80%", "Mark hiring goal complete", "Change objective owner")
+- view_objectives: View objectives and goals ("Show me all objectives", "What are my team's goals?", "View company OKRs", "List objectives at risk")
+- schedule_one_to_one: Schedule 1-2-1 meetings ("Schedule weekly 1-2-1s", "Book meeting with my team", "Set up performance conversation")
+- create_review_cycle: Start 360° review cycles ("Launch annual reviews", "Start quarterly review cycle", "Begin performance reviews")
+- track_action_items: Track action items from meetings ("Show my action items", "What tasks are due?", "List pending actions")
+- performance_analytics: Analyze performance data ("Show objective completion rates", "Team performance trends", "Review cycle analytics")
+- performance_help: General performance management guidance ("How do OKRs work?", "What are 360 reviews?", "Performance management help")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
@@ -151,6 +159,20 @@ PARAMETER EXTRACTION:
 - emailSummaries: Whether to email summary reports
 - stakeholder: Key stakeholder requesting the automation (e.g., "CEO", "HR Director")
 - workflowType: Type of workflow automation (e.g., "employee_lifecycle", "survey_automation", "compliance")
+- objectiveType: Type of objective (e.g., "company", "team", "personal")
+- objectiveTitle: Title/name of the objective
+- objectiveOwner: Who owns the objective (name or role)
+- objectiveProgress: Progress percentage (0-100)
+- objectivePriority: Priority level (e.g., "critical", "high", "medium", "low")
+- objectiveStatus: Status (e.g., "not_started", "in_progress", "at_risk", "completed")
+- keyResults: Array of measurable key results
+- meetingType: Type of meeting (e.g., "1-2-1", "quarterly_review", "annual_review", "probation")
+- meetingFrequency: How often to schedule (e.g., "weekly", "biweekly", "monthly")
+- participants: Who should attend the meeting
+- reviewCycleType: Type of review cycle (e.g., "annual", "quarterly", "probation")
+- reviewParticipants: Who is included in the review cycle
+- reviewDeadline: When reviews should be completed
+- actionItemStatus: Status of action items (e.g., "todo", "in_progress", "completed")
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
@@ -246,6 +268,38 @@ INTELLIGENT COMMUNICATIONS EXAMPLES:
 DYNAMIC FORM BUILDING EXAMPLES:
 - "Create onboarding form that shows different fields based on department" → {actionType: "dynamic_form_building", parameters: {formType: "onboarding", logic: "department_based"}}
 - "Build feedback form that routes to different managers" → {actionType: "dynamic_form_building", parameters: {formType: "feedback", logic: "routing_based"}}
+
+PERFORMANCE MANAGEMENT EXAMPLES:
+- "Create a company objective to increase revenue by 25%" → {actionType: "create_objective", parameters: {objectiveType: "company", objectiveTitle: "increase revenue by 25%", objectivePriority: "high"}}
+- "Set quarterly goals for the product team" → {actionType: "create_objective", parameters: {objectiveType: "team", timeframe: "quarterly"}}
+- "Add personal objective for career development" → {actionType: "create_objective", parameters: {objectiveType: "personal", topic: "career development"}}
+- "Create OKR for hiring 10 engineers" → {actionType: "create_objective", parameters: {objectiveTitle: "hiring 10 engineers", keyResults: ["hire 10 engineers"]}}
+- "Update objective progress to 80%" → {actionType: "update_objective", parameters: {objectiveProgress: 80}}
+- "Mark the hiring goal as complete" → {actionType: "update_objective", parameters: {objectiveStatus: "completed", topic: "hiring"}}
+- "Change objective owner to Sarah" → {actionType: "update_objective", parameters: {objectiveOwner: "Sarah"}}
+- "Show me all objectives" → {actionType: "view_objectives", parameters: {}}
+- "What are my team's goals?" → {actionType: "view_objectives", parameters: {scope: "team"}}
+- "View company OKRs" → {actionType: "view_objectives", parameters: {objectiveType: "company"}}
+- "List objectives at risk" → {actionType: "view_objectives", parameters: {objectiveStatus: "at_risk"}}
+- "What objectives are behind schedule?" → {actionType: "view_objectives", parameters: {objectiveStatus: "at_risk"}}
+- "Schedule weekly 1-2-1s with my team" → {actionType: "schedule_one_to_one", parameters: {meetingType: "1-2-1", meetingFrequency: "weekly", participants: "team"}}
+- "Book quarterly reviews for product team" → {actionType: "schedule_one_to_one", parameters: {meetingType: "quarterly_review", participants: "product team"}}
+- "Set up performance conversation with Sarah" → {actionType: "schedule_one_to_one", parameters: {meetingType: "performance_conversation", participants: "Sarah"}}
+- "Schedule 1-2-1s for next month" → {actionType: "schedule_one_to_one", parameters: {meetingType: "1-2-1", timeframe: "next month"}}
+- "Launch annual reviews for sales" → {actionType: "create_review_cycle", parameters: {reviewCycleType: "annual", reviewParticipants: "sales"}}
+- "Start quarterly review cycle" → {actionType: "create_review_cycle", parameters: {reviewCycleType: "quarterly"}}
+- "Begin 360 reviews for managers" → {actionType: "create_review_cycle", parameters: {reviewCycleType: "360", reviewParticipants: "managers"}}
+- "Show my action items" → {actionType: "track_action_items", parameters: {scope: "my"}}
+- "What tasks are due this week?" → {actionType: "track_action_items", parameters: {timeframe: "this_week"}}
+- "List pending actions from 1-2-1s" → {actionType: "track_action_items", parameters: {source: "one_to_one", actionItemStatus: "pending"}}
+- "Show objective completion rates" → {actionType: "performance_analytics", parameters: {metricType: "completion_rates", focus: "objectives"}}
+- "Team performance trends" → {actionType: "performance_analytics", parameters: {metricType: "trends", scope: "team"}}
+- "Review cycle analytics" → {actionType: "performance_analytics", parameters: {metricType: "analytics", focus: "review_cycles"}}
+- "How are we doing on our goals?" → {actionType: "performance_analytics", parameters: {focus: "goals"}}
+- "How do OKRs work?" → {actionType: "performance_help", parameters: {topic: "okrs"}}
+- "What are 360 reviews?" → {actionType: "performance_help", parameters: {topic: "360_reviews"}}
+- "Performance management help" → {actionType: "performance_help", parameters: {}}
+- "Explain key results" → {actionType: "performance_help", parameters: {topic: "key_results"}}
 
 BULK UPDATE EXAMPLES:
 - "Give everyone in sales a 10% raise" → {actionType: "bulk_update", parameters: {department: "sales", percentage: 10, operation: "increase", field: "salaryAmount"}}

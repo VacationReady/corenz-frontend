@@ -11,7 +11,7 @@ import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
@@ -292,14 +292,14 @@ function EmployeesContent() {
         cell: ({ row }) => {
           const emp = row.original as Employee;
           return (
-            <DropdownMenu
-              trigger={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="ghost">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
-              }
-            >
-              <DropdownMenuItem
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
                 onClick={async () => {
                   if (
                     !confirm(
@@ -352,6 +352,7 @@ function EmployeesContent() {
                   Start Offboarding
                 </DropdownMenuItem>
               )}
+              </DropdownMenuContent>
             </DropdownMenu>
           );
         },

@@ -86,7 +86,7 @@ interface ExperienceBlock {
   id: string;
   name: string;
   description?: string;
-  blockType: string;
+  blockType: "TASK" | "FORM" | "COMMUNICATION" | "TRAINING" | "APPROVAL" | "AUTOMATION" | "MILESTONE" | "SURVEY" | "DOCUMENT" | "MEETING";
   order: number;
   estimatedDuration?: number;
   slaHours?: number;
@@ -96,7 +96,7 @@ interface ExperienceBlock {
 interface MetricBinding {
   id: string;
   metricName: string;
-  metricType: string;
+  metricType: "COMPLETION_RATE" | "SATISFACTION_SCORE" | "TIME_TO_COMPLETE" | "ENGAGEMENT_SCORE" | "RETENTION_RATE" | "CUSTOM";
   targetValue?: number;
   currentValue?: number;
 }

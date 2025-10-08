@@ -36,7 +36,7 @@ import {
   SelectItem,
 } from "@/components/ui/Select";
 import EditAccessModal from "@/components/documents/EditAccessModal";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 import ViewSignaturesModal from "@/components/documents/ViewSignaturesModal";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
@@ -591,13 +591,13 @@ function DocumentsContent() {
                         className="text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <DropdownMenu
-                          trigger={
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button size="sm" variant="ghost">
                               ⋮
                             </Button>
-                          }
-                        >
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
                           <DropdownMenuItem
                             onClick={() => {
                               setEditingDoc(doc);
@@ -639,6 +639,7 @@ function DocumentsContent() {
                           >
                             Delete
                           </DropdownMenuItem>
+                          </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     )}

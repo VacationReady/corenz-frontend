@@ -903,10 +903,13 @@ async function main() {
   console.log("📊 Seeding standard survey templates...");
 
   // Pulse Survey
-  await prisma.survey.upsert({
-    where: { companyId_title: { companyId: company.id, title: "Weekly Pulse Survey" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existingPulseSurvey = await prisma.survey.findFirst({
+    where: { companyId: company.id, title: "Weekly Pulse Survey" }
+  });
+  
+  if (!existingPulseSurvey) {
+    await prisma.survey.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       title: "Weekly Pulse Survey",
@@ -950,14 +953,18 @@ async function main() {
       createdBy: superAdmin.id,
       isAnonymous: false,
       updatedAt: new Date(),
-    },
-  });
+      },
+    });
+  }
 
   // eNPS Survey
-  await prisma.survey.upsert({
-    where: { companyId_title: { companyId: company.id, title: "Employee Net Promoter Score (eNPS)" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existingENPS = await prisma.survey.findFirst({
+    where: { companyId: company.id, title: "Employee Net Promoter Score (eNPS)" }
+  });
+  
+  if (!existingENPS) {
+    await prisma.survey.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       title: "Employee Net Promoter Score (eNPS)",
@@ -991,14 +998,18 @@ async function main() {
       createdBy: superAdmin.id,
       isAnonymous: true,
       updatedAt: new Date(),
-    },
-  });
+      },
+    });
+  }
 
   // Engagement Survey
-  await prisma.survey.upsert({
-    where: { companyId_title: { companyId: company.id, title: "Quarterly Engagement Survey" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existingEngagement = await prisma.survey.findFirst({
+    where: { companyId: company.id, title: "Quarterly Engagement Survey" }
+  });
+  
+  if (!existingEngagement) {
+    await prisma.survey.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       title: "Quarterly Engagement Survey",
@@ -1063,8 +1074,9 @@ async function main() {
       createdBy: superAdmin.id,
       isAnonymous: true,
       updatedAt: new Date(),
-    },
-  });
+      },
+    });
+  }
 
   console.log("✅ Standard surveys seeded (3 surveys created).");
 

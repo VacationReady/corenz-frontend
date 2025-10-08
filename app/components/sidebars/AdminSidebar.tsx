@@ -159,12 +159,12 @@ const coreLinks = [
   },
   { href: "/employees", icon: Users, label: "Employees" },
   { href: "/calendar", icon: Calendar, label: "Calendar" },
-  { href: "/performance", icon: Target, label: "Performance" },
+  { href: "/documents", icon: FileText, label: "Documents" },
+  { href: "/reports", icon: BarChart3, label: "Reports" },
 ];
 
 const hrToolsLinks = [
-  { href: "/documents", icon: FileText, label: "Documents" },
-  { href: "/reports", icon: BarChart3, label: "Reports" },
+  { href: "/performance", icon: Target, label: "Performance" },
   { href: "/analytics", icon: LineChart, label: "Analytics" },
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },

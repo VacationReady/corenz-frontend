@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Plus, FileText, Settings, Trash2, MoreVertical, Sparkles, Star, Send } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import { DEFAULT_SURVEY_TEMPLATES, ensureDefaultSurveyTemplates } from "@/lib/survey-templates";
 
 interface Survey {
@@ -293,14 +293,13 @@ export default function SurveysPage() {
                         </CardDescription>
                       )}
                     </div>
-                    <DropdownMenu
-                      trigger={
+                    <DropdownMenu align="right">
+                      <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
-                      }
-                      align="right"
-                    >
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => router.push(`/settings/surveys/${survey.id}/edit`)}>
                         <Settings className="mr-2 h-4 w-4" />
                         Edit
@@ -312,6 +311,7 @@ export default function SurveysPage() {
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
+                      </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </CardHeader>

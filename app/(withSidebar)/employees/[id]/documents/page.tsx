@@ -418,14 +418,14 @@ export default function EmployeeDocumentsPage() {
                         className="text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <DropdownMenu
-                          trigger={
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <button className="p-2 hover:bg-gray-100 rounded">
                               ⋮
                             </button>
-                          }
-                        >
-                          <DropdownMenuItem
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem
                             onClick={() => {
                               setEditingDoc(doc);
                               setIsEditAccessOpen(true);
@@ -449,6 +449,7 @@ export default function EmployeeDocumentsPage() {
                           >
                             Delete
                           </DropdownMenuItem>
+                          </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     )}

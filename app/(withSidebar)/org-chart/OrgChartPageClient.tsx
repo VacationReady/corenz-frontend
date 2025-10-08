@@ -426,6 +426,18 @@ function OrgChartPageClient() {
     return roots;
   }, [normalizedEmployees]);
 
+  // DEBUG: Check org forest structure
+  console.log('🌳 Org Forest Debug:', {
+    totalNodes: normalizedEmployees.length,
+    rootNodes: orgForest.length,
+    sampleRoot: orgForest[0] ? {
+      name: orgForest[0].fullName,
+      email: orgForest[0].email,
+      children: orgForest[0].children.length,
+      managerId: orgForest[0].managerUserId
+    } : 'none'
+  });
+
   const departmentOptions = useMemo(
     () =>
       Array.from(

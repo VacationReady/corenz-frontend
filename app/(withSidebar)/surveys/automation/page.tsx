@@ -28,7 +28,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 
 interface AutomationRule {
   id: string;
@@ -327,13 +327,13 @@ export default function SurveyAutomationPage() {
                         )}
                       </Button>
                       
-                      <DropdownMenu
-                        trigger={
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
-                        }
-                      >
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
                         <DropdownMenuItem asChild>
                           <Link href={`/surveys/automation/${automation.id}/edit`}>
                             <Edit className="w-4 h-4 mr-2" />
@@ -347,6 +347,7 @@ export default function SurveyAutomationPage() {
                           <Trash2 className="w-4 h-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
+                        </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </div>

@@ -932,7 +932,7 @@ async function handlePerformanceRequest(
         id: true, 
         role: true, 
         companyId: true,
-        employee: { select: { id: true } }
+        Employee: { select: { id: true } }
       },
     });
 
@@ -949,7 +949,7 @@ async function handlePerformanceRequest(
         userId: user.id,
         companyId: user.companyId,
         role: user.role,
-        employeeId: user.employee?.id,
+        employeeId: user.Employee?.id,
       },
     });
     

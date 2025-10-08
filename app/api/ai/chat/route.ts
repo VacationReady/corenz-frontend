@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     let message: string = '';
     let action: string | undefined;
     let undoId: string | undefined;
+    let context: any | undefined;
     let uploadedFiles: File[] = [];
 
     if (contentType.includes('multipart/form-data')) {
@@ -71,6 +72,8 @@ export async function POST(req: NextRequest) {
       message = (formData.get('message') as string) || '';
       action = (formData.get('action') as string) || undefined;
       undoId = (formData.get('undoId') as string) || undefined;
+      const contextStr = formData.get('context') as string;
+      context = contextStr ? JSON.parse(contextStr) : undefined;
       
       // Extract all uploaded files
       const fileKeys = Array.from(formData.keys()).filter(k => k.startsWith('file_'));
@@ -89,6 +92,7 @@ export async function POST(req: NextRequest) {
       message = body.message;
       action = body.action;
       undoId = body.undoId;
+      context = body.context;
     }
 
     // Handle undo requests
@@ -118,7 +122,8 @@ export async function POST(req: NextRequest) {
     const result = await processUserMessage(
       message,
       session.user.id,
-      session.user.companyId
+      session.user.companyId,
+      context
     );
 
     return NextResponse.json(result);

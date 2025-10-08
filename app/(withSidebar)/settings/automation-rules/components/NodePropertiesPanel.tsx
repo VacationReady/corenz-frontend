@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { actionTypes } from "../config/actionTypes";
 import { conditionTypes } from "../config/conditionTypes";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 
 export function NodePropertiesPanel({
   node,
@@ -157,45 +158,10 @@ export function NodePropertiesPanel({
           </>
         )}
         {node.type === "condition" && (
-          <>
-            <div>
-              <label className="block text-xs font-medium mb-1">Condition Type</label>
-              <select
-                className="w-full rounded-xl border px-3 py-2 text-sm"
-                value={node.data?.conditionType || "employee_department"}
-                onChange={(e) => onUpdate({ conditionType: e.target.value })}
-              >
-                <optgroup label="Employee Filters">
-                  <option value="employee_department">🏢 Filter by Department</option>
-                  <option value="employee_job_role">💼 Filter by Job Role</option>
-                  <option value="employee_location">📍 Filter by Location</option>
-                  <option value="employee_manager">👤 Filter by Manager</option>
-                  <option value="employee_contract_type">📄 Filter by Contract Type</option>
-                </optgroup>
-                <optgroup label="Time Filters">
-                  <option value="time_of_year">📅 Filter by Time of Year</option>
-                  <option value="days_since_start">⏱️ Days Since Start</option>
-                  <option value="probation_status">🔍 Probation Status</option>
-                </optgroup>
-                <optgroup label="Data Conditions">
-                  <option value="field_value">🔢 Check Field Value</option>
-                  <option value="has_manager">👥 Has Manager Assigned</option>
-                </optgroup>
-                <optgroup label="Documents & Forms">
-                  <option value="document_status">📋 Document Status</option>
-                  <option value="form_submitted">📝 Form Submission</option>
-                  <option value="leave_balance">🏖️ Leave Balance</option>
-                </optgroup>
-                <optgroup label="Advanced">
-                  <option value="working_hours">🕐 Working Hours</option>
-                  <option value="custom_field">⚙️ Custom Field Check</option>
-                </optgroup>
-              </select>
-            </div>
-            <div className="text-xs text-muted-foreground bg-amber-50 p-2 rounded-lg">
-              {conditionTypes.find(c => c.id === (node.data?.conditionType || "employee_department"))?.description || "Filter who this workflow applies to"}
-            </div>
-          </>
+          <ConditionNodeFields 
+            node={node} 
+            onUpdate={onUpdate}
+          />
         )}
         {node.type === "delay" && (
           <div>
@@ -215,6 +181,201 @@ export function NodePropertiesPanel({
         Node ID: {node.id}
       </div>
     </div>
+  );
+}
+
+// Dynamic condition fields component
+function ConditionNodeFields({ node, onUpdate }: { node: any; onUpdate: (updates: any) => void }) {
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const [managers, setManagers] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
+  const [forms, setForms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const currentConditionType = node.data?.conditionType || "employee_department";
+  const conditionConfig = conditionTypes.find(c => c.id === currentConditionType);
+  const conditionData = node.data?.conditionData || {};
+
+  // Load data for multiselect fields
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [deptRes, roleRes, managerRes, locationRes, formRes] = await Promise.all([
+          fetch("/api/departments").then(r => r.ok ? r.json() : []),
+          fetch("/api/job-roles").then(r => r.ok ? r.json() : []),
+          fetch("/api/employees?role=MANAGER").then(r => r.ok ? r.json() : []),
+          fetch("/api/locations").then(r => r.ok ? r.json() : []),
+          fetch("/api/forms").then(r => r.ok ? r.json() : [])
+        ]);
+
+        setDepartments(Array.isArray(deptRes) ? deptRes : []);
+        setJobRoles(Array.isArray(roleRes) ? roleRes : []);
+        setManagers(Array.isArray(managerRes) ? managerRes : []);
+        setLocations(Array.isArray(locationRes) ? locationRes : []);
+        setForms(Array.isArray(formRes) ? formRes : []);
+      } catch (error) {
+        console.error("Failed to load condition data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const handleConditionDataUpdate = (key: string, value: any) => {
+    const newConditionData = { ...conditionData, [key]: value };
+    onUpdate({ conditionData: newConditionData });
+  };
+
+  const renderField = (field: any) => {
+    const value = conditionData[field.key] || "";
+    
+    switch (field.type) {
+      case "select":
+        return (
+          <select
+            key={field.key}
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+            value={value}
+            onChange={(e) => handleConditionDataUpdate(field.key, e.target.value)}
+          >
+            <option value="">Select {field.label}</option>
+            {field.options?.map((option: any) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        );
+
+      case "multiselect":
+        let options: any[] = [];
+        if (field.key === "departmentIds") options = departments.map(d => ({ value: d.id, label: d.name }));
+        else if (field.key === "jobRoleIds") options = jobRoles.map(r => ({ value: r.id, label: r.name }));
+        else if (field.key === "managerIds") options = managers.map(m => ({ value: m.id, label: `${m.firstName} ${m.lastName}` }));
+        else if (field.key === "locationIds") options = locations.map(l => ({ value: l.id, label: l.name }));
+        else if (field.key === "formId") options = forms.map(f => ({ value: f.id, label: f.name }));
+        else if (field.options) options = field.options;
+
+        return (
+          <MultiSelect
+            key={field.key}
+            options={options}
+            selected={Array.isArray(value) ? value : []}
+            onChange={(selected) => handleConditionDataUpdate(field.key, selected)}
+            placeholder={`Select ${field.label}...`}
+            disabled={loading}
+          />
+        );
+
+      case "number":
+        return (
+          <input
+            key={field.key}
+            type="number"
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+            value={value}
+            onChange={(e) => handleConditionDataUpdate(field.key, parseInt(e.target.value) || 0)}
+            placeholder={field.placeholder}
+            min={field.min}
+            max={field.max}
+          />
+        );
+
+      case "text":
+        return (
+          <input
+            key={field.key}
+            type="text"
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+            value={value}
+            onChange={(e) => handleConditionDataUpdate(field.key, e.target.value)}
+            placeholder={field.placeholder}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const shouldShowField = (field: any) => {
+    if (!field.conditional) return true;
+    
+    const [conditionKey, conditionValue] = field.conditional.split("=");
+    const currentValue = conditionData[conditionKey];
+    
+    if (field.conditional.includes("!=")) {
+      const [key, value] = field.conditional.split("!=");
+      return currentValue !== value;
+    }
+    
+    return currentValue === conditionValue;
+  };
+
+  return (
+    <>
+      <div>
+        <label className="block text-xs font-medium mb-1">Condition Type</label>
+        <select
+          className="w-full rounded-xl border px-3 py-2 text-sm"
+          value={currentConditionType}
+          onChange={(e) => onUpdate({ conditionType: e.target.value, conditionData: {} })}
+        >
+          <optgroup label="Employee Filters">
+            <option value="employee_department">🏢 Filter by Department</option>
+            <option value="employee_job_role">💼 Filter by Job Role</option>
+            <option value="employee_location">📍 Filter by Location</option>
+            <option value="employee_manager">👤 Filter by Manager</option>
+            <option value="employee_contract_type">📄 Filter by Contract Type</option>
+          </optgroup>
+          <optgroup label="Time Filters">
+            <option value="time_of_year">📅 Filter by Time of Year</option>
+            <option value="days_since_start">⏱️ Days Since Start</option>
+            <option value="probation_status">🔍 Probation Status</option>
+          </optgroup>
+          <optgroup label="Data Conditions">
+            <option value="field_value">🔢 Check Field Value</option>
+            <option value="has_manager">👥 Has Manager Assigned</option>
+          </optgroup>
+          <optgroup label="Documents & Forms">
+            <option value="document_status">📋 Document Status</option>
+            <option value="form_submitted">📝 Form Submission</option>
+            <option value="leave_balance">🏖️ Leave Balance</option>
+          </optgroup>
+          <optgroup label="Advanced">
+            <option value="working_hours">🕐 Working Hours</option>
+            <option value="custom_field">⚙️ Custom Field Check</option>
+          </optgroup>
+        </select>
+      </div>
+
+      {conditionConfig && (
+        <>
+          <div className="text-xs text-muted-foreground bg-amber-50 p-2 rounded-lg">
+            {conditionConfig.description}
+          </div>
+          
+          {conditionConfig.fields?.map((field) => (
+            shouldShowField(field) && (
+              <div key={field.key}>
+                <label className="block text-xs font-medium mb-1">
+                  {field.label}
+                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                </label>
+                {field.helpText && (
+                  <p className="text-xs text-muted-foreground mb-1">{field.helpText}</p>
+                )}
+                {renderField(field)}
+              </div>
+            )
+          ))}
+        </>
+      )}
+    </>
   );
 }
 

@@ -12,16 +12,19 @@ export async function GET() {
     }
 
     const locations = await prisma.location.findMany({
-      where: {
-        OR: [
-          { companyId: session.user.companyId },
-          { companyId: null },
-          // Some older data may have undefined companyId; include all records
-        ],
-      },
+      where: { companyId: session.user.companyId },
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        active: true,
+        address: true,
+        city: true,
+        country: true,
+      },
     });
+
     return NextResponse.json(locations);
   } catch (error) {
     console.error("Error fetching locations:", error);
@@ -34,60 +37,53 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.companyId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { name, description, address, city, country } = await req.json();
 
-    const { name } = (await req.json()) as { name?: string };
-    if (!name || !name.trim()) {
+    if (!name || name.trim() === "") {
       return NextResponse.json(
-        { error: "Name is required" },
+        { error: "Location name is required." },
         { status: 400 },
       );
     }
 
-    // Use company-scoped records; name might be globally unique in older schema
-    const created = await prisma.location.create({
-      data: {
-        id: crypto.randomUUID(),
-        name: name.trim(),
-        companyId: session.user.companyId,
-      },
-      select: { id: true, name: true },
-    });
-    return NextResponse.json(created);
-  } catch (error: any) {
-    const message = String(error?.message || "Failed to create location");
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
-}
-
-export async function DELETE(req: Request) {
-  try {
-    await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = (await req.json()) as { id?: string };
-    if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+    // Check for duplicate within the same company
+    const existing = await prisma.location.findFirst({
+      where: {
+        companyId: session.user.companyId,
+        name: name.trim(),
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "A location with this name already exists." },
+        { status: 400 },
+      );
     }
 
-    // Only allow deletion for company-owned records
-    const loc = await prisma.location.findUnique({ where: { id } });
-    if (!loc || (loc.companyId && loc.companyId !== session.user.companyId)) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+    const location = await prisma.location.create({
+      data: {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        description: description?.trim() || null,
+        address: address?.trim() || null,
+        city: city?.trim() || null,
+        country: country?.trim() || null,
+        companyId: session.user.companyId,
+        active: true,
+      },
+    });
 
-    await prisma.location.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json(location);
   } catch (error) {
+    console.error("Error creating location:", error);
     return NextResponse.json(
-      { error: "Failed to delete location" },
+      { error: "Failed to create location" },
       { status: 500 },
     );
   }

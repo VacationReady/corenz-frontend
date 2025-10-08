@@ -36,6 +36,40 @@ export const ConditionNode: React.FC<NodeProps> = ({ data, selected }) => {
             {(data.conditionType || data.config?.conditionType || '').replace(/_/g, " ")}
           </Badge>
         )}
+        {data?.conditionData && Object.keys(data.conditionData).length > 0 && (
+          <div className="text-[8px] text-amber-600 pl-6 space-y-0.5">
+            {data.conditionData.operator && (
+              <div className="truncate">
+                {data.conditionData.operator.replace(/_/g, " ")}
+              </div>
+            )}
+            {data.conditionData.departmentIds && data.conditionData.departmentIds.length > 0 && (
+              <div className="truncate">
+                {data.conditionData.departmentIds.length} dept{data.conditionData.departmentIds.length > 1 ? 's' : ''}
+              </div>
+            )}
+            {data.conditionData.jobRoleIds && data.conditionData.jobRoleIds.length > 0 && (
+              <div className="truncate">
+                {data.conditionData.jobRoleIds.length} role{data.conditionData.jobRoleIds.length > 1 ? 's' : ''}
+              </div>
+            )}
+            {data.conditionData.managerIds && data.conditionData.managerIds.length > 0 && (
+              <div className="truncate">
+                {data.conditionData.managerIds.length} manager{data.conditionData.managerIds.length > 1 ? 's' : ''}
+            </div>
+            )}
+            {data.conditionData.days && (
+              <div className="truncate">
+                {data.conditionData.days} days
+              </div>
+            )}
+            {data.conditionData.value && (
+              <div className="truncate">
+                = {data.conditionData.value}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <Handle
         id="in"

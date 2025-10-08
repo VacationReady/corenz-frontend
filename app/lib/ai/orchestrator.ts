@@ -48,7 +48,8 @@ export interface OrchestratorResult {
 export async function processUserMessage(
   userMessage: string,
   userId: string,
-  companyId: string
+  companyId: string,
+  requestContext?: any
 ): Promise<OrchestratorResult> {
   try {
     // Add to conversation history
@@ -68,6 +69,25 @@ export async function processUserMessage(
         success: true,
         message: frustrationCheck.empatheticResponse,
       };
+    }
+
+    // STEP 0.5: Check if we're in Journey Designer mode from request context
+    // If so, route ALL questions to the journey assistant (it will handle them appropriately)
+    const isJourneyDesignerMode = requestContext?.mode === "journey_designer" || 
+                                   requestContext?.type === "journey_design";
+    
+    if (isJourneyDesignerMode) {
+      console.log("[Orchestrator] Journey Designer mode detected - routing to journey assistant");
+      
+      // Route directly to journey handler without going through intent classification
+      // This ensures ALL questions in the journey designer interface are handled by the journey assistant
+      const result = await handleJourneyRequest(userMessage, companyId, userId, { 
+        actionType: "journey_design",
+        parameters: {},
+        context: requestContext 
+      });
+      
+      return result;
     }
 
     // CRITICAL: Check for pending actions FIRST before intent classification
@@ -849,8 +869,10 @@ async function handleJourneyRequest(
   intent: any
 ): Promise<OrchestratorResult> {
   try {
+    // Build context with journey information if available from request
     const context = {
       mode: "journey_designer" as const,
+      journey: intent.context?.journey || null,
       companyId,
       userId,
     };

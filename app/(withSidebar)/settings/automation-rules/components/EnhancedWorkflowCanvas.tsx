@@ -15,7 +15,6 @@ import ReactFlow, {
   Edge,
   Controls,
   Background,
-  MiniMap,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -504,18 +503,6 @@ function EnhancedWorkflowCanvasInner({
     }
   };
 
-  // MiniMap node color function
-  const nodeColor = useCallback((node: Node) => {
-    const colors: Record<string, string> = {
-      trigger: '#3b82f6',
-      condition: '#f59e0b', 
-      action: '#22c55e',
-      delay: '#a855f7',
-      branch: '#ec4899',
-      loop: '#0ea5e9',
-    };
-    return colors[node.type || 'default'] || '#94a3b8';
-  }, []);
 
   // Property editor panel
   const renderPropertyEditor = () => {
@@ -1678,11 +1665,6 @@ function EnhancedWorkflowCanvasInner({
               gap={20} 
               size={1} 
               color="#e2e8f0" 
-            />
-            <MiniMap
-              nodeColor={nodeColor}
-              className="bg-card border-2"
-              maskColor="rgb(255, 255, 255, 0.8)"
             />
             <Controls className="bg-card border-2" />
           </ReactFlow>

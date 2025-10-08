@@ -336,7 +336,7 @@ async function generateJourneyPhases(scopingData: any) {
 
 // Helper function to generate default metrics based on journey type
 function generateDefaultMetrics(scopingData: any) {
-  const baseMetrics = [
+  const baseMetrics: any[] = [
     {
       id: crypto.randomUUID(),
       metricName: "Completion Rate",

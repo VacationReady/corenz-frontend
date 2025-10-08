@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";

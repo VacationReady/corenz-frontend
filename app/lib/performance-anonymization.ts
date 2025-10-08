@@ -12,8 +12,8 @@ export type PerformanceReviewType =
 
 export interface ReviewerData {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
 }
 
 export interface AnonymizedReviewer {
@@ -40,11 +40,15 @@ export function anonymizeReviewerData(
 
   // Manager reviews and self-reviews are never anonymous
   if (reviewType === "MANAGER_REVIEW" || reviewType === "SELF_REVIEW") {
+    const fullName = [reviewer.firstName, reviewer.lastName]
+      .filter(Boolean)
+      .join(" ") || "Unknown Reviewer";
+    
     return {
       id: reviewer.id,
-      firstName: reviewer.firstName,
-      lastName: reviewer.lastName,
-      fullName: `${reviewer.firstName} ${reviewer.lastName}`,
+      firstName: reviewer.firstName || undefined,
+      lastName: reviewer.lastName || undefined,
+      fullName,
       isAnonymous: false,
     };
   }
@@ -80,11 +84,15 @@ export function anonymizeReviewerData(
   }
 
   // If not anonymous, return full reviewer details
+  const fullName = [reviewer.firstName, reviewer.lastName]
+    .filter(Boolean)
+    .join(" ") || "Unknown Reviewer";
+  
   return {
     id: reviewer.id,
-    firstName: reviewer.firstName,
-    lastName: reviewer.lastName,
-    fullName: `${reviewer.firstName} ${reviewer.lastName}`,
+    firstName: reviewer.firstName || undefined,
+    lastName: reviewer.lastName || undefined,
+    fullName,
     isAnonymous: false,
   };
 }

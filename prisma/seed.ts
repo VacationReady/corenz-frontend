@@ -522,10 +522,13 @@ async function main() {
   console.log("🎯 Seeding performance management templates...");
 
   // Weekly 1-2-1 Template
-  await prisma.performanceTemplate.upsert({
-    where: { companyId_name: { companyId: company.id, name: "Weekly 1-2-1" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existing121 = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "Weekly 1-2-1" }
+  });
+  
+  if (!existing121) {
+    await prisma.performanceTemplate.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       name: "Weekly 1-2-1",
@@ -618,14 +621,17 @@ async function main() {
           },
         ],
       },
-    },
-  });
+    });
+  }
 
   // Probation Review Template
-  await prisma.performanceTemplate.upsert({
-    where: { companyId_name: { companyId: company.id, name: "Probation Review" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existingProbation = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "Probation Review" }
+  });
+  
+  if (!existingProbation) {
+    await prisma.performanceTemplate.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       name: "Probation Review",
@@ -718,14 +724,17 @@ async function main() {
           },
         ],
       },
-    },
-  });
+    });
+  }
 
   // Quarterly Review Template
-  await prisma.performanceTemplate.upsert({
-    where: { companyId_name: { companyId: company.id, name: "Quarterly Performance Review" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existingQuarterly = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "Quarterly Performance Review" }
+  });
+  
+  if (!existingQuarterly) {
+    await prisma.performanceTemplate.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       name: "Quarterly Performance Review",
@@ -800,14 +809,17 @@ async function main() {
           },
         ],
       },
-    },
-  });
+    });
+  }
 
   // Annual Review Template
-  await prisma.performanceTemplate.upsert({
-    where: { companyId_name: { companyId: company.id, name: "Annual Performance Review" } },
-    update: { updatedAt: new Date() },
-    create: {
+  const existingAnnual = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "Annual Performance Review" }
+  });
+  
+  if (!existingAnnual) {
+    await prisma.performanceTemplate.create({
+      data: {
       id: randomUUID(),
       companyId: company.id,
       name: "Annual Performance Review",
@@ -878,8 +890,8 @@ async function main() {
           },
         ],
       },
-    },
-  });
+    });
+  }
 
   console.log("✅ Performance templates seeded (4 templates created).");
 

@@ -17,7 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 
 interface FormTemplate {
   id: string;
@@ -227,14 +227,13 @@ export default function ExitInterviewFormsPage() {
                     </div>
                   </div>
 
-                  <DropdownMenu
-                    trigger={
+                  <DropdownMenu align="right">
+                    <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
-                    }
-                    align="right"
-                  >
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
                     <DropdownMenuItem
                       onClick={() =>
                         window.open(
@@ -283,6 +282,7 @@ export default function ExitInterviewFormsPage() {
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </DropdownMenuItem>
+                    </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </CardContent>

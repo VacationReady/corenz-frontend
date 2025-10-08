@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
 
     const journey = await prisma.journeyTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
         createdBy: session.user.id,
         name: validatedData.name,

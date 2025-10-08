@@ -39,8 +39,56 @@ import { formatDistanceToNow } from "date-fns";
 interface JourneyTemplate {
   id: string;
   name: string;
-  status: string;
-  phases: any[];
+  description?: string;
+  persona?: string;
+  duration?: number;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  version: number;
+  category?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  phases: JourneyPhase[];
+  metricBindings: MetricBinding[];
+  experiments: ExperimentVariant[];
+}
+
+interface JourneyPhase {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+  duration?: number;
+  phaseType: "SEQUENTIAL" | "PARALLEL" | "CONDITIONAL";
+  experienceBlocks: ExperienceBlock[];
+}
+
+interface ExperienceBlock {
+  id: string;
+  name: string;
+  description?: string;
+  blockType: "TASK" | "FORM" | "COMMUNICATION" | "TRAINING" | "APPROVAL" | "AUTOMATION" | "MILESTONE" | "SURVEY" | "DOCUMENT" | "MEETING";
+  order: number;
+  estimatedDuration?: number;
+  slaHours?: number;
+  responsibleRole?: string;
+}
+
+interface MetricBinding {
+  id: string;
+  metricName: string;
+  metricType: "COMPLETION_RATE" | "SATISFACTION_SCORE" | "TIME_TO_COMPLETE" | "ENGAGEMENT_SCORE" | "RETENTION_RATE" | "CUSTOM";
+  targetValue?: number;
+  currentValue?: number;
+}
+
+interface ExperimentVariant {
+  id: string;
+  name: string;
+  description?: string;
+  trafficAllocation: number;
+  isControl: boolean;
+  status: "DRAFT" | "RUNNING" | "PAUSED" | "COMPLETED" | "CANCELLED";
 }
 
 interface AssistantConsoleProps {

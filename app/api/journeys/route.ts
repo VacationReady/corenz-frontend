@@ -115,14 +115,14 @@ export async function POST(request: NextRequest) {
         businessGoals: validatedData.businessGoals,
         tags: generateTags(validatedData),
         phases: {
-          create: aiGeneratedPhases.map((phase, index) => ({
+          create: aiGeneratedPhases.map((phase: any, index: number) => ({
             name: phase.name,
             description: phase.description,
             order: index + 1,
             duration: phase.duration,
             phaseType: phase.phaseType,
             experienceBlocks: {
-              create: phase.experienceBlocks.map((block, blockIndex) => ({
+              create: phase.experienceBlocks.map((block: any, blockIndex: number) => ({
                 name: block.name,
                 description: block.description,
                 blockType: block.blockType,

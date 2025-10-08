@@ -364,7 +364,7 @@ function ConditionNodeFields({ node, onUpdate }: { node: any; onUpdate: (updates
               <div key={field.key}>
                 <label className="block text-xs font-medium mb-1">
                   {field.label}
-                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                  {'required' in field && field.required && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 {field.helpText && (
                   <p className="text-xs text-muted-foreground mb-1">{field.helpText}</p>

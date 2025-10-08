@@ -120,9 +120,9 @@ export const DropdownMenuTrigger = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }
 >(({ children, asChild, ...props }, ref) => {
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, {
+    return React.cloneElement(children as React.ReactElement<any>, {
       ...props,
-      ref,
+      ...(children.props || {}),
     });
   }
   return (

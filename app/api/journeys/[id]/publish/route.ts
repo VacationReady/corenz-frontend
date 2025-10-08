@@ -82,7 +82,7 @@ export async function POST(
       data: {
         companyId: session.user.companyId,
         userId: session.user.id,
-        action: "JOURNEY_PUBLISHED",
+        action: "ACTIVATED",
         entityType: "JourneyTemplate",
         entityId: id,
         details: {

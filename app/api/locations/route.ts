@@ -17,11 +17,6 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        description: true,
-        active: true,
-        address: true,
-        city: true,
-        country: true,
       },
     });
 
@@ -37,7 +32,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, description, address, city, country } = await req.json();
+    const { name } = await req.json();
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -70,12 +65,7 @@ export async function POST(req: Request) {
       data: {
         id: crypto.randomUUID(),
         name: name.trim(),
-        description: description?.trim() || null,
-        address: address?.trim() || null,
-        city: city?.trim() || null,
-        country: country?.trim() || null,
         companyId: session.user.companyId,
-        active: true,
       },
     });
 

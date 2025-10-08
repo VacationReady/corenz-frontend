@@ -706,7 +706,6 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
             </div>
 
             {/* Add Condition Button */}
-{{ ... }}
             {formData.triggerType && (
               <AddStepButton
                 onAddCondition={addCondition}

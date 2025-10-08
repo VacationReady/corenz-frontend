@@ -31,7 +31,7 @@ import {
   SelectItem,
 } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/switch";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import {
   Tooltip,

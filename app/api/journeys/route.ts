@@ -339,14 +339,14 @@ function generateDefaultMetrics(scopingData: any) {
     {
       id: crypto.randomUUID(),
       metricName: "Completion Rate",
-      metricType: "COMPLETION_RATE",
+      metricType: "COMPLETION_RATE" as const,
       targetValue: 90,
       isKPI: true,
     },
     {
       id: crypto.randomUUID(),
       metricName: "Satisfaction Score",
-      metricType: "SATISFACTION_SCORE", 
+      metricType: "SATISFACTION_SCORE" as const, 
       targetValue: 8.0,
       isKPI: true,
     },
@@ -357,7 +357,7 @@ function generateDefaultMetrics(scopingData: any) {
     baseMetrics.push({
       id: crypto.randomUUID(),
       metricName: "Time to Productivity",
-      metricType: "TIME_TO_COMPLETE",
+      metricType: "TIME_TO_COMPLETE" as const,
       targetValue: scopingData.duration * 0.8, // 80% of planned duration
       isKPI: true,
     });
@@ -367,7 +367,7 @@ function generateDefaultMetrics(scopingData: any) {
     baseMetrics.push({
       id: crypto.randomUUID(),
       metricName: "Retention Rate",
-      metricType: "RETENTION_RATE",
+      metricType: "RETENTION_RATE" as const,
       targetValue: 95,
       isKPI: true,
     });

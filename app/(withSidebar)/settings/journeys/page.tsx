@@ -222,6 +222,7 @@ export default function JourneysPage() {
               Design Journey
             </Button>
           </div>
+        </div>
       </div>
 
       {/* Main Content */}

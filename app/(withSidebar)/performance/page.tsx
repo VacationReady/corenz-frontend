@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatLondon, formatLondonDate } from "@/lib/time";
+import { ScheduleMeetingDialog } from "@/components/performance/ScheduleMeetingDialog";
+import { CreateReviewCycleDialog } from "@/components/performance/CreateReviewCycleDialog";
 
 interface Objective {
   id: string;
@@ -88,6 +90,10 @@ export default function PerformancePage() {
     upcomingMeetings: 0,
     pendingActionItems: 0,
   });
+  
+  // Dialog states
+  const [showScheduleMeeting, setShowScheduleMeeting] = useState(false);
+  const [showCreateReviewCycle, setShowCreateReviewCycle] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -297,7 +303,7 @@ export default function PerformancePage() {
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-start p-4"
-                  onClick={() => setActiveTab("meetings")}
+                  onClick={() => setShowScheduleMeeting(true)}
                 >
                   <Calendar className="mb-2 h-5 w-5" />
                   <span className="font-semibold">Schedule 1-2-1</span>
@@ -309,7 +315,7 @@ export default function PerformancePage() {
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-start p-4"
-                  onClick={() => setActiveTab("reviews")}
+                  onClick={() => setShowCreateReviewCycle(true)}
                 >
                   <Users className="mb-2 h-5 w-5" />
                   <span className="font-semibold">Start Review Cycle</span>
@@ -534,7 +540,7 @@ export default function PerformancePage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Schedule and manage performance conversations
                 </p>
-                <Button>
+                <Button onClick={() => setShowScheduleMeeting(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Schedule Meeting
                 </Button>
@@ -550,7 +556,7 @@ export default function PerformancePage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Configure and launch comprehensive performance reviews
                 </p>
-                <Button>
+                <Button onClick={() => setShowCreateReviewCycle(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Review Cycle
                 </Button>
@@ -571,6 +577,19 @@ export default function PerformancePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialogs */}
+      <ScheduleMeetingDialog
+        open={showScheduleMeeting}
+        onOpenChange={setShowScheduleMeeting}
+        onSuccess={loadData}
+      />
+      
+      <CreateReviewCycleDialog
+        open={showCreateReviewCycle}
+        onOpenChange={setShowCreateReviewCycle}
+        onSuccess={loadData}
+      />
     </PageShell>
   );
 }

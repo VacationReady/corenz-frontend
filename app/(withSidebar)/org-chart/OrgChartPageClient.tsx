@@ -49,6 +49,14 @@ import type { PDFFont, PDFImage, PDFPage, RGB } from "pdf-lib";
 import { motion } from "framer-motion";
 // Sparkles already included above via grouped lucide-react import
 
+// Import org chart utilities
+import {
+  countNodes as countNodesUtil,
+  flattenTree,
+  measureOrgForest,
+  assignMeasuredPositions,
+} from "./org-chart-utils";
+
 const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;
 const HORIZONTAL_SPACING = 56;
@@ -609,7 +617,7 @@ function OrgChartPageClient() {
 
   const totalEmployees = normalizedEmployees.length;
   const visibleEmployees = useMemo(
-    () => countNodes(filteredForest),
+    () => countNodesUtil(filteredForest),
     [filteredForest],
   );
   const managerCount = useMemo(() => {

@@ -2822,7 +2822,7 @@ model PerformanceNotificationRule {
   eventType           NotificationEventType
   recipientRoles      String[]              // EMPLOYEE, MANAGER, HR, ADMIN
   offsetDays          Int?                  // Days before/after event
-  channels            NotificationChannel[] // EMAIL, IN_APP, SLACK
+  channels            PerformanceNotificationChannel[] // EMAIL, IN_APP, SLACK
   templateContent     Json?                 // Email template
   isActive            Boolean               @default(true)
   createdAt           DateTime              @default(now())
@@ -2975,7 +2975,7 @@ enum NotificationEventType {
   FEEDBACK_REQUESTED
 }
 
-enum NotificationChannel {
+enum PerformanceNotificationChannel {
   EMAIL
   IN_APP
   SLACK

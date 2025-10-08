@@ -518,6 +518,540 @@ async function main() {
   }
   console.log("✅ Expiry rules seeded.");
 
+  // =============== 12) Performance Management Templates ===============
+  console.log("🎯 Seeding performance management templates...");
+
+  // Weekly 1-2-1 Template
+  await prisma.performanceTemplate.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Weekly 1-2-1" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      name: "Weekly 1-2-1",
+      description: "Standard template for recurring one-on-one meetings",
+      type: "ONE_TO_ONE",
+      icon: "💬",
+      isDefault: true,
+      isActive: true,
+      tags: ["1-2-1", "recurring", "weekly"],
+      visibility: "COMPANY",
+      createdBy: superAdmin.id,
+      sections: {
+        create: [
+          {
+            id: randomUUID(),
+            title: "Check-in & Wellbeing",
+            description: "Start with personal connection",
+            order: 1,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "How are you feeling this week?",
+                  description: "General wellbeing and mood",
+                  type: "RATING",
+                  order: 1,
+                  isRequired: true,
+                  options: { min: 1, max: 5, labels: ["Struggling", "Excellent"] },
+                },
+                {
+                  id: randomUUID(),
+                  question: "What's on your mind?",
+                  type: "TEXTAREA",
+                  order: 2,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Progress & Wins",
+            description: "Celebrate achievements",
+            order: 2,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "What went well this week?",
+                  type: "TEXTAREA",
+                  order: 1,
+                  isRequired: false,
+                },
+                {
+                  id: randomUUID(),
+                  question: "Any blockers or challenges?",
+                  type: "TEXTAREA",
+                  order: 2,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Goals & Priorities",
+            description: "Plan ahead",
+            order: 3,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "What are your top 3 priorities for next week?",
+                  type: "TEXTAREA",
+                  order: 1,
+                  isRequired: false,
+                },
+                {
+                  id: randomUUID(),
+                  question: "What support do you need from me?",
+                  type: "TEXTAREA",
+                  order: 2,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  // Probation Review Template
+  await prisma.performanceTemplate.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Probation Review" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      name: "Probation Review",
+      description: "End of probation performance review",
+      type: "PROBATION_REVIEW",
+      icon: "📝",
+      isDefault: true,
+      isActive: true,
+      tags: ["probation", "review", "onboarding"],
+      visibility: "COMPANY",
+      createdBy: superAdmin.id,
+      sections: {
+        create: [
+          {
+            id: randomUUID(),
+            title: "Role Understanding",
+            order: 1,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "How well does the employee understand their role and responsibilities?",
+                  type: "RATING",
+                  order: 1,
+                  isRequired: true,
+                  options: { min: 1, max: 5 },
+                },
+                {
+                  id: randomUUID(),
+                  question: "Comments on role clarity",
+                  type: "TEXTAREA",
+                  order: 2,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Performance & Deliverables",
+            order: 2,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Quality of work delivered",
+                  type: "RATING",
+                  order: 1,
+                  isRequired: true,
+                  options: { min: 1, max: 5 },
+                },
+                {
+                  id: randomUUID(),
+                  question: "Key achievements during probation",
+                  type: "TEXTAREA",
+                  order: 2,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Decision & Next Steps",
+            order: 3,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Recommendation",
+                  type: "MULTIPLE_CHOICE",
+                  order: 1,
+                  isRequired: true,
+                  options: {
+                    choices: ["Pass probation", "Extend probation", "Not suitable for role"],
+                  },
+                },
+                {
+                  id: randomUUID(),
+                  question: "Next steps and development goals",
+                  type: "TEXTAREA",
+                  order: 2,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  // Quarterly Review Template
+  await prisma.performanceTemplate.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Quarterly Performance Review" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      name: "Quarterly Performance Review",
+      description: "Comprehensive quarterly check-in",
+      type: "QUARTERLY_REVIEW",
+      icon: "📊",
+      isDefault: true,
+      isActive: true,
+      tags: ["quarterly", "review", "check-in"],
+      visibility: "COMPANY",
+      createdBy: superAdmin.id,
+      sections: {
+        create: [
+          {
+            id: randomUUID(),
+            title: "Objectives Review",
+            order: 1,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Review progress on quarterly objectives",
+                  type: "TEXTAREA",
+                  order: 1,
+                  isRequired: true,
+                },
+                {
+                  id: randomUUID(),
+                  question: "Overall objective completion rate",
+                  type: "RATING",
+                  order: 2,
+                  isRequired: true,
+                  options: { min: 0, max: 100, unit: "%" },
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Strengths & Achievements",
+            order: 2,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Key achievements this quarter",
+                  type: "TEXTAREA",
+                  order: 1,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Development Areas",
+            order: 3,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Areas for improvement",
+                  type: "TEXTAREA",
+                  order: 1,
+                  isRequired: false,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  // Annual Review Template
+  await prisma.performanceTemplate.upsert({
+    where: { companyId_name: { companyId: company.id, name: "Annual Performance Review" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      name: "Annual Performance Review",
+      description: "Comprehensive yearly performance review",
+      type: "ANNUAL_REVIEW",
+      icon: "⭐",
+      isDefault: true,
+      isActive: true,
+      tags: ["annual", "review", "360"],
+      visibility: "COMPANY",
+      createdBy: superAdmin.id,
+      sections: {
+        create: [
+          {
+            id: randomUUID(),
+            title: "Year in Review",
+            order: 1,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Summarize the past year's performance",
+                  type: "TEXTAREA",
+                  order: 1,
+                  isRequired: true,
+                },
+                {
+                  id: randomUUID(),
+                  question: "Overall performance rating",
+                  type: "RATING",
+                  order: 2,
+                  isRequired: true,
+                  options: {
+                    min: 1,
+                    max: 5,
+                    labels: ["Needs Improvement", "Meets Expectations", "Exceeds Expectations", "Outstanding", "Exceptional"],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            id: randomUUID(),
+            title: "Core Competencies",
+            order: 2,
+            isRequired: true,
+            questions: {
+              create: [
+                {
+                  id: randomUUID(),
+                  question: "Technical skills",
+                  type: "RATING",
+                  order: 1,
+                  isRequired: true,
+                  options: { min: 1, max: 5 },
+                },
+                {
+                  id: randomUUID(),
+                  question: "Communication & collaboration",
+                  type: "RATING",
+                  order: 2,
+                  isRequired: true,
+                  options: { min: 1, max: 5 },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  });
+
+  console.log("✅ Performance templates seeded (4 templates created).");
+
+  // =============== 13) Standard Survey Templates ===============
+  console.log("📊 Seeding standard survey templates...");
+
+  // Pulse Survey
+  await prisma.survey.upsert({
+    where: { companyId_title: { companyId: company.id, title: "Weekly Pulse Survey" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      title: "Weekly Pulse Survey",
+      description: "Quick weekly check-in to measure team mood and identify issues early",
+      questions: [
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "How are you feeling about work this week?",
+          required: true,
+          options: {
+            min: 1,
+            max: 5,
+            labels: ["😔 Struggling", "😐 Okay", "😊 Good", "😄 Great", "🤩 Excellent"],
+          },
+        },
+        {
+          id: randomUUID(),
+          type: "multipleChoice",
+          question: "What's your biggest challenge right now?",
+          required: false,
+          options: {
+            choices: [
+              "Workload",
+              "Communication",
+              "Tools/Resources",
+              "Team Collaboration",
+              "Work-Life Balance",
+              "Other",
+            ],
+          },
+        },
+        {
+          id: randomUUID(),
+          type: "text",
+          question: "Anything else you'd like to share?",
+          required: false,
+        },
+      ],
+      status: "draft",
+      createdBy: superAdmin.id,
+      isAnonymous: false,
+      updatedAt: new Date(),
+    },
+  });
+
+  // eNPS Survey
+  await prisma.survey.upsert({
+    where: { companyId_title: { companyId: company.id, title: "Employee Net Promoter Score (eNPS)" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      title: "Employee Net Promoter Score (eNPS)",
+      description: "Measure employee loyalty and likelihood to recommend working here",
+      questions: [
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "On a scale of 0-10, how likely are you to recommend working here to a friend?",
+          required: true,
+          options: {
+            min: 0,
+            max: 10,
+            labels: ["Not at all likely", "Extremely likely"],
+          },
+        },
+        {
+          id: randomUUID(),
+          type: "text",
+          question: "What's the main reason for your score?",
+          required: false,
+        },
+        {
+          id: randomUUID(),
+          type: "text",
+          question: "What's one thing we could improve?",
+          required: false,
+        },
+      ],
+      status: "draft",
+      createdBy: superAdmin.id,
+      isAnonymous: true,
+      updatedAt: new Date(),
+    },
+  });
+
+  // Engagement Survey
+  await prisma.survey.upsert({
+    where: { companyId_title: { companyId: company.id, title: "Quarterly Engagement Survey" } },
+    update: { updatedAt: new Date() },
+    create: {
+      id: randomUUID(),
+      companyId: company.id,
+      title: "Quarterly Engagement Survey",
+      description: "Comprehensive survey to measure employee engagement, satisfaction, and identify areas for improvement",
+      questions: [
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "I am satisfied with my job overall",
+          required: true,
+          options: { min: 1, max: 5, labels: ["Strongly Disagree", "Strongly Agree"] },
+        },
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "I have the tools and resources I need to do my job effectively",
+          required: true,
+          options: { min: 1, max: 5, labels: ["Strongly Disagree", "Strongly Agree"] },
+        },
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "I feel valued and appreciated at work",
+          required: true,
+          options: { min: 1, max: 5, labels: ["Strongly Disagree", "Strongly Agree"] },
+        },
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "My manager provides clear feedback and support",
+          required: true,
+          options: { min: 1, max: 5, labels: ["Strongly Disagree", "Strongly Agree"] },
+        },
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "I have opportunities for growth and development",
+          required: true,
+          options: { min: 1, max: 5, labels: ["Strongly Disagree", "Strongly Agree"] },
+        },
+        {
+          id: randomUUID(),
+          type: "rating",
+          question: "I would recommend this company as a great place to work",
+          required: true,
+          options: { min: 1, max: 5, labels: ["Strongly Disagree", "Strongly Agree"] },
+        },
+        {
+          id: randomUUID(),
+          type: "text",
+          question: "What do you enjoy most about working here?",
+          required: false,
+        },
+        {
+          id: randomUUID(),
+          type: "text",
+          question: "What's one thing we could improve to make this a better workplace?",
+          required: false,
+        },
+      ],
+      status: "draft",
+      createdBy: superAdmin.id,
+      isAnonymous: true,
+      updatedAt: new Date(),
+    },
+  });
+
+  console.log("✅ Standard surveys seeded (3 surveys created).");
+
   console.log("🎉 Seed complete.");
 }
 

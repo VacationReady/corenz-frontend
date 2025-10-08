@@ -25,6 +25,7 @@ import { provideCSVGuidance, generateCSVTemplate, analyzeCSVErrors, suggestField
 import { processSurveyRequest } from "./survey-assistant";
 import { processSurveyAutomationRequest } from "./survey-automation-assistant";
 import { journeyAssistant } from "./journey-assistant";
+import { handlePerformanceAssistantRequest } from "./performance-assistant";
 import { 
   handleIntegratedAutomation,
   handleMultiFunctionWorkflow,
@@ -289,10 +290,21 @@ export async function processUserMessage(
         result = await handleJourneyRequest(userMessage, companyId, userId, intent);
         break;
 
+      case "create_objective":
+      case "update_objective":
+      case "view_objectives":
+      case "schedule_one_to_one":
+      case "create_review_cycle":
+      case "track_action_items":
+      case "performance_analytics":
+      case "performance_help":
+        result = await handlePerformanceRequest(userMessage, companyId, userId, intent);
+        break;
+
       default:
         result = {
           success: true,
-          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Journey Designer** - 'Create an onboarding journey' or 'Design employee experience for new hires'\n• **Journey Optimization** - 'Optimize the onboarding journey' or 'Suggest improvements for this journey'\n• **Experience Blocks** - 'Add a survey to the journey' or 'Insert training module after welcome email'\n• **A/B Experiments** - 'Test welcome email timing' or 'Create experiment for onboarding journey'\n• **Journey Analytics** - 'Show journey performance' or 'How is the onboarding performing?'\n• **Conversational HR** - Just tell me what you want: 'I need surveys' or 'Help with onboarding'\n• **Survey automation** - 'Send eNPS monthly and email results' or 'Automate engagement surveys'\n• **Integrated workflows** - 'When someone joins, send welcome email and schedule survey'\n• **Smart bulk operations** - 'Give sales a raise but get approval first'\n• **Intelligent communications** - 'Email managers but customize by department'\n• **Dynamic forms** - 'Create form that changes based on department'\n• **Data queries** - 'Show me sales team salaries'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import'\n\nWhat would you like to do?",
+          message: "I'm not sure how to help with that.\n\nI can help you with:\n• **Performance Management** - 'Create company objective', 'Schedule 1-2-1s with my team', 'Show objectives at risk', 'Launch annual reviews'\n• **Journey Designer** - 'Create an onboarding journey' or 'Design employee experience for new hires'\n• **Journey Optimization** - 'Optimize the onboarding journey' or 'Suggest improvements for this journey'\n• **Experience Blocks** - 'Add a survey to the journey' or 'Insert training module after welcome email'\n• **A/B Experiments** - 'Test welcome email timing' or 'Create experiment for onboarding journey'\n• **Journey Analytics** - 'Show journey performance' or 'How is the onboarding performing?'\n• **Conversational HR** - Just tell me what you want: 'I need surveys' or 'Help with onboarding'\n• **Survey automation** - 'Send eNPS monthly and email results' or 'Automate engagement surveys'\n• **Integrated workflows** - 'When someone joins, send welcome email and schedule survey'\n• **Smart bulk operations** - 'Give sales a raise but get approval first'\n• **Intelligent communications** - 'Email managers but customize by department'\n• **Dynamic forms** - 'Create form that changes based on department'\n• **Data queries** - 'Show me sales team salaries'\n• **Leave booking** - 'Book holiday for Sarah'\n• **CSV imports** - 'Help me with CSV import'\n\nWhat would you like to do?",
         };
     }
 
@@ -894,6 +906,64 @@ async function handleJourneyRequest(
     return {
       success: false,
       message: "I'm having trouble with journey design right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle performance management requests (OKRs, 1-2-1s, reviews)
+ */
+async function handlePerformanceRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    // Get user session info for context
+    const { getServerSession } = await import("next-auth");
+    const { authOptions } = await import("@/lib/auth-options");
+    
+    // Get user details for employee ID and role
+    const { prisma } = await import("@/lib/prisma");
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { 
+        id: true, 
+        role: true, 
+        companyId: true,
+        employee: { select: { id: true } }
+      },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "Unable to identify your user account. Please try again.",
+      };
+    }
+
+    const result = await handlePerformanceAssistantRequest({
+      message: userMessage,
+      context: {
+        userId: user.id,
+        companyId: user.companyId,
+        role: user.role,
+        employeeId: user.employee?.id,
+      },
+    });
+    
+    return {
+      success: true,
+      message: result.response,
+      actionType: intent.actionType || "performance_help",
+      suggestions: result.suggestedActions?.map(a => a.label),
+    };
+  } catch (error: any) {
+    console.error("[Performance Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with performance management right now. Please try again later.",
     };
   }
 }

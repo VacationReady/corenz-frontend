@@ -59,9 +59,17 @@ interface JourneyTemplate {
   id: string;
   name: string;
   description?: string;
+  persona?: string;
+  duration?: number;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  version: number;
+  category?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
   phases: JourneyPhase[];
   metricBindings: MetricBinding[];
+  experiments: ExperimentVariant[];
 }
 
 interface JourneyPhase {
@@ -91,6 +99,15 @@ interface MetricBinding {
   metricType: string;
   targetValue?: number;
   currentValue?: number;
+}
+
+interface ExperimentVariant {
+  id: string;
+  name: string;
+  description?: string;
+  trafficAllocation: number;
+  isControl: boolean;
+  status: "DRAFT" | "RUNNING" | "PAUSED" | "COMPLETED" | "CANCELLED";
 }
 
 interface JourneyCanvasProps {

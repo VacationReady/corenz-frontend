@@ -4,7 +4,18 @@
  */
 
 import { openai, AI_CONFIG } from "./openai-client";
-import { getSystemContext } from "./system-context";
+import {
+  buildGuardrailPrompt,
+  buildSystemKnowledgePrompt,
+  CORE_CONVERSATION_SECTIONS,
+} from "./system-knowledge";
+
+const CONVERSATION_KNOWLEDGE_PROMPT = buildSystemKnowledgePrompt({
+  sections: CORE_CONVERSATION_SECTIONS,
+  includeHeading: false,
+});
+
+const CONVERSATION_GUARDRAILS = buildGuardrailPrompt({ includeHeading: false });
 
 export interface ConversationalResponse {
   success: boolean;
@@ -85,6 +96,12 @@ ANALYZE THE USER'S REQUEST FOR:
    - What's the best way to guide them?
 
 CONVERSATION HISTORY: ${JSON.stringify(conversationHistory || [])}
+
+SYSTEM KNOWLEDGE BASE:
+${CONVERSATION_KNOWLEDGE_PROMPT}
+
+CRITICAL GUARDRAILS:
+${CONVERSATION_GUARDRAILS}
 
 Respond with JSON:
 {
@@ -170,6 +187,12 @@ QUESTION STRATEGIES:
 - "Which employees?" → Department, role, criteria
 - "What changes?" → Salary, role, location, benefits
 - "Any conditions?" → Approval workflows, effective dates
+
+SYSTEM KNOWLEDGE BASE:
+${CONVERSATION_KNOWLEDGE_PROMPT}
+
+GUARDRAILS:
+${CONVERSATION_GUARDRAILS}
 
 CURRENT ANALYSIS: ${JSON.stringify(analysis)}
 

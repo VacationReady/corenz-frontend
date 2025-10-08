@@ -112,14 +112,8 @@ const formSettings = [
   },
 ];
 
-const onboardingSettings = [
-  {
-    title: "Onboarding Templates",
-    href: "/settings/onboarding",
-    icon: <Users className="h-5 w-5" />,
-    description: "Guide new hires through a curated first-week journey",
-  },
-];
+// Onboarding is now integrated into Journey Designer
+// const onboardingSettings = [];
 
 const documentSettings = [
   {
@@ -138,10 +132,10 @@ const workflowSettings = [
     description: "Automate repetitive tasks with smart triggers",
   },
   {
-    title: "Journeys",
+    title: "Journeys & Onboarding",
     href: "/settings/journeys",
     icon: <Sailboat className="h-5 w-5" />,
-    description: "Design employee experience journeys with AI assistance",
+    description: "Design employee journeys and manage onboarding templates with AI assistance",
   },
   {
     title: "Transactional Notifications",
@@ -297,9 +291,8 @@ export default function SettingsIndexPage() {
     } else {
       setCompletionData({
         holidays: { completed: 2, total: 7 },
-        onboarding: { completed: 0, total: 1 },
         documents: { completed: 0, total: 1 },
-        workflows: { completed: 1, total: 2 },
+        workflows: { completed: 1, total: 3 }, // Updated to include onboarding in journeys
         forms: { completed: 0, total: 3 },
         system: { completed: 1, total: 2 },
       });
@@ -336,11 +329,7 @@ export default function SettingsIndexPage() {
         : undefined,
   }));
 
-  const onboardingSettingsWithHelp = onboardingSettings.map((item) => ({
-    ...item,
-    helpPreset:
-      item.title === "Onboarding Templates" ? "onboardingTemplates" : undefined,
-  }));
+  // Onboarding is now integrated into Journey Designer
 
   const documentSettingsWithHelp = documentSettings.map((item) => ({
     ...item,
@@ -396,14 +385,6 @@ export default function SettingsIndexPage() {
               icon={<Plane className="w-5 h-5" />}
               items={holidaySettingsWithHelp}
               completionStatus={completionData.holidays}
-            />
-            <SettingSection
-              id="onboarding"
-              label="Onboarding"
-              description="Configure employee onboarding templates and workflows"
-              icon={<UserPlus className="w-5 h-5" />}
-              items={onboardingSettingsWithHelp}
-              completionStatus={completionData.onboarding}
             />
             <SettingSection
               id="documents"

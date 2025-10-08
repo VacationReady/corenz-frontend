@@ -1500,6 +1500,11 @@ video {
 ---break---
 */
 
+/* Hide ReactFlow attribution */
+.react-flow__attribution {
+  display: none !important;
+}
+
 @layer base {
   :root {
     --background: var(--tenant-background, 220 25% 98%);

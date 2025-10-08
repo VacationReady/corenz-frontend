@@ -46,6 +46,7 @@ import { JourneyCanvas } from "./components/JourneyCanvas";
 import { InsightDock } from "./components/InsightDock";
 import { AssistantConsole } from "./components/AssistantConsole";
 import { JourneyScopingDialog } from "./components/JourneyScopingDialog";
+import { OnboardingTemplatesTab } from "./components/OnboardingTemplatesTab";
 
 interface JourneyTemplate {
   id: string;
@@ -104,6 +105,7 @@ interface ExperimentVariant {
 
 export default function JourneysPage() {
   const [mode, setMode] = useState<"automation" | "journey">("journey");
+  const [activeTab, setActiveTab] = useState<"journeys" | "onboarding">("journeys");
   const [selectedJourney, setSelectedJourney] = useState<JourneyTemplate | null>(null);
   const [journeys, setJourneys] = useState<JourneyTemplate[]>([]);
   const [showScopingDialog, setShowScopingDialog] = useState(false);
@@ -111,6 +113,15 @@ export default function JourneysPage() {
   const [showLibraryPanel, setShowLibraryPanel] = useState(true);
   const [showInsightDock, setShowInsightDock] = useState(true);
   const [showAssistantConsole, setShowAssistantConsole] = useState(true);
+
+  // Check URL parameters for tab selection
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab === 'onboarding') {
+      setActiveTab('onboarding');
+    }
+  }, []);
 
   // Load journeys
   useEffect(() => {
@@ -193,9 +204,19 @@ export default function JourneysPage() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Route className="w-6 h-6 text-primary" />
-              <h1 className="text-2xl font-bold">Journey Designer</h1>
+              <h1 className="text-2xl font-bold">
+                {activeTab === 'onboarding' ? 'Onboarding Templates' : 'Journey Designer'}
+              </h1>
             </div>
-            <JourneyModeToggle mode={mode} onModeChange={setMode} />
+            <div className="flex items-center gap-2">
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "journeys" | "onboarding")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="journeys">Journeys</TabsTrigger>
+                  <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {activeTab === 'journeys' && <JourneyModeToggle mode={mode} onModeChange={setMode} />}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -234,59 +255,65 @@ export default function JourneysPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Journey Library Panel */}
-        {showLibraryPanel && (
-          <div className="flex-none w-80 border-r bg-white">
-            <JourneyLibraryPanel
-              journeys={journeys}
-              selectedJourney={selectedJourney}
-              onJourneySelect={handleJourneySelect}
-              onCreateJourney={handleCreateJourney}
-              loading={loading}
-            />
-          </div>
-        )}
-
-        {/* Canvas Workspace */}
-        <div className="flex-1 flex flex-col">
-          {selectedJourney ? (
-            <JourneyCanvas
-              journey={selectedJourney}
-              onJourneyUpdate={handleJourneyUpdate}
-              showInsightDock={showInsightDock}
-              onToggleInsightDock={() => setShowInsightDock(!showInsightDock)}
-            />
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center max-w-md">
-                <Route className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Welcome to Journey Designer</h3>
-                <p className="text-muted-foreground mb-6">
-                  Create end-to-end employee lifecycle programs with AI-powered journey orchestration.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <Button onClick={handleCreateJourney} className="w-full">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Design Your First Journey
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowLibraryPanel(true)}>
-                    <Layers className="w-4 h-4 mr-2" />
-                    Browse Templates
-                  </Button>
-                </div>
+        {activeTab === 'onboarding' ? (
+          <OnboardingTemplatesTab />
+        ) : (
+          <>
+            {/* Journey Library Panel */}
+            {showLibraryPanel && (
+              <div className="flex-none w-80 border-r bg-white">
+                <JourneyLibraryPanel
+                  journeys={journeys}
+                  selectedJourney={selectedJourney}
+                  onJourneySelect={handleJourneySelect}
+                  onCreateJourney={handleCreateJourney}
+                  loading={loading}
+                />
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Insight Dock */}
-        {showInsightDock && selectedJourney && (
-          <div className="flex-none w-80 border-l bg-white">
-            <InsightDock
-              journey={selectedJourney}
-              onClose={() => setShowInsightDock(false)}
-            />
-          </div>
+            {/* Canvas Workspace */}
+            <div className="flex-1 flex flex-col">
+              {selectedJourney ? (
+                <JourneyCanvas
+                  journey={selectedJourney}
+                  onJourneyUpdate={handleJourneyUpdate}
+                  showInsightDock={showInsightDock}
+                  onToggleInsightDock={() => setShowInsightDock(!showInsightDock)}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center max-w-md">
+                    <Route className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Welcome to Journey Designer</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Create end-to-end employee lifecycle programs with AI-powered journey orchestration.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <Button onClick={handleCreateJourney} className="w-full">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Design Your First Journey
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowLibraryPanel(true)}>
+                        <Layers className="w-4 h-4 mr-2" />
+                        Browse Templates
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Insight Dock */}
+            {showInsightDock && selectedJourney && (
+              <div className="flex-none w-80 border-l bg-white">
+                <InsightDock
+                  journey={selectedJourney}
+                  onClose={() => setShowInsightDock(false)}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 

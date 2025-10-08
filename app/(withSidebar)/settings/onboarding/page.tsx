@@ -1,9 +1,8 @@
 // app/settings/onboarding/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import Button from "@/components/ui/Button";
-import { Plus, Edit, Copy, Trash2, UploadCloud } from "lucide-react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import {
   Table,
@@ -32,188 +31,20 @@ type Template = {
 };
 
 export default function OnboardingSettingsPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
-
-  const fetchTemplates = async () => {
-    setLoading(true);
-    const res = await fetch("/api/onboarding/templates");
-    if (!res.ok) {
-      toast("Failed to fetch templates");
-      setLoading(false);
-      return;
-    }
-    const data = await res.json();
-    setTemplates(Array.isArray(data) ? data : []);
-    setLoading(false);
-  };
+  const router = useRouter();
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+    // Redirect to the new integrated Journey Designer with onboarding tab
+    router.replace('/settings/journeys?tab=onboarding');
+  }, [router]);
 
-  const handleEdit = (template: Template) => {
-    setEditingTemplate(template);
-    setIsEditorOpen(true);
-  };
-
-  const handleDuplicate = async (template: Template) => {
-    const res = await fetch("/api/onboarding/templates/duplicate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: template.id }),
-    });
-    if (res.ok) {
-      toast("Template duplicated");
-      fetchTemplates();
-    } else {
-      toast("Failed to duplicate template");
-    }
-  };
-
-  const handleDelete = async (template: Template) => {
-    if (!confirm("Delete this onboarding template?")) return;
-    const res = await fetch("/api/onboarding/templates", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: template.id }),
-    });
-    if (res.ok) {
-      toast("Template deleted");
-      fetchTemplates();
-    } else {
-      toast("Failed to delete template");
-    }
-  };
-
-  const handleToggleStatus = async (template: Template) => {
-    const res = await fetch("/api/onboarding/templates", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        departments: template.departments.map((d) => d.id),
-        jobRoles: template.jobRoles.map((j) => j.id),
-        isActive: !template.isActive, // ✅ Toggle status
-      }),
-    });
-
-    if (res.ok) {
-      toast(template.isActive ? "Template unpublished" : "Template published");
-      fetchTemplates();
-    } else {
-      toast("Failed to update template status");
-    }
-  };
-
+  // Show loading state while redirecting
   return (
-    <PageShell
-      title="Onboarding Templates"
-      breadcrumbs={breadcrumbConfigs.settingsSection('Onboarding')}
-      action={
-        <Button onClick={() => { setEditingTemplate(null); setIsEditorOpen(true); }}>
-          <Plus className="w-5 h-5 mr-1" /> New Template
-        </Button>
-      }
-      showHomeIcon={false}
-    >
-      <div className="max-w-5xl mx-auto">
-      {loading ? (
-        <div>Loading templates...</div>
-      ) : templates.length === 0 ? (
-        <Card className="text-center p-8">
-          No onboarding templates yet. Click <b>New Template</b> to get started.
-        </Card>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Audience</TableHead>
-              <TableHead>Steps</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {templates.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-semibold">{t.name}</TableCell>
-                <TableCell>
-                  {(() => {
-                    const deptNames = (t.departments || []).map((d) => d.name);
-                    const roleNames = (t.jobRoles || []).map((j) => j.name);
-                    const parts = [] as string[];
-                    if (deptNames.length) parts.push(`Depts: ${deptNames.join(", ")}`);
-                    if (roleNames.length) parts.push(`Roles: ${roleNames.join(", ")}`);
-                    return parts.length ? parts.join(" • ") : "All";
-                  })()}
-                </TableCell>
-                <TableCell>{t.steps?.length || 0}</TableCell>
-                <TableCell>
-                  <span
-                    className={
-                      t.isActive
-                        ? "text-green-600 font-medium"
-                        : "text-gray-400"
-                    }
-                  >
-                    {t.isActive ? "Active" : "Draft"}
-                  </span>
-                </TableCell>
-                <TableCell className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleToggleStatus(t)}
-                  >
-                    {t.isActive ? "Unpublish" : "Publish"}
-                  </Button>
-                  <Button
-                    size="md"
-                    variant="ghost"
-                    onClick={() => handleEdit(t)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="md"
-                    variant="ghost"
-                    onClick={() => handleDuplicate(t)}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="md"
-                    variant="ghost"
-                    onClick={() => handleDelete(t)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-6xl w-[min(95vw,1200px)] p-0">
-          <OnboardingTemplateEditor
-            template={editingTemplate}
-            onSaved={() => {
-              setIsEditorOpen(false);
-              fetchTemplates();
-            }}
-            onCancel={() => setIsEditorOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Redirecting to Journey Designer...</p>
       </div>
-    </PageShell>
+    </div>
   );
 }

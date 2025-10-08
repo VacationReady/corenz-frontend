@@ -5,6 +5,18 @@
 
 import { openai, AI_CONFIG } from "./openai-client";
 import { getSystemContext } from "./system-context";
+import {
+  buildGuardrailPrompt,
+  buildSystemKnowledgePrompt,
+  CORE_CONVERSATION_SECTIONS,
+} from "./system-knowledge";
+
+const CORE_KNOWLEDGE_PROMPT = buildSystemKnowledgePrompt({
+  sections: CORE_CONVERSATION_SECTIONS,
+  includeHeading: false,
+});
+
+const CORE_GUARDRAILS_PROMPT = buildGuardrailPrompt({ includeHeading: false });
 
 export interface ClarificationResponse {
   needsClarification: boolean;
@@ -51,6 +63,12 @@ ${systemContext}
 
 ${conversationHistory}
 
+SYSTEM KNOWLEDGE BASE:
+${CORE_KNOWLEDGE_PROMPT}
+
+GUARDRAILS:
+${CORE_GUARDRAILS_PROMPT}
+
 USER MESSAGE: "${userMessage}"
 
 Analyze if this needs clarification. If yes, ask a helpful question and suggest options.
@@ -96,6 +114,12 @@ export async function expandIntent(
 
 CONTEXT:
 ${JSON.stringify(systemContext, null, 2)}
+
+SYSTEM KNOWLEDGE BASE:
+${CORE_KNOWLEDGE_PROMPT}
+
+CRITICAL GUARDRAILS:
+${CORE_GUARDRAILS_PROMPT}
 
 CONVERSATION SO FAR:
 ${conversationHistory}
@@ -199,6 +223,12 @@ Follow-ups:
 - "Need to email employees too?"
 
 Keep questions conversational, casual, and action-oriented.
+
+SYSTEM KNOWLEDGE BASE:
+${CORE_KNOWLEDGE_PROMPT}
+
+GUARDRAILS:
+${CORE_GUARDRAILS_PROMPT}
 
 COMPLETED ACTION: ${completedAction}
 RESULT: ${JSON.stringify(result)}

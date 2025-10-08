@@ -4,6 +4,18 @@
  */
 
 import { openai, AI_CONFIG } from "../openai-client";
+import {
+  buildGuardrailPrompt,
+  buildSystemKnowledgePrompt,
+  CORE_CONVERSATION_SECTIONS,
+} from "../system-knowledge";
+
+const INTENT_KNOWLEDGE_PROMPT = buildSystemKnowledgePrompt({
+  sections: CORE_CONVERSATION_SECTIONS,
+  includeHeading: false,
+});
+
+const INTENT_GUARDRAILS_PROMPT = buildGuardrailPrompt({ includeHeading: false });
 
 export async function interpretIntent(
   userMessage: string,
@@ -14,7 +26,7 @@ export async function interpretIntent(
     model: AI_CONFIG.model,
     temperature: 0.3,
     messages: [
-      {
+      { 
         role: "system",
         content: `You are a REVOLUTIONARY next-generation HR AI that understands complex, conversational, and multi-function requests. You excel at detecting when users need guidance vs when they have clear intent.
 
@@ -46,6 +58,12 @@ Do NOT guess. If you're not 90%+ confident, mark it as unclear. But DO interpret
 ${systemContext}
 
 ${conversationContext}
+
+SYSTEM KNOWLEDGE BASE:
+${INTENT_KNOWLEDGE_PROMPT}
+
+CRITICAL GUARDRAILS:
+${INTENT_GUARDRAILS_PROMPT}
 
 AVAILABLE ACTIONS:
 - query_data: Find/count/analyze data ("How many...", "Show me...", "List...", "What is...", "Who is...")

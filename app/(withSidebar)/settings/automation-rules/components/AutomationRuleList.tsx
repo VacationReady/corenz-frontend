@@ -363,8 +363,8 @@ const filteredRules = rules.filter((rule) => {
                         </p>
                       )}
                     </div>
-            <DropdownMenu
-              trigger={
+            <DropdownMenu align="right">
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -373,10 +373,9 @@ const filteredRules = rules.filter((rule) => {
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </Button>
-              }
-              align="right"
-            >
-              <div className="py-1">
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <div className="py-1">
                 <DropdownMenuItem onClick={() => {
                   onEditRule(rule);
                 }}>
@@ -435,6 +434,7 @@ const filteredRules = rules.filter((rule) => {
                   </div>
                 </DropdownMenuItem>
               </div>
+              </DropdownMenuContent>
             </DropdownMenu>
                   </div>
 

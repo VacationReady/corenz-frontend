@@ -96,9 +96,15 @@ export async function GET(
     // Check access for personal objectives
     if (result.type === "personal") {
       const personalObj = result.objective as any;
+      
+      // Fetch employee record for the current user
+      const employee = await prisma.employee.findUnique({
+        where: { userId: session.user.id },
+      });
+      
       const canView =
         isManagerOrAdmin(session.user.role) ||
-        session.user.employee?.id === personalObj.employeeId;
+        (employee && employee.id === personalObj.employeeId);
 
       if (!canView) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -182,9 +188,15 @@ export async function PUT(
       });
     } else if (result.type === "personal") {
       const personalObj = result.objective as any;
+      
+      // Fetch employee record for the current user
+      const employee = await prisma.employee.findUnique({
+        where: { userId: session.user.id },
+      });
+      
       const canEdit =
         isManagerOrAdmin(session.user.role) ||
-        session.user.employee?.id === personalObj.employeeId;
+        (employee && employee.id === personalObj.employeeId);
 
       if (!canEdit) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -241,9 +253,15 @@ export async function DELETE(
       }
     } else if (result.type === "personal") {
       const personalObj = result.objective as any;
+      
+      // Fetch employee record for the current user
+      const employee = await prisma.employee.findUnique({
+        where: { userId: session.user.id },
+      });
+      
       const canDelete =
         isManagerOrAdmin(session.user.role) ||
-        session.user.employee?.id === personalObj.employeeId;
+        (employee && employee.id === personalObj.employeeId);
 
       if (!canDelete) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });

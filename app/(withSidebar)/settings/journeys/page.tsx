@@ -41,12 +41,11 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { JourneyModeToggle } from "./components/JourneyModeToggle";
-import { JourneyLibraryPanel } from "./components/JourneyLibraryPanel";
 import { JourneyCanvas } from "./components/JourneyCanvas";
 import { InsightDock } from "./components/InsightDock";
-import { AssistantConsole } from "./components/AssistantConsole";
 import { JourneyScopingDialog } from "./components/JourneyScopingDialog";
 import { OnboardingTemplatesTab } from "./components/OnboardingTemplatesTab";
+import { FloatingAIChat } from "./components/FloatingAIChat";
 
 interface JourneyTemplate {
   id: string;
@@ -110,9 +109,7 @@ export default function JourneysPage() {
   const [journeys, setJourneys] = useState<JourneyTemplate[]>([]);
   const [showScopingDialog, setShowScopingDialog] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showLibraryPanel, setShowLibraryPanel] = useState(true);
   const [showInsightDock, setShowInsightDock] = useState(true);
-  const [showAssistantConsole, setShowAssistantConsole] = useState(true);
 
   // Check URL parameters for tab selection
   useEffect(() => {
@@ -220,37 +217,12 @@ export default function JourneysPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mr-4">
-              <div className="flex items-center gap-1">
-                <Workflow className="w-4 h-4" />
-                <span>{stats.total} journeys</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Play className="w-4 h-4 text-green-600" />
-                <span>{stats.published} live</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{Math.round(stats.avgDuration)} day avg</span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowLibraryPanel(!showLibraryPanel)}
-            >
-              <Layers className="w-4 h-4 mr-2" />
-              Library
-            </Button>
             <Button onClick={handleCreateJourney}>
               <Plus className="w-4 h-4 mr-2" />
               Design Journey
             </Button>
           </div>
-        </div>
+{{ ... }}
       </div>
 
       {/* Main Content */}
@@ -259,19 +231,6 @@ export default function JourneysPage() {
           <OnboardingTemplatesTab />
         ) : (
           <>
-            {/* Journey Library Panel */}
-            {showLibraryPanel && (
-              <div className="flex-none w-80 border-r bg-white">
-                <JourneyLibraryPanel
-                  journeys={journeys}
-                  selectedJourney={selectedJourney}
-                  onJourneySelect={handleJourneySelect}
-                  onCreateJourney={handleCreateJourney}
-                  loading={loading}
-                />
-              </div>
-            )}
-
             {/* Canvas Workspace */}
             <div className="flex-1 flex flex-col">
               {selectedJourney ? (
@@ -294,10 +253,6 @@ export default function JourneysPage() {
                         <Sparkles className="w-4 h-4 mr-2" />
                         Design Your First Journey
                       </Button>
-                      <Button variant="outline" onClick={() => setShowLibraryPanel(true)}>
-                        <Layers className="w-4 h-4 mr-2" />
-                        Browse Templates
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -317,22 +272,18 @@ export default function JourneysPage() {
         )}
       </div>
 
-      {/* Assistant Console */}
-      {showAssistantConsole && (
-        <div className="flex-none h-64 border-t bg-white">
-          <AssistantConsole
-            journey={selectedJourney}
-            onJourneyUpdate={handleJourneyUpdate}
-            onClose={() => setShowAssistantConsole(false)}
-          />
-        </div>
-      )}
 
       {/* Journey Scoping Dialog */}
       <JourneyScopingDialog
         isOpen={showScopingDialog}
         onClose={() => setShowScopingDialog(false)}
         onConfirm={handleJourneyScoped}
+      />
+
+      {/* Floating AI Chat Widget */}
+      <FloatingAIChat
+        journey={selectedJourney}
+        onJourneyUpdate={handleJourneyUpdate}
       />
     </div>
   );

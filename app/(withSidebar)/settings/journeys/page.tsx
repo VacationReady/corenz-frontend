@@ -222,7 +222,6 @@ export default function JourneysPage() {
               Design Journey
             </Button>
           </div>
-{{ ... }}
       </div>
 
       {/* Main Content */}

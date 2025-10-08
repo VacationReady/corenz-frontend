@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Plus, Users, Calendar, Settings, Trash2, MoreVertical, Copy, Eye, Download, Upload, Filter } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 
 interface Form {
   id: string;
@@ -262,8 +262,8 @@ export default function FormsPage() {
                     <Badge variant={f.isActive ? "default" : "secondary"}>
                       {f.isActive ? "Active" : "Inactive"}
                     </Badge>
-                    <DropdownMenu
-                      trigger={
+                    <DropdownMenu align="right">
+                      <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -271,9 +271,8 @@ export default function FormsPage() {
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
-                      }
-                      align="right"
-                    >
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
                       <DropdownMenuItem onClick={() => setPreviewForm(f)}>
                         <Eye className="h-4 w-4 mr-2" />
                         Preview
@@ -332,6 +331,7 @@ export default function FormsPage() {
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Form
                       </DropdownMenuItem>
+                      </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>

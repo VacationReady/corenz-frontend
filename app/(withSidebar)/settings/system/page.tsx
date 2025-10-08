@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import {
@@ -14,14 +13,8 @@ import Button from "@/components/ui/Button";
 import {
   Settings,
   Upload,
-  Download,
-  Users,
-  Database,
   Shield,
   FileText,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
   Info,
 } from "lucide-react";
 import Link from "next/link";
@@ -129,54 +122,6 @@ export default function SystemSettingsPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Employees
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Loading...</div>
-              <p className="text-xs text-muted-foreground">
-                <Users className="w-3 h-3 inline mr-1" />
-                Active workforce
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Departments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Loading...</div>
-              <p className="text-xs text-muted-foreground">
-                <Database className="w-3 h-3 inline mr-1" />
-                Organizational units
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Last Import
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Never</div>
-              <p className="text-xs text-muted-foreground">
-                <Clock className="w-3 h-3 inline mr-1" />
-                CSV data import
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </PageShell>

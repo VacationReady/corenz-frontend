@@ -20,6 +20,7 @@ import {
   Send,
   Repeat,
   TrendingUp,
+  Target,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
@@ -158,6 +159,7 @@ const coreLinks = [
   },
   { href: "/employees", icon: Users, label: "Employees" },
   { href: "/calendar", icon: Calendar, label: "Calendar" },
+  { href: "/performance", icon: Target, label: "Performance" },
 ];
 
 const hrToolsLinks = [

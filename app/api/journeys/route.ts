@@ -337,12 +337,14 @@ async function generateJourneyPhases(scopingData: any) {
 function generateDefaultMetrics(scopingData: any) {
   const baseMetrics = [
     {
+      id: crypto.randomUUID(),
       metricName: "Completion Rate",
       metricType: "COMPLETION_RATE",
       targetValue: 90,
       isKPI: true,
     },
     {
+      id: crypto.randomUUID(),
       metricName: "Satisfaction Score",
       metricType: "SATISFACTION_SCORE", 
       targetValue: 8.0,
@@ -353,6 +355,7 @@ function generateDefaultMetrics(scopingData: any) {
   // Add category-specific metrics
   if (scopingData.category === "onboarding") {
     baseMetrics.push({
+      id: crypto.randomUUID(),
       metricName: "Time to Productivity",
       metricType: "TIME_TO_COMPLETE",
       targetValue: scopingData.duration * 0.8, // 80% of planned duration
@@ -362,6 +365,7 @@ function generateDefaultMetrics(scopingData: any) {
 
   if (scopingData.businessGoals.includes("Increase retention rates")) {
     baseMetrics.push({
+      id: crypto.randomUUID(),
       metricName: "Retention Rate",
       metricType: "RETENTION_RATE",
       targetValue: 95,

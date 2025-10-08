@@ -27,7 +27,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 
 interface ActiveSurvey {
   id: string;
@@ -335,13 +335,13 @@ export default function ActiveSurveysPage() {
                         </Link>
                       </Button>
                       
-                      <DropdownMenu
-                        trigger={
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
-                        }
-                      >
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => handleSendReminder(survey.id)}>
                           <RefreshCw className="w-4 h-4 mr-2" />
                           Send Reminder
@@ -363,6 +363,7 @@ export default function ActiveSurveysPage() {
                             View Analytics
                           </Link>
                         </DropdownMenuItem>
+                        </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </div>

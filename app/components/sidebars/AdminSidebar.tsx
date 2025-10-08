@@ -155,7 +155,7 @@ const coreLinks = [
   {
     href: "/dashboard/approvals",
     icon: ClipboardCheck,
-    label: "Approvals",
+    label: "Action Items",
   },
   { href: "/employees", icon: Users, label: "Employees" },
   { href: "/calendar", icon: Calendar, label: "Calendar" },

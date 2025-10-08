@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { triggerManualAnalysis } from "@/lib/ai/survey-analyzer";
+import { anonymizeEmployeeData, getAnonymizationLevel } from "@/lib/survey-anonymization";
 
 export async function GET(
   request: NextRequest,
@@ -232,6 +233,9 @@ export async function GET(
         ? new Date(Math.max(...survey.SurveyResponses.map(r => new Date(r.submittedAt).getTime())))
         : survey.updatedAt;
 
+    // Get anonymization level from survey metadata
+    const anonymizationLevel = getAnonymizationLevel(survey.metadata);
+
     const analytics = {
       id: survey.id,
       name: survey.name,
@@ -250,27 +254,16 @@ export async function GET(
         responses: data.responses,
         average: data.average,
       })),
+      anonymizationLevel, // Include level so frontend knows what to expect
       responses: survey.SurveyResponses.map(response => ({
         id: response.id,
-        employee: response.Employee ? {
-          id: response.Employee.id,
-          name: `${response.Employee.User.firstName} ${response.Employee.User.lastName}`,
-          email: response.Employee.User.email,
-          department: response.Employee.Department?.name || 'Unknown',
-          position: response.Employee.JobRole?.name || 'Unknown',
-        } : null,
+        employee: anonymizeEmployeeData(response.Employee, anonymizationLevel),
         submittedAt: response.submittedAt,
         responseData: response.responseData,
       })),
       recipients: survey.SurveyRecipients.map(recipient => ({
         id: recipient.id,
-        employee: recipient.Employee ? {
-          id: recipient.Employee.id,
-          name: `${recipient.Employee.User.firstName} ${recipient.Employee.User.lastName}`,
-          email: recipient.Employee.User.email,
-          department: recipient.Employee.Department?.name || 'Unknown',
-          position: recipient.Employee.JobRole?.name || 'Unknown',
-        } : null,
+        employee: anonymizeEmployeeData(recipient.Employee, anonymizationLevel),
         status: recipient.status,
         sentAt: recipient.sentAt,
       })),

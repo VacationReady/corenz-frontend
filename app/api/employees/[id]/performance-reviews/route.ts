@@ -17,6 +17,8 @@ const reviewBodySchema = z.object({
     .string({ required_error: "Review date is required" })
     .trim()
     .min(1, "Review date is required"),
+  reviewType: z.enum(["MANAGER_REVIEW", "PEER_REVIEW", "SELF_REVIEW", "UPWARD_REVIEW", "REVIEW_360"]).default("MANAGER_REVIEW"),
+  isAnonymous: z.boolean().default(false),
   rating: z.union([z.number(), z.string(), z.null(), z.undefined()]).optional(),
   summary: z.union([z.string(), z.null(), z.undefined()]).optional(),
   strengths: z.union([z.string(), z.null(), z.undefined()]).optional(),
@@ -136,12 +138,17 @@ export async function POST(
 
     const goals = normaliseGoals(payload.goals ?? null);
 
+    // For anonymous reviews, don't store reviewerId
+    const reviewerId = payload.isAnonymous ? null : session.user.id;
+
     const created = await prisma.employeePerformanceReview.create({
       data: {
         id: crypto.randomUUID(),
         employeeId: employee.id,
         companyId: session.user.companyId,
-        reviewerId: session.user.id,
+        reviewerId,
+        reviewType: payload.reviewType,
+        isAnonymous: payload.isAnonymous,
         reviewDate,
         rating,
         summary: normaliseText(payload.summary),
@@ -221,17 +228,31 @@ export async function PUT(
 
     const goals = normaliseGoals(payload.goals ?? null);
 
+    // For anonymous reviews, don't update reviewerId
+    const updateData: any = {
+      reviewDate,
+      rating,
+      summary: normaliseText(payload.summary),
+      strengths: normaliseText(payload.strengths),
+      areasForImprovement: normaliseText(payload.areasForImprovement),
+      goals: goals ?? Prisma.DbNull,
+    };
+
+    // Only update reviewType and isAnonymous if provided
+    if (payload.reviewType) {
+      updateData.reviewType = payload.reviewType;
+    }
+    if (typeof payload.isAnonymous === 'boolean') {
+      updateData.isAnonymous = payload.isAnonymous;
+      updateData.reviewerId = payload.isAnonymous ? null : session.user.id;
+    } else if (!existing.isAnonymous) {
+      // If not anonymous, update reviewer
+      updateData.reviewerId = session.user.id;
+    }
+
     const updated = await prisma.employeePerformanceReview.update({
       where: { id: existing.id },
-      data: {
-        reviewDate,
-        rating,
-        summary: normaliseText(payload.summary),
-        strengths: normaliseText(payload.strengths),
-        areasForImprovement: normaliseText(payload.areasForImprovement),
-        goals: goals ?? Prisma.DbNull,
-        reviewerId: session.user.id,
-      },
+      data: updateData,
       include: {
         Reviewer: {
           select: { id: true, firstName: true, lastName: true },

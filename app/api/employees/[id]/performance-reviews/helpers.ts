@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { anonymizeReviewerData, getReviewTypeLabel } from "@/lib/performance-anonymization";
 
 export type ReviewWithRelations = Prisma.EmployeePerformanceReviewGetPayload<{
   include: {
@@ -75,11 +76,21 @@ export function serialiseReview(review: ReviewWithRelations) {
     ? review.goals.filter((goal): goal is string => typeof goal === "string")
     : [];
 
+  // Apply anonymization based on review type and isAnonymous flag
+  const anonymizedReviewer = anonymizeReviewerData(
+    review.Reviewer,
+    review.reviewType,
+    review.isAnonymous
+  );
+
   return {
     id: review.id,
     employeeId: review.employeeId,
     companyId: review.companyId,
-    reviewerId: review.reviewerId,
+    reviewerId: review.isAnonymous ? null : review.reviewerId, // Hide ID if anonymous
+    reviewType: review.reviewType,
+    reviewTypeLabel: getReviewTypeLabel(review.reviewType),
+    isAnonymous: review.isAnonymous,
     reviewDate: review.reviewDate.toISOString(),
     rating: review.rating,
     summary: review.summary,
@@ -88,12 +99,6 @@ export function serialiseReview(review: ReviewWithRelations) {
     goals: goalsValue,
     createdAt: review.createdAt.toISOString(),
     updatedAt: review.updatedAt.toISOString(),
-    reviewer: review.Reviewer
-      ? {
-          id: review.Reviewer.id,
-          firstName: review.Reviewer.firstName,
-          lastName: review.Reviewer.lastName,
-        }
-      : null,
+    reviewer: anonymizedReviewer,
   };
 }

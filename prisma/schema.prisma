@@ -463,10 +463,12 @@ model Employee {
 }
 
 model EmployeePerformanceReview {
-  id                  String   @id
+  id                  String             @id
   employeeId          String
   companyId           String
   reviewerId          String?
+  reviewType          PerformanceReviewType @default(MANAGER_REVIEW)
+  isAnonymous         Boolean            @default(false)
   reviewDate          DateTime
   rating              Int?
   summary             String?
@@ -481,6 +483,7 @@ model EmployeePerformanceReview {
 
   @@index([employeeId, reviewDate])
   @@index([companyId])
+  @@index([reviewType, isAnonymous])
 }
 
 model EmployeeOffboarding {
@@ -2833,6 +2836,14 @@ model PerformanceNotificationRule {
 }
 
 // Enums for Performance Management
+
+enum PerformanceReviewType {
+  MANAGER_REVIEW
+  PEER_REVIEW
+  SELF_REVIEW
+  UPWARD_REVIEW
+  REVIEW_360
+}
 
 enum ObjectiveStatus {
   NOT_STARTED

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { anonymizeEmployeeData, getAnonymizationLevel } from "@/lib/survey-anonymization";
 
 const updateSurveySchema = z.object({
   name: z.string().min(1).optional(),
@@ -104,14 +105,28 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
+    // Get anonymization level from survey metadata
+    const anonymizationLevel = getAnonymizationLevel(survey.metadata);
+
+    // Apply anonymization to responses and recipients
+    const anonymizedSurvey = {
       ...survey,
       totalRecipients: survey._count.SurveyRecipients,
       responses: survey._count.SurveyResponses,
       responseRate: survey._count.SurveyRecipients > 0 
         ? (survey._count.SurveyResponses / survey._count.SurveyRecipients) * 100 
         : 0,
-    });
+      SurveyResponses: survey.SurveyResponses.map(response => ({
+        ...response,
+        Employee: anonymizeEmployeeData(response.Employee, anonymizationLevel),
+      })),
+      SurveyRecipients: survey.SurveyRecipients.map(recipient => ({
+        ...recipient,
+        Employee: anonymizeEmployeeData(recipient.Employee, anonymizationLevel),
+      })),
+    };
+
+    return NextResponse.json(anonymizedSurvey);
   } catch (error) {
     console.error("Error fetching survey:", error);
     return NextResponse.json(

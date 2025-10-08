@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { analyzeIndividualResponse } from "@/lib/ai/survey-analyzer";
+import { anonymizeEmployeeData, getAnonymizationLevel } from "@/lib/survey-anonymization";
 
 const submitResponseSchema = z.object({
   responseData: z.record(z.any()),
@@ -66,7 +67,19 @@ export async function GET(
       orderBy: { submittedAt: "desc" },
     });
 
-    return NextResponse.json({ responses });
+    // Get anonymization level from survey metadata
+    const anonymizationLevel = getAnonymizationLevel(survey.metadata);
+
+    // Apply anonymization to responses
+    const anonymizedResponses = responses.map(response => ({
+      ...response,
+      Employee: anonymizeEmployeeData(response.Employee, anonymizationLevel),
+    }));
+
+    return NextResponse.json({ 
+      responses: anonymizedResponses,
+      anonymizationLevel, // Include level so frontend knows what to expect
+    });
   } catch (error) {
     console.error("Error fetching survey responses:", error);
     return NextResponse.json(

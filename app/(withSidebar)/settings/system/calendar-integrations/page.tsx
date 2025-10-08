@@ -332,7 +332,7 @@ export default function CalendarIntegrationsPage() {
                     </SelectContent>
                   </Select>
                   <Button
-                    variant={state.connected ? "outline" : "default"}
+                    variant={state.connected ? "outline" : "primary"}
                     onClick={() => toggleIntegrationConnection(provider)}
                   >
                     {state.connected ? "Disconnect" : "Connect"}

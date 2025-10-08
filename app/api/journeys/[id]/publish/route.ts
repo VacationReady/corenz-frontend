@@ -80,12 +80,14 @@ export async function POST(
     // Create audit log entry
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         companyId: session.user.companyId,
-        userId: session.user.id,
+        actorId: session.user.id,
+        actorType: "USER",
         action: "ACTIVATED",
         entityType: "AUTOMATION_RULE" as any,
         entityId: id,
-        details: {
+        metadata: {
           journeyName: journey.name,
           version: journey.version,
           phases: journey.phases.length,

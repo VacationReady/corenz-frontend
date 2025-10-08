@@ -23,6 +23,7 @@ import {
   CheckCircle,
   Clock,
   Info,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
@@ -48,6 +49,14 @@ const systemSettings = [
     icon: <Shield className="h-5 w-5" />,
     description: "Configure system-wide notification preferences and channels",
     status: "active",
+  },
+  {
+    title: "Calendar Integrations",
+    href: "/settings/system/calendar-integrations",
+    icon: <Calendar className="h-5 w-5" />,
+    description:
+      "Plug HR events like exit interviews, 1-2-1s, and holidays into Google & Outlook calendars",
+    status: "beta",
   },
 ];
 

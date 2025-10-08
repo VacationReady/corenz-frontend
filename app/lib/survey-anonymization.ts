@@ -8,8 +8,8 @@ export type AnonymizationLevel = "public" | "department" | "location" | "full";
 export interface EmployeeData {
   id: string;
   User?: {
-    firstName: string;
-    lastName: string;
+    firstName: string | null;
+    lastName: string | null;
     email?: string;
   };
   Department?: {
@@ -43,7 +43,9 @@ export function anonymizeEmployeeData(
   if (!employee) return null;
 
   const fullName = employee.User
-    ? `${employee.User.firstName} ${employee.User.lastName}`
+    ? [employee.User.firstName, employee.User.lastName]
+        .filter(Boolean)
+        .join(" ") || "Unknown"
     : "Unknown";
   const department = employee.Department?.name || "Unknown";
   const position = employee.JobRole?.name || "Unknown";

@@ -8,7 +8,7 @@ const reviewCycleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   templateId: z.string().optional(),
-  type: z.enum(["ANNUAL", "QUARTERLY", "PROBATION", "PROJECT_BASED"]).default("ANNUAL"),
+  type: z.enum(["PROBATION", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL", "AD_HOC"]).default("ANNUAL"),
   startDate: z.string(),
   endDate: z.string(),
   selfReviewDeadline: z.string().optional(),

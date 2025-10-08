@@ -56,7 +56,7 @@ export function CreateReviewCycleDialog({
   // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"ANNUAL" | "QUARTERLY" | "PROBATION" | "PROJECT_BASED">("ANNUAL");
+  const [type, setType] = useState<"PROBATION" | "QUARTERLY" | "SEMI_ANNUAL" | "ANNUAL" | "AD_HOC">("ANNUAL");
   const [templateId, setTemplateId] = useState<string>("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -290,10 +290,11 @@ export function CreateReviewCycleDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ANNUAL">Annual Review</SelectItem>
-                  <SelectItem value="QUARTERLY">Quarterly Review</SelectItem>
                   <SelectItem value="PROBATION">Probation Review</SelectItem>
-                  <SelectItem value="PROJECT_BASED">Project-Based Review</SelectItem>
+                  <SelectItem value="QUARTERLY">Quarterly Review</SelectItem>
+                  <SelectItem value="SEMI_ANNUAL">Semi-Annual Review</SelectItem>
+                  <SelectItem value="ANNUAL">Annual Review</SelectItem>
+                  <SelectItem value="AD_HOC">Ad-Hoc Review</SelectItem>
                 </SelectContent>
               </Select>
             </div>

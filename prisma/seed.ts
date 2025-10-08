@@ -900,11 +900,14 @@ async function main() {
   console.log("✅ Performance templates seeded (4 templates created).");
 
   // =============== 13) Standard Survey Templates ===============
-  console.log("📊 Seeding standard survey templates...");
+  // SKIPPED: Survey seeding requires proper Form setup first
+  // TODO: Implement survey seeding with Forms when needed
+  console.log("⏭️  Skipping survey templates (requires Form setup)...");
 
+  /*
   // Pulse Survey
   const existingPulseSurvey = await prisma.survey.findFirst({
-    where: { companyId: company.id, title: "Weekly Pulse Survey" }
+    where: { companyId: company.id, name: "Weekly Pulse Survey" }
   });
   
   if (!existingPulseSurvey) {
@@ -1078,7 +1081,7 @@ async function main() {
     });
   }
 
-  console.log("✅ Standard surveys seeded (3 surveys created).");
+  */
 
   console.log("🎉 Seed complete.");
 }

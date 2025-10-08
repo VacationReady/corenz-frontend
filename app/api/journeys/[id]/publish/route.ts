@@ -83,7 +83,7 @@ export async function POST(
         companyId: session.user.companyId,
         userId: session.user.id,
         action: "ACTIVATED",
-        entityType: "JourneyTemplate",
+        entityType: "AUTOMATION_RULE" as any,
         entityId: id,
         details: {
           journeyName: journey.name,

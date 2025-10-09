@@ -516,7 +516,24 @@ export default function SendSurveyPage() {
                 <Label htmlFor="anonymisation">Response Anonymisation</Label>
                 <Select value={anonymizationLevel} onValueChange={(value: "public" | "department" | "location" | "full") => setAnonymizationLevel(value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select anonymisation level" />
+                    <SelectValue placeholder="Select anonymisation level">
+                      {anonymizationLevel && (
+                        <div className="flex flex-col text-left">
+                          <span className="font-medium">
+                            {anonymizationLevel === "public" && "Public"}
+                            {anonymizationLevel === "department" && "Anonymise by Department"}
+                            {anonymizationLevel === "location" && "Anonymise by Location"}
+                            {anonymizationLevel === "full" && "Fully Anonymous"}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {anonymizationLevel === "public" && "Responses are visible with employee names"}
+                            {anonymizationLevel === "department" && "Show department but hide individual names"}
+                            {anonymizationLevel === "location" && "Show location but hide individual names"}
+                            {anonymizationLevel === "full" && "Hide all identifying information"}
+                          </span>
+                        </div>
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public">

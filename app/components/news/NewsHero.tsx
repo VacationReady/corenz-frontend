@@ -19,14 +19,17 @@ interface HeroPost {
   id: string;
   title: string;
   slug: string;
+  content?: any;
   excerpt?: string;
   coverImage?: string;
+  authorId?: string;
   author: {
     name: string | null;
     email: string;
     avatar?: string;
   };
   publishedAt: string | null;
+  createdAt?: string;
   tags: string[];
   pinned: boolean;
   featured?: boolean;

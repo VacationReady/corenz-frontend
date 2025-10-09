@@ -2588,6 +2588,12 @@ model PerformanceTemplate {
   version             Int                   @default(1)
   tags                String[]              @default([])
   visibility          TemplateVisibility    @default(COMPANY)
+  
+  // New fields for advanced template configuration
+  audienceFilters     Json?                 // { locations: string[], departments: string[], jobRoles: string[] }
+  reviewerAssignments Json?                 // [{ role: ReviewerRole; dueOffsetDays?: number }]
+  bestPracticePackIds String[]              @default([])
+  
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   createdBy           String
@@ -2876,6 +2882,8 @@ enum TemplateType {
   ANNUAL_REVIEW
   MID_YEAR_REVIEW
   PROJECT_RETROSPECTIVE
+  REVIEW_CYCLE
+  THREE_SIXTY
   CUSTOM
 }
 

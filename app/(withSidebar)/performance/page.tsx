@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,8 @@ import {
   ArrowRight,
   ListTodo,
   MessageSquare,
+  FileText,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatLondon, formatLondonDate } from "@/lib/time";
@@ -79,6 +82,7 @@ const priorityColors = {
 
 export default function PerformancePage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [objectives, setObjectives] = useState<Objective[]>([]);
@@ -94,6 +98,12 @@ export default function PerformancePage() {
   // Dialog states
   const [showScheduleMeeting, setShowScheduleMeeting] = useState(false);
   const [showCreateReviewCycle, setShowCreateReviewCycle] = useState(false);
+
+  // Check if user can manage templates
+  const canManageTemplates = 
+    session?.user?.role === "ADMIN" ||
+    session?.user?.role === "SUPER_ADMIN" ||
+    session?.user?.role === "MANAGER";
 
   useEffect(() => {
     if (session) {
@@ -196,6 +206,14 @@ export default function PerformancePage() {
       title="Performance Management"
       description="Manage objectives, 1-2-1s, and performance reviews"
       icon={<Target className="h-6 w-6" />}
+      action={
+        canManageTemplates && (
+          <Button onClick={() => router.push("/performance/templates/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Template
+          </Button>
+        )
+      }
     >
       <div className="space-y-6">
         {/* Stats Overview */}
@@ -275,6 +293,7 @@ export default function PerformancePage() {
             <TabsTrigger value="objectives">Objectives</TabsTrigger>
             <TabsTrigger value="meetings">1-2-1s & Meetings</TabsTrigger>
             <TabsTrigger value="reviews">Review Cycles</TabsTrigger>
+            <TabsTrigger value="360">360 Reviews</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
 
@@ -551,14 +570,30 @@ export default function PerformancePage() {
           <TabsContent value="reviews" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">360° Review Cycles</h3>
+                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Review Cycles</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Configure and launch comprehensive performance reviews
+                  Launch quarterly, semi-annual, or annual performance review cycles
                 </p>
                 <Button onClick={() => setShowCreateReviewCycle(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Review Cycle
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="360" className="space-y-4">
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <Layers className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">360° Reviews</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Multi-rater feedback from peers, managers, and direct reports
+                </p>
+                <Button onClick={() => router.push("/performance/templates/new?type=360")}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create 360 Review
                 </Button>
               </CardContent>
             </Card>

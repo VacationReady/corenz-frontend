@@ -33,10 +33,10 @@ interface NewsPost {
   id: string;
   title: string;
   slug: string;
-  content: any;
+  content?: any;
   excerpt?: string;
   coverImage?: string;
-  authorId: string;
+  authorId?: string;
   author: {
     name: string | null;
     email: string;
@@ -46,7 +46,7 @@ interface NewsPost {
   pinned: boolean;
   featured?: boolean;
   tags: string[];
-  createdAt: string;
+  createdAt?: string;
   readTime?: number;
   views?: number;
   reactions?: Record<string, number>;

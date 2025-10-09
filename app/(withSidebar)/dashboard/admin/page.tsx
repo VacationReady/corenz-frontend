@@ -148,7 +148,7 @@ export default async function AdminDashboardPage() {
         </div>
 
         {/* Main Content Area - Bento Grid */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 p-6">
           <div className="bento-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
             <EnhancedWidget size="medium" delay={0.05}>
               <LeaveSummaryCard employeeId={user.Employee.id} />

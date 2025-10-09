@@ -1937,8 +1937,4 @@ function getIndirectReports(node: OrgNode): OrgNode[] {
   );
 }
 
-function countNodes(nodes: OrgNode[]): number {
-  return nodes.reduce((acc, node) => acc + 1 + countNodes(node.children), 0);
-}
-
 export default OrgChartPageClient;

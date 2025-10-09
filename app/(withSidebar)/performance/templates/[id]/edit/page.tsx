@@ -15,7 +15,7 @@ import { ReviewerAssignmentStep } from "@/components/performance/wizard/Reviewer
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TemplateEditPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function TemplateEditPage({ params }: TemplateEditPageProps) {
@@ -24,6 +24,7 @@ export default function TemplateEditPage({ params }: TemplateEditPageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState<any>(null);
+  const [templateId, setTemplateId] = useState<string>("");
 
   const canManageTemplates =
     session?.user?.role === "ADMIN" ||
@@ -31,18 +32,25 @@ export default function TemplateEditPage({ params }: TemplateEditPageProps) {
     session?.user?.role === "MANAGER";
 
   useEffect(() => {
+    params.then((resolvedParams) => {
+      setTemplateId(resolvedParams.id);
+    });
+  }, [params]);
+
+  useEffect(() => {
+    if (!templateId) return;
     if (session && !canManageTemplates) {
       toast.error("You don't have permission to edit templates");
       router.push("/performance/templates");
       return;
     }
     loadTemplate();
-  }, [params.id, session, canManageTemplates]);
+  }, [templateId, session, canManageTemplates]);
 
   const loadTemplate = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/performance/templates/${params.id}`);
+      const response = await fetch(`/api/performance/templates/${templateId}`);
       if (response.ok) {
         const data = await response.json();
         setTemplate(data.template);
@@ -71,7 +79,7 @@ export default function TemplateEditPage({ params }: TemplateEditPageProps) {
 
     setSaving(true);
     try {
-      const response = await fetch(`/api/performance/templates/${params.id}`, {
+      const response = await fetch(`/api/performance/templates/${templateId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(template),
@@ -79,7 +87,7 @@ export default function TemplateEditPage({ params }: TemplateEditPageProps) {
 
       if (response.ok) {
         toast.success("Template updated successfully!");
-        router.push(`/performance/templates/${params.id}`);
+        router.push(`/performance/templates/${templateId}`);
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to update template");
@@ -121,7 +129,7 @@ export default function TemplateEditPage({ params }: TemplateEditPageProps) {
         <div className="flex items-center justify-between">
           <Button
             variant="outline"
-            onClick={() => router.push(`/performance/templates/${params.id}`)}
+            onClick={() => router.push(`/performance/templates/${templateId}`)}
             disabled={saving}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />

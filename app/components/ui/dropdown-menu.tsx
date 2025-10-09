@@ -144,3 +144,17 @@ export const DropdownMenuContent = React.forwardRef<
   );
 });
 DropdownMenuContent.displayName = "DropdownMenuContent";
+
+export const DropdownMenuSeparator = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn("my-1 h-px bg-gray-200", className)}
+      {...props}
+    />
+  );
+});
+DropdownMenuSeparator.displayName = "DropdownMenuSeparator";

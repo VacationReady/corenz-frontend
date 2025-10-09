@@ -54,6 +54,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import SendWelcomeEmailModal from "@/app/components/employees/SendWelcomeEmailModal";
 
 interface ImportResult {
   total: number;
@@ -386,6 +387,7 @@ export default function CSVImportPage() {
   const [activationEmployees, setActivationEmployees] = useState<EmployeeActivationStatus[]>([]);
   const [loadingActivationStatus, setLoadingActivationStatus] = useState(false);
   const [showActivationDashboard, setShowActivationDashboard] = useState(false);
+  const [showSendWelcomeModal, setShowSendWelcomeModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInfo = getImportTypeInfo(selectedImportType);
 
@@ -866,6 +868,34 @@ export default function CSVImportPage() {
     }
   };
 
+  const handleSendEmailsToSelected = async (employeeIds: string[]) => {
+    try {
+      const response = await fetch("/api/csv-import/employees/send-selected", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          employeeIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send welcome emails");
+      }
+
+      // Refresh activation status after sending emails
+      await loadActivationStatus();
+
+      return data;
+    } catch (error) {
+      console.error("Failed to send welcome emails to selected employees", error);
+      throw error;
+    }
+  };
+
   const getStatusIcon = () => {
     switch (importProgress.status) {
       case "completed":
@@ -1006,8 +1036,8 @@ export default function CSVImportPage() {
                   <div className="text-xs text-muted-foreground">Total Employees</div>
                 </div>
                 <div className="text-center p-3 bg-white rounded-lg border">
-                  <div className="text-2xl font-bold text-amber-600">{activationStats.emailNotSent}</div>
-                  <div className="text-xs text-muted-foreground">No Email Sent</div>
+                  <div className="text-2xl font-bold text-green-600">{activationStats.emailSent}</div>
+                  <div className="text-xs text-muted-foreground">Emails Sent</div>
                 </div>
                 <div className="text-center p-3 bg-white rounded-lg border">
                   <div className="text-2xl font-bold text-blue-600">{activationStats.pendingActivation}</div>
@@ -1026,10 +1056,7 @@ export default function CSVImportPage() {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => {
-                        setShowWelcomeEmailOptions(true);
-                        setSelectedImportType("employees");
-                      }}
+                      onClick={() => setShowSendWelcomeModal(true)}
                     >
                       <Send className="w-4 h-4 mr-2" />
                       Send Welcome Emails
@@ -1951,6 +1978,13 @@ export default function CSVImportPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Send Welcome Email Modal */}
+      <SendWelcomeEmailModal
+        isOpen={showSendWelcomeModal}
+        onClose={() => setShowSendWelcomeModal(false)}
+        onSendEmails={handleSendEmailsToSelected}
+      />
     </PageShell>
   );
 }

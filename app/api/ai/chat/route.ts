@@ -216,6 +216,19 @@ export async function GET() {
           "Suggest journey improvements",
         ],
       },
+      {
+        category: "Action Items Management",
+        actions: [
+          "Explain action items capabilities",
+          "Show action items overview and stats",
+          "Explain performance review integration",
+          "Show what integrates with action items",
+          "Guide admin dashboard usage",
+          "Help filter and find specific items",
+          "Explain how to send reminders",
+          "Guide CSV export process",
+        ],
+      },
     ],
     examples: [
       "How many employees don't have IRD numbers?",
@@ -237,6 +250,15 @@ export async function GET() {
       "Create an A/B test for welcome email timing",
       "Show me how the onboarding journey is performing",
       "Generate content for the welcome email experience block",
+      "What can action items do?",
+      "Tell me about action items system",
+      "How do performance reviews work with action items?",
+      "Show me action items overview",
+      "What's outstanding and overdue?",
+      "What integrates with action items?",
+      "How do I use the admin action items dashboard?",
+      "How do I filter for overdue items?",
+      "Export action items to CSV",
     ],
   });
 }

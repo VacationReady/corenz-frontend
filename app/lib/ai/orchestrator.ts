@@ -26,6 +26,7 @@ import { processSurveyRequest } from "./survey-assistant";
 import { processSurveyAutomationRequest } from "./survey-automation-assistant";
 import { journeyAssistant } from "./journey-assistant";
 import { handlePerformanceAssistantRequest } from "./performance-assistant";
+import { handleActionItemsRequest as handleActionItemsAssistantRequest } from "./action-items-assistant";
 import { 
   handleIntegratedAutomation,
   handleMultiFunctionWorkflow,
@@ -299,6 +300,17 @@ export async function processUserMessage(
       case "performance_analytics":
       case "performance_help":
         result = await handlePerformanceRequest(userMessage, companyId, userId, intent);
+        break;
+
+      case "action_items_help":
+      case "action_items_overview":
+      case "action_items_integrations":
+      case "action_items_performance":
+      case "action_items_admin":
+      case "action_items_filter":
+      case "action_items_reminder":
+      case "action_items_export":
+        result = await handleActionItemsRequest(userMessage, companyId, userId, intent);
         break;
 
       default:
@@ -964,6 +976,38 @@ async function handlePerformanceRequest(
     return {
       success: false,
       message: "I'm having trouble with performance management right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle action items requests (overview, help, integrations)
+ */
+async function handleActionItemsRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    const result = await handleActionItemsAssistantRequest({
+      userMessage,
+      companyId,
+      userId,
+      intent,
+    });
+    
+    return {
+      success: result.success,
+      message: result.message,
+      actionType: result.actionType || intent.actionType || "action_items_help",
+      suggestions: result.suggestions,
+    };
+  } catch (error: any) {
+    console.error("[Action Items Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with action items information right now. Please try again later.",
     };
   }
 }

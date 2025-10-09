@@ -125,6 +125,14 @@ AVAILABLE ACTIONS:
 - track_action_items: Track action items from meetings ("Show my action items", "What tasks are due?", "List pending actions")
 - performance_analytics: Analyze performance data ("Show objective completion rates", "Team performance trends", "Review cycle analytics")
 - performance_help: General performance management guidance ("How do OKRs work?", "What are 360 reviews?", "Performance management help")
+- action_items_help: Explain action items system capabilities ("What can action items do?", "Tell me about action items", "Action items features", "What are action items?", "How do action items work?")
+- action_items_overview: Show action items status and stats ("Show action items overview", "What's outstanding?", "Action items status", "Pending action items")
+- action_items_integrations: Explain what integrates with action items ("What integrates with action items?", "What workflows use action items?", "Action items integrations")
+- action_items_performance: Explain performance review integration ("How do performance reviews work with action items?", "Performance review action items", "Review cycle action items")
+- action_items_admin: Explain admin dashboard and capabilities ("How do I use the action items dashboard?", "Admin action items features", "Action items for admins")
+- action_items_filter: Help with filtering and finding specific items ("How do I filter action items?", "Find overdue items", "Show specific action items")
+- action_items_reminder: Send reminders for action items ("Send reminder for action items", "Remind people about tasks", "Notify overdue items")
+- action_items_export: Export action items data ("Export action items", "Download action items CSV", "Get action items report")
 
 PARAMETER EXTRACTION:
 - employeeName: Full or partial name (e.g., "Parj Sangha", "James")
@@ -191,6 +199,28 @@ PARAMETER EXTRACTION:
 - reviewParticipants: Who is included in the review cycle
 - reviewDeadline: When reviews should be completed
 - actionItemStatus: Status of action items (e.g., "todo", "in_progress", "completed")
+- actionItemType: Type of action item (e.g., "PERFORMANCE_SELF_REVIEW", "LEAVE_APPROVAL", "DOCUMENT_ACKNOWLEDGEMENT", "SURVEY_COMPLETION")
+- actionItemFilter: Filter criteria (e.g., "overdue", "due_today", "pending", "by_department")
+- filterDepartment: Department to filter by
+- filterStatus: Status filter (e.g., "PENDING", "IN_PROGRESS", "COMPLETED")
+- filterPriority: Priority filter (e.g., "HIGH", "MEDIUM", "LOW")
+- reminderRecipients: Who should receive reminders
+
+ACTION ITEMS EXAMPLES:
+- "What can action items do?" → {actionType: "action_items_help", parameters: {}}
+- "Tell me about action items system" → {actionType: "action_items_help", parameters: {}}
+- "How do action items work?" → {actionType: "action_items_help", parameters: {}}
+- "Show me action items overview" → {actionType: "action_items_overview", parameters: {}}
+- "What's outstanding?" → {actionType: "action_items_overview", parameters: {actionItemFilter: "outstanding"}}
+- "Show overdue action items" → {actionType: "action_items_overview", parameters: {actionItemFilter: "overdue"}}
+- "What integrates with action items?" → {actionType: "action_items_integrations", parameters: {}}
+- "How do performance reviews work with action items?" → {actionType: "action_items_performance", parameters: {}}
+- "Tell me about performance review action items" → {actionType: "action_items_performance", parameters: {}}
+- "How do I use the admin dashboard?" → {actionType: "action_items_admin", parameters: {}}
+- "Show me action items for Engineering department" → {actionType: "action_items_overview", parameters: {filterDepartment: "Engineering"}}
+- "How do I filter for overdue items?" → {actionType: "action_items_filter", parameters: {actionItemFilter: "overdue"}}
+- "Export action items to CSV" → {actionType: "action_items_export", parameters: {}}
+- "Send reminders for overdue reviews" → {actionType: "action_items_reminder", parameters: {actionItemType: "PERFORMANCE", actionItemFilter: "overdue"}}
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}

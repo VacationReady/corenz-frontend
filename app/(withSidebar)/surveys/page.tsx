@@ -173,13 +173,13 @@ export default function SurveysDashboard() {
       action={
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href="/settings/surveys/new">
+            <Link href="/settings/surveys/new" className="flex items-center">
               <Plus className="w-4 h-4 mr-2" />
               Create Template
             </Link>
           </Button>
           <Button asChild variant="primary">
-            <Link href="/surveys/send">
+            <Link href="/surveys/send" className="flex items-center">
               <Send className="w-4 h-4 mr-2" />
               Send Survey
             </Link>
@@ -233,13 +233,13 @@ export default function SurveysDashboard() {
               </p>
               <div className="mt-4 flex flex-col gap-2">
                 <Button asChild variant="secondary" className="bg-white text-slate-900 hover:bg-white/90">
-                  <Link href="/surveys/send">
+                  <Link href="/surveys/send" className="flex items-center">
                     <Send className="mr-2 h-4 w-4" />
                     Send a survey
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="border-gray-300 text-gray-800 hover:bg-white/50 bg-white/30">
-                  <Link href="/settings/surveys">
+                  <Link href="/settings/surveys" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
                     Refine templates
                   </Link>
@@ -483,7 +483,7 @@ export default function SurveysDashboard() {
                   Get started by creating a survey template and sending your first survey.
                 </p>
                 <Button asChild variant="primary">
-                  <Link href="/settings/surveys/new">
+                  <Link href="/settings/surveys/new" className="flex items-center">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Your First Survey
                   </Link>
@@ -513,13 +513,13 @@ export default function SurveysDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/surveys/${survey.id}`}>
+                        <Link href={`/surveys/${survey.id}`} className="flex items-center">
                           <Eye className="w-4 h-4 mr-2" />
                           View
                         </Link>
                       </Button>
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/surveys/analytics/${survey.id}`}>
+                        <Link href={`/surveys/analytics/${survey.id}`} className="flex items-center">
                           <TrendingUp className="w-4 h-4 mr-2" />
                           Analytics
                         </Link>

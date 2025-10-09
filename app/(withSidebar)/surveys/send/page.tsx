@@ -363,14 +363,14 @@ export default function SendSurveyPage() {
     switch (step) {
       case 1:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Survey Template</CardTitle>
-              <CardDescription>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Select Survey Template</h2>
+              <p className="text-sm text-muted-foreground mt-1">
                 Choose a survey template to send to your employees
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="template">Survey Template *</Label>
                 <Select
@@ -425,11 +425,6 @@ export default function SendSurveyPage() {
                         <h4 className="text-sm font-semibold text-primary">
                           {selectedTemplateData.name}
                         </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedTemplateMeta?.description ||
-                            selectedTemplateData.description ||
-                            "Personalise this survey to match your employee voice before sharing."}
-                        </p>
                       </div>
                       {selectedTemplateMeta?.highlights?.length ? (
                         <div className="flex flex-wrap gap-2">
@@ -450,6 +445,7 @@ export default function SendSurveyPage() {
                             href={`/settings/surveys/${selectedTemplateData.id}/edit`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            className="flex items-center"
                           >
                             <Settings className="mr-2 h-4 w-4" />
                             Edit template
@@ -459,7 +455,7 @@ export default function SendSurveyPage() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="text-primary hover:bg-primary/10"
+                          className="text-primary hover:bg-primary/10 flex items-center"
                           onClick={() => {
                             setSelectedTemplate("");
                             setTemplatePrefilled(false);
@@ -506,10 +502,10 @@ export default function SendSurveyPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="anonymization">Response Anonymization</Label>
+                <Label htmlFor="anonymisation">Response Anonymisation</Label>
                 <Select value={anonymizationLevel} onValueChange={(value: "public" | "department" | "location" | "full") => setAnonymizationLevel(value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select anonymization level" />
+                    <SelectValue placeholder="Select anonymisation level" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public">
@@ -522,7 +518,7 @@ export default function SendSurveyPage() {
                     </SelectItem>
                     <SelectItem value="department">
                       <div className="flex flex-col">
-                        <span className="font-medium">Anonymize by Department</span>
+                        <span className="font-medium">Anonymise by Department</span>
                         <span className="text-sm text-muted-foreground">
                           Show department but hide individual names
                         </span>
@@ -530,7 +526,7 @@ export default function SendSurveyPage() {
                     </SelectItem>
                     <SelectItem value="location">
                       <div className="flex flex-col">
-                        <span className="font-medium">Anonymize by Location</span>
+                        <span className="font-medium">Anonymise by Location</span>
                         <span className="text-sm text-muted-foreground">
                           Show location but hide individual names
                         </span>
@@ -547,8 +543,8 @@ export default function SendSurveyPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         );
 
       case 2:
@@ -963,6 +959,7 @@ export default function SendSurveyPage() {
                 router.back();
               }
             }}
+            className="flex items-center"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {step > 1 ? "Previous" : "Back"}
@@ -988,7 +985,7 @@ export default function SendSurveyPage() {
             <Button
               onClick={handleSendSurvey}
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 flex items-center"
             >
               {loading ? (
                 <>

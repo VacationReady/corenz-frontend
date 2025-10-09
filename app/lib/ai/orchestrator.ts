@@ -1001,7 +1001,6 @@ async function handleActionItemsRequest(
       success: result.success,
       message: result.message,
       actionType: result.actionType || intent.actionType || "action_items_help",
-      suggestions: result.suggestions,
     };
   } catch (error: any) {
     console.error("[Action Items Request Error]", error);

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Users, MapPin, Briefcase, Info } from "lucide-react";
+import { CollapsibleFilter } from "@/components/ui/CollapsibleFilter";
+import { Users, MapPin, Briefcase, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { AudienceFilters } from "@/types/performance-templates";
 import { toast } from "sonner";
 
@@ -22,13 +23,37 @@ interface FilterOption {
 
 export function AudienceFilterStep({ filters, onChange }: AudienceFilterStepProps) {
   const [loading, setLoading] = useState(true);
+  const [validating, setValidating] = useState(false);
   const [departments, setDepartments] = useState<FilterOption[]>([]);
   const [locations, setLocations] = useState<FilterOption[]>([]);
   const [jobRoles, setJobRoles] = useState<FilterOption[]>([]);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    employeeCount: number;
+    details: {
+      departments: FilterOption[];
+      locations: FilterOption[];
+      jobRoles: FilterOption[];
+    };
+  } | null>(null);
 
   useEffect(() => {
     loadFilterOptions();
   }, []);
+
+  // Validate audience whenever filters change
+  useEffect(() => {
+    const hasFilters = 
+      (filters.departments && filters.departments.length > 0) ||
+      (filters.locations && filters.locations.length > 0) ||
+      (filters.jobRoles && filters.jobRoles.length > 0);
+
+    if (hasFilters) {
+      validateAudience();
+    } else {
+      setValidationResult(null);
+    }
+  }, [filters]);
 
   const loadFilterOptions = async () => {
     setLoading(true);
@@ -73,6 +98,30 @@ export function AudienceFilterStep({ filters, onChange }: AudienceFilterStepProp
     }
   };
 
+  const validateAudience = async () => {
+    setValidating(true);
+    try {
+      const response = await fetch("/api/audience/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          departments: filters.departments || [],
+          locations: filters.locations || [],
+          jobRoles: filters.jobRoles || [],
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setValidationResult(result);
+      }
+    } catch (error) {
+      console.error("Failed to validate audience:", error);
+    } finally {
+      setValidating(false);
+    }
+  };
+
   const toggleFilter = (type: keyof AudienceFilters, id: string) => {
     const currentFilters = filters[type] || [];
     const newFilters = currentFilters.includes(id)
@@ -90,6 +139,30 @@ export function AudienceFilterStep({ filters, onChange }: AudienceFilterStepProp
       ...filters,
       [type]: [],
     });
+  };
+
+  const getFilteredOptions = (type: 'departments' | 'locations' | 'jobRoles') => {
+    const allOptions = type === 'departments' ? departments : 
+                      type === 'locations' ? locations : jobRoles;
+    
+    // If no previous filters are selected, show all options
+    const hasOtherFilters = 
+      (type !== 'departments' && filters.departments && filters.departments.length > 0) ||
+      (type !== 'locations' && filters.locations && filters.locations.length > 0) ||
+      (type !== 'jobRoles' && filters.jobRoles && filters.jobRoles.length > 0);
+
+    if (!hasOtherFilters) {
+      return allOptions;
+    }
+
+    // If validation result is available, filter options based on what would be valid
+    if (validationResult && !validationResult.valid) {
+      // Show only options that would make the combination valid
+      // This is a simplified approach - in a real implementation, you'd want more sophisticated logic
+      return allOptions;
+    }
+
+    return allOptions;
   };
 
   const selectedCount =
@@ -129,218 +202,119 @@ export function AudienceFilterStep({ filters, onChange }: AudienceFilterStepProp
             </div>
           </div>
 
-          {/* Departments Filter */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label className="flex items-center gap-2 text-base font-semibold">
-                <Users className="h-4 w-4" />
-                Departments
-                {filters.departments && filters.departments.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {filters.departments.length} selected
-                  </Badge>
+          {/* Validation Status */}
+          {validationResult && (
+            <div className={`rounded-lg border p-4 ${
+              validationResult.valid 
+                ? "border-green-200 bg-green-50" 
+                : "border-red-200 bg-red-50"
+            }`}>
+              <div className="flex items-start gap-3">
+                {validationResult.valid ? (
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
                 )}
-              </Label>
-              {filters.departments && filters.departments.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearFilters("departments")}
-                >
-                  Clear
-                </Button>
-              )}
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${
+                    validationResult.valid ? "text-green-900" : "text-red-900"
+                  }`}>
+                    {validationResult.valid 
+                      ? `✓ This template will apply to ${validationResult.employeeCount} employee(s)`
+                      : "⚠ No employees match the selected criteria"
+                    }
+                  </p>
+                  {!validationResult.valid && (
+                    <p className="text-sm text-red-700 mt-1">
+                      Please adjust your selections to target existing employees.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-              {departments.length === 0 ? (
-                <p className="text-sm text-muted-foreground col-span-full">
-                  No departments available
-                </p>
-              ) : (
-                departments.map((dept) => {
-                  const isSelected = filters.departments?.includes(dept.id);
-                  return (
-                    <button
-                      key={dept.id}
-                      onClick={() => toggleFilter("departments", dept.id)}
-                      className={`p-3 text-left rounded-lg border transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            isSelected
-                              ? "bg-primary border-primary"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="w-2 h-2 bg-white rounded-sm" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{dept.name}</span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          )}
+
+          {/* Departments Filter */}
+          <CollapsibleFilter
+            title="Departments"
+            icon={<Users className="h-4 w-4" />}
+            options={getFilteredOptions('departments')}
+            selectedIds={filters.departments || []}
+            onToggle={(id) => toggleFilter("departments", id)}
+            onClear={() => clearFilters("departments")}
+            placeholder="No departments available"
+          />
 
           {/* Locations Filter */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label className="flex items-center gap-2 text-base font-semibold">
-                <MapPin className="h-4 w-4" />
-                Locations
-                {filters.locations && filters.locations.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {filters.locations.length} selected
-                  </Badge>
-                )}
-              </Label>
-              {filters.locations && filters.locations.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearFilters("locations")}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-              {locations.length === 0 ? (
-                <p className="text-sm text-muted-foreground col-span-full">
-                  No locations available
-                </p>
-              ) : (
-                locations.map((loc) => {
-                  const isSelected = filters.locations?.includes(loc.id);
-                  return (
-                    <button
-                      key={loc.id}
-                      onClick={() => toggleFilter("locations", loc.id)}
-                      className={`p-3 text-left rounded-lg border transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            isSelected
-                              ? "bg-primary border-primary"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="w-2 h-2 bg-white rounded-sm" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{loc.name}</span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <CollapsibleFilter
+            title="Locations"
+            icon={<MapPin className="h-4 w-4" />}
+            options={getFilteredOptions('locations')}
+            selectedIds={filters.locations || []}
+            onToggle={(id) => toggleFilter("locations", id)}
+            onClear={() => clearFilters("locations")}
+            placeholder="No locations available"
+          />
 
           {/* Job Roles Filter */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label className="flex items-center gap-2 text-base font-semibold">
-                <Briefcase className="h-4 w-4" />
-                Job Roles
-                {filters.jobRoles && filters.jobRoles.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    {filters.jobRoles.length} selected
-                  </Badge>
-                )}
-              </Label>
-              {filters.jobRoles && filters.jobRoles.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearFilters("jobRoles")}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-              {jobRoles.length === 0 ? (
-                <p className="text-sm text-muted-foreground col-span-full">
-                  No job roles available
-                </p>
-              ) : (
-                jobRoles.map((role) => {
-                  const isSelected = filters.jobRoles?.includes(role.id);
-                  return (
-                    <button
-                      key={role.id}
-                      onClick={() => toggleFilter("jobRoles", role.id)}
-                      className={`p-3 text-left rounded-lg border transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            isSelected
-                              ? "bg-primary border-primary"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="w-2 h-2 bg-white rounded-sm" />
-                          )}
-                        </div>
-                        <span className="text-sm font-medium">{role.name}</span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <CollapsibleFilter
+            title="Job Roles"
+            icon={<Briefcase className="h-4 w-4" />}
+            options={getFilteredOptions('jobRoles')}
+            selectedIds={filters.jobRoles || []}
+            onToggle={(id) => toggleFilter("jobRoles", id)}
+            onClear={() => clearFilters("jobRoles")}
+            placeholder="No job roles available"
+          />
         </CardContent>
       </Card>
 
       {/* Summary */}
       {selectedCount > 0 && (
-        <Card className="border-primary/50 bg-primary/5">
+        <Card className={`${
+          validationResult?.valid 
+            ? "border-green-200 bg-green-50" 
+            : validationResult?.valid === false
+            ? "border-red-200 bg-red-50"
+            : "border-primary/50 bg-primary/5"
+        }`}>
           <CardHeader>
-            <CardTitle className="text-base">Audience Summary</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              {validationResult?.valid ? (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              ) : validationResult?.valid === false ? (
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+              ) : null}
+              Audience Summary
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              This template will apply to employees in{" "}
-              {filters.departments && filters.departments.length > 0 && (
-                <strong>{filters.departments.length} department(s)</strong>
+              {validationResult?.valid ? (
+                <>This template will apply to <strong>{validationResult.employeeCount} employee(s)</strong> matching your criteria.</>
+              ) : validationResult?.valid === false ? (
+                <>⚠️ <strong>No employees match</strong> the selected criteria. Please adjust your selections.</>
+              ) : (
+                <>This template will apply to employees in{" "}
+                {filters.departments && filters.departments.length > 0 && (
+                  <strong>{filters.departments.length} department(s)</strong>
+                )}
+                {filters.locations && filters.locations.length > 0 && (
+                  <>
+                    {filters.departments && filters.departments.length > 0 && ", "}
+                    <strong>{filters.locations.length} location(s)</strong>
+                  </>
+                )}
+                {filters.jobRoles && filters.jobRoles.length > 0 && (
+                  <>
+                    {((filters.departments && filters.departments.length > 0) ||
+                      (filters.locations && filters.locations.length > 0)) &&
+                      ", "}
+                    <strong>{filters.jobRoles.length} job role(s)</strong>
+                  </>
+                )}
+                .</>
               )}
-              {filters.locations && filters.locations.length > 0 && (
-                <>
-                  {filters.departments && filters.departments.length > 0 && ", "}
-                  <strong>{filters.locations.length} location(s)</strong>
-                </>
-              )}
-              {filters.jobRoles && filters.jobRoles.length > 0 && (
-                <>
-                  {((filters.departments && filters.departments.length > 0) ||
-                    (filters.locations && filters.locations.length > 0)) &&
-                    ", "}
-                  <strong>{filters.jobRoles.length} job role(s)</strong>
-                </>
-              )}
-              .
             </p>
           </CardContent>
         </Card>

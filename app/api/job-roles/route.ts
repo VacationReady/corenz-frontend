@@ -27,7 +27,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ success: true, jobRoles });
+    return NextResponse.json(jobRoles);
   } catch (error) {
     console.error("Error fetching job roles:", error);
     return NextResponse.json(

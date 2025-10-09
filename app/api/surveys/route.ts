@@ -8,7 +8,14 @@ const createSurveySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   formId: z.string(),
-  deadline: z.string().datetime().optional().or(z.literal("")),
+  deadline: z.string().optional().or(z.literal("")).transform((val) => {
+    if (!val || val === "") return undefined;
+    // Handle datetime-local format (YYYY-MM-DDTHH:mm) by converting to ISO string
+    if (val && !val.includes('Z') && !val.includes('+') && !val.includes('-', 10)) {
+      return new Date(val).toISOString();
+    }
+    return val;
+  }).pipe(z.string().datetime().optional().or(z.undefined())),
   anonymizationLevel: z.enum(["public", "department", "location", "full"]).default("public"),
   targetAudience: z.object({
     departments: z.array(z.string()).optional(),

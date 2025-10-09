@@ -9,12 +9,20 @@ const sendSurveySchema = z.object({
   targetAudience: z.object({
     departments: z.array(z.string()).optional(),
     jobRoles: z.array(z.string()).optional(),
+    locations: z.array(z.string()).optional(),
     roles: z.array(z.string()).optional(),
     employees: z.array(z.string()).optional(),
     excludedEmployees: z.array(z.string()).optional(),
     allEmployees: z.boolean().optional(),
   }).optional(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().optional().transform((val) => {
+    if (!val) return undefined;
+    // Handle datetime-local format (YYYY-MM-DDTHH:mm) by converting to ISO string
+    if (val && !val.includes('Z') && !val.includes('+') && !val.includes('-', 10)) {
+      return new Date(val).toISOString();
+    }
+    return val;
+  }).pipe(z.string().datetime().optional()),
   sendImmediately: z.boolean().default(true),
 });
 
@@ -58,7 +66,7 @@ export async function POST(
     };
 
     if (validatedData.targetAudience) {
-      const { departments, jobRoles, roles, employees, excludedEmployees, allEmployees } = validatedData.targetAudience;
+      const { departments, jobRoles, locations, roles, employees, excludedEmployees, allEmployees } = validatedData.targetAudience;
 
       if (employees && employees.length > 0) {
         employeeWhere.id = { in: employees };
@@ -71,6 +79,10 @@ export async function POST(
 
         if (jobRoles && jobRoles.length > 0) {
           conditions.push({ jobRoleId: { in: jobRoles } });
+        }
+
+        if (locations && locations.length > 0) {
+          conditions.push({ locationId: { in: locations } });
         }
 
         if (roles && roles.length > 0) {

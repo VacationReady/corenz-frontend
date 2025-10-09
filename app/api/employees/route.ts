@@ -165,6 +165,9 @@ export async function GET(req: Request) {
         JobRole: {
           select: { id: true, name: true },
         },
+        Location: {
+          select: { id: true, name: true },
+        },
         EmployeeOffboarding: {
           select: {
             id: true,
@@ -206,6 +209,8 @@ export async function GET(req: Request) {
           departmentName: emp.Department?.name ?? null,
           jobRoleId: emp.JobRole?.id ?? null,
           jobRoleName: emp.JobRole?.name ?? null,
+          locationId: emp.Location?.id ?? null,
+          locationName: emp.Location?.name ?? null,
           isActive: emp.isActive,
           isActivated: emp.User.isActivated,
           offboardingStatus: emp.offboardingStatus,

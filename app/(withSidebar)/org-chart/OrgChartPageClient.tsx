@@ -442,9 +442,36 @@ function OrgChartPageClient() {
       name: orgForest[0].fullName,
       email: orgForest[0].email,
       children: orgForest[0].children.length,
-      managerId: orgForest[0].managerUserId
+      managerId: orgForest[0].managerUserId,
+      department: orgForest[0].department,
+      jobTitle: orgForest[0].jobTitle
     } : 'none'
   });
+
+  // DEBUG: Check for users not in tree
+  const allUserIds = new Set(normalizedEmployees.map(emp => emp.userId));
+  const treeUserIds = new Set();
+
+  const collectUserIds = (nodes) => {
+    nodes.forEach(node => {
+      treeUserIds.add(node.userId);
+      collectUserIds(node.children);
+    });
+  };
+
+  collectUserIds(orgForest);
+  const missingUsers = [...allUserIds].filter(id => !treeUserIds.has(id));
+
+  console.log('🚨 Users NOT in tree:', missingUsers.length);
+  if (missingUsers.length > 0) {
+    const sampleMissing = normalizedEmployees.find(emp => emp.userId === missingUsers[0]);
+    console.log('Sample missing user:', sampleMissing ? {
+      name: sampleMissing.fullName,
+      managerId: sampleMissing.managerUserId,
+      department: sampleMissing.department,
+      jobTitle: sampleMissing.jobTitle
+    } : 'none');
+  }
 
   const departmentOptions = useMemo(
     () =>
@@ -533,6 +560,21 @@ function OrgChartPageClient() {
     selectedJobRoles,
     roleFilter,
   ]);
+
+  // DEBUG: Check filtered forest
+  console.log('🔍 Filtered Forest Debug:', {
+    beforeFiltering: orgForest.length,
+    afterFiltering: filteredForest.length,
+    searchTerm,
+    selectedDepartments,
+    selectedJobRoles,
+    roleFilter,
+    isFiltered
+  });
+
+  if (filteredForest.length !== orgForest.length) {
+    console.log('🚨 Filtering removed users! Check filter logic.');
+  }
 
   const layout = useMemo(() => {
     if (!filteredForest.length) {

@@ -33,16 +33,22 @@ interface HeroPost {
   readTime?: number;
   views?: number;
   comments?: number;
+  isBookmarked?: boolean;
+  bookmarkCount?: number;
 }
 
 interface NewsHeroProps {
   posts: HeroPost[];
   autoPlayInterval?: number;
+  onBookmark?: (post: HeroPost) => Promise<void> | void;
+  onShare?: (post: HeroPost) => Promise<void> | void;
 }
 
 export default function NewsHero({
   posts,
   autoPlayInterval = 7000,
+  onBookmark,
+  onShare,
 }: NewsHeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -204,6 +210,12 @@ export default function NewsHero({
                       Read Story →
                     </Link>
                     <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (onShare) {
+                          void onShare(currentPost);
+                        }
+                      }}
                       className={cn(
                         "p-3 rounded-full bg-muted/80 hover:bg-muted",
                         "transition-all duration-200 hover:scale-105"
@@ -213,13 +225,23 @@ export default function NewsHero({
                       <Share2 className="w-4 h-4" />
                     </button>
                     <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (onBookmark) {
+                          void onBookmark(currentPost);
+                        }
+                      }}
                       className={cn(
                         "p-3 rounded-full bg-muted/80 hover:bg-muted",
-                        "transition-all duration-200 hover:scale-105"
+                        "transition-all duration-200 hover:scale-105",
+                        currentPost.isBookmarked && "bg-primary/20 text-primary"
                       )}
                       aria-label="Bookmark"
                     >
-                      <Bookmark className="w-4 h-4" />
+                      <Bookmark className={cn(
+                        "w-4 h-4",
+                        currentPost.isBookmarked && "fill-current"
+                      )} />
                     </button>
                   </div>
                 </div>

@@ -123,9 +123,16 @@ export async function GET(req: NextRequest) {
     }),
   );
 
-  return NextResponse.json(postsWithPreview);
-
-  return NextResponse.json(posts);
+  return NextResponse.json({
+    posts: postsWithPreview,
+    pagination: {
+      total: totalCount,
+      limit,
+      offset: skip,
+      page,
+      hasMore: skip + posts.length < totalCount,
+    },
+  });
 }
 
 type NewsPostRecord = {

@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { FilterOption } from "@/types/filter";
 import { formatDistanceToNow } from "date-fns";
+import { handleNewsShare, createShareOptions, fetchNewsPage, PaginationState } from "@/lib/news-utils";
 
 interface NewsPost {
   id: string;
@@ -80,6 +81,12 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeQuickFilter, setActiveQuickFilter] = useState("all");
   const [postState, setPostState] = useState(posts);
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    limit: 12,
+    hasMore: posts.length >= 12,
+    loading: false,
+  });
 
   useEffect(() => {
     setPostState(posts);
@@ -326,6 +333,48 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     }
   };
 
+  /**
+   * Handle sharing a news post
+   * Records the share and triggers Web Share API or copies to clipboard
+   */
+  const handleShare = async (post: NewsPost) => {
+    const shareOptions = createShareOptions({
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+    });
+
+    await handleNewsShare(post.slug, shareOptions);
+  };
+
+  /**
+   * Load more posts with pagination
+   */
+  const handleLoadMore = async () => {
+    if (pagination.loading || !pagination.hasMore) return;
+
+    setPagination((prev) => ({ ...prev, loading: true }));
+
+    try {
+      const nextPage = pagination.page + 1;
+      const data = await fetchNewsPage(nextPage, pagination.limit);
+
+      setPostState((prev) => [...prev, ...data.posts]);
+      setPagination({
+        page: nextPage,
+        limit: pagination.limit,
+        hasMore: data.pagination.hasMore,
+        loading: false,
+      });
+
+      toast.success(`Loaded ${data.posts.length} more posts`);
+    } catch (error) {
+      console.error("Failed to load more posts:", error);
+      toast.error("Failed to load more posts. Please try again.");
+      setPagination((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
   // Export CSV
   const handleExport = () => {
     const csvContent = [
@@ -465,7 +514,11 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
       {/* Hero Carousel for Featured Posts */}
       {filteredPosts.filter(p => p.pinned || p.featured).length > 0 && (
-        <NewsHero posts={filteredPosts} />
+        <NewsHero 
+          posts={filteredPosts}
+          onBookmark={handleBookmarkToggle}
+          onShare={handleShare}
+        />
       )}
 
       {/* Quick Filters */}
@@ -571,6 +624,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                           showStats
                           onBookmark={() => handleBookmarkToggle(post)}
                           onReact={(type) => handleReactionChange(post, type)}
+                          onShare={() => handleShare(post)}
                         />
                       </div>
                     ) : (
@@ -615,11 +669,29 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       )}
 
       {/* Load More Section */}
-      {filteredPosts.length >= 12 && (
+      {pagination.hasMore && filteredPosts.length > 0 && (
         <div className="flex justify-center mt-12">
-          <button className="flex items-center gap-2 px-6 py-3 bg-muted/50 hover:bg-muted rounded-full transition-all duration-200">
-            <span>Load More</span>
-            <ChevronRight className="w-4 h-4" />
+          <button 
+            onClick={handleLoadMore}
+            disabled={pagination.loading}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-200",
+              pagination.loading
+                ? "bg-muted/30 cursor-not-allowed opacity-60"
+                : "bg-muted/50 hover:bg-muted hover:scale-105"
+            )}
+          >
+            {pagination.loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <span>Load More</span>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </div>
       )}

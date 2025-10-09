@@ -129,13 +129,13 @@ async function getEmployeesInScope(companyId: string, audienceFilters: any) {
     select: {
       id: true,
       userId: true,
-      managerId: true,
       User: {
         select: {
           id: true,
           firstName: true,
           lastName: true,
           email: true,
+          managerId: true,
         },
       },
       Department: {
@@ -149,7 +149,7 @@ async function getEmployeesInScope(companyId: string, audienceFilters: any) {
   return employees.map((emp: any) => ({
     id: emp.id,
     userId: emp.userId,
-    managerId: emp.managerId,
+    managerId: emp.User?.managerId,
     name: `${emp.User?.firstName || ''} ${emp.User?.lastName || ''}`.trim(),
     email: emp.User?.email,
     department: emp.Department?.name,
@@ -358,7 +358,6 @@ export async function createOffboardingActionItems(
           lastName: true,
         },
       },
-      managerId: true,
     },
   });
 

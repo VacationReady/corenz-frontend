@@ -60,7 +60,7 @@ function isManagerOrAdmin(role?: string | null) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -68,9 +68,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const template = await prisma.performanceTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -104,7 +106,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -116,10 +118,12 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     // Verify template exists and belongs to company
     const existingTemplate = await prisma.performanceTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -135,7 +139,7 @@ export async function PUT(
 
     // Update template fields
     const updatedTemplate = await prisma.performanceTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...templateData,
         version: { increment: 1 },
@@ -148,13 +152,13 @@ export async function PUT(
       await prisma.templateQuestion.deleteMany({
         where: {
           section: {
-            templateId: params.id,
+            templateId: id,
           },
         },
       });
 
       await prisma.templateSection.deleteMany({
-        where: { templateId: params.id },
+        where: { templateId: id },
       });
 
       // Create new sections and questions
@@ -162,7 +166,7 @@ export async function PUT(
         const createdSection = await prisma.templateSection.create({
           data: {
             id: section.id || crypto.randomUUID(),
-            templateId: params.id,
+            templateId: id,
             title: section.title,
             description: section.description,
             order: section.order,
@@ -193,7 +197,7 @@ export async function PUT(
 
     // Fetch complete updated template
     const completeTemplate = await prisma.performanceTemplate.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         Creator: {
           select: { id: true, firstName: true, lastName: true },
@@ -227,7 +231,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -239,10 +243,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     // Verify template exists and belongs to company
     const existingTemplate = await prisma.performanceTemplate.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -258,19 +264,19 @@ export async function DELETE(
     await prisma.templateQuestion.deleteMany({
       where: {
         section: {
-          templateId: params.id,
+          templateId: id,
         },
       },
     });
 
     // Delete sections
     await prisma.templateSection.deleteMany({
-      where: { templateId: params.id },
+      where: { templateId: id },
     });
 
     // Delete template
     await prisma.performanceTemplate.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

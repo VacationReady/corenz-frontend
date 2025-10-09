@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { TEMPLATE_TYPE_INFO, REVIEWER_ROLE_INFO } from "@/types/performance-templates";
 
 interface TemplateDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function TemplateDetailPage({ params }: TemplateDetailPageProps) {
@@ -32,6 +32,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
   const { data: session } = useSession();
   const [template, setTemplate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [templateId, setTemplateId] = useState<string | null>(null);
 
   const canManageTemplates =
     session?.user?.role === "ADMIN" ||
@@ -39,13 +40,22 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
     session?.user?.role === "MANAGER";
 
   useEffect(() => {
-    loadTemplate();
-  }, [params.id]);
+    params.then((resolvedParams) => {
+      setTemplateId(resolvedParams.id);
+    });
+  }, [params]);
+
+  useEffect(() => {
+    if (templateId) {
+      loadTemplate();
+    }
+  }, [templateId]);
 
   const loadTemplate = async () => {
+    if (!templateId) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/performance/templates/${params.id}`);
+      const response = await fetch(`/api/performance/templates/${templateId}`);
       if (response.ok) {
         const data = await response.json();
         setTemplate(data.template);
@@ -66,8 +76,10 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
       return;
     }
 
+    if (!templateId) return;
+
     try {
-      const response = await fetch(`/api/performance/templates/${params.id}`, {
+      const response = await fetch(`/api/performance/templates/${templateId}`, {
         method: "DELETE",
       });
 
@@ -156,7 +168,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push(`/performance/templates/${params.id}/edit`)}
+                onClick={() => router.push(`/performance/templates/${templateId}/edit`)}
               >
                 <Edit className="mr-2 h-4 w-4" />
                 Edit

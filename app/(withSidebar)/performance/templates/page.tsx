@@ -189,7 +189,7 @@ export default function TemplatesPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
-              variant={filterType === "all" ? "default" : "outline"}
+              variant={filterType === "all" ? "primary" : "outline"}
               size="sm"
               onClick={() => setFilterType("all")}
             >
@@ -200,7 +200,7 @@ export default function TemplatesPage() {
               return (
                 <Button
                   key={type}
-                  variant={filterType === type ? "default" : "outline"}
+                  variant={filterType === type ? "primary" : "outline"}
                   size="sm"
                   onClick={() => setFilterType(type)}
                 >

@@ -16,17 +16,25 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { TemplateType, TemplateSection, QuestionType } from "@/types/performance-templates";
+import { TemplateType, TemplateSection, TemplateQuestion, QuestionType } from "@/types/performance-templates";
+
+type WizardSection = {
+  title: string;
+  description?: string;
+  order: number;
+  isRequired: boolean;
+  questions: Omit<TemplateQuestion, "id" | "sectionId">[];
+};
 
 interface TemplateBuilderStepProps {
   templateType: TemplateType;
   name: string;
   description: string;
-  sections: Omit<TemplateSection, "id" | "templateId">[];
+  sections: WizardSection[];
   onChange: (data: {
     name?: string;
     description?: string;
-    sections?: Omit<TemplateSection, "id" | "templateId">[];
+    sections?: WizardSection[];
   }) => void;
 }
 
@@ -75,7 +83,7 @@ export function TemplateBuilderStep({
 
   const updateSection = (
     index: number,
-    updates: Partial<Omit<TemplateSection, "id" | "templateId">>
+    updates: Partial<WizardSection>
   ) => {
     const newSections = [...sections];
     newSections[index] = { ...newSections[index], ...updates };

@@ -9,7 +9,24 @@ import { TemplateType, TemplateSection } from "@/types/performance-templates";
 interface BestPracticePackStepProps {
   templateType: TemplateType;
   selectedPackIds: string[];
-  onSelect: (packIds: string[], sections: Omit<TemplateSection, "id" | "templateId">[]) => void;
+  onSelect: (packIds: string[], sections: {
+    title: string;
+    description?: string;
+    order: number;
+    isRequired: boolean;
+    questions: Omit<TemplateQuestion, "id" | "sectionId">[];
+  }[]) => void;
+}
+
+interface TemplateQuestion {
+  id: string;
+  sectionId: string;
+  question: string;
+  description?: string;
+  type: string;
+  order: number;
+  isRequired: boolean;
+  options?: any;
 }
 
 // Mock best practice packs - in production, these would come from API
@@ -187,7 +204,7 @@ export function BestPracticePackStep({
   selectedPackIds,
   onSelect,
 }: BestPracticePackStepProps) {
-  const packs = BEST_PRACTICE_PACKS[templateType] || [];
+  const packs = BEST_PRACTICE_PACKS[templateType as keyof typeof BEST_PRACTICE_PACKS] || [];
 
   const togglePack = (packId: string) => {
     const pack = packs.find((p) => p.id === packId);

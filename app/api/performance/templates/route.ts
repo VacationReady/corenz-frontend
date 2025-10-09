@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
@@ -133,8 +134,8 @@ export async function POST(req: NextRequest) {
         isActive: templateData.isActive !== false,
         tags: templateData.tags || [],
         visibility: templateData.visibility || "COMPANY",
-        audienceFilters: templateData.audienceFilters || null,
-        reviewerAssignments: templateData.reviewerAssignments || null,
+        audienceFilters: templateData.audienceFilters || Prisma.JsonNull,
+        reviewerAssignments: templateData.reviewerAssignments || Prisma.JsonNull,
         bestPracticePackIds: templateData.bestPracticePackIds || [],
         createdBy: session.user.id,
       },

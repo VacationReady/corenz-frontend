@@ -102,7 +102,13 @@ export interface TemplateWizardState {
   audienceFilters: AudienceFilters;
   reviewerAssignments: ReviewerAssignment[];
   bestPracticePackIds: string[];
-  sections: Omit<TemplateSection, "id" | "templateId">[];
+  sections: {
+    title: string;
+    description?: string;
+    order: number;
+    isRequired: boolean;
+    questions: Omit<TemplateQuestion, "id" | "sectionId">[];
+  }[];
   icon?: string;
   tags: string[];
 }

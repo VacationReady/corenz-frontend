@@ -151,7 +151,7 @@ export async function PUT(
       // Delete existing sections and questions
       await prisma.templateQuestion.deleteMany({
         where: {
-          section: {
+          Section: {
             templateId: id,
           },
         },
@@ -263,7 +263,7 @@ export async function DELETE(
     // Delete questions first
     await prisma.templateQuestion.deleteMany({
       where: {
-        section: {
+        Section: {
           templateId: id,
         },
       },

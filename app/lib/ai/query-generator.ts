@@ -22,9 +22,10 @@ You are a database query assistant for an HR system. Generate safe, read-only Pr
 
 CORE MODELS:
 - Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, irdNumber, taxCode, salaryAmount, hourlyRate, contractType, employmentType, siteLocation
-- User: id, email, firstName, lastName, role, phone, dateOfBirth, addressCity, addressCountry
+- User: id, email, firstName, lastName, role, phone, dateOfBirth, addressCity, addressCountry, genderOptionId
 - Department: id, name, headId
 - JobRole: id, name, level
+- GenderOption: id, key, label (e.g., "male", "female", "non-binary", "prefer-not-to-say")
 
 COMPUTED FIELDS (Calculate from existing data):
 - Age: Calculate from User.dateOfBirth (current date - dateOfBirth)
@@ -98,6 +99,12 @@ COMPUTED FIELD EXAMPLES - Age, Tenure, etc:
 - "Contracts expiring in next 30 days" → employee model, findMany, WHERE contractEndDate BETWEEN now AND [30 days from now]
 - "Who is in their probation period?" → employee model, findMany, WHERE startDate > [90 days ago] (assuming 90 day probation)
 
+DEMOGRAPHICS & DIVERSITY EXAMPLES:
+- "What is the gender split?" → employee model, group by User.GenderOption.label, count
+- "How many male/female employees?" → employee model, count, WHERE User.GenderOption filter
+- "Show diversity breakdown" → employee model, findMany, include GenderOption
+- "Gender distribution by department" → employee model, group by department and gender
+
 CRITICAL EXAMPLES - Study These:
 User: "How many in sales?" → {queryType: "count", model: "employee", operation: "Department filter sales"}
 User: "List individuals in sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
@@ -163,10 +170,11 @@ CRITICAL DECISION GUIDE:
 - "How many" = count
 - "List", "Show me", "Who are", "Names of", "Display" = findMany
 - "Total salary", "Average salary", "Sum of" = aggregate
+- "Gender split", "breakdown by", "distribution by", "group by" = groupBy
 
 Respond with JSON in this format:
 {
-  "queryType": "count|findMany|aggregate",
+  "queryType": "count|findMany|aggregate|groupBy",
   "model": "employee|user|leaveRequest|etc",
   "operation": "the prisma code to execute"
 }`,
@@ -502,6 +510,12 @@ async function executeQueryByType(
                 email: true,
                 phone: true,
                 dateOfBirth: true,
+                GenderOption: {
+                  select: {
+                    label: true,
+                    key: true,
+                  },
+                },
               },
             },
             Department: {
@@ -591,6 +605,58 @@ async function executeQueryByType(
           averageSalary: result._avg.salaryAmount || 0,
           employeeCount: result._count.id || 0,
         };
+      }
+
+      if (queryType === "groupBy") {
+        // Handle gender split queries
+        if (operation.includes("gender") || operation.includes("GenderOption")) {
+          const employees = await prisma.employee.findMany({
+            where: {
+              companyId,
+              isActive: true,
+            },
+            include: {
+              User: {
+                include: {
+                  GenderOption: true,
+                },
+              },
+              Department: true,
+            },
+          });
+
+          // Group by gender
+          const genderGroups = employees.reduce((acc: any, emp: any) => {
+            const genderLabel = emp.User?.GenderOption?.label || "Not specified";
+            if (!acc[genderLabel]) {
+              acc[genderLabel] = { count: 0, employees: [] };
+            }
+            acc[genderLabel].count++;
+            acc[genderLabel].employees.push({
+              name: `${emp.User?.firstName || ''} ${emp.User?.lastName || ''}`.trim(),
+              department: emp.Department?.name || 'N/A',
+            });
+            return acc;
+          }, {});
+
+          // Convert to array format for easier display
+          const result = Object.entries(genderGroups).map(([gender, data]: [string, any]) => ({
+            gender,
+            count: data.count,
+            percentage: ((data.count / employees.length) * 100).toFixed(1),
+          }));
+
+          return result;
+        }
+
+        // Handle department grouping
+        if (operation.includes("department") || operation.includes("Department")) {
+          return await prisma.employee.groupBy({
+            by: ["departmentId"],
+            where: { companyId, isActive: true },
+            _count: { id: true },
+          });
+        }
       }
       break;
 

@@ -95,6 +95,28 @@ interface WelcomeEmailSummary {
   errors: Array<{ employeeId: string; email: string; reason: string }>;
 }
 
+interface ActivationStats {
+  total: number;
+  emailSent: number;
+  emailNotSent: number;
+  activated: number;
+  pendingActivation: number;
+}
+
+interface EmployeeActivationStatus {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  department: string | null;
+  departmentId: string | null;
+  jobRole: string | null;
+  jobRoleId: string | null;
+  welcomeEmailSentAt: string | null;
+  isActivated: boolean;
+  status: "no_email" | "email_sent_pending" | "activated";
+}
+
 interface WelcomeFilters {
   departmentIds: string[];
   locationIds: string[];
@@ -360,6 +382,10 @@ export default function CSVImportPage() {
   const [availableDepartments, setAvailableDepartments] = useState<SelectableOption[]>([]);
   const [availableLocations, setAvailableLocations] = useState<SelectableOption[]>([]);
   const [isSendingWelcomeEmails, setIsSendingWelcomeEmails] = useState(false);
+  const [activationStats, setActivationStats] = useState<ActivationStats | null>(null);
+  const [activationEmployees, setActivationEmployees] = useState<EmployeeActivationStatus[]>([]);
+  const [loadingActivationStatus, setLoadingActivationStatus] = useState(false);
+  const [showActivationDashboard, setShowActivationDashboard] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInfo = getImportTypeInfo(selectedImportType);
 
@@ -376,6 +402,30 @@ export default function CSVImportPage() {
     window.localStorage.setItem(ALLOW_UPDATES_STORAGE_KEY, allowUpdates ? "true" : "false");
   }, [allowUpdates]);
 
+  // Load activation status on mount
+  useEffect(() => {
+    loadActivationStatus();
+  }, []);
+
+  const loadActivationStatus = async () => {
+    try {
+      setLoadingActivationStatus(true);
+      const response = await fetch("/api/csv-import/employees/activation-status");
+      
+      if (!response.ok) {
+        throw new Error("Failed to load activation status");
+      }
+
+      const data = await response.json();
+      setActivationStats(data.stats);
+      setActivationEmployees(data.employees);
+    } catch (error) {
+      console.error("Failed to load activation status:", error);
+    } finally {
+      setLoadingActivationStatus(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedImportType !== "employees") {
       setShowWelcomeEmailOptions(false);
@@ -385,6 +435,7 @@ export default function CSVImportPage() {
         locationIds: [],
         nameQuery: "",
       });
+      setWelcomeMetadataLoaded(false);
     }
   }, [selectedImportType]);
 
@@ -804,6 +855,9 @@ export default function CSVImportPage() {
       } else {
         toast.success(`Sent welcome emails to ${sent} employee${sent === 1 ? "" : "s"}.`);
       }
+
+      // Refresh activation status after sending emails
+      await loadActivationStatus();
     } catch (error) {
       console.error("Failed to send welcome emails", error);
       toast.error(error instanceof Error ? error.message : "Failed to send welcome emails");
@@ -924,6 +978,102 @@ export default function CSVImportPage() {
       }
     >
       <div className="space-y-6">
+        {/* Employee Activation Status Card */}
+        {activationStats && activationStats.emailNotSent > 0 && (
+          <Card className="border-amber-200 bg-amber-50/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-amber-600" />
+                  <CardTitle className="text-amber-900">Pending Employee Activations</CardTitle>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowActivationDashboard(!showActivationDashboard)}
+                >
+                  {showActivationDashboard ? "Hide Details" : "View Details"}
+                </Button>
+              </div>
+              <CardDescription>
+                {activationStats.emailNotSent} employee{activationStats.emailNotSent === 1 ? "" : "s"} haven't received welcome emails yet
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-white rounded-lg border">
+                  <div className="text-2xl font-bold text-gray-900">{activationStats.total}</div>
+                  <div className="text-xs text-muted-foreground">Total Employees</div>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg border">
+                  <div className="text-2xl font-bold text-amber-600">{activationStats.emailNotSent}</div>
+                  <div className="text-xs text-muted-foreground">No Email Sent</div>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg border">
+                  <div className="text-2xl font-bold text-blue-600">{activationStats.pendingActivation}</div>
+                  <div className="text-xs text-muted-foreground">Pending Activation</div>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg border">
+                  <div className="text-2xl font-bold text-green-600">{activationStats.activated}</div>
+                  <div className="text-xs text-muted-foreground">Activated</div>
+                </div>
+              </div>
+
+              {showActivationDashboard && (
+                <div className="space-y-3 pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">Employee Status</h4>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => {
+                        setShowWelcomeEmailOptions(true);
+                        setSelectedImportType("employees");
+                      }}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Send Welcome Emails
+                    </Button>
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto space-y-2">
+                    {activationEmployees
+                      .filter(emp => emp.status !== "activated")
+                      .map(emp => (
+                        <div
+                          key={emp.id}
+                          className="flex items-center justify-between p-3 bg-white rounded-lg border text-sm"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">{emp.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {emp.email} • {emp.department || "No department"} • {emp.jobRole || "No role"}
+                            </div>
+                          </div>
+                          <Badge
+                            variant={
+                              emp.status === "no_email"
+                                ? "destructive"
+                                : emp.status === "email_sent_pending"
+                                ? "secondary"
+                                : "default"
+                            }
+                          >
+                            {emp.status === "no_email"
+                              ? "No Email"
+                              : emp.status === "email_sent_pending"
+                              ? "Email Sent"
+                              : "Activated"}
+                          </Badge>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Import Type Selection */}
         <Card>
           <CardHeader>
@@ -1345,8 +1495,10 @@ export default function CSVImportPage() {
                             type="button"
                             onClick={() => {
                               setShowWelcomeEmailOptions(prev => !prev);
-                              if (!showWelcomeEmailOptions) {
+                              if (showWelcomeEmailOptions) {
+                                // Reset state when hiding
                                 setWelcomeSummary(null);
+                                setWelcomeMetadataLoaded(false);
                               }
                             }}
                           >

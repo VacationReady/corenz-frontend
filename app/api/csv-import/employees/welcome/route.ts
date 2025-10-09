@@ -201,6 +201,12 @@ export async function POST(request: NextRequest) {
           text,
         });
 
+        // Track that welcome email was sent
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { welcomeEmailSentAt: new Date() },
+        });
+
         summary.sent++;
       } catch (error) {
         console.error(`Failed to send welcome email to ${user.email}:`, error);

@@ -1569,6 +1569,7 @@ model User {
   nationalId                                                               String?
   pronouns                                                                 String?
   residencyStatus                                                          String?
+  welcomeEmailSentAt                                                       DateTime?
   ActivationToken                                                          ActivationToken?
   ApprovalWorkflowStageApprover_ApprovalWorkflowStageApprover_userIdToUser ApprovalWorkflowStageApprover[] @relation("ApprovalWorkflowStageApprover_userIdToUser")
   AutomationRule                                                           AutomationRule[]

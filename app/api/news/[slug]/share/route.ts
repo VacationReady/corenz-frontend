@@ -38,24 +38,12 @@ export async function POST(req: NextRequest, context: any) {
   }
 
   try {
-    // Record the share in the database (you can create a NewsShare model if needed)
-    // For now, we'll just increment a counter in the post metadata
+    // Increment the share counter
     await prisma.newsPost.update({
       where: { id: post.id },
       data: {
-        metadata: {
-          ...(await prisma.newsPost.findUnique({
-            where: { id: post.id },
-            select: { metadata: true },
-          }))?.metadata as any,
-          shareCount: ((await prisma.newsPost.findUnique({
-            where: { id: post.id },
-            select: { metadata: true },
-          }))?.metadata as any)?.shareCount ? 
-            (((await prisma.newsPost.findUnique({
-              where: { id: post.id },
-              select: { metadata: true },
-            }))?.metadata as any)?.shareCount as number) + 1 : 1,
+        shareCount: {
+          increment: 1,
         },
       },
     });

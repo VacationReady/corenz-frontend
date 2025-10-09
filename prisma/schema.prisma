@@ -1110,6 +1110,7 @@ model NewsPost {
   coverImageUrl String?
   companyId     String?
   viewCount     Int            @default(0)
+  shareCount    Int            @default(0)
   coverImage    String?
   bookmarks     NewsBookmark[]
   User          User           @relation(fields: [authorId], references: [id])

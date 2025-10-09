@@ -568,8 +568,7 @@ function OrgChartPageClient() {
     searchTerm,
     selectedDepartments,
     selectedJobRoles,
-    roleFilter,
-    isFiltered
+    roleFilter
   });
 
   if (filteredForest.length !== orgForest.length) {

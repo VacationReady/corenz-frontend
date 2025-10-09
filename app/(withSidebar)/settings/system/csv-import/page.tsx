@@ -1024,7 +1024,7 @@ export default function CSVImportPage() {
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium text-sm">Employee Status</h4>
                     <Button
-                      variant="default"
+                      variant="primary"
                       size="sm"
                       onClick={() => {
                         setShowWelcomeEmailOptions(true);

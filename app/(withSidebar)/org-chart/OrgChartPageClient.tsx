@@ -399,7 +399,16 @@ function OrgChartPageClient() {
       }
     });
 
+    // DEBUG: Check maps
+    console.log('🗺️ Maps created:', {
+      byUserIdSize: byUserId.size,
+      byEmployeeIdSize: byEmployeeId.size,
+      byEmailSize: byEmail.size,
+      sampleUserIds: Array.from(byUserId.keys()).slice(0, 3),
+    });
+
     const roots: OrgNode[] = [];
+    let orphanCount = 0;
 
     nodes.forEach((node) => {
       const managerId =
@@ -422,8 +431,21 @@ function OrgChartPageClient() {
         return;
       }
 
+      // DEBUG: Log orphaned user
+      if (orphanCount < 3) {
+        console.log(`🚨 Orphaned user ${orphanCount + 1}:`, {
+          name: node.fullName,
+          managerId,
+          foundInByUserId: byUserId.has(managerId),
+          foundInByEmployeeId: byEmployeeId.has(managerId),
+        });
+      }
+      orphanCount++;
+
       roots.push(node);
     });
+
+    console.log(`Total orphaned users: ${orphanCount}`);
 
     const sortNodes = (list: OrgNode[]) => {
       list.sort((a, b) => a.fullName.localeCompare(b.fullName));

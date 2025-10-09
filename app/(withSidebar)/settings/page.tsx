@@ -164,6 +164,7 @@ function SettingSection({
   icon,
   description,
   completionStatus,
+  showProgressBar = true,
 }: {
   id: string;
   label: string;
@@ -177,6 +178,7 @@ function SettingSection({
   icon: React.ReactNode;
   description?: string;
   completionStatus?: { completed: number; total: number };
+  showProgressBar?: boolean;
 }) {
   const completionPercent =
     completionStatus && completionStatus.total > 0
@@ -209,7 +211,7 @@ function SettingSection({
                 {description}
               </p>
             )}
-            {completionStatus && (
+            {completionStatus && showProgressBar && (
               <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2">
                 <div className="mt-3 h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
                   <div
@@ -385,6 +387,7 @@ export default function SettingsIndexPage() {
               icon={<Plane className="w-5 h-5" />}
               items={holidaySettingsWithHelp}
               completionStatus={completionData.holidays}
+              showProgressBar={false}
             />
             <SettingSection
               id="documents"
@@ -401,6 +404,7 @@ export default function SettingsIndexPage() {
               icon={<Workflow className="w-5 h-5" />}
               items={workflowSettingsWithHelp}
               completionStatus={completionData.workflows}
+              showProgressBar={false}
             />
             <SettingSection
               id="forms"
@@ -417,6 +421,7 @@ export default function SettingsIndexPage() {
               icon={<Settings className="w-5 h-5" />}
               items={getSystemSettings(role)}
               completionStatus={completionData.system}
+              showProgressBar={false}
             />
           </Accordion>
         </div>

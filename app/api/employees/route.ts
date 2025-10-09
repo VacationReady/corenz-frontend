@@ -379,7 +379,9 @@ export async function POST(req: Request) {
         OnboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }
           : undefined,
-        locationId: locationId || undefined,
+        Location: locationId
+          ? { connect: { id: locationId } }
+          : undefined,
         siteLocation: siteLocationLabel,
         contractType: contractType || undefined,
       },

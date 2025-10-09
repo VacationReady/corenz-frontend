@@ -378,6 +378,20 @@ function OrgChartPageClient() {
   }, [rawEmployees, employeesByUserId, employeesByEmployeeId]);
 
   const orgForest = useMemo<OrgNode[]>(() => {
+    console.log('🔄 Building org forest with employees:', normalizedEmployees.length);
+    
+    if (normalizedEmployees.length > 0) {
+      console.log('📋 Sample employee data:', {
+        first: {
+          userId: normalizedEmployees[0].userId,
+          fullName: normalizedEmployees[0].fullName,
+          managerUserId: normalizedEmployees[0].managerUserId,
+          id: normalizedEmployees[0].id,
+          email: normalizedEmployees[0].email,
+        }
+      });
+    }
+
     const byUserId = new Map<string, OrgNode>();
     const byEmployeeId = new Map<string, OrgNode>();
     const byEmail = new Map<string, OrgNode>();
@@ -386,6 +400,8 @@ function OrgChartPageClient() {
       ...emp,
       children: [],
     }));
+
+    console.log('📦 Nodes created:', nodes.length);
 
     nodes.forEach((node) => {
       if (node.userId) {
@@ -400,12 +416,15 @@ function OrgChartPageClient() {
     });
 
     // DEBUG: Check maps
-    console.log('🗺️ Maps created:', {
-      byUserIdSize: byUserId.size,
-      byEmployeeIdSize: byEmployeeId.size,
-      byEmailSize: byEmail.size,
-      sampleUserIds: Array.from(byUserId.keys()).slice(0, 3),
-    });
+    console.log('🗺️ Maps created:');
+    console.log('  byUserId size:', byUserId.size);
+    console.log('  byEmployeeId size:', byEmployeeId.size);
+    console.log('  byEmail size:', byEmail.size);
+    console.log('  Sample user IDs:', Array.from(byUserId.keys()).slice(0, 3));
+    
+    // Check if the problematic manager ID exists
+    const problematicManagerId = 'cc200572-a257-4dc8-a7a6-87f38ae91688';
+    console.log('  Does problematic manager exist in byUserId?', byUserId.has(problematicManagerId));
 
     const roots: OrgNode[] = [];
     let orphanCount = 0;

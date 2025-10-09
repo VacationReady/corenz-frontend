@@ -66,15 +66,25 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limit = parseInt(searchParams.get("limit") || "5", 10);
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const skip = (page - 1) * limit;
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const whereClause = { User: { is: { companyId: session.user.companyId } } };
+
+  // Get total count for pagination
+  const totalCount = await prisma.newsPost.count({
+    where: whereClause,
+  });
+
   const posts = await prisma.newsPost.findMany({
-    where: { User: { is: { companyId: session.user.companyId } } },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
+    skip,
     take: limit,
     select: {
       id: true,

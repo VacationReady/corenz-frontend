@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { Check, Package, Sparkles, Info } from "lucide-react";
-import { TemplateType, TemplateSection } from "@/types/performance-templates";
+import { TemplateType, TemplateSection, TemplateQuestion } from "@/types/performance-templates";
 
 interface BestPracticePackStepProps {
   templateType: TemplateType;
@@ -16,17 +16,6 @@ interface BestPracticePackStepProps {
     isRequired: boolean;
     questions: Omit<TemplateQuestion, "id" | "sectionId">[];
   }[]) => void;
-}
-
-interface TemplateQuestion {
-  id: string;
-  sectionId: string;
-  question: string;
-  description?: string;
-  type: string;
-  order: number;
-  isRequired: boolean;
-  options?: any;
 }
 
 // Mock best practice packs - in production, these would come from API

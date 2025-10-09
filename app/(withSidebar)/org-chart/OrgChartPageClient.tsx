@@ -452,7 +452,7 @@ function OrgChartPageClient() {
   const allUserIds = new Set(normalizedEmployees.map(emp => emp.userId));
   const treeUserIds = new Set();
 
-  const collectUserIds = (nodes) => {
+  const collectUserIds = (nodes: OrgNode[]) => {
     nodes.forEach(node => {
       treeUserIds.add(node.userId);
       collectUserIds(node.children);

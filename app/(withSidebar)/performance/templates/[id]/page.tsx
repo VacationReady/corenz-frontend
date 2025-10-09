@@ -173,7 +173,7 @@ export default function TemplateDetailPage({ params }: TemplateDetailPageProps) 
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </Button>
-              <Button variant="destructive" onClick={handleDelete}>
+              <Button variant="danger" onClick={handleDelete}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </Button>

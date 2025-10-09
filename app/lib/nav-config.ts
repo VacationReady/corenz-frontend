@@ -7,7 +7,7 @@ export interface NavItem {
 
 const ADMIN_CORE: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/admin" },
-  { label: "Approvals", href: "/dashboard/approvals" },
+  { label: "Action Items", href: "/admin/action-items" },
   { label: "Employees", href: "/employees" },
   { label: "Calendar", href: "/calendar" },
 ];

@@ -95,12 +95,6 @@ export default function AdminActionItemsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("PENDING");
   const [filterPriority, setFilterPriority] = useState<string>("all");
 
-  // Redirect if not admin
-  if (session?.user?.role !== "ADMIN") {
-    router.push("/dashboard");
-    return null;
-  }
-
   // Fetch stats
   const { data: statsData, error: statsError } = useSWR(
     "/api/admin/action-items/stats",
@@ -114,6 +108,12 @@ export default function AdminActionItemsPage() {
     fetcher,
     { refreshInterval: 30000 }
   );
+
+  // Redirect if not admin (after hooks)
+  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
+    router.push("/dashboard");
+    return null;
+  }
 
   const stats: ActionItemStats | undefined = statsData?.data;
   const items: ActionItemWithDetails[] = itemsData?.data || [];

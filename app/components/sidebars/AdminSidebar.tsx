@@ -153,7 +153,7 @@ const coreLinks = [
     label: "Dashboard",
   },
   {
-    href: "/dashboard/approvals",
+    href: "/admin/action-items",
     icon: ClipboardCheck,
     label: "Action Items",
   },

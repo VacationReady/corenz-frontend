@@ -135,9 +135,11 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       case "recent":
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        filtered = filtered.filter(post => 
-          new Date(post.publishedAt || post.createdAt) > oneWeekAgo
-        );
+        filtered = filtered.filter(post => {
+          const dateStr = post.publishedAt || post.createdAt;
+          if (!dateStr) return false;
+          return new Date(dateStr) > oneWeekAgo;
+        });
         break;
       case "featured":
         filtered = filtered.filter(post => post.featured || post.pinned);
@@ -183,11 +185,13 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       filtered.sort((a, b) => {
         switch (filters.sortBy) {
           case "date-desc":
-            return new Date(b.publishedAt || b.createdAt).getTime() - 
-                   new Date(a.publishedAt || a.createdAt).getTime();
+            const bDate = b.publishedAt || b.createdAt;
+            const aDate = a.publishedAt || a.createdAt;
+            return new Date(bDate || 0).getTime() - new Date(aDate || 0).getTime();
           case "date-asc":
-            return new Date(a.publishedAt || a.createdAt).getTime() - 
-                   new Date(b.publishedAt || b.createdAt).getTime();
+            const aDateAsc = a.publishedAt || a.createdAt;
+            const bDateAsc = b.publishedAt || b.createdAt;
+            return new Date(aDateAsc || 0).getTime() - new Date(bDateAsc || 0).getTime();
           case "popular":
             return (b.views || 0) - (a.views || 0);
           case "title-asc":
@@ -413,7 +417,8 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     thisWeek: postState.filter(p => {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      return new Date(p.publishedAt || p.createdAt) > oneWeekAgo;
+      const dateStr = p.publishedAt || p.createdAt;
+      return dateStr && new Date(dateStr) > oneWeekAgo;
     }).length,
   };
 
@@ -647,9 +652,11 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                             {post.excerpt || "No excerpt available"}
                           </p>
                           <div className="flex items-center gap-4 text-sm">
-                            <span className="text-muted-foreground">
-                              {formatDistanceToNow(new Date(post.publishedAt || post.createdAt))} ago
-                            </span>
+                            {(post.publishedAt || post.createdAt) && (
+                              <span className="text-muted-foreground">
+                                {formatDistanceToNow(new Date(post.publishedAt || post.createdAt!))} ago
+                              </span>
+                            )}
                             {post.views && (
                               <span className="flex items-center gap-1 text-muted-foreground">
                                 <Eye className="w-4 h-4" />

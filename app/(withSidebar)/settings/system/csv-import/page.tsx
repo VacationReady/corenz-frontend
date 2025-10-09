@@ -54,7 +54,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import SendWelcomeEmailModal from "@/app/components/employees/SendWelcomeEmailModal";
+import SendWelcomeEmailModal from "@/components/employees/SendWelcomeEmailModal";
 
 interface ImportResult {
   total: number;

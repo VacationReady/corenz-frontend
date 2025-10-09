@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/button";
+import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
 import {
   Popover,

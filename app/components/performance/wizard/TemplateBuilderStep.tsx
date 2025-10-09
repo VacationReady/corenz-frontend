@@ -16,15 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { TemplateType, TemplateSection, TemplateQuestion, QuestionType } from "@/types/performance-templates";
+import { TemplateType, TemplateSection, TemplateQuestion, QuestionType, TemplateWizardState } from "@/types/performance-templates";
 
-type WizardSection = {
-  title: string;
-  description?: string;
-  order: number;
-  isRequired: boolean;
-  questions: Omit<TemplateQuestion, "id" | "sectionId">[];
-};
+type WizardSection = TemplateWizardState['sections'][number];
 
 interface TemplateBuilderStepProps {
   templateType: TemplateType;

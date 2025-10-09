@@ -42,7 +42,7 @@ export async function GET() {
         },
       },
       orderBy: [
-        { createdAt: "desc" },
+        { User: { createdAt: "desc" } },
       ],
     });
 

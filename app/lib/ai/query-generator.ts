@@ -14,6 +14,19 @@ export interface QueryResult {
   query: string;
   sqlGenerated?: string;
   error?: string;
+  chartConfig?: ChartConfig;
+}
+
+export interface ChartConfig {
+  type: "bar" | "pie" | "line";
+  data: any[];
+  title?: string;
+  description?: string;
+  xKey?: string;
+  yKey?: string;
+  labelKey?: string;
+  valueKey?: string;
+  colors?: string[];
 }
 
 // Schema information for AI context
@@ -195,11 +208,19 @@ Respond with JSON in this format:
     // Step 2: Execute the query safely
     const result = await executeSafeQuery(aiResponse, companyId, conversationContext);
 
+    // Step 3: Generate chart config if applicable
+    const chartConfig = generateChartConfig(
+      result.data,
+      aiResponse.queryType,
+      prompt
+    );
+
     return {
       success: true,
       ...result,
       explanation: aiResponse.explanation || "Query executed successfully",
       query: aiResponse.operation || "",
+      chartConfig,
     };
   } catch (error: any) {
     return {
@@ -1169,6 +1190,134 @@ async function executeQueryByType(
   }
 
   throw new Error("Query pattern not recognized");
+}
+
+// Generate chart configuration for visualizable data
+function generateChartConfig(
+  data: any,
+  queryType: string,
+  prompt: string
+): ChartConfig | undefined {
+  // Only generate charts if user explicitly asks for visualization
+  const lowerPrompt = prompt.toLowerCase();
+  const chartKeywords = [
+    'chart', 'graph', 'visualize', 'visualise', 'plot', 
+    'show me a chart', 'show me a graph', 'create a chart',
+    'make a chart', 'generate a chart', 'draw a chart'
+  ];
+  
+  const wantsChart = chartKeywords.some(keyword => lowerPrompt.includes(keyword));
+  
+  if (!wantsChart) {
+    return undefined; // User didn't ask for a chart
+  }
+  
+  // Only generate charts for groupBy or aggregate results with multiple data points
+  if (!data || typeof data !== "object") return undefined;
+
+  // Handle groupBy results (like gender split, department breakdown)
+  if (Array.isArray(data) && data.length > 0 && data.length <= 20) {
+    const firstItem = data[0];
+    
+    // Gender split / demographic data
+    if (firstItem.gender !== undefined || firstItem.count !== undefined) {
+      // Check if it looks like grouped data with counts
+      const hasCountField = data.every((item: any) => 
+        typeof item.count === "number" || typeof item.value === "number"
+      );
+      
+      if (hasCountField) {
+        const labelKey = firstItem.gender ? "gender" : 
+                        firstItem.department ? "department" :
+                        firstItem.name ? "name" : "label";
+        const valueKey = firstItem.count !== undefined ? "count" : "value";
+        
+        // Determine chart type based on query
+        let chartType: "bar" | "pie" | "line" = "bar";
+        
+        // Allow user to specify chart type
+        if (lowerPrompt.includes("pie chart") || lowerPrompt.includes("pie graph")) {
+          chartType = "pie";
+        } else if (lowerPrompt.includes("line chart") || lowerPrompt.includes("line graph") || 
+                   lowerPrompt.includes("trend") || lowerPrompt.includes("over time")) {
+          chartType = "line";
+        } else if (lowerPrompt.includes("bar chart") || lowerPrompt.includes("bar graph")) {
+          chartType = "bar";
+        } else {
+          // Default logic based on data
+          if (lowerPrompt.includes("split") || lowerPrompt.includes("distribution") || 
+              lowerPrompt.includes("breakdown") || data.length <= 6) {
+            chartType = "pie";
+          }
+        }
+        
+        // Format data for charts
+        const chartData = data.map((item: any) => ({
+          name: item[labelKey] || "Unknown",
+          value: item[valueKey] || 0,
+          count: item[valueKey] || 0,
+          percentage: item.percentage,
+        }));
+        
+        return {
+          type: chartType,
+          data: chartData,
+          title: extractChartTitle(prompt),
+          description: `Visual breakdown of ${data.length} categories`,
+          labelKey: "name",
+          valueKey: "value",
+          xKey: "name",
+          yKey: "value",
+        };
+      }
+    }
+  }
+  
+  // Handle aggregate results (salary totals, etc.)
+  if (queryType === "aggregate" && !Array.isArray(data)) {
+    const metrics = Object.entries(data)
+      .filter(([key, value]) => typeof value === "number" && value > 0)
+      .map(([key, value]) => ({
+        name: humanizeKey(key),
+        value: value as number,
+      }));
+    
+    if (metrics.length >= 2) {
+      return {
+        type: "bar",
+        data: metrics,
+        title: extractChartTitle(prompt),
+        description: "Key metrics visualization",
+        labelKey: "name",
+        valueKey: "value",
+        xKey: "name",
+        yKey: "value",
+      };
+    }
+  }
+  
+  return undefined;
+}
+
+function extractChartTitle(prompt: string): string {
+  // Extract meaningful title from the prompt
+  const cleaned = prompt
+    .replace(/^(what|show|tell|how|list|give)/i, "")
+    .replace(/\?$/g, "")
+    .trim();
+  
+  if (cleaned.length > 0) {
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+  
+  return "Data Visualization";
+}
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 // Predefined safe queries for common questions

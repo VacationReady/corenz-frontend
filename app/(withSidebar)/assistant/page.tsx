@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { WorkflowCanvas } from "@/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
 import { PageShell } from "@/components/ui/PageShell";
 import { createPortal } from "react-dom";
+import DataVisualization from "@/components/ai/DataVisualization";
 
 type MessageRole = "user" | "assistant" | "system";
 type ActionType = "query" | "workflow" | "field" | "info";
@@ -62,6 +63,17 @@ interface Message {
   preview?: any;
   undoable?: boolean;
   undoId?: string;
+  chartConfig?: {
+    type: "bar" | "pie" | "line";
+    data: any[];
+    title?: string;
+    description?: string;
+    xKey?: string;
+    yKey?: string;
+    labelKey?: string;
+    valueKey?: string;
+    colors?: string[];
+  };
 }
 
 const CAPABILITY_CATEGORIES = [
@@ -980,6 +992,7 @@ export default function AIAssistantPage() {
     preview: data.preview,
     undoable: data.undoable,
     undoId: data.undoId,
+    chartConfig: data.chartConfig,
   });
 
   const buildFriendlyErrorMessage = (error: any) => {
@@ -2103,6 +2116,12 @@ Don't worry - your data is safe. This is likely a temporary glitch.
 
                         {isAssistant && !msg.isLoading && (
                           <div className="space-y-2">
+                            {msg.chartConfig && (
+                              <div className="mt-2">
+                                <DataVisualization config={msg.chartConfig} />
+                              </div>
+                            )}
+
                             {msg.preview && <div>{renderPreviewCard(msg.preview)}</div>}
 
                             {msg.requiresConfirmation && (

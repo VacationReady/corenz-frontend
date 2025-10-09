@@ -7,7 +7,12 @@ async function fixCSVManagerIds() {
 
   // 1. Find the System Admin
   const systemAdmin = await prisma.user.findFirst({
-    where: { email: 'admin@peoplecore.com' }
+    where: { email: 'admin@peoplecore.com' },
+    select: {
+      id: true,
+      email: true,
+      companyId: true
+    }
   });
 
   if (!systemAdmin) {
@@ -15,28 +20,28 @@ async function fixCSVManagerIds() {
     return;
   }
 
-  console.log(`✅ System Admin found: ${systemAdmin.userId}`);
+  console.log(`✅ System Admin found: ${systemAdmin.id}`);
   console.log(`   Email: ${systemAdmin.email}\n`);
 
   // 2. Find all users with broken manager references
   const allUsers = await prisma.user.findMany({
     where: {
       companyId: systemAdmin.companyId,
-      managerUserId: { not: null }
+      managerId: { not: null }
     },
     select: {
-      userId: true,
+      id: true,
       email: true,
       firstName: true,
       lastName: true,
-      managerUserId: true
+      managerId: true
     }
   });
 
   // Check which manager IDs don't exist
-  const allUserIds = new Set(allUsers.map(u => u.userId));
+  const allUserIds = new Set(allUsers.map(u => u.id));
   const brokenUsers = allUsers.filter(user => 
-    user.managerUserId && !allUserIds.has(user.managerUserId)
+    user.managerId && !allUserIds.has(user.managerId)
   );
 
   console.log(`📊 Statistics:`);
@@ -49,25 +54,25 @@ async function fixCSVManagerIds() {
   }
 
   // 3. Show broken manager IDs
-  const brokenManagerIds = new Set(brokenUsers.map(u => u.managerUserId).filter(Boolean));
+  const brokenManagerIds = new Set(brokenUsers.map(u => u.managerId).filter(Boolean));
   console.log(`🚨 Broken manager IDs found:`);
   brokenManagerIds.forEach(id => {
-    const count = brokenUsers.filter(u => u.managerUserId === id).length;
+    const count = brokenUsers.filter(u => u.managerId === id).length;
     console.log(`   ${id} (${count} users)`);
   });
 
   console.log(`\n💡 Sample broken users:`);
   brokenUsers.slice(0, 5).forEach(user => {
     console.log(`   - ${user.firstName} ${user.lastName} (${user.email})`);
-    console.log(`     Manager ID: ${user.managerUserId}`);
+    console.log(`     Manager ID: ${user.managerId}`);
   });
 
   // 4. Ask for confirmation
   console.log(`\n⚠️  This will update ${brokenUsers.length} users to report to System Admin`);
-  console.log(`   Manager ID will change to: ${systemAdmin.userId}\n`);
+  console.log(`   Manager ID will change to: ${systemAdmin.id}\n`);
 
   // Uncomment the following line to actually perform the update:
-  // await performUpdate(brokenUsers, systemAdmin.userId);
+  // await performUpdate(brokenUsers, systemAdmin.id);
 
   console.log(`\n✅ Dry run complete. To apply changes, uncomment the update line in the script.`);
 }
@@ -77,8 +82,8 @@ async function performUpdate(brokenUsers: any[], correctManagerId: string) {
 
   const updatePromises = brokenUsers.map(user =>
     prisma.user.update({
-      where: { userId: user.userId },
-      data: { managerUserId: correctManagerId }
+      where: { id: user.id },
+      data: { managerId: correctManagerId }
     })
   );
 

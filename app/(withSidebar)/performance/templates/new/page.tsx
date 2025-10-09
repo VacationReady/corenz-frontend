@@ -18,7 +18,15 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { TemplateWizardState, TemplateType } from "@/types/performance-templates";
+import { TemplateWizardState, TemplateType, TemplateQuestion } from "@/types/performance-templates";
+
+type WizardSection = {
+  title: string;
+  description?: string;
+  order: number;
+  isRequired: boolean;
+  questions: Omit<TemplateQuestion, "id" | "sectionId">[];
+};
 import { TemplateTypeSelector } from "@/components/performance/wizard/TemplateTypeSelector";
 import { AudienceFilterStep } from "@/components/performance/wizard/AudienceFilterStep";
 import { ReviewerAssignmentStep } from "@/components/performance/wizard/ReviewerAssignmentStep";
@@ -250,10 +258,10 @@ export default function NewTemplatePage() {
             <BestPracticePackStep
               templateType={wizardState.type}
               selectedPackIds={wizardState.bestPracticePackIds}
-              onSelect={(packIds, sections) =>
+              onSelect={(packIds, sections: WizardSection[]) =>
                 updateWizardState({
                   bestPracticePackIds: packIds,
-                  sections: [...wizardState.sections, ...sections],
+                  sections: [...wizardState.sections, ...sections] as WizardSection[],
                 })
               }
             />

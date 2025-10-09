@@ -66,7 +66,7 @@ A comprehensive performance template builder system has been successfully implem
 ### **5. Wizard Step Components**
 
 #### **A. Template Type Selector**
-**File**: `components/performance/wizard/TemplateTypeSelector.tsx` (182 lines)
+**File**: `app/components/performance/wizard/TemplateTypeSelector.tsx` (182 lines)
 
 **Features**:
 - Visual radio cards for 9 template types
@@ -77,7 +77,7 @@ A comprehensive performance template builder system has been successfully implem
 - Clean, modern UI with hover states
 
 #### **B. Audience Filter Step**
-**File**: `components/performance/wizard/AudienceFilterStep.tsx` (283 lines)
+**File**: `app/components/performance/wizard/AudienceFilterStep.tsx` (283 lines)
 
 **Features**:
 - Multi-select for departments (from `/api/departments`)
@@ -89,7 +89,7 @@ A comprehensive performance template builder system has been successfully implem
 - Loading states
 
 #### **C. Reviewer Assignment Step**
-**File**: `components/performance/wizard/ReviewerAssignmentStep.tsx` (238 lines)
+**File**: `app/components/performance/wizard/ReviewerAssignmentStep.tsx` (238 lines)
 
 **Features**:
 - Configure reviewer roles with add/remove
@@ -102,7 +102,7 @@ A comprehensive performance template builder system has been successfully implem
 - Collapsible help banners
 
 #### **D. Best Practice Pack Step**
-**File**: `components/performance/wizard/BestPracticePackStep.tsx` (199 lines)
+**File**: `app/components/performance/wizard/BestPracticePackStep.tsx` (199 lines)
 
 **Features**:
 - Card grid of curated packs per template type
@@ -114,7 +114,7 @@ A comprehensive performance template builder system has been successfully implem
 - Selected packs summary
 
 #### **E. Template Builder Step**
-**File**: `components/performance/wizard/TemplateBuilderStep.tsx` (287 lines)
+**File**: `app/components/performance/wizard/TemplateBuilderStep.tsx` (287 lines)
 
 **Features**:
 - Template name and description fields
@@ -299,11 +299,11 @@ app/(withSidebar)/performance/templates/page.tsx
 app/(withSidebar)/performance/templates/[id]/page.tsx
 app/(withSidebar)/performance/templates/[id]/edit/page.tsx
 app/api/performance/templates/[id]/route.ts
-components/performance/wizard/TemplateTypeSelector.tsx
-components/performance/wizard/AudienceFilterStep.tsx
-components/performance/wizard/ReviewerAssignmentStep.tsx
-components/performance/wizard/BestPracticePackStep.tsx
-components/performance/wizard/TemplateBuilderStep.tsx
+app/components/performance/wizard/TemplateTypeSelector.tsx
+app/components/performance/wizard/AudienceFilterStep.tsx
+app/components/performance/wizard/ReviewerAssignmentStep.tsx
+app/components/performance/wizard/BestPracticePackStep.tsx
+app/components/performance/wizard/TemplateBuilderStep.tsx
 PERFORMANCE_TEMPLATE_BUILDER_IMPLEMENTATION.md
 PERFORMANCE_TEMPLATE_BUILDER_QUICK_START.md
 PERFORMANCE_TEMPLATE_BUILDER_COMPLETE.md (this file)

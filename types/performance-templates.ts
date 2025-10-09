@@ -72,6 +72,10 @@ export interface TemplateQuestion {
   order: number;
   isRequired: boolean;
   options?: any;
+  // Question-level permissions
+  visibleToRoles?: ReviewerRole[];
+  requiredFromRoles?: ReviewerRole[];
+  hideFromEmployee?: boolean;
 }
 
 export type QuestionType = 

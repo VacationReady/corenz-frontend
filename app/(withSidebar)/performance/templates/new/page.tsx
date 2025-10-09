@@ -265,6 +265,7 @@ export default function NewTemplatePage() {
               name={wizardState.name}
               description={wizardState.description}
               sections={wizardState.sections}
+              reviewerAssignments={wizardState.reviewerAssignments}
               onChange={(data) => updateWizardState(data)}
             />
           )}

@@ -49,6 +49,10 @@ const templateSchema = z.object({
       order: z.number(),
       isRequired: z.boolean().optional(),
       options: z.any().optional(),
+      // Question-level permissions
+      visibleToRoles: z.array(z.enum(["SELF", "MANAGER", "PEER", "DIRECT_REPORT", "SKIP_LEVEL", "HR"])).optional(),
+      requiredFromRoles: z.array(z.enum(["SELF", "MANAGER", "PEER", "DIRECT_REPORT", "SKIP_LEVEL", "HR"])).optional(),
+      hideFromEmployee: z.boolean().optional(),
     })),
   })).optional(),
 });
@@ -173,6 +177,10 @@ export async function POST(req: NextRequest) {
                   order: question.order,
                   isRequired: question.isRequired || false,
                   options: question.options || null,
+                  // Save permission fields
+                  visibleToRoles: question.visibleToRoles || [],
+                  requiredFromRoles: question.requiredFromRoles || [],
+                  hideFromEmployee: question.hideFromEmployee || false,
                 },
               })
             )

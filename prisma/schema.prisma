@@ -2640,6 +2640,11 @@ model TemplateQuestion {
   isRequired          Boolean               @default(false)
   options             Json?                 // For multiple choice/rating questions
   
+  // Question-level permissions for who can see/answer
+  visibleToRoles      String[]              @default([])  // Roles that can see this question
+  requiredFromRoles   String[]              @default([])  // Roles that must answer this question
+  hideFromEmployee    Boolean               @default(false)  // Hide from employee even if in their role
+  
   // Relationships
   Section             TemplateSection       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   

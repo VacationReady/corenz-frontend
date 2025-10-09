@@ -16,7 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { TemplateType, TemplateSection, TemplateQuestion, QuestionType, TemplateWizardState } from "@/types/performance-templates";
+import { TemplateType, TemplateSection, TemplateQuestion, QuestionType, TemplateWizardState, ReviewerRole } from "@/types/performance-templates";
+import { QuestionPermissionsControl } from "@/components/performance/QuestionPermissionsControl";
 
 type WizardSection = TemplateWizardState['sections'][number];
 
@@ -25,6 +26,7 @@ interface TemplateBuilderStepProps {
   name: string;
   description: string;
   sections: WizardSection[];
+  reviewerAssignments?: { role: ReviewerRole }[];
   onChange: (data: {
     name?: string;
     description?: string;
@@ -47,9 +49,13 @@ export function TemplateBuilderStep({
   name,
   description,
   sections,
+  reviewerAssignments = [],
   onChange,
 }: TemplateBuilderStepProps) {
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
+  
+  // Get available reviewer roles from assignments
+  const availableRoles = reviewerAssignments.map(a => a.role);
 
   const toggleSection = (index: number) => {
     setExpandedSections((prev) =>
@@ -92,6 +98,9 @@ export function TemplateBuilderStep({
       type: "TEXT" as QuestionType,
       order: newSections[sectionIndex].questions.length,
       isRequired: false,
+      visibleToRoles: [],
+      requiredFromRoles: [],
+      hideFromEmployee: false,
     };
     newSections[sectionIndex].questions.push(newQuestion);
     onChange({ sections: newSections });
@@ -353,6 +362,19 @@ export function TemplateBuilderStep({
                                           Required
                                         </Label>
                                       </div>
+                                    </div>
+
+                                    {/* Question Permissions Control */}
+                                    <div className="pt-3 border-t">
+                                      <QuestionPermissionsControl
+                                        visibleToRoles={question.visibleToRoles || []}
+                                        requiredFromRoles={question.requiredFromRoles || []}
+                                        hideFromEmployee={question.hideFromEmployee || false}
+                                        availableRoles={availableRoles}
+                                        onChange={(permissions) =>
+                                          updateQuestion(sectionIndex, questionIndex, permissions)
+                                        }
+                                      />
                                     </div>
                                   </div>
                                   <Button

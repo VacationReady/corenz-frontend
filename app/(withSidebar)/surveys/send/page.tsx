@@ -381,7 +381,18 @@ export default function SendSurveyPage() {
                   <SelectTrigger>
                     <SelectValue
                       placeholder={initializing ? "Loading templates..." : "Select a survey template"}
-                    />
+                    >
+                      {selectedTemplate && (() => {
+                        const template = templates.find(t => t.id === selectedTemplate);
+                        const meta = findTemplateMetaBySlug(template?.slug);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{meta?.emoji ?? "📝"}</span>
+                            <span className="font-medium">{template?.name}</span>
+                          </div>
+                        );
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map((template) => {

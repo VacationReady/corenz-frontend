@@ -1937,16 +1937,6 @@ function getIndirectReports(node: OrgNode): OrgNode[] {
   );
 }
 
-function flattenTree(nodes: OrgNode[]): OrgNode[] {
-  const result: OrgNode[] = [];
-  const walk = (node: OrgNode) => {
-    result.push(node);
-    node.children.forEach(walk);
-  };
-  nodes.forEach(walk);
-  return result;
-}
-
 function countNodes(nodes: OrgNode[]): number {
   return nodes.reduce((acc, node) => acc + 1 + countNodes(node.children), 0);
 }

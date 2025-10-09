@@ -438,6 +438,7 @@ model Employee {
   Company                          Company                            @relation(fields: [companyId], references: [id])
   Department                       Department?                        @relation(fields: [departmentId], references: [id])
   JobRole                          JobRole?                           @relation(fields: [jobRoleId], references: [id])
+  Location                         Location?                          @relation(fields: [locationId], references: [id])
   OnboardingTemplate               OnboardingTemplate?                @relation(fields: [onboardingTemplateId], references: [id])
   User                             User                               @relation(fields: [userId], references: [id])
   WorkingPattern                   WorkingPattern?                    @relation(fields: [workingPatternId], references: [id])
@@ -1084,10 +1085,11 @@ model LeaveRequest {
 }
 
 model Location {
-  id        String   @id
-  name      String   @unique
+  id        String     @id
+  name      String     @unique
   companyId String?
-  Company   Company? @relation(fields: [companyId], references: [id])
+  Company   Company?   @relation(fields: [companyId], references: [id])
+  Employees Employee[]
 }
 
 model NewsPost {

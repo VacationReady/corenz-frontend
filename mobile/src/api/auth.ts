@@ -8,15 +8,28 @@ export async function signInWithCredentials(email: string, password: string) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ email, password, redirect: "false" }).toString(),
     credentials: "include",
+    redirect: "manual", // Don't auto-follow redirects
   });
 
-  if (!response.ok) {
+  // 302 redirects indicate successful auth in NextAuth
+  // Also accept 2xx status codes
+  if (!response.ok && response.status !== 302) {
     throw new Error("Login failed");
   }
 
   const cookie = response.headers.get("set-cookie");
   if (cookie) {
     await SecureStore.setItemAsync("next-auth.session-token", cookie);
+  }
+
+  // For redirects, we need to fetch the actual session
+  if (response.status === 302) {
+    // Get the actual session after successful redirect
+    const sessionResponse = await fetch(`${API_BASE_URL}/api/auth/session`, {
+      credentials: "include",
+      headers: cookie ? { "Cookie": cookie } : {},
+    });
+    return sessionResponse.json();
   }
 
   return response.json();

@@ -11,7 +11,10 @@
     "test": "tsx --test tests/**/*.test.ts",
     "migrate:deploy": "prisma migrate deploy",
     "scripts:init-workflows": "tsx scripts/initialize-default-workflows.ts",
-    "evaluate-finetune": "tsx scripts/evaluate-finetune.ts"
+    "evaluate-finetune": "tsx scripts/evaluate-finetune.ts",
+    "mobile": "cd mobile && expo start",
+    "mobile:ios": "cd mobile && expo run:ios",
+    "mobile:android": "cd mobile && expo run:android"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

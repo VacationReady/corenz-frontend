@@ -12,9 +12,9 @@
     "migrate:deploy": "prisma migrate deploy",
     "scripts:init-workflows": "tsx scripts/initialize-default-workflows.ts",
     "evaluate-finetune": "tsx scripts/evaluate-finetune.ts",
-    "mobile": "cd mobile && expo start",
-    "mobile:ios": "cd mobile && expo run:ios",
-    "mobile:android": "cd mobile && expo run:android"
+    "mobile": "cd mobile && npx expo start",
+    "mobile:ios": "cd mobile && npx expo run:ios",
+    "mobile:android": "cd mobile && npx expo run:android"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

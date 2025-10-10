@@ -361,6 +361,24 @@ async function handleDataQuery(
   const conversation = getConversation(userId, companyId);
   const conversationContext = buildContextString(conversation);
   
+  // VALIDATION: Detect vague/nonsensical queries that should be clarified
+  const vaguePhrases = [
+    /^show me (some|the) data$/i,
+    /^give me (info|information)$/i,
+    /^tell me stuff$/i,
+    /^what do (we|you) have$/i,
+  ];
+  
+  const isVague = vaguePhrases.some(pattern => pattern.test(query.trim()));
+  
+  if (isVague) {
+    return {
+      success: true,
+      message: "I'd be happy to help! What specific information would you like?\n\n**Common queries:**\n• Headcount: \"How many employees in sales?\"\n• Salaries: \"What's the average salary in IT?\"\n• Leave: \"Who is on leave today?\"\n• Reports: \"Who reports to [manager name]?\"\n• Tenure: \"Who has been here more than 5 years?\"\n• Contracts: \"Show expiring contracts\"\n\nWhat would you like to know?",
+      actionType: "clarification",
+    };
+  }
+  
   // DIRECT HANDLING: If user says "list them", "show them" after a count query
   const isFollowUpList = /^(list|show|display|who are|what are|names?of|tell me about)\s+(them|those|people|individuals|employees|their|the)/i.test(query) ||
                          /^(list|show|display)\s+(?:individuals|people|employees|names)/i.test(query) ||
@@ -392,6 +410,32 @@ async function handleDataQuery(
     return {
       success: false,
       message: result.error || "Query failed",
+    };
+  }
+
+  // VALIDATION: Check for suspicious results that indicate wrong query execution
+  const lowerQuery = query.toLowerCase();
+  const isReportingQuery = lowerQuery.includes('reports into') || 
+                          lowerQuery.includes('reports to') || 
+                          lowerQuery.includes('direct reports') ||
+                          lowerQuery.includes("'s team");
+  
+  // If it's a reporting query but returned generic employee list (not reporting structure)
+  if (isReportingQuery && Array.isArray(result.data) && result.data.length > 30 && !('directReports' in (result.data as any))) {
+    return {
+      success: false,
+      message: `I couldn't find that manager. Could you provide their full name? For example: "Who reports to John Smith?"`,
+      actionType: "clarification",
+    };
+  }
+  
+  // If query asks for a specific person but returns many results
+  const nameMentioned = query.match(/\b([A-Z][a-z]+\s+[A-Z][a-z]+)\b/); // "John Smith" pattern
+  if (nameMentioned && Array.isArray(result.data) && result.data.length > 20) {
+    return {
+      success: false,
+      message: `I found too many results. Could you be more specific? For example, provide the full name or add more context like the department.`,
+      actionType: "clarification",
     };
   }
 

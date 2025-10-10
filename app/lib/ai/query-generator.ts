@@ -95,16 +95,84 @@ MISC:
 - SavedReport: id, name, description, createdById
 - WorkingPattern: id, name, description, type, isActive
 
-Common Query Examples:
-- "How many in sales?" → employee model, queryType: count, filter by department
-- "List people in sales" → employee model, queryType: findMany, filter by department (MUST include salaryAmount!)
-- "Show names with salaries" → employee model, queryType: findMany (returns name + salaryAmount)
-- "Who is on leave next week?" → leaveRequest model, queryType: findMany, date filter, status APPROVED
-- "When is the next annual leave?" → leaveRequest model, queryType: findMany, date filter upcoming, EventCategory "Annual"
-- "What's total salary for sales?" → employee model, queryType: aggregate, SUM salaryAmount
-- "Average salary in IT?" → employee model, queryType: aggregate, AVG salaryAmount
-- "Who reports into [name]?" → user model, queryType: findMany, filter by managerId (direct reports)
-- "Who reports to [name]?" → user model, queryType: findMany, filter by managerId (direct reports)
+Common Query Examples - 50+ Typical HR Questions:
+
+HEADCOUNT & EMPLOYEE DATA:
+- "How many employees do we have?" → employee model, count, isActive=true
+- "How many in sales?" → employee model, count, filter by department
+- "List all employees" → employee model, findMany, isActive=true
+- "List people in sales" → employee model, findMany, filter by department (MUST include salaryAmount!)
+- "Show me everyone in engineering" → employee model, findMany, department=engineering
+- "Who works in marketing?" → employee model, findMany, department=marketing
+- "How many active employees?" → employee model, count, isActive=true
+- "How many contractors vs permanent staff?" → employee model, group by contractType
+
+SALARY & COMPENSATION:
+- "Show names with salaries" → employee model, findMany (returns name + salaryAmount)
+- "What's total salary for sales?" → employee model, aggregate, SUM salaryAmount
+- "Average salary in IT?" → employee model, aggregate, AVG salaryAmount
+- "Total payroll cost?" → employee model, aggregate, SUM salaryAmount (all active)
+- "Who earns more than $100k?" → employee model, findMany, salaryAmount > 100000
+- "Highest paid employees" → employee model, findMany, orderBy salaryAmount DESC
+- "Show salary distribution by department" → employee model, aggregate, group by department
+- "What's our monthly payroll?" → employee model, aggregate, SUM salaryAmount / 12
+
+LEAVE & ABSENCE:
+- "Who is on leave next week?" → leaveRequest model, findMany, date filter, status APPROVED
+- "Who is on leave today?" → leaveRequest model, findMany, date=today, status APPROVED
+- "When is the next annual leave?" → leaveRequest model, findMany, date filter upcoming, EventCategory "Annual"
+- "How much leave does John have left?" → leaveEntitlement model, findMany, employee=John
+- "Who has taken the most leave?" → leaveRequest model, aggregate, count by employeeId
+- "Show pending leave requests" → leaveRequest model, findMany, approvalStatus=PENDING
+- "Who is sick today?" → leaveRequest model, findMany, date=today, category=Sick
+
+REPORTING STRUCTURE:
+- "Who reports into [name]?" → user model, findMany, filter by managerId (direct reports)
+- "Who reports to [name]?" → user model, findMany, filter by managerId (direct reports)
+- "Show me Sarah's team" → user model, findMany, managerId=Sarah's userId
+- "Who is John's manager?" → user model, findFirst, id=John's userId, include manager
+
+TENURE & EXPERIENCE:
+- "Who has been here more than 5 years?" → employee model, findMany, WHERE startDate < [date 5 years ago]
+- "List employees with less than 1 year tenure" → employee model, findMany, WHERE startDate > [date 1 year ago]
+- "Who is in their probation period?" → employee model, findMany, WHERE startDate > [90 days ago]
+- "Show new hires from last month" → employee model, findMany, startDate within last month
+- "Who started this year?" → employee model, findMany, startDate >= [start of year]
+- "Longest serving employees" → employee model, findMany, orderBy startDate ASC
+
+CONTRACT & EMPLOYMENT STATUS:
+- "Contracts expiring in next 30 days" → employee model, findMany, WHERE contractEndDate BETWEEN now AND [30 days from now]
+- "How many contractors?" → employee model, count, contractType=Contractor
+- "List all permanent employees" → employee model, findMany, contractType=Permanent
+- "Who is on fixed-term contracts?" → employee model, findMany, contractType=Fixed
+- "Show expiring contracts" → employee model, findMany, contractEndDate upcoming
+
+AGE & DEMOGRAPHICS:
+- "How many employees are younger than 21?" → employee model, count, WHERE dateOfBirth > [date 21 years ago]
+- "Show employees over 30" → employee model, findMany, WHERE dateOfBirth < [date 30 years ago]
+- "What is the gender split?" → employee model, group by User.GenderOption.label, count
+- "How many male/female employees?" → employee model, count, WHERE User.GenderOption filter
+- "Show diversity breakdown" → employee model, findMany, include GenderOption
+- "Average age of workforce?" → employee model, aggregate, calculate from dateOfBirth
+
+COMPLIANCE & DOCUMENTS:
+- "Who is missing IRD numbers?" → employee model, findMany, irdNumber=null
+- "Show employees without tax codes" → employee model, findMany, taxCode=null
+- "Who needs to sign documents?" → document model, findMany, requiresSignature=true, unsigned
+- "Expiring driver licenses" → driverLicence model, findMany, expiryDate upcoming
+- "Missing emergency contacts" → employee model, findMany, no emergency contacts
+
+LOCATION & WORK ARRANGEMENTS:
+- "Who works remotely?" → employee model, findMany, siteLocation=Remote/WFH
+- "How many people in each office?" → employee model, group by siteLocation, count
+- "Show Wellington employees" → employee model, findMany, siteLocation=Wellington
+- "Who is full-time vs part-time?" → employee model, group by employmentType, count
+
+DEPARTMENTS & TEAMS:
+- "How many departments do we have?" → department model, count, active=true
+- "List all departments" → department model, findMany
+- "What's the biggest department?" → employee model, group by department, count, orderBy DESC
+- "Show department heads" → department model, findMany, include head
 
 COMPUTED FIELD EXAMPLES - Age, Tenure, etc:
 - "How many employees are younger than 21?" → employee model, count, WHERE dateOfBirth > [date 21 years ago]
@@ -120,13 +188,23 @@ DEMOGRAPHICS & DIVERSITY EXAMPLES:
 - "Show diversity breakdown" → employee model, findMany, include GenderOption
 - "Gender distribution by department" → employee model, group by department and gender
 
-CRITICAL EXAMPLES - Study These:
+CRITICAL EXAMPLES - Study These Patterns:
+User: "How many employees?" → {queryType: "count", model: "employee", operation: "isActive = true"}
 User: "How many in sales?" → {queryType: "count", model: "employee", operation: "Department filter sales"}
 User: "List individuals in sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
 User: "Show sales team salaries" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
-User: "Names and salaries for sales" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
-User: "How many younger than 21?" → {queryType: "count", model: "employee", operation: "User.dateOfBirth > [calculate date 21 years ago]"}
-User: "Show people over 30" → {queryType: "findMany", model: "employee", operation: "User.dateOfBirth < [calculate date 30 years ago]"}
+User: "Who reports into John?" → {queryType: "findMany", model: "user", operation: "managerId = John's userId"}
+User: "Who is on leave today?" → {queryType: "findMany", model: "leaveRequest", operation: "startDate <= today AND endDate >= today AND approvalStatus = APPROVED"}
+User: "Total payroll cost?" → {queryType: "aggregate", model: "employee", operation: "SUM salaryAmount WHERE isActive = true"}
+User: "Who earns over $100k?" → {queryType: "findMany", model: "employee", operation: "salaryAmount > 100000"}
+User: "Contracts expiring soon?" → {queryType: "findMany", model: "employee", operation: "contractEndDate BETWEEN now AND 30 days"}
+User: "Who is missing IRD?" → {queryType: "findMany", model: "employee", operation: "irdNumber IS NULL"}
+User: "Show new hires" → {queryType: "findMany", model: "employee", operation: "startDate within last 30 days"}
+User: "How many contractors?" → {queryType: "count", model: "employee", operation: "contractType = Contractor"}
+User: "Who works remotely?" → {queryType: "findMany", model: "employee", operation: "siteLocation contains remote OR work from home"}
+User: "Longest serving staff?" → {queryType: "findMany", model: "employee", operation: "ORDER BY startDate ASC"}
+User: "Gender split?" → {queryType: "groupBy", model: "employee", operation: "GROUP BY GenderOption.label, COUNT"}
+User: "Pending leave requests?" → {queryType: "findMany", model: "leaveRequest", operation: "approvalStatus = PENDING"}
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
@@ -404,8 +482,28 @@ async function executeQueryByType(
           }
         }
         
+        // Handle contract type filtering for counts
+        if (operation.includes("contractType") || operation.includes("contractor") || operation.includes("permanent")) {
+          const contractMatch = operation.match(/contractType.*?["']([^"']+)["']/i) ||
+                               operation.match(/(contractor|permanent|fixed[- ]?term|casual|temporary)/i);
+          if (contractMatch) {
+            const contractType = contractMatch[1];
+            where.contractType = { contains: contractType, mode: 'insensitive' };
+          }
+        }
+        
+        // Handle location filtering for counts
+        if (operation.includes("siteLocation") || operation.includes("remote") || operation.includes("work from home")) {
+          const locationMatch = operation.match(/siteLocation.*?["']([^"']+)["']/i) ||
+                               operation.match(/(remote|work from home|wfh|office)/i);
+          if (locationMatch) {
+            const location = locationMatch[1];
+            where.siteLocation = { contains: location, mode: 'insensitive' };
+          }
+        }
+        
         // Default to active employees only if no specific filters
-        if (!where.irdNumber && !where.departmentId && !where.jobRoleId) {
+        if (!where.irdNumber && !where.departmentId && !where.jobRoleId && !where.contractType && !where.siteLocation) {
           where.isActive = true;
         }
         
@@ -414,6 +512,72 @@ async function executeQueryByType(
 
       if (queryType === "findMany") {
         const where: any = { companyId };
+        let orderBy: any = undefined;
+        
+        // Handle salary threshold queries (earns more than X, less than Y)
+        const salaryMatch = operation.match(/salaryAmount\s*([><=]+)\s*(\d+)/i) ||
+                           operation.match(/earn[s]?\s*(?:more than|over|above)\s*\$?(\d+[,\d]*)/i) ||
+                           operation.match(/earn[s]?\s*(?:less than|under|below)\s*\$?(\d+[,\d]*)/i);
+        if (salaryMatch || (operation.includes("salary") && (operation.includes(">") || operation.includes("<")))) {
+          const isMoreThan = operation.match(/more than|over|above|greater|>/i);
+          const isLessThan = operation.match(/less than|under|below|fewer|</i);
+          
+          let amount = 0;
+          if (salaryMatch) {
+            const numStr = salaryMatch[salaryMatch.length - 1].replace(/,/g, '');
+            amount = parseInt(numStr);
+          }
+          
+          if (amount > 0) {
+            if (isMoreThan) {
+              where.salaryAmount = { gt: amount };
+            } else if (isLessThan) {
+              where.salaryAmount = { lt: amount };
+            }
+          }
+        }
+        
+        // Handle contract type filtering (contractor, permanent, fixed-term)
+        if (operation.includes("contractType") || operation.includes("contractor") || operation.includes("permanent")) {
+          const contractMatch = operation.match(/contractType.*?["']([^"']+)["']/i) ||
+                               operation.match(/(contractor|permanent|fixed[- ]?term|casual|temporary)/i);
+          if (contractMatch) {
+            const contractType = contractMatch[1];
+            where.contractType = { contains: contractType, mode: 'insensitive' };
+          }
+        }
+        
+        // Handle location/remote work filtering
+        if (operation.includes("siteLocation") || operation.includes("remote") || operation.includes("work from home") || operation.includes("office")) {
+          const locationMatch = operation.match(/siteLocation.*?["']([^"']+)["']/i) ||
+                               operation.match(/(remote|work from home|wfh|office|wellington|auckland|christchurch)/i);
+          if (locationMatch) {
+            const location = locationMatch[1];
+            where.siteLocation = { contains: location, mode: 'insensitive' };
+          }
+        }
+        
+        // Handle new hires / recent start date filtering
+        if (operation.includes("new hire") || operation.includes("recent") || operation.includes("just started")) {
+          const daysMatch = operation.match(/(?:last|past)\s*(\d+)\s*days?/i) ||
+                           operation.match(/(?:within|in)\s*(\d+)\s*days?/i);
+          const days = daysMatch ? parseInt(daysMatch[1]) : 30; // Default to 30 days
+          
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - days);
+          where.startDate = { gte: cutoffDate };
+        }
+        
+        // Handle "longest serving" / "shortest tenure" ordering
+        if (operation.includes("longest serving") || operation.includes("ORDER BY startDate ASC")) {
+          orderBy = { startDate: 'asc' };
+        } else if (operation.includes("newest") || operation.includes("most recent") || operation.includes("ORDER BY startDate DESC")) {
+          orderBy = { startDate: 'desc' };
+        } else if (operation.includes("highest paid") || operation.includes("ORDER BY salaryAmount DESC")) {
+          orderBy = { salaryAmount: 'desc' };
+        } else if (operation.includes("lowest paid") || operation.includes("ORDER BY salaryAmount ASC")) {
+          orderBy = { salaryAmount: 'asc' };
+        }
         
         // Handle age-based queries
         const ageMatch = operation.match(/(?:younger|older|age|under|over|less than|more than|above|below)\s+(?:than\s+)?(\d+)/i);
@@ -550,6 +714,7 @@ async function executeQueryByType(
               select: { name: true },
             },
           },
+          ...(orderBy && { orderBy }),
           take: 100, // Limit results
         });
       }

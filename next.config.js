@@ -1,19 +1,26 @@
 /** @type {import('next').NextConfig} */
-const csp = [
-  "default-src 'self' https://*.supabase.co https://api.resend.com",
-  "frame-src 'self' blob: https://*.supabase.co",
-  "object-src 'self' blob: https://*.supabase.co data:",
-  "img-src 'self' https: data: blob:",
-  "media-src 'self' blob:",
-  "connect-src 'self' https://*.supabase.co https://api.resend.com",
-  "style-src 'self' 'unsafe-inline'",
-  "script-src 'self'",
-  "base-uri 'none'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join('; ');
-
 const path = require("path");
+
+// CSP configuration that's different for dev and production
+const getCsp = (isDev) => {
+  const scriptSrc = isDev
+    ? "'self' 'unsafe-eval' 'unsafe-inline'" // Dev needs unsafe-eval for webpack HMR
+    : "'self'"; // Production stays strict
+  
+  return [
+    "default-src 'self' https://*.supabase.co https://api.resend.com",
+    "frame-src 'self' blob: https://*.supabase.co",
+    "object-src 'self' blob: https://*.supabase.co data:",
+    "img-src 'self' https: data: blob:",
+    "media-src 'self' blob:",
+    "connect-src 'self' https://*.supabase.co https://api.resend.com",
+    "style-src 'self' 'unsafe-inline'",
+    `script-src ${scriptSrc}`,
+    "base-uri 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+};
 
 const nextConfig = {
   reactStrictMode: true,
@@ -28,11 +35,14 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react", "@heroicons/react"],
   },
   async headers() {
+    // Only apply strict CSP in production
+    const isDev = process.env.NODE_ENV === 'development';
+    
     return [
       {
         source: "/(.*)",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
+          { key: "Content-Security-Policy", value: getCsp(isDev) },
         ],
       },
     ];

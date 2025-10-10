@@ -1,39 +1,69 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import LoginScreen from './src/screens/LoginScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import { getStoredSession, getSession } from './src/api/auth';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
+
+  const checkAuthentication = async () => {
+    try {
+      // Check if we have a stored session token
+      const storedToken = await getStoredSession();
+      if (storedToken) {
+        // Verify the session is still valid
+        await getSession();
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      console.log('No valid session found');
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <StatusBar style="auto" />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Hello World!</Text>
-      <Text style={styles.subtitle}>Mobile app is working!</Text>
-      <Text style={styles.info}>API URL: {process.env.EXPO_PUBLIC_API_BASE_URL || 'Not set'}</Text>
+    <>
+      {isAuthenticated ? (
+        <DashboardScreen onLogout={handleLogout} />
+      ) : (
+        <LoginScreen onLoginSuccess={handleLoginSuccess} />
+      )}
       <StatusBar style="auto" />
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-  },
-  info: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
   },
 });

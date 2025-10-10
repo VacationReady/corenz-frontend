@@ -48,6 +48,13 @@ const nextConfig = {
     ];
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Exclude mobile directory from compilation
+    config.module.rules.push({
+      test: /\.(tsx?|jsx?)$/,
+      include: path.resolve(__dirname, 'mobile'),
+      loader: 'ignore-loader',
+    });
+
     // Optimize bundle splitting
     if (!dev && !isServer) {
       config.optimization.splitChunks.cacheGroups = {

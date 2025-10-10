@@ -368,6 +368,11 @@ QUERY DATA EXAMPLES (with casual language):
 - "how many peeps we got in sales??" → {actionType: "query_data", parameters: {department: "sales", queryType: "count"}}
 - "gimme sum analytics on whos been here the longest" → {actionType: "query_data", parameters: {queryType: "tenure_analysis"}}
 - "who aint got their ird# setup yet" → {actionType: "query_data", parameters: {field: "irdNumber", filterNull: true}}
+- "who reports into Shay Murray?" → {actionType: "query_data", parameters: {managerName: "Shay Murray", queryType: "reporting_structure"}}
+- "who reports to Sarah?" → {actionType: "query_data", parameters: {managerName: "Sarah", queryType: "reporting_structure"}}
+- "show me John's direct reports" → {actionType: "query_data", parameters: {managerName: "John", queryType: "direct_reports"}}
+- "list everyone who reports to Alex" → {actionType: "query_data", parameters: {managerName: "Alex", queryType: "reporting_structure"}}
+- "who's on Michael's team?" → {actionType: "query_data", parameters: {managerName: "Michael", queryType: "team_members"}}
 
 COMPLIANCE SWEEP EXAMPLES (CASUAL/TYPO-HEAVY):
 - "yo can u check if everyones got their visa stuff sorted??" → {actionType: "compliance_sweep", parameters: {checkType: "visa_expiry"}}

@@ -35,7 +35,7 @@ You are a database query assistant for an HR system. Generate safe, read-only Pr
 
 CORE MODELS:
 - Employee: id, userId, isActive, departmentId, jobRoleId, startDate, contractEndDate, irdNumber, taxCode, salaryAmount, hourlyRate, contractType, employmentType, siteLocation
-- User: id, email, firstName, lastName, role, phone, dateOfBirth, addressCity, addressCountry, genderOptionId
+- User: id, email, firstName, lastName, role, phone, dateOfBirth, addressCity, addressCountry, genderOptionId, managerId (self-referential for reporting structure)
 - Department: id, name, headId
 - JobRole: id, name, level
 - GenderOption: id, key, label (e.g., "male", "female", "non-binary", "prefer-not-to-say")
@@ -103,6 +103,8 @@ Common Query Examples:
 - "When is the next annual leave?" → leaveRequest model, queryType: findMany, date filter upcoming, EventCategory "Annual"
 - "What's total salary for sales?" → employee model, queryType: aggregate, SUM salaryAmount
 - "Average salary in IT?" → employee model, queryType: aggregate, AVG salaryAmount
+- "Who reports into [name]?" → user model, queryType: findMany, filter by managerId (direct reports)
+- "Who reports to [name]?" → user model, queryType: findMany, filter by managerId (direct reports)
 
 COMPUTED FIELD EXAMPLES - Age, Tenure, etc:
 - "How many employees are younger than 21?" → employee model, count, WHERE dateOfBirth > [date 21 years ago]
@@ -143,6 +145,8 @@ Important Rules:
 14. The employee model INCLUDES salaryAmount - always return it when listing employees
 15. For "next annual leave" or "upcoming leave" queries, use leaveRequest model with date filters
 16. Leave type should be included in operation (e.g., "Annual", "Sick") for category filtering
+17. CRITICAL: For "who reports into/to [name]" queries, use USER model (not employee), filter by managerId to find direct reports
+18. Reporting structure queries must identify the manager by name first, then find users with managerId = manager's userId
 `;
 
 export async function generateQuery(
@@ -1182,6 +1186,117 @@ async function executeQueryByType(
             name: true,
           },
         });
+      }
+      break;
+
+    // USER - for reporting structure queries
+    case "user":
+      if (queryType === "findMany") {
+        // Handle "who reports to X" queries
+        const managerMatch = operation.match(/managerId.*?["']([^"']+)["']/i) ||
+                           operation.match(/manager.*?name.*?["']([^"']+)["']/i) ||
+                           operation.match(/reports to.*?["']([^"']+)["']/i);
+        
+        if (managerMatch) {
+          const managerName = managerMatch[1];
+          
+          // First, find the manager by name
+          const manager = await prisma.user.findFirst({
+            where: {
+              companyId,
+              OR: [
+                { firstName: { contains: managerName, mode: 'insensitive' } },
+                { lastName: { contains: managerName, mode: 'insensitive' } },
+                {
+                  AND: [
+                    { firstName: { contains: managerName.split(' ')[0], mode: 'insensitive' } },
+                    { lastName: { contains: managerName.split(' ')[1] || managerName.split(' ')[0], mode: 'insensitive' } },
+                  ],
+                },
+              ],
+            },
+          });
+          
+          if (!manager) {
+            return {
+              error: `Manager "${managerName}" not found`,
+              directReports: [],
+              indirectReports: [],
+            };
+          }
+          
+          // Find direct reports
+          const directReports = await prisma.user.findMany({
+            where: {
+              companyId,
+              managerId: manager.id,
+            },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              role: true,
+              Employee: {
+                select: {
+                  salaryAmount: true,
+                  Department: {
+                    select: { name: true },
+                  },
+                  JobRole: {
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+            orderBy: [
+              { lastName: 'asc' },
+              { firstName: 'asc' },
+            ],
+          });
+          
+          // Find indirect reports (reports of direct reports)
+          const indirectReports = [];
+          for (const directReport of directReports) {
+            const reports = await prisma.user.findMany({
+              where: {
+                companyId,
+                managerId: directReport.id,
+              },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                Employee: {
+                  select: {
+                    salaryAmount: true,
+                    Department: {
+                      select: { name: true },
+                    },
+                    JobRole: {
+                      select: { name: true },
+                    },
+                  },
+                },
+              },
+            });
+            indirectReports.push(...reports);
+          }
+          
+          return {
+            manager: {
+              id: manager.id,
+              name: `${manager.firstName} ${manager.lastName}`,
+            },
+            directReports,
+            indirectReports,
+            totalDirectReports: directReports.length,
+            totalIndirectReports: indirectReports.length,
+            totalReports: directReports.length + indirectReports.length,
+          };
+        }
       }
       break;
 

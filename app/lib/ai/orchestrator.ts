@@ -398,8 +398,55 @@ async function handleDataQuery(
   // Format the answer with the actual data
   let answer = "";
   
+  // Check if it's a reporting structure query
+  if (result.data && typeof result.data === 'object' && 'directReports' in result.data) {
+    const { manager, directReports, indirectReports, totalDirectReports, totalIndirectReports, totalReports, error } = result.data;
+    
+    if (error) {
+      answer = `❌ ${error}`;
+    } else {
+      const managerName = manager?.name || 'Unknown Manager';
+      
+      // Start with summary
+      answer = `📊 **Reporting Structure for ${managerName}**\n\n`;
+      answer += `**Direct Reports:** ${totalDirectReports}\n`;
+      answer += `**Indirect Reports (2nd level):** ${totalIndirectReports}\n`;
+      answer += `**Total in Hierarchy:** ${totalReports}\n\n`;
+      
+      // List direct reports
+      if (directReports && directReports.length > 0) {
+        answer += `---\n\n### 👥 Direct Reports (${directReports.length})\n\n`;
+        directReports.forEach((person: any, index: number) => {
+          const name = `${person.firstName} ${person.lastName}`;
+          const dept = person.Employee?.Department?.name ? ` (${person.Employee.Department.name})` : '';
+          const role = person.Employee?.JobRole?.name ? ` - ${person.Employee.JobRole.name}` : '';
+          answer += `${index + 1}. **${name}**${dept}${role}\n`;
+          if (person.email) {
+            answer += `   📧 ${person.email}\n`;
+          }
+        });
+      } else {
+        answer += `### 👥 Direct Reports (0)\n\nNo direct reports found.\n`;
+      }
+      
+      // List indirect reports if any
+      if (indirectReports && indirectReports.length > 0) {
+        answer += `\n---\n\n### 👤 Indirect Reports - 2nd Level (${indirectReports.length})\n\n`;
+        indirectReports.slice(0, 20).forEach((person: any, index: number) => {
+          const name = `${person.firstName} ${person.lastName}`;
+          const dept = person.Employee?.Department?.name ? ` (${person.Employee.Department.name})` : '';
+          const role = person.Employee?.JobRole?.name ? ` - ${person.Employee.JobRole.name}` : '';
+          answer += `${index + 1}. ${name}${dept}${role}\n`;
+        });
+        
+        if (indirectReports.length > 20) {
+          answer += `\n...and ${indirectReports.length - 20} more indirect reports\n`;
+        }
+      }
+    }
+  }
   // If it's a count query, show the number in a conversational way
-  if (typeof result.data === 'number') {
+  else if (typeof result.data === 'number') {
     // Extract department from query if present
     const deptMatch = query.match(/(?:in|for)\s+(?:the\s+)?(\w+)\s*(?:team|department)?/i);
     const dept = deptMatch ? deptMatch[1] : null;

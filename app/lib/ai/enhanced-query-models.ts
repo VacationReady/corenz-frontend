@@ -11,9 +11,20 @@ export const ENHANCED_QUERY_MODELS = {
       "Show me all employees",
       "Find employees in [department]",
       "List employees without [field]",
-      "Who reports to [manager]",
+      "Who has the highest salary?",
     ],
     fields: ["firstName", "lastName", "email", "phone", "department", "jobRole", "startDate", "contractEndDate", "salary", "irdNumber", "taxCode", "isActive", "contractType", "employmentType"],
+  },
+  
+  user: {
+    description: "User accounts and reporting structure (manager relationships)",
+    commonQueries: [
+      "Who reports to [manager name]?",
+      "Who reports into [manager name]?",
+      "Show me [manager]'s direct reports",
+      "List [manager]'s team members",
+    ],
+    fields: ["firstName", "lastName", "email", "role", "managerId", "department", "jobRole"],
   },
   
   // Leave & Absence

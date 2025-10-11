@@ -81,7 +81,17 @@ export async function auditLog(data: AuditLogData) {
       });
     }
   } catch (error) {
-    console.warn("Failed to create audit log:", error);
+    console.error("[AUDIT] Failed to create audit log:", {
+      error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      data: {
+        entityType: data.entityType,
+        entityId: data.entityId,
+        employeeId: data.employeeId,
+        field: data.field,
+      },
+    });
     // Never throw - audit logging failures shouldn't break the main operation
   }
 }

@@ -28,12 +28,27 @@ export interface ClarificationResponse {
 
 /**
  * Analyzes a user's vague request and generates smart clarifying questions
+ * Enhanced with context-aware suggestions using live system data
  */
 export async function needsClarification(
   userMessage: string,
   conversationHistory: string,
-  systemContext: string
+  systemContext: string,
+  companyId?: string
 ): Promise<ClarificationResponse> {
+  // Parse system context to extract actionable data
+  let contextData: any = {};
+  try {
+    if (companyId) {
+      contextData = await getSystemContext(companyId);
+    }
+  } catch (error) {
+    console.error("[Conversational Intelligence] Failed to get system context:", error);
+  }
+
+  // Build data-driven suggestions context
+  const dataDrivenContext = buildDataDrivenContext(contextData, userMessage);
+
   const completion = await openai.chat.completions.create({
     model: AI_CONFIG.model,
     temperature: 0.7,
@@ -47,6 +62,7 @@ CORE PHILOSOPHY:
 - Be conversational and helpful, not robotic
 - Understand context from previous conversation
 - Suggest common use cases to help users articulate their needs
+- USE ACTUAL SYSTEM DATA to provide relevant, data-driven suggestions
 
 WHEN TO ASK FOR CLARIFICATION:
 ✅ Vague verbs: "check", "look at", "see", "show", "tell me about"
@@ -63,6 +79,9 @@ ${systemContext}
 
 ${conversationHistory}
 
+LIVE SYSTEM DATA FOR SMART SUGGESTIONS:
+${dataDrivenContext}
+
 SYSTEM KNOWLEDGE BASE:
 ${CORE_KNOWLEDGE_PROMPT}
 
@@ -71,14 +90,23 @@ ${CORE_GUARDRAILS_PROMPT}
 
 USER MESSAGE: "${userMessage}"
 
-Analyze if this needs clarification. If yes, ask a helpful question and suggest options.
-If no, explain why it's clear enough.
+IMPORTANT: When providing suggestions, use ACTUAL data from the system context above.
+
+Examples of data-driven suggestions:
+- User: "Run a compliance check"
+  Response: "What type? • IRD numbers (${contextData.employees?.withoutIRD || 0} employees missing) • Expiring contracts (${contextData.employees?.contractsExpiringSoon || 0} expiring soon) • Missing documents"
+
+- User: "Send a survey"
+  Response: "What type? • Pulse Survey (${contextData.surveys?.active || 0} currently active) • eNPS • Team Feedback • Custom"
+
+- User: "Show me action items"
+  Response: "Which ones? • Overdue (${contextData.actionItems?.overdue || 0} items) • Due today (${contextData.actionItems?.dueToday || 0} items) • Due this week (${contextData.actionItems?.dueThisWeek || 0} items)"
 
 Respond with JSON:
 {
   "needsClarification": boolean,
   "question": "conversational question to ask user (if needed)",
-  "suggestions": ["option 1", "option 2", "option 3"],
+  "suggestions": ["data-driven option 1 with numbers", "option 2 with context", "option 3"],
   "confidence": 0.0-1.0,
   "reasoning": "brief explanation"
 }`,
@@ -88,6 +116,87 @@ Respond with JSON:
   });
 
   return JSON.parse(completion.choices[0].message.content || "{}");
+}
+
+/**
+ * Build data-driven context from system data for smart suggestions
+ */
+function buildDataDrivenContext(contextData: any, userMessage: string): string {
+  if (!contextData || Object.keys(contextData).length === 0) {
+    return "No system data available";
+  }
+
+  const lowerMessage = userMessage.toLowerCase();
+  let context = "";
+
+  // Departments context
+  if (contextData.departments && contextData.departments.length > 0) {
+    context += `\nAvailable Departments: ${contextData.departments.map((d: any) => `${d.name} (${d.count} employees)`).join(", ")}`;
+  }
+
+  // Survey context
+  if (lowerMessage.includes("survey") || lowerMessage.includes("feedback")) {
+    context += `\n\nSurvey Data:`;
+    context += `\n- Active Surveys: ${contextData.surveys?.active || 0}`;
+    context += `\n- Average Response Rate: ${contextData.surveys?.avgResponseRate || 0}%`;
+    context += `\n- Survey Automation Rules: ${contextData.surveys?.automationRules || 0}`;
+    if (contextData.surveys?.recentSurveys && contextData.surveys.recentSurveys.length > 0) {
+      context += `\n- Recent: ${contextData.surveys.recentSurveys.slice(0, 3).map((s: any) => s.name).join(", ")}`;
+    }
+  }
+
+  // Performance context
+  if (lowerMessage.includes("objective") || lowerMessage.includes("goal") || lowerMessage.includes("performance") || lowerMessage.includes("review")) {
+    context += `\n\nPerformance Data:`;
+    context += `\n- Total Objectives: ${contextData.performance?.totalObjectives || 0}`;
+    context += `\n- At Risk: ${contextData.performance?.objectivesAtRisk || 0} ⚠️`;
+    context += `\n- Upcoming Meetings: ${contextData.performance?.upcomingMeetings || 0}`;
+    context += `\n- Active Review Cycles: ${contextData.performance?.activeReviewCycles || 0}`;
+  }
+
+  // Action Items context
+  if (lowerMessage.includes("action") || lowerMessage.includes("task") || lowerMessage.includes("todo") || lowerMessage.includes("overdue")) {
+    context += `\n\nAction Items:`;
+    context += `\n- Overdue: ${contextData.actionItems?.overdue || 0} ${(contextData.actionItems?.overdue || 0) > 0 ? "⚠️" : ""}`;
+    context += `\n- Due Today: ${contextData.actionItems?.dueToday || 0}`;
+    context += `\n- Due This Week: ${contextData.actionItems?.dueThisWeek || 0}`;
+    context += `\n- Total Pending: ${contextData.actionItems?.totalPending || 0}`;
+  }
+
+  // Compliance context
+  if (lowerMessage.includes("compliance") || lowerMessage.includes("check") || lowerMessage.includes("audit") || lowerMessage.includes("verify")) {
+    context += `\n\nCompliance Data:`;
+    context += `\n- Employees without IRD: ${contextData.employees?.withoutIRD || 0} ${(contextData.employees?.withoutIRD || 0) > 0 ? "⚠️" : ""}`;
+    context += `\n- Contracts expiring soon: ${contextData.employees?.contractsExpiringSoon || 0}`;
+    context += `\n- Expiring documents: ${contextData.recentActivity?.expiringDocuments || 0}`;
+  }
+
+  // Workflow context
+  if (lowerMessage.includes("workflow") || lowerMessage.includes("automation") || lowerMessage.includes("automate")) {
+    context += `\n\nWorkflow Data:`;
+    context += `\n- Active Workflows: ${contextData.workflows?.active || 0}`;
+    context += `\n- Failed (24h): ${contextData.workflows?.failed24h || 0} ${(contextData.workflows?.failed24h || 0) > 0 ? "⚠️" : ""}`;
+    context += `\n- Currently Running: ${contextData.workflows?.running || 0}`;
+  }
+
+  // Employee context
+  if (lowerMessage.includes("employee") || lowerMessage.includes("headcount") || lowerMessage.includes("staff")) {
+    context += `\n\nEmployee Data:`;
+    context += `\n- Total Employees: ${contextData.employees?.total || 0} (${contextData.employees?.active || 0} active)`;
+    context += `\n- New Hires (30 days): ${contextData.recentActivity?.newHires || 0}`;
+    if (contextData.employees?.byDepartment) {
+      const topDepts = Object.entries(contextData.employees.byDepartment)
+        .sort(([, a]: any, [, b]: any) => b - a)
+        .slice(0, 3)
+        .map(([name, count]) => `${name}: ${count}`)
+        .join(", ");
+      if (topDepts) {
+        context += `\n- Largest Departments: ${topDepts}`;
+      }
+    }
+  }
+
+  return context || "No relevant system data for this request";
 }
 
 /**

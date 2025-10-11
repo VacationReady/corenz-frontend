@@ -76,6 +76,54 @@ export interface SystemContext {
       importedAt: string;
     }>;
   };
+  surveys: {
+    total: number;
+    active: number;
+    completed: number;
+    avgResponseRate: number;
+    totalResponses: number;
+    recentSurveys: Array<{
+      id: string;
+      name: string;
+      status: string;
+      type: string;
+      responseCount: number;
+      totalSent: number;
+      responseRate: number;
+      createdAt: string;
+      deadline?: string;
+    }>;
+    automationRules: number;
+    activeAutomations: number;
+  };
+  performance: {
+    totalObjectives: number;
+    activeObjectives: number;
+    objectivesAtRisk: number;
+    completedObjectives: number;
+    avgCompletionRate: number;
+    upcomingMeetings: number;
+    activeReviewCycles: number;
+    upcomingReviews: number;
+    recentMeetings: Array<{
+      id: string;
+      type: string;
+      scheduledAt: string;
+      status: string;
+    }>;
+    objectivesByStatus: Record<string, number>;
+  };
+  actionItems: {
+    totalPending: number;
+    overdue: number;
+    dueToday: number;
+    dueThisWeek: number;
+    completedThisWeek: number;
+    byType: Record<string, number>;
+    byDepartment: Record<string, number>;
+    avgCompletionTime: number;
+    overdueByType: Record<string, number>;
+  };
 }
 
 export async function getSystemContext(companyId: string): Promise<SystemContext> {
@@ -275,6 +323,215 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
       byDepartment[dept.name] = dept._count.Employee;
     });
 
+    // ============= SURVEYS DATA =============
+    const [totalSurveys, activeSurveys, completedSurveys, surveyResponses, recentSurveysData, surveyAutomations, activeSurveyAutomations] = await Promise.all([
+      prisma.survey.count({ where: { companyId } }),
+      prisma.survey.count({ where: { companyId, status: "ACTIVE" } }),
+      prisma.survey.count({ where: { companyId, status: "COMPLETED" } }),
+      prisma.surveyResponse.count({ where: { Survey: { companyId } } }),
+      prisma.survey.findMany({
+        where: { companyId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          deadline: true,
+          createdAt: true,
+          _count: { select: { SurveyResponses: true } },
+        },
+      }),
+      prisma.automationRule.count({ where: { companyId, name: { contains: "survey", mode: "insensitive" } } }),
+      prisma.automationRule.count({ where: { companyId, name: { contains: "survey", mode: "insensitive" }, isActive: true } }),
+    ]);
+
+    // Calculate average response rate
+    const surveysWithRecipients = await prisma.survey.findMany({
+      where: { companyId, status: { not: "DRAFT" } },
+      select: {
+        _count: { select: { SurveyResponses: true } },
+      },
+    });
+    const totalPossibleResponses = surveysWithRecipients.length * activeEmployees; // Simplified calculation
+    const avgResponseRate = totalPossibleResponses > 0 ? (surveyResponses / totalPossibleResponses) * 100 : 0;
+
+    // ============= PERFORMANCE DATA =============
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    const [
+      allObjectives,
+      objectivesAtRisk,
+      completedObjectives,
+      upcomingMeetings,
+      activeReviewCycles,
+      recentMeetingsData,
+    ] = await Promise.all([
+      prisma.personalObjective.count({ where: { companyId } }),
+      prisma.personalObjective.count({ where: { companyId, status: "AT_RISK" } }),
+      prisma.personalObjective.count({ where: { companyId, status: "COMPLETED" } }),
+      prisma.performanceMeeting.count({ 
+        where: { 
+          companyId, 
+          scheduledAt: { gte: now, lte: sevenDaysFromNow },
+          status: "SCHEDULED" 
+        } 
+      }),
+      prisma.performanceReviewCycle.count({ 
+        where: { 
+          companyId, 
+          status: { in: ["ACTIVE", "IN_PROGRESS", "REVIEW_PHASE"] } 
+        } 
+      }),
+      prisma.performanceMeeting.findMany({
+        where: { companyId },
+        orderBy: { scheduledAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          scheduledAt: true,
+          status: true,
+        },
+      }),
+    ]);
+
+    // Get objectives by status for distribution
+    const objectivesByStatusData = await prisma.personalObjective.groupBy({
+      by: ["status"],
+      where: { companyId },
+      _count: true,
+    });
+    const objectivesByStatus: Record<string, number> = {};
+    objectivesByStatusData.forEach(item => {
+      objectivesByStatus[item.status] = item._count;
+    });
+
+    const activeObjectives = allObjectives - completedObjectives;
+    const avgCompletionRate = allObjectives > 0 ? (completedObjectives / allObjectives) * 100 : 0;
+
+    // ============= ACTION ITEMS DATA =============
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const weekEnd = new Date(today);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() - 7);
+
+    const [
+      totalPendingActionItems,
+      overdueActionItems,
+      dueTodayActionItems,
+      dueThisWeekActionItems,
+      completedThisWeekActionItems,
+      actionItemsByTypeData,
+      actionItemsByDepartmentData,
+    ] = await Promise.all([
+      prisma.actionItem.count({ where: { companyId, status: "PENDING" } }),
+      prisma.actionItem.count({ 
+        where: { 
+          companyId, 
+          status: "PENDING",
+          dueDate: { lt: today } 
+        } 
+      }),
+      prisma.actionItem.count({ 
+        where: { 
+          companyId, 
+          status: "PENDING",
+          dueDate: { gte: today, lt: tomorrow } 
+        } 
+      }),
+      prisma.actionItem.count({ 
+        where: { 
+          companyId, 
+          status: "PENDING",
+          dueDate: { gte: today, lt: weekEnd } 
+        } 
+      }),
+      prisma.actionItem.count({ 
+        where: { 
+          companyId, 
+          status: "COMPLETED",
+          completedAt: { gte: weekStart }
+        } 
+      }),
+      prisma.actionItem.groupBy({
+        by: ["type"],
+        where: { companyId, status: "PENDING" },
+        _count: true,
+      }),
+      prisma.actionItem.groupBy({
+        by: ["assignedToId"],
+        where: { companyId, status: "PENDING" },
+        _count: true,
+      }),
+    ]);
+
+    // Process action items by type
+    const byType: Record<string, number> = {};
+    const overdueByType: Record<string, number> = {};
+    actionItemsByTypeData.forEach(item => {
+      byType[item.type] = item._count;
+    });
+
+    // Get overdue by type
+    const overdueByTypeData = await prisma.actionItem.groupBy({
+      by: ["type"],
+      where: { 
+        companyId, 
+        status: "PENDING",
+        dueDate: { lt: today }
+      },
+      _count: true,
+    });
+    overdueByTypeData.forEach(item => {
+      overdueByType[item.type] = item._count;
+    });
+
+    // Calculate by department (need to join through Employee)
+    const byDepartmentActionItems: Record<string, number> = {};
+    for (const dept of departments) {
+      const count = await prisma.actionItem.count({
+        where: {
+          companyId,
+          status: "PENDING",
+          assignedTo: {
+            Employee: {
+              departmentId: dept.id,
+            },
+          },
+        },
+      });
+      if (count > 0) {
+        byDepartmentActionItems[dept.name] = count;
+      }
+    }
+
+    // Calculate average completion time (in days)
+    const completedItems = await prisma.actionItem.findMany({
+      where: { 
+        companyId, 
+        status: "COMPLETED",
+        completedAt: { not: undefined },
+        createdAt: { not: undefined }
+      },
+      select: {
+        createdAt: true,
+        completedAt: true,
+      },
+      take: 100, // Sample for performance
+    });
+    
+    const avgCompletionTime = completedItems.length > 0
+      ? completedItems.reduce((sum, item) => {
+          const days = (item.completedAt!.getTime() - item.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+          return sum + days;
+        }, 0) / completedItems.length
+      : 0;
+
     return {
       employees: {
         total: totalEmployees,
@@ -376,6 +633,54 @@ export async function getSystemContext(companyId: string): Promise<SystemContext
           avgSatisfactionScore: 0,
           totalParticipants: completedJourneyInstances,
         },
+      },
+      surveys: {
+        total: totalSurveys,
+        active: activeSurveys,
+        completed: completedSurveys,
+        avgResponseRate: Math.round(avgResponseRate * 10) / 10,
+        totalResponses: surveyResponses,
+        recentSurveys: recentSurveysData.map((survey) => ({
+          id: survey.id,
+          name: survey.name,
+          status: survey.status,
+          type: "pulse", // Default type since schema doesn't have type field
+          responseCount: survey._count.SurveyResponses,
+          totalSent: 100, // Placeholder - would need recipients table
+          responseRate: survey._count.SurveyResponses > 0 ? Math.round((survey._count.SurveyResponses / 100) * 100) : 0,
+          createdAt: survey.createdAt.toISOString(),
+          deadline: survey.deadline ? survey.deadline.toISOString() : undefined,
+        })),
+        automationRules: surveyAutomations,
+        activeAutomations: activeSurveyAutomations,
+      },
+      performance: {
+        totalObjectives: allObjectives,
+        activeObjectives,
+        objectivesAtRisk,
+        completedObjectives,
+        avgCompletionRate: Math.round(avgCompletionRate * 10) / 10,
+        upcomingMeetings,
+        activeReviewCycles,
+        upcomingReviews: 0, // Placeholder - would need review assignments
+        recentMeetings: recentMeetingsData.map((meeting) => ({
+          id: meeting.id,
+          type: "1-2-1", // Default type since schema doesn't have meetingType
+          scheduledAt: meeting.scheduledAt.toISOString(),
+          status: meeting.status,
+        })),
+        objectivesByStatus,
+      },
+      actionItems: {
+        totalPending: totalPendingActionItems,
+        overdue: overdueActionItems,
+        dueToday: dueTodayActionItems,
+        dueThisWeek: dueThisWeekActionItems,
+        completedThisWeek: completedThisWeekActionItems,
+        byType,
+        byDepartment: byDepartmentActionItems,
+        avgCompletionTime: Math.round(avgCompletionTime * 10) / 10,
+        overdueByType,
       },
     };
   } catch (error) {
@@ -498,6 +803,30 @@ KEY METRICS:
 - Pending leave requests: ${context.recentActivity.pendingLeave}
 - Expiring documents: ${context.recentActivity.expiringDocuments}
 - New hires (last 30 days): ${context.recentActivity.newHires}
+
+SURVEYS & FEEDBACK:
+- Total Surveys: ${context.surveys.total} (${context.surveys.active} active, ${context.surveys.completed} completed)
+- Average Response Rate: ${context.surveys.avgResponseRate}%
+- Total Responses Collected: ${context.surveys.totalResponses}
+- Survey Automation Rules: ${context.surveys.automationRules} (${context.surveys.activeAutomations} active)
+- Recent Surveys: ${context.surveys.recentSurveys.map(s => `${s.name} (${s.status}, ${s.responseRate}% response rate)`).join(", ") || "None"}
+
+PERFORMANCE MANAGEMENT:
+- Total Objectives: ${context.performance.totalObjectives} (${context.performance.activeObjectives} active, ${context.performance.objectivesAtRisk} at risk)
+- Completion Rate: ${context.performance.avgCompletionRate}%
+- Upcoming Meetings: ${context.performance.upcomingMeetings}
+- Active Review Cycles: ${context.performance.activeReviewCycles}
+- Objectives by Status: ${Object.entries(context.performance.objectivesByStatus).map(([status, count]) => `${status}: ${count}`).join(", ") || "None"}
+
+ACTION ITEMS:
+- Total Pending: ${context.actionItems.totalPending}
+- Overdue: ${context.actionItems.overdue} ${context.actionItems.overdue > 0 ? "⚠️" : ""}
+- Due Today: ${context.actionItems.dueToday}
+- Due This Week: ${context.actionItems.dueThisWeek}
+- Completed This Week: ${context.actionItems.completedThisWeek}
+- Average Completion Time: ${context.actionItems.avgCompletionTime} days
+- By Type: ${Object.entries(context.actionItems.byType).map(([type, count]) => `${type}: ${count}`).join(", ") || "None"}
+- By Department: ${Object.entries(context.actionItems.byDepartment).map(([dept, count]) => `${dept}: ${count}`).join(", ") || "Distributed"}
 
 RECENT WORKFLOW EXECUTIONS:
 ${recentWorkflowLines || "  • No workflow executions logged"}

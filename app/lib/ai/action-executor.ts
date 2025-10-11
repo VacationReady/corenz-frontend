@@ -1376,7 +1376,19 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
     };
   });
 
-  // Step 6: Show preview and ask: apply now or send for approval?
+  // Step 6: Perform risk assessment
+  const { assessBulkUpdateRisk, formatRiskAssessment } = await import('./risk-assessment');
+  
+  const riskAssessment = assessBulkUpdateRisk({
+    employeeCount: employees.length,
+    field: fieldToUpdate,
+    operation,
+    percentage,
+    value,
+    companyId: action.companyId,
+  });
+
+  // Step 7: Show preview with risk assessment and ask: apply now or send for approval?
   if (!confirmed) {
     const totalIncrease = changes.reduce((sum, c) => sum + (c.change || 0), 0);
     const avgIncrease = changes.length > 0 ? totalIncrease / changes.length : 0;
@@ -1417,21 +1429,30 @@ async function handleBulkUpdate(action: AIAction): Promise<ActionResult> {
     }
     
     previewMessage += `${preview}\n${changes.length > 5 ? `\n...and ${changes.length - 5} more\n` : ''}`;
+    
+    // Add risk assessment
+    previewMessage += `\n\n${formatRiskAssessment(riskAssessment)}\n`;
+    
     previewMessage += `\n💡 **How would you like to proceed?**\n\n`;
-    previewMessage += `• Say **"apply now"** to update immediately\n`;
-    previewMessage += `• Say **"send for approval"** to create an approval request for the CEO`;
+    if (riskAssessment.requiresApproval) {
+      previewMessage += `• **⚠️ This operation requires approval.** Say **"send for approval"** to create an approval request for the CEO\n`;
+      previewMessage += `• Or say **"cancel"** to abort this operation`;
+    } else {
+      previewMessage += `• Say **"apply now"** to update immediately\n`;
+      previewMessage += `• Say **"send for approval"** to create an approval request for the CEO`;
+    }
 
     // Store pending bulk update
     setPendingAction(action.userId, action.companyId, {
       type: "bulk_update",
-      data: { changes, fieldToUpdate, totalIncrease, avgIncrease, targetDepartment },
+      data: { changes, fieldToUpdate, totalIncrease, avgIncrease, targetDepartment, riskAssessment },
       step: 1,
     });
 
     return {
       success: true,
       requiresConfirmation: true,
-      preview: { changes, totalIncrease, avgIncrease },
+      preview: { changes, totalIncrease, avgIncrease, riskAssessment },
       message: previewMessage,
     };
   }

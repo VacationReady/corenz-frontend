@@ -65,43 +65,113 @@ ${INTENT_KNOWLEDGE_PROMPT}
 CRITICAL GUARDRAILS:
 ${INTENT_GUARDRAILS_PROMPT}
 
-AVAILABLE ACTIONS:
+AVAILABLE ACTIONS (Organized by Category):
+
+📊 DATA & ANALYTICS:
 - query_data: Find/count/analyze data ("How many...", "Show me...", "List...", "What is...", "Who is...")
+- analytics_digest: Generate workforce analytics summaries ("Give me turnover stats", "Show diversity breakdown", "Workforce trends")
+  NOTE: This consolidates analytics queries. Simple queries use query_data, complex analytics use analytics_digest.
+
+👤 EMPLOYEE MANAGEMENT:
 - update_employee: Change specific employee data ("Change X's bank to...", "Update Sarah's email...")
-- book_leave: Book holiday/leave ("Book leave for...", "Schedule holiday for...", "Book all employees annual leave...")
-- schedule_report: Schedule recurring reports ("Email CEO report every Monday...")
+- bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
+- send_activation_email: Send login activation emails to employees ("Send login invite to John", "Send activation email to Sarah")
+
+🏖️ LEAVE & TIME:
+- book_leave: Book holiday/leave for individuals or groups ("Book leave for...", "Schedule holiday for...", "Book all employees annual leave...")
+
+⚙️ WORKFLOWS & AUTOMATION:
+- create_workflow: Build automation ("Create workflow that alerts...", "Make me a workflow", "I want to create a workflow")
+- execute_workflow: Execute an existing automation now ("Run the onboarding workflow for Zoe", "Trigger workflow")
+- save_workflow: Save generated workflow ("Save this workflow", "Save it")
+- integrated_automation: Multi-system automation workflows ("Survey monthly and email managers")
+- multi_function_workflow: Complex workflows spanning multiple HR functions ("When someone joins, send welcome email and schedule survey")
+
+📋 SURVEYS & FEEDBACK:
+- create_survey: Create new surveys ("Create a pulse survey", "Build an engagement survey")
+- send_survey: Deploy surveys to employees ("Send the pulse survey to engineering", "Launch survey")
+- analyze_survey: Analyze survey results and responses ("Show me pulse survey results", "Analyze engagement data")
+- track_completion: Track who has/hasn't completed surveys ("Who hasn't completed the survey?", "Show completion rates")
+- digest_results: Generate insights from survey data ("Summarize survey feedback", "What are the key findings?")
+- survey_status: Check status of active surveys ("What surveys are running?", "Survey status")
+- create_survey_automation: Build automated survey workflows ("Send eNPS survey monthly and email results")
+- create_complex_automation: Multi-step automation combining surveys, workflows, and communications
+
+🗂️ FORMS & FIELDS:
 - add_field: Add custom field to existing form ("Add 'Shirt Size' field...")
 - create_form: Build complete new form ("Create a feedback form", "Build an onboarding form")
 - deploy_form: Save generated form ("Deploy this form", "Create it")
-- create_workflow: Build automation ("Create workflow that alerts...", "Make me a workflow", "I want to create a workflow", "Build a workflow", "Can you make me a workflow")
-- create_survey_automation: Build automated survey workflows ("Send eNPS survey monthly and email results", "Automate pulse surveys every 30 days", "Set up recurring engagement surveys", "Build workflow to send surveys and email results")
-- create_complex_automation: Multi-step automation combining surveys, workflows, and communications ("Send survey monthly, anonymize by department, email results", "Automate employee lifecycle workflows")
-- conversational_guidance: User needs intelligent questions and guidance ("I want to send surveys", "Help me with onboarding", "I need to automate something")
-- integrated_automation: Multi-system automation workflows ("Survey monthly and email managers", "Onboard with forms and notifications")
-- multi_function_workflow: Complex workflows spanning multiple HR functions ("When someone joins, send welcome email and schedule survey")
-- smart_bulk_operations: Intelligent bulk actions with conditions ("Give sales a raise but get approval first")
-- intelligent_communications: Smart, targeted communications ("Email managers about policy but customize by department")
 - dynamic_form_building: Conversational form creation with logic ("Create form that changes based on department")
-- save_workflow: Save generated workflow ("Save this workflow", "Save it")
-- csv_help: General CSV import guidance ("Help with CSV", "CSV import help", "How do I import employees")
-- csv_template: Generate CSV template ("Show me CSV template", "Create CSV template", "CSV template with fields")
-- csv_errors: Analyze CSV import errors ("CSV import errors", "Why is my CSV failing", "Fix CSV import")
-- csv_mapping: Map CSV fields to system fields ("Map my CSV fields", "Field mapping for CSV")
-- send_email: Send one-off emails ("Email all managers about...")
-- send_activation_email: Send login activation emails to employees ("Send login invite to John", "Send activation email to Sarah", "Send login invite to x y z")
-- bulk_update: Update multiple employees at once ("Give everyone in sales a 10% raise", "Set all IT to remote")
+
+📄 DOCUMENTS:
+- upload_document: Upload and assign documents ("Assign this to Michael", "Upload employment contract")
 - bulk_document: Assign documents to multiple employees ("Send contract to all new hires", "Assign policy to everyone")
-- bulk_notification: Send notifications to groups ("Notify all managers", "Alert sales team")
-- bulk_workflow: Run workflows for multiple employees ("Run onboarding for new hires", "Send reminders to all")
-- execute_workflow: Execute an existing automation now ("Run the onboarding workflow for Zoe", "Trigger the visa alert workflow")
-- upload_document: Upload and assign documents ("Assign this to Michael", "Upload employment contract for Sarah")
-- modify_settings: Change system config ("Change probation to 120 days...")
-- compliance_sweep: Run proactive compliance checks ("Check all visa expiries", "Find missing documents", "Run compliance check")
-- analytics_digest: Generate workforce analytics summaries ("Give me turnover stats", "Show diversity breakdown", "Workforce trends")
+
+💬 COMMUNICATIONS:
+- send_email: Send one-off emails ("Email all managers about...")
 - targeted_comms: Send targeted communications to groups ("Email all managers about policy", "Send reminder to Sales team")
-- policy_rollout: Announce and track policy changes ("Roll out new leave policy", "Announce WFH policy to Engineering")
-- check_approval_status: Check status of user's approval requests ("Check approval status", "Has my request been approved?", "Show my approval requests")
-- list_pending_approvals: List all pending approvals company-wide ("Show all pending approvals", "What needs approval?", "List approval requests")
+- intelligent_communications: Smart, targeted communications with customization ("Email managers but customize by department")
+- bulk_notification: Send notifications to groups ("Notify all managers", "Alert sales team")
+- policy_rollout: Announce and track policy changes ("Roll out new leave policy", "Announce WFH policy")
+
+✅ COMPLIANCE & AUDITS:
+- compliance_sweep: Run proactive compliance checks
+  Patterns: "compliance check", "audit", "verify", "validate", "check if everyone", "who is missing", 
+           "find employees without", "ensure all", "sweep", "check all visa", "verify documents"
+  Examples: ("Check all visa expiries", "Find missing documents", "Run compliance check", "Audit IRD numbers",
+            "Verify everyone has signed contracts", "Ensure all employees have emergency contacts")
+
+🎯 PERFORMANCE:
+- create_objective: Create new objectives/OKRs
+- update_objective: Update objective progress or details
+- view_objectives: View objectives and goals
+- schedule_one_to_one: Schedule 1-2-1 meetings
+- create_review_cycle: Start 360° review cycles
+- track_action_items: Track action items from meetings
+- performance_analytics: Analyze performance data
+- performance_help: General performance management guidance
+
+📌 ACTION ITEMS:
+- action_items_help: Explain action items system capabilities
+- action_items_overview: Show action items status and stats
+- action_items_integrations: Explain what integrates with action items
+- action_items_performance: Explain performance review integration
+- action_items_admin: Explain admin dashboard and capabilities
+- action_items_filter: Help with filtering and finding specific items
+- action_items_reminder: Send reminders for action items
+- action_items_export: Export action items data
+
+🗺️ JOURNEYS:
+- create_journey: Create new employee journey templates
+- optimize_journey: Improve existing journeys with AI suggestions
+- add_experience_block: Add blocks to journeys (surveys, training, meetings)
+- create_experiment: Create A/B tests for journey optimization
+- analyze_performance: Analyze journey metrics and completion rates
+- suggest_improvements: Get AI-powered journey optimization suggestions
+- add_decision_gateway: Add conditional logic and routing to journeys
+- generate_content: Generate content for journey blocks
+- journey_design: General journey design requests
+
+📊 CSV IMPORTS:
+- csv_help: General CSV import guidance ("Help with CSV", "CSV import help")
+- csv_template: Generate CSV template ("Show me CSV template", "Create CSV template")
+- csv_errors: Analyze CSV import errors ("CSV import errors", "Why is my CSV failing")
+- csv_mapping: Map CSV fields to system fields ("Map my CSV fields", "Field mapping for CSV")
+
+🔄 BULK OPERATIONS:
+- smart_bulk_operations: Intelligent bulk actions with conditions ("Give sales a raise but get approval first")
+- bulk_workflow: Run workflows for multiple employees ("Run onboarding for new hires")
+
+✔️ APPROVALS:
+- check_approval_status: Check status of user's approval requests
+- list_pending_approvals: List all pending approvals company-wide
+
+💡 CONVERSATIONAL:
+- conversational_guidance: User needs intelligent questions and guidance ("I want to send surveys", "Help me with onboarding")
+
+⚙️ SYSTEM:
+- modify_settings: Change system config
+- schedule_report: Schedule recurring reports
 - create_survey: Create new surveys ("Create a pulse survey", "Build an engagement survey", "Make a feedback form")
 - send_survey: Deploy surveys to employees ("Send the pulse survey to engineering", "Launch the engagement survey", "Deploy survey to all employees")
 - analyze_survey: Analyze survey results and responses ("Show me pulse survey results", "Analyze engagement data", "Survey analytics")

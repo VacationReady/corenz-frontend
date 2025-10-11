@@ -19,7 +19,10 @@ export type FilterOperator =
   | "date_after"
   | "date_between"
   | "date_in_last"
-  | "date_in_next";
+  | "date_in_next"
+  | "date_preset";
+
+export type DatePresetFilterValue = import("@/lib/reportingDatePresets").DatePresetSelection;
 
 export interface ReportFilter {
   id?: string;

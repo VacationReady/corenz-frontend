@@ -5,6 +5,7 @@ import { getFieldByKey } from "@/lib/hrReportFields";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
+import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ const allowedOperators = [
 	"equals","not_equals","contains","not_contains","starts_with","ends_with",
 	"greater_than","less_than","greater_than_equal","less_than_equal","between",
 	"is_null","is_not_null","in","not_in",
-	"date_equals","date_before","date_after","date_between","date_in_last","date_in_next",
+        "date_equals","date_before","date_after","date_between","date_in_last","date_in_next","date_preset",
 ] as const;
 
 type Operator = typeof allowedOperators[number];
@@ -234,13 +235,15 @@ export async function POST(req: Request) {
                         enforcedFilters.push({ field, operator, value });
                 }
 
-		// Build and execute the constrained query
-		const { queries } = buildDynamicQuery({
-			selectedFields: sanitizedSelectedFields,
-			filters: enforcedFilters,
-			pagination,
-			sort: translatedSort,
-		});
+                const timeConfig = await resolveReportingTimeConfig(session.user.id, companyId);
+
+        // Build and execute the constrained query
+                const { queries } = buildDynamicQuery({
+                        selectedFields: sanitizedSelectedFields,
+                        filters: enforcedFilters,
+                        pagination,
+                        sort: translatedSort,
+                }, { timeZone: timeConfig.timeZone });
 
                 if (queries.length === 0) {
                         return NextResponse.json({ status: "success", message: "No data", data: [], total: 0 });

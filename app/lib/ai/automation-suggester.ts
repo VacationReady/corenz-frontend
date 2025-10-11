@@ -63,7 +63,7 @@ export function analyzePatterns(conversationHistory: Message[]): {
   });
 
   // Find most repeated pattern
-  let maxPattern: { query: string; count: number; timestamps: Date[] } | null = null;
+  let maxPattern: { query: string; count: number; timestamps: Date[] } | undefined = undefined;
   
   queryGroups.forEach((data, query) => {
     if (data.count >= 3) { // Minimum 3 occurrences to suggest automation

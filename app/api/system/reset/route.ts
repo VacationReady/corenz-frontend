@@ -302,6 +302,7 @@ export async function POST() {
       action: "RESET",
       actorId: currentUserId,
       actorType: "USER",
+      companyId: companyId,
       summary: `Company data reset by ${resetActor}`,
       metadata: {
         resetBy: resetActor,
